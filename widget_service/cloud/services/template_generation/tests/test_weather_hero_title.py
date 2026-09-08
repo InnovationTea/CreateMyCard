@@ -58,7 +58,7 @@ def test_weather_hero_title_has_no_required_weather_value() -> None:
         ((), None),
     ],
 )
-def test_weather_hero_title_keeps_optional_branches_and_left_right_layout(
+def test_weather_hero_title_keeps_optional_branches_and_compact_layout(
     location_bindings: dict[str, str],
     props: dict[str, str],
     expected_location: str,
@@ -76,15 +76,18 @@ def test_weather_hero_title_keeps_optional_branches_and_left_right_layout(
         assert binding is not None
         bindings[name] = binding
     root = _instantiate_blueprint(
-        definition.variants[0].root, props, bindings, {"primaryColor": "#FF1F4799"}
+        definition.variants[0].root,
+        props,
+        bindings,
+        {"supportContentColor": "#991F4799"},
     )
     assert root.component_type == "Row"
     options: Any = root.values[-1]
     assert isinstance(options, dict)
     assert options.get("_advancedComponent") == "WeatherOverview"
-    assert options.get("height") == 24
+    assert options.get("height") == 18
     assert options.get("itemMargin") == 4
-    assert options.get("justifyContent") == "spaceBetween"
+    assert options.get("justifyContent") == "start"
     assert options.get("alignItems") == "top"
     assert options.get("clip") is True
     assert all(child.component_type == "Text" for child in root.children)
@@ -96,7 +99,7 @@ def test_weather_hero_title_keeps_optional_branches_and_left_right_layout(
     assert city_options.get("maxLines") == 1
     assert city_options.get("textOverflow") == "ellipsis"
     for child in root.children:
-        assert child.values[-1].get("fontSize") == 14
-        assert child.values[-1].get("fontColor") == "#FF1F4799"
+        assert child.values[-1].get("fontSize") == 12
+        assert child.values[-1].get("fontColor") == "#991F4799"
     if expected_weather is not None:
         assert root.children[1].values[-1].get("flexShrink") == 0

@@ -14,8 +14,15 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_bluetooth_device_overview_facts,
 )
 
+from .business_actions import supports_business_action
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
-from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
+from .models import (
+    CARDTPL_SOURCE_FORMATS,
+    ActionBinding,
+    Fact,
+    HybridBodyContract,
+    HybridLimits,
+)
 from .provider_bundle import (
     provider_template_admission,
     provider_template_family_identity,
@@ -77,10 +84,18 @@ _ASSET_SEMANTIC_TERMS = {
     "pulse": ("pulse", "bpm", "脉搏", "心率"),
     "call": ("call", "phone", "电话", "拨打"),
     "weather": ("weather", "天气"),
+    "weather-condition": ("晴天", "天气降雨", "台风", "大风提醒"),
+    "weather-indicator": (
+        "晴天", "天气降雨", "台风", "大风提醒", "体感温度", "天气温度", "当前气温",
+    ),
+    "sleep": ("sleep", "睡眠", "月亮"),
     "alert": ("alert", "warning", "预警", "警告"),
     "product": ("product", "earphone", "headphone", "耳机"),
     "audio": ("audio", "music", "earphone", "headphone", "音频", "音乐", "耳机"),
     "earphone": ("earphone", "earbud", "headphone", "耳机", "耳塞"),
+    "earphone-body": ("耳机本体", "左右分体", "earphone body", "earbuds body"),
+    "earphone-case": ("耳机收纳盒", "耳机充电盒", "earphone case", "earbud case"),
+    "app-icon": ("应用图标", "品牌", "app icon"),
     "phone-device": ("smartphone", "phone icon", "icon_phone", "手机图标"),
     "music": ("music", "playlist", "音乐", "歌单"),
     "favorite": ("favorite", "like", "heart", "收藏", "心动", "心形"),
@@ -421,10 +436,12 @@ def _system_prompt(
                         contract,
                     )
                 params[name] = parameter
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             call = f"Template({wire_id!r}, props)"
             if ux_layout_root:
                 layout_kind = provider_template_layout_kind(wire_id)
@@ -566,10 +583,12 @@ def build_template_prompt_contracts(
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             properties = variant.parameters_schema.get("properties", {})
             parameter_sources: dict[str, dict[str, Any]] = {}
             for name, schema in properties.items():
@@ -581,6 +600,15 @@ def build_template_prompt_contracts(
                         definition,
                         contract,
                     )
+                if name == "actionId" and definition.business_id is not None:
+                    allowed_action_ids: list[str] = []
+                    for action in contract.action_bindings:
+                        if action.action_id not in contract.content_action_ids:
+                            continue
+                        if supports_business_action(definition, action, task_spec.size):
+                            allowed_action_ids.append(action.action_id)
+                    source_contract["allowedActionIds"] = allowed_action_ids
+                    source_contract["supportedEventIds"] = definition.supported_event_ids
                 parameter_sources[name] = source_contract
             prompt_contracts.append(
                 {
@@ -622,6 +650,8 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
             'Template("IconAction@1", props)，WideFull 不允许 Action；Support 仅使用内部 '
             "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"
+            "actionId 只能来自该模板 parameterSources.actionId.allowedActionIds，"
+            "空列表必须省略；事件还须与所展示城市或日程项一致。"
             "HeroTitle/HeroContent 仅允许按位置组合到 HeroTitleContentActionLayout；"
             "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )
@@ -1202,6 +1232,16 @@ def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
             )
         )
     return tuple(actions)
+
+
+def action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
+    """从完整候选构造稳定动作实例，供 Planner 和 Prompt 共用。"""
+    return _build_action_bindings(task_spec)
+
+
+def action_binding_ids(task_spec: TaskSpec) -> tuple[str, ...]:
+    """Return stable per-occurrence Action IDs used by prompt and compiler contracts."""
+    return tuple(action.action_id for action in action_bindings(task_spec))
 
 
 def _asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:
