@@ -16,11 +16,13 @@ data = {
 Column({
   "width": "matchParent",
   "height": "matchParent",
-  "itemMargin": 8
+  "itemMargin": 8,
+  "justifyContent": "start",
+  "alignItems": "center",
 },
   Column({
     "width": "matchParent",
-    "height": 92
+    "layoutWeight": 1
   }, children[0]),
   Column({
     "width": "matchParent",
@@ -51,11 +53,12 @@ data = {
 Column({
   "width": "matchParent",
   "height": "matchParent",
-  "itemMargin": 8
+  "justifyContent": "spaceBetween",
+  "alignItems": "center",
 },
   Column({
     "width": "matchParent",
-    "height": 48
+    "layoutWeight": 1
   }, children[0]),
   Column({
     "width": "matchParent",
@@ -100,6 +103,42 @@ Column({
     "borderRadius": $theme("supportContentStyle.borderRadius"),
   }, children[1])
 )
+#End
+
+#Template HeroTitleContentActionLayout@1(props: {}, ...children)
+data = {
+}
+
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "justifyContent": "spaceBetween",
+  "alignItems": "center",
+},
+  Column({
+    "width": "matchParent",
+    "itemMargin": 4,
+    "layoutWeight": 1,
+  },
+    Column({
+      "width": "matchParent",
+      "height": 24,
+      "justifyContent": "start",
+      "alignItems": "center",
+    }, children[0]),
+    Column({
+      "width": "matchParent",
+      "layoutWeight": 1,
+      "justifyContent": "start",
+      "alignItems": "center",
+    }, children[1])
+  ),
+  Column({
+    "width": "matchParent",
+    "height": 36
+  }, children[2]),
+)
+
 #End
 
 #Template WideSingleFocusLayout@1(props: {}, ...children)

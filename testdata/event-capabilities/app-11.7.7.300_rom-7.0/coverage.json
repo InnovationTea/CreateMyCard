@@ -1,0 +1,115 @@
+{
+  "baselineVersion": "app-11.7.5.205_rom-6.0",
+  "targetVersion": "app-11.7.7.300_rom-7.0",
+  "size": "2x4",
+  "cardCount": 15,
+  "eventCount": 30,
+  "eventsPerCard": 2,
+  "cards": [
+    {
+      "file": "event-test-01.dat",
+      "eventIds": [
+        "event.setMobileData",
+        "event.open.settings.dndMode"
+      ]
+    },
+    {
+      "file": "event-test-02.dat",
+      "eventIds": [
+        "event.open.settings.sleepMode",
+        "event.open.settings.studyMode"
+      ]
+    },
+    {
+      "file": "event-test-03.dat",
+      "eventIds": [
+        "event.open.settings.mobileNetwork",
+        "event.open.settings.wifi"
+      ]
+    },
+    {
+      "file": "event-test-04.dat",
+      "eventIds": [
+        "event.open.settings.mobileData",
+        "event.open.settings.simManagement"
+      ]
+    },
+    {
+      "file": "event-test-05.dat",
+      "eventIds": [
+        "event.open.settings.hotspot",
+        "event.open.settings.dataUsage"
+      ]
+    },
+    {
+      "file": "event-test-06.dat",
+      "eventIds": [
+        "event.open.clock.worldClock",
+        "event.open.clock.alarmTab"
+      ]
+    },
+    {
+      "file": "event-test-07.dat",
+      "eventIds": [
+        "event.open.clock.stopwatch",
+        "event.open.clock.timer"
+      ]
+    },
+    {
+      "file": "event-test-08.dat",
+      "eventIds": [
+        "event.open.health.sportsRecord",
+        "event.open.health.activityRecord"
+      ]
+    },
+    {
+      "file": "event-test-09.dat",
+      "eventIds": [
+        "event.open.health.workoutDuration",
+        "event.open.contacts.callLog"
+      ]
+    },
+    {
+      "file": "event-test-10.dat",
+      "eventIds": [
+        "event.open.settings.darkMode",
+        "event.setNearLinkMode"
+      ]
+    },
+    {
+      "file": "event-test-11.dat",
+      "eventIds": [
+        "event.setBluetoothMode",
+        "event.setWifiMode"
+      ]
+    },
+    {
+      "file": "event-test-12.dat",
+      "eventIds": [
+        "event.setLocationSwitch",
+        "event.setScreenUseTimeManageSwitch"
+      ]
+    },
+    {
+      "file": "event-test-13.dat",
+      "eventIds": [
+        "event.setMicPermissionSwitch",
+        "event.setSoundMode"
+      ]
+    },
+    {
+      "file": "event-test-14.dat",
+      "eventIds": [
+        "event.openFlashlight",
+        "event.closeFlashlight"
+      ]
+    },
+    {
+      "file": "event-test-15.dat",
+      "eventIds": [
+        "event.openCamera",
+        "event.viewNote"
+      ]
+    }
+  ]
+}

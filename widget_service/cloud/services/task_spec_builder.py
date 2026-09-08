@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from app.logger import json_for_log, logger
+from config.config import get_settings
 from core.json_pointer import parse_json_pointer
 from models.capability import AssetCapability, DataCapability
 from models.generation import CandidateDataBinding, EventAction, TaskSpec, WidgetSize
@@ -120,10 +121,27 @@ class TaskSpecBuilder:
             eventCandidates=event_candidates,
             dataModelSchema=data_model_schema,
             assetCandidates=[
-                {"id": item.id, "src": item.src, "description": item.description}
+                {
+                    "id": item.id,
+                    "src": self._resolve_asset_src(item.src),
+                    "description": item.description,
+                }
                 for item in asset_candidates
             ],
         )
+
+    @staticmethod
+    def _resolve_asset_src(src: str) -> str:
+        """按 IAC 注入的 src→url 映射把端侧资源路径替换为云侧 url。
+
+        命中映射返回 url，未命中（无配置或素材未映射）回退原 src，保证兼容性。
+        """
+        if not src:
+            return src
+        mapping = get_settings().asset_src_url_mapping
+        if not mapping:
+            return src
+        return mapping.get(src, src)
 
     @classmethod
     def _event_data_reference_paths(cls, events: list[EventAction]) -> set[str]:

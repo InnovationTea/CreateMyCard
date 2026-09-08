@@ -181,7 +181,8 @@ SourceArtifactRepository.load(sourceArtifactUrl)
 
 ```text
 11.7.5.205 + 6.0
-→ app-11.7.5.205_rom-6.0
+→ 未直接命中 registry_ranges.json
+→ 默认回退开关开启时使用 app-11.7.5.205_rom-6.0
 ```
 
 未命中版本目录且默认回退开关开启时，使用配置中的默认能力目录。

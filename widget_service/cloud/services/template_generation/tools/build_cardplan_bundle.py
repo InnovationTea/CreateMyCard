@@ -22,7 +22,7 @@ PROMPT_GROUPS = {
         "hybrid-body-generator",
     ),
     "ux_mixed": (
-        "ux-mixed-prompt/0.12",
+        "ux-mixed-prompt/0.15",
         "tersedsl-nested-2-ux-mixed/0.5",
         "ux-mixed-generator",
     ),

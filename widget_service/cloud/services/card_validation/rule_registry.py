@@ -29,6 +29,9 @@ class RuleRegistry:
         self.event_schema = self._load_json(self.schemas_dir / "event.click.schema.json", {})
         self.allowed_components = set(self.protocol.get("allowedComponents", []))
         self.asset_allowlist = set(self.asset.get("allowlist", []))
+        # 静态 JSON 白名单 + IAC 注入动态白名单并集，供 asset_validator 放行白名单域名 url。
+        asset_allowed_hosts = set(self.asset.get("allowedRemoteHosts", []))
+        self.asset_allowed_hosts = asset_allowed_hosts
 
     def _load_json(self, path: Path, fallback: Any) -> Any:
         if not path.exists():

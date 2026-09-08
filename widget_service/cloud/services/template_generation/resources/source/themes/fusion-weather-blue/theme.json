@@ -21,6 +21,10 @@
     "backgroundColor": "#33FFFFFF",
     "contentColor": "#FFCCDDFF"
   },
+  "supportContentStyle": {
+    "backgroundColor": "#1ACCEEFF",
+    "borderRadius": 12
+  },
   "fusionBallStyle": {
     "scene": "weather",
     "businessIds": ["WeatherOverview"],

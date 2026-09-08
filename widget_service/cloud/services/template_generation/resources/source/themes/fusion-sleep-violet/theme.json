@@ -5,8 +5,10 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetHealthAndSportSummary"],
   "paletteSceneIds": ["fusion.sleep"],
-  "primaryColor": "#FFD9CCFF",
+  "primaryColor": "#E6FFFFFF",
   "supportContentColor": "#99D9CCFF",
+  "progressColor": "#FFE5E5E5",
+  "progressBackgroundColor": "#33FFFFFF",
   "rootStyle": {
     "backgroundColor": "#FF2B2459",
     "borderRadius": 20,
@@ -19,7 +21,7 @@
   },
   "actionStyle": {
     "backgroundColor": "#33FFFFFF",
-    "contentColor": "#FFD9CCFF"
+    "contentColor": "#E6FFFFFF"
   },
   "fusionBallStyle": {
     "scene": "sleep",

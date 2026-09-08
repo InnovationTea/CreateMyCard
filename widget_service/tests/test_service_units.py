@@ -20,16 +20,29 @@ from pydantic import ValidationError
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 APP_VERSION = ".".join(("11", "7", "5", "205"))
+APP_VERSION_11_7_7_300 = ".".join(("11", "7", "7", "300"))
+APP_VERSION_11_7_7_328 = ".".join(("11", "7", "7", "328"))
+APP_VERSION_11_7_7_329 = ".".join(("11", "7", "7", "329"))
+APP_VERSION_11_7_7_330 = ".".join(("11", "7", "7", "330"))
+APP_VERSION_11_7_7_331 = ".".join(("11", "7", "7", "331"))
+APP_VERSION_11_7_7_332 = ".".join(("11", "7", "7", "332"))
 APP_VERSION_11_8 = ".".join(("11", "8", "0", "0"))
 APP_VERSION_11_9 = ".".join(("11", "9", "9", "999"))
 APP_VERSION_12 = ".".join(("12", "0", "0", "0"))
 ROM_VERSION_6 = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
-ROM_VERSION_6_3 = "CLS-AL30 " + ".".join(("6", "3", "1", "20"))
-ROM_VERSION_6_9 = "CLS-AL30 " + ".".join(("6", "9", "0", "1"))
+ROM_VERSION_7_0 = "ALN-AL00 " + ".".join(("7", "0", "0", "100"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
+ROM_VERSION_7_2 = "ALN-AL00 " + ".".join(("7", "2", "0", "100"))
 ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
-REGISTRY_VERSION_7 = f"app-{APP_VERSION}_rom-7.1"
+REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
+PHASE_TWO_DATA_CAPABILITY_IDS = (
+    "GetMemoData",
+    "GetPhoneCallRecords",
+    "GetCurrentTime",
+    "GetAppPowerConsumptionRanking",
+    "GetDailyMostUsage",
+)
 
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
@@ -37,6 +50,7 @@ if str(CLOUD_ROOT) not in sys.path:
 from core.errors import ErrorCode, GenerationStatus
 from api.schemas import (
     CapabilityOverviewRequest,
+    CandidateEventCandidate,
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
 )
@@ -94,6 +108,10 @@ from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
 from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
+from services.compact_dsl_argument_repair import (
+    ConsecutiveArgumentIssueTracker,
+    _build_repair_prompt,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -587,6 +605,29 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     assert Settings(_env_file=None).enable_widget_directive_commands is False
 
 
+def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
+    monkeypatch.delenv(
+        "WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK",
+        raising=False,
+    )
+    settings = Settings(_env_file=None)
+
+    assert settings.enable_compact_dsl_argument_repair_fallback is False
+    assert settings.compact_dsl_argument_repair_reminder_count == 1
+    assert settings.compact_dsl_argument_repair_max_attempts == 2
+
+
+def test_consecutive_argument_issue_tracker_counts_per_request_and_resets():
+    tracker = ConsecutiveArgumentIssueTracker()
+
+    assert tracker.record("request-a", 2) == (1, False)
+    assert tracker.record("request-b", 2) == (1, False)
+    assert tracker.record("request-a", 2) == (2, False)
+    assert tracker.record("request-a", 2) == (3, True)
+    tracker.reset("request-a")
+    assert tracker.record("request-a", 2) == (1, False)
+
+
 def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
     monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
 
@@ -598,20 +639,6 @@ def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.enable_validation_failure_retry is True
-
-
-def test_edit_system_prompt_file_can_be_overridden(tmp_path):
-    """验证编辑提示词配置支持绝对文件路径。"""
-    prompt_file = tmp_path / "custom_edit_prompt.txt"
-    prompt_file.write_text("自定义编辑提示词", encoding="utf-8")
-
-    settings = Settings(
-        _env_file=None,
-        edit_system_prompt_file=str(prompt_file),
-    )
-
-    assert settings.resolved_edit_system_prompt_file == prompt_file
-    assert settings.edit_system_prompt == "自定义编辑提示词"
 
 
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
@@ -835,42 +862,340 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
 
 
 @pytest.mark.parametrize(
-    ("app_version", "rom_version"),
+    ("app_version", "rom_version", "expected_registry"),
     [
-        (APP_VERSION, ROM_VERSION_6),
-        (APP_VERSION_11_8, ROM_VERSION_6_3),
-        (APP_VERSION_11_9, ROM_VERSION_6_9),
+        (APP_VERSION, ROM_VERSION_7_0, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_328, ROM_VERSION_7, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_329, ROM_VERSION_7, REGISTRY_VERSION_6),
+        ("11.7.7.329.999", ROM_VERSION_7, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_330, ROM_VERSION_7_0, REGISTRY_VERSION_7),
+        (APP_VERSION_11_8, ROM_VERSION_7, REGISTRY_VERSION_7),
+        (APP_VERSION_11_9, "ALN-AL00 7.9.0.1", REGISTRY_VERSION_7),
     ],
 )
-def test_capability_registry_matches_app_rom_interval(app_version, rom_version):
-    assert CapabilityRegistry.from_app_rom_versions(app_version, rom_version) == REGISTRY_VERSION_6
+def test_capability_registry_matches_app_rom_interval(
+    app_version,
+    rom_version,
+    expected_registry,
+):
+    selected = CapabilityRegistry.from_app_rom_versions(app_version, rom_version)
+
+    assert selected == expected_registry
+
+
+def test_capability_registry_range_file_matches_main_configuration():
+    range_file = CLOUD_ROOT / "data" / "capabilities" / "registry_ranges.json"
+    payload = json_module.loads(range_file.read_text(encoding="utf-8"))
+
+    assert payload == {
+        "schemaVersion": "v1",
+        "ranges": [
+            {
+                "registryVersion": REGISTRY_VERSION_6,
+                "appVersion": {
+                    "minInclusive": APP_VERSION,
+                    "maxExclusive": APP_VERSION_11_7_7_330,
+                },
+                "romVersion": {
+                    "minInclusive": "7.0",
+                    "maxExclusive": "7.2",
+                },
+            },
+            {
+                "registryVersion": REGISTRY_VERSION_7,
+                "appVersion": {
+                    "minInclusive": APP_VERSION_11_7_7_330,
+                    "maxExclusive": APP_VERSION_12,
+                },
+                "romVersion": {
+                    "minInclusive": "7.0",
+                    "maxExclusive": "8.0",
+                },
+            },
+        ],
+    }
+
+
+def test_new_capability_registry_is_a_complete_snapshot():
+    old_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    new_registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
+
+    old_data_ids = {item.id for item in old_registry.list_data_capabilities()}
+    new_data_ids = {item.id for item in new_registry.list_data_capabilities()}
+    old_event_ids = {item.id for item in old_registry.list_event_capabilities()}
+    new_event_ids = {item.id for item in new_registry.list_event_capabilities()}
+    old_asset_ids = {item.id for item in old_registry.list_asset_capabilities()}
+    new_asset_ids = {item.id for item in new_registry.list_asset_capabilities()}
+
+    assert (len(old_data_ids), len(old_event_ids), len(old_asset_ids)) == (6, 18, 72)
+    assert (len(new_data_ids), len(new_event_ids), len(new_asset_ids)) == (11, 48, 72)
+    assert old_data_ids <= new_data_ids
+    assert old_event_ids <= new_event_ids
+    assert old_asset_ids <= new_asset_ids
+
+
+def _data_capability_parameters(
+    registry: CapabilityRegistry,
+) -> dict[str, dict[str, object]]:
+    result = {}
+    for capability in registry._load_data_capabilities():
+        properties = capability.inputSchema.get("properties", {})
+        required = capability.inputSchema.get("required", [])
+        assert isinstance(properties, dict)
+        assert isinstance(required, list)
+        parameters = {}
+        for name, schema in properties.items():
+            assert isinstance(schema, dict)
+            parameters[name] = {
+                "type": schema.get("type"),
+                "required": name in required,
+            }
+            for constraint in ("minLength", "minimum", "maximum"):
+                if constraint in schema:
+                    parameters[name][constraint] = schema.get(constraint)
+        result[capability.id] = {
+            "enabled": capability.enabled,
+            "parameters": parameters,
+        }
+    return result
+
+
+def test_capability_registry_snapshots_expose_expected_data_parameters():
+    shared_parameters = {
+        "ViewWeather": {
+            "enabled": True,
+            "parameters": {
+                "districtName": {"type": "string", "required": False, "minLength": 1},
+                "prefectureName": {"type": "string", "required": True, "minLength": 1},
+                "forecastDays": {
+                    "type": "integer",
+                    "required": False,
+                    "minimum": 1,
+                    "maximum": 5,
+                },
+            },
+        },
+        "GetCalendarEvents": {
+            "enabled": True,
+            "parameters": {"futureDays": {"type": "integer", "required": False}},
+        },
+        "GetCountdownDays": {
+            "enabled": True,
+            "parameters": {"targetDate": {"type": "string", "required": True}},
+        },
+        "GetAppUsageDuration": {
+            "enabled": False,
+            "parameters": {"appBundleName": {"type": "string", "required": True}},
+        },
+        "GetEarphoneInfo": {"enabled": True, "parameters": {}},
+        "GetPhoneBatteryInfo": {"enabled": True, "parameters": {}},
+        "GetHealthAndSportSummary": {
+            "enabled": True,
+            "parameters": {
+                "targetDayOffset": {"type": "integer", "required": False}
+            },
+        },
+    }
+    new_parameters = {
+        "GetMemoData": {"enabled": True, "parameters": {}},
+        "GetPhoneCallRecords": {
+            "enabled": True,
+            "parameters": {"callRecordType": {"type": "integer", "required": False}},
+        },
+        "GetCurrentTime": {"enabled": True, "parameters": {}},
+        "GetAppPowerConsumptionRanking": {
+            "enabled": True,
+            "parameters": {"limit": {"type": "integer", "required": False}},
+        },
+        "GetDailyMostUsage": {
+            "enabled": True,
+            "parameters": {"topN": {"type": "integer", "required": False}},
+        },
+    }
+
+    old_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    new_registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
+
+    assert _data_capability_parameters(old_registry) == shared_parameters
+    assert _data_capability_parameters(new_registry) == shared_parameters | new_parameters
+
+
+def test_phase_two_version_returns_phase_two_capability_overview():
+    service = WidgetGenerationService()
+    phase_one_request = CapabilityOverviewRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_328,
+        device={"romVersion": ROM_VERSION_7},
+    )
+    phase_two_request = CapabilityOverviewRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_331,
+        device={"romVersion": ROM_VERSION_7},
+    )
+
+    phase_one_response = service.get_widget_capability_overview(phase_one_request)
+    phase_two_response = service.get_widget_capability_overview(phase_two_request)
+    phase_one_ids = {item.id for item in phase_one_response.dataCapabilities}
+    phase_two_ids = {item.id for item in phase_two_response.dataCapabilities}
+
+    assert phase_one_ids.isdisjoint(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_two_ids.issuperset(PHASE_TWO_DATA_CAPABILITY_IDS)
+
+
+def test_phase_two_version_returns_phase_two_capability_schemas():
+    service = WidgetGenerationService()
+    phase_one_request = DataCapabilitySchemasRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_328,
+        device={"romVersion": ROM_VERSION_7},
+        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
+    )
+    phase_two_request = DataCapabilitySchemasRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_331,
+        device={"romVersion": ROM_VERSION_7},
+        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
+    )
+
+    phase_one_response = service.get_data_capability_schemas(phase_one_request)
+    phase_two_response = service.get_data_capability_schemas(phase_two_request)
+    returned_ids = [item.id for item in phase_two_response.dataCapabilities]
+    returned_parameters = {}
+    for capability in phase_two_response.dataCapabilities:
+        properties = capability.inputSchema.get("properties")
+        assert isinstance(properties, dict)
+        returned_parameters[capability.id] = set(properties)
+
+    assert phase_one_response.dataCapabilities == []
+    assert phase_one_response.missingCapabilityIds == list(
+        PHASE_TWO_DATA_CAPABILITY_IDS
+    )
+    assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_two_response.missingCapabilityIds == []
+    assert returned_parameters == {
+        "GetMemoData": set(),
+        "GetPhoneCallRecords": {"callRecordType"},
+        "GetCurrentTime": set(),
+        "GetAppPowerConsumptionRanking": {"limit"},
+        "GetDailyMostUsage": {"topN"},
+    }
+
+
+@pytest.mark.parametrize(
+    ("app_version", "content_rom_version", "device_rom_version", "expected_registry"),
+    [
+        (APP_VERSION, ROM_VERSION_7_0, ROM_VERSION_6, REGISTRY_VERSION_6),
+        (
+            APP_VERSION_11_7_7_330,
+            ROM_VERSION_7,
+            ROM_VERSION_6,
+            REGISTRY_VERSION_7,
+        ),
+    ],
+)
+def test_router_content_rom_version_selects_capability_registry(
+    app_version,
+    content_rom_version,
+    device_rom_version,
+    expected_registry,
+):
+    _, arguments = _normalize_payload(
+        {
+            "content": {"uid": "content-user", "romVersion": content_rom_version},
+            "deviceInfo": {
+                "prdVer": app_version,
+                "romVersion": device_rom_version,
+            },
+            "session": {},
+            "userAuth": {"user": {"userId": "auth-user"}},
+        },
+        "getWidgetCapabilityOverview",
+    )
+    source_rom_version = arguments["device"].pop("_sourceRomVersion")
+    request = CapabilityOverviewRequest(**arguments)
+    request.device._source_rom_version = source_rom_version
+
+    registry = WidgetGenerationService()._capability_registry(request)
+
+    assert arguments["uid"] == "content-user"
+    assert request.device._source_rom_version == content_rom_version
+    assert registry.version == expected_registry
+    assert registry.selection_type == "interval"
 
 
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        (APP_VERSION_12, "6.0"),
-        (APP_VERSION, "7.0"),
+        ("11.7.5.204", "7.0"),
+        (APP_VERSION_11_7_7_330, "6.9"),
+        (APP_VERSION, ROM_VERSION_7_2),
+        (APP_VERSION_12, "7.0"),
+        (APP_VERSION_11_8, "8.0"),
     ],
 )
-def test_capability_registry_excludes_maximum_boundaries(app_version, rom_version):
+def test_capability_registry_rejects_unmatched_boundaries_and_combinations(
+    app_version,
+    rom_version,
+):
     with pytest.raises(ValueError, match="range not found"):
         CapabilityRegistry.from_app_rom_versions(app_version, rom_version)
 
 
-def test_capability_registry_extracts_major_minor_from_full_rom_version():
-    assert CapabilityRegistry.normalize_rom_version(ROM_VERSION_6) == "6.0"
+@pytest.mark.parametrize(
+    ("raw_version", "normalized_version"),
+    [
+        (ROM_VERSION_6, "6.0"),
+        (ROM_VERSION_7, "7.1"),
+        (ROM_VERSION_7_WITHOUT_MODEL, "7.1"),
+        ("HarmonyOS 7", "7"),
+        ("", "0"),
+    ],
+)
+def test_capability_registry_normalizes_rom_version(
+    raw_version,
+    normalized_version,
+):
+    assert CapabilityRegistry.normalize_rom_version(raw_version) == normalized_version
+
+
+@pytest.mark.parametrize(
+    ("raw_version", "normalized_version"),
+    [
+        (APP_VERSION_11_7_7_330, APP_VERSION_11_7_7_330),
+        (f"App/{APP_VERSION_11_7_7_330} build", APP_VERSION_11_7_7_330),
+        ("", "0"),
+    ],
+)
+def test_capability_registry_normalizes_app_version(
+    raw_version,
+    normalized_version,
+):
+    assert CapabilityRegistry.normalize_app_version(raw_version) == normalized_version
+
+
+def test_capability_registry_requested_label_uses_normalized_versions():
+    label = CapabilityRegistry.requested_version_label(
+        f"App/{APP_VERSION_11_7_7_330} build",
+        ROM_VERSION_7,
+    )
+
+    assert label == f"app-{APP_VERSION_11_7_7_330}_rom-7.1"
 
 
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        (APP_VERSION, ROM_VERSION_6),
-        (APP_VERSION_11_8, ROM_VERSION_6_3),
-        (APP_VERSION_11_9, ROM_VERSION_6_9),
+        (APP_VERSION, ROM_VERSION_7_0),
+        (APP_VERSION_11_7_7_329, ROM_VERSION_7),
+        (APP_VERSION_11_7_7_330, ROM_VERSION_7_0),
+        (APP_VERSION_11_7_7_332, "VDE-AL10 7.0.0.107"),
+        (APP_VERSION_11_9, "ALN-AL00 7.9.0.1"),
     ],
 )
-def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
+def test_protocol_registry_matches_capability_app_rom_intervals(
+    app_version,
+    rom_version,
+):
     selection = A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
 
     assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
@@ -880,20 +1205,100 @@ def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        (APP_VERSION_12, "6.0"),
-        (APP_VERSION, "7.0"),
+        (APP_VERSION_12, ROM_VERSION_7_0),
+        (APP_VERSION, ROM_VERSION_6),
+        (APP_VERSION, ROM_VERSION_7_2),
+        (APP_VERSION_11_7_7_330, "ALN-AL00 8.0.0.1"),
     ],
 )
-def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version):
+def test_protocol_registry_excludes_capability_range_boundaries(
+    app_version,
+    rom_version,
+):
     with pytest.raises(ValueError, match="range not found"):
         A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+
+def test_protocol_ranges_follow_capability_version_intervals():
+    protocol_path = CLOUD_ROOT / "data" / "protocol_profiles" / "registry_ranges.json"
+    capability_path = CLOUD_ROOT / "data" / "capabilities" / "registry_ranges.json"
+    protocol_payload = json_module.loads(protocol_path.read_text(encoding="utf-8"))
+    capability_payload = json_module.loads(capability_path.read_text(encoding="utf-8"))
+    protocol_ranges = protocol_payload.get("ranges")
+    capability_ranges = capability_payload.get("ranges")
+
+    assert isinstance(protocol_ranges, list)
+    assert isinstance(capability_ranges, list)
+    assert len(protocol_ranges) == len(capability_ranges)
+    for protocol_range, capability_range in zip(
+        protocol_ranges,
+        capability_ranges,
+        strict=True,
+    ):
+        assert protocol_range.get("appVersion") == capability_range.get("appVersion")
+        assert protocol_range.get("romVersion") == capability_range.get("romVersion")
+        assert protocol_range.get("protocolProfileId") == "a2ui-form-rom6.0-v1"
+        assert protocol_range.get("designProfileId") == "design-compact-dsl"
+
+
+def test_argument_repair_prompt_focuses_on_irregular_json_structure():
+    prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt(
+        "design-compact-dsl"
+    )
+
+    assert "rawArguments" in prompt
+    assert "targetStructure" in prompt
+    assert "缺少右花括号" in prompt
+    assert "或右方括号" in prompt
+    assert "action.args" in prompt
+    assert "previousOutput" in prompt
+    assert "validationErrors" in prompt
+    assert "machineRecoveredCandidate" not in prompt
+    assert "ViewWeather" not in prompt
+    assert "event.call.phone" not in prompt
+    assert "relationship" not in prompt
+    assert "generateWidgetCardCompactDsl" not in prompt
+    assert "functionName" not in prompt
+    assert "skillName" not in prompt
+    assert "接口" not in prompt
+    assert "DSL" not in prompt
+
+
+def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
+    broken_json = (
+        '{"candidateDataBindings":{"capabilityId":"ViewWeather",'
+        '"arguments":"{\\"forecastDays\\":1}"'
+    )
+    messages = _build_repair_prompt(
+        {
+            "arguments": broken_json,
+            "romVersion": ROM_VERSION_7_0,
+        }
+    )
+
+    system_content = messages[0].get("content")
+    user_content = messages[1].get("content")
+    assert isinstance(system_content, str)
+    assert isinstance(user_content, str)
+    repair_input = json_module.loads(user_content)
+    assert isinstance(repair_input, dict)
+    assert repair_input.get("rawArguments") == broken_json
+    assert repair_input.get("preservedTopLevelFields") == {
+        "romVersion": ROM_VERSION_7_0,
+    }
+    assert "machineRecoveredCandidate" not in repair_input
+    target_structure = repair_input.get("targetStructure")
+    assert isinstance(target_structure, dict)
+    assert isinstance(target_structure.get("candidateDataBindings"), list)
+    assert isinstance(target_structure.get("candidateEventCandidates"), list)
+    assert "array 的字段即使只有一项也必须输出 array" in system_content
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
     request = GenerateWidgetCardRequest(
         uid="test-user",
         prdVer=APP_VERSION_12,
-        device={"romVersion": "7.0"},
+        device={"romVersion": "8.0"},
         userQuery="生成静态卡片",
         title="静态卡片",
         description="协议回退测试",
@@ -901,6 +1306,66 @@ def test_compact_protocol_selection_uses_configured_default_fallback():
 
     selection = WidgetGenerationService()._compact_protocol_selection(request)
 
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
+def test_router_content_rom_version_selects_phase_two_protocol_profile(monkeypatch):
+    monkeypatch.setattr(
+        get_settings(),
+        "enable_default_protocol_profile_fallback",
+        False,
+    )
+    _, arguments = _normalize_payload(
+        {
+            "content": {
+                "romVersion": "VDE-AL10 7.0.0.107",
+                "userQuery": "生成静态卡片",
+                "title": "静态卡片",
+                "description": "二期协议范围测试",
+            },
+            "deviceInfo": {
+                "prdVer": APP_VERSION_11_7_7_332,
+                "romVersion": ROM_VERSION_6,
+            },
+            "session": {},
+            "userAuth": {"user": {"userId": "test-user"}},
+        },
+        "generateWidgetCardCompactDsl",
+    )
+    source_rom_version = arguments["device"].pop("_sourceRomVersion")
+    request = GenerateWidgetCardRequest(**arguments)
+    request.device._source_rom_version = source_rom_version
+
+    service = WidgetGenerationService()
+    registry = service._capability_registry(request)
+    selection = service._compact_protocol_selection(request)
+
+    assert registry.version == REGISTRY_VERSION_7
+    assert registry.selection_type == "interval"
+    assert request.device._source_rom_version == "VDE-AL10 7.0.0.107"
+    assert selection.normalized_app_version == APP_VERSION_11_7_7_332
+    assert selection.normalized_rom_version == "7.0"
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
+def test_capability_and_protocol_version_routes_are_independent():
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_330,
+        device={"romVersion": ROM_VERSION_7},
+        userQuery="生成静态卡片",
+        title="静态卡片",
+        description="版本路由测试",
+    )
+    service = WidgetGenerationService()
+
+    registry = service._capability_registry(request)
+    selection = service._compact_protocol_selection(request)
+
+    assert registry.version == REGISTRY_VERSION_7
+    assert registry.selection_type == "interval"
     assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
     assert selection.design_profile_id == "design-compact-dsl"
 
@@ -1076,13 +1541,135 @@ def test_capability_registry_rejects_missing_registry_directory(tmp_path):
         CapabilityRegistry.from_app_rom_versions("11.8", "6.5", root)
 
 
+def test_capability_registry_rejects_missing_range_index(tmp_path):
+    root = tmp_path / "capabilities"
+    root.mkdir()
+
+    with pytest.raises(ValueError, match="range index not found"):
+        CapabilityRegistry.from_app_rom_versions("11.8", "7.1", root)
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ([], "range index must be an object"),
+        ({}, "must contain non-empty ranges"),
+        ({"schemaVersion": "v1", "ranges": []}, "must contain non-empty ranges"),
+        ({"schemaVersion": "v1", "ranges": ["invalid"]}, "entry must be an object"),
+        (
+            {"schemaVersion": "v1", "ranges": [{}]},
+            "entry requires registryVersion",
+        ),
+    ],
+)
+def test_capability_registry_rejects_malformed_range_index(
+    tmp_path,
+    payload,
+    message,
+):
+    root = tmp_path / "capabilities"
+    root.mkdir()
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps(payload),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=message):
+        CapabilityRegistry.from_app_rom_versions("11.8", "7.1", root)
+
+
+@pytest.mark.parametrize(
+    ("entry", "message"),
+    [
+        (_registry_range("first", app_min="invalid"), "Invalid appVersion.minInclusive"),
+        (_registry_range("first", rom_max="invalid"), "Invalid romVersion.maxExclusive"),
+        (_registry_range("first", app_min="12.0", app_max="12.0"), "appVersion minInclusive"),
+        (_registry_range("first", rom_min="7.0", rom_max="7.0"), "romVersion minInclusive"),
+    ],
+)
+def test_capability_registry_rejects_invalid_interval_versions(
+    tmp_path,
+    entry,
+    message,
+):
+    root = tmp_path / "capabilities"
+    _write_registry_ranges(root, [entry], ["first"])
+
+    with pytest.raises(ValueError, match=message):
+        CapabilityRegistry.from_app_rom_versions("11.8", "7.1", root)
+
+
+def test_capability_registry_allows_overlap_on_only_one_dimension(tmp_path):
+    root = tmp_path / "capabilities"
+    ranges = [
+        _registry_range("first", rom_min="7.0", rom_max="7.2"),
+        _registry_range(
+            "second",
+            app_min="11.5",
+            app_max="12.5",
+            rom_min="7.2",
+            rom_max="8.0",
+        ),
+    ]
+    _write_registry_ranges(root, ranges, ["first", "second"])
+
+    first = CapabilityRegistry.from_app_rom_versions("11.8", "7.1", root)
+    second = CapabilityRegistry.from_app_rom_versions("11.8", "7.2", root)
+
+    assert first == "first"
+    assert second == "second"
+
+
+def test_capability_registry_uses_inclusive_minimum_and_exclusive_maximum(tmp_path):
+    root = tmp_path / "capabilities"
+    ranges = [
+        _registry_range("first", app_min="11.0", app_max="12.0"),
+        _registry_range("second", app_min="12.0", app_max="13.0"),
+    ]
+    _write_registry_ranges(root, ranges, ["first", "second"])
+
+    first = CapabilityRegistry.from_app_rom_versions("11.0", "6.0", root)
+    second = CapabilityRegistry.from_app_rom_versions("12.0", "6.0", root)
+
+    assert first == "first"
+    assert second == "second"
+
+
 def test_capability_registry_uses_rom_version_as_the_only_rom_level():
     registry = CapabilityRegistry(
         app_version=APP_VERSION,
-        device_rom_version=ROM_VERSION_6,
+        device_rom_version=ROM_VERSION_7,
     )
 
     assert registry.version == REGISTRY_VERSION_6
+
+
+def test_capability_registry_service_uses_default_for_unmatched_version(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_default_capability_registry_fallback", True)
+    request = CapabilityOverviewRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+    )
+
+    registry = WidgetGenerationService()._capability_registry(request)
+
+    assert registry.version == settings.capability_registry_version
+    assert registry.selection_type == "explicit"
+
+
+def test_capability_registry_service_rejects_miss_when_fallback_disabled(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_default_capability_registry_fallback", False)
+    request = CapabilityOverviewRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+    )
+
+    with pytest.raises(ValueError, match="range not found"):
+        WidgetGenerationService()._capability_registry(request)
 
 
 def test_legacy_registry_request_field_is_ignored():
@@ -1113,6 +1700,8 @@ def test_public_tool_schemas_do_not_expose_version_overrides():
         content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
         assert "capabilityRegistryVersion" not in content_properties
         assert "protocolProfileId" not in content_properties
+        assert content_properties["uid"]["required"] is False
+        assert content_properties["romVersion"]["required"] is False
 
 
 def test_generation_tool_schemas_default_to_2x2():
@@ -1226,6 +1815,49 @@ def test_all_public_request_types_reject_unmatched_range_when_fallback_is_off(
 def test_tool_envelope_reads_only_rom_version():
     assert _pick_device_rom_version({"romVersion": ROM_VERSION_6}) == "6.0"
     assert _pick_device_rom_version({"rom_version": ROM_VERSION_7_WITHOUT_MODEL}) == "6.0"
+    assert (
+        _pick_device_rom_version(
+            {"romVersion": ROM_VERSION_6},
+            ROM_VERSION_7_WITHOUT_MODEL,
+        )
+        == "7.1"
+    )
+
+
+def test_tool_envelope_prefers_content_uid_and_rom_version():
+    _, arguments = _normalize_payload(
+        {
+            "content": {
+                "uid": "content-user",
+                "romVersion": ROM_VERSION_7_WITHOUT_MODEL,
+            },
+            "deviceInfo": {"romVersion": ROM_VERSION_6},
+            "session": {},
+            "userAuth": {"user": {"userId": "auth-user"}},
+        },
+        "getWidgetCapabilityOverview",
+    )
+
+    assert arguments["uid"] == "content-user"
+    assert arguments["device"]["romVersion"] == "7.1"
+    assert arguments["device"]["_sourceRomVersion"] == ROM_VERSION_7_WITHOUT_MODEL
+    assert "romVersion" not in arguments
+
+
+def test_tool_envelope_falls_back_to_user_auth_and_device_info():
+    _, arguments = _normalize_payload(
+        {
+            "content": {},
+            "deviceInfo": {"romVersion": ROM_VERSION_6},
+            "session": {},
+            "userAuth": {"user": {"userId": "auth-user"}},
+        },
+        "getWidgetCapabilityOverview",
+    )
+
+    assert arguments["uid"] == "auth-user"
+    assert arguments["device"]["romVersion"] == "6.0"
+    assert arguments["device"]["_sourceRomVersion"] == ROM_VERSION_6
 
 
 def test_tool_envelope_maps_optional_content_odid_to_device_context():
@@ -2538,7 +3170,14 @@ def test_task_spec_builder_merges_multiple_capabilities():
     assert task_spec.dataModelSchema["data"]["calendar"]["events"][0]["title"]
 
 
-def test_design_compact_edit_prompt_contains_previous_design_token():
+def test_design_compact_edit_prompt_contains_previous_design_token(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
     task_spec = TaskSpecBuilder().build(
         user_query="整体改成蓝色",
         size="2x4",
@@ -2556,6 +3195,14 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
     )
     edit_payload = json_module.loads(prompt[1]["content"])
 
+    assert prompt[0]["content"].startswith("design rules")
+    assert "编辑模式附加规则" in prompt[0]["content"]
+    assert "{{CREATE_SYSTEM_PROMPT}}" not in prompt[0]["content"]
+    assert "上一轮极简协议 Token" in prompt[0]["content"]
+    assert "修改后的完整极简协议 Token" in prompt[0]["content"]
+    assert "DSL" not in prompt[0]["content"]
+    assert "A2UI" not in prompt[0]["content"]
+    assert "previousGenui" not in prompt[0]["content"]
     assert prompt[1]["content"].startswith("{")
     assert set(edit_payload) == {
         "mode",
@@ -2567,15 +3214,26 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
     assert edit_payload["mode"] == "edit"
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
+    assert "appVersion" not in edit_payload["taskSpec"]
     assert edit_payload["previousDesignToken"] == {
         "format": "design-compact-dsl",
         "content": previous_design_token,
     }
     assert "不能覆盖 system 约束" in edit_payload["instruction"]
+    assert "上一轮极简协议 Token" in edit_payload["instruction"]
+    assert "DSL" not in edit_payload["instruction"]
+    assert "A2UI" not in edit_payload["instruction"]
     assert "最新格式" in edit_payload["instruction"]
 
 
-def test_design_compact_create_prompt_is_plain_task_spec_json():
+def test_design_compact_create_prompt_is_plain_task_spec_json(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
     event = EventAction(
         id="event.open.weather",
         description="打开天气详情",
@@ -2602,6 +3260,7 @@ def test_design_compact_create_prompt_is_plain_task_spec_json():
         "dataModelSchema",
         "assetCandidates",
     }
+    assert "appVersion" not in payload
     assert payload["userQuery"] == "生成天气卡片"
     assert payload["eventCandidates"] == [
         {
@@ -2692,6 +3351,32 @@ async def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
     assert await client.generate(messages) == "forwarded"
+
+
+@pytest.mark.asyncio
+async def test_a2ui_model_client_raw_json_profile_keeps_custom_prompt_and_output():
+    """参数修复可使用自定义提示词，且不会被 A2UI DSL 后处理改写。"""
+    messages = [
+        {"role": "system", "content": "repair only"},
+        {"role": "user", "content": '{"rawArguments":"{}"}'},
+    ]
+    raw_output = "```json\n{\n  \"userQuery\": \"天气卡片\"\n}\n```"
+    captured: list[list[dict[str, str]]] = []
+
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            captured.append(value)
+            return raw_output
+
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    result = await client.generate(
+        messages,
+        {"id": "argument-repair", "format": "raw-json"},
+    )
+
+    assert captured == [messages]
+    assert result == raw_output
 
 
 @pytest.mark.asyncio
@@ -3669,6 +4354,65 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     assert len(model_prompts) == 2
     assert len(validated_genui) == 2
     assert '"createSurface"' in validated_genui[0]
+
+
+@pytest.mark.asyncio
+async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
+    settings = get_settings()
+    event = CapabilityRegistry(
+        version=REGISTRY_VERSION_6
+    ).get_event_capability("event.open.settings.bluetooth")
+    assert event is not None
+    valid_source = (
+        CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat"
+    ).read_text(encoding="utf-8")
+    invalid_source = "\n".join(
+        [
+            '["root","Column",{"width":160,"height":160},["cta"]]',
+            '["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置"}]',
+            '["/state/ready",true]',
+        ]
+    )
+    outputs = iter([invalid_source, valid_source])
+    model_prompts: list[list[dict[str, str]]] = []
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return next(outputs)
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 1)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/action-unit-repaired",
+            artifactDigest="sha256:action-unit-repaired",
+        ),
+    )
+
+    request = _model_failure_request().model_copy(
+        update={
+            "userQuery": "生成蓝牙设置入口卡片",
+            "candidateEventCandidates": [
+                CandidateEventCandidate(
+                    capabilityId=event.id,
+                    action=event.actionTemplate.model_dump(mode="json"),
+                )
+            ],
+        }
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    issue = repair_payload["qualityErrors"][0]
+    assert issue["stage"] == "validation"
+    assert issue["code"] == "COMPACT_DSL_VALIDATION_FAILED"
+    assert "ActionUnit.onClick is required" in issue["message"]
 
 
 @pytest.mark.asyncio

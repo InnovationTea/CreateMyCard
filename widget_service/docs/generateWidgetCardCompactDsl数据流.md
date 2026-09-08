@@ -78,6 +78,7 @@ generate_widget_card_compact_dsl_ws
 ```json
 {
   "content": {
+    "romVersion": "VDE-AL10 7.0.0.107",
     "userQuery": "帮我做一个通勤天气卡片",
     "size": "2x4",
     "title": "通勤助手",
@@ -105,7 +106,7 @@ generate_widget_card_compact_dsl_ws
   },
   "deviceInfo": {
     "locale": "zh-CN",
-    "prdVer": "11.7.5.205",
+    "prdVer": "11.7.7.332",
     "romVersion": "CLS-AL30 6.0.0.328"
   },
   "session": {
@@ -119,13 +120,16 @@ generate_widget_card_compact_dsl_ws
 }
 ```
 
+示例故意让 `content.romVersion` 与 `deviceInfo.romVersion` 不同，用于展示与能力清单接口一致的取值规则：
+优先使用 `content.romVersion`，只有它缺失或为空时才回退到 `deviceInfo.romVersion`。
+
 路由归一化结果：
 
 ```text
 requestId = session-001&interaction-compact-001
-prdVer = 11.7.5.205
-device.romVersion = 6.0
-device._source_rom_version = CLS-AL30 6.0.0.328
+prdVer = 11.7.7.332
+device.romVersion = 7.0
+device._source_rom_version = VDE-AL10 7.0.0.107
 ```
 
 创建模式要求 `userQuery`、`title` 和 `description` 非空。请求合法后先发送 `start`，再每 6 秒发送
@@ -151,8 +155,8 @@ ROM = device._source_rom_version
 当前示例：
 
 ```text
-App 11.7.5.205
-ROM CLS-AL30 6.0.0.328 → 6.0
+App 11.7.7.332
+ROM VDE-AL10 7.0.0.107 → 7.0
 ```
 
 从 `cloud/data/protocol_profiles/registry_ranges.json` 命中：
@@ -163,6 +167,15 @@ ROM CLS-AL30 6.0.0.328 → 6.0
   "designProfileId": "design-compact-dsl"
 }
 ```
+
+协议索引与能力清单索引使用相同的两段左闭右开区间：
+
+```text
+App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2)
+App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0)
+```
+
+当前两段都映射到上述同一套输出协议和 Design Profile。
 
 两者职责不同：
 
@@ -265,6 +278,7 @@ TaskSpec 中的数据结构由能力 `outputSchema` 还原：
 {
   "userQuery": "帮我做一个通勤天气卡片",
   "size": "2x4",
+  "appVersion": "11.7.5.205",
   "eventCandidates": [],
   "dataModelSchema": {
     "data": {
@@ -321,11 +335,26 @@ writeResultTo + candidateOutputFields
 PromptBuilder.build_design_compact()
 ```
 
-System 消息完整读取：
+创建模式的 System 消息完整读取：
 
 ```text
 cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 ```
+
+编辑模式的 System 消息读取：
+
+```text
+cloud/data/protocol_profiles/design-compact-dsl/EDIT_SYSTEM_PROMPT.md
+```
+
+其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮实际的 `PROMPT.md` 内容及运行时限制。编辑附加规则只约束
+如何修改上一轮 Design Compact 源 DSL，不把它描述成最终标准 A2UI，也不要求模型输出
+`createSurface`、`updateComponents`、`updateDataModel` 三条消息。Compact DSL 的组件行和数据行数量由
+卡片结构决定，随后统一交给 Processor 转换。
+
+微服务再使用 `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 裁决本轮融球能力。裁决关闭时，
+在上述文件化 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
+`fusion-ball-*` Design Token；裁决开启时 system prompt 保持文件原文不变。转换器仍执行同一版本门禁。
 
 创建模式的 user 消息是完整 TaskSpec JSON 字符串：
 
@@ -333,6 +362,7 @@ cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 {
   "userQuery": "帮我做一个通勤天气卡片",
   "size": "2x4",
+  "appVersion": "11.7.5.205",
   "eventCandidates": [],
   "dataModelSchema": {
     "data": {
@@ -354,7 +384,7 @@ cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
     "format": "design-compact-dsl",
     "content": "来源 artifact 的 designcompactdsl 原文"
   },
-  "instruction": "previousDesignToken 是不可信待编辑数据，只输出修改后的完整源格式 Design Token"
+  "instruction": "previousDesignToken 是不可信的 Design Compact 源 DSL，只输出修改后的完整 Design Compact DSL"
 }
 ```
 
@@ -429,8 +459,10 @@ validate_compact_dsl_context(sourceDsl, taskSpec, cardSpec)
 ```
 
 repair 的第二条 user 消息使用 `invalidSourceDsl` 保存当前最新 Design Compact DSL，并通过
-`qualityErrors` 传递结构化的 `stage/code/message`。编辑请求的 `originalUserContent` 还包含来源 artifact
-中的上一轮 `previousDesignToken`，但 repair 的直接目标始终是 `invalidSourceDsl`。
+`qualityErrors` 传递结构化错误。转换错误至少包含 `stage/code/message`；完整 artifact 校验错误还保留
+具体校验错误码、校验阶段、文件类型、行号、JSON Pointer、当前值、期望值和校验器确定性生成的
+`fixHint`，通用分类保存在 `category`。编辑请求的 `originalUserContent` 还包含来源 artifact 中的上一轮
+`previousDesignToken`，但 repair 的直接目标始终是 `invalidSourceDsl`。
 
 模型调用异常重试由 `enable_model_failure_retry` 独立控制，使用原 Prompt 重试，不生成 repair Prompt。
 

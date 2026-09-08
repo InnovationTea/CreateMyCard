@@ -603,14 +603,14 @@ class WidgetGenerationService:
                     )
                     return require_generated_dsl(result)
                 except Exception as exc:
-                    fallback = "original_protocol_flow" if need_fallback else "none"
+                    fallback = "jsx" if try_jsx else ("original_protocol_flow" if need_fallback else "none")
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
-                    if not need_fallback:
+                    if not try_jsx and not need_fallback:
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
                         ) from exc
@@ -766,6 +766,11 @@ class WidgetGenerationService:
             )
             artifact_validator = ArtifactValidator()
             validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            validation_prompt_contexts = getattr(
+                artifact_validator,
+                "error_prompt_contexts",
+                [],
+            )
             if source_load_result:
                 source_write_roots = {
                     item.writeResultTo
@@ -777,14 +782,20 @@ class WidgetGenerationService:
                         validation_errors.append(
                             f"removed data path remains in edited genui: {removed_root}"
                         )
-            validation_issues = tuple(
-                QualityIssue(
-                    stage="validation",
-                    code="ARTIFACT_VALIDATION_FAILED",
-                    message=message,
+            validation_issues_list: list[QualityIssue] = []
+            for index, message in enumerate(validation_errors):
+                prompt_context: dict = {}
+                if index < len(validation_prompt_contexts):
+                    prompt_context = validation_prompt_contexts[index]
+                validation_issues_list.append(
+                    QualityIssue(
+                        stage="validation",
+                        code="ARTIFACT_VALIDATION_FAILED",
+                        message=message,
+                        prompt_context=prompt_context,
+                    )
                 )
-                for message in validation_errors
-            )
+            validation_issues = tuple(validation_issues_list)
             latest_processing_result = DslProcessingResult(
                 source_dsl=processing_result.source_dsl,
                 standard_dsl=processing_result.standard_dsl,
@@ -1106,11 +1117,9 @@ class WidgetGenerationService:
             model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
             model_format="a2ui-form",
         )
-        # 优先级：enable_card_template > enable_jsx_generation > 默认模型
-        # 模板方案开了走模板；否则 JSX 方案开了走 JSX（失败不 fallback）；否则走默认模型
+        # JSX 开关独立于模板开关
         try_template = self._enable_card_template()
-        try_jsx = (not try_template) and self._enable_jsx_generation()
-        # JSX 路径失败不 fallback 到默认模型
+        try_jsx = self._enable_jsx_generation()
         need_fallback = not try_jsx
         template_source_generator = (
             TemplateSourceGenerator()
@@ -1170,12 +1179,13 @@ class WidgetGenerationService:
             request,
             policy,
             before_model_call=before_model_call,
+            try_jsx=self._enable_jsx_generation(),
             template_source_generator=(
                 TemplateSourceGenerator()
                 if self._enable_card_template()
                 else None
             ),
-            need_fallback=True,
+            need_fallback=not self._enable_jsx_generation(),
         )
 
     async def generate_widget_card_terse_dsl_nested2(

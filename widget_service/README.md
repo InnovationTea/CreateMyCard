@@ -10,12 +10,18 @@ The service follows `docs/AGENTS.md`:
   right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
-- All five interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
+- All five interfaces use the ranges in `cloud/data/capabilities/registry_ranges.json`: App
+  `[11.7.5.205, 11.7.7.330)` with ROM `[7.0, 7.2)` maps to
+  `app-11.7.5.205_rom-6.0`, while App `[11.7.7.330, 12.0.0.0)` with ROM
+  `[7.0, 8.0)` maps to `app-11.7.7.300_rom-7.0`. An unmatched version falls back
+  to the configured default when
+  `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
 - `generateWidgetCard` selects `mep` or the composite `openai` route through
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
-  the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
-  profile's `protocol.json` before validation and storage. Create requests first try the controlled Template route;
+  the Design profile from `data/protocol_profiles/registry_ranges.json`, whose App/ROM intervals mirror the capability
+  registry intervals, and converts Design Compact DSL with that profile's `protocol.json` before validation and
+  storage. Create requests first try the controlled Template route;
   a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
   policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
   select or override either backend.
@@ -49,6 +55,17 @@ The service follows `docs/AGENTS.md`:
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO` settings. Backoff does not hold a worker thread or model permit.
   Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
   Final model failures never enter validation or artifact persistence.
+- `WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK=false` controls malformed fourth-interface tool-call
+  recovery. When enabled, the service tracks stringified `content.arguments` per `requestId` in the current process.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT=1` means the first consecutive occurrence returns the
+  existing correction instruction and the second invokes `A2UIModelClient` with the JSON-only prompt from
+  `data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md`.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS=2` controls the dedicated content-validation attempts.
+  The original string is always sent unchanged as `rawArguments`; no heuristic JSON repair runs before or after the
+  model. Each output must pass strict JSON parsing and request validation. A rejected first output is retried with its
+  validation errors. Registered event actions are rebuilt from the App/ROM capability registry, and only declared
+  dynamic values are retained. If all model outputs fail, a minimal static request keeps recoverable user text and
+  continues through the normal generation flow.
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
   `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
   `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and

@@ -14,15 +14,14 @@ Stack({
     "justifyContent": "center",
     "alignItems": "center"
   },
-    IfPresent(
-      props.icon,
+    #if props.icon
       Image(props.icon, {
         "width": 20,
         "height": 20,
         "objectFit": "contain",
         "fillColor": $theme('actionStyle.contentColor')
       })
-    ),
+    #endif
     Text(props.label, {
       "fontSize": 14,
       "fontWeight": 500,

@@ -16,18 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 87
+    assert manifest["templateCount"] == 100
     assert manifest["countsByLayout"] == {
-        "Support": 19,
-        "Compact": 17,
-        "Hero": 18,
-        "Full": 20,
+        "HeroTitle": 1,
+        "HeroContent": 1,
+        "Support": 12,
+        "Compact": 13,
+        "Hero": 31,
+        "Full": 31,
         "WideHero": 2,
-        "WideFull": 11,
+        "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 74, "2x4": 13}
-    assert len(cases) == 87
-    assert len({case["templateId"] for case in cases}) == 87
+    assert manifest["countsBySize"] == {"2x2": 89, "2x4": 11}
+    assert len(cases) == 100
+    assert len({case["templateId"] for case in cases}) == 100
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -39,10 +41,17 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert "createSurface" in case.messages[0]
         assert "updateComponents" in case.messages[1]
         assert "updateDataModel" in case.messages[2]
-        components = case.messages[1]["updateComponents"]["components"]
+        update_components = case.messages[1]["updateComponents"]
+        assert update_components["root"] == "root"
+        components = update_components["components"]
         root = next(component for component in components if component["id"] == "root")
         assert root["component"] == "Column"
-        slot = next(component for component in components if component["id"] == "root_0")
+        assert root["children"] == ["template_root"]
+        slot = next(
+            component
+            for component in components
+            if component["id"] == "template_root"
+        )
         assert slot["styles"]["height"] == case.content_height_vp
 
 
@@ -60,6 +69,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "figure_run.svg",
         "flame_fill.svg",
         "heart_fill.svg",
+        "heat_generation.svg",
         "icon_earphone.svg",
         "icon_tiktok.png",
         "icon_weather1.svg",
@@ -76,7 +86,22 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
     for case in cases:
         counts = Counter((*case.primary_data, *case.secondary_data, *case.optional_data))
         assert all(count == 1 for count in counts.values())
-        assert case.primary_data
+        if case.template_id == "WeatherOverviewHeroTitle@1":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/location/prefectureName", "/location/districtName",
+                "/current/temperatureText", "/current/condition",
+            )
+        elif case.template_id == "HeartRateOverviewMinMaxFull@1":
+            assert case.primary_data == (
+                "/exerciseHeartRateMax",
+                "/exerciseHeartRateMin",
+            )
+            assert case.secondary_data == ()
+            assert case.optional_data == ("/updatedAt",)
+        else:
+            assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
 
 
@@ -88,9 +113,9 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
     )
 
     assert case.primary_data == ("/isConnected", "/earphoneName")
-    assert case.secondary_data == ("/leftBatteryLevel", "/rightBatteryLevel")
-    assert case.optional_data == ()
-    assert "已连接" in json.dumps(case.messages, ensure_ascii=False)
+    assert case.secondary_data == ()
+    assert case.optional_data == ("/leftBatteryLevel", "/rightBatteryLevel")
+    assert "已链接" in json.dumps(case.messages, ensure_ascii=False)
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
     assert set(data_model) == {
         "isConnected",

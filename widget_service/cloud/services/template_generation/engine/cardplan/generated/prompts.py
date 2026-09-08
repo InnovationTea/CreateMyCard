@@ -168,7 +168,7 @@ BODY_SYSTEM_PROMPT_KERNEL = (
     '实。'
 )
 
-UX_MIXED_PROMPT_VERSION = 'ux-mixed-prompt/0.12'
+UX_MIXED_PROMPT_VERSION = 'ux-mixed-prompt/0.15'
 UX_MIXED_PROTOCOL_VERSION = 'tersedsl-nested-2-ux-mixed/0.5'
 UX_MIXED_SYSTEM_PROMPT_KERNEL = (
     '你是卡片模板第二层组合模型。上游首层路由已确定业务候选、Theme 和 Ac'
@@ -189,7 +189,12 @@ UX_MIXED_SYSTEM_PROMPT_KERNEL = (
     '接 children；仅当动态契约允许 TwoSupportLayout 时'
     '，布局不生成 Action child，\n   已选事件必须各一次写入与语'
     '义业务匹配的 Support 模板可选 actionId Prop。\n5.'
-    ' 只能使用动态契约中的 Template ID、Action 值和素材源。禁'
-    '止 `card@1`、基础组件、业务文本、\n   数据路径、绑定、事件执行'
-    '字段、A2UI 或候选外 Template。'
+    ' 当动态契约允许 HeroTitleContentActionLayout '
+    '时，根必须恰好有三个直接 children：位置 0 选择\n   Hero'
+    'Title 业务模板，位置 1 选择 HeroContent 业务模板，位置'
+    ' 2 选择 PillAction；不得交换、重复或嵌套。\n6. 只能使用动'
+    '态契约中的 Template ID、Action 值和素材源。禁止 `car'
+    'd@1`、基础组件、业务文本、\n   数据路径、绑定、事件执行字段、A2U'
+    'I 或候选外 Template。\n7. 只按动态契约选择完整模板，不判断运'
+    '行时数据值或按样例数据改写模板；当前不支持 IF/If 组件。'
 )

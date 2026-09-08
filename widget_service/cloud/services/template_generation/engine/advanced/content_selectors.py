@@ -25,6 +25,68 @@ _UPDATED_AT_DATE = re.compile(
     r"(?P=separator)(?P<day>\d{2})(?:[ T].*)?$"
 )
 
+_SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
+    tuple[str, tuple[tuple[str, str, str, bool], ...]],
+    ...,
+] = (
+    (
+        "locationStart",
+        (
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+        ),
+    ),
+    (
+        "datedAllDay",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("isAllDay", "/events/0/isAllDay", "boolean", False),
+        ),
+    ),
+    (
+        "timezoneDateEnd",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("timeZone", "/events/0/timeZone", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("dtEnd", "/events/0/dtEnd", "string", False),
+        ),
+    ),
+    (
+        "locationDescriptionEnd",
+        (
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+            ("description", "/events/0/description", "string", False),
+            ("dtEnd", "/events/0/dtEnd", "string", False),
+        ),
+    ),
+    (
+        "reminderDetails",
+        (
+            ("senderName", "/events/0/senderName", "string", True),
+            ("importantEventType", "/events/0/importantEventType", "integer", False),
+            ("remindTime", "/events/0/remindTime/0", "string", False),
+            ("updatedAt", "/updatedAt", "string", False),
+        ),
+    ),
+    (
+        "eventCountDetails",
+        (
+            ("eventCount", "/eventCount", "integer", False),
+            ("title", "/events/0/title", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+            ("description", "/events/0/description", "string", False),
+        ),
+    ),
+)
+
+_SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS: dict[str, frozenset[str]] = {
+    "locationDescriptionEnd": frozenset({"备注", "memo"}),
+    "reminderDetails": frozenset({"邀请人", "发起人", "sender name"}),
+    "eventCountDetails": frozenset({"备注", "memo"}),
+}
+
 _BATCH_DATA_ADMISSION_ENABLED: ContextVar[bool] = ContextVar(
     "advanced_component_batch_data_admission_enabled",
     default=False,
@@ -36,10 +98,13 @@ _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
         (
             "city",
             "temperature",
+            "temperatureC",
             "condition",
             "airQuality",
             "coldLevel",
             "temperatureRange",
+            "alertLevel",
+            "updatedAt",
         ),
     ),
     "DateOverview": ("date", ("date", "weekday")),
@@ -53,12 +118,15 @@ _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
 _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
     "WeatherOverview": (
         "condition",
+        "temperatureC",
         "temperatureText",
         "districtName",
         "prefectureName",
         "airQuality",
         "coldLevel",
         "temperatureRangeText",
+        "alertLevel",
+        "updatedAt",
     ),
     "DateOverview": ("startDate", "weekday"),
     "ScheduleOverview": ("title", "dtStart", "dtEnd", "eventLocation"),
@@ -95,6 +163,7 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "sleepScore",
         "sleepStatus",
         "nightSleepDurationText",
+        "totalNapDurationText",
         "fallAsleepTimeText",
         "wakeupTimeText",
     ),
@@ -242,6 +311,8 @@ class BluetoothDeviceOverviewFacts:
     earphone_name: str | None = None
     left_battery_level: int | float | None = None
     right_battery_level: int | float | None = None
+    left_charging_status: str | None = None
+    right_charging_status: str | None = None
     case_battery_level: int | float | None = None
     case_charging_status: str | None = None
 
@@ -267,6 +338,16 @@ class BluetoothDeviceOverviewFacts:
                 "description": description,
                 "sampleValue": value,
             }
+        if self.left_charging_status is not None:
+            selected["leftChargingStatusDesc"] = _field(
+                self.left_charging_status,
+                "可信左耳充电状态",
+            )
+        if self.right_charging_status is not None:
+            selected["rightChargingStatusDesc"] = _field(
+                self.right_charging_status,
+                "可信右耳充电状态",
+            )
         if self.case_charging_status is not None:
             selected["chargingStatusDesc"] = _field(
                 self.case_charging_status,
@@ -385,18 +466,21 @@ class ActivityOverviewFacts:
 
 @dataclass(frozen=True)
 class WorkoutLatestFacts:
-    exercise_type_name: str
-    calorie_text: str
+    calorie_text: str | None
     duration_text: str
-    end_time_text: str
+    exercise_type_name: str | None = None
+    end_time_text: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        return {
-            "exerciseTypeName": _field(self.exercise_type_name, "可信最近运动类型"),
-            "exerciseCalorieText": _field(self.calorie_text, "可信最近运动热量文本"),
-            "exerciseDurationText": _field(self.duration_text, "可信最近运动时长文本"),
-            "exerciseEndTimeText": _field(self.end_time_text, "可信最近运动结束时刻"),
-        }
+        selected: dict[str, dict[str, Any]] = {}
+        if self.calorie_text is not None:
+            selected["exerciseCalorieText"] = _field(self.calorie_text, "可信最近运动热量文本")
+        selected["exerciseDurationText"] = _field(self.duration_text, "可信最近运动时长文本")
+        if self.exercise_type_name is not None:
+            selected["exerciseTypeName"] = _field(self.exercise_type_name, "可信最近运动类型")
+        if self.end_time_text is not None:
+            selected["exerciseEndTimeText"] = _field(self.end_time_text, "可信最近运动结束时刻")
+        return selected
 
 
 @dataclass(frozen=True)
@@ -415,17 +499,39 @@ class CountdownOverviewFacts:
 
 @dataclass(frozen=True)
 class HeartRateOverviewFacts:
-    average_bpm: int
+    average_bpm: int | None = None
+    max_bpm: int | None = None
+    min_bpm: int | None = None
     updated_at: str | None = None
 
+    def bpm_values(self) -> tuple[int, ...]:
+        """Trusted bpm values carried by these facts, in display order."""
+        return tuple(
+            value
+            for value in (self.average_bpm, self.max_bpm, self.min_bpm)
+            if value is not None
+        )
+
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        selected: dict[str, dict[str, Any]] = {
-            "exerciseHeartRateAvg": {
+        selected: dict[str, dict[str, Any]] = {}
+        if self.average_bpm is not None:
+            selected["exerciseHeartRateAvg"] = {
                 "type": "integer",
                 "description": "可信运动期间平均心率，不表示当前或静息心率",
                 "sampleValue": self.average_bpm,
             }
-        }
+        if self.max_bpm is not None:
+            selected["exerciseHeartRateMax"] = {
+                "type": "integer",
+                "description": "可信运动期间最高心率，不低于最低心率",
+                "sampleValue": self.max_bpm,
+            }
+        if self.min_bpm is not None:
+            selected["exerciseHeartRateMin"] = {
+                "type": "integer",
+                "description": "可信运动期间最低心率，不高于最高心率",
+                "sampleValue": self.min_bpm,
+            }
         if self.updated_at is not None:
             selected["updatedAt"] = _field(self.updated_at, "可信运动数据更新时间")
         return selected
@@ -439,6 +545,11 @@ class SleepOverviewFacts:
     status: str | None = None
     fall_asleep_time: str | None = None
     wakeup_time: str | None = None
+    source: str = "night"
+
+    @property
+    def is_nap(self) -> bool:
+        return self.source == "nap"
 
     @property
     def explicitly_insufficient(self) -> bool:
@@ -456,28 +567,29 @@ class SleepOverviewFacts:
         return self.fall_asleep_time is not None and self.wakeup_time is not None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
+        duration_origin = "白天小睡累计时长" if self.is_nap else "夜间睡眠总时长"
         selected = {
-            "nightSleepDurationText": _field(
+            "totalNapDurationText" if self.is_nap else "nightSleepDurationText": _field(
                 self.duration_text,
-                "可信夜间睡眠总时长原文",
+                f"可信{duration_origin}原文",
             ),
             "sleepDurationPrimaryValueText": _field(
                 self.duration.primary_value,
-                "从可信夜间睡眠总时长无损解析的主数值",
+                f"从可信{duration_origin}无损解析的主数值",
             ),
             "sleepDurationPrimaryUnitText": _field(
                 self.duration.primary_unit,
-                "从可信夜间睡眠总时长无损解析的主单位",
+                f"从可信{duration_origin}无损解析的主单位",
             ),
         }
         if self.duration.secondary_value is not None:
             selected["sleepDurationSecondaryValueText"] = _field(
                 self.duration.secondary_value,
-                "从可信夜间睡眠总时长无损解析的次数值",
+                f"从可信{duration_origin}无损解析的次数值",
             )
             selected["sleepDurationSecondaryUnitText"] = _field(
                 self.duration.secondary_unit or "",
-                "从可信夜间睡眠总时长无损解析的次单位",
+                f"从可信{duration_origin}无损解析的次单位",
             )
         if self.status is not None:
             selected["sleepStatus"] = _field(self.status, "可信睡眠状态原文")
@@ -951,6 +1063,17 @@ _HEART_RATE_UPDATED_AT_QUERY_TERMS = (
     "何时更新",
     "更新时间",
 )
+_HEART_RATE_RANGE_QUERY_TERMS = (
+    "maximum heart rate",
+    "minimum heart rate",
+    "max heart rate",
+    "min heart rate",
+    "highest heart rate",
+    "lowest heart rate",
+    "最大心率",
+    "最高心率",
+    "最低心率",
+)
 _UNSUPPORTED_HEART_RATE_QUERY_TERMS = (
     "current heart rate",
     "live heart rate",
@@ -962,10 +1085,6 @@ _UNSUPPORTED_HEART_RATE_QUERY_TERMS = (
     "heart rate trend",
     "heart rate waveform",
     "heart rate chart",
-    "maximum heart rate",
-    "minimum heart rate",
-    "max heart rate",
-    "min heart rate",
     "当前心率",
     "实时心率",
     "静息心率",
@@ -975,8 +1094,6 @@ _UNSUPPORTED_HEART_RATE_QUERY_TERMS = (
     "心率趋势",
     "心率波形",
     "心率曲线",
-    "最大心率",
-    "最低心率",
 )
 
 _SLEEP_QUERY_TERMS = (
@@ -1036,7 +1153,6 @@ _EXTENDED_SLEEP_QUERY_TERMS = (
     "light sleep",
     "rem sleep",
     "rapid eye movement",
-    "nap",
     "sleep goal",
     "goal completion",
     "completion rate",
@@ -1048,8 +1164,6 @@ _EXTENDED_SLEEP_QUERY_TERMS = (
     "深睡",
     "浅睡",
     "快速眼动",
-    "午睡",
-    "小睡",
     "睡眠目标",
     "目标完成率",
     "达成率",
@@ -1059,6 +1173,15 @@ _EXTENDED_SLEEP_QUERY_TERMS = (
     "改善建议",
     "睡眠阶段",
     "分期",
+)
+_NAP_SLEEP_QUERY_TERMS = (
+    "nap",
+    "midday nap",
+    "daytime nap",
+    "power nap",
+    "午睡",
+    "小睡",
+    "小憩",
 )
 _SLEEP_SCORE_QUERY_TERMS = (
     "sleep score",
@@ -1477,19 +1600,23 @@ def project_content_component_facts(
             date_facts = extract_date_overview_facts(schema)
             schedule_facts = extract_schedule_overview_facts(schema)
             timezone_facts = extract_schedule_timezone_facts(schema)
+            variant_fields = extract_schedule_template_variant_fields(schema)
             if date_facts is not None:
                 selected.update(date_facts.as_selector())
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
             if timezone_facts is not None:
                 selected.update(timezone_facts.as_selector())
+            selected.update(variant_fields)
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
             timezone_facts = extract_schedule_timezone_facts(schema)
+            variant_fields = extract_schedule_template_variant_fields(schema)
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
             if timezone_facts is not None:
                 selected.update(timezone_facts.as_selector())
+            selected.update(variant_fields)
         elif component_id == "DateOverview":
             date_facts = extract_date_overview_facts(schema)
             if date_facts is not None:
@@ -1727,7 +1854,11 @@ def workout_overview_variants(
             _WORKOUT_GENERIC_QUERY_TERMS,
         )
     facts = extract_workout_latest_facts(task_spec.dataModelSchema)
-    if not requests_latest and facts is not None:
+    if (
+        not requests_latest
+        and facts is not None
+        and facts.exercise_type_name is not None
+    ):
         requests_latest = _contains_query_term(
             normalized,
             compact,
@@ -1773,16 +1904,30 @@ def heart_rate_overview_is_eligible(
     task_spec: TaskSpec,
     capability_ids: set[str],
 ) -> bool:
-    """Accept only a positive trusted exercise-average heart-rate request."""
+    """Accept trusted exercise heart-rate requests: average bpm or max/min range."""
     if "GetHealthAndSportSummary" not in capability_ids:
         return False
     normalized, compact = _normalized_query(task_spec.userQuery)
     if _contains_query_term(normalized, compact, _UNSUPPORTED_HEART_RATE_QUERY_TERMS):
         return False
-    if not _contains_query_term(normalized, compact, _HEART_RATE_AVERAGE_QUERY_TERMS):
-        return False
     facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
     if facts is None:
+        return False
+    has_average_intent = _contains_query_term(
+        normalized,
+        compact,
+        _HEART_RATE_AVERAGE_QUERY_TERMS,
+    )
+    has_range_intent = _contains_query_term(
+        normalized,
+        compact,
+        _HEART_RATE_RANGE_QUERY_TERMS,
+    )
+    if not has_average_intent and not has_range_intent:
+        return False
+    if has_average_intent and facts.average_bpm is None:
+        return False
+    if has_range_intent and facts.max_bpm is None:
         return False
     requests_updated_at = _contains_query_term(
         normalized,
@@ -1793,7 +1938,7 @@ def heart_rate_overview_is_eligible(
 
 
 def sleep_overview_has_trusted_data(task_spec: TaskSpec) -> bool:
-    """Require only the losslessly renderable night-duration admission fact."""
+    """Require only the losslessly renderable night/nap duration admission fact."""
     return extract_sleep_overview_facts(task_spec.dataModelSchema) is not None
 
 
@@ -1820,11 +1965,25 @@ def sleep_overview_variants(
     )
     if requests_extended_projection and not relaxed:
         return ()
-    sleep_terms = (*_SLEEP_QUERY_TERMS, *_SLEEP_SCORE_QUERY_TERMS, *_EXTENDED_SLEEP_QUERY_TERMS)
+    sleep_terms = (
+        *_SLEEP_QUERY_TERMS,
+        *_SLEEP_SCORE_QUERY_TERMS,
+        *_EXTENDED_SLEEP_QUERY_TERMS,
+        *_NAP_SLEEP_QUERY_TERMS,
+    )
     if not _contains_query_term(normalized, compact, sleep_terms):
         return ()
     facts = extract_sleep_overview_facts(task_spec.dataModelSchema)
     if facts is None:
+        return ()
+    requests_nap = _contains_query_term(normalized, compact, _NAP_SLEEP_QUERY_TERMS)
+    if requests_nap:
+        # Nap intent renders only nap-backed facts and is not size-gated.
+        if facts.source != "nap":
+            return ()
+        return ("nap",)
+    if facts.source == "nap":
+        # Night-themed queries must not render nap data as night sleep.
         return ()
     requests_score = _contains_query_term(
         normalized,
@@ -1920,7 +2079,10 @@ def bluetooth_device_overview_variants(
         return ()
     if requests_case and facts.case_battery_level is None:
         return ()
-    if requests_charging and facts.case_charging_status is None:
+    request_status_none = facts.case_charging_status is None \
+        and facts.left_charging_status is None \
+        and facts.right_charging_status is None
+    if requests_charging and request_status_none:
         return ()
     return ("template",)
 
@@ -2081,11 +2243,23 @@ def schedule_overview_is_eligible(
         return False
     facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
     timezone_facts = extract_schedule_timezone_facts(task_spec.dataModelSchema)
-    if facts is None and timezone_facts is None:
+    variant_fields, variant_names = _schedule_template_variant_projection(
+        task_spec.dataModelSchema
+    )
+    if facts is None and timezone_facts is None and not variant_fields:
         return False
-    if not schedule_overview_query_is_supported(task_spec.userQuery):
+    if not schedule_overview_query_is_supported(
+        task_spec.userQuery
+    ) and not _schedule_template_variant_query_is_supported(
+        task_spec.userQuery,
+        variant_names,
+    ):
         return False
-    location = facts.location if facts is not None else timezone_facts.location
+    location = facts.location if facts is not None else None
+    if location is None and timezone_facts is not None:
+        location = timezone_facts.location
+    if location is None:
+        location = _trusted_string(variant_fields.get("eventLocation"))
     if schedule_query_requests_location(task_spec.userQuery) and location is None:
         return False
     return _requested_schedule_assets_are_available(task_spec)
@@ -2101,6 +2275,28 @@ def schedule_overview_query_is_supported(query: str) -> bool:
     ):
         return False
     return _contains_query_term(normalized, compact, _SCHEDULE_QUERY_TERMS)
+
+
+def _schedule_template_variant_query_is_supported(
+    query: str,
+    variant_names: frozenset[str],
+) -> bool:
+    """Permit unsupported terms only when one complete template shape handles them."""
+    normalized, compact = _normalized_query(query)
+    if not _contains_query_term(normalized, compact, _SCHEDULE_QUERY_TERMS):
+        return False
+    matched_unsupported = {
+        term
+        for term in _UNSUPPORTED_SCHEDULE_QUERY_TERMS
+        if _contains_query_term(normalized, compact, (term,))
+    }
+    if not matched_unsupported:
+        return False
+    return any(
+        matched_unsupported <= allowed_terms
+        for variant_name, allowed_terms in _SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS.items()
+        if variant_name in variant_names
+    )
 
 
 def resource_usage_overview_is_eligible(
@@ -2355,10 +2551,18 @@ def extract_bluetooth_device_overview_facts(
                 return facts
     required_identity = {"isConnected", "earphoneName"}
     required_case_status = {"batteryLevel", "chargingStatusDesc"}
+    required_ear_battery = {"leftBatteryLevel", "rightBatteryLevel"}
+    required_name_and_case_battery = {"earphoneName", "batteryLevel"}
     for candidate in _dict_nodes(schema):
         has_complete_identity = required_identity.issubset(candidate)
         has_complete_case_status = required_case_status.issubset(candidate)
-        if not has_complete_identity and not has_complete_case_status:
+        has_complete_ear_battery = required_ear_battery.issubset(candidate)
+        has_name_and_case_battery = required_name_and_case_battery.issubset(candidate)
+        contains_no_fact = not has_complete_identity \
+            and not has_complete_case_status \
+            and not has_complete_ear_battery \
+            and not has_name_and_case_battery
+        if contains_no_fact:
             continue
         facts = _bluetooth_facts_from_candidate(candidate)
         if facts is not None:
@@ -2372,7 +2576,15 @@ def _bluetooth_facts_from_candidate(
     is_connected = _trusted_boolean(_first_field(candidate, "isConnected"))
     earphone_name = _trusted_string(_first_field(candidate, "earphoneName"))
     has_complete_identity = is_connected is not None and earphone_name is not None
-    if (is_connected is None) != (earphone_name is None):
+    case_battery_level = _trusted_percentage_number(
+        _first_field(candidate, "batteryLevel")
+    )
+    has_name_and_case_battery = (
+        earphone_name is not None and case_battery_level is not None
+    )
+    if not has_name_and_case_battery and (is_connected is None) != (
+        earphone_name is None
+    ):
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
@@ -2383,7 +2595,13 @@ def _bluetooth_facts_from_candidate(
         right_battery_level=_trusted_percentage_number(
             _first_field(candidate, "rightBatteryLevel")
         ),
-        case_battery_level=_trusted_percentage_number(_first_field(candidate, "batteryLevel")),
+        left_charging_status=_trusted_string(
+            _first_field(candidate, "leftChargingStatusDesc")
+        ),
+        right_charging_status=_trusted_string(
+            _first_field(candidate, "rightChargingStatusDesc")
+        ),
+        case_battery_level=case_battery_level,
         case_charging_status=_trusted_string(
             _first_field(candidate, "chargingStatusDesc")
         ),
@@ -2391,7 +2609,20 @@ def _bluetooth_facts_from_candidate(
     has_complete_case_status = (
         facts.case_battery_level is not None and facts.case_charging_status is not None
     )
-    return facts if has_complete_identity or has_complete_case_status else None
+    has_complete_ear_battery = (
+        facts.left_battery_level is not None and facts.right_battery_level is not None
+    )
+    has_name_and_case_battery = (
+        facts.earphone_name is not None and facts.case_battery_level is not None
+    )
+    return (
+        facts
+        if has_complete_identity
+        or has_complete_case_status
+        or has_complete_ear_battery
+        or has_name_and_case_battery
+        else None
+    )
 
 
 def _projected_battery_candidates(schema: dict[str, Any]):
@@ -2661,27 +2892,24 @@ def extract_activity_overview_facts(
 def extract_workout_latest_facts(
     schema: dict[str, Any],
 ) -> WorkoutLatestFacts | None:
-    """Extract one complete latest-workout session from one health subtree."""
+    """Extract one latest-workout session; calorie, type, and end time are optional."""
     for candidate in _direct_or_provider_candidates(
         schema,
         "WorkoutOverview",
         "GetHealthAndSportSummary",
     ):
         exercise_type_name = _trusted_string(candidate.get("exerciseTypeName"))
-        calorie_text = _trusted_string(candidate.get("exerciseCalorieText"))
-        duration_text = _trusted_string(candidate.get("exerciseDurationText"))
-        end_time_text = _trusted_string(candidate.get("exerciseEndTimeText"))
         if exercise_type_name == "暂无运动":
             continue
-        if exercise_type_name is None or calorie_text is None:
-            continue
-        if duration_text is None or end_time_text is None:
+        calorie_text = _trusted_string(candidate.get("exerciseCalorieText"))
+        duration_text = _trusted_string(candidate.get("exerciseDurationText"))
+        if duration_text is None:
             continue
         return WorkoutLatestFacts(
-            exercise_type_name=exercise_type_name,
             calorie_text=calorie_text,
             duration_text=duration_text,
-            end_time_text=end_time_text,
+            exercise_type_name=exercise_type_name,
+            end_time_text=_trusted_string(candidate.get("exerciseEndTimeText")),
         )
     return None
 
@@ -2704,45 +2932,62 @@ def extract_countdown_overview_facts(
 def extract_heart_rate_overview_facts(
     schema: dict[str, Any],
 ) -> HeartRateOverviewFacts | None:
-    """Extract one positive exercise-average bpm and optional trusted timestamp."""
+    """Extract trusted exercise bpm: average preferred, else a coherent max/min range."""
     for candidate in _direct_or_provider_candidates(
         schema,
         "HeartRateOverview",
         "GetHealthAndSportSummary",
     ):
+        updated_at = _trusted_string(candidate.get("updatedAt"))
         average_bpm = _trusted_positive_integer(candidate.get("exerciseHeartRateAvg"))
-        if average_bpm is None:
-            continue
-        return HeartRateOverviewFacts(
-            average_bpm=average_bpm,
-            updated_at=_trusted_string(candidate.get("updatedAt")),
-        )
+        if average_bpm is not None:
+            return HeartRateOverviewFacts(
+                average_bpm=average_bpm,
+                updated_at=updated_at,
+            )
+        max_bpm = _trusted_positive_integer(candidate.get("exerciseHeartRateMax"))
+        min_bpm = _trusted_positive_integer(candidate.get("exerciseHeartRateMin"))
+        if max_bpm is not None and min_bpm is not None and min_bpm <= max_bpm:
+            return HeartRateOverviewFacts(
+                max_bpm=max_bpm,
+                min_bpm=min_bpm,
+                updated_at=updated_at,
+            )
     return None
 
 
 def extract_sleep_overview_facts(
     schema: dict[str, Any],
 ) -> SleepOverviewFacts | None:
-    """Extract one coherent night-sleep record without inferring status."""
+    """Extract one coherent night-sleep or daytime-nap record without inferring status."""
     for candidate in _direct_or_provider_candidates(
         schema,
         "SleepOverview",
         "GetHealthAndSportSummary",
     ):
         duration_text = _trusted_string(candidate.get("nightSleepDurationText"))
-        if duration_text is None:
-            continue
-        duration = parse_duration_text(duration_text)
-        if duration is None:
-            continue
-        return SleepOverviewFacts(
-            duration_text=duration_text,
-            duration=_normalize_sleep_duration(duration),
-            score=_trusted_percentage_number(candidate.get("sleepScore")),
-            status=_trusted_string(candidate.get("sleepStatus")),
-            fall_asleep_time=_trusted_clock_text(candidate.get("fallAsleepTimeText")),
-            wakeup_time=_trusted_clock_text(candidate.get("wakeupTimeText")),
-        )
+        if duration_text is not None:
+            duration = parse_duration_text(duration_text)
+            if duration is not None:
+                return SleepOverviewFacts(
+                    duration_text=duration_text,
+                    duration=_normalize_sleep_duration(duration),
+                    score=_trusted_percentage_number(candidate.get("sleepScore")),
+                    status=_trusted_string(candidate.get("sleepStatus")),
+                    fall_asleep_time=_trusted_clock_text(candidate.get("fallAsleepTimeText")),
+                    wakeup_time=_trusted_clock_text(candidate.get("wakeupTimeText")),
+                )
+        nap_text = _trusted_string(candidate.get("totalNapDurationText"))
+        if nap_text is not None:
+            nap_duration = parse_duration_text(nap_text)
+            if nap_duration is not None:
+                return SleepOverviewFacts(
+                    duration_text=nap_text,
+                    duration=_normalize_sleep_duration(nap_duration),
+                    fall_asleep_time=_trusted_clock_text(candidate.get("fallAsleepTimeText")),
+                    wakeup_time=_trusted_clock_text(candidate.get("wakeupTimeText")),
+                    source="nap",
+                )
     return None
 
 
@@ -2794,10 +3039,7 @@ def _direct_or_provider_candidates(
         "ActivityOverview": ("dailySteps",),
         "WorkoutOverview": (
             (
-                "exerciseTypeName",
-                "exerciseCalorieText",
                 "exerciseDurationText",
-                "exerciseEndTimeText",
             )
             if provider_id == "GetHealthAndSportSummary"
             else ("countdownDays",)
@@ -2808,6 +3050,15 @@ def _direct_or_provider_candidates(
     }.get(component_id, ())
     if required_fields:
         yield from _direct_field_objects(schema.get("data", {}), required_fields)
+    if component_id == "SleepOverview":
+        # Nap admission: objects carrying the daytime nap total when night duration is absent.
+        yield from _direct_field_objects(schema.get("data", {}), ("totalNapDurationText",))
+    if component_id == "HeartRateOverview":
+        # Range admission: coherent max/min objects that carry no average field.
+        yield from _direct_field_objects(
+            schema.get("data", {}),
+            ("exerciseHeartRateMax", "exerciseHeartRateMin"),
+        )
 
 
 def _trusted_nonnegative_integer(value: Any) -> int | None:
@@ -2878,6 +3129,94 @@ def extract_schedule_timezone_facts(
         is_all_day=is_all_day,
         location=location,
     )
+
+
+def extract_schedule_template_variant_fields(
+    schema: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Preserve trusted raw fields used by the supported calendar variants."""
+    selected, _variant_names = _schedule_template_variant_projection(schema)
+    return selected
+
+
+def _schedule_template_variant_projection(
+    schema: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], frozenset[str]]:
+    provider = _calendar_schedule_provider(schema)
+    if provider is None:
+        return {}, frozenset()
+    event_count = _sample_value(provider.get("eventCount"))
+    if isinstance(event_count, (int, float)) and not isinstance(event_count, bool):
+        if event_count <= 0:
+            return {}, frozenset()
+    selected: dict[str, dict[str, Any]] = {}
+    variant_names: set[str] = set()
+    for variant_name, shape in _SCHEDULE_TEMPLATE_VARIANT_SPECS:
+        shape_fields: dict[str, dict[str, Any]] = {}
+        for projection_name, path, data_type, allow_empty in shape:
+            field = _calendar_variant_schema_leaf(provider, path)
+            if not _trusted_schedule_variant_field(
+                field,
+                data_type=data_type,
+                allow_empty=allow_empty,
+            ):
+                shape_fields = {}
+                break
+            shape_fields[projection_name] = deepcopy(field)
+        if shape_fields:
+            selected.update(shape_fields)
+            variant_names.add(variant_name)
+    return selected, frozenset(variant_names)
+
+
+def _calendar_variant_schema_leaf(
+    provider: dict[str, Any],
+    pointer: str,
+) -> dict[str, Any] | None:
+    current: Any = provider
+    for raw_part in pointer.removeprefix("/").split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, list):
+            if not part.isdigit():
+                return None
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
+            continue
+        if not isinstance(current, dict):
+            return None
+        if current.get("type") == "array":
+            if not part.isdigit():
+                return None
+            current = current.get("items")
+            continue
+        if part in current:
+            current = current[part]
+            continue
+        properties = current.get("properties")
+        if not isinstance(properties, dict) or part not in properties:
+            return None
+        current = properties[part]
+    return current if isinstance(current, dict) else None
+
+
+def _trusted_schedule_variant_field(
+    field: dict[str, Any] | None,
+    *,
+    data_type: str,
+    allow_empty: bool,
+) -> bool:
+    if not isinstance(field, dict) or field.get("type") != data_type:
+        return False
+    sample = field.get("sampleValue")
+    if data_type == "string":
+        return isinstance(sample, str) and (allow_empty or bool(sample.strip()))
+    if data_type == "boolean":
+        return isinstance(sample, bool)
+    if data_type == "integer":
+        return isinstance(sample, int) and not isinstance(sample, bool)
+    return False
 
 
 def _projected_schedule_candidates(schema: dict[str, Any]):
@@ -3110,6 +3449,7 @@ def _calendar_selectors(
     timezone_facts = extract_schedule_timezone_facts(schema)
     if timezone_facts is not None:
         schedule.update(timezone_facts.as_selector())
+    schedule.update(extract_schedule_template_variant_fields(schema))
     date_facts = extract_date_overview_facts(schema)
     return schedule, date_facts.as_selector() if date_facts is not None else {}
 

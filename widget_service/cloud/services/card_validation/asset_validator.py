@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from .base import BaseValidator, is_wrapped_expression, static_expression_value
 
@@ -79,6 +80,10 @@ class AssetValidator(BaseValidator):
     def _check_static_path(
         self, path: str, pointer: str, forbidden, context, rules, reporter
     ) -> None:
+        # 白名单域名下的远端素材（云侧 OBS url）直接放行，不参与禁止外链与 allowlist 校验。
+        allowed_hosts = getattr(rules, "asset_allowed_hosts", None) or set()
+        if allowed_hosts and urlparse(path).hostname in allowed_hosts:
+            return
         for pattern in forbidden:
             if pattern.search(path):
                 reporter.add(

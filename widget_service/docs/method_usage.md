@@ -40,16 +40,22 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 └─ asset_capabilities.json
 ```
 
-当前默认能力清单：
+当前能力清单及命中区间：
 
 ```text
-app-11.7.5.205_rom-6.0
+App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2) -> app-11.7.5.205_rom-6.0
+App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
 ```
 
-当前 App `[11.7.5.205, 12.0.0.0)`、ROM `[6.0, 7.0)` 命中上述目录。App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与 ROM 同时重叠的配置以及不存在的目标目录。
+App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与
+ROM 同时重叠的配置以及不存在的目标目录。
+
+能力目录名是快照标识，不用于推导实际命中范围。当前配置下 ROM 6.x、旧 App 搭配 ROM 7.2 及以上，
+以及其它未覆盖组合没有直接命中；是否使用默认清单由回退开关决定。
 
 五个接口在能力清单版本未命中或目标目录不可用且
-`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。
+`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到默认的
+`app-11.7.5.205_rom-6.0` 能力清单。
 关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
@@ -90,9 +96,10 @@ a2ui-form-rom6.0-v1
 
 当前微服务提供五个正式工具能力，其中第四个是 Design Compact DSL 生成变体，第五个是
 TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
-消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
-字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
-`deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。
+消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议优先读取 `content.uid` 和
+`content.romVersion`，对应字段缺失或为空时分别回退到 `userAuth.user.userId` 和
+`deviceInfo.romVersion`。`odid` 只从可选的 `content.odid` 读取并映射到内部设备上下文；缺失或为空时
+IDS 查询继续使用固定兜底值。用户和设备上下文通常由工具层自动注入，本地测试时可以显式传入。
 
 业务入口：
 
@@ -122,7 +129,18 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 主 Agent 调用第四接口时不感知 WebSocket 的 `content` 字段，只使用标准工具调用格式：`arguments`、
 `functionName`、`skillName` 位于同层。`arguments` 必须直接传 JSON 对象，并包含 `bundleName`、
 `userQuery`、`title`、`description` 等工具字段；若误传为 JSON 字符串，服务会在模型调用前返回
-`/arguments` 错误，要求将字符串反序列化为对象后重新调用。
+`/arguments` 错误，要求将字符串反序列化为对象后重新调用。可通过
+`WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK` 开启连续失败兜底，并使用
+`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT` 配置先提醒的次数；默认值为 `1`，即同一
+`requestId` 第一次返回原有提醒，第二次仍出现字符串化 `arguments` 时调用 A2UI client 修复。修复调用使用
+`cloud/data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md` 中的独立 JSON Prompt，
+不加载卡片生成系统 Prompt。模型输入以 `rawArguments` 原样携带原始字符串，不使用 `json_repair` 或其它
+启发式修复结果作为模型输入。`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS` 默认值为 `2`；
+第一次输出无法通过严格 JSON、请求结构校验时，第二次会同时携带上次输出和具体错误进行定向纠正。
+合法模型结果还会按当前 App/ROM 能力清单重建事件 `actionTemplate`，只保留清单声明的动态参数，并移除
+无法通过生成预检的候选。全部模型输出仍失败时，服务从原始字符串中无损提取可识别的需求文本，构造不含
+动态候选的最小静态请求继续生成。恢复结果替换请求 `content` 后，仍需通过正常生成、校验和存储流程；
+任意一次不再携带字符串化 `arguments` 的请求会清除该 `requestId` 的连续计数。
 
 `generateWidgetCardTerseDslNested2` 从
 `cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入
@@ -133,9 +151,11 @@ Parser 只接受单根组件调用、字面量、白名单组件和安全对象�
 语法验证其中的上一轮模型原始输出。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
 `mep` 或 `openai`。其它配置值会在启动配置校验阶段直接报错，不做自动迁移。
 
-第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
-`WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
-`WIDGET_SERVICE_PROTOCOL_PROFILE_ID`。
+第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`，其 App/ROM 区间与能力清单
+保持一致：App `[11.7.5.205, 11.7.7.330)` 且 ROM `[7.0, 7.2)`，以及 App
+`[11.7.7.330, 12.0.0.0)` 且 ROM `[7.0, 8.0)`。当前两段都映射到同一套 A2UI Form Profile 和
+`design-compact-dsl`；未命中时，只有 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true`
+才回退到 `WIDGET_SERVICE_PROTOCOL_PROFILE_ID`。
 
 所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
@@ -1020,9 +1040,11 @@ build(
 标准 `genui` 兜底。
 
 `build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user
-内容、当前最新源 DSL、`dslFormat` 和结构化 `qualityErrors` 编码成标准 JSON user 消息。每项错误包含
-`stage`、`code`、`message`；编辑模式的首次 user 内容保留上一轮 `previousDesignToken`。模型返回修复后的
-同格式源 DSL，再次执行对应 Processor 和标准 A2UI Validator。
+内容、当前最新源 DSL、`dslFormat` 和结构化 `qualityErrors` 编码成标准 JSON user 消息。转换错误至少包含
+`stage`、`code`、`message`；完整 artifact 校验错误还传递具体校验错误码、`validatorStage`、`fileKind`、
+`line`、`jsonPointer`、`actual`、`expected` 和校验器确定性生成的 `fixHint`，并用 `category` 保留通用错误
+分类。编辑模式的首次 user 内容保留上一轮 `previousDesignToken`。模型返回修复后的同格式源 DSL，再次
+执行对应 Processor 和标准 A2UI Validator。
 
 修复模型调用会对完整 prompt 日志做脱敏，只记录修复类型和错误数量。
 

@@ -18,7 +18,11 @@ from services.template_generation.engine.advanced.models import (
 )
 
 from .models import BusinessTemplateGroup, TemplateDefinition, TemplateVariant, ThemeDefinition
-from .provider_bundle import LoadedProviderBundle, load_provider_bundles
+from .provider_bundle import (
+    LoadedProviderBundle,
+    load_provider_bundles,
+    provider_template_layout_kind,
+)
 from .retrieval_index import (
     TemplateVariantSearchRecord,
     build_template_variant_search_records,
@@ -247,6 +251,45 @@ class CardPlanRegistry:
         if tuple(values) != self.theme_reference_paths:
             raise ValueError(f"Theme reference values are incomplete: {theme_id}")
         return values
+
+    def hero_content_theme_owner(
+        self,
+        template_ids: tuple[str, ...],
+    ) -> TemplateDefinition | None:
+        """仅双业务 HeroTitle/HeroContent 组合由内容位置拥有全局主题。"""
+        owners: dict[str, TemplateDefinition] = {}
+        for template_id in template_ids:
+            definition = self.require_template(template_id)
+            if definition.business_id is None:
+                continue
+            layout_kind = provider_template_layout_kind(template_id)
+            if layout_kind not in {"HeroTitle", "HeroContent"}:
+                return None
+            previous = owners.get(layout_kind)
+            if previous is not None and previous.business_id != definition.business_id:
+                return None
+            owners[layout_kind] = definition
+        title = owners.get("HeroTitle")
+        content = owners.get("HeroContent")
+        if title is None or content is None:
+            return None
+        if title.business_id == content.business_id:
+            return None
+        return content
+
+    def hero_content_theme_id(
+        self,
+        template_ids: tuple[str, ...],
+        requested_theme_id: str,
+    ) -> str | None:
+        """按主业务及已过滤的版本能力确定主题，不借用标题业务的融球。"""
+        owner = self.hero_content_theme_owner(template_ids)
+        if owner is None or owner.business_id is None:
+            return None
+        theme_ids = self.first_layer_theme_ids((owner.business_id,))
+        if not theme_ids:
+            raise ValueError(f"HeroContent business has no available Theme: {owner.business_id}")
+        return requested_theme_id if requested_theme_id in theme_ids else theme_ids[0]
 
     def layout_theme_ids(
         self,

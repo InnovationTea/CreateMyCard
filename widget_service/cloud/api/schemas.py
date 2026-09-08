@@ -128,10 +128,10 @@ class ToolRequestEnvelope(BaseModel):
     """WebSocket 外部请求包络。
 
     入参：
-    - content：业务入参，对应旧协议中的 arguments；可携带可选 odid。
-    - deviceInfo：端侧设备信息，服务会转换成内部 DeviceContext。
+    - content：业务入参；可携带优先使用的 uid、romVersion 和可选 odid。
+    - deviceInfo：端侧设备信息；content 未提供 romVersion 时作为回退来源。
     - session：会话信息，服务会用 sessionId + '&' + interactionId 生成 requestId。
-    - userAuth：用户鉴权信息，服务会从 user.userId 提取 uid。
+    - userAuth：用户鉴权信息；content 未提供 uid 时从 user.userId 回退提取。
     - utterance：用户原始表达；generateWidgetCard 未传 userQuery 时可兜底使用 original。
     - pagination：分页信息，当前接口暂不消费。
     - version：外部包络协议版本。

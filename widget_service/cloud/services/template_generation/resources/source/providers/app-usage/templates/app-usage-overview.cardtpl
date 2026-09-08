@@ -20,13 +20,12 @@ Column(
                 data.appName,
                 {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
             ),
-            IfPresent(
-                props.appIcon,
-                Image(
-                    props.appIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-                )
-            )
+            #if props.appIcon
+              Image(
+                  props.appIcon,
+                  {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+              )
+            #endif
         ),
         Row(
             {"height": 32, "width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -36,16 +35,15 @@ Column(
             )
         ),
     ),
-    IfPresent(
-        data.updatedAt,
-        Column(
-            {"width":"matchParent","itemMargin":4,"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                `更新于 ${data.updatedAt}`,
-                {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
-        )
-    )
+    #if data.updatedAt
+      Column(
+          {"width":"matchParent","itemMargin":4,"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+          Text(
+              `更新于 ${data.updatedAt}`,
+              {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+      )
+    #endif
 )
 #End
 
@@ -64,13 +62,12 @@ Column(
             data.appName,
             {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
         ),
-        IfPresent(
-            props.appIcon,
-            Image(
-                props.appIcon,
-                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-            )
-        )
+        #if props.appIcon
+          Image(
+              props.appIcon,
+              {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+          )
+        #endif
     ),
     Column(
         {"width":"matchParent","itemMargin":4,"layoutWeight": 1, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -81,13 +78,12 @@ Column(
                 {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
-        IfPresent(
-            data.updatedAt,
-            Text(
-                `更新于 ${data.updatedAt}`,
-                {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
-        )
+        #if data.updatedAt
+          Text(
+              `更新于 ${data.updatedAt}`,
+              {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+        #endif
     )
 )
 #End
@@ -120,26 +116,24 @@ Row(
                 )
             )
         ),
-        IfPresent(
-            data.updatedAt,
-            Text(
-                `更新于 ${data.updatedAt}`,
-                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-            )
-        )
+        #if data.updatedAt
+          Text(
+              `更新于 ${data.updatedAt}`,
+              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+          )
+        #endif
     ),
     Column(
         {"width":"matchParent","layoutWeight": 1, "itemMargin": 8, "clip": true, "height": "matchParent", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        IfPresent(
-            props.appIcon,
-            Column(
-                {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
-                Image(
-                    props.appIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-                )
-            )
-        )
+        #if props.appIcon
+          Column(
+              {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
+              Image(
+                  props.appIcon,
+                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+              )
+          )
+        #endif
     )
 )
 #End
@@ -172,26 +166,24 @@ Row(
                 )
             )
         ),
-        IfPresent(
-            data.updatedAt,
-            Text(
-                `更新于 ${data.updatedAt}`,
-                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-            )
-        )
+        #if data.updatedAt
+          Text(
+              `更新于 ${data.updatedAt}`,
+              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+          )
+        #endif
     ),
     Column(
         {"width":"matchParent","layoutWeight": 1, "itemMargin": 8, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        IfPresent(
-            props.appIcon,
-            Column(
-                {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
-                Image(
-                    props.appIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-                )
-            )
-        )
+        #if props.appIcon
+          Column(
+              {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
+              Image(
+                  props.appIcon,
+                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+              )
+          )
+        #endif
     )
 )
 #End
@@ -217,13 +209,12 @@ Column(
                 {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
             ),
         ),
-        IfPresent(
-            props.appIcon,
-            Image(
-                props.appIcon,
-                {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-            )
-        )
+        #if props.appIcon
+          Image(
+              props.appIcon,
+              {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+          )
+        #endif
     )
 )
 #End
@@ -254,16 +245,15 @@ Stack({
                   {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
               ),
           ),
-          IfPresent(
-              props.appIcon,
-              Image(
-                  props.appIcon,
-                  {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-              )
-          )
+          #if props.appIcon
+            Image(
+                props.appIcon,
+                {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+            )
+          #endif
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -275,6 +265,6 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End

@@ -1,0 +1,13 @@
+```genui
+{"version":"v0.9","createSurface":{"surfaceId":"event_test_08","catalogId":"ohos.a2ui.extended.catalog.form"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"event_test_08","root":"root","components":[{"id":"root","component":"Column","children":["title_text","action_row"],"itemMargin":8,"styles":{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"backgroundColor":"#FFFFFFFF","justifyContent":"center","alignItems":"center"}},{"id":"title_text","component":"Text","content":"新增事件测试 08","styles":{"width":296,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center"}},{"id":"action_row","component":"Row","children":["action_left","action_right"],"itemMargin":8,"styles":{"width":296,"height":108,"justifyContent":"spaceBetween","alignItems":"center"}},{"id":"action_left","component":"Button","label":"运动记录","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health"}}],"styles":{"width":144,"height":84,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","backgroundColor":"#0C000000","borderRadius":16,"padding":8}},{"id":"action_right","component":"Button","label":"活动记录","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health&path=ActiveRecord"}}],"styles":{"width":144,"height":84,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","backgroundColor":"#0C000000","borderRadius":16,"padding":8}}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"event_test_08","path":"/","value":{"state":{"ready":true},"testCard":"08"}}}
+```
+
+```cardspec
+{
+  "title": "事件测试08",
+  "description": "新增事件双入口",
+  "suggestSize": "2x4"
+}
+```

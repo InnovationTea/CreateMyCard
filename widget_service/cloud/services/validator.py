@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import traceback
+from typing import Any
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
@@ -14,6 +15,7 @@ _MODULE = "[Validator]"
 class ArtifactValidator:
     def __init__(self) -> None:
         self.error_categories: list[str] = []
+        self.error_prompt_contexts: list[dict[str, Any]] = []
 
     def validate(
         self,
@@ -34,6 +36,7 @@ class ArtifactValidator:
             f"validator_module={validator_name}"
         )
         self.error_categories = []
+        self.error_prompt_contexts = []
         try:
             settings = get_settings()
             reporter = validate_card(
@@ -46,8 +49,14 @@ class ArtifactValidator:
                     ),
                 ),
             )
-            errors = self._normalize_diagnostics(reporter.diagnostics, "error")
-            warnings = self._normalize_diagnostics(reporter.diagnostics, "warning")
+            errors, self.error_prompt_contexts = self._normalize_diagnostics(
+                reporter.diagnostics,
+                "error",
+            )
+            warnings, _ = self._normalize_diagnostics(
+                reporter.diagnostics,
+                "warning",
+            )
         except Exception as exc:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
@@ -76,9 +85,10 @@ class ArtifactValidator:
         self,
         diagnostics: list[Diagnostic],
         severity: str,
-    ) -> list[str]:
-        """把结构化诊断转换为重试控制器和日志使用的稳定字符串。"""
+    ) -> tuple[list[str], list[dict[str, Any]]]:
+        """同时生成稳定日志字符串和供修复模型使用的结构化上下文。"""
         messages: list[str] = []
+        prompt_contexts: list[dict[str, Any]] = []
         for item in diagnostics:
             if item.severity != severity:
                 continue
@@ -88,4 +98,28 @@ class ArtifactValidator:
             if item.json_pointer:
                 location += f" {item.json_pointer}"
             messages.append(f"{item.code}: {item.message} [{location}]")
-        return messages
+            prompt_contexts.append(self._diagnostic_prompt_context(item))
+        return messages, prompt_contexts
+
+    @staticmethod
+    def _diagnostic_prompt_context(item: Diagnostic) -> dict[str, Any]:
+        """保留确定性诊断细节，避免修复模型再次猜测具体规则。"""
+        context: dict[str, Any] = {
+            "stage": "validation",
+            "category": "ARTIFACT_VALIDATION_FAILED",
+            "code": item.code,
+            "validatorStage": item.stage,
+            "fileKind": item.file_kind,
+            "message": item.message,
+        }
+        optional_values = {
+            "line": item.line,
+            "jsonPointer": item.json_pointer,
+            "actual": item.actual,
+            "expected": item.expected,
+            "fixHint": item.fix_hint,
+        }
+        for key, value in optional_values.items():
+            if value not in (None, "", []):
+                context[key] = value
+        return context

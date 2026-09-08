@@ -634,6 +634,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["borderRadius"], 20)
         self.assertEqual(action_styles["fontSize"], 14)
         self.assertEqual(action_styles["fontWeight"], 400)
+        self.assertEqual(action_styles["textAlign"], "center")
 
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
@@ -694,6 +695,101 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "#FF9E6D20",
         )
         self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
+
+    def test_rejects_action_unit_missing_required_props_without_key_error(self) -> None:
+        handler = {"call": "openWeather", "args": {}}
+        cases = (
+            ({"label": "查看天气", "onClick": [handler]}, "ActionUnit.state"),
+            ({"state": "capsule", "onClick": [handler]}, "ActionUnit.label"),
+            ({"state": "capsule", "label": "查看天气"}, "ActionUnit.onClick"),
+            ({"state": "icon-round", "onClick": [handler]}, "ActionUnit.icon"),
+        )
+        for props, expected_error in cases:
+            with self.subTest(expected_error=expected_error):
+                compact_dsl = _serialize(
+                    [
+                        [
+                            "root",
+                            "Column",
+                            {"width": 160, "height": 160},
+                            ["cta"],
+                        ],
+                        ["cta", "ActionUnit", props],
+                        ["/state/ready", True],
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    CompactDslConversionError,
+                    expected_error,
+                ):
+                    convert_compact_dsl_to_a2ui(
+                        compact_dsl,
+                        size="2x2",
+                        protocol_profile=self.profile,
+                    )
+
+    def test_reports_missing_action_unit_on_click_before_conversion(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["cta"],
+                ],
+                [
+                    "cta",
+                    "ActionUnit",
+                    {"state": "capsule", "label": "查看天气"},
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "ActionUnit.onClick is required",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "dataModelSchema": {"data": {}},
+                    "assetCandidates": [],
+                    "eventCandidates": [{"call": "openWeather", "args": {}}],
+                },
+                card_spec={"dataBindings": []},
+            )
+
+    def test_rejects_on_click_that_does_not_match_event_candidate(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": 160,
+                        "height": 160,
+                        "onClick": [{"call": "openCalendar", "args": {}}],
+                    },
+                    [],
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "must exactly match a TaskSpec eventCandidate",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "dataModelSchema": {"data": {}},
+                    "assetCandidates": [],
+                    "eventCandidates": [{"call": "openWeather", "args": {}}],
+                },
+                card_spec={"dataBindings": []},
+            )
 
     def test_accepts_one_genui_fence(self) -> None:
         fenced = f"```genui\n{self.compact_dsl}\n```"
@@ -854,6 +950,219 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             self.compact_dsl,
             task_spec=self.task_spec,
             card_spec=self.card_spec,
+        )
+
+        self.assertEqual(result.warnings, ())
+
+    def test_rejects_fixed_root_children_that_overflow_safe_height(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 8,
+                    },
+                    ["title_area", "zone_top", "zone_bottom"],
+                ],
+                ["title_area", "Text", {"content": "标题", "height": 20}],
+                ["zone_top", "Text", {"content": "上区", "height": 64}],
+                ["zone_bottom", "Text", {"content": "下区", "height": 64}],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "vertical layout requires at least 164vp within 136vp",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "size": "2x2",
+                    "dataModelSchema": {},
+                    "assetCandidates": [],
+                    "eventCandidates": [],
+                },
+                card_spec={"suggestSize": "2x2", "dataBindings": []},
+            )
+
+    def test_rejects_distributed_root_when_minimum_gaps_overflow(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 8,
+                        "justifyContent": "spaceBetween",
+                    },
+                    ["health_area", "battery_area", "action_area"],
+                ],
+                ["health_area", "Text", {"content": "健康", "height": 64}],
+                ["battery_area", "Text", {"content": "电池", "height": 40}],
+                ["action_area", "Column", {}, ["cta"]],
+                ["cta", "Button", {"label": "开启省电模式", "height": 36}],
+            ]
+        )
+
+        with self.assertRaises(CompactDslValidationError) as raised:
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "size": "2x4",
+                    "dataModelSchema": {},
+                    "assetCandidates": [],
+                    "eventCandidates": [],
+                },
+                card_spec={"suggestSize": "2x4", "dataBindings": []},
+            )
+
+        message = str(raised.exception)
+        self.assertIn(
+            "vertical layout requires at least 156vp within 136vp",
+            message,
+        )
+
+    def test_accepts_distributed_root_with_item_margin_when_it_fits(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 4,
+                        "justifyContent": "spaceBetween",
+                    },
+                    ["title_area", "content_area", "action_area"],
+                ],
+                ["title_area", "Text", {"content": "标题", "height": 20}],
+                ["content_area", "Text", {"content": "内容", "height": 40}],
+                ["action_area", "Column", {}, ["cta"]],
+                ["cta", "Button", {"label": "查看详情", "height": 36}],
+            ]
+        )
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x2",
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+        self.assertEqual(result.warnings, ())
+
+    def test_accepts_s4_vertical_regions_at_exact_safe_height(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 8,
+                    },
+                    ["zone_top", "zone_bottom"],
+                ],
+                ["zone_top", "Text", {"content": "上区", "height": 64}],
+                ["zone_bottom", "Text", {"content": "下区", "height": 64}],
+            ]
+        )
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x2",
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+        self.assertEqual(result.warnings, ())
+
+    def test_validates_sparse_projected_array_index(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
+                [
+                    "weather",
+                    "Text",
+                    {"content": {"path": "/data/weather/daily/4/condition"}},
+                ],
+                ["/data/weather/daily/4/condition", "多云"],
+            ]
+        )
+        daily_schema = [{}, {}, {}, {}, {"condition": {"type": "string"}}]
+        task_spec = {
+            "dataModelSchema": {"data": {"weather": {"daily": daily_schema}}},
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {
+            "dataBindings": [{"writeResultTo": "/data/weather"}],
+        }
+
+        repaired = repair_compact_dsl_binding_paths(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
+        )
+        result = validate_compact_dsl(
+            repaired,
+            task_spec=task_spec,
+            card_spec=card_spec,
+        )
+
+        self.assertEqual(repaired, compact_dsl)
+        self.assertEqual(result.warnings, ())
+
+    def test_validates_array_index_against_homogeneous_item_schema(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
+                [
+                    "weather",
+                    "Text",
+                    {"content": {"path": "/data/weather/daily/4/condition"}},
+                ],
+                ["/data/weather/daily/4/condition", "多云"],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "daily": [{"condition": {"type": "string"}}],
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {
+            "dataBindings": [{"writeResultTo": "/data/weather"}],
+        }
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
         )
 
         self.assertEqual(result.warnings, ())

@@ -1,6 +1,6 @@
 #Template WorkoutOverviewFull@1(props: { sourceIcon?: asset })
 data = {
-    workoutType: $path("/exerciseTypeName"),
+    workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText"),
     endTime: $path("/exerciseEndTimeText")
@@ -31,25 +31,39 @@ Column(
                 "alignItems": "start",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
-            IfPresent(
-                props.sourceIcon,
+            #if props.sourceIcon
                 Image(
                     props.sourceIcon,
                     {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                ),
+            #endif
+            #if data.workoutType
+                Text(
+                    data.workoutType,
+                    {
+                        "width": "matchParent",
+                        "fontSize": 12,
+                        "fontWeight": 500,
+                        "fontColor": $theme('supportContentColor'),
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
+                ),
+            #else
+                Text(
+                    "运动记录",
+                    {
+                        "width": "matchParent",
+                        "fontSize": 12,
+                        "fontWeight": 500,
+                        "fontColor": $theme('supportContentColor'),
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
                 )
-            ),
-            Text(
-                data.workoutType,
-                {
-                    "width": "matchParent",
-                    "fontSize": 12,
-                    "fontWeight": 500,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0}
-                }
-            )
+            #endif
         )
     ),
     Column(
@@ -96,7 +110,7 @@ Column(
 
 #Template WorkoutOverviewCompact@1(props: { sourceIcon?: asset })
 data = {
-    workoutType: $path("/exerciseTypeName"),
+    workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText")
 }
@@ -128,34 +142,48 @@ Column(
                 data.workoutCalories,
                 {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
             ),
-            Text(
-                `${data.workoutType} | ${data.duration}`,
-                {
-                    "fontWeight": 400,
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0},
-                    "margin": {"top": 2}
-                }
-            )
+            #if data.workoutType
+                Text(
+                    `${data.workoutType} | ${data.duration}`,
+                    {
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "fontSize": 12,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0},
+                        "margin": {"top": 2}
+                    }
+                )
+            #else
+                Text(
+                    data.duration,
+                    {
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "fontSize": 12,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0},
+                        "margin": {"top": 2}
+                    }
+                )
+            #endif
         ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-            )
-        )
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          )
+        #endif
     )
 )
 #End
 
 #Template WorkoutOverviewHero@1(props: { sourceIcon?: asset })
 data = {
-    workoutType: $path("/exerciseTypeName"),
-    workoutCalories: $path("/exerciseCalorieText"),
+    workoutType: $optionalPath("/exerciseTypeName"),
+    workoutCalories: $optionalPath("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText")
 }
 
@@ -172,32 +200,58 @@ Column(
     },
     Row(
         {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
-        Text(
-            data.workoutType,
-            {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-        ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+        #if data.workoutType
+            Text(
+                data.workoutType,
+                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            ),
+        #else
+            Text(
+                "运动记录",
+                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
             )
-        )
+        #endif
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          )
+        #endif
     ),
-    Text(
-        data.workoutCalories,
-        {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "margin": {"top": 4}}
-    ),
-    Text(
-        data.duration,
-        {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": {"top": 4}}
+    #if data.workoutCalories
+        Text(
+            data.workoutCalories,
+            {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+        ),
+    #else
+        Text(
+            data.duration,
+            {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+        ),
+    #endif
+    Row(
+        {
+            "itemMargin": 4,
+            "width": "matchParent",
+            "justifyContent": "start"
+        },
+        Text(
+            "运动时长",
+            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+        ),
+        #if data.workoutCalories
+            Text(
+                data.duration,
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            )
+        #endif
     )
 )
 #End
 
 #Template WorkoutOverviewSupport@1(props: { sourceIcon?: asset, actionId?: string })
 data = {
-    workoutType: $path("/exerciseTypeName"),
+    workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText")
 }
@@ -234,29 +288,43 @@ Stack({
                   data.workoutCalories,
                   {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
               ),
-              Text(
-                  `${data.workoutType} | ${data.duration}`,
-                  {
-                      "fontWeight": 400,
-                      "fontColor": $theme('supportContentColor'),
-                      "fontSize": 12,
-                      "maxLines": 1,
-                      "textOverflow": "ellipsis",
-                      "constraintSize": {"minWidth": 0, "minHeight": 0},
-                      "margin": {"top": 2}
-                  }
-              )
+              #if data.workoutType
+                  Text(
+                    `${data.workoutType} | ${data.duration}`,
+                    {
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "fontSize": 12,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0},
+                        "margin": {"top": 2}
+                    }
+                  )
+              #else
+                  Text(
+                    data.duration,
+                    {
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "fontSize": 12,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0},
+                        "margin": {"top": 2}
+                    }
+                  )
+              #endif
           ),
-          IfPresent(
-              props.sourceIcon,
-              Image(
-                  props.sourceIcon,
-                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-              )
-          )
+          #if props.sourceIcon
+            Image(
+                props.sourceIcon,
+                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+            )
+          #endif
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -268,6 +336,6 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End

@@ -6,18 +6,19 @@ Owns the static list of built-in validators and the stage/short-circuit logic.
 ``validators`` are grouped by responsibility so it is obvious at a glance which
 subsystem a given validator belongs to.
 
-The online variant of this pipeline ships only ``hard`` and ``semantic`` stages.
-The ``quality`` stage exists in the stage enum for CLI symmetry with the offline
-version but has no validators attached — colour / aesthetic checks are the
-responsibility of the ``generateWidgetCard`` microservice for online output.
+The online variant keeps the protocol and semantic stages as its core pipeline.
+The quality stage currently hosts deterministic contrast checks; broader design
+contract checks remain the responsibility of the ``generateWidgetCard`` service.
 """
 
 from __future__ import annotations
 
+from .aesthetic_baseline_validator import AestheticBaselineValidator
 from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
 from .cardspec_validator import CardSpecValidator
 from .component_validator import ComponentValidator
+from .contrast_validator import ContrastValidator
 from .cross_validator import CrossValidator
 from .diagnostics import Reporter
 from .display_unit_validator import DisplayUnitValidator
@@ -28,12 +29,17 @@ from .protocol_validator import ProtocolValidator
 STATIC_VALIDATORS = [
     ProtocolValidator(),
     ComponentValidator(),
+    AestheticBaselineValidator(),
     CardSpecValidator(),
     ExpressionValidator(),
     AssetValidator(),
     BindingValidator(),
     DisplayUnitValidator(),
     CrossValidator(),
+]
+
+QUALITY_VALIDATORS = [
+    ContrastValidator(),
 ]
 
 EFFECTIVE_VALIDATORS = [
@@ -65,7 +71,7 @@ def run_pipeline(
     *,
     stop_on_stage_error: bool = False,
 ) -> None:
-    validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS)
+    validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
     for current_stage in selected_stages(stage):
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
             return

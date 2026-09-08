@@ -12,6 +12,7 @@ Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最�
 | 文档 | 用途 | 是否权威契约 |
 | --- | --- | --- |
 | [云侧方案设计](../../../../../docs/云侧方案设计.md) | 系统边界、对外接口、协议、校验和降级规则 | 是，唯一权威来源 |
+| [template-generation-design.md](template-generation-design.md) | 本轮模板显示、作者语法、暂缓范围和验收要求 | 否，模块内方案 |
 | [architecture.md](architecture.md) | 当前代码的路由、Template 生成流程和失败边界 | 否，实现说明 |
 | [modules.md](modules.md) | 目录、类、函数和代码责任索引 | 否，实现说明 |
 | [tersel-protocol.md](tersel-protocol.md) | Tersel 语法、DesignToken、内联样式和安全边界 | 否，模块内协议说明 |
@@ -51,9 +52,10 @@ await request_template_source_dsl(
 关闭时，融球 Theme 会在首层 Prompt 构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也
 不能选择该类 Theme。
 
-Provider Template Search 当前只支持 `2x2` 单业务场景，可组合零到两个属于该业务的显式 Action。`2x4`
-在首层 Prompt 和模型调用前直接判定模板不适用；多业务请求在 Search 后、二层模型调用前确定性判定模板
-不适用。Compact create 回退原 Compact 生成，Tersel 模板入口直接失败。
+Provider Template Search 当前支持 `2x2` 单业务加零到两个显式 Action，以及双业务加一个显式 Action。
+双业务必须具备完整 `HeroTitle`、`HeroContent` 候选，并由服务端固定排序；其它多业务组合确定性判定模板
+不适用。`2x4` 在首层 Prompt 和模型调用前直接判定模板不适用。Compact create 回退原 Compact 生成，
+Tersel 模板入口直接失败。
 
 入口返回当前公共 Processor 可直接消费的字符串。当前 Compact 与
 Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返回 Design Compact DSL。

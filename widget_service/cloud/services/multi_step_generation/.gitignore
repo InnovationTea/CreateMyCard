@@ -1,0 +1,29 @@
+# Generated runner artifacts
+output/
+outputs-a2ui/
+workspace/
+
+# Local end-to-end CardSpec cases
+cardSpec/
+
+# Local standalone runner fixtures
+data/
+
+# Local Node and browser runtimes
+node_modules/
+playwright-browsers/
+package-lock.json
+preview/
+scripts/build-jsx-run-gallery.js
+
+# Python/test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local logs and temporary files
+*.log
+*.tmp
+tmp/
+temp/

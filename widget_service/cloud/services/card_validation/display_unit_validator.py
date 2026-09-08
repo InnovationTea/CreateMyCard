@@ -6,7 +6,7 @@ from .base import BaseValidator, expression_references
 from .display_unit_rules import (
     collect_bound_display_unit_rules,
     matching_unit_literal_count,
-    static_text_matches_rule,
+    static_text_contains_rule,
     unit_rule_for_path,
 )
 
@@ -74,7 +74,10 @@ class DisplayUnitValidator(BaseValidator):
                     actual=content,
                     expected={"unitIncluded": False, "displayUnits": list(rule.units)},
                     message="动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
-                    fix_hint=f"在数值后准确追加单位“{rule.units[0]}”，且只追加一次。",
+                    fix_hint=(
+                        f"在数值表达式中追加单位“{rule.units[0]}”，或让紧邻数值后的"
+                        f"静态 Text 包含该单位，且整组只展示一次。"
+                    ),
                 )
             elif not rule.unit_included and visible_unit_count > 1:
                 reporter.add(
@@ -118,7 +121,7 @@ class DisplayUnitValidator(BaseValidator):
             following_indexes = range(value_index + 1, len(children))
             for child_index in following_indexes:
                 child_id = children[child_index]
-                if not isinstance(child_id, str) or not static_text_matches_rule(
+                if not isinstance(child_id, str) or not static_text_contains_rule(
                     components_by_id.get(child_id, {}).get("content"),
                     rule,
                 ):

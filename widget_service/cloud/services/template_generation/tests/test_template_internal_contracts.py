@@ -7,8 +7,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from models.generation import TaskSpec
+from models.generation import EventAction, TaskSpec
+from services.template_generation.engine.advanced.models import AdvancedScopeBrief
 from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    _filter_positional_second_layer_template_candidates,
+    _layout_output_option,
+    _second_layer_layout_selection,
     _weather_builtin_assets_for_components,
 )
 from services.template_generation.engine.cardplan.compiler import (
@@ -307,6 +311,7 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         "HeroActionLayout@1": 2,
         "FullIconActionLayout@1": 2,
         "CompactTwoActionLayout@1": 3,
+        "HeroTitleContentActionLayout@1": 3,
         "TwoSupportLayout@1": 2,
     }
     variable_children = {
@@ -537,24 +542,43 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "TwoSupportLayout",
         (
             template("WeatherOverviewTemperatureSupport@1"),
-            template("BatteryOverviewNormalWeatherSupport@1"),
+            template("ResourceUsageOverviewSupport@1"),
         ),
         (),
         "2x2",
     )
+    _validate_provider_template_layout_action_requirements(
+        "HeroTitleContentActionLayout",
+        (
+            template("WeatherOverviewHeroTitle@1"),
+            template("ScheduleOverviewHeroContent@1"),
+        ),
+        (pill_one,),
+        "2x2",
+    )
+    with pytest.raises(TerselConversionError, match="order is invalid"):
+        _validate_provider_template_layout_action_requirements(
+            "HeroTitleContentActionLayout",
+            (
+                template("ScheduleOverviewHeroContent@1"),
+                template("WeatherOverviewHeroTitle@1"),
+            ),
+            (pill_one,),
+            "2x2",
+        )
     with pytest.raises(TerselConversionError, match="layout combination is invalid"):
         _validate_provider_template_layout_action_requirements(
             "TwoSupportLayout",
             (
                 template("WeatherOverviewCompact@1"),
-                template("BatteryOverviewNormalWeatherCompact@1"),
+                template("BatteryOverviewCompact@1"),
             ),
             (),
             "2x2",
         )
     _validate_provider_template_layout_action_requirements(
         "HeroActionLayout",
-        (template("BatteryOverviewNormalHero@1"),),
+        (template("BatteryOverviewHero@1"),),
         (pill_one,),
         "2x2",
     )
@@ -586,7 +610,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     with pytest.raises(TerselConversionError, match="Hero.*Action combination"):
         _validate_provider_template_layout_action_requirements(
             "HeroActionLayout",
-            (template("BatteryOverviewNormalHero@1"),),
+            (template("BatteryOverviewHero@1"),),
             (),
             "2x2",
         )
@@ -614,10 +638,72 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     with pytest.raises(TerselConversionError, match="requires HeroActionLayout"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
-            (template("BatteryOverviewNormalHero@1"),),
+            (template("BatteryOverviewHero@1"),),
             (pill_one,),
             "2x2",
         )
+
+
+def test_second_layer_projects_ordered_dual_business_layout_contract() -> None:
+    registry = get_cardplan_registry()
+    task_spec = TaskSpec(
+        userQuery="显示天气和日程，并提供查看入口",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.details",
+                description="查看详情",
+                call="clickToDeeplink",
+                args={"uri": "example://details"},
+            )
+        ],
+        dataModelSchema={"data": {}},
+    )
+    scope = AdvancedScopeBrief(
+        themeId="family-weather-care-blue",
+        advancedComponentIds=("WeatherOverview", "CalendarOverview"),
+    )
+
+    selection = _second_layer_layout_selection(scope, task_spec, registry)
+    filtered, groups = _filter_positional_second_layer_template_candidates(
+        {
+            "WeatherOverview": (
+                "WeatherOverviewHeroTitle@1",
+                "WeatherOverviewHero@1",
+            ),
+            "CalendarOverview": (
+                "ScheduleOverviewHeroContent@1",
+                "ScheduleOverviewNextEventHero@1",
+            ),
+        },
+        (
+            ("WeatherOverviewHeroTitle@1", "WeatherOverviewHero@1"),
+            (
+                "ScheduleOverviewHeroContent@1",
+                "ScheduleOverviewNextEventHero@1",
+            ),
+        ),
+        selection.business_layout_kinds_by_position,
+    )
+    option = _layout_output_option(
+        "HeroTitleContentActionLayout@1",
+        groups,
+        ({"actionId": "action-0", "label": "查看详情"},),
+        ("PillAction@1",),
+    )
+
+    assert selection.layout_ids == ("HeroTitleContentActionLayout",)
+    assert selection.business_layout_kinds_by_position == (
+        "HeroTitle",
+        "HeroContent",
+    )
+    assert filtered == {
+        "WeatherOverview": ("WeatherOverviewHeroTitle@1",),
+        "CalendarOverview": ("ScheduleOverviewHeroContent@1",),
+    }
+    assert option["businessTemplateIdsByPosition"] == groups
+    assert option["actionChildren"][0]["position"] == 2
+    assert option["actionChildren"][0]["templateId"] == "PillAction@1"
 
 
 def test_parser_rejects_deprecated_three_argument_template_call() -> None:

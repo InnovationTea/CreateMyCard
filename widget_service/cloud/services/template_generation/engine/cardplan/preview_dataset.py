@@ -25,6 +25,8 @@ from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 
 TemplateLayoutKind = Literal[
+    "HeroTitle",
+    "HeroContent",
     "Support",
     "Compact",
     "Hero",
@@ -34,14 +36,18 @@ TemplateLayoutKind = Literal[
 ]
 
 _LAYOUT_ORDER = {
-    "Support": 0,
-    "Compact": 1,
-    "Hero": 2,
-    "Full": 3,
-    "WideHero": 4,
-    "WideFull": 5,
+    "HeroTitle": 0,
+    "HeroContent": 1,
+    "Support": 2,
+    "Compact": 3,
+    "Hero": 4,
+    "Full": 5,
+    "WideHero": 6,
+    "WideFull": 7,
 }
 _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
+    "HeroTitle": "2x2",
+    "HeroContent": "2x2",
     "Support": "2x2",
     "Compact": "2x2",
     "Hero": "2x2",
@@ -50,6 +56,8 @@ _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "WideFull": "2x4",
 }
 _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
+    "HeroTitle": 24,
+    "HeroContent": 54,
     "Support": 68,
     "Compact": 68,
     "Hero": 124,
@@ -69,6 +77,7 @@ _ASSET_BY_PARAMETER = {
     "locationIcon": "resources/base/media/location_north_up_right_fill.svg",
     "rightEarIcon": "resources/base/media/r_circle_fill.svg",
     "stepsIcon": "resources/base/media/figure_run.svg",
+    "temperatureIcon": "resources/base/media/heat_generation.svg",
     "timeIcon": "resources/base/media/clock_fill.svg",
 }
 _SOURCE_ICON_BY_BUSINESS = {
@@ -81,6 +90,9 @@ _SOURCE_ICON_BY_BUSINESS = {
 }
 _TEXT_BY_TEMPLATE_PARAMETER = {
     ("BluetoothDeviceOverviewHero@1", "title"): "耳机听歌入口",
+    ("WeatherOverviewAirQualityHero@1", "location"): "青浦区",
+    ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
+    ("WeatherOverviewUvFull@1", "location"): "青浦区",
 }
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",
@@ -106,6 +118,8 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("CalendarOverview", "title"): "UI需求评审会",
     ("CalendarOverview", "updatedAt"): "今天 09:00",
     ("HeartRateOverview", "average"): 135,
+    ("HeartRateOverview", "max"): 168,
+    ("HeartRateOverview", "min"): 112,
     ("HeartRateOverview", "updatedAt"): "今天 09:00",
     ("ResourceUsageOverview", "available"): "5.2 GB",
     ("ResourceUsageOverview", "total"): "12 GB",
@@ -428,6 +442,7 @@ def _preview_root(content: Nested2Node, content_height: int) -> Nested2Node:
         "alignItems": "start",
         "clip": True,
     }
+    slot_options["_id"] = "template_root"
     slot = Nested2Node("Column", ("section", slot_options), (content,))
     return Nested2Node("Column", ("card", root_options), (slot,))
 

@@ -14,6 +14,7 @@ UX_LAYOUT_COMPONENT_IDS = frozenset(
         "HeroActionLayout",
         "FullIconActionLayout",
         "CompactTwoActionLayout",
+        "HeroTitleContentActionLayout",
         "TwoSupportLayout",
         "WideSingleFocusLayout",
     }
@@ -179,7 +180,7 @@ class TemplateComponentCandidate(StrictModel):
     available_template_ids: tuple[str, ...] = Field(
         alias="availableTemplateIds",
         min_length=1,
-        max_length=12,
+        max_length=24,
     )
 
     @field_validator("component_id")
@@ -250,8 +251,8 @@ class TemplateRouteDecision(StrictModel):
         template_count = sum(
             len(candidate.available_template_ids) for candidate in self.component_candidates
         )
-        if template_count > 12:
-            raise ValueError("componentCandidates may expose at most 12 Templates")
+        if template_count > 24:
+            raise ValueError("componentCandidates may expose at most 24 Templates")
         return self
 
     @property

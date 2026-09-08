@@ -3,6 +3,8 @@
 - Provider：`com.huawei.weather.cli`；业务领域为 `WeatherOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
+  - `WeatherOverviewHeroTitle@1`：左侧城市，右侧可选天气现象和温度；只用于
+    `HeroTitleContentActionLayout@1` 的第一个业务 child。
   - `WeatherOverviewCompact@1`：城市、温度、天气现象和感冒指数；可选 `conditionIcon`。
   - `WeatherOverviewUvCompact@1`：城市、温度、天气现象和紫外线等级；可选 `conditionIcon`。
   - `WeatherOverviewTemperatureSupport@1`：城市、温度、天气现象和感冒风险；可选
@@ -10,18 +12,37 @@
   - `WeatherOverviewTemperatureUvSupport@1`：城市、温度、天气现象和紫外线等级；可选
     `conditionIcon` 与内部事件 `actionId`。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选 `conditionIcon`。
+  - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero。
+  - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
+  - `WeatherOverviewCareAlertFull@1`：展示城市、天气预警、紫外线和空气质量的三段式关怀型 Full；可选紫外线图标，底部为右下角电话动作预留空间。
+  - `WeatherOverviewWindHero@1`：展示城市、当前风向、风力等级和更新时间的 Hero；可选风向、时间和位置图标。
+  - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full，突出天气现象，并展示日期和星期。
+  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围。
+  - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
+  - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。
+- HeroTitle 只用于双业务单 Action 的 `HeroTitleContentActionLayout@1`，并且必须位于
+  HeroContent 之前的第一个业务位置；布局最后一个 child 必须是 `PillAction@1`。
+- 天气 HeroTitle 的城市、区县、温度及天气现象均为可选绑定；不得因缺少温度拒绝该模板或要求补造温度。
+  模板固定采用高 24、间距 4 的左右 Row，城市在左侧单行省略，右侧依次选择“天气现象 | 温度”、
+  单独现象或单独温度；两者都缺失时不生成右侧内容，也不保留分隔符。模型不要重排或拆分模板内部布局。
+  分支由编译器按绑定存在性裁剪，不读取空样例值；城市兜底仍遵循下方 location 规则。
 - Support 仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；在兼容路径中只用于
   `TwoSupportLayout@1`。该业务有已批准事件时传入 `actionId`；没有对应事件时省略，模板根节点不生成
   `onClick`。
 - Props 只能使用本轮 Prompt 下发的可信素材或批准事件 ID，不得输出数据路径。
+- 候选模板声明 `location?: string` 时，该 Prop 只作为可选兜底文案。模板优先使用可用的城市或区县
+  数据绑定；只有两个位置数据路径都不可用时才使用该 Prop，Prop 也缺失时显示“当前城市”。
 - 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `conditionIcon` 必须表达本轮 `/current/condition` 对应的天气现象，不得用泛天气、时钟、日历或秒表
   图标覆盖明显不同的晴、雨、雪等状态；没有合适候选时省略。
-- 日出日落、天气预警和 AQI 数值不在当前数据契约内，不得用静态值伪造。
+- `windIcon`、`timeIcon`、`locationIcon` 必须分别匹配风况、时间和地点语义；风力等级直接绑定
+  `/current/windLevel`，模板单独追加“级”，不得把单位写入数据路径或伪造静态风力。
+- 日出日落和 AQI 数值不在当前数据契约内，不得用静态值伪造；天气预警必须绑定
+  `/current/alertLevel`，更新时间必须绑定 `/updatedAt`。

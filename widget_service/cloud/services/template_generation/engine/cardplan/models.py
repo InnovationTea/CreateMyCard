@@ -13,6 +13,7 @@ _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
     "HeroActionLayout",
     "FullIconActionLayout",
     "CompactTwoActionLayout",
+    "HeroTitleContentActionLayout",
     "TwoSupportLayout",
     "WideSingleFocusLayout",
 )
@@ -79,6 +80,7 @@ class TemplateValue(StrictModel):
         "theme",
         "interpolation",
         "expression",
+        "compile-time-conditional",
         "array",
         "object",
     ]
@@ -107,6 +109,7 @@ class TemplateParameterRelation(StrictModel):
 class TemplateBinding(StrictModel):
     path: str = Field(pattern=r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
     data_type: Literal["string", "integer", "number", "boolean", "null"] = Field(alias="type")
+    root_index: int = Field(default=0, alias="rootIndex", ge=0)
 
 
 class TemplateVariant(StrictModel):
@@ -180,6 +183,7 @@ class TemplateDefinition(StrictModel):
     business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
+    binding_count: int = Field(default=1, alias="bindingCount", ge=1, le=2)
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     primary_data_fields: tuple[TemplateBinding, ...] = Field(
         default=(),
@@ -308,6 +312,11 @@ class ThemeDefinition(StrictModel):
         alias="progressColor",
         pattern=r"^#[0-9A-Fa-f]{8}$",
     )
+    progress_background_color: str | None = Field(
+        default=None,
+        alias="progressBackgroundColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
     root_style: dict[str, Any] = Field(alias="rootStyle")
     action_style: CardActionStyle = Field(alias="actionStyle")
     support_content_style: CardSupportContentStyle | None = Field(
@@ -333,6 +342,9 @@ class ThemeDefinition(StrictModel):
             "primaryColor": self.primary_color,
             "supportContentColor": self.support_content_color,
             "progressColor": self.progress_color or self.primary_color,
+            "progressBackgroundColor": (
+                self.progress_background_color or self.action_style.background_color
+            ),
             "actionStyle.backgroundColor": self.action_style.background_color,
             "actionStyle.contentColor": self.action_style.content_color,
             "supportContentStyle.backgroundColor": support_background,

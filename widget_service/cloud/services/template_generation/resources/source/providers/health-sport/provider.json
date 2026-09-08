@@ -94,11 +94,12 @@
       "templateId": "WorkoutOverviewFull@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。",
-      "optionalData": [],
+      "description": "最近一次单次运动训练摘要，展示该次热量、时长和结束时间，可选展示运动类型。 组件形态：latest。",
+      "optionalData": [
+        "/exerciseTypeName"
+      ],
       "entry": "templates/workout-overview.cardtpl",
       "primaryData": [
-        "/exerciseTypeName",
         "/exerciseDurationText"
       ],
       "secondaryData": [
@@ -110,11 +111,12 @@
       "templateId": "WorkoutOverviewCompact@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。",
-      "optionalData": [],
+      "description": "最近一次单次运动训练摘要，展示该次热量和时长，可选展示运动类型，可使用运动图标。 组件形态：latestCompact。",
+      "optionalData": [
+        "/exerciseTypeName"
+      ],
       "entry": "templates/workout-overview.cardtpl",
       "primaryData": [
-        "/exerciseTypeName",
         "/exerciseDurationText"
       ],
       "secondaryData": [
@@ -125,22 +127,22 @@
       "templateId": "WorkoutOverviewHero@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestHero。",
-      "optionalData": [],
+      "description": "最近一次单次运动训练摘要，展示该次时长，可选展示热量和运动类型，可使用运动图标。 组件形态：latestHero。",
+      "optionalData": [
+        "/exerciseTypeName",
+        "/exerciseCalorieText"
+      ],
       "entry": "templates/workout-overview.cardtpl",
       "primaryData": [
-        "/exerciseTypeName",
         "/exerciseDurationText"
       ],
-      "secondaryData": [
-        "/exerciseCalorieText"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "HeartRateOverviewFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：full。",
+      "description": "运动平均心率摘要。 组件形态：full。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -149,96 +151,43 @@
       "secondaryData": []
     },
     {
-      "templateId": "HeartRateOverviewUpdatedFull@1",
+      "templateId": "HeartRateOverviewMinMaxFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullUpdated。",
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl",
-      "primaryData": [
-        "/exerciseHeartRateAvg"
-      ],
-      "secondaryData": [
+      "description": "运动心率摘要，展示高低心率区间，可补充更新时间。 组件形态：full。",
+      "optionalData": [
         "/updatedAt"
-      ]
-    },
-    {
-      "templateId": "HeartRateOverviewIconFull@1",
-      "businessId": "HeartRateOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullIcon。",
-      "optionalData": [],
+      ],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
-        "/exerciseHeartRateAvg"
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin"
       ],
       "secondaryData": []
-    },
-    {
-      "templateId": "HeartRateOverviewUpdatedIconFull@1",
-      "businessId": "HeartRateOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullUpdatedIcon。",
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl",
-      "primaryData": [
-        "/exerciseHeartRateAvg"
-      ],
-      "secondaryData": [
-        "/updatedAt"
-      ]
     },
     {
       "templateId": "HeartRateOverviewCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：support。",
+      "description": "运动平均心率摘要。 组件形态：support。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
         "/exerciseHeartRateAvg"
       ],
       "secondaryData": []
-    },
-    {
-      "templateId": "HeartRateOverviewUpdatedCompact@1",
-      "businessId": "HeartRateOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。",
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl",
-      "primaryData": [
-        "/exerciseHeartRateAvg"
-      ],
-      "secondaryData": [
-        "/updatedAt"
-      ]
     },
     {
       "templateId": "HeartRateOverviewIconCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。",
+      "description": "运动平均心率摘要。 组件形态：supportIcon。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
         "/exerciseHeartRateAvg"
       ],
       "secondaryData": []
-    },
-    {
-      "templateId": "HeartRateOverviewUpdatedIconCompact@1",
-      "businessId": "HeartRateOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。",
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl",
-      "primaryData": [
-        "/exerciseHeartRateAvg"
-      ],
-      "secondaryData": [
-        "/updatedAt"
-      ]
     },
     {
       "templateId": "HeartRateOverviewIconHero@1",
@@ -296,44 +245,80 @@
       "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况完整摘要，展示时长、得分进度和状态，可使用睡眠图标。 组件形态：full。",
-      "optionalData": [],
+      "description": "睡眠情况完整摘要，展示时长和状态，可选展示得分进度、完整睡眠时段或小睡时长，可使用睡眠图标。 组件形态：full。",
+      "optionalData": [
+        "/sleepStatus",
+        "/sleepScore",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/deepSleepDurationText",
+        "/sleepTypeDesc",
+        "/totalNapDurationText"
+      ],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
-      "secondaryData": [
-        "/sleepScore",
-        "/sleepStatus"
-      ]
+      "secondaryData": []
+    },
+    {
+      "templateId": "SleepOverviewNapFull@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：full。",
+      "optionalData": [
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
+        "/totalNapDurationText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "SleepOverviewNapHero@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：hero。",
+      "optionalData": [
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
+        "/totalNapDurationText"
+      ],
+      "secondaryData": []
     },
     {
       "templateId": "SleepOverviewHero@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况主视觉，展示时长和得分进度，可使用睡眠图标。 组件形态：hero。",
-      "optionalData": [],
+      "description": "睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。",
+      "optionalData": [
+        "/sleepStatus",
+        "/sleepScore",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
-      "secondaryData": [
-        "/sleepScore"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "SleepOverviewCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。",
+      "description": "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
-      "secondaryData": [
-        "/sleepScore"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "ActivityOverviewSupport@1",
@@ -351,11 +336,12 @@
       "templateId": "WorkoutOverviewSupport@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
-      "optionalData": [],
+      "description": "最近一次单次运动训练摘要，展示该次热量和时长，可选展示运动类型，可使用运动图标。 组件形态：latestCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [
+        "/exerciseTypeName"
+      ],
       "entry": "templates/workout-overview.cardtpl",
       "primaryData": [
-        "/exerciseTypeName",
         "/exerciseDurationText"
       ],
       "secondaryData": [
@@ -366,7 +352,7 @@
       "templateId": "HeartRateOverviewSupport@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：support。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "description": "运动平均心率摘要。 组件形态：support。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -392,7 +378,7 @@
       "templateId": "HeartRateOverviewIconSupport@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "description": "运动平均心率摘要。 组件形态：supportIcon。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [

@@ -2,13 +2,15 @@
 
 Search deliberately does not select a final template, layout, component composition,
 card size, or theme compatibility. Those are second-layer responsibilities. The 2x2
-route currently admits one business with zero to two root Actions.
+route admits one business with zero to two root Actions, or exactly two businesses with
+one root Action when HeroTitle/HeroContent coverage is complete.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -26,6 +28,9 @@ from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
 _MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
+_TEMPLATE_QUERY_DISCRIMINATORS = {
+    "WeatherOverviewAlertFull@1": frozenset({"/current/alertLevel"}),
+}
 
 
 class TemplateRetrievalMiss(ValueError):
@@ -95,8 +100,8 @@ def build_template_retrieval_prompt(
         ],
         "candidateDataBindings": [binding.model_dump(mode="json") for binding in coverage_bindings],
         "candidateOutputFieldsByCapability": {
-            binding.capabilityId: tuple(binding.candidateOutputFields)
-            for binding in coverage_bindings
+            capability_id: tuple(sorted(_candidate_paths(coverage_bindings, capability_id)))
+            for capability_id in dict.fromkeys(capability_ids)
         },
         "themes": theme_ids,
         "actionCandidates": [
@@ -112,14 +117,18 @@ def build_template_retrieval_prompt(
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
         "存在融球候选时不会再包含非融球主题。"
+        "双业务单动作组合在 Search 确定 HeroContent 后，由服务端按该主业务对齐全局主题。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
-        "也不得补全用户未要求展示的字段。"
+        "也不得补全用户未要求展示的字段；"
+        "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
+        "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
-        "2x2 模板 Search 当前只接受一个可完整覆盖的业务，"
-        "多个业务由服务端确定性判定模板不适用。"
+        "2x2 模板 Search 接受一个可完整覆盖的业务，或恰好两个数据业务加一个显式 Action；"
+        "双业务仅在服务端能够分别证明 HeroTitle 与 HeroContent 完整覆盖时适用，"
+        "业务位置与布局由服务端确定，不得在本层输出。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
@@ -148,9 +157,12 @@ def retrieve_template_variants(
         raise TemplateRetrievalMiss("first-layer Theme must not be layout-scoped")
     _validate_selected_actions(query, task_spec)
     action_count = _selected_action_count(query, task_spec)
-    preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
+    has_multiple_capabilities = len(query.required_output_fields_by_capability) > 1
+    preferred_layout_suffix = None
+    if not has_multiple_capabilities:
+        preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -161,9 +173,28 @@ def retrieve_template_variants(
         candidate_paths = _candidate_paths(coverage_bindings, capability_id)
         if not set(paths).issubset(candidate_paths):
             raise TemplateRetrievalMiss("required output fields must come from candidates")
-        data_root = _capability_data_root(card_spec, capability_id)
+        data_roots = _capability_data_roots(card_spec, capability_id)
+        action_param_paths: set[str] = set()
+        for data_root in data_roots:
+            action_param_paths.update(
+                _action_param_paths_to_drop(
+                    task_spec,
+                    registry,
+                    capability_id,
+                    data_root,
+                    paths,
+                )
+            )
+        if action_param_paths:
+            _log_action_param_fields_dropped(
+                capability_id,
+                ",".join(data_roots),
+                action_param_paths,
+            )
         query_tokens = frozenset(
-            _task_spec_field_token(task_spec, data_root, capability_id, path) for path in paths
+            _task_spec_field_token(task_spec, data_roots, capability_id, path)
+            for path in paths
+            if path not in action_param_paths
         )
         component_templates = _component_templates_for_capability(
             registry,
@@ -207,6 +238,13 @@ def retrieve_template_variants(
             for candidate in candidates
         )
         required_groups = [candidate.available_template_ids for candidate in candidates]
+    selected_template_ids: list[str] = []
+    for candidate in candidates:
+        selected_template_ids.extend(candidate.available_template_ids)
+    resolved_theme_id = (
+        registry.hero_content_theme_id(tuple(selected_template_ids), query.theme_id)
+        or resolved_theme_id
+    )
     scope = AdvancedScopeBrief(
         themeId=resolved_theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
@@ -266,8 +304,10 @@ def _apply_2x2_combination_policy(
     """Restrict 2x2 candidates to the business and Action capacity contract."""
     component_count = len(candidates)
     if component_count > 1:
-        raise TemplateRetrievalMiss(
-            "2x2 template Search does not support multiple data businesses"
+        return _apply_2x2_dual_business_policy(
+            candidates,
+            action_count,
+            required_groups,
         )
     if action_count >= 3:
         raise TemplateRetrievalMiss("2x2 template Search supports at most two Actions")
@@ -330,6 +370,84 @@ def _apply_2x2_combination_policy(
     for candidate in filtered_candidates:
         _require_single_template_coverage(candidate, filtered_groups, layout_label)
     return filtered_candidates, filtered_groups
+
+
+def _apply_2x2_dual_business_policy(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    action_count: int,
+    required_groups: list[tuple[str, ...]],
+) -> tuple[tuple[TemplateComponentCandidate, ...], list[tuple[str, ...]]]:
+    """Resolve the only Search-supported dual-business shape and its slot order."""
+    if len(candidates) != 2 or action_count != 1:
+        raise TemplateRetrievalMiss(
+            "2x2 template Search does not support multiple data businesses "
+            "without exactly one Action"
+        )
+    for title_index, content_index in ((0, 1), (1, 0)):
+        title_candidate = _candidate_with_optional_layout_suffix(
+            candidates[title_index],
+            "HeroTitle",
+        )
+        content_candidate = _candidate_with_optional_layout_suffix(
+            candidates[content_index],
+            "HeroContent",
+        )
+        if title_candidate is None or content_candidate is None:
+            continue
+        try:
+            title_candidate = _candidate_with_complete_field_coverage(
+                title_candidate,
+                required_groups,
+            )
+            content_candidate = _candidate_with_complete_field_coverage(
+                content_candidate,
+                required_groups,
+            )
+        except TemplateRetrievalMiss:
+            continue
+        ordered_candidates = (title_candidate, content_candidate)
+        ordered_groups = [
+            title_candidate.available_template_ids,
+            content_candidate.available_template_ids,
+        ]
+        diagnostics = {
+            "businessCount": 2,
+            "actionCount": 1,
+            "layout": "HeroTitleContentActionLayout",
+            "businessOrder": [
+                {
+                    "businessId": title_candidate.component_id,
+                    "requiredLayoutSuffix": "HeroTitle",
+                },
+                {
+                    "businessId": content_candidate.component_id,
+                    "requiredLayoutSuffix": "HeroContent",
+                },
+            ],
+        }
+        logger.info(
+            "[Template Retrieval] dual_business_layout_policy_selected "
+            f"diagnostics={json_for_log(diagnostics)}"
+        )
+        return ordered_candidates, ordered_groups
+    raise TemplateRetrievalMiss(
+        "2x2 template Search does not support multiple data businesses without complete "
+        "HeroTitle and HeroContent coverage"
+    )
+
+
+def _candidate_with_optional_layout_suffix(
+    candidate: TemplateComponentCandidate,
+    layout_suffix: str,
+) -> TemplateComponentCandidate | None:
+    template_ids = tuple(
+        template_id
+        for template_id in candidate.available_template_ids
+        if _template_has_layout_suffix(template_id, layout_suffix)
+    )
+    if not template_ids:
+        return None
+    return candidate.model_copy(update={"available_template_ids": template_ids})
 
 
 def _selected_action_count(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> int:
@@ -442,7 +560,8 @@ def _component_templates_for_capability(
     candidate_output_fields: set[str] | None = None,
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
-    data_root = _capability_data_root(card_spec, capability_id)
+    data_roots = _capability_data_roots(card_spec, capability_id)
+    data_root = data_roots[0]
     provided_output_fields = candidate_output_fields or set()
     task_spec_available_fields = _task_spec_field_entries(task_spec, data_root)
     business_ids = {
@@ -469,9 +588,13 @@ def _component_templates_for_capability(
             )
             if record.template_id not in template_ids:
                 continue
+            if record.binding_count != len(data_roots):
+                continue
             size_is_supported = not record.supported_card_sizes
             size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
             if not size_is_supported:
+                continue
+            if not _template_query_discriminator_is_requested(record, query_tokens):
                 continue
             if not _template_required_fields_are_available(record, task_spec, card_spec):
                 continue
@@ -603,6 +726,8 @@ def _template_record_evaluation(
     size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
     if not size_is_supported:
         rejection_reasons.append("card_size_not_supported")
+    if not _template_query_discriminator_is_requested(record, query_tokens):
+        rejection_reasons.append("template_query_discriminator_not_requested")
     if missing_required_fields:
         rejection_reasons.append("user_provided_data_missing_template_required_fields")
     if required_type_mismatches:
@@ -625,6 +750,16 @@ def _template_record_evaluation(
         ),
         "rejectionReasons": rejection_reasons,
     }
+
+
+def _template_query_discriminator_is_requested(
+    record: TemplateVariantSearchRecord,
+    query_tokens: frozenset[FieldToken],
+) -> bool:
+    discriminators = _TEMPLATE_QUERY_DISCRIMINATORS.get(record.template_id)
+    if not discriminators:
+        return True
+    return bool(discriminators.intersection(token.path for token in query_tokens))
 
 
 def _user_required_type_mismatches(
@@ -754,36 +889,121 @@ def _candidate_paths(
     coverage_bindings: tuple[CandidateDataBinding, ...], capability_id: str
 ) -> set[str]:
     matching = [item for item in coverage_bindings if item.capabilityId == capability_id]
-    if len(matching) != 1:
-        raise TemplateRetrievalMiss("template retrieval requires one binding per capability")
-    return set(matching[0].candidateOutputFields)
+    if not matching:
+        raise TemplateRetrievalMiss("template retrieval requires a capability binding")
+    paths = set(matching[0].candidateOutputFields)
+    for binding in matching[1:]:
+        paths.intersection_update(binding.candidateOutputFields)
+    return paths
 
 
-def _capability_data_root(card_spec: dict[str, Any], capability_id: str) -> str:
+_ACTION_ARG_PATH_PATTERN = re.compile(r"\$\{\s*(/[^{}]+?)\s*\}")
+
+
+def _action_param_paths_to_drop(
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+    capability_id: str,
+    data_root: str,
+    required_paths: tuple[str, ...],
+) -> set[str]:
+    """识别不应阻塞模板覆盖门禁的事件参数字段。
+
+    第一层可能在 requiredOutputFieldsByCapability 中误列事件 args 引用的字段
+    （如跳转参数 entityId）；展开时 compiler 只逐字复制 args，模板永远不渲染
+    这些字段，因此当没有任何模板可展示它们时不让覆盖门禁失败。
+    """
+    action_bound_paths = _action_bound_relative_paths(task_spec, data_root)
+    candidates = action_bound_paths.intersection(required_paths)
+    if not candidates:
+        return set()
+    displayable_paths: set[str] = set()
+    for record in registry.template_variant_search_records:
+        if record.capability_id != capability_id:
+            continue
+        for path in record.available_paths:
+            displayable_paths.add(path)
+    return {path for path in candidates if path not in displayable_paths}
+
+
+def _action_bound_relative_paths(task_spec: TaskSpec, data_root: str) -> set[str]:
+    prefix = f"{data_root.rstrip('/')}/"
+    relative_paths: set[str] = set()
+    for event in task_spec.eventCandidates:
+        for value in _action_arg_string_values(event.args):
+            for match in _ACTION_ARG_PATH_PATTERN.finditer(value):
+                pointer = match.group(1)
+                if pointer.startswith(prefix):
+                    relative_paths.add(f"/{pointer.removeprefix(prefix)}")
+    return relative_paths
+
+
+def _action_arg_string_values(value: Any) -> Iterator[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _action_arg_string_values(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _action_arg_string_values(item)
+
+
+def _log_action_param_fields_dropped(
+    capability_id: str,
+    data_root: str,
+    dropped_paths: set[str],
+) -> None:
+    logger.info(
+        "[Template Retrieval] action_param_fields_dropped "
+        f"diagnostics={json_for_log(
+            {
+                'capabilityId': capability_id,
+                'dataRoot': data_root,
+                'droppedFields': sorted(dropped_paths),
+                'reason': 'event args bind these fields; templates never render them',
+            }
+        )}"
+    )
+
+
+def _capability_data_roots(
+    card_spec: dict[str, Any], capability_id: str
+) -> tuple[str, ...]:
     bindings = card_spec.get("dataBindings")
     if not isinstance(bindings, list):
         raise TemplateRetrievalMiss("CardSpec data bindings are unavailable")
-    roots = {
+    roots = tuple(
         item.get("writeResultTo")
         for item in bindings
         if isinstance(item, dict) and item.get("capabilityId") == capability_id
-    }
-    valid = {root for root in roots if isinstance(root, str) and root.startswith("/data")}
-    if len(valid) != 1:
+    )
+    valid = tuple(root for root in roots if isinstance(root, str) and root.startswith("/data"))
+    if not valid or len(valid) != len(roots) or len(set(valid)) != len(valid):
         raise TemplateRetrievalMiss("capability data root is unavailable or ambiguous")
-    return next(iter(valid))
+    return valid
 
 
 def _task_spec_field_token(
-    task_spec: TaskSpec, data_root: str, capability_id: str, relative_path: str
+    task_spec: TaskSpec,
+    data_roots: tuple[str, ...],
+    capability_id: str,
+    relative_path: str,
 ) -> FieldToken:
-    pointer = f"{data_root.rstrip('/')}{relative_path}"
-    leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-    if leaf is None or not isinstance(leaf.get("type"), str):
+    data_types: set[str] = set()
+    for data_root in data_roots:
+        pointer = f"{data_root.rstrip('/')}{relative_path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is None or not isinstance(leaf.get("type"), str):
+            raise TemplateRetrievalMiss(
+                f"required output field is absent or untyped in TaskSpec: {relative_path}"
+            )
+        data_types.add(str(leaf["type"]))
+    if len(data_types) != 1:
         raise TemplateRetrievalMiss(
-            f"required output field is absent or untyped in TaskSpec: {relative_path}"
+            f"required output field has inconsistent types: {relative_path}"
         )
-    return FieldToken(capability_id, relative_path, str(leaf["type"]))
+    return FieldToken(capability_id, relative_path, data_types.pop())
 
 
 def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, Any] | None:
@@ -792,8 +1012,11 @@ def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, An
         part = raw_part.replace("~1", "/").replace("~0", "~")
         if isinstance(current, dict):
             current = current.get(part)
-        elif isinstance(current, list) and part == "0" and current:
-            current = current[0]
+        elif isinstance(current, list) and part.isdigit():
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
         else:
             return None
     return current if isinstance(current, dict) else None
@@ -827,14 +1050,17 @@ def _template_required_fields_are_available(
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
 ) -> bool:
-    data_root = _capability_data_root(card_spec, record.capability_id)
-    for path in record.required_paths:
-        pointer = f"{data_root.rstrip('/')}{path}"
-        if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
-            return False
-    for token in record.required_field_tokens:
-        pointer = f"{data_root.rstrip('/')}{token.path}"
-        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-        if leaf is None or leaf.get("type") != token.data_type:
-            return False
+    data_roots = _capability_data_roots(card_spec, record.capability_id)
+    if len(data_roots) != record.binding_count:
+        return False
+    for data_root in data_roots:
+        for path in record.required_paths:
+            pointer = f"{data_root.rstrip('/')}{path}"
+            if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
+                return False
+        for token in record.required_field_tokens:
+            pointer = f"{data_root.rstrip('/')}{token.path}"
+            leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+            if leaf is None or leaf.get("type") != token.data_type:
+                return False
     return True

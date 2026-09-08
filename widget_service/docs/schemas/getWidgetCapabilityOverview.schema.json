@@ -10,7 +10,7 @@
       "content": {
         "type": "object",
         "required": false,
-        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName，odid 可选。",
+        "description": "业务入参，对应旧协议 arguments；uid、romVersion 和 odid 均可选。",
         "properties": {
           "bundleName": {
             "type": "string",
@@ -21,13 +21,23 @@
             "type": "string",
             "required": false,
             "description": "可选设备 odid；缺失或为空时 IDS 查询继续使用服务固定兜底值。"
+          },
+          "uid": {
+            "type": "string",
+            "required": false,
+            "description": "可选用户 ID；非空时优先使用，缺失时回退 userAuth.user.userId。"
+          },
+          "romVersion": {
+            "type": "string",
+            "required": false,
+            "description": "可选完整 ROM 版本；非空时优先使用，缺失时回退 deviceInfo.romVersion。"
           }
         }
       },
       "deviceInfo": {
         "$ref": "#/nestedTypes/DeviceInfo",
         "required": true,
-        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成，找不到时可按配置回退默认 205/6.0 注册表。"
+        "description": "端侧设备信息；content.romVersion 缺失时读取这里的 romVersion，两处均缺失时使用默认 ROM 版本。"
       },
       "session": {
         "$ref": "#/nestedTypes/Session",
@@ -42,7 +52,7 @@
       "userAuth": {
         "$ref": "#/nestedTypes/UserAuth",
         "required": false,
-        "description": "用户鉴权信息；服务从 user.userId 提取 uid。"
+        "description": "用户鉴权信息；content.uid 缺失时从 user.userId 回退提取 uid。"
       },
       "utterance": {
         "$ref": "#/nestedTypes/Utterance",

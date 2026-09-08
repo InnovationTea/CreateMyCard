@@ -55,7 +55,7 @@
   },
   "eventHandlerForbiddenFields": ["condition", "as"],
   "cardSpec": {
-    "topLevelFields": ["title", "description", "suggestSize", "dataBindings"],
+    "topLevelFields": ["title", "description", "suggestSize", "imageDomainWhitelist", "dataBindings"],
     "requiredFields": ["title", "description", "suggestSize"],
     "dataBindingRequiredFields": ["capabilityId", "arguments", "writeResultTo"],
     "writeResultToPrefix": "/data/",
