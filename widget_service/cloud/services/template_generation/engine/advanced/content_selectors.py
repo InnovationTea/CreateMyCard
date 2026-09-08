@@ -2539,11 +2539,12 @@ def extract_bluetooth_device_overview_facts(
     """Extract one coherent earphone entity with optional battery facts."""
     data = schema.get("data")
     if isinstance(data, dict):
-        projected = data.get("BluetoothDeviceOverview")
-        if isinstance(projected, dict):
-            facts = _bluetooth_facts_from_candidate(projected)
-            if facts is not None:
-                return facts
+        for key in ("BluetoothDeviceOverview", "earphone"):
+            projected = data.get(key)
+            if isinstance(projected, dict):
+                facts = _bluetooth_facts_from_candidate(projected)
+                if facts is not None:
+                    return facts
     for candidate in _named_provider_objects(schema, "GetEarphoneInfo"):
         for provider in _dict_nodes(candidate):
             facts = _bluetooth_facts_from_candidate(provider)
@@ -2635,6 +2636,7 @@ def _bluetooth_facts_from_candidate(
         or has_complete_ear_battery
         or has_name_and_case_battery
         or has_connection_and_case_battery
+        or facts.case_charging_status is not None
         else None
     )
 

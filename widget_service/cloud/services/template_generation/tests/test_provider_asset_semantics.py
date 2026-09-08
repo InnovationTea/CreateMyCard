@@ -28,12 +28,14 @@ _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_cap
 _SOURCE = "resources/base/media/"
 _SLOTS = (
     ("BatteryOverviewSupport@1", "batteryIcon", "icon_phone.svg"),
+    ("BatteryOverviewStatusSupport@1", "batteryIcon", "bolt_fill.svg"),
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
     ("SleepOverviewSupport@1", "sourceIcon", "moon_z_fill_1.svg"),
     ("HeartRateOverviewSupport@1", "heartIcon", "heart_fill.svg"),
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon", "icon_earphone.svg"),
     ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon", "earphone_case_16644.svg"),
+    ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon", "icon_earphone.svg"),
     ("ScheduleOverviewTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewLocationSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewStartTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
@@ -71,7 +73,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 14
+    assert slot_count == 17
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -260,6 +262,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
         "BatteryOverviewSupport@1": "asset.icon_phone",
+        "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
@@ -267,12 +270,13 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "HeartRateOverviewSupport@1": "asset.heart_fill",
         "BluetoothDeviceOverviewEarbudsSupport@1": "asset.icon_earphone",
         "BluetoothDeviceOverviewChargeSupport@1": "asset.earphone_case_16644",
+        "BluetoothDeviceOverviewConnectionSupport@1": "asset.icon_earphone",
         "ScheduleOverviewTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewLocationSupport@1": "asset.calendar_fill",
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 50
+    assert len(provider.cases) == 56
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

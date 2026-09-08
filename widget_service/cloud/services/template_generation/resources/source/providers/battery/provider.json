@@ -186,20 +186,40 @@
       "supportedEventIds": ["event.open.settings.battery","event.open.settings.batteryHealth","event.setPowerSavingMode"],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Support：左侧两行主辅文本，右侧 40vp 电量环，环内可选 16vp 手机设备图标，标识电量所属设备；数值电量与充电状态必需，带单位电量文本可选，可在根节点绑定事件。",
+      "description": "手机电量 Support：左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内可选 16vp 手机设备图标，标识电量所属设备；数值电量必需，带单位电量文本、充电状态与电池温度可选，可在根节点绑定事件。",
       "optionalData": [
-        "/batterySOCText"
+        "/chargingStatusDesc",
+        "/batterySOCText",
+        "/batteryTemperatureText"
       ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC"
       ],
-      "secondaryData": [
-        "/chargingStatusDesc"
-      ],
+      "secondaryData": [],
       "assetParameterSemanticTags": {
         "batteryIcon": [
           "phone-device"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewStatusSupport@1",
+      "supportedEventIds": ["event.open.settings.battery","event.open.settings.batteryHealth","event.setPowerSavingMode"],
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机充电状态 Support：展示当前充电状态和连接的充电器类型；两个文本字段必需，可在根节点绑定事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/pluggedTypeDesc"
+      ],
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
         ]
       }
     }
