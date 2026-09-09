@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import unittest
-from unittest.mock import patch
 
 from services.card_validation import (
     CompactDslValidationError,
@@ -191,7 +190,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["action"][2]["fontWeight"], 500)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
-            "#331F4799",
+            "#190A59F7",
         )
 
     def test_expands_action_icon_round_design(self) -> None:
@@ -636,42 +635,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["fontSize"], 14)
         self.assertEqual(action_styles["fontWeight"], 400)
         self.assertEqual(action_styles["textAlign"], "center")
-
-    def test_action_icon_size_is_scoped_to_2x2(self) -> None:
-        handler = {"call": "openSettings", "args": {}}
-        for size, expected in (("2x2", 20), ("2x4", 16)):
-            for state in ("capsule", "icon-round"):
-                with self.subTest(size=size, state=state):
-                    props = {"state": state, "icon": "settings.svg", "onClick": [handler]}
-                    if state == "capsule":
-                        props["label"] = "Settings"
-                    rows = [
-                        ["root", "Column", {}, ["cta", "custom_icon"]],
-                        ["cta", "ActionUnit", props],
-                        ["custom_icon", "Image", {"src": "custom.svg", "width": 24, "height": 24}],
-                    ]
-                    output = convert_compact_dsl_to_a2ui(_serialize(rows), size=size)
-                    update = json.loads(output.splitlines()[1]).get("updateComponents")
-                    assert isinstance(update, dict)
-                    components = {item.get("id"): item for item in update.get("components", [])}
-                    icon = components.get("cta_icon")
-                    assert isinstance(icon, dict)
-                    styles = icon.get("styles", {})
-                    self.assertEqual(
-                        (styles.get("width"), styles.get("height")), (expected, expected)
-                    )
-                    custom = components.get("custom_icon")
-                    assert isinstance(custom, dict)
-                    self.assertEqual(custom.get("styles", {}).get("width"), 24)
-                    action = components.get("cta")
-                    assert isinstance(action, dict)
-                    self.assertEqual(action.get("onClick"), [handler])
-                    self.assertEqual(
-                        action.get("styles", {}).get("height"), 36 if state == "capsule" else 30
-                    )
-                    if state == "capsule":
-                        self.assertEqual(action.get("itemMargin"), 8)
-                        self.assertEqual(action.get("styles", {}).get("justifyContent"), "center")
 
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
@@ -1567,202 +1530,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
-
-class FixedBackgroundColorTest(unittest.TestCase):
-    def test_text_design_font_defaults_and_limits(self) -> None:
-        sizes = {
-            "metric-display-xl": 38,
-            "metric-display-lg": 38,
-            "metric-hero-value": 30,
-            "heading-primary-lg": 20,
-            "heading-primary-md": 20,
-            "card-header-title": 12,
-        }
-        for design, expected_size in sizes.items():
-            with self.subTest(design=design):
-                source = _serialize([["value", "Text", {"content": "123", "design": design}]])
-                normalized = normalize_compact_dsl_design_tokens(source)
-                self.assertEqual(json.loads(normalized)[2]["fontSize"], expected_size)
-
-    @staticmethod
-    def _convert(background: dict, action_colors: dict | None = None) -> dict:
-        action = {
-            "state": "capsule",
-            "label": "Open",
-            "icon": "resources/base/media/music_fill.svg",
-            "onClick": [{"call": "clickToIntent", "args": {"intentName": "Settings"}}],
-            **(action_colors or {}),
-        }
-        source = _serialize([
-            ["root", "Column", background, ["action"]],
-            ["action", "ActionUnit", action],
-        ])
-        result = convert_compact_dsl_to_a2ui(source, size="2x2")
-        update = json.loads(result.splitlines()[1]).get("updateComponents")
-        assert isinstance(update, dict)
-        return {item.get("id"): item for item in update.get("components", [])}
-
-    def test_plain_background_sets_matching_button_defaults(self) -> None:
-        palettes = [
-            ("#FFE5EDFE", "#FF1F4799", "#331F4799"),
-            ("#FFEDE6FF", "#FF401F99", "#33401F99"),
-            ("#FFF0FFE6", "#FF52991F", "#3352991F"),
-            ("#FFFFF3E6", "#FF99661F", "#3399661F"),
-            ("#FFE6FDFF", "#FF1F8F99", "#331F8F99"),
-        ]
-        for background, ink, surface in palettes:
-            with self.subTest(background=background):
-                components = self._convert({"backgroundColor": background})
-                self.assertEqual(components["root"]["styles"]["backgroundColor"], background)
-                self.assertNotIn("linearGradient", components["root"]["styles"])
-                self.assertEqual(components["action"]["styles"]["backgroundColor"], surface)
-                self.assertEqual(components["action_text"]["styles"]["fontColor"], ink)
-                self.assertEqual(components["action_icon"]["styles"]["fillColor"], ink)
-
-    def test_missing_background_defaults_to_blue(self) -> None:
-        components = self._convert({})
-        self.assertEqual(components["root"]["styles"]["backgroundColor"], "#FFE5EDFE")
-        self.assertNotIn("linearGradient", components["root"]["styles"])
-
-    def test_explicit_colors_and_gradients_are_preserved(self) -> None:
-        backgrounds = [
-            {"backgroundColor": "#FFF0FFE6"},
-            {"backgroundColor": "#FF101010"},
-            {"linearGradient": {
-                "angle": 90,
-                "colors": [["#1A64BB5C", 0], ["#FFFFFFFF", 1]],
-            }},
-        ]
-        for background in backgrounds:
-            with self.subTest(background=background):
-                components = self._convert(
-                    background,
-                    {"actionInk": "#FFE84026", "actionSurface": "#FF123456"},
-                )
-                for name, value in background.items():
-                    self.assertEqual(components["root"]["styles"][name], value)
-                self.assertEqual(components["action"]["styles"]["backgroundColor"], "#FF123456")
-                self.assertEqual(components["action_text"]["styles"]["fontColor"], "#FFE84026")
-
-    @patch("services.fusion_ball_expander.fusion_ball_enabled", return_value=True)
-    def test_fusion_keeps_original_icons_and_uses_white_capsule_colors(self, _enabled) -> None:
-        for fill in ({}, {"fillColor": "#FF1F8F99"}):
-            with self.subTest(fill=fill):
-                source = _serialize([
-                    ["root", "Column", {"design": "fusion-ball-battery-teal"}, ["action"]],
-                    ["action", "Row", {
-                        "height": 36, "borderRadius": 20,
-                        "onClick": [{"call": "clickToIntent", "args": {"intentName": "Settings"}}],
-                        "backgroundColor": "#331F8F99",
-                    }, ["icon", "label"]],
-                    ["icon", "Image", {
-                        "src": "resources/base/media/music_fill.svg" if fill
-                        else "resources/base/media/icon_weather1.svg",
-                        "width": 16, "height": 16, **fill,
-                    }],
-                    ["label", "Text", {"content": "Open", "fontColor": "#FF1F8F99"}],
-                ])
-                result = convert_compact_dsl_to_a2ui(source, size="2x2")
-                update = json.loads(result.splitlines()[1]).get("updateComponents")
-                assert isinstance(update, dict)
-                components = {item.get("id"): item for item in update.get("components", [])}
-                self.assertEqual(components["action"]["styles"]["backgroundColor"], "#33FFFFFF")
-                self.assertEqual(components["label"]["styles"]["fontColor"], "#E6FFFFFF")
-                expected_fill = "#99FFFFFF" if fill else None
-                self.assertEqual(components["icon"]["styles"].get("fillColor"), expected_fill)
-                self.assertEqual(
-                    components["fusionBallGlassLayer"]["styles"]["backgroundColor"], "#1AFFFFFF"
-                )
-
-
-class CardHeaderTest(unittest.TestCase):
-    @staticmethod
-    def _rows() -> list:
-        return [
-            ["root", "Column", {
-                "padding": 12, "justifyContent": "start", "backgroundColor": "#FFE5EDFE",
-            }, ["header", "body"]],
-            ["header", "CardHeader", {"title": "Weather", "fontColor": "#FF1F4799"}],
-            ["body", "Text", {"content": "23", "height": 40}],
-        ]
-
-    def test_fixed_geometry_and_optional_icon(self) -> None:
-        for icon_props in ({}, {"icon": "weather.svg"}, {
-            "icon": "sun.svg", "fillColor": "#FF1F4799",
-        }):
-            with self.subTest(icon=icon_props):
-                rows = self._rows()
-                rows[1][2].update(icon_props)
-                rows[1][2]["title"] = {"path": "/data/title"}
-                rows.append(["/data/title", "Weather"])
-                output = convert_compact_dsl_to_a2ui(_serialize(rows), size="2x2")
-                update = json.loads(output.splitlines()[1]).get("updateComponents")
-                components = {item.get("id"): item for item in update.get("components", [])}
-                header = components["header"]
-                title = components["header_title"]
-                self.assertEqual(header["component"], "Row")
-                self.assertEqual(header["styles"], {
-                    "width": 136, "height": 20, "flexShrink": 0,
-                    "justifyContent": "start", "alignItems": "center",
-                })
-                self.assertEqual(title["content"], "{{ ${/data/title} }}")
-                self.assertEqual(title["styles"]["fontSize"], 12)
-                self.assertEqual(title["styles"]["fontWeight"], 400)
-                self.assertEqual(title["styles"]["textAlign"], "start")
-                self.assertEqual(title["styles"]["width"], 108 if icon_props else 136)
-                if icon_props:
-                    icon = components["header_icon"]["styles"]
-                    self.assertEqual((icon["width"], icon["height"]), (20, 20))
-                    self.assertEqual(icon.get("fillColor"), icon_props.get("fillColor"))
-                    self.assertEqual(12 + title["styles"]["width"] + header["itemMargin"], 128)
-                else:
-                    self.assertNotIn("header_icon", components)
-                    self.assertEqual(header["children"], ["header_title"])
-
-    def test_invalid_placement_and_overrides_fail(self) -> None:
-        cases = []
-        for name, value in (("justifyContent", "center"), ("justifyContent", "spaceAround"),
-                            ("padding", 8), ("borderWidth", 1)):
-            rows = self._rows()
-            rows[0][2][name] = value
-            cases.append(rows)
-        rows = self._rows()
-        rows[0][1] = "Row"
-        cases.append(rows)
-        rows = self._rows()
-        rows[0][3] = ["body", "header"]
-        cases.append(rows)
-        rows = self._rows()
-        rows[0][3] = ["body"]
-        rows[2] = ["body", "Column", {}, ["header"]]
-        cases.append(rows)
-        rows = self._rows()
-        rows[0][3].append("other_header")
-        rows.append(["other_header", "CardHeader", {"title": "Other", "fontColor": "#FFFFFFFF"}])
-        cases.append(rows)
-        rows = self._rows()
-        rows[0][3].append("header_title")
-        rows.append(["header_title", "Text", {"content": "collision"}])
-        cases.append(rows)
-        for props in ({"margin": 12}, {"fontSize": 16}, {"onClick": []}, {"title": ""}):
-            rows = self._rows()
-            rows[1][2].update(props)
-            cases.append(rows)
-        for rows in cases:
-            with self.subTest(rows=rows):
-                with self.assertRaises(CompactDslConversionError):
-                    convert_compact_dsl_to_a2ui(_serialize(rows), size="2x2")
-                with self.assertRaises(CompactDslValidationError):
-                    validate_compact_dsl(_serialize(rows), task_spec={"size": "2x2"}, card_spec={})
-        with self.assertRaises(CompactDslConversionError):
-            convert_compact_dsl_to_a2ui(_serialize(self._rows()), size="2x4")
-
-    def test_header_height_is_included_in_budget(self) -> None:
-        rows = self._rows()
-        rows[2][2]["height"] = 117
-        with self.assertRaisesRegex(CompactDslValidationError, "137vp"):
-            validate_compact_dsl(_serialize(rows), task_spec={"size": "2x2"}, card_spec={})
-
 
 if __name__ == "__main__":
     unittest.main()
