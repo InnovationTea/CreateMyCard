@@ -149,6 +149,7 @@ def _collect_height_budget_errors(
             "or gaps instead of relying on clipping, flex shrink, or distributed alignment."
         )
 
+
 def _component_available_height(
     component: ComponentRow,
     task_spec: dict[str, Any],
