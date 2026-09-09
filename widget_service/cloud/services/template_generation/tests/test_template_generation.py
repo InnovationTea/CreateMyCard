@@ -4225,7 +4225,7 @@ async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> N
             'Template("HeroActionLayout@1",{},'
             'Template("WeatherOverviewWindHero@1",{}),'
             'Template("PillAction@1",{"actionId":"event.open.weather",'
-            '"label":"天气详情"}));'
+            '"label":"查看详情"}));'
         ),
     )
 
@@ -4240,11 +4240,11 @@ async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> N
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
     assert not any(
-        component.get("content") == "天气详情" for component in components
+        component.get("content") == "查看详情" for component in components
     ), [
         component
         for component in components
-        if component.get("content") == "天气详情" or component.get("onClick")
+        if component.get("content") == "查看详情" or component.get("onClick")
     ]
     clickable = [component for component in components if component.get("onClick")]
     assert len(clickable) == 1
@@ -6109,7 +6109,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
                 'Template("HeroActionLayout@1",{},'
                 'Template("WeatherOverviewHero@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather",'
-                '"label":"天气详情"}));'
+                '"label":"查看详情"}));'
             )
 
     controls = TemplateControls(
@@ -6170,7 +6170,7 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
                 'Template("CompactTwoActionLayout@1",{},'
                 'Template("WeatherOverviewCompact@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather",'
-                '"label":"天气详情"}),'
+                '"label":"查看详情"}),'
                 'Template("PillAction@1",{"actionId":"event.open.music.daily",'
                 '"label":"每日推荐"}));'
             )
@@ -6202,7 +6202,7 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
     )
 
     assert output.a2ui.count('"call":"clickToIntent"') == 2
-    assert "天气详情" in output.a2ui and "每日推荐" in output.a2ui
+    assert "查看详情" in output.a2ui and "每日推荐" in output.a2ui
     assert output.template_ids == (
         "WeatherOverviewCompact@1",
         "PillAction@1",
@@ -7130,7 +7130,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
         body=(
             'Template("HeroActionLayout@1",{},Template("WeatherOverviewHero@1",{}),'
             'Template("PillAction@1",{"actionId":"event.open.weather",'
-            '"label":"天气详情"}));'
+            '"label":"查看详情"}));'
         ),
     )
     task_spec = _weather_task_spec()
@@ -7172,7 +7172,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
 
     assert model.body_called is True
     assert '"call":"clickToDeeplink"' in output.a2ui
-    assert "天气详情" in output.a2ui
+    assert "查看详情" in output.a2ui
     assert "cityCode" in output.projected_task_spec.dataModelSchema["data"]["weather"]["location"]
     assert model.second_layer_prompt is not None
     second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
@@ -7362,9 +7362,9 @@ async def test_duplicate_weather_pill_actions_keep_independent_event_bindings():
                 'Template("CompactTwoActionLayout@1",{},'
                 'Template("WeatherOverviewCompact@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather#1",'
-                '"label":"天气详情"}),'
+                '"label":"查看详情"}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather#2",'
-                '"label":"天气详情"}));'
+                '"label":"查看详情"}));'
         ),
     )
 

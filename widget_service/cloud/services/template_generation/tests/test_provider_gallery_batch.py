@@ -375,6 +375,91 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert calendar_date_request["content"]["candidateAssetIds"] == []
 
 
+def test_dual_city_gallery_inputs_keep_ordered_independent_weather_bindings(
+    tmp_path: Path,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = _find_case(
+        manifest, "WeatherOverview", "single-content", "WeatherOverviewDualCityFull@1"
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    assert len(bindings) == 2
+    expected_fields = [
+        "/current/temperatureC", "/current/condition", "/location/prefectureName"
+    ]
+    for index, city in enumerate(("成都市", "上海市"), start=1):
+        assert bindings[index - 1] == {
+            "capabilityId": "ViewWeather",
+            "arguments": {"prefectureName": city, "forecastDays": 1},
+            "writeResultTo": f"/data/weather{index}",
+            "candidateOutputFields": expected_fields,
+        }
+    query = content.get("userQuery")
+    assert isinstance(query, str)
+    assert "成都市和上海市" in query
+    assert content.get("candidateEventCandidates") == []
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    assert gallery_test.get("sampleOverrides") == {
+        "/data/weather1/location/prefectureName": "成都市",
+        "/data/weather1/current/temperatureC": 26,
+        "/data/weather1/current/condition": "多云",
+        "/data/weather2/location/prefectureName": "上海市",
+        "/data/weather2/current/temperatureC": 29,
+        "/data/weather2/current/condition": "晴",
+    }
+
+
+def test_dual_city_gallery_does_not_change_single_city_inputs(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = _find_case(
+        manifest, "WeatherOverview", "single-content", "WeatherOverviewFull@1"
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    assert len(bindings) == 1
+    assert bindings[0].get("writeResultTo") == "/data/weather"
+    assert bindings[0].get("arguments") == {
+        "prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1
+    }
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    assert gallery_test.get("sampleOverrides") == {
+        "/data/weather/current/temperatureText": "29°"
+    }
+
+
+@pytest.mark.asyncio
+async def test_dual_city_gallery_runner_passes_both_bindings_to_service(tmp_path: Path) -> None:
+    input_root = tmp_path / "inputs"
+    write_gallery_input_dataset(input_root)
+    service = _GalleryService()
+    summary = await ProviderGalleryBatchRunner(service).run(
+        input_root, tmp_path / "output", provider_ids={"com.huawei.weather.cli"}
+    )
+    assert summary.failed == 0
+    requests = []
+    for request, targets in zip(service.requests, service.template_candidate_ids, strict=True):
+        if targets == ("WeatherOverviewDualCityFull@1",):
+            requests.append(request)
+    assert len(requests) == 1
+    bindings = requests[0].candidateDataBindings
+    assert bindings is not None
+    assert [binding.writeResultTo for binding in bindings] == [
+        "/data/weather1", "/data/weather2"
+    ]
+    assert [binding.arguments.get("prefectureName") for binding in bindings] == [
+        "成都市", "上海市"
+    ]
+
+
 def test_countdown_gallery_inputs_use_only_high_version_fusion(
     tmp_path: Path,
 ) -> None:

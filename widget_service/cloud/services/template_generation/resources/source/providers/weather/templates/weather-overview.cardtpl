@@ -467,6 +467,7 @@ data = {
     district: $optionalPath("/location/districtName"),
     temperature: $path("/current/temperatureText"),
     condition: $path("/current/condition"),
+    airQuality: $optionalPath("/current/airQuality"),
     coldLevel: $optionalPath("/current/coldLevel")
 }
 
@@ -525,6 +526,33 @@ Column(
         data.temperature,
         {"fontSize": 38, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
       ),
+    #if data.airQuality
+      #if data.coldLevel
+      Text(
+        `${data.condition}｜空气${data.airQuality}｜感冒风险${data.coldLevel}`,
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #else
+      Text(
+        `${data.condition}｜空气${data.airQuality}`,
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #endif
+    #else
     #if data.coldLevel
       Text(
         `${data.condition}｜感冒风险${data.coldLevel}`,
@@ -549,6 +577,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
+    #endif
     #endif
   ),
 )

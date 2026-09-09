@@ -146,7 +146,7 @@
       "templateId": "WeatherOverviewHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "温度天气 Hero，展示城市、温度、天气现象和感冒指数，可选天气图标。",
+      "description": "温度天气 Hero，展示城市、温度、天气现象，可选空气质量、感冒指数和天气图标，为一个 PillAction 预留空间。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -157,6 +157,7 @@
       "optionalData": [
         "/location/prefectureName",
         "/location/districtName",
+        "/current/airQuality",
         "/current/coldLevel"
       ],
       "assetParameterSemanticTags": {
