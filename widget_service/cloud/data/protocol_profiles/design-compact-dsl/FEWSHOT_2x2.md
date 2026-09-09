@@ -1,5 +1,7 @@
 # 2x2 Few-shot
 
+示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气；有合法素材时每个天气区各放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。用户明确指定图标的例外仍按主提示词执行。
+
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
 
 ## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·融球暖橙）
@@ -31,15 +33,15 @@
 ["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
 ["left_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
 ["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["right_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
 ["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["case_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["case_badge","case_num","case_unit"]]
-["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
 ["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
@@ -63,11 +65,11 @@
 ["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":0},["left_item","right_item"]]
 ["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
 ["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
 ["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
 ["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
 ["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
 ["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
 ["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0},["cta_play","cta_fav"]]
@@ -93,8 +95,8 @@
 ["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["value_unit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":5},"maxLines":1,"flexShrink":0}]
 ["bottom_area","Column",{"width":136,"height":40,"itemMargin":4,"justifyContent":"start","flexShrink":0},["weather_status","temp_range"]]
-["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
 ["/data/weather/current/temperatureC",38]
 ["/data/weather/current/condition","晴｜空气优"]
 ["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
@@ -105,6 +107,7 @@
 
 
 ## 示例五（2x2-V05）：手机+耳机电量（S4 横行亚型·青色纯色）
+本例的 phone_row/ear_row 不带蒙版；若改成带蒙版分区，必须同时给承载蒙版的容器加左右 12vp padding，内部宽度重算为 112vp，不能只加 backgroundColor。独立图标 20vp + 间距 8vp 时文字槽最多 84vp；若保留 52vp 环图，文字槽最多 52vp，需重新精简排布，不能照搬本例无蒙版的文字宽度。
 ### user
 ```json
 {"userQuery":"使用2*2规格，同时展示手机电量和耳机盒电量及各自充电状态。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":47},"chargingStatusDesc":{"type":"string","description":"耳机盒当前充电状态","sampleValue":"充电中"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
@@ -170,10 +173,10 @@
 ["bottom_area","Column",{"width":136,"height":34,"itemMargin":2,"justifyContent":"start","flexShrink":0},["aux_1","aux_2"]]
 ["aux_1","Row",{"itemMargin":4,"alignItems":"center"},["aux_1_t","aux_1_v"]]
 ["aux_1_t","Text",{"content":"运动距离","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#99FFFFFF","maxLines":1}]
 ["aux_2","Row",{"itemMargin":4,"alignItems":"center"},["aux_2_t","aux_2_v"]]
 ["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#99FFFFFF","maxLines":1}]
 ["/data/healthSport/dailySteps",2319]
 ["/data/healthSport/dailyDistanceText","1.19 公里"]
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
