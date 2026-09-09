@@ -667,6 +667,7 @@ def convert_compact_dsl_to_a2ui(
             _convert_component_rows(
                 component,
                 hide_label=hide_label,
+                action_icon_size=20 if size == "2x2" else 16,
             )
         )
     if fusion_palette is not None:
@@ -1862,11 +1863,12 @@ def _convert_component_rows(
     component: ComponentRow,
     *,
     hide_label: bool = False,
+    action_icon_size: int = 16,
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
         return _convert_card_header(component)
     if component.component_type == "ActionUnit":
-        return _convert_action_unit(component)
+        return _convert_action_unit(component, action_icon_size)
     return [
         _convert_component(
             component,
@@ -1875,12 +1877,12 @@ def _convert_component_rows(
     ]
 
 
-def _convert_action_unit(component: ComponentRow) -> list[dict[str, Any]]:
+def _convert_action_unit(component: ComponentRow, icon_size: int) -> list[dict[str, Any]]:
     _validate_action_unit_for_conversion(component)
     state = component.props["state"]
     if state == "capsule":
-        return _convert_action_unit_capsule(component)
-    return _convert_action_unit_icon_round(component)
+        return _convert_action_unit_capsule(component, icon_size)
+    return _convert_action_unit_icon_round(component, icon_size)
 
 
 def _validate_action_unit_for_conversion(component: ComponentRow) -> None:
@@ -1940,10 +1942,10 @@ def _require_action_unit_string(component: ComponentRow, property_name: str) -> 
     )
 
 
-def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]]:
+def _convert_action_unit_capsule(component: ComponentRow, icon_size: int) -> list[dict[str, Any]]:
     icon = component.props.get("icon")
     if isinstance(icon, str) and icon:
-        return _convert_action_unit_capsule_with_icon(component, icon)
+        return _convert_action_unit_capsule_with_icon(component, icon, icon_size)
 
     converted: dict[str, Any] = {
         "id": component.component_id,
@@ -1970,6 +1972,7 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
 def _convert_action_unit_capsule_with_icon(
     component: ComponentRow,
     icon_source: str,
+    icon_size: int,
 ) -> list[dict[str, Any]]:
     icon_id = f"{component.component_id}_icon"
     text_id = f"{component.component_id}_text"
@@ -1994,8 +1997,8 @@ def _convert_action_unit_capsule_with_icon(
         "component": "Image",
         "src": icon_source,
         "styles": {
-            "width": 16,
-            "height": 16,
+            "width": icon_size,
+            "height": icon_size,
             "objectFit": "contain",
             "flexShrink": 0,
             "fillColor": text_styles.get("fontColor", "#FF1F4799"),
@@ -2082,7 +2085,10 @@ def _capsule_text_styles(
     return text_styles
 
 
-def _convert_action_unit_icon_round(component: ComponentRow) -> list[dict[str, Any]]:
+def _convert_action_unit_icon_round(
+    component: ComponentRow,
+    icon_size: int,
+) -> list[dict[str, Any]]:
     icon_id = f"{component.component_id}_icon"
     styles = _resolved_design_styles(
         component.component_id,
@@ -2107,8 +2113,8 @@ def _convert_action_unit_icon_round(component: ComponentRow) -> list[dict[str, A
         "component": "Image",
         "src": component.props["icon"],
         "styles": {
-            "width": 16,
-            "height": 16,
+            "width": icon_size,
+            "height": icon_size,
             "objectFit": "contain",
             "flexShrink": 0,
             "fillColor": icon_color,

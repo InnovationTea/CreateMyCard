@@ -637,6 +637,42 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["fontWeight"], 400)
         self.assertEqual(action_styles["textAlign"], "center")
 
+    def test_action_icon_size_is_scoped_to_2x2(self) -> None:
+        handler = {"call": "openSettings", "args": {}}
+        for size, expected in (("2x2", 20), ("2x4", 16)):
+            for state in ("capsule", "icon-round"):
+                with self.subTest(size=size, state=state):
+                    props = {"state": state, "icon": "settings.svg", "onClick": [handler]}
+                    if state == "capsule":
+                        props["label"] = "Settings"
+                    rows = [
+                        ["root", "Column", {}, ["cta", "custom_icon"]],
+                        ["cta", "ActionUnit", props],
+                        ["custom_icon", "Image", {"src": "custom.svg", "width": 24, "height": 24}],
+                    ]
+                    output = convert_compact_dsl_to_a2ui(_serialize(rows), size=size)
+                    update = json.loads(output.splitlines()[1]).get("updateComponents")
+                    assert isinstance(update, dict)
+                    components = {item.get("id"): item for item in update.get("components", [])}
+                    icon = components.get("cta_icon")
+                    assert isinstance(icon, dict)
+                    styles = icon.get("styles", {})
+                    self.assertEqual(
+                        (styles.get("width"), styles.get("height")), (expected, expected)
+                    )
+                    custom = components.get("custom_icon")
+                    assert isinstance(custom, dict)
+                    self.assertEqual(custom.get("styles", {}).get("width"), 24)
+                    action = components.get("cta")
+                    assert isinstance(action, dict)
+                    self.assertEqual(action.get("onClick"), [handler])
+                    self.assertEqual(
+                        action.get("styles", {}).get("height"), 36 if state == "capsule" else 30
+                    )
+                    if state == "capsule":
+                        self.assertEqual(action.get("itemMargin"), 8)
+                        self.assertEqual(action.get("styles", {}).get("justifyContent"), "center")
+
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
             [
