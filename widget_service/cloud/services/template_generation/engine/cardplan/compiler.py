@@ -300,11 +300,7 @@ def compile_hybrid_card(
         content = _constrain_content_height(content, body_budget)
         root = _compile_card_shell(card_params, content, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
-    if (
-        fusion_palette is None
-        and contract.theme_profile_id
-        in {"family-weather-care-blue", "fusion-weather-blue"}
-    ):
+    if fusion_palette is None:
         root = apply_content_safe_inset(root, size=task_spec.size)
     else:
         root = apply_fusion_ball_background(
@@ -479,11 +475,7 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    if (
-        fusion_palette is None
-        and contract.theme_profile_id
-        in {"family-weather-care-blue", "fusion-weather-blue"}
-    ):
+    if fusion_palette is None:
         root = apply_content_safe_inset(root, size=task_spec.size)
     else:
         root = apply_fusion_ball_background(
@@ -8657,6 +8649,9 @@ def _provider_layout_action_background(
     default: str,
 ) -> str:
     """Resolve a single-business Provider Template Action background override."""
+    theme = registry.require_theme(contract.theme_profile_id)
+    if not theme.allow_template_action_background_override:
+        return default
     if len(_contract_ux_business_component_names(contract, registry)) != 1:
         return default
     opacities: set[float] = set()

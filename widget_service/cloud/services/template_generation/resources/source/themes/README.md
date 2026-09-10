@@ -18,6 +18,8 @@
    引用。两个字段都保存最终真实颜色，可以不同，以表达主内容与辅助内容层级。
 3. `actionStyle` 只保存受信 Action Template 的背景色和内容色。Action Template 节点已经显式声明的高度、
    圆角、字号和字重不得被 Theme 覆盖；Action 子树不再套用普通内容的 `primaryColor`。
+   主题可声明 `allowTemplateActionBackgroundOverride: false`，禁止 Provider 按局部透明度重算操作
+   背板颜色；默认 `true` 保持已有行为，该字段不影响 Action 的布局尺寸或普通内容配色。
 4. `fusionBallStyle` 完整保存一套融球颜色及允许的 `businessIds`，在业务、数据能力、`Full`、`Hero` 或
    `Compact` 后缀均匹配的单业务 `2x2` 产物中生效。`HeroTitle + HeroContent + PillAction` 是唯一允许的
    双业务例外：由 `HeroContent` 所属主业务确定整卡主题及融球颜色，统一包装一次背景；标题和动作继承同一主题。
@@ -59,6 +61,10 @@ Action 内容为 `#FF99521F`，进度轨道和 Action 背板为 `#3399521F`。�
 
 赛事倒计时非融球主题使用 `#FFFFF0E6` 纯色背景；主内容及 Action 内容为 `#FF99521F`，辅助内容为
 `#9999521F`，Action 背板为 `#3399521F`。当前 Countdown Provider 没有进度组件。
-设备非融球主题使用 `#FFFFFFFF` 底色及 `#1AF9A01E` 到 `#00FFFFFF` 的线性渐变；主内容为
+手机电量非融球主题 `battery-device-green` 与耳机沿用同一套浅绿颜色：背景 `#FFF0FFE6`，
+主内容、进度和 Action 内容为 `#FF52991F`，辅助内容和环内图标为 `#9952991F`，
+进度轨道和 Action 背板为 `#3364BB5C`；不配置渐变。详见
+[手机电量非融球配色](../../../docs/battery-non-fusion-palette.md)。
+系统内存非融球主题继续使用 `#FFFFFFFF` 底色及 `#1AF9A01E` 到 `#00FFFFFF` 的线性渐变；主内容为
 `#E6000000`，辅助内容和环内图标为 `#99000000`，环形进度为 `#FFF9A01E`，Action 文本和图标为
 `#FF0A59F7`，Action 背板为 `#1A0A59F7`。

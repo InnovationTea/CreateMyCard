@@ -1013,6 +1013,7 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.templates) == set(registry.provider_template_ids)
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-device-green",
         "2x2-two-support",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
@@ -1541,7 +1542,6 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
     theme = get_cardplan_registry().require_theme("device-clean-blue-teal")
 
     assert theme.supported_capability_ids == (
-        "GetPhoneBatteryInfo",
         "GetSystemMemInfo",
     )
     assert theme.primary_color == "#E6000000"
@@ -1570,6 +1570,7 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert set(disabled_registry.themes) == {
         "2x2-two-support",
         "audio-product-neutral-violet",
+        "battery-device-green",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -5957,7 +5958,11 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert root.get("component") == "Stack"
         assert root.get("children") == ["fusionBallBackground", "template_root"]
     else:
-        assert root.get("component") == "Column"
+        assert root.get("component") == "Stack"
+        assert root.get("children") == ["template_root"]
+        foreground = components_by_id.get("template_root")
+        assert isinstance(foreground, dict)
+        assert foreground.get("children") == ["__genui_render_component__root_1"]
         assert "fusionBallBackground" not in components_by_id
         root_styles = root.get("styles")
         assert isinstance(root_styles, dict)
@@ -6816,8 +6821,17 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert root["children"] == ["template_root"]
     assert components_by_id["template_root"]["styles"]["padding"] == 12
     assert components_by_id["template_root"]["children"] == [
-        "__genui_render_component__template_root"
+        "__genui_render_component__root_1"
     ]
+    assert components_by_id["__genui_render_component__root_1"]["component"] == "Stack"
+    assert "__genui_render_component__template_root" not in component_ids
+    compact_rows = [json.loads(line) for line in captured["compact"].splitlines()]
+    compact_skeletons = [
+        row for row in compact_rows if row[0] == "__genui_render_component__root_1"
+    ]
+    assert len(compact_skeletons) == 1
+    assert compact_skeletons[0][1] == "Stack"
+    assert "__genui_render_component__template_root" not in captured["compact"]
     assert "fusionBallBackground" not in component_ids
     assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]

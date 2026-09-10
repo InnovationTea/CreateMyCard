@@ -12,6 +12,7 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     FusionBallPalette,
+    apply_content_safe_inset,
     apply_fusion_ball_background,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract
@@ -37,6 +38,8 @@ def test_compiled_template_skips_only_marked_content_contrast(size: str, fusion:
             size=size,
             palette=FusionBallPalette(large="#FF17734C", medium="#FF26BFA6", small="#FF60BF98"),
         )
+    else:
+        card = apply_content_safe_inset(card, size=size)
     a2ui = convert_tersel_to_a2ui(
         _serialize_node(card) + ";",
         size=size,

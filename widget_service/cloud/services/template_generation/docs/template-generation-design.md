@@ -105,8 +105,11 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 
 ## 7. 模板内容根与对比度边界
 
-合入 PR186 的内容根标识：公共 A2UI 校验根保持 `root`，非融球模板及预览产物为
-`root → template_root`；融球模板为
+公共 A2UI 校验根保持 `root`，非融球 `2x2` 固定布局模板为
+`root → template_root → __genui_render_component__root_1`，防溢出前缀直接标记原布局骨架，
+不再增加专用防溢出 Stack。单业务、双业务及各主题使用同一规则；根背景保持不变，安全边距从根节点
+移到 `template_root`，骨架属性和内容不变。独立模板预览仍为 `root → template_root`；
+不含单一布局骨架的旧 CardPlan shell 和非 `2x2` 产物保持原结构。融球模板仍为
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 

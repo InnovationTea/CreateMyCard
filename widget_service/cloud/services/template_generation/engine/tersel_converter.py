@@ -12,6 +12,7 @@ import tokenize
 from dataclasses import dataclass
 from typing import Any
 
+from services.fusion_ball_expander import FUSION_BALL_CONTENT_ID_PREFIX
 from services.template_generation.engine.a2ui_expression import (
     A2UIExpressionError,
     normalize_tersel_expression,
@@ -483,8 +484,10 @@ def _append_compact_rows(
     allowed_binding_paths: frozenset[str],
     allowed_expression_paths: frozenset[str],
 ) -> None:
+    # 防溢出前缀只标记当前节点，不传播到自动编号的后代组件。
+    child_id_base = component_id.removeprefix(FUSION_BALL_CONTENT_ID_PREFIX)
     child_ids = [
-        _explicit_component_id(child) or f"{component_id}_{index}"
+        _explicit_component_id(child) or f"{child_id_base}_{index}"
         for index, child in enumerate(node.children)
     ]
     props = _convert_data_placeholders(
