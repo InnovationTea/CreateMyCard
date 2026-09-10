@@ -441,73 +441,10 @@ Row(
 
 #End
 
-#Template BluetoothDeviceOverviewConnectionSupport@1(props: { deviceIcon?: asset, actionId?: string })
+#Template BluetoothDeviceOverviewConnectionSupport@1(props: { deviceIcon: asset, actionId?: string })
 data = {
-    connected: $path("/isConnected"),
-    percent: $path("/batteryLevel")
-}
-
-Row(
-  {
-    "_advancedComponent": "BluetoothDeviceOverview",
-    "width": "matchParent",
-    "height": "matchParent",
-    "padding": { "left": 8, "right": 8 },
-    "justifyContent": "spaceBetween",
-    "alignItems": "center",
-    "clip": true,
-    "constraintSize": { "minWidth": 0, "minHeight": 0 },
-    "onClick": EventAction(props?.actionId)
-  },
-  Column(
-    {
-      "itemMargin": 2,
-      "layoutWeight": 1,
-      "justifyContent": "start",
-      "alignItems": "start",
-      "clip": true,
-      "constraintSize": { "minWidth": 0, "minHeight": 0 }
-    },
-    Text(
-      Expr("耳机仓 " + data.percent + "%"),
-      {
-        "height": 20,
-        "fontSize": 14,
-        "fontWeight": 700,
-        "fontColor": $theme('primaryColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
-    ),
-    Text(
-      Expr("连接状态 " + data.connected),
-      {
-        "height": 16,
-        "fontSize": 12,
-        "fontWeight": 400,
-        "fontColor": $theme('supportContentColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
-    )
-  ),
-  #if props.actionId
-    #if props.deviceIcon
-    Image(
-      props.deviceIcon,
-      { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
-    )
-    #endif
-  #endif
-)
-#End
-
-#Template BluetoothDeviceOverviewChargeSupport@1(props: { deviceIcon: asset, actionId?: string })
-data = {
-    percent: $path("/batteryLevel"),
-    charging: $path("/chargingStatusDesc")
+    percent: $optionalPath("/batteryLevel"),
+    connected: $path("/isConnected")
 }
 
 Row(
@@ -538,7 +475,7 @@ Row(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
       },
       Text(
-        Expr("电量 " + data.percent + "%"),
+        Expr(`${data.connected}? '已链接' : '未链接'`),
         {
           "fontSize": 14,
           "fontWeight": 700,
@@ -548,18 +485,21 @@ Row(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       ),
+      #if data.percent
       Text(
-        data.charging,
+        Expr("电量 " + data.percent + "%"),
         {
           "fontSize": 12,
-          "fontWeight": 400,
+          "fontWeight": 500,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
+      #endif
     ),
+    #if data.percent
     Stack(
       {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
       Progress(
@@ -586,6 +526,137 @@ Row(
       )
       #endif
     )
+    #else
+      #if props.deviceIcon
+      Image(
+        props.deviceIcon,
+        { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
+      )
+      #endif
+    #endif
+  )
+)
+#End
+
+#Template BluetoothDeviceOverviewChargeSupport@1(props: { deviceIcon: asset, actionId?: string })
+data = {
+    percent: $optionalPath("/batteryLevel"),
+    charging: $path("/chargingStatusDesc")
+}
+
+Row(
+  {
+    "_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": { "left": 8, "right": 8 },
+    "justifyContent": "start",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "itemMargin": 8,
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+      {
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      #if data.percent
+      Text(
+        Expr("电量 " + data.percent + "%"),
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      #else
+      Text(
+        data.charging,
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      #endif
+      #if data.percent
+      Text(
+        data.charging,
+        {
+          "fontSize": 12,
+          "fontWeight": 500,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+      #else
+      Text(
+        "耳机仓",
+        {
+          "fontSize": 12,
+          "fontWeight": 500,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+      #endif
+    ),
+    #if data.percent
+    Stack(
+      {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
+      Progress(
+        {
+          "value": data.percent,
+          "total": 100,
+          "type": "ring",
+          "color": $theme('progressColor'),
+          "backgroundColor": $theme('progressBackgroundColor'),
+          "width": 40,
+          "height": 40,
+          "strokeWidth": 6
+        }
+      ),
+      #if props.deviceIcon
+      Image(
+        props.deviceIcon,
+        {
+          "width": 16,
+          "height": 16,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+      #endif
+    )
+    #else
+      #if props.deviceIcon
+      Image(
+        props.deviceIcon,
+        { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
+      )
+      #endif
+    #endif
   )
 )
 #End

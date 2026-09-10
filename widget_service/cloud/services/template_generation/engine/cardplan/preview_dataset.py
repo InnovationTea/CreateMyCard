@@ -99,6 +99,8 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
+    ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"):
+        "resources/base/media/icon_earphone.svg",
     ("BatteryOverviewSupport@1", "batteryIcon"):
         "resources/base/media/icon_phone.svg",
     ("WeatherOverviewTemperatureSupport@1", "conditionIcon"):
@@ -400,6 +402,7 @@ def _battery_sample(template_id: str, name: str, data_type: str) -> Any:
             "percent": 68,
             "percentText": "68%",
             "charging": "未充电",
+            "temperature": "29.0 ℃",
             "level": "正常电量",
         }
     return values.get(name, _fallback_sample(data_type))
