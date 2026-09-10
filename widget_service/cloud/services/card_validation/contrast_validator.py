@@ -3,13 +3,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 from .base import BaseValidator
 
+_LOGGER = logging.getLogger(__name__)
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
-_TEMPLATE_ROOT_ID = "template_root"
 _NORMAL_ROOT_ID = "root_0"
 _FUSION_BACKGROUND_ID = "fusionBallBackground"
 _OPAQUE_ALPHA = 1.0
@@ -125,6 +126,11 @@ class ContrastValidator(BaseValidator):
 
     def validate(self, context, rules, reporter) -> None:
         del rules
+        if context.has_fusion_template_root():
+            _LOGGER.info(
+                "quality_validation_skipped reason=fusion_template_root validator=contrast"
+            )
+            return
         if not context.components or not context.root_id:
             return
         by_id = context.components_by_id
@@ -154,9 +160,6 @@ class ContrastValidator(BaseValidator):
         is_gradient: bool,
         is_fusion_scene: bool,
     ) -> None:
-        # 模板内容沿用模板配色，不追加对比度诊断；其它校验仍由各自的 validator 执行。
-        if component.get("id") == _TEMPLATE_ROOT_ID:
-            return
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
         effective_backgrounds = list(backgrounds)

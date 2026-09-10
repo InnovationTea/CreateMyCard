@@ -31,6 +31,22 @@ class ValidationContext:
     template_context_by_component: dict[str, dict[str, Any]] = field(default_factory=dict)
     quality_score: int | None = None
 
+    def has_fusion_template_root(self) -> bool:
+        """判断是否满足模板融球整卡质量豁免的结构条件。"""
+        if self.root_id != "root" or self.duplicate_component_ids:
+            return False
+        root = self.root_component
+        template = self.components_by_id.get("template_root")
+        if root is None or template is None:
+            return False
+        children = root.get("children")
+        if not isinstance(children, list):
+            return False
+        background = self.components_by_id.get("fusionBallBackground")
+        if background is None:
+            return False
+        return "template_root" in children and "fusionBallBackground" in children
+
     def line_for_genui_pointer(self, pointer: str) -> int | None:
         if pointer.startswith("/createSurface"):
             return 1

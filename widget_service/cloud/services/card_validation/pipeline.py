@@ -65,17 +65,6 @@ def selected_stages(stage: str) -> list[str]:
     return ["hard", "semantic", "quality"]
 
 
-def _has_template_root(context: ValidationContext) -> bool:
-    if context.root_id != "root" or context.duplicate_component_ids:
-        return False
-    root = context.root_component
-    template = context.components_by_id.get("template_root")
-    if root is None or template is None:
-        return False
-    children = root.get("children")
-    return isinstance(children, list) and "template_root" in children
-
-
 def run_pipeline(
     context: ValidationContext,
     rules,
@@ -90,8 +79,8 @@ def run_pipeline(
             return
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
             return
-        if current_stage == "quality" and _has_template_root(context):
-            _LOGGER.info("quality_validation_skipped reason=template_root")
+        if current_stage == "quality" and context.has_fusion_template_root():
+            _LOGGER.info("quality_validation_skipped reason=fusion_template_root")
             continue
         for validator in validators:
             if validator.stage == current_stage:
