@@ -28,6 +28,7 @@ _PROVIDER_DIRECTORIES = tuple(
 _SHAPE_SPECIFIC_MARKERS = {
     "WeatherOverviewTemperatureSupport@1": "WeatherOverviewTemperatureSupport",
     "WeatherOverviewTemperatureUvSupport@1": "WeatherOverviewTemperatureSupport",
+    "WeatherOverviewTemperaturecoldLevelSupport@1": "WeatherOverviewTemperatureSupport",
 }
 
 
@@ -145,5 +146,6 @@ def test_charging_summary_guards_every_optional_status(names: tuple[str, ...]) -
     source = _serialize_node(root)
     for name in ("charging", "health"):
         assert (f"/data/phoneBattery/{name}" in source) == (name in names)
-    expected_text_count = 3 if names else 2
+    # 充电状态独占辅行；健康状态折叠进“手机电量”标签，不新增文本行。
+    expected_text_count = 2 + (1 if "charging" in names else 0)
     assert source.count("Text(") == expected_text_count

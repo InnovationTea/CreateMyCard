@@ -3,6 +3,7 @@
 import json
 from typing import Any
 
+from config.config import get_settings
 from models.generation import TaskSpec
 from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
@@ -23,6 +24,12 @@ _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 
 class PromptBuilder:
+    @staticmethod
+    def _with_size_few_shot(system_prompt: str, task_spec: TaskSpec) -> str:
+        profile_dir = get_settings().data_root / "protocol_profiles" / DESIGN_COMPACT_PROFILE_ID
+        few_shot = (profile_dir / f"FEWSHOT_{task_spec.size}.md").read_text(encoding="utf-8")
+        return f"{system_prompt}\n\n{few_shot}"
+
     def build_design_compact(
         self,
         task_spec: TaskSpec,
@@ -98,6 +105,7 @@ class PromptBuilder:
     ) -> str:
         if source_format != DESIGN_COMPACT_PROFILE_ID:
             return system_prompt
+        system_prompt = PromptBuilder._with_size_few_shot(system_prompt, task_spec)
         if fusion_ball_enabled(task_spec.appVersion):
             return system_prompt
         return f"{system_prompt}\n\n{_FUSION_BALL_DISABLED_INSTRUCTION}"
@@ -120,11 +128,11 @@ class PromptBuilder:
         """
         del protocol_profile
         task_spec_json = task_spec.model_dump_json(exclude={"appVersion"})
-        system_prompt_template = SYSTEM_PROMPT
+        system_prompt_template = self._with_size_few_shot(SYSTEM_PROMPT, task_spec)
         if previous_genui is not None:
             system_prompt_template = EDIT_SYSTEM_PROMPT.replace(
                 "{{CREATE_SYSTEM_PROMPT}}",
-                SYSTEM_PROMPT,
+                system_prompt_template,
             )
         system_prompt = system_prompt_template.replace("{{TASK_SPEC_JSON}}", task_spec_json)
 

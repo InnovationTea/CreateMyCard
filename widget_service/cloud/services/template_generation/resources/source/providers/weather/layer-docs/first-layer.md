@@ -6,7 +6,9 @@
   - `{{dataRoot:ViewWeather}}/location/prefectureName`
   - `{{dataRoot:ViewWeather}}/location/districtName`
   - `{{dataRoot:ViewWeather}}/current/temperatureText`
+  - `{{dataRoot:ViewWeather}}/current/temperatureC`
   - `{{dataRoot:ViewWeather}}/current/condition`
+  - `{{dataRoot:ViewWeather}}/current/feelsLikeC`
   - `{{dataRoot:ViewWeather}}/current/humidityPercent`
   - `{{dataRoot:ViewWeather}}/current/airQuality`
   - `{{dataRoot:ViewWeather}}/current/uvIndex`
@@ -40,3 +42,5 @@
 - 根据 `userQuery` 判断出的必须显示天气字段存在上述支持集合之外的路径时，不得选择。
 - 城市标题按可用性依次使用 `prefectureName`、`districtName`；两者都缺失时允许第二层传入受信的
   `location`，仍缺失则显示模板默认文案。该选择由模板生成期三元表达式确定，不生成运行时三元表达式。
+- 双业务基础天气 Support 可以使用 `temperatureText`，也可以使用 `temperatureC` 并确定性追加“℃”；
+  `feelsLikeC` 存在时与天气现象一起放在 12vp 辅助行，不新增第三行。

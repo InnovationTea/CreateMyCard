@@ -79,10 +79,9 @@ async def stream_genui(
         "messages": messages,
     }
 
-    body_preview = json_for_log(json.dumps(body, ensure_ascii=False)[:500])
     logger.info(
         f"{_MODULE} stream_started ws_url={options.ws_url} "
-        f"model={options.model} body_preview={body_preview}"
+        f"model={options.model} body_preview={json_for_log(json.dumps(body, ensure_ascii=False)[:500])}"
     )
 
     usage = None

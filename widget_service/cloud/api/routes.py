@@ -65,7 +65,6 @@ INTERFACE_PARAMETER_ERROR_TYPE = {
     "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceParamError"
 }
 
-
 router = APIRouter(prefix="/api/v1")
 
 COMPACT_DSL_OPERATION = "generateWidgetCardCompactDsl"
