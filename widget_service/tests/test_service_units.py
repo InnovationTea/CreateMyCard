@@ -939,7 +939,7 @@ def test_capability_registry_snapshots_expose_expected_data_parameters():
             "enabled": True,
             "parameters": {
                 "districtName": {"type": "string", "required": False, "minLength": 1},
-                "prefectureName": {"type": "string", "required": True, "minLength": 1},
+                "prefectureName": {"type": "string", "required": False, "minLength": 1},
                 "forecastDays": {
                     "type": "integer",
                     "required": False,
@@ -2841,18 +2841,35 @@ def test_weather_binding_accepts_prefecture_without_district():
     assert removed_events == []
 
 
+@pytest.mark.parametrize("arguments", [{}, {"districtName": "滨江区"}])
+def test_weather_binding_accepts_omitted_prefecture(arguments):
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    resolver = DeviceCapabilityResolver(registry)
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        arguments=arguments,
+        writeResultTo="/data/weather",
+    )
+
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings([binding])
+
+    assert effective == [binding]
+    assert effective[0].arguments == arguments
+    assert "prefectureName" not in effective[0].arguments
+    assert [item.id for item in capabilities] == ["ViewWeather"]
+    assert removed == []
+
+
 @pytest.mark.parametrize(
     "arguments",
     [
-        {},
-        {"districtName": "滨江区"},
         {"districtName": ""},
         {"prefectureName": ""},
         {"prefectureName": "杭州市", "forecastDays": 0},
         {"prefectureName": "杭州市", "forecastDays": 6},
     ],
 )
-def test_weather_binding_requires_valid_prefecture_and_forecast_days(arguments):
+def test_weather_binding_rejects_invalid_supplied_arguments(arguments):
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
@@ -2919,7 +2936,7 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         candidateDataBindings=[
             {
                 "capabilityId": "ViewWeather",
-                "arguments": {"districtName": "滨江区", "forecastDays": 1},
+                "arguments": {"districtName": "滨江区", "forecastDays": 0},
                 "writeResultTo": "/data/weather",
             }
         ],
@@ -2935,11 +2952,15 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         await WidgetGenerationService().generate_widget_card_compact_dsl(request)
 
     details = exc_info.value.details()
-    assert details["modelCalled"] is False
-    assert details["issues"][0]["path"] == (
-        "/candidateDataBindings/0/arguments/prefectureName"
+    assert details.get("modelCalled") is False
+    issues = details.get("issues")
+    assert isinstance(issues, list) and len(issues) == 1
+    assert issues[0].get("path") == (
+        "/candidateDataBindings/0/arguments/forecastDays"
     )
-    assert details["warnings"][0]["code"] == "EVENT_DATA_DEPENDENCY_REMOVED"
+    warnings = details.get("warnings")
+    assert isinstance(warnings, list) and len(warnings) == 1
+    assert warnings[0].get("code") == "EVENT_DATA_DEPENDENCY_REMOVED"
 
 
 def test_task_spec_builder_preserves_output_leaf_path():
