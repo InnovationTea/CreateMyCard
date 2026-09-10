@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
-import base64
-import hashlib
-import hmac
 import importlib.util
 import sys
 import threading
@@ -20,17 +17,11 @@ def ops_metrics_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     logger_module.logger = SimpleNamespace(info=lambda _message: None, error=lambda _message: None)
     logger_module.task_logger = SimpleNamespace(get_session_id=lambda: "session-from-context")
     config_module = ModuleType("config.config")
-    settings = SimpleNamespace(
-        ai_widget_data_huashan_enable=True,
-        hag_osms_ak="access-key",
-    )
+    settings = SimpleNamespace(ai_widget_data_huashan_enable=True)
     config_module.get_settings = lambda: settings
     config_module.get_container_ip = lambda: "container-host"
-    base_utils_module = ModuleType("utils.base_utils")
-    base_utils_module.sts_config = SimpleNamespace(get_sts_config=lambda _config_key: b"secret-key")
     monkeypatch.setitem(sys.modules, "app.logger", logger_module)
     monkeypatch.setitem(sys.modules, "config.config", config_module)
-    monkeypatch.setitem(sys.modules, "utils.base_utils", base_utils_module)
 
     module_path = Path(__file__).resolve().parents[1] / "cloud" / "utils" / "ops_metrics.py"
     spec = importlib.util.spec_from_file_location("ops_metrics_under_test", module_path)
@@ -42,10 +33,7 @@ def ops_metrics_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
 
 
 def _enable_metrics(monkeypatch: pytest.MonkeyPatch, ops_metrics_module: ModuleType) -> None:
-    settings = SimpleNamespace(
-        ai_widget_data_huashan_enable=True,
-        hag_osms_ak="access-key",
-    )
+    settings = SimpleNamespace(ai_widget_data_huashan_enable=True)
     monkeypatch.setattr(ops_metrics_module, "get_settings", lambda: settings)
     monkeypatch.setattr(ops_metrics_module.platform, "system", lambda: "Linux")
     monkeypatch.setattr(ops_metrics_module, "get_container_ip", lambda: "container-host")
@@ -145,12 +133,6 @@ async def test_report_ops_metrics_uses_async_http_client(
         json=lambda: {"status": "ok"},
     )
     received: dict[str, Any] = {}
-    monkeypatch.setattr(ops_metrics_module, "_format_timestamp", lambda: "20260909123456789")
-    monkeypatch.setattr(
-        ops_metrics_module.uuid,
-        "uuid4",
-        lambda: "12345678-1234-5678-1234-567812345678",
-    )
 
     class FakeAsyncClient:
         def __init__(self, *, timeout: float) -> None:
@@ -186,44 +168,5 @@ async def test_report_ops_metrics_uses_async_http_client(
         "timeout": 10.0,
         "url": "http://mq-host:8080/genui/agent/mq/trigger",
         "json": {"sessionId": "session-id", "body": {"taskSuccess": 1}},
-        "headers": {
-            "Content-Type": "application/json",
-            "x-access-key": "access-key",
-            "x-sign": base64.b64encode(
-                hmac.new(
-                    b"secret-key",
-                    b"20260909123456789access-key",
-                    hashlib.sha256,
-                ).digest()
-            ).decode("utf-8"),
-            "x-ts": "20260909123456789",
-            "x-hag-trace-id": "12345678-1234-56",
-        },
-    }
-
-
-def test_build_auth_headers_matches_osms_signature(
-    monkeypatch: pytest.MonkeyPatch,
-    ops_metrics_module: ModuleType,
-) -> None:
-    monkeypatch.setattr(ops_metrics_module, "_format_timestamp", lambda: "20260909123456789")
-    monkeypatch.setattr(
-        ops_metrics_module.uuid,
-        "uuid4",
-        lambda: "12345678-1234-5678-1234-567812345678",
-    )
-
-    headers = ops_metrics_module._build_auth_headers("access-key")
-
-    expected_digest = hmac.new(
-        b"secret-key",
-        b"20260909123456789access-key",
-        hashlib.sha256,
-    ).digest()
-    assert headers == {
-        "Content-Type": "application/json",
-        "x-access-key": "access-key",
-        "x-sign": base64.b64encode(expected_digest).decode("utf-8"),
-        "x-ts": "20260909123456789",
-        "x-hag-trace-id": "12345678-1234-56",
+        "headers": {"Content-Type": "application/json"},
     }

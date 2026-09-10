@@ -5,64 +5,25 @@
 """
 
 import asyncio
-import base64
-import hashlib
-import hmac
 import platform
 import threading
 import uuid
 from collections.abc import Coroutine
 from concurrent.futures import Future
-from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 
 from app.logger import logger, task_logger
 from config.config import get_container_ip, get_settings
-from utils.base_utils import sts_config
 
 OPS_METRICS_PATH = "/genui/agent/mq/trigger"
 REQUEST_TIMEOUT_SECONDS = 10.0
-OSMS_SECRET_CONFIG_KEY = "hag.osms.sk"
 
 _background_tasks: set[asyncio.Task[None]] = set()
 _background_futures: set[Future[None]] = set()
 _background_lock = threading.Lock()
 _fallback_loop: asyncio.AbstractEventLoop | None = None
-
-
-def _format_timestamp() -> str:
-    """生成与 OSMS 鉴权一致的 UTC 毫秒时间戳。"""
-
-    return datetime.now(UTC).strftime("%Y%m%d%H%M%S%f")[:-3]
-
-
-def _build_auth_headers(access_key: str) -> dict[str, str]:
-    """按照 OSMS 的 AK/SK 规则构造 MQ 请求鉴权头。"""
-
-    if not access_key:
-        raise ValueError("运维数据打点鉴权 access key 为空")
-
-    secret_key = sts_config.get_sts_config(OSMS_SECRET_CONFIG_KEY)
-    if isinstance(secret_key, str):
-        secret_bytes = secret_key.encode("utf-8")
-    else:
-        secret_bytes = secret_key
-    if not secret_bytes:
-        raise ValueError("运维数据打点鉴权 secret key 为空")
-
-    timestamp = _format_timestamp()
-    sign_source = f"{timestamp}{access_key}".encode()
-    digest = hmac.new(secret_bytes, sign_source, hashlib.sha256).digest()
-    signature = base64.b64encode(digest).decode("utf-8")
-    return {
-        "Content-Type": "application/json",
-        "x-access-key": access_key,
-        "x-sign": signature,
-        "x-ts": timestamp,
-        "x-hag-trace-id": str(uuid.uuid4())[:16],
-    }
 
 
 async def _report_ops_metrics_async(
@@ -74,7 +35,7 @@ async def _report_ops_metrics_async(
     """异步上报运维指标并记录结果。"""
 
     try:
-        headers = _build_auth_headers(get_settings().hag_osms_ak)
+        headers = {"Content-Type": "application/json"}
         logger.info(f"Ops metrics report, sessionId={session_id}, payload={payload}")
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
             response = await client.post(url, json=payload, headers=headers)
