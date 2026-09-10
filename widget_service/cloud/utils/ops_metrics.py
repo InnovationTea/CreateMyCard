@@ -17,7 +17,7 @@ import httpx
 from app.logger import logger, task_logger
 from config.config import get_container_ip, get_settings
 
-OPS_METRICS_PATH = "/genui/agent/mq/trigger"
+OPS_METRICS_PATH = "/genui-agent/v1/mq/trigger"
 REQUEST_TIMEOUT_SECONDS = 10.0
 
 _background_tasks: set[asyncio.Task[None]] = set()
