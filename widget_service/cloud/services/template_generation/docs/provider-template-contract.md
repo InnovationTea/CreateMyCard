@@ -433,7 +433,8 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
 
 非融球模板和预览数据集同样保留 `root → template_root`，公共校验根始终为 `root`。
-`template_root` 是模板内容层的固定标识：公共对比度校验只跳过该节点及其子树，
+`template_root` 是模板内容层的固定标识：公共调度器确认根直接引用该节点且 ID 无重复时，
+跳过整卡 quality 阶段；hard、semantic 和转换前校验不变。直接调用对比度校验器只跳过该节点及其子树，
 并列的非模板内容仍按原规则检查；组件、表达式、数据、事件和素材校验不受影响。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
