@@ -30,7 +30,11 @@ from services.template_generation.engine.advanced.scope_planner import (
 from services.template_generation.engine.advanced.ux_mixed_framer import (
     frame_ux_layout_root_children,
 )
+from services.template_generation.engine.advanced.ux_mixed_composer import (
+    compose_deterministic_tree,
+)
 from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    UxMixedPromptProjection,
     build_ux_mixed_prompt,
     build_ux_mixed_validation_retry_prompt,
 )
@@ -336,8 +340,16 @@ async def _generate_selected_templates(
     )
     protocol_profile = read_tersel_protocol_profile()
     messages = projection.messages
+    compilation = None
     repair_count = 0
-    while True:
+    compilation = _compile_deterministic_composition(
+        projection,
+        projected_task_spec=projected_task_spec,
+        card_spec=card_spec,
+        protocol_profile=protocol_profile,
+        registry=registry,
+    )
+    while compilation is None:
         phase = "advanced-mixed-body" if repair_count == 0 else "advanced-mixed-body-repair"
         raw_output = await _generate_hybrid_body(model_client, messages, phase=phase)
         try:
@@ -400,6 +412,41 @@ async def _generate_selected_templates(
         expanded_component_count=compilation.stats.expanded_component_count,
         theme_id=projection.theme_id,
     )
+
+
+def _compile_deterministic_composition(
+    projection: UxMixedPromptProjection,
+    *,
+    projected_task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    protocol_profile: dict[str, Any],
+    registry: CardPlanRegistry,
+):
+    tree = compose_deterministic_tree(projection, registry)
+    if tree is None:
+        return None
+    try:
+        framed_output, _ = frame_ux_layout_root_children(
+            tree,
+            size=projected_task_spec.size,
+            registry=registry,
+            allowed_layout_ids=projection.allowed_layout_ids,
+        )
+        compilation = compile_ux_layout_card(
+            framed_output,
+            task_spec=projected_task_spec,
+            contract=projection.contract,
+            protocol_profile=protocol_profile,
+            registry=registry,
+            business_title=str(card_spec.get("title") or "") or None,
+            card_spec=card_spec,
+            enable_data_bindings=True,
+        )
+    except TerselConversionError as exc:
+        logger.info(f"{_MODULE} deterministic_composer_fallback detail={exc}")
+        return None
+    logger.info(f"{_MODULE} deterministic_composer_applied")
+    return compilation
 
 
 async def _generate_hybrid_body(
