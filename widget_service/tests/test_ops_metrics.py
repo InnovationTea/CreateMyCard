@@ -11,17 +11,56 @@ from typing import Any
 import pytest
 
 
+def _logger_info(_message: str) -> None:
+    return None
+
+
+def _logger_error(_message: str) -> None:
+    return None
+
+
+def _get_session_id() -> str:
+    return "session-from-context"
+
+
+def _get_settings() -> SimpleNamespace:
+    return SimpleNamespace(
+        ai_widget_data_huashan_enable=True,
+        hag_osms_ak="access-key",
+    )
+
+
+def _get_container_ip() -> str:
+    return "container-host"
+
+
+def _get_sts_config(_config_key: str) -> bytes:
+    return b"secret-key"
+
+
 @pytest.fixture
 def ops_metrics_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     logger_module = ModuleType("app.logger")
-    logger_module.logger = SimpleNamespace(info=lambda _message: None, error=lambda _message: None)
-    logger_module.task_logger = SimpleNamespace(get_session_id=lambda: "session-from-context")
+    logger_module.logger = SimpleNamespace(
+        info=_logger_info,
+        error=_logger_error,
+    )
+    logger_module.task_logger = SimpleNamespace(
+        get_session_id=_get_session_id,
+    )
+
     config_module = ModuleType("config.config")
-    settings = SimpleNamespace(ai_widget_data_huashan_enable=True)
-    config_module.get_settings = lambda: settings
-    config_module.get_container_ip = lambda: "container-host"
+    config_module.get_settings = _get_settings
+    config_module.get_container_ip = _get_container_ip
+
+    base_utils_module = ModuleType("utils.base_utils")
+    base_utils_module.sts_config = SimpleNamespace(
+        get_sts_config=_get_sts_config,
+    )
+
     monkeypatch.setitem(sys.modules, "app.logger", logger_module)
     monkeypatch.setitem(sys.modules, "config.config", config_module)
+    monkeypatch.setitem(sys.modules, "utils.base_utils", base_utils_module)
 
     module_path = Path(__file__).resolve().parents[1] / "cloud" / "utils" / "ops_metrics.py"
     spec = importlib.util.spec_from_file_location("ops_metrics_under_test", module_path)
