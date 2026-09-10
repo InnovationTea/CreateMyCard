@@ -63,8 +63,12 @@ Action 内容为 `#FF99521F`，进度轨道和 Action 背板为 `#3399521F`。�
 `#9999521F`，Action 背板为 `#3399521F`。当前 Countdown Provider 没有进度组件。
 手机电量非融球主题 `battery-device-green` 与耳机沿用同一套浅绿颜色：背景 `#FFF0FFE6`，
 主内容、进度和 Action 内容为 `#FF52991F`，辅助内容和环内图标为 `#9952991F`，
-进度轨道和 Action 背板为 `#3364BB5C`；不配置渐变。详见
-[手机电量非融球配色](../../../docs/battery-non-fusion-palette.md)。
+进度轨道和 Action 背板为 `#3364BB5C`；不配置渐变。配色来源为现有
+`audio-product-neutral-violet/theme.json`，不改动耳机主题本身。
+电量主题设置 `allowTemplateActionBackgroundOverride: false`，直接使用主题操作背板，
+不按文字颜色重算底色；电量 Hero 的源模板覆盖配置仍保留，供融球主题沿用原有规则。
+此配色仅用于单业务非融球电量场景，不改变模板几何、数据绑定和事件；融球继续使用
+`fusion-battery-teal`，双业务 `TwoSupportLayout` 继续使用 `2x2-two-support`。
 系统内存非融球主题继续使用 `#FFFFFFFF` 底色及 `#1AF9A01E` 到 `#00FFFFFF` 的线性渐变；主内容为
 `#E6000000`，辅助内容和环内图标为 `#99000000`，环形进度为 `#FFF9A01E`，Action 文本和图标为
 `#FF0A59F7`，Action 背板为 `#1A0A59F7`。
