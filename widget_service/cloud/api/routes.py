@@ -50,7 +50,7 @@ from services.widget_directive import (
     build_widget_directive_response,
 )
 from services.widget_generation_service import WidgetGenerationService
-from utils.trigger_mq import trigger_mq
+from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[WS Router]"
 
@@ -810,7 +810,7 @@ async def _serve_operation_websocket(
                 raw_request_body = await websocket.receive_text()
                 payload = json.loads(raw_request_body)
             except ValueError as exc:
-                trigger_mq(body={
+                report_ops_metrics(body={
                     INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1
                 })
 
@@ -964,7 +964,7 @@ async def _serve_operation_websocket(
                     compact_dsl_argument_issue_tracker.reset(request_id)
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                trigger_mq(body={
+                report_ops_metrics(body={
                     INTERFACE_TYPE[operation]: duration_ms
                 })
                 logger.info(
@@ -1033,7 +1033,7 @@ async def _serve_operation_websocket(
                     },
                 )
 
-                trigger_mq(body={
+                report_ops_metrics(body={
                     INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1
                 })
 
