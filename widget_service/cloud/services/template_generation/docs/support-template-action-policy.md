@@ -25,6 +25,7 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WeatherOverviewTemperatureUvSupport@1 | event.open.weather |
 | WeatherOverviewTemperaturecoldLevelSupport@1 | event.open.weather |
 | BatteryOverviewSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
+| BatteryOverviewStatusSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | ScheduleOverviewTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewLocationSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewStartTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
@@ -32,6 +33,7 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | CountdownOverviewSupport@1 | 空 |
 | BluetoothDeviceOverviewEarbudsSupport@1 | event.open.settings.bluetooth |
 | BluetoothDeviceOverviewChargeSupport@1 | event.open.settings.bluetooth |
+| BluetoothDeviceOverviewConnectionSupport@1 | event.open.settings.bluetooth |
 | ActivityOverviewSupport@1 | event.open.health.sport |
 | WorkoutOverviewSupport@1 | event.open.health.sport |
 | HeartRateOverviewSupport@1 | event.open.health.sport |
@@ -67,5 +69,5 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 0/1/2 动作只生成可行组合；倒计时没有事件，搭档有事件时可生成 0/1 动作，不生成 2 动作案例。
 单业务独立动作案例仍沿用原契约。端侧显示继续每组一张，操作差异由自动化测试覆盖。
 
-回归覆盖：17 个模板白名单、未声明/空配置拒绝、同类事件实例编号、同城市/同日程约束、跨业务错绑、
+回归覆盖：19 个模板白名单、未声明/空配置拒绝、同类事件实例编号、同城市/同日程约束、跨业务错绑、
 无合法 Plan、篡改 Plan、非 Planner 编译入口、Prompt 白名单同步及画廊不生成不可行动作数量。

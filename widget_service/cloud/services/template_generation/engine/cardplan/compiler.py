@@ -447,7 +447,12 @@ def compile_ux_layout_card(
         registry,
         size=task_spec.size,
     )
-    content = _inject_phone_earphone_title(content, contract, registry)
+    content = _inject_phone_earphone_title(
+        content,
+        contract,
+        registry,
+        template_ids=tuple(state.template_ids),
+    )
     content = _deduplicate_ux_business_title_fragments(content, business_title)
     content = _lower_capsule_progress(content)
     content = _deduplicate_visible_text(content, task_spec)
@@ -1064,6 +1069,7 @@ def _validate_provider_template_state(
             "progressSupport",
             "statusIconCompact",
             "statusIconSupport",
+            "statusSupport",
             "support",
             "temperatureIconCompact",
             "temperatureIconSupport",
@@ -1093,7 +1099,14 @@ def _validate_provider_template_state(
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone facts."
             )
-        if variant_name in {"caseStatusCompact", "earphoneCaseCompact", "chargeSupport"}:
+        if variant_name == "chargeSupport":
+            # /batteryLevel 已改为可选数据：仅要求可信充电状态，电量缺失时按条件分支省略。
+            if facts.case_charging_status is None:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted case status."
+                )
+            return
+        if variant_name in {"caseStatusCompact", "earphoneCaseCompact"}:
             if (
                 facts.case_battery_level is None
                 or facts.case_charging_status is None
@@ -1129,10 +1142,11 @@ def _validate_provider_template_state(
         has_right = facts.right_battery_level is not None
         has_case = facts.case_battery_level is not None
         if variant_name == "connectionSupport":
-            if facts.is_connected is None or not has_case:
+            # /batteryLevel 为可选数据：仅要求可信连接状态，电量缺失时按条件分支省略。
+            if facts.is_connected is None:
                 raise TerselConversionError(
                     "Bluetooth Provider Template variant does not match "
-                    "the trusted connection and case battery."
+                    "the trusted connection state."
                 )
             return
         if variant_name == "earbudsSupport":
@@ -7193,11 +7207,16 @@ def _inject_phone_earphone_title(
     node: Nested2Node,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    *,
+    template_ids: tuple[str, ...] = (),
 ) -> Nested2Node:
     if _contract_ux_business_component_names(contract, registry) != {
         "BatteryOverview",
         "BluetoothDeviceOverview",
     }:
+        return node
+    if "TwoSupportLayout@1" in template_ids:
+        # 双业务 Support 行各自占满半卡片高度，不再挤入一行“设备电量”标题。
         return node
     title = _bluetooth_text("设备电量", "subtitle", 12, 400, align="start")
     body = _with_flex_weight(node, 1, axis="vertical")

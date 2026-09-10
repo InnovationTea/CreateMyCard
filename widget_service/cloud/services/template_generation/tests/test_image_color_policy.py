@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from models.generation import TaskSpec
+from models.generation import EventAction, TaskSpec
 from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.advanced.ux_mixed_prompt import build_ux_mixed_prompt
 from services.template_generation.engine.cardplan.compiler import (
@@ -217,11 +217,22 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(filename: str) -
                 templateId=template_id, coveredExplicitFields=definition.required_data,
             ),),
         ))
+    data["weather"]["location"]["cityCode"] = {"type": "string", "sampleValue": "021"}
     task = TaskSpec(
         userQuery="展示手机电量与天气", size="2x2", dataModelSchema={"data": data},
         assetCandidates=[asset],
+        eventCandidates=[EventAction(
+            id="event.open.weather", call="clickToDeeplink",
+            args={"uri": (
+                "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                "+ ${/data/weather/location/cityCode} }}"
+            )},
+        )],
     )
-    intent = TemplateSearchIntent(requiredOutputFieldsByCapability=required)
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability=required,
+        action_ids=("event.open.weather",),
+    )
     search = TemplateSearchResult(cardSize="2x2", businessCandidates=tuple(groups))
     plans = plan_template_candidates(intent, search, task, registry)
     assert plans
@@ -237,7 +248,10 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(filename: str) -
     )
     children: list[str] = []
     for slot in plans[0].business_slots:
-        params = {"conditionIcon": source} if slot.business_id == "WeatherOverview" else {}
+        params = (
+            {"conditionIcon": source, "actionId": "event.open.weather"}
+            if slot.business_id == "WeatherOverview" else {}
+        )
         children.append(f'Template("{slot.template_id}",{json.dumps(params)})')
     composition = 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
     result = compile_ux_layout_card(
