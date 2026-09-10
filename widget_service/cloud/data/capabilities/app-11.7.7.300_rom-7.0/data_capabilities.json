@@ -138,8 +138,8 @@
             },
             "alertLevel": {
               "type": "string",
-              "description": "预警信息。",
-              "sampleValue": ""
+              "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+              "sampleValue": "大风蓝色预警"
             }
           }
         },
