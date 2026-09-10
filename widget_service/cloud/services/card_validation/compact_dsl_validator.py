@@ -14,6 +14,7 @@ from services.compact_dsl_a2ui_converter import (
     DataRow,
     build_compact_data_model,
     parse_compact_dsl_rows,
+    validate_card_header_layout,
 )
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
@@ -89,6 +90,10 @@ def _collect_component_contract_errors(
     task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
+    try:
+        validate_card_header_layout(components, size=task_spec.get("size"))
+    except CompactDslConversionError as exc:
+        errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
     for component in components:
         _collect_container_errors(component, errors)
@@ -144,6 +149,7 @@ def _collect_height_budget_errors(
             "or gaps instead of relying on clipping, flex shrink, or distributed alignment."
         )
 
+
 def _component_available_height(
     component: ComponentRow,
     task_spec: dict[str, Any],
@@ -192,6 +198,8 @@ def _minimum_outer_height(
     components_by_id: dict[str, ComponentRow],
     visiting: set[str],
 ) -> float:
+    if component.component_type == "CardHeader":
+        return 20.0
     explicit_height = _non_negative_number(component.props.get("height"))
     if explicit_height is not None:
         return explicit_height
