@@ -258,7 +258,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 114
+    assert len(registry.provider_template_ids) == 116
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -269,6 +269,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
+        "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
@@ -721,7 +722,7 @@ def test_weather_care_alert_full_uses_three_section_layout() -> None:
     assert "无预警信息" in repr(focus.children[0].values[0])
     assert focus.children[1].values[0] == "天气预警"
     assert details.component_type == "Column"
-    assert details.values[-1]["height"] == 36
+    assert details.values[-1]["height"] == 40
     assert details.values[-1]["padding"] == {"right": 34}
 
 
@@ -1907,7 +1908,7 @@ def test_fusion_theme_requires_matching_primary_business(
         assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
-def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_children():
+def test_form_validator_rejects_empty_children_for_stack_and_column():
     profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     reports = {}
     for component_type in ("Stack", "Column"):
@@ -1935,7 +1936,7 @@ def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_chi
         is_children_field = diagnostic.json_pointer.endswith("/children")
         if is_required_field and is_children_field:
             column_children_errors.append(diagnostic)
-    assert stack_children_errors == []
+    assert len(stack_children_errors) == 1
     assert len(column_children_errors) == 1
 
 
@@ -2686,6 +2687,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneHero@1",
         "BluetoothDeviceOverviewChargeSupport@1",
+        "BluetoothDeviceOverviewConnectionSupport@1",
     }
     progress_count = 0
 
@@ -2706,7 +2708,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             )
             assert color.name == expected_color
 
-    assert progress_count == 15
+    assert progress_count == 16
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -2731,6 +2733,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon"),
+        ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
@@ -3081,6 +3084,7 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewPercentRingHero@1",
         "BatteryOverviewTemperatureFull@1",
         "BatteryOverviewSupport@1",
+        "BatteryOverviewStatusSupport@1",
     }
 
     assert set(battery.local_template_ids) == expected_template_ids
@@ -3167,16 +3171,22 @@ def test_new_support_templates_follow_two_line_contract(
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    assert content_options.get("itemMargin") == 4
+    expected_item_margin = 2 if template_id == "ScheduleOverviewTimeSupport@1" else 4
+    assert content_options.get("itemMargin") == expected_item_margin
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    assert primary_options.get("height") is None
+    if template_id == "ScheduleOverviewTimeSupport@1":
+        # 时间 Support 主辅行有固定行高。
+        assert primary_options.get("height") == 20
+        assert support_options.get("height") == 16
+    else:
+        assert primary_options.get("height") is None
+        assert support_options.get("height") is None
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    assert support_options.get("height") is None
     assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
 
@@ -4118,9 +4128,9 @@ async def test_q094_multi_business_search_is_rejected_before_second_layer():
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
     assert first_layer_payload["candidateOutputFieldsByCapability"] == {
         "GetHealthAndSportSummary": [
-            "/sleepScore",
-            "/nightSleepDurationText",
             "/dailySteps",
+            "/nightSleepDurationText",
+            "/sleepScore",
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
@@ -4334,6 +4344,130 @@ async def test_q001_sleep_assistant_generates_hero_without_sleep_score() -> None
     assert "sleepScore" not in component_payload
     assert "fallAsleepTimeText" not in component_payload
     assert "IfAllBind" not in component_payload
+
+
+@pytest.mark.asyncio
+async def test_dual_charging_status_supports_compile_with_optional_battery_fields():
+    """taskspec-829.2&014 回归：双业务充电状态 Support 无电量数值时仍须出卡。"""
+    task_spec = TaskSpec(
+        userQuery=(
+            "帮我做个充电状态卡片，看手机是否在充电、使用的充电器类型和耳机仓是否在充电，"
+            "点一下打开电池设置。"
+        ),
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.settings.battery",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Settings",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "uri": "battery",
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/bolt_fill.svg",
+                "description": "正在充电的闪电图标",
+                "sceneTags": ["battery", "power"],
+            },
+            {
+                "src": "resources/base/media/earphone_case_16644.svg",
+                "description": "耳机收纳盒实心图标",
+                "sceneTags": ["device", "audio", "earphone-case"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "phoneBattery": {
+                    "chargingStatusDesc": _provider_field("正在充电", "string"),
+                    "pluggedTypeDesc": _provider_field("充电器", "string"),
+                },
+                "earphone": {
+                    "chargingStatusDesc": _provider_field("未充电", "string"),
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=["/chargingStatusDesc", "/pluggedTypeDesc"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetEarphoneInfo",
+            writeResultTo="/data/earphone",
+            candidateOutputFields=["/chargingStatusDesc"],
+        ),
+    )
+    card_spec = {
+        "title": "设备充电",
+        "description": "手机和耳机充电",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetPhoneBatteryInfo",
+                "writeResultTo": "/data/phoneBattery",
+            },
+            {
+                "capabilityId": "GetEarphoneInfo",
+                "writeResultTo": "/data/earphone",
+            },
+        ],
+    }
+
+    class _DualChargingModel(_FixedTemplateModel):
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "requiredOutputFieldsByCapability": {
+                    "GetPhoneBatteryInfo": ["/chargingStatusDesc", "/pluggedTypeDesc"],
+                    "GetEarphoneInfo": ["/chargingStatusDesc"],
+                },
+                "action": "event.open.settings.battery",
+            }
+
+    model = _DualChargingModel(
+        theme_id="two-support",
+        component_id="TwoSupportLayout",
+        available_template_ids=(
+            "BatteryOverviewStatusSupport@1",
+            "BluetoothDeviceOverviewChargeSupport@1",
+        ),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=("/chargingStatusDesc", "/pluggedTypeDesc"),
+        action_id="event.open.settings.battery",
+        body=(
+            'Template("TwoSupportLayout@1",{},'
+            'Template("BatteryOverviewStatusSupport@1",'
+            '{"actionId":"event.open.settings.battery",'
+            '"batteryIcon":"resources/base/media/bolt_fill.svg"}),'
+            'Template("BluetoothDeviceOverviewChargeSupport@1",'
+            '{"deviceIcon":"resources/base/media/earphone_case_16644.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task_spec, card_spec, bindings, model)
+
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update_components = messages[1].get("updateComponents")
+    assert isinstance(update_components, dict)
+    component_payload = json.dumps(
+        update_components.get("components"), ensure_ascii=False
+    )
+    assert "chargingStatusDesc" in component_payload
+    assert "pluggedTypeDesc" in component_payload
+    assert "bolt_fill.svg" in component_payload
+    assert "earphone_case_16644.svg" in component_payload
+    # 动作绑定在编译后展开为事件实例，事件 ID 与电池深链保留在输出消息中。
+    # 事件实例在编译时解析为具体深链动作，原始事件 ID 不再出现在输出中。
+    assert "clickToDeeplink" in output.a2ui
+    assert "onClick" in component_payload
+    assert '"uri"' in component_payload
+    # TwoSupport 布局自带等高双行，不再注入“设备电量”标题。
+    assert "设备电量" not in output.a2ui
 
 
 def _bluetooth_task(query: str) -> TaskSpec:
@@ -7188,6 +7322,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
     assert set(candidates[0]["availableTemplateIds"]) == {
         "WeatherOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewConditionHero@1",
     }
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     visible_text = {
