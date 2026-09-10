@@ -17,10 +17,10 @@ from services.template_generation.engine.cardplan.registry import get_cardplan_r
 from services.template_generation.engine.tersel_converter import Nested2Node, TerselConversionError
 
 _CALENDAR_SUPPORTS = (
-    ("ScheduleOverviewTimeSupport@1", "/events/0/dtStart"),
-    ("ScheduleOverviewLocationSupport@1", "/events/0/eventLocation"),
-    ("ScheduleOverviewStartTimeSupport@1", "/events/0/dtStart"),
-    ("ScheduleOverviewDateSupport@1", "/events/0/startDate"),
+    ("ScheduleOverviewTimeSupport@1", "/events/0/dtStart", ()),
+    ("ScheduleOverviewLocationSupport@1", "/events/0/title", ("/events/0/eventLocation",)),
+    ("ScheduleOverviewStartTimeSupport@1", "/events/0/title", ("/events/0/dtStart",)),
+    ("ScheduleOverviewDateSupport@1", "/events/0/title", ("/events/0/startDate",)),
 )
 
 # 主数值与同排单位都属于主文本；应用时长模板保留原有的辅助信息在上布局。
@@ -28,8 +28,10 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "ActivityOverviewSupport@1": (0,),
     "AppUsageOverviewSupport@1": (1,),
     "BatteryOverviewSupport@1": (0,),
+    "BatteryOverviewStatusSupport@1": (0,),
     "BluetoothDeviceOverviewEarbudsSupport@1": (0,),
     "BluetoothDeviceOverviewChargeSupport@1": (0,),
+    "BluetoothDeviceOverviewConnectionSupport@1": (0,),
     "CountdownOverviewSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
     "ResourceUsageOverviewSupport@1": (0, 1),
@@ -42,6 +44,18 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WeatherOverviewTemperatureUvSupport@1": (0, 1),
     "WeatherOverviewTemperaturecoldLevelSupport@1": (0, 1),
     "WorkoutOverviewSupport@1": (0,),
+}
+
+# 电量缺失时只保留一行主文本的 Support：不要求存在辅助文本行。
+_SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
+    "BatteryOverviewSupport@1",
+    "BluetoothDeviceOverviewChargeSupport@1",
+    "BluetoothDeviceOverviewConnectionSupport@1",
+}
+
+# 温度文本改为可选绑定的温度 Support：无可选数据时主行仅剩城市文本。
+_SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES = {
+    "WeatherOverviewTemperatureSupport@1",
 }
 
 
@@ -115,14 +129,21 @@ def test_support_ux_spacing_typography_and_right_icon(
     texts = [node for node in _nodes(root, "Text") if node.values[0] != ""]
     primary_indexes = _SUPPORT_PRIMARY_TEXT_INDEXES.get(template_id)
     assert primary_indexes is not None
-    assert len(texts) > len(primary_indexes)
+    if not with_optional and template_id in _SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES:
+        primary_indexes = (0,)
+    if template_id not in _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES:
+        assert len(texts) > len(primary_indexes)
     for index, node in enumerate(texts):
         styles = node.values[-1]
         assert isinstance(styles, dict)
         primary = index in primary_indexes
         font_size = 14 if primary else 12
         assert styles.get("fontSize") == font_size
-        assert styles.get("fontWeight") == (700 if primary else 400)
+        if primary:
+            assert styles.get("fontWeight") == 700
+        else:
+            # 电量/天气升级模板的辅助行已改为 500 中等字重。
+            assert styles.get("fontWeight") in (400, 500)
         assert styles.get("minFontSize", font_size) == font_size
 
     for node in _standalone_images(root):
@@ -196,6 +217,7 @@ def test_heart_rate_support_keeps_two_direct_text_lines_without_forced_width() -
 @pytest.mark.parametrize(("template_id", "ring_size", "icon_size"), (
     ("BatteryOverviewSupport@1", 40, 16),
     ("BluetoothDeviceOverviewChargeSupport@1", 40, 16),
+    ("BluetoothDeviceOverviewConnectionSupport@1", 40, 16),
     ("ResourceUsageOverviewSupport@1", 44, 20),
 ))
 def test_support_ux_preserves_progress_and_inner_icon_sizes(
@@ -216,7 +238,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 17
+    assert len(supports) == 19
     assert not supports.intersection({
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",
@@ -225,19 +247,23 @@ def test_support_inventory_removes_deleted_templates() -> None:
     assert "WeatherOverviewTemperaturecoldLevelSupport@1" in supports
 
 
-@pytest.mark.parametrize(("template_id", "secondary"), _CALENDAR_SUPPORTS)
+@pytest.mark.parametrize(("template_id", "primary", "secondary"), _CALENDAR_SUPPORTS)
 @pytest.mark.parametrize("with_icon", (False, True))
 def test_calendar_support_fields_and_optional_icon(
-    template_id: str, secondary: str, with_icon: bool,
+    template_id: str, primary: str, secondary: tuple[str, ...], with_icon: bool,
 ) -> None:
     definition = get_cardplan_registry().require_template(template_id)
-    assert definition.primary_data == ("/events/0/title",)
-    assert definition.secondary_data == (secondary,)
+    assert definition.primary_data == (primary,)
+    assert definition.secondary_data == secondary
     bindings = {}
     for name, binding in definition.bindings.items():
         if binding.path != "/events/0/dtEnd":
             bindings[name] = "${data.calendar" + binding.path.replace("/", ".") + "}"
-    params = {"calendarIcon": "resources/base/media/calendar_fill.svg"} if with_icon else {}
+    params: dict[str, str] = {}
+    if with_icon:
+        # 时间 Support 的图标仅在绑定事件时显示。
+        params["actionId"] = "event.support.test"
+        params["calendarIcon"] = "resources/base/media/calendar_fill.svg"
     root = _instantiate(template_id, bindings, params)
     assert len(_nodes(root, "Text")) == 2
     images = _nodes(root, "Image")
@@ -270,7 +296,11 @@ def test_battery_support_requires_numeric_percent_for_40vp_ring(
         bindings[name] = "${data.phoneBattery." + name + "}"
     definition = get_cardplan_registry().require_template("BatteryOverviewSupport@1")
     assert definition.primary_data == ("/batterySOC",)
-    assert definition.optional_data == ("/batterySOCText",)
+    # 充电状态与电池温度降为可选：缺失时模板只保留电量行，电量环仍由数值电量驱动。
+    assert definition.secondary_data == ()
+    assert definition.optional_data == (
+        "/chargingStatusDesc", "/batterySOCText", "/batteryTemperatureText",
+    )
     if "percent" not in percent_fields:
         with pytest.raises(TerselConversionError, match="percent|binding"):
             _instantiate("BatteryOverviewSupport@1", bindings)
@@ -285,6 +315,26 @@ def test_battery_support_requires_numeric_percent_for_40vp_ring(
         assert isinstance(options, dict)
         assert options.get("width") == options.get("height") == 40
         assert options.get("value") == "${data.phoneBattery.percent}"
+
+
+@pytest.mark.parametrize("with_charging", (False, True))
+def test_battery_support_aux_line_prefers_charging_over_temperature(
+    with_charging: bool,
+) -> None:
+    bindings = {
+        "percent": "${data.phoneBattery.percent}",
+        "temperature": "${data.phoneBattery.temperature}",
+    }
+    if with_charging:
+        bindings["charging"] = "${data.phoneBattery.chargingStatusDesc}"
+    root = _instantiate("BatteryOverviewSupport@1", bindings)
+    texts = _nodes(root, "Text")
+    assert len(texts) == 2
+    # 辅行为编译期分支：充电状态存在时优先展示，温度只在充电状态缺失时回退展示。
+    assert texts[1].values[0] == (
+        "${data.phoneBattery.chargingStatusDesc}" if with_charging
+        else "{{ '电池 ' + ${/data/phoneBattery/temperature} }}"
+    )
 
 
 @pytest.mark.parametrize("with_action", (False, True))
@@ -344,8 +394,9 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
     expected = {
         "BluetoothDeviceOverviewEarbudsSupport@1": ["icon_earphone.svg"],
         "BluetoothDeviceOverviewChargeSupport@1": ["earphone_case_16644.svg"],
+        "BluetoothDeviceOverviewConnectionSupport@1": ["icon_earphone.svg"],
         "HeartRateOverviewSupport@1": ["heart_fill.svg"],
-        "WeatherOverviewTemperatureSupport@1": ["icon_weather_thermometer.svg"],
+        "WeatherOverviewTemperatureSupport@1": [],
         "WeatherOverviewTemperatureUvSupport@1": [],
         "WeatherOverviewTemperaturecoldLevelSupport@1": [],
         "BatteryOverviewSupport@1": ["icon_phone.svg"],
@@ -363,8 +414,17 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
         assert names == expected.get(case.template_id), case.template_id
 
 
-@pytest.mark.parametrize("missing", (None, "batteryLevel", "chargingStatusDesc"))
-def test_charge_support_requires_case_battery_and_status(missing: str | None) -> None:
+@pytest.mark.parametrize(
+    ("missing", "expect_error"),
+    (
+        (None, False),
+        ("batteryLevel", False),
+        ("chargingStatusDesc", True),
+    ),
+)
+def test_charge_support_requires_trusted_case_status_only(
+    missing: str | None, expect_error: bool,
+) -> None:
     fields = {
         "batteryLevel": {"type": "integer", "sampleValue": 0},
         "chargingStatusDesc": {"type": "string", "sampleValue": "未充电"},
@@ -375,7 +435,7 @@ def test_charge_support_requires_case_battery_and_status(missing: str | None) ->
         userQuery="耳机盒电量和天气", size="2x2",
         dataModelSchema={"data": {"earphone": fields}},
     )
-    if missing is not None:
+    if expect_error:
         with pytest.raises(
             TerselConversionError, match="trusted case status|trusted earphone facts"
         ):
@@ -388,3 +448,17 @@ def test_charge_support_requires_case_battery_and_status(missing: str | None) ->
             "BluetoothDeviceOverviewChargeSupport@1", "default", task,
             business_names={"BluetoothDeviceOverview", "WeatherOverview"},
         )
+
+
+def test_battery_status_support_state_is_independent_of_soc_facts() -> None:
+    task = TaskSpec(
+        userQuery="手机和耳机充电状态", size="2x2",
+        dataModelSchema={"data": {"phoneBattery": {
+            "chargingStatusDesc": {"type": "string", "sampleValue": "未充电"},
+            "pluggedTypeDesc": {"type": "string", "sampleValue": "未连接充电器"},
+        }}},
+    )
+    _validate_provider_template_state(
+        "BatteryOverviewStatusSupport@1", "default", task,
+        business_names={"BatteryOverview", "BluetoothDeviceOverview"},
+    )

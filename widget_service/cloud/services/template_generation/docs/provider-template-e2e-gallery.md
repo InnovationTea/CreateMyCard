@@ -116,21 +116,25 @@ Planner 对已选省电事件复用素材的 `power-saving` 语义标签，允�
 | 业务图标槽位 | 当前画廊资源 | 约束 |
 | --- | --- | --- |
 | 手机电量 Support | `icon_phone.svg` | 手机设备轮廓，位于右侧 40vp 电量环内，图标为 16vp；不表示省电或充电状态 |
+| 手机充电状态 Support | `bolt_fill.svg` | 右侧 24vp 充电闪电图标，表达当前充电状态；不用省电绿叶或手机设备图标替代 |
 | 步数 | `figure_run.svg` | 注册说明明确支持步数统计 |
 | 训练 | `figure_run.svg` | 当前跑步样例，不代表任意运动项目 |
 | 睡眠 | `moon_z_fill_1.svg` | 月亮与 Z，不能用天气水滴 |
 | 心率图标形态 | `heart_fill.svg` | 心脏健康，不借用天气或运动图标 |
 | 耳机 | `icon_earphone.svg` | 耳机本体，不用充电盒冒充 |
+| 耳机连接 Support | `icon_earphone.svg` | 主行连接状态；右侧 40vp 电量环内 16vp 耳机图标，无电量时为 24vp 耳机图标；不用充电盒冒充 |
 | 日程四种 Support | `calendar_fill.svg` / `icon_meeting.svg` | 24vp 日历或会议图标，按 Action 语义选择 |
 | 耳机充电 Support | `earphone_case_16644.svg` | 右侧 40vp 电量环内 16vp 盒图标，盒或整体电量，不冒充左右耳电量 |
 | 耳机连接 Support | `icon_earphone.svg` | 24vp 耳机图标，仅在该 Support 消费 Action 时显示 |
 | 天气基础温度 Support | `icon_weather_thermometer.svg` | 温度计表达气温；样例仍为多云，不用太阳冒充多云状态 |
 | 天气紫外线/感冒风险 Support | 无图标槽位 | 纯文本，不能传入已移除的 conditionIcon |
 
-电量 Support 必须提供数值电量与充电状态，左侧展示双行文本、右侧展示 40vp 环；
+电量 Support 必须提供数值电量，充电状态为可选辅行：存在时左侧双行文本、缺失时回退展示可选电池温度（充电状态优先），都缺失时只保留电量行，右侧展示 40vp 环；
 环内可选图标为 16vp，普通未充电样例注入已注册的手机图标，不使用表示省电模式的电池绿叶图标。
 `BatteryOverviewSupport@1.batteryIcon` 使用 `phone-device` 语义约束标识电量所属设备；
 画廊输入、第二层素材候选及原子预览保持一致，不借用搭档业务的素材。单业务电量模板的素材规则不变。
+电量状态 Support（`BatteryOverviewStatusSupport@1`）只展示充电状态与充电器类型，无电量环；
+其 `batteryIcon` 使用 `battery` 语义约束表达当前充电状态，省电绿叶仍只用于省电语义。
 倒计时主行用独立 Row 包含“剩余 N 天”，辅助标题保持下一行，防止标题中的“天”被误算为重复单位；
 心率只保留一个可选 heartIcon 的 Support。
 应用时长、系统内存仍因数据能力未注册保留缺失场景；应用品牌和内存槽位也不能借用其他业务资源。
@@ -172,8 +176,8 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-当前应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 132 个用例；
-其中 53 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，118 个状态为 `not_generated`。
+当前应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 135 个用例；
+其中 56 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，121 个状态为 `not_generated`。
 Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
 与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
 Provider 或模板调整后数量可以变化，应以重新生成的
@@ -200,7 +204,7 @@ widget_service/.venv312/bin/python \
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--provider gallery.cross-business`：只批跑双业务组合；该 ID 仅为画廊分组标识，不是生产能力。
-- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 18 种 Support 模板的 53 个可行场景。
+- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 19 种 Support 模板的 56 个可行场景。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
@@ -269,9 +273,9 @@ HeroTitle + HeroContent 组合不受影响。
 
 如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步不修改来源目录，
 端侧 manifest 的 `counts` 按显示子集重新计算，不能再与完整自动化结果的总数直接比较。
-当前输入规模：自动化 132 个场景；能力齐备的 118 项需实际生成后才能计为成功，不将 dry-run 当作成功。
-每组一张的端侧筛选策略不变，显示画廊预计 97 项，其中 10 个既有缺失占位；启用示例后额外增加 8 项。
-双业务段落由 53 个自动化场景缩减为 18 张显示卡（16 组数据可用、2 组缺失）。每份入选 A2UI 应与源文件
+当前输入规模：自动化 135 个场景；能力齐备的 121 项需实际生成后才能计为成功，不将 dry-run 当作成功。
+每组一张的端侧筛选策略不变，显示画廊预计 98 项，其中 10 个既有缺失占位；启用示例后额外增加 8 项。
+双业务段落由 56 个自动化场景缩减为 19 张显示卡（17 组数据可用、2 组缺失）。每份入选 A2UI 应与源文件
 逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
 
 场景同步脚本只复制 A2UI，不复制 SVG 素材。构建前应核对每个 `Image.src` 均已注册，且存在于

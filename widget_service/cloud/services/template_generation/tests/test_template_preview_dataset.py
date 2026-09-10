@@ -16,20 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 105
+    assert manifest["templateCount"] == 107
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 17,
+        "Support": 19,
         "Compact": 13,
         "Hero": 31,
         "Full": 31,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 94, "2x4": 11}
-    assert len(cases) == 105
-    assert len({case["templateId"] for case in cases}) == 105
+    assert manifest["countsBySize"] == {"2x2": 96, "2x4": 11}
+    assert len(cases) == 107
+    assert len({case["templateId"] for case in cases}) == 107
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -73,7 +73,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "icon_earphone.svg",
         "icon_phone.svg",
         "icon_tiktok.png",
-        "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
@@ -102,9 +101,31 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
             assert case.secondary_data == ()
             assert case.optional_data == ("/updatedAt",)
         elif case.template_id == "BatteryOverviewSupport@1":
+            # 充电状态与电池温度为可选数据：辅行充电优先、温度回退，电量环仍由数值电量驱动。
             assert case.primary_data == ("/batterySOC",)
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/chargingStatusDesc", "/batterySOCText", "/batteryTemperatureText",
+            )
+        elif case.template_id == "BluetoothDeviceOverviewChargeSupport@1":
+            # 电量改为可选数据：充电状态为唯一必选主字段，电量文本与电量环按条件省略。
+            assert case.primary_data == ()
             assert case.secondary_data == ("/chargingStatusDesc",)
-            assert case.optional_data == ("/batterySOCText",)
+            assert case.optional_data == ("/batteryLevel",)
+        elif case.template_id == "BluetoothDeviceOverviewConnectionSupport@1":
+            # 连接状态为必选主数据，仓电量为可选：缺失时按条件分支省略电量行与电量环。
+            assert case.primary_data == ("/isConnected",)
+            assert case.secondary_data == ()
+            assert case.optional_data == ("/batteryLevel",)
+        elif case.template_id == "WeatherOverviewTemperatureSupport@1":
+            # 天气现象为唯一必选主字段，城市、温度文本、摄氏度数值与体感温度可选。
+            assert case.primary_data == ("/current/condition",)
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/current/temperatureText", "/current/temperatureC",
+                "/current/feelsLikeC",
+                "/location/prefectureName", "/location/districtName",
+            )
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)

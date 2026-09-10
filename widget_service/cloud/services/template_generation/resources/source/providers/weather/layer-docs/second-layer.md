@@ -32,6 +32,9 @@
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
   - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
+- 所有天气模板的 `location` 仅作城市显示兜底：只能使用本轮 `trustedStringLiterals` 下发的
+  真实城市或区县名（来自请求参数，如 `深圳市`）；标题、描述等其他可信文案不是城市，
+  不得当作 `location` 传入。可信文案中没有城市名时不传 `location`，保留模板默认文案。
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。

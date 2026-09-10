@@ -288,7 +288,7 @@ Row(
           "width": "matchParent",
           "height": 16,
           "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "fontWeight": 500, "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
@@ -301,7 +301,7 @@ Row(
           "width": "matchParent",
           "height": 16,
           "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "fontWeight": 500, "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
