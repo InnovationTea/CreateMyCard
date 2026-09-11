@@ -455,7 +455,6 @@ Design Compact 两个生成入口都受同一个编辑开关控制，并沿用�
     "artifactUrl": "https://obs.todo.local/widget/artifact_uuid.md",
     "artifactDigest": "sha256:xxx",
     "suggestSize": "2x4",
-    "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
     "errorCode": "",
     "effectiveCapabilities": {
@@ -607,7 +606,7 @@ async generate_widget_card(
 9. 启用 Validator 时校验标准 artifact；转换 error 与 Validator error 统一交给 RetryController
 10. RetryController 按开关和最大次数执行有限 repair，每轮重新经过同一 Processor 和 Validator
 11. ArtifactStore 异步保存可用 artifact，当前为 OBS TODO hook
-12. ResponsePlanner 生成 status 和 message
+12. ResponsePlanner 生成 status 和内部 message；响应模型序列化时排除 message，暂不对外返回。
 ```
 
 使用示例：
