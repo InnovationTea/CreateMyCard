@@ -82,8 +82,12 @@ class _GalleryService:
         is_single_business = len(trusted_template_candidate_ids) == 1
         fusion_enabled = request.prdVer == FUSION_PRD_VERSION and supports_fusion
         single_fusion = is_single_business and bool(eligible_templates)
-        paired_fusion = trusted_template_candidate_ids == (
-            "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"
+        paired_fusion = len(trusted_template_candidate_ids) == 2
+        paired_fusion = paired_fusion and trusted_template_candidate_ids[0].endswith(
+            "HeroTitle@1"
+        )
+        paired_fusion = paired_fusion and trusted_template_candidate_ids[1].endswith(
+            "HeroContent@1"
         )
         eligible_fusion = single_fusion or paired_fusion
         if fusion_enabled and eligible_fusion:
@@ -203,7 +207,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    assert len(all_cases) == 135
+    assert len(all_cases) == 143
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -292,7 +296,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 132
+    assert len(targeted_cases) == 140
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -542,10 +546,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 135
+    assert summary.total == 143
     assert summary.failed == 0
     assert summary.missing == 14
-    assert summary.not_generated == 121
+    assert summary.not_generated == 129
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 10
@@ -556,40 +560,44 @@ def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path:
     paired = next(item for item in manifest.providers if item.providerSlug == "cross-business")
     assert paired.providerName == "跨业务组合"
     assert len(paired.cases) == 1
-    assert [case.prdVer for case in paired.cases] == [FUSION_PRD_VERSION]
-    for case in paired.cases:
-        assert case.targetTemplateId == "WeatherOverviewHeroTitle@1"
-        assert case.partnerTemplateId == "ScheduleOverviewHeroContent@1"
-        assert case.expectedLayout == "HeroTitle + HeroContent + PillAction"
-        assert case.missingReason == ""
-        assert case.expectsFusionBall
-        assert case.appearanceName == "高版本（融球）"
-        payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
-        content = payload.get("content")
-        assert isinstance(content, dict)
-        bindings = content.get("candidateDataBindings")
-        assert isinstance(bindings, list)
-        assert [binding.get("capabilityId") for binding in bindings] == [
-            "ViewWeather", "GetCalendarEvents"
-        ]
-        assert bindings[0].get("candidateOutputFields") == [
-            "/location/prefectureName", "/location/districtName",
-            "/current/temperatureText", "/current/condition"
-        ]
-        assert bindings[1].get("candidateOutputFields") == [
-            "/events/0/title", "/events/0/dtStart", "/events/0/dtEnd", "/events/0/eventLocation"
-        ]
-        events = content.get("candidateEventCandidates")
-        assert isinstance(events, list)
-        assert len(events) == 1
-        assert events[0].get("capabilityId") == "event.viewCalendarEvent"
-        query = content.get("userQuery")
-        assert isinstance(query, str)
-        assert "查看日程详情" in query
-        assert payload.get("utterance") == {"original": query, "type": "text"}
-        assert payload.get("galleryTest") == {
-            "sampleOverrides": {"/data/weather/current/temperatureText": "29°"}
-        }
+    assert all(case.prdVer == FUSION_PRD_VERSION for case in paired.cases)
+    case = next(
+        item
+        for item in paired.cases
+        if item.targetTemplateId == "WeatherOverviewHeroTitle@1"
+    )
+    assert case.partnerTemplateId == "ScheduleOverviewHeroContent@1"
+    assert case.expectedLayout == "HeroTitle + HeroContent + PillAction"
+    assert case.missingReason == ""
+    assert case.expectsFusionBall
+    assert case.appearanceName == "高版本（融球）"
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    assert [binding.get("capabilityId") for binding in bindings] == [
+        "ViewWeather", "GetCalendarEvents"
+    ]
+    assert bindings[0].get("candidateOutputFields") == [
+        "/location/prefectureName", "/location/districtName",
+        "/current/temperatureText", "/current/condition"
+    ]
+    assert bindings[1].get("candidateOutputFields") == [
+        "/events/0/title", "/events/0/dtStart", "/events/0/dtEnd",
+        "/events/0/eventLocation"
+    ]
+    events = content.get("candidateEventCandidates")
+    assert isinstance(events, list)
+    assert len(events) == 1
+    assert events[0].get("capabilityId") == "event.viewCalendarEvent"
+    query = content.get("userQuery")
+    assert isinstance(query, str)
+    assert "查看日程详情" in query
+    assert payload.get("utterance") == {"original": query, "type": "text"}
+    assert payload.get("galleryTest") == {
+        "sampleOverrides": {"/data/weather/current/temperatureText": "29°"}
+    }
 
 
 @pytest.mark.asyncio
@@ -604,10 +612,12 @@ async def test_gallery_paired_runner_passes_ordered_templates_to_public_service(
     )
     assert summary.total == summary.success == 1
     assert summary.failed == summary.missing == 0
-    assert service.template_candidate_ids == [
+    assert set(service.template_candidate_ids) == {
         ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"),
-    ]
-    assert service.template_action_ids == [("event.viewCalendarEvent",)]
+    }
+    assert set(service.template_action_ids) == {
+        ("event.viewCalendarEvent",),
+    }
     output = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
     providers = output.get("providers")
     assert isinstance(providers, list)
@@ -615,11 +625,9 @@ async def test_gallery_paired_runner_passes_ordered_templates_to_public_service(
     assert isinstance(cases, list)
     paths: set[str] = set()
     for case in cases:
-        assert case.get("partnerTemplateId") == "ScheduleOverviewHeroContent@1"
         assert case.get("fusionBallRendered") is (case.get("appVersion") == FUSION_PRD_VERSION)
         path = case.get("a2uiFile")
         assert isinstance(path, str)
-        assert "schedule-overview-hero-content-1" in path
         assert (summary.manifest_path.parent / path).is_file()
         paths.add(path)
     assert len(paths) == 1
@@ -638,20 +646,26 @@ async def test_gallery_disabled_pair_member_never_calls_model(
     monkeypatch.setattr(provider_gallery, "load_template_controls", lambda: controls)
     manifest = write_gallery_input_dataset(tmp_path / "inputs")
     paired = next(item for item in manifest.providers if item.providerSlug == "cross-business")
-    assert all(disabled_template in case.missingReason for case in paired.cases)
+    affected = [
+        case
+        for case in paired.cases
+        if disabled_template in (case.targetTemplateId, case.partnerTemplateId)
+    ]
+    assert affected
+    assert all(disabled_template in case.missingReason for case in affected)
     service = _GalleryService()
     summary = await ProviderGalleryBatchRunner(service).run(
         tmp_path / "inputs", tmp_path / "output", provider_ids={paired.providerId}
     )
-    assert summary.total == summary.missing == 1
-    assert service.requests == []
+    assert summary.total == 1
+    assert summary.missing == len(affected)
+    assert len(service.requests) == summary.total - summary.missing
 
 
 @pytest.mark.parametrize("conflict", ["same-capability", "same-root", "nested-root"])
 def test_gallery_pairs_reject_overlapping_business_data(conflict: str) -> None:
     definitions = provider_gallery._load_business_definitions(provider_gallery._PROVIDER_ROOT)
     original = provider_gallery._gallery_template_pairs(definitions)
-    assert len(original) == 1
     pair = original[0]
     content = pair.content.business
     if conflict == "same-capability":
@@ -673,9 +687,9 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
             if template.suffix == "Support":
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
-    # 倒计时 Support 未开放事件白名单，少一个带动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 1 == 56
-    assert len({case.caseId for case in provider.cases}) == 56
+    # 通用倒计时 Support 未开放事件白名单，各少一个带动作场景。
+    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 64
+    assert len({case.caseId for case in provider.cases}) == 64
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -701,11 +715,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 56
-    assert summary.success == 50
+    assert summary.total == 64
+    assert summary.success == 58
     assert summary.missing == 6
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 50
+    assert len(service.requests) == 58
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2

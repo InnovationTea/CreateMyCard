@@ -111,7 +111,8 @@
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `CountdownOverviewFull@1` | 完整 2x2；无 Action，或加一个 IconAction | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
-| ✅ | `CountdownOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewTravelSupport@1` | 双 Support；出行倒计时，可选计时图标，可内嵌闹钟跳转 | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewSupport@1` | 约 2x1；双 Support，可选计时图标，事件在模板内部 | `/countdownDays` | 无 | 无 |
 
 ## BluetoothDeviceOverview
 
@@ -202,7 +203,7 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：11。
+- 数据能力：`ViewWeather`；模板数：22。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -210,6 +211,8 @@
 | ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/condition` | 无 | `/current/temperatureText`<br>`/current/temperatureC`<br>`/current/feelsLikeC`<br>`/location/prefectureName`<br>`/location/districtName` |
+| ✅ | `WeatherOverviewDaily2TravelSupport@1` | 约 2x1；后日出行天气双层信息块，可选温度计或天气状态图标 | `/daily/2/condition` | `/daily/2/temperatureRangeText` | 无 |
+| ✅ | `WeatherOverviewTravelSupport@1` | 双 Support；ConditionHero 风格的出行天气主视觉，可选温度计或天气状态图标，可内嵌天气跳转 | 无 | 无 | `/daily/4/condition`<br>`/daily/4/temperatureRangeText`<br>`/daily/4/rainProbabilityPercent`<br>`/current/temperatureC`<br>`/current/condition` |
 | ✅ | `WeatherOverviewTemperatureUvSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/current/condition`<br>`/current/uvIndex` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |

@@ -35,6 +35,48 @@
       ]
     },
     {
+      "templateId": "WeatherOverviewDaily2TravelSupport@1",
+      "supportedEventIds": [],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "后日出行天气 Support，以双层信息块展示 daily[2] 的天气现象和温度范围；可选表达气温的温度计或与天气一致的状态图标。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/2/condition"
+      ],
+      "secondaryData": [
+        "/daily/2/temperatureRangeText"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-indicator"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewTravelSupport@1",
+      "supportedEventIds": ["event.open.weather"],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "出行天气 Support，参考 ConditionHero 以天气现象为主视觉，并辅助展示 daily[4] 的温度范围和降雨概率，或当前温度；可选表达气温的温度计或与天气一致的状态图标，可在胶囊内部绑定天气详情跳转。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [],
+      "secondaryData": [],
+      "optionalData": [
+        "/daily/4/condition",
+        "/daily/4/temperatureRangeText",
+        "/daily/4/rainProbabilityPercent",
+        "/current/temperatureC",
+        "/current/condition"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-indicator"
+        ]
+      }
+    },
+    {
       "templateId": "WeatherOverviewCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",

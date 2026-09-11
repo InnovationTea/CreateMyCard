@@ -33,6 +33,7 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "BluetoothDeviceOverviewChargeSupport@1": (0,),
     "BluetoothDeviceOverviewConnectionSupport@1": (0,),
     "CountdownOverviewSupport@1": (0,),
+    "CountdownOverviewTravelSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
     "ResourceUsageOverviewSupport@1": (0, 1),
     "ScheduleOverviewTimeSupport@1": (0,),
@@ -43,6 +44,8 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WeatherOverviewTemperatureSupport@1": (0, 1),
     "WeatherOverviewTemperatureUvSupport@1": (0, 1),
     "WeatherOverviewTemperaturecoldLevelSupport@1": (0, 1),
+    "WeatherOverviewDaily2TravelSupport@1": (0,),
+    "WeatherOverviewTravelSupport@1": (0,),
     "WorkoutOverviewSupport@1": (0,),
 }
 
@@ -131,13 +134,27 @@ def test_support_ux_spacing_typography_and_right_icon(
     assert primary_indexes is not None
     if not with_optional and template_id in _SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES:
         primary_indexes = (0,)
-    if template_id not in _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES:
+    fallback_only = template_id == "WeatherOverviewTravelSupport@1" and not with_optional
+    if fallback_only:
+        assert len(texts) == 1
+        fallback_styles = texts[0].values[-1]
+        assert isinstance(fallback_styles, dict)
+        assert fallback_styles.get("fontSize") == 14
+    elif template_id not in _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES:
         assert len(texts) > len(primary_indexes)
     for index, node in enumerate(texts):
+        if fallback_only:
+            continue
         styles = node.values[-1]
         assert isinstance(styles, dict)
         primary = index in primary_indexes
-        font_size = 14 if primary else 12
+        subtitle_size = 10 if template_id in {
+            "CountdownOverviewSupport@1",
+            "CountdownOverviewTravelSupport@1",
+            "WeatherOverviewDaily2TravelSupport@1",
+            "WeatherOverviewTravelSupport@1",
+        } else 12
+        font_size = 14 if primary else subtitle_size
         assert styles.get("fontSize") == font_size
         if primary:
             assert styles.get("fontWeight") == 700
@@ -238,7 +255,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 19
+    assert len(supports) == 22
     assert not supports.intersection({
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",

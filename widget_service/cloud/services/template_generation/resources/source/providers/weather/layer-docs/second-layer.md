@@ -27,6 +27,12 @@
   - `WeatherOverviewCareAlertFull@1`：展示城市、天气预警、紫外线和空气质量的三段式关怀型 Full；可选紫外线图标，底部为右下角电话动作预留空间。
   - `WeatherOverviewWindHero@1`：展示城市、当前风向、风力等级和更新时间的 Hero；可选风向、时间和位置图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
+  - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
+    只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。
+  - `WeatherOverviewTravelSupport@1`：出行天气 Support；参考 `WeatherOverviewConditionHero@1`
+    以天气现象为主视觉，辅助展示 `daily[4]` 的温度范围和降雨概率，或当前温度；只用于
+    `TwoSupportLayout@1`，可选 `conditionIcon`，可在分配天气详情事件时通过 `actionId` 绑定胶囊点击；
+    主标题为 14vp，副标题为 10vp。
   - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full，突出天气现象，并展示日期和星期。
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
@@ -58,9 +64,10 @@
   `/current/alertLevel`，更新时间必须绑定 `/updatedAt`。
 - 单业务模板的 `conditionIcon` 只允许与本轮 `/current/condition`
   一致的天气状态图标，不允许温度计；状态未知或缺少匹配的状态资源时省略图标，保留天气文本。
-- 双业务 `TwoSupportLayout@1` 中，基础温度 Support 的 `conditionIcon` 可以选择表达气温的温度计，
-  也可以选择与当前天气一致的状态图标。状态未知或缺少对应状态资源时仍可使用气温温度计；
-  两类素材均不可用时省略。其它双业务天气模板没有图标槽位，不得额外添加。
+- 双业务 `TwoSupportLayout@1` 中，基础温度 Support 和两个出行天气 Support（`Daily2Travel`、
+  `Travel`）的 `conditionIcon` 可以选择表达气温的温度计，也可以选择与当前天气一致的状态图标。
+  状态未知或缺少对应状态资源时仍可使用气温温度计；两类素材均不可用时省略。其余双业务天气
+  模板没有图标槽位，不得额外添加。
 - 两类场景的图标都必须属于该参数的 `allowedSources`，不能借双业务规则放宽单业务槽位。
 - 图标着色遵循模板 Image 的显式声明，不依据文件名或天气语义猜测颜色。当前带图标模板已声明
   `fillColor`，温度计和天气状态图标均保留该主题色；模型不得追加原色保护或指定黄色、白色覆盖模板。
