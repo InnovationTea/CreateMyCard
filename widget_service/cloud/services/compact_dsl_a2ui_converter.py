@@ -667,7 +667,8 @@ def convert_compact_dsl_to_a2ui(
             _convert_component_rows(
                 component,
                 hide_label=hide_label,
-                action_icon_size=20 if size == "2x2" else 16,
+                action_icon_size=20,
+                card_size=size,
             )
         )
     if fusion_palette is not None:
@@ -712,35 +713,84 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
     headers = [item for item in components if item.component_type == "CardHeader"]
     if not headers:
         return
-    if size != "2x2" or len(headers) != 1:
+    if len(headers) != 1:
         raise CompactDslConversionError("CardHeader requires 2x2 and at most one instance.")
     header = headers[0]
     root = next((item for item in components if item.component_id == "root"), None)
-    if root is None or root.component_type != "Column":
-        raise CompactDslConversionError("CardHeader requires a root Column.")
-    parents = [item.component_id for item in components if header.component_id in item.children]
-    if parents != ["root"] or root.children[0] != header.component_id:
-        raise CompactDslConversionError("CardHeader must be the first direct child of root only.")
-    padding = root.props.get("padding")
+
+    if size == "2x2":
+        if root is None or root.component_type != "Column":
+            raise CompactDslConversionError("CardHeader requires a root Column.")
+        container = root
+        parents = [item.component_id for item in components if header.component_id in item.children]
+        if parents != ["root"] or root.children[0] != header.component_id:
+            raise CompactDslConversionError(
+                "CardHeader must be the first direct child of root only."
+            )
+    elif size == "2x4":
+        if root is None or root.component_type != "Stack":
+            raise CompactDslConversionError("2x4 CardHeader requires a root Stack.")
+        parents = [item for item in components if header.component_id in item.children]
+        if len(parents) != 1:
+            raise CompactDslConversionError("2x4 CardHeader must have exactly one parent.")
+        container = parents[0]
+        is_root_level_column = (
+            container.component_type == "Column" and container.component_id in root.children
+        )
+        has_header_first = (
+            bool(container.children) and container.children[0] == header.component_id
+        )
+        if not is_root_level_column or not has_header_first:
+            raise CompactDslConversionError(
+                "2x4 CardHeader must be the first child of a root-level foreground Column."
+            )
+        if container.props.get("width") != "matchParent" or container.props.get(
+            "height"
+        ) != "matchParent":
+            raise CompactDslConversionError(
+                "2x4 CardHeader foreground Column requires matchParent width and height."
+            )
+    else:
+        raise CompactDslConversionError("CardHeader requires 2x2 and at most one instance.")
+
+    padding = container.props.get("padding")
     valid_padding = padding == 12 or padding == {
         "left": 12, "right": 12, "top": 12, "bottom": 12,
     }
-    if not valid_padding or root.props.get("justifyContent") != "start":
-        raise CompactDslConversionError("CardHeader requires root padding:12 and justifyContent:start.")
-    if root.props.get("borderWidth", 0) != 0:
-        raise CompactDslConversionError("CardHeader root must not add a border inset.")
+    if size == "2x2" and (
+        not valid_padding or container.props.get("justifyContent") != "start"
+    ):
+        raise CompactDslConversionError(
+            "CardHeader requires root padding:12 and justifyContent:start."
+        )
+    if size == "2x4" and (
+        not valid_padding
+        or container.props.get("justifyContent") not in {"start", "spaceBetween"}
+    ):
+        raise CompactDslConversionError(
+            "CardHeader container requires padding:12 and start/spaceBetween alignment."
+        )
+    if container.props.get("borderWidth", 0) != 0:
+        if size == "2x2":
+            raise CompactDslConversionError("CardHeader root must not add a border inset.")
+        raise CompactDslConversionError("CardHeader container must not add a border inset.")
     allowed = {"title", "fontColor", "icon", "fillColor"}
     if header.children or set(header.props) - allowed:
         raise CompactDslConversionError(
-            "CardHeader accepts title/fontColor/icon/fillColor only, without children or layout props."
+            "CardHeader accepts title/fontColor/icon/fillColor only, "
+            "without children or layout props."
         )
     title = header.props.get("title")
     valid_title = isinstance(title, str) and bool(title.strip())
     if not valid_title and not _is_path_binding(title):
-        raise CompactDslConversionError("CardHeader.title must be non-empty text or a path binding.")
+        raise CompactDslConversionError(
+            "CardHeader.title must be non-empty text or a path binding."
+        )
     icon = header.props.get("icon")
     if "icon" in header.props and (not isinstance(icon, str) or not icon.strip()):
-        raise CompactDslConversionError("CardHeader.icon must be a non-empty asset path when present.")
+        raise CompactDslConversionError(
+            "CardHeader.icon must be a non-empty asset path when present."
+        )
     if "fillColor" in header.props and icon is None:
         raise CompactDslConversionError("CardHeader.fillColor requires icon.")
     for name in ("fontColor", "fillColor"):
@@ -754,9 +804,11 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
 
 
-def _convert_card_header(component: ComponentRow) -> list[dict[str, Any]]:
+def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
+    row_width = 136 if size == "2x2" else 296
+    title_width = row_width - 28 if icon else row_width
     title_id = f"{component.component_id}_title"
     icon_id = f"{component.component_id}_icon"
     children = [title_id, icon_id] if icon else [title_id]
@@ -766,8 +818,11 @@ def _convert_card_header(component: ComponentRow) -> list[dict[str, Any]]:
         "children": children,
         "itemMargin": 8 if icon else 0,
         "styles": {
-            "width": 136, "height": 20, "flexShrink": 0,
-            "justifyContent": "start", "alignItems": "center",
+            "width": row_width,
+            "height": 20,
+            "flexShrink": 0,
+            "justifyContent": "start",
+            "alignItems": "center",
         },
     }
     title = {
@@ -775,9 +830,13 @@ def _convert_card_header(component: ComponentRow) -> list[dict[str, Any]]:
         "component": "Text",
         "content": _convert_path_bindings(props.get("title")),
         "styles": {
-            "width": 108 if icon else 136, "fontSize": 12, "fontWeight": 400,
-            "fontColor": props.get("fontColor"), "textAlign": "start",
-            "maxLines": 1, "flexShrink": 0,
+            "width": title_width,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "fontColor": props.get("fontColor"),
+            "textAlign": "start",
+            "maxLines": 1,
+            "flexShrink": 0,
         },
     }
     converted = [row, title]
@@ -1864,9 +1923,10 @@ def _convert_component_rows(
     *,
     hide_label: bool = False,
     action_icon_size: int = 16,
+    card_size: str = "2x2",
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
-        return _convert_card_header(component)
+        return _convert_card_header(component, card_size)
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component, action_icon_size)
     return [
