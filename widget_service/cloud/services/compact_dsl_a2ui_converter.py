@@ -734,12 +734,13 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         if len(parents) != 1:
             raise CompactDslConversionError("2x4 CardHeader must have exactly one parent.")
         container = parents[0]
-        if (
-            container.component_type != "Column"
-            or container.component_id not in root.children
-            or not container.children
-            or container.children[0] != header.component_id
-        ):
+        is_root_level_column = (
+            container.component_type == "Column" and container.component_id in root.children
+        )
+        has_header_first = (
+            bool(container.children) and container.children[0] == header.component_id
+        )
+        if not is_root_level_column or not has_header_first:
             raise CompactDslConversionError(
                 "2x4 CardHeader must be the first child of a root-level foreground Column."
             )
