@@ -128,7 +128,7 @@ class ContrastValidator(BaseValidator):
         del rules
         if context.has_fusion_template_root():
             _LOGGER.info(
-                "quality_validation_skipped reason=fusion_template_root validator=contrast"
+                "quality_validation_skipped reason=template_root validator=contrast"
             )
             return
         if not context.components or not context.root_id:

@@ -53,7 +53,7 @@ _ACTION_LABELS = {
     "event.open.settings.batteryHealth": "电池健康",
     "event.open.settings.parentControl": "管控时间",
     "event.open.settings.storage": "存储设置",
-    "event.open.weather": "天气详情",
+    "event.open.weather": "查看详情",
     "event.open.clock.alarm": "设置闹钟",
     "event.open.music.daily": "每日推荐",
     "event.open.music.favorite": "心动歌单",

@@ -467,6 +467,7 @@ data = {
     district: $optionalPath("/location/districtName"),
     temperature: $path("/current/temperatureText"),
     condition: $path("/current/condition"),
+    airQuality: $optionalPath("/current/airQuality"),
     coldLevel: $optionalPath("/current/coldLevel")
 }
 
@@ -525,6 +526,33 @@ Column(
         data.temperature,
         {"fontSize": 38, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
       ),
+    #if data.airQuality
+      #if data.coldLevel
+      Text(
+        `${data.condition}｜空气${data.airQuality}｜感冒风险${data.coldLevel}`,
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #else
+      Text(
+        `${data.condition}｜空气${data.airQuality}`,
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #endif
+    #else
     #if data.coldLevel
       Text(
         `${data.condition}｜感冒风险${data.coldLevel}`,
@@ -549,6 +577,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
+    #endif
     #endif
   ),
 )
@@ -839,7 +868,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Stack(
-    {"width": "matchParent", "height": 60, "padding": {"left": 10, "right": 10, "top": 7, "bottom": 7}, "borderRadius": 12, "backgroundColor": $theme('supportContentStyle.backgroundColor'), "alignContent": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"width": "matchParent", "layoutWeight": 1, "padding": {"left": 10, "right": 10, "top": 7, "bottom": 7}, "borderRadius": 12, "backgroundColor": $theme('supportContentStyle.backgroundColor'), "alignContent": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Column(
       {"width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Row(
@@ -855,7 +884,7 @@ Column(
     )
   ),
   Stack(
-    {"width": "matchParent", "height": 60, "padding": {"left": 10, "right": 10, "top": 7, "bottom": 7}, "borderRadius": 12, "backgroundColor": $theme('supportContentStyle.backgroundColor'), "alignContent": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"width": "matchParent", "layoutWeight": 1, "padding": {"left": 10, "right": 10, "top": 7, "bottom": 7}, "borderRadius": 12, "backgroundColor": $theme('supportContentStyle.backgroundColor'), "alignContent": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Column(
       {"width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Row(
@@ -1430,32 +1459,13 @@ Column(
           "textOverflow": "ellipsis",
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-      ),
-      Text(
-        "紫外线",
-        {
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
       )
     ),
-    Row(
-      {
-        "width": "matchParent",
-        "height": 44,
-        "itemMargin": 8,
-        "justifyContent": "start",
-        "alignItems": "center",
-        "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
-      Text(
-        data.uvIndex,
-        {"fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-      )
-    )
+    Column(
+      {"width": "matchParent", "height": 48, "layoutWeight": 1, "itemMargin": 3, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(data.uvIndex, {"width": "matchParent", "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+      Text("紫外线", {"width": "matchParent", "fontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    ),
   ),
   Column(
     {
@@ -1563,7 +1573,7 @@ Column(
       data.airQuality,
       {
         "width": "matchParent",
-        "fontSize": 30,
+        "fontSize": 20,
         "fontWeight": 700, "fontColor": $theme('primaryColor'),
         "maxLines": 1
       }

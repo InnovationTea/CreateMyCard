@@ -12,6 +12,7 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     FusionBallPalette,
+    apply_content_safe_inset,
     apply_fusion_ball_background,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract
@@ -23,7 +24,7 @@ from services.template_generation.engine.tersel_converter import Nested2Node, co
 
 
 @pytest.mark.parametrize(("size", "fusion"), [("2x2", False), ("2x4", False), ("2x2", True)])
-def test_compiled_template_skips_only_marked_content_contrast(size: str, fusion: bool) -> None:
+def test_compiled_template_skips_contrast_with_template_root(size: str, fusion: bool) -> None:
     content = Nested2Node(
         "Column",
         ("section",),
@@ -37,6 +38,8 @@ def test_compiled_template_skips_only_marked_content_contrast(size: str, fusion:
             size=size,
             palette=FusionBallPalette(large="#FF17734C", medium="#FF26BFA6", small="#FF60BF98"),
         )
+    else:
+        card = apply_content_safe_inset(card, size=size)
     a2ui = convert_tersel_to_a2ui(
         _serialize_node(card) + ";",
         size=size,
@@ -55,4 +58,6 @@ def test_all_template_previews_keep_contrast_exemption() -> None:
     assert len(cases) == 107
     for case in cases:
         a2ui = "\n".join(json.dumps(message) for message in case.messages)
-        assert not validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST")
+        assert '"template_root"' in a2ui
+        assert '"fusionBallBackground"' not in a2ui
+        assert not validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST"), case.case_id

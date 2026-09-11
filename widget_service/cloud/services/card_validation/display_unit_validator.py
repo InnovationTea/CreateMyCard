@@ -124,6 +124,8 @@ class DisplayUnitValidator(BaseValidator):
                 if not isinstance(child_id, str):
                     break
                 sibling_content = components_by_id.get(child_id, {}).get("content")
+                if not isinstance(sibling_content, str):
+                    break
                 if expression_references(sibling_content):
                     break
                 if not static_text_contains_rule(sibling_content, rule):

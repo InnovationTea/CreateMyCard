@@ -2,11 +2,17 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 
+import pytest
+
 from models.capability import DataCapability
 from models.generation import CandidateDataBinding
 from services.card_validation import validate_card
 from services.card_validation.diagnostics import Diagnostic
-from services.card_validation.display_unit_rules import repair_repeated_display_units
+from services.card_validation.display_unit_rules import (
+    DisplayUnitRule,
+    repair_repeated_display_units,
+)
+from services.card_validation.display_unit_validator import DisplayUnitValidator
 from services.generation_pipeline import (
     DslProcessingContext,
     QualityIssue,
@@ -154,6 +160,25 @@ def test_repair_removes_redundant_sibling_unit_for_formatted_text():
 
     assert update["components"][0]["children"] == ["value"]
     assert {item["id"] for item in update["components"]} == {"root", "value"}
+
+
+@pytest.mark.parametrize("sibling", [
+    {"component": "Image"},
+    {"component": "Column", "children": []},
+    {"component": "Text", "content": None},
+    {"component": "Text", "content": 0},
+    {"component": "Text", "content": False},
+    {"component": "Text", "content": {}},
+    {"component": "Text", "content": []},
+])
+def test_unit_sibling_scan_stops_at_non_string_content(sibling: dict) -> None:
+    count = DisplayUnitValidator._matching_sibling_count(
+        "value",
+        DisplayUnitRule(units=("%",), unit_included=False),
+        {"value": [{"children": ["value", "sibling", "later_unit"]}]},
+        {"sibling": sibling, "later_unit": {"component": "Text", "content": "%"}},
+    )
+    assert count == 0
 
 
 def test_validator_reports_missing_unit_for_raw_number():
