@@ -675,6 +675,56 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
     assert definition.bindings["secondTemperature"].root_index == 1
     assert variant.optional_bindings == ("firstCity", "secondCity")
 
+    city_panels = variant.root.children
+    assert len(city_panels) == 2
+    for panel in city_panels:
+        assert panel.component == "Stack"
+        options = _template_node_options(panel)
+        assert options.get("layoutWeight") == 1
+        assert "height" not in options
+
+
+@pytest.mark.parametrize(
+    ("template_id", "value_binding"),
+    [
+        ("WeatherOverviewUvFull@1", "uvIndex"),
+        ("WeatherOverviewAirQualityHero@1", "airQuality"),
+    ],
+)
+def test_weather_index_templates_use_20vp_primary_values(
+    template_id: str, value_binding: str,
+) -> None:
+    registry = get_cardplan_registry()
+    variant = registry.require_template(template_id).variants[0]
+    bindings = {}
+    for name in variant.required_bindings:
+        bindings[name] = f"${{data.weather.{name}}}"
+    root = _instantiate_blueprint(
+        variant.root, {}, bindings, registry.theme_reference_values("family-weather-care-blue"),
+    )
+    value_column = root.children[0].children[1] if value_binding == "uvIndex" else root.children[1]
+    assert value_column.component_type == "Column"
+    value = value_column.children[0]
+    assert value.component_type == "Text"
+    assert value.values[0] == bindings.get(value_binding)
+    value_options = value.values[-1]
+    assert isinstance(value_options, dict)
+    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontWeight") == 700
+    if value_binding == "uvIndex":
+        options = value_column.values[-1]
+        assert isinstance(options, dict)
+        assert options.get("height") == 48
+        assert options.get("layoutWeight") == 1
+        assert options.get("itemMargin") == 3
+        label = value_column.children[1]
+        assert label.component_type == "Text"
+        assert label.values[0] == "紫外线"
+        label_options = label.values[-1]
+        assert isinstance(label_options, dict)
+        assert label_options.get("fontSize") == 14
+        assert label_options.get("fontWeight") == 400
+
 
 def test_weather_care_alert_full_matches_q043_data_contract() -> None:
     definition = get_cardplan_registry().require_template("WeatherOverviewCareAlertFull@1")
@@ -3190,6 +3240,22 @@ def test_new_support_templates_follow_two_line_contract(
     assert primary_options.get("fontWeight") == 700
     assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
+
+
+def test_heart_rate_icon_compact_reserves_icon_row_and_18vp_value() -> None:
+    variant = get_cardplan_registry().require_template("HeartRateOverviewIconCompact@1").variants[0]
+    header, value_row = variant.root.children
+    assert header.component == "Row"
+    assert _template_node_options(header).get("height") == 20
+    assert [node.component for node in header.children] == ["Text", "Image"]
+    icon_options = _template_node_options(header.children[1])
+    assert icon_options.get("width") == 20
+    assert icon_options.get("height") == 20
+    assert value_row.component == "Row"
+    value, unit = value_row.children
+    assert _template_node_options(value).get("fontSize") == 18
+    assert _template_node_options(value).get("fontWeight") == 700
+    assert unit.values[0].value == "次/分钟"
 
 
 def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
