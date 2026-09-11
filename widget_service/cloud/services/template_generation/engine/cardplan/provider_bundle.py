@@ -2727,21 +2727,27 @@ def _provider_data_roots(
 ) -> tuple[str, ...] | ProviderTemplateAdmission:
     if card_spec is None:
         return ProviderTemplateAdmission(False, "card-spec-unavailable")
+
     raw_bindings = card_spec.get("dataBindings")
     if not isinstance(raw_bindings, list):
         return ProviderTemplateAdmission(False, "data-bindings-unavailable")
-    roots = tuple(
-        item.get("writeResultTo")
-        for item in raw_bindings
-        if isinstance(item, dict)
-        and item.get("capabilityId") == capability_id
-        and _valid_runtime_data_root(item.get("writeResultTo"))
-    )
+
+    roots: list[str] = []
+    for item in raw_bindings:
+        if not isinstance(item, dict):
+            continue
+        if item.get("capabilityId") != capability_id:
+            continue
+        root = item.get("writeResultTo")
+        if not _valid_runtime_data_root(root):
+            continue
+        roots.append(root)
+
     if not roots:
         return ProviderTemplateAdmission(False, "capability-binding-unavailable")
     if len(roots) != binding_count or len(set(roots)) != len(roots):
         return ProviderTemplateAdmission(False, "capability-binding-ambiguous")
-    return roots
+    return tuple(roots)
 
 
 def _valid_runtime_data_root(value: Any) -> bool:

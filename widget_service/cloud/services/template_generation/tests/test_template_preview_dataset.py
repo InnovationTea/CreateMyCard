@@ -16,20 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 107
+    assert manifest["templateCount"] == 110
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 19,
+        "Support": 22,
         "Compact": 13,
         "Hero": 31,
         "Full": 31,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 96, "2x4": 11}
-    assert len(cases) == 107
-    assert len({case["templateId"] for case in cases}) == 107
+    assert manifest["countsBySize"] == {"2x2": 99, "2x4": 11}
+    assert len(cases) == 110
+    assert len({case["templateId"] for case in cases}) == 110
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -73,6 +73,8 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "icon_earphone.svg",
         "icon_phone.svg",
         "icon_tiktok.png",
+        "icon_timing.svg",
+        "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
@@ -92,6 +94,16 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
             assert case.optional_data == (
                 "/location/prefectureName", "/location/districtName",
                 "/current/temperatureText", "/current/condition",
+            )
+        elif case.template_id == "WeatherOverviewTravelSupport@1":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/daily/4/condition",
+                "/daily/4/temperatureRangeText",
+                "/daily/4/rainProbabilityPercent",
+                "/current/temperatureC",
+                "/current/condition",
             )
         elif case.template_id == "HeartRateOverviewMinMaxFull@1":
             assert case.primary_data == (

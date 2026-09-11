@@ -258,7 +258,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 116
+    assert len(registry.provider_template_ids) == 119
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -3187,7 +3187,11 @@ def test_new_support_templates_follow_two_line_contract(
         assert support_options.get("height") is None
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    assert support_options.get("fontSize") == 12
+    if template_id == "CountdownOverviewSupport@1":
+        # 双业务 Support 主标题 14vp、副标题 10vp。
+        assert support_options.get("fontSize") == 10
+    else:
+        assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
 
 
