@@ -80,7 +80,7 @@ def run_pipeline(
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
             return
         if current_stage == "quality" and context.has_fusion_template_root():
-            _LOGGER.info("quality_validation_skipped reason=fusion_template_root")
+            _LOGGER.info("quality_validation_skipped reason=template_root")
             continue
         for validator in validators:
             if validator.stage == current_stage:

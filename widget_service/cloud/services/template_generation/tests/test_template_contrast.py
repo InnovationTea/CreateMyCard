@@ -24,7 +24,7 @@ from services.template_generation.engine.tersel_converter import Nested2Node, co
 
 
 @pytest.mark.parametrize(("size", "fusion"), [("2x2", False), ("2x4", False), ("2x2", True)])
-def test_compiled_template_skips_contrast_only_with_fusion_markers(size: str, fusion: bool) -> None:
+def test_compiled_template_skips_contrast_with_template_root(size: str, fusion: bool) -> None:
     content = Nested2Node(
         "Column",
         ("section",),
@@ -47,31 +47,17 @@ def test_compiled_template_skips_contrast_only_with_fusion_markers(size: str, fu
     )
 
     assert '"template_root"' in a2ui
-    assert validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST") is not fusion
+    assert not validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST")
     # 同时重命名组件 ID 和 children 引用；未标记的相同低对比度内容仍必须被检出。
     unmarked = a2ui.replace('"template_root"', '"unmarked_content"')
     assert validate_card(dsl_text=unmarked).has_code("VISUAL.CONTRAST")
 
 
-def test_all_template_previews_keep_normal_contrast_validation() -> None:
+def test_all_template_previews_keep_contrast_exemption() -> None:
     cases = build_template_preview_cases()
     assert len(cases) == 107
-    reported_contrast = False
     for case in cases:
         a2ui = "\n".join(json.dumps(message) for message in case.messages)
         assert '"template_root"' in a2ui
         assert '"fusionBallBackground"' not in a2ui
-        contrast = [
-            (item.severity, item.actual)
-            for item in validate_card(dsl_text=a2ui).diagnostics
-            if item.code == "VISUAL.CONTRAST"
-        ]
-        unmarked = a2ui.replace('"template_root"', '"unmarked_content"')
-        unmarked_contrast = [
-            (item.severity, item.actual)
-            for item in validate_card(dsl_text=unmarked).diagnostics
-            if item.code == "VISUAL.CONTRAST"
-        ]
-        assert contrast == unmarked_contrast, case.case_id
-        reported_contrast = reported_contrast or bool(contrast)
-    assert reported_contrast
+        assert not validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST"), case.case_id

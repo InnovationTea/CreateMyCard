@@ -113,13 +113,16 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 
-公共调度器确认根 `root` 同时直接引用实际存在的 `template_root` 和 `fusionBallBackground`，
+公共调度器确认根 `root` 的 `children` 数组直接引用实际存在且 ID 精确等于 `template_root` 的组件，
 且组件 ID 无重复后，跳过整卡
 `quality` 阶段，包括并列的背景、标题和动作。不按文本或前缀匹配；每次修复后重新识别标记。
-缺少任意标记、普通生成及模板回退产物不自动豁免。跳过记录原因，不视为实际质量通过。
+不依赖 `fusionBallBackground`，非融球、融球及独立模板预览使用相同规则。
+缺少模板标记、孤立标记、非直接子节点、重复 ID、普通生成及模板回退产物不自动豁免。
+标记是工程约定，不是不可伪造的来源凭证；解析失败与组件引用合法性仍按原规则检查。
+跳过记录 `quality_validation_skipped reason=template_root`，不视为实际质量通过或伪造分数，
+也不因被跳过的检查触发质量修复。
 该规则不改变 hard、semantic 和转换前校验，也不恢复运行时 IF 支持。
-取消对比度校验器的单标记局部豁免；独立调用同样使用公共双标记判断，符合条件整卡跳过，
-否则普通模板、预览及其它内容均正常检查。
-完整规则以方案总文档为准。
+独立调用对比度校验器使用同一模板根判断，符合条件整卡跳过，否则所有内容正常检查。
+`has_fusion_template_root()` 保留既有方法名以兼容调用，但不再检查融球背景。
 
 回归覆盖普通模板、融球模板、预览模板、精确标识、非模板并列节点及其它校验继续生效。

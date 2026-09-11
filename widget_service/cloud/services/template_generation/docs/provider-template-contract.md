@@ -441,10 +441,10 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 文本、图标和业务容器。外层转换为 Stack 时移除 Column 专用的间距与对齐属性。
 不含单一布局骨架的旧 CardPlan shell、非 `2x2` 产物和独立模板预览不应用此包装；预览数据集仍为
 `root → template_root`，不以本规则开放生产 `2x4` 场景。公共校验根始终为 `root`。
-`template_root` 是模板内容层的固定标识：公共调度器确认根同时直接引用该节点和实际存在的
-`fusionBallBackground` 且 ID 无重复时，
-跳过整卡 quality 阶段；hard、semantic 和转换前校验不变。取消对比度校验器的模板局部豁免，
-直接调用对比度校验器同样遵循公共双标记整卡豁免；未命中时模板节点及子树正常检查。
+`template_root` 是模板内容层的固定标识：公共根 `root` 的 `children` 数组直接引用该真实节点，
+且组件 ID 无重复时，即跳过整卡 quality 阶段，不再要求存在 `fusionBallBackground`。
+非融球、融球和预览使用同一规则；hard、semantic 和转换前校验不变。
+直接调用对比度校验器同样遵循模板根整卡豁免；未命中时所有节点及子树正常检查。
 组件、表达式、数据、事件和素材校验不受影响。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
