@@ -125,14 +125,20 @@ def _decode_opaque_string(source: str) -> str:
     return "".join(output)
 
 
-def _recover_submit_jsx(source: str) -> tuple[dict[str, Any], list[str]] | None:
+def _valid_recovered_jsx(value: str) -> bool:
+    return value.startswith("<Card") and (
+        value.endswith("</Card>") or re.search(r"/\s*>$", value) is not None
+    )
+
+
+def _recover_submit_jsx_first(source: str) -> tuple[dict[str, Any], list[str]] | None:
     opening = re.match(r'\s*\{\s*"jsx"\s*:\s*"', source)
     recovered = None
     if opening is not None:
         boundary = re.compile(r'"\s*,?\s*(?P<field>"(?:decision|coverage|unmetRequirements)")\s*:')
         for match in boundary.finditer(source, opening.end()):
             jsx = _decode_opaque_string(source[opening.end():match.start()]).strip()
-            if not jsx.startswith("<Card") or not (jsx.endswith("</Card>") or re.search(r"/\s*>$", jsx)):
+            if not _valid_recovered_jsx(jsx):
                 continue
             try:
                 tail, tail_repairs = _load_object("{" + source[match.start("field"):])
@@ -142,6 +148,46 @@ def _recover_submit_jsx(source: str) -> tuple[dict[str, Any], list[str]] | None:
                 recovered = ({"jsx": jsx, **tail}, ["recovered_opaque_jsx", *tail_repairs])
                 break
     return recovered
+
+
+def _recover_submit_decision_first(source: str) -> tuple[dict[str, Any], list[str]] | None:
+    opening = re.search(r'"jsx"\s*:\s*"', source)
+    if opening is None:
+        return None
+    prefix_source = source[:opening.start()].rstrip().rstrip(",") + "}"
+    try:
+        prefix, prefix_repairs = _load_object(prefix_source)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(prefix.get("decision"), dict) or "jsx" in prefix:
+        return None
+
+    value_start = opening.end()
+    boundary = re.compile(r'"\s*,?\s*(?P<field>"(?:coverage|unmetRequirements)")\s*:')
+    for match in boundary.finditer(source, value_start):
+        jsx = _decode_opaque_string(source[value_start:match.start()]).strip()
+        if not _valid_recovered_jsx(jsx):
+            continue
+        try:
+            tail, tail_repairs = _load_object("{" + source[match.start("field"):])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        return (
+            {**prefix, "jsx": jsx, **tail},
+            ["recovered_opaque_jsx", *prefix_repairs, *tail_repairs],
+        )
+
+    closing = re.search(r'"\s*}\s*$', source[value_start:])
+    if closing is None:
+        return None
+    jsx = _decode_opaque_string(source[value_start:value_start + closing.start()]).strip()
+    if not _valid_recovered_jsx(jsx):
+        return None
+    return {**prefix, "jsx": jsx}, ["recovered_opaque_jsx", *prefix_repairs]
+
+
+def _recover_submit_jsx(source: str) -> tuple[dict[str, Any], list[str]] | None:
+    return _recover_submit_decision_first(source) or _recover_submit_jsx_first(source)
 
 
 def parse_tool_arguments(

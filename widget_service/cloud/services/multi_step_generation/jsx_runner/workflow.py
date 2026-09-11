@@ -52,6 +52,13 @@ else:  # Support top-level package imports.
 from .card_sizes import CARD_SIZE_DIMENSIONS, card_dimensions, task_card_size
 from .config import RESOURCE_STAGES
 from .layout_rules import (
+    LAYOUT_PATTERN_2X2_CODES,
+    LAYOUT_PATTERN_2X2_NAMES,
+    LAYOUT_PATTERN_2X4_CODES,
+    LAYOUT_PATTERN_2X4_NAMES,
+    SUB_PATTERN_2X4_GROUPS,
+    SUB_PATTERN_2X4_NAMES,
+    TYPE13_WIDE_SUB_PATTERNS,
     TOP_LEVEL_2X2_TYPES,
     TOP_LEVEL_2X4_TYPES,
     declared_2x2_layout_errors,
@@ -60,7 +67,9 @@ from .layout_rules import (
     fixed_slot_dimension_errors,
     fixed_slot_kind,
     preferred_axis_size,
+    sub_pattern_composition_errors,
 )
+from .prompt import build_layout_fallback_prompt
 from .resources import (
     GenerationResources,
     generatable_contracts,
@@ -101,12 +110,17 @@ def browser_repair_preservation_findings(
     baseline: CompiledSubmission,
     candidate: CompiledSubmission,
     compile_context: dict[str, Any] | None,
+    *,
+    require_all_data_ids: bool = False,
+    drop_baseline: CompiledSubmission | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     """Detect deterministic semantic regressions introduced by layout repair.
 
     Removing an action or replacing a previously bound value with its sample
-    literal is a definite regression. Completely omitting a data binding can be
-    a legitimate way to drop optional content, so that remains advisory.
+    literal is a definite regression. Completely omitting a data binding is
+    advisory during ordinary repair, but forbidden during compact fallback.
+    Drop fallback additionally enforces a single-component budget against its
+    own frozen entry snapshot, independently of the first browser failure.
     """
 
     baseline_data, baseline_actions = submission_reference_ids(baseline)
@@ -115,6 +129,21 @@ def browser_repair_preservation_findings(
     removed_actions = sorted(baseline_actions - candidate_actions)
     errors: list[dict[str, Any]] = []
     warnings: list[dict[str, str]] = []
+
+    if drop_baseline is not None:
+        removed_components = _removed_business_components(drop_baseline, candidate)
+        if len(removed_components) > 1:
+            errors.append({
+                "severity": "error",
+                "code": "browser-fallback-drop-limit",
+                "message": (
+                    "删除兜底阶段最多省略一个业务显示组件；相对进入该阶段时的固定基线，"
+                    f"本次有 {len(removed_components)} 个组件的内容未保留。"
+                    "请恢复其他组件的 dataIds 或静态业务文本；合并、拆分和重新布局可以，"
+                    "但多次提交不能累计删除第二个组件。"
+                ),
+                "details": {"removedComponents": removed_components, "maximum": 1},
+            })
 
     if removed_actions:
         errors.append(
@@ -190,18 +219,84 @@ def browser_repair_preservation_findings(
 
     omitted = [value for value in removed_data if value not in staticized]
     if omitted:
-        warnings.append(
-            {
-                "severity": "warning",
-                "code": "browser-repair-dropped-binding",
-                "message": (
-                    "浏览器布局修复省略了此前展示的数据绑定："
-                    + ", ".join(repr(value) for value in omitted)
-                    + "。仅当这些信息确实可舍弃时才应接受该结果。"
-                ),
-            }
-        )
+        omitted_text = ", ".join(repr(value) for value in omitted)
+        if require_all_data_ids:
+            errors.append(
+                {
+                    "severity": "error",
+                    "code": "browser-fallback-compact-dropped-binding",
+                    "message": (
+                        "紧凑组件替换阶段不得删除信息，但本次提交省略了数据绑定："
+                        + omitted_text
+                        + "。请通过更换组件或重组布局保留这些 dataIds。"
+                    ),
+                    "details": {"removedDataIds": omitted},
+                }
+            )
+        else:
+            warnings.append(
+                {
+                    "severity": "warning",
+                    "code": "browser-repair-dropped-binding",
+                    "message": (
+                        "浏览器布局修复省略了此前展示的数据绑定："
+                        + omitted_text
+                        + "。仅当这些信息确实可舍弃时才应接受该结果。"
+                    ),
+                }
+            )
     return errors, warnings
+
+
+def _removed_business_components(
+    baseline: CompiledSubmission, candidate: CompiledSubmission,
+) -> list[dict[str, Any]]:
+    """Compare display facts, not tag/Stack counts, across a frozen fallback.
+
+    Bindings survive component substitutions and item regrouping. Unbound text
+    is matched literally (ignoring whitespace) so concatenating preserved text
+    is not mistaken for deletion. A multi-field component counts only once.
+    This checks retention, not whether an omitted fact was optional to the user.
+    """
+    def components(submission: CompiledSubmission) -> list[JSXElement]:
+        cards = extract_card_functions(submission.source)
+        return [node for node in _walk(cards[next(iter(cards))]) if node.tag in BINDABLE_PROPS]
+
+    def static_texts(node: JSXElement) -> set[str]:
+        values = [value for _, value in _unbound_display_values(node)]
+        # Labels have no binding slot but are part of visible static content.
+        values.extend(node.props.get(name) for name in ("label", "supportingText"))
+        values.extend(item.get("label") for item in (node.props.get("items") or [])
+                      if isinstance(item, dict))
+        return {re.sub(r"\s+", "", str(value)) for value in values
+                if isinstance(value, (str, int, float)) and not isinstance(value, bool)
+                and str(value).strip()}
+
+    candidate_nodes = components(candidate)
+    candidate_data = set().union(*(_referenced_binding_ids(node)[0] for node in candidate_nodes))
+    candidate_text = set().union(*(static_texts(node) for node in candidate_nodes))
+
+    def retained(value: str) -> bool:
+        # Concatenated static text is allowed, but 8 must not match 18 or 8.5.
+        pattern = (r"(?<![\d.])" if value[0].isdigit() else "") + re.escape(value)
+        if value[-1].isdigit():
+            pattern += r"(?![\d.])"
+        return any(re.search(pattern, text) for text in candidate_text)
+
+    removed = []
+    for index, node in enumerate(components(baseline)):
+        data_ids, _ = _referenced_binding_ids(node)
+        missing_data = sorted(data_ids - candidate_data)
+        # Bound component labels may legitimately change when choosing another
+        # semantic component. The source IDs, not their sample text, identify it.
+        missing_text = [] if data_ids else sorted(
+            value for value in static_texts(node)
+            if not retained(value)
+        )
+        if missing_data or missing_text:
+            removed.append({"component": node.tag, "index": index,
+                            "missingDataIds": missing_data, "missingStaticText": missing_text})
+    return removed
 
 
 class LayoutBudgetError(ValidationError):
@@ -320,6 +415,10 @@ def _validate_conversion_preflight(root: JSXElement) -> None:
 def _canonical_layout_pattern(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
+    normalized = re.sub(r"[\s·:：]+", "", value).casefold()
+    for name, code in (*LAYOUT_PATTERN_2X2_CODES.items(), *LAYOUT_PATTERN_2X4_CODES.items()):
+        if re.sub(r"[\s·:：]+", "", name).casefold() == normalized:
+            return code
     lowered = value.lower()
     match = re.search(r"type\s*[-_ ]?\s*(\d+)(?:\s*[-_ ]\s*([abcr])\b)?", lowered)
     if not match:
@@ -328,6 +427,104 @@ def _canonical_layout_pattern(value: object) -> str | None:
     variant = re.search(r"variant\s*[-_ ]?\s*([abc])", lowered)
     suffix = suffix or (variant.group(1) if variant else None)
     return f"{int(number)}-{suffix.upper()}" if suffix else str(int(number))
+
+
+def _canonical_sub_pattern(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized = re.sub(r"[\s·:：]+", "", value).casefold()
+    for name in SUB_PATTERN_2X4_NAMES:
+        if re.sub(r"[\s·:：]+", "", name).casefold() == normalized:
+            return name
+    return None
+
+
+def _validate_sub_pattern_decision(
+    decision: dict[str, Any],
+    size: object,
+    pattern: str | None,
+) -> list[str]:
+    if size == "2x2":
+        if "subPattern" in decision:
+            return ["2x2 decision must not include subPattern"]
+        return []
+    if size != "2x4":
+        return []
+    if "subPattern" not in decision:
+        raw_layout = decision.get("layoutPattern")
+        normalized_layout = (
+            re.sub(r"[\s·:：]+", "", raw_layout).casefold()
+            if isinstance(raw_layout, str)
+            else ""
+        )
+        public_layout_names = {
+            re.sub(r"[\s·:：]+", "", name).casefold()
+            for name in LAYOUT_PATTERN_2X4_NAMES
+        }
+        # Historical Type labels remain accepted by direct Python callers so
+        # old saved traces and integrations can still be replayed. The live
+        # 2x4 tool schema only exposes public names and requires subPattern.
+        if normalized_layout not in public_layout_names:
+            return []
+        return ["2x4 decision.subPattern is required"]
+    sub_pattern = decision.get("subPattern")
+    if not isinstance(sub_pattern, dict):
+        return ["2x4 decision.subPattern must be an object keyed by layout region"]
+
+    if pattern == "13":
+        expected_regions = {"left", "right"}
+        required_group = None
+    elif pattern == "15":
+        expected_regions = {"content"}
+        required_group = "140"
+    elif pattern in {"12", "14"}:
+        expected_regions = set()
+        required_group = None
+    else:
+        return []
+
+    actual_regions = set(sub_pattern)
+    if actual_regions != expected_regions:
+        rendered = ", ".join(sorted(expected_regions)) or "no region keys"
+        return [
+            f'2x4 layoutPattern requires subPattern with exactly {rendered}; '
+            f"received {sorted(actual_regions)}"
+        ]
+
+    errors: list[str] = []
+    canonical_by_region: dict[str, str] = {}
+    for region, raw_name in sub_pattern.items():
+        name = _canonical_sub_pattern(raw_name)
+        if name is None:
+            errors.append(f'decision.subPattern.{region} must name a documented Sub layout')
+            continue
+        canonical_by_region[region] = name
+        if required_group is not None and SUB_PATTERN_2X4_GROUPS[name] != required_group:
+            errors.append(
+                f'decision.subPattern.{region} must use a Sub-{required_group} layout for '
+                "the selected top-level layoutPattern"
+            )
+    if pattern == "13" and len(canonical_by_region) == 2:
+        wide_regions = {
+            region
+            for region, name in canonical_by_region.items()
+            if SUB_PATTERN_2X4_GROUPS[name] == "140"
+        }
+        invalid_wide = {
+            canonical_by_region[region]
+            for region in wide_regions
+            if canonical_by_region[region] not in TYPE13_WIDE_SUB_PATTERNS
+        }
+        if invalid_wide:
+            errors.append(
+                '2x4 layout "左右双区" only allows Sub-140-D, Sub-140-E or '
+                "Sub-140-H as its wide no-backplate side"
+            )
+        if len(wide_regions) > 1:
+            errors.append(
+                '2x4 layout "左右双区" allows at most one Sub-140 no-backplate side'
+            )
+    return errors
 
 
 def _validate_layout_decision(
@@ -340,24 +537,41 @@ def _validate_layout_decision(
     errors: list[str] = []
     pattern = _canonical_layout_pattern(decision.get("layoutPattern"))
     if pattern is None:
-        errors.append("decision.layoutPattern must name a documented Type layout")
+        errors.append("decision.layoutPattern must name a documented layout")
     size = expected_size or root.props.get("size")
     if size == "2x2":
         if pattern is not None and pattern not in TOP_LEVEL_2X2_TYPES:
-            errors.append(
-                "2x2 top-level Type must be 0, 1, 2, 3, 6, 10-A, 10-B, "
-                "10-C, 11-A, 12, 14 or 15"
-            )
+            errors.append("2x2 decision.layoutPattern must use a documented 2x2 layout name")
         errors.extend(declared_2x2_layout_errors(root, pattern))
     if size == "2x4":
         if pattern is not None and pattern not in TOP_LEVEL_2X4_TYPES:
-            errors.append("2x4 top-level Type must be 12, 13, 14, 15, 15-R or 17")
-        errors.extend(declared_layout_errors(root, pattern))
+            errors.append("2x4 decision.layoutPattern must use a documented 2x4 top-level layout name")
+        sub_pattern_errors = _validate_sub_pattern_decision(decision, size, pattern)
+        errors.extend(sub_pattern_errors)
+        if not sub_pattern_errors and isinstance(decision.get("subPattern"), dict):
+            errors.extend(sub_pattern_composition_errors(root, pattern, {
+                region: _canonical_sub_pattern(name)
+                for region, name in decision["subPattern"].items()
+            }))
+        type13_wide_regions: frozenset[str] = frozenset()
+        if pattern == "13" and isinstance(decision.get("subPattern"), dict):
+            type13_wide_regions = frozenset(
+                region
+                for region, raw_name in decision["subPattern"].items()
+                if _canonical_sub_pattern(raw_name) in TYPE13_WIDE_SUB_PATTERNS
+            )
+        errors.extend(
+            declared_layout_errors(
+                root,
+                pattern,
+                type13_wide_regions=type13_wide_regions,
+            )
+        )
+    else:
+        errors.extend(_validate_sub_pattern_decision(decision, size, pattern))
     appearance = root.props.get("appearance")
     if appearance == "type0-gradient" and pattern != "0":
-        errors.append("Card appearance='type0-gradient' may only be used with layout Type 0")
-    if pattern == "0" and appearance != "type0-gradient":
-        errors.append("layout Type 0 must use Card appearance='type0-gradient'")
+        errors.append("Card appearance='type0-gradient' may only be used with layout \"核心居中\"")
     if errors:
         raise ValidationError("; ".join(dict.fromkeys(errors)))
 
@@ -467,7 +681,6 @@ _INTRINSIC_HEIGHTS = {
     "DataDisplay": 114,
     "EmphasizedData": 38,
     "ProgressLine1": 25,
-    "ProgressCircleSingle": 52,
     "NumericRatio": 16,
     "ChecklistItem": 48,
     "PillButton": 36,
@@ -483,6 +696,7 @@ _INTRINSIC_HEIGHTS = {
 _LAYOUT_VISUAL_TOLERANCE = 1.5
 
 _PROGRESS_CIRCLE_SINGLE_RING_WIDTH = 52
+_PROGRESS_CIRCLE_SINGLE_COMPACT_RING_WIDTH = 44
 _PROGRESS_CIRCLE_SINGLE_CONTENT_GAP = 8
 _PROGRESS_CIRCLE_SINGLE_MIN_TEXT_SLOT = 14
 _PROGRESS_CIRCLE_SINGLE_MIN_WIDTH = (
@@ -513,7 +727,6 @@ def _validate_action_slot_compatibility(
 ) -> None:
     """Reject action components placed in a slot for another button family."""
     issues: list[str] = []
-    pill_buttons = [node for node in _walk(root) if node.tag == "PillButton"]
     pattern = _canonical_layout_pattern((decision or {}).get("layoutPattern"))
     size = expected_size or root.props.get("size")
     is_type_zero = pattern == "0" or root.props.get("appearance") == "type0-gradient"
@@ -526,7 +739,7 @@ def _validate_action_slot_compatibility(
         if len(business_components) != 1:
             rendered = ", ".join(business_components) or "none"
             issues.append(
-                "2x2 layout Type 0 must contain exactly one business component "
+                '2x2 layout "核心居中" must contain exactly one business component '
                 "and cannot add a title, button, or parallel module; found: "
                 + rendered
             )
@@ -550,20 +763,9 @@ def _validate_action_slot_compatibility(
             advisory_issues.append((
                 "info-block-appearance-risk",
                 f"InfoBlock on '{appearance}' may have low-contrast translucent backplates "
-                "or default white icons/progress rings when present; "
+                "depending on the selected theme and content; "
                 "appearance compatibility is advisory only, not a submission error.",
             ))
-    for ratio_stack in (node for node in _walk(root) if node.tag == "NumericRatioStack"):
-        items = ratio_stack.props.get("items")
-        if isinstance(items, list) and len(items) != 3:
-            issues.append("NumericRatioStack.items must contain exactly three items")
-    if size == "2x2" and pattern in {"11-A", "14"} and pill_buttons:
-        issues.append(
-            f"2x2 layout Type {pattern} only provides a CircleButton action slot and "
-            "cannot contain PillButton; select Type 10-A, Type 10-B, Type 10-C, "
-            "Type 12, or Type 15 "
-            "for a full-width PillButton"
-        )
 
     def is_card_button_slot(node: JSXElement) -> bool:
         if node.tag == "CardButton":
@@ -593,14 +795,14 @@ def _validate_action_slot_compatibility(
                     for axis in ("rowGap", "columnGap"):
                         gap = _number(container.props.get(axis, container.props.get("gap", 0)))
                         if gap is not None and gap != 8:
-                            issues.append(f"Type 14 {axis} must be 8vp; found {_vp(gap)}vp")
+                            issues.append(f'2x4 layout "四槽宫格" {axis} must be 8vp; found {_vp(gap)}vp')
             elif (
                 sum(is_card_button_slot(child) for child in children) >= 2
                 and container.tag in {"Card", "Stack"}
                 and container.props.get("direction", "column") == "row"
             ):
                 issues.append(
-                    "outside the documented Type 14 Grid, 2x4 CardButton actions must "
+                    'outside the documented "四槽宫格" Grid, 2x4 CardButton actions must '
                     "be stacked vertically; a single horizontal row is not allowed"
                 )
     for node in _walk(root):
@@ -622,7 +824,9 @@ def _validate_action_slot_compatibility(
 def _validate_progress_line_theme(root: JSXElement) -> None:
     """Keep generated progress components aligned with the Card background."""
     appearance = root.props.get("appearance")
-    dark_surface = isinstance(appearance, str) and appearance.endswith("-gradient")
+    dark_surface = root.props.get("size") != "2x4" and isinstance(appearance, str) and (
+        appearance.startswith("orb-") or appearance.endswith("-gradient")
+    )
     issues: list[str] = []
     for node in _walk(root):
         if node.tag not in {"ProgressLine2", "H_BarChart"}:
@@ -631,7 +835,7 @@ def _validate_progress_line_theme(root: JSXElement) -> None:
         expected_mode = "dark" if dark_surface else "light"
         if mode != expected_mode:
             issues.append(
-                f"{node.tag} on a {'*-gradient' if dark_surface else '*-soft'} Card must use mode='{expected_mode}'"
+                f"{node.tag} on a {'dark' if dark_surface else 'light'} Card must use mode='{expected_mode}'"
             )
     if issues:
         raise ValidationError("; ".join(dict.fromkeys(issues)))
@@ -645,8 +849,21 @@ def _numeric_basis(node: JSXElement) -> float | None:
     return _number(node.props.get("basis"))
 
 
+def _effective_min_height(node: JSXElement) -> float | None:
+    explicit = _number(node.props.get("minHeight"))
+    if explicit is not None:
+        return explicit
+    if _number(node.props.get("flex")) == 1:
+        return 0
+    if node.tag == "Stack" and any(
+        child.tag == "TextBlock" for child in node.child_elements()
+    ):
+        return 0
+    return None
+
+
 def _height_lower_bound(node: JSXElement, value: float) -> float:
-    return max(value, _number(node.props.get("minHeight")) or 0)
+    return max(value, _effective_min_height(node) or 0)
 
 
 def _vertical_padding(node: JSXElement) -> float:
@@ -737,17 +954,19 @@ def _minimum_height(node: JSXElement) -> float:
         return _height_lower_bound(node, 18)
     if node.tag == "DoubleLineTitle":
         return _height_lower_bound(node, 40)
-    if node.tag == "Summary":
-        return _height_lower_bound(node, 14)
     if node.tag == "SecondaryBody":
-        return _height_lower_bound(node, 19)
+        items = node.props.get("items")
+        count = len(items) if isinstance(items, list) else 1
+        rows = math.ceil(count / 2)
+        return _height_lower_bound(node, 16 * rows + 2 * (rows - 1) if count > 2 else 19)
     if node.tag == "EmphasisText":
         return _height_lower_bound(
             node,
-            27 + (16 if node.props.get("secondaryText") is not None else 0),
+            20 + (2 if node.props.get("secondaryText") == "" else 18
+                  if node.props.get("secondaryText") is not None else 0),
         )
     if node.tag == "ProgressLine2":
-        return _height_lower_bound(node, 54)
+        return _height_lower_bound(node, 56)
     if node.tag == "TableText":
         items = node.props.get("items")
         count = len(items) if isinstance(items, list) else 0
@@ -763,18 +982,19 @@ def _minimum_height(node: JSXElement) -> float:
     if node.tag == "ProgressCircle":
         diameter = 96 if node.props.get("size", "sm") == "md" else 44
         return _height_lower_bound(node, diameter + 2 + 14)
-    if node.tag == "NumericRatioStack":
-        items = node.props.get("items")
-        if isinstance(items, list):
+    if node.tag == "ProgressCircleSingle":
+        if node.props.get("size") == "compact":
             return _height_lower_bound(
                 node,
-                len(items) * 16 + max(0, len(items) - 1) * 4,
+                46 if node.props.get("secondaryLabel") is not None else 44,
             )
-        return _height_lower_bound(node, 0)
+        return _height_lower_bound(node, 52)
     if node.tag == "EventCard":
+        if node.props.get("density") == "compact":
+            return _height_lower_bound(node, 32)
         return _height_lower_bound(
             node,
-            18 + 4 + 16 + (16 if node.props.get("location") is not None else 0),
+            18 + 16 + (16 if node.props.get("location") is not None else 0),
         )
     intrinsic = _INTRINSIC_HEIGHTS.get(node.tag)
     if intrinsic is not None:
@@ -1197,7 +1417,7 @@ def _validate_vertical_container(
     advisory_issues: list[str] | None = None,
 ) -> None:
     explicit = _explicit_height(node)
-    minimum = _number(node.props.get("minHeight"))
+    minimum = _effective_min_height(node)
     declared = max(explicit or 0, minimum or 0) if explicit is not None or minimum is not None else None
     if declared is not None and declared > available + 1e-9:
         issues.append(_vertical_overflow_message(path, declared, available))
@@ -1367,7 +1587,7 @@ def _validate_vertical_container(
         if child.props.get("height") == "full":
             reservation = inner
         elif basis is not None:
-            reservation = max(basis, _number(child.props.get("minHeight")) or 0)
+            reservation = max(basis, _effective_min_height(child) or 0)
         elif _number(child.props.get("flex")) == 0:
             reservation = _non_shrinking_auto_height(child)
         else:
@@ -1412,7 +1632,7 @@ def _validate_vertical_container(
         bool(flex_children)
         and (node.tag == "Card" or _explicit_height(node) is not None)
         and all(
-            _number(child.props.get("minHeight")) == 0
+            _effective_min_height(child) == 0
             and child.props.get("height") is None
             for _, child, _ in flex_children
         )
@@ -1567,7 +1787,16 @@ def _minimum_width(
     if node.tag == "ProgressCircleSingle":
         # The required label needs one contract-defined 14vp text slot in
         # addition to the fixed ring and gap. Longer text remains advisory.
-        intrinsic = _PROGRESS_CIRCLE_SINGLE_MIN_WIDTH
+        ring_width = (
+            _PROGRESS_CIRCLE_SINGLE_COMPACT_RING_WIDTH
+            if node.props.get("size") == "compact"
+            else _PROGRESS_CIRCLE_SINGLE_RING_WIDTH
+        )
+        intrinsic = (
+            ring_width
+            + _PROGRESS_CIRCLE_SINGLE_CONTENT_GAP
+            + _PROGRESS_CIRCLE_SINGLE_MIN_TEXT_SLOT
+        )
     if node.tag == "ProgressCircle":
         intrinsic = 96 if node.props.get("size", "sm") == "md" else 44
     own_minimum = max(declared, intrinsic)
@@ -1673,6 +1902,8 @@ def _estimated_text_component_height(
         )
         return _height_lower_bound(node, lines * 38)
     if node.tag == "EventCard":
+        if node.props.get("density") == "compact":
+            return _height_lower_bound(node, 32)
         content_width = max(1, available_width - 15)
         lines = _estimated_wrapped_lines(
             node.props.get("title"),
@@ -1680,25 +1911,37 @@ def _estimated_text_component_height(
             content_width,
         )
         lines = min(2, lines)
-        height = lines * 18 + 4 + 16
+        height = lines * 18 + 16
         if node.props.get("location") is not None:
             height += 16
         return _height_lower_bound(node, height)
-    if node.tag == "Summary":
-        line_height = 12 if node.props.get("density") == "tight" else 14
-        lines = _estimated_wrapped_lines(
-            _segmented_text(node, "content"),
-            10,
-            available_width,
-        )
-        return _height_lower_bound(node, lines * line_height)
     if node.tag == "SecondaryBody":
-        lines = _estimated_wrapped_lines(
-            _segmented_text(node, "body"),
-            14,
-            available_width,
-        )
-        return _height_lower_bound(node, lines * 19)
+        items = node.props.get("items")
+        if not isinstance(items, list):
+            return _height_lower_bound(node, 19)
+        # JSX chooses whole-field groups using 14px measurements, then uses
+        # 12px typography if multiple groups or an overlong field are present.
+        # Keep this font-dependent estimate advisory, not an A2UI layout plan.
+        fields = [_segmented_text(
+            JSXElement(node.tag, {"items": [item]}, []), "body",
+        ) for item in items]
+        separator = node.props.get("separator", " ｜ ")
+        separator = separator if isinstance(separator, str) else " ｜ "
+        widths = [_estimated_text_width(field, 14) for field in fields]
+        rows: list[str] = []
+        index = 0
+        while index < len(fields):
+            pair_fits = (
+                index + 1 < len(fields)
+                and widths[index] + _estimated_text_width(separator, 14) + widths[index + 1]
+                <= available_width + 0.5
+            )
+            rows.append(separator.join(fields[index:index + 2]) if pair_fits else fields[index])
+            index += 2 if pair_fits else 1
+        multiline = len(items) > 2 or len(rows) > 1 or any(width > available_width + 0.5 for width in widths)
+        font_size, line_height = (12, 16) if multiline else (14, 19)
+        total = sum(_estimated_wrapped_lines(row, font_size, available_width) * line_height for row in rows)
+        return _height_lower_bound(node, total + 2 * max(0, len(rows) - 1))
     return None
 
 
@@ -1796,10 +2039,18 @@ def _progress_circle_single_width_risk_message(
 def _wrapping_text_candidates(node: JSXElement) -> list[tuple[str, object, float]]:
     if node.tag == "DoubleLineTitle":
         return [("secondaryInfo", node.props.get("secondaryInfo"), 12)]
-    if node.tag == "Summary":
-        return [("items" if "items" in node.props else "content", _segmented_text(node, "content"), 10)]
     if node.tag == "SecondaryBody":
-        return [("items" if "items" in node.props else "body", _segmented_text(node, "body"), 14)]
+        items = node.props.get("items")
+        if not isinstance(items, list):
+            return []
+        font_size = 12 if len(items) > 2 else 14
+        return [
+            (f"items[{index}:{index + 2}]", _segmented_text(
+                JSXElement(node.tag, {**node.props, "items": items[index:index + 2]}, []),
+                "body",
+            ), font_size)
+            for index in range(0, len(items), 2)
+        ]
     if node.tag == "EventCard":
         return [("title", node.props.get("title"), 14)]
     if node.tag == "EmphasisText":
@@ -1818,10 +2069,12 @@ def _estimated_row_text_width(node: JSXElement) -> float | None:
         )
     if node.tag == "EmphasizedData":
         return _emphasized_data_width(node)
-    if node.tag == "Summary":
-        return _estimated_text_width(_segmented_text(node, "content"), 10)
     if node.tag == "SecondaryBody":
-        return _estimated_text_width(_segmented_text(node, "body"), 14)
+        return max(
+            (_estimated_text_width(value, font_size)
+             for _, value, font_size in _wrapping_text_candidates(node)),
+            default=0,
+        )
     if node.tag != "Stack":
         return None
     children = [
@@ -2195,9 +2448,9 @@ def _validate_metric_semantics(
 ) -> None:
     semantic_issues: list[str] = []
     for node in _walk(root):
-        if node.tag not in {"Summary", "SecondaryBody"}:
+        if node.tag != "SecondaryBody":
             continue
-        prop = "content" if node.tag == "Summary" else "body"
+        prop = "body"
         items = node.props.get("items")
         if items is not None:
             if prop in node.props:
@@ -2412,7 +2665,7 @@ def _validate_status_unit_semantics(
                     "status-unit-risk",
                     f"<{node.tag}> {where}unit binds {binding.id!r}; both its identifier and "
                     "description suggest status text rather than a measurement unit. Confirm "
-                    "whether Summary or SecondaryBody would express it more clearly.",
+                    "whether SecondaryBody or TableText would express it more clearly.",
                 )
             )
         elif identifier_match or description_match:
@@ -2541,6 +2794,81 @@ def _validate_interactions_and_invented_numbers(
                 )
     if issues:
         raise ValidationError("; ".join(dict.fromkeys(issues)))
+
+
+def _prompt_action_ids(prompt_task: dict[str, Any] | None) -> set[str]:
+    if not isinstance(prompt_task, dict):
+        return set()
+    actions = prompt_task.get("actions")
+    if not isinstance(actions, list):
+        return set()
+    return {
+        action_id
+        for action in actions
+        if isinstance(action, dict)
+        and isinstance((action_id := action.get("id")), str)
+        and action_id
+    }
+
+
+def _validate_required_action_coverage(
+    root: JSXElement,
+    prompt_task: dict[str, Any] | None,
+    decision: dict[str, Any] | None,
+    expected_size: str | None,
+) -> None:
+    """Require every model-visible task Action and a matching declared layout."""
+    required_actions = _prompt_action_ids(prompt_task)
+    issues: list[str] = []
+    pattern = _canonical_layout_pattern((decision or {}).get("layoutPattern"))
+
+    # This is deliberately narrow: Sub-118-B is the title + one-content
+    # skeleton and has no Action slot.  When the JSX region itself contains a
+    # PillButton, the decision and the rendered structure disagree even if the
+    # browser happens to find enough pixels and reports no overflow.
+    sub_pattern = (decision or {}).get("subPattern")
+    regions = root.child_elements()
+    if (
+        expected_size == "2x4"
+        and pattern == "13"
+        and isinstance(sub_pattern, dict)
+        and len(regions) == 2
+    ):
+        for region_name, region_node in zip(("left", "right"), regions):
+            declared_sub_pattern = _canonical_sub_pattern(sub_pattern.get(region_name))
+            if declared_sub_pattern != "Sub-118-B 标题单内容":
+                continue
+            if any(node.tag == "PillButton" for node in _walk(region_node)):
+                issues.append(
+                    f'decision.subPattern.{region_name} declares "Sub-118-B 标题单内容", '
+                    "which has no Action slot, but the corresponding JSX region contains "
+                    'PillButton; use "Sub-118-D 标题内容单按钮" and keep the button in its '
+                    "separate bottom slot"
+                )
+
+    if expected_size == "2x4" and pattern == "12":
+        if required_actions:
+            issues.append(
+                '2x4 layout "上下双区" does not support Action, but the task requires '
+                f"actionIds {sorted(required_actions)!r}; choose an Action-capable layout"
+            )
+
+    used_actions = {
+        action_id
+        for node in _walk(root)
+        if node.tag in {"PillButton", "CircleButton", "CardButton"}
+        and isinstance((action_id := node.props.get("actionId")), str)
+        and action_id
+    }
+    missing_actions = sorted(required_actions - used_actions)
+    if missing_actions:
+        issues.append(
+            "required input actionIds are missing from the generated card: "
+            + ", ".join(repr(value) for value in missing_actions)
+            + "; assign each Action to one legal button slot instead of listing it in unmetRequirements"
+        )
+    if issues:
+        raise ValidationError("; ".join(issues))
 
 
 def _referenced_binding_ids(root: JSXElement) -> tuple[set[str], set[str]]:
@@ -2745,6 +3073,14 @@ def _validation_finding(exc: ConversionError) -> dict[str, str]:
     }
 
 
+def _is_empty_data_id_finding(message: str) -> bool:
+    """Return whether a binding finding only rejects an empty/invalid dataIds value."""
+    return " dataIds." in message and (
+        "must be a non-empty string" in message
+        or "contains an empty data ID" in message
+    )
+
+
 class OrderedWorkflowState:
     def __init__(
         self,
@@ -2757,6 +3093,8 @@ class OrderedWorkflowState:
         validate_layout_budget: bool = True,
         validation_enabled: bool = True,
         validate_dynamic_values: bool = True,
+        validate_non_empty_data_ids: bool = True,
+        enable_dynamic_data_binding: bool = True,
     ) -> None:
         if not re.fullmatch(r"Card[A-Za-z0-9_$]+", component_name):
             raise ValueError("component_name must match Card[A-Za-z0-9_$]+")
@@ -2777,6 +3115,12 @@ class OrderedWorkflowState:
         self.defer_browser_validation = defer_browser_validation and validation_enabled
         self.validate_layout_budget = validate_layout_budget and validation_enabled
         self.validate_dynamic_values = validate_dynamic_values
+        self.validate_non_empty_data_ids = (
+            validate_non_empty_data_ids and validation_enabled
+        )
+        self.enable_dynamic_data_binding = enable_dynamic_data_binding
+        self.required_layout_fallback: str | None = None
+        self.active_layout_fallback: str | None = None
 
     @property
     def expected_stage(self):
@@ -2787,7 +3131,7 @@ class OrderedWorkflowState:
     def read_generation_resource(self, key: str) -> dict[str, Any]:
         expected = self.expected_stage
         if expected is None:
-            return {"ok": False, "error": "all resources are loaded; call submit_card_jsx"}
+            return {"ok": False, "error": "all resources are loaded; call submit_card_plan"}
         if key != expected.key:
             return {"ok": False, "error": f"expected resource {expected.key!r}, received {key!r}"}
         source_files = [
@@ -2807,7 +3151,7 @@ class OrderedWorkflowState:
             "ok": True,
             "resource": key,
             "content": content,
-            "next": following.key if following else "submit_card_jsx",
+            "next": following.key if following else "submit_card_plan",
         }
 
     def mark_resources_loaded(self) -> None:
@@ -2826,6 +3170,32 @@ class OrderedWorkflowState:
             )
         self.next_stage_index = len(RESOURCE_STAGES)
 
+    def require_layout_fallback(self, strategy: str) -> None:
+        if strategy not in {"compact_component", "drop_optional_component"}:
+            raise ValueError(f"unsupported layout fallback strategy: {strategy!r}")
+        self.required_layout_fallback = strategy
+
+    def apply_layout_fallback(self, strategy: str) -> dict[str, Any]:
+        expected = self.required_layout_fallback
+        if expected is None:
+            return {
+                "ok": False,
+                "error": "layout fallback is not currently required",
+            }
+        if strategy != expected:
+            return {
+                "ok": False,
+                "error": f"expected layout fallback strategy {expected!r}, received {strategy!r}",
+            }
+        self.required_layout_fallback = None
+        self.active_layout_fallback = strategy
+        return {
+            "ok": True,
+            "strategy": strategy,
+            "instruction": build_layout_fallback_prompt(strategy),
+            "next": "submit_card_jsx",
+        }
+
     def submit_card_jsx(
         self,
         jsx: str,
@@ -2835,6 +3205,14 @@ class OrderedWorkflowState:
     ) -> dict[str, Any]:
         if self.expected_stage is not None:
             return {"ok": False, "error": f"read {self.expected_stage.key!r} before submitting JSX"}
+        if self.required_layout_fallback is not None:
+            return {
+                "ok": False,
+                "error": (
+                    "call apply_layout_fallback with strategy "
+                    f"{self.required_layout_fallback!r} before submitting JSX"
+                ),
+            }
         try:
             expression = normalize_jsx_expression(jsx)
             source = wrap_card_source(self.component_name, expression)
@@ -2855,13 +3233,14 @@ class OrderedWorkflowState:
         user_query = str((self.prompt_task or {}).get("userQuery") or "")
         try:
             parsed_compile_context = CompileContext.from_payload(self.compile_context)
-            materialize_binding_literals(
-                root,
-                parsed_compile_context,
-                user_query=user_query,
-            )
-            expression = _serialize_jsx(root)
-            source = wrap_card_source(self.component_name, expression)
+            if self.enable_dynamic_data_binding:
+                materialize_binding_literals(
+                    root,
+                    parsed_compile_context,
+                    user_query=user_query,
+                )
+                expression = _serialize_jsx(root)
+                source = wrap_card_source(self.component_name, expression)
         except ConversionError as exc:
             compile_context_error = exc
 
@@ -2887,6 +3266,12 @@ class OrderedWorkflowState:
                     decision,
                     self.expected_card_size,
                     advisory_issues=semantic_warning_messages,
+                ),
+                lambda: _validate_required_action_coverage(
+                    root,
+                    self.prompt_task,
+                    decision,
+                    self.expected_card_size,
                 ),
                 lambda: _validate_progress_line_theme(root),
                 lambda: _validate_layout_decision(root, decision, self.expected_card_size),
@@ -2946,6 +3331,11 @@ class OrderedWorkflowState:
                         node,
                         parsed_compile_context,
                     ):
+                        if (
+                            not self.validate_non_empty_data_ids
+                            and _is_empty_data_id_finding(message)
+                        ):
+                            continue
                         add_finding(ValidationError(message))
 
         if compile_context_error is not None:
@@ -2992,6 +3382,8 @@ class OrderedWorkflowState:
                 source,
                 card=self.component_name,
                 compile_contexts={self.component_name: parsed_compile_context},
+                user_query=user_query,
+                enable_dynamic_data_binding=self.enable_dynamic_data_binding,
             )[self.component_name]
         except ConversionError as exc:
             retryable = _error_retryable(exc)
@@ -3045,76 +3437,261 @@ class OrderedWorkflowState:
         self.pending_submission = None
 
 
-AGENT_TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "read_generation_resource",
-            "description": "Read the next required card-generation resource in the enforced order.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "enum": [stage.key for stage in RESOURCE_STAGES],
-                    }
-                },
-                "required": ["name"],
-                "additionalProperties": False,
-            },
+def _decision_schema(card_size: str | None = None) -> dict[str, Any]:
+    if card_size == "2x2":
+        layout_names = list(LAYOUT_PATTERN_2X2_NAMES)
+    elif card_size == "2x4":
+        layout_names = list(LAYOUT_PATTERN_2X4_NAMES)
+    else:
+        layout_names = [*LAYOUT_PATTERN_2X2_NAMES, *LAYOUT_PATTERN_2X4_NAMES]
+
+    properties: dict[str, Any] = {
+        "layoutPattern": {
+            "type": "string",
+            "enum": layout_names,
+            "description": "从当前尺寸的 layout_patterns 资源中选择一个顶层布局名称。",
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "submit_card_jsx",
+    }
+    required = ["layoutPattern"]
+    if card_size != "2x2":
+        sub_118_value = {
+            "type": "string",
+            "enum": [
+                name for name in SUB_PATTERN_2X4_NAMES
+                if SUB_PATTERN_2X4_GROUPS[name] == "118"
+            ],
+        }
+        sub_140_value = {
+            "type": "string",
+            "enum": [
+                name for name in SUB_PATTERN_2X4_NAMES
+                if SUB_PATTERN_2X4_GROUPS[name] == "140"
+            ],
+        }
+        type13_region_value = {
+            "type": "string",
+            "enum": [
+                *sub_118_value["enum"],
+                *sorted(TYPE13_WIDE_SUB_PATTERNS),
+            ],
             "description": (
-                "Submit one declarative <Card> JSX expression. It must pass syntax, component, "
-                "resource, interaction-reference, and layout validation."
+                "左右双区通常选择 Sub-118；仅一侧可选择文档允许的 "
+                "Sub-140-D、Sub-140-E 或 Sub-140-H 无背板变体。"
             ),
+        }
+        properties["subPattern"] = {
+            "type": "object",
+            "description": (
+                "2x4 父内容区的子布局定位。左右双区填写 left 和 right；"
+                "左内容右侧双槽填写 content；上下双区和四槽宫格填写空对象。"
+            ),
+            "properties": {
+                "left": type13_region_value,
+                "right": type13_region_value,
+                "content": sub_140_value,
+            },
+            "additionalProperties": False,
+        }
+        if card_size == "2x4":
+            required.append("subPattern")
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": required,
+        "additionalProperties": False,
+    }
+
+
+def _plan_layout_option_schema(card_size: str | None = None) -> dict[str, Any]:
+    schema = _decision_schema(card_size)
+    decision_properties = schema["properties"]
+    properties = {
+        "content": {
+            "type": "string",
+            "description": (
+                "先按父区域列出最终使用的业务组件实例，并逐区明确内容组件数、"
+                "单内容或双内容、是否有局部标题、Action 数量及是否有按钮；"
+                "Stack 和业务组件内部结构不计入内容组件数。"
+            ),
+        },
+        "layoutPattern": decision_properties["layoutPattern"],
+    }
+    if "subPattern" in decision_properties:
+        properties["subPattern"] = decision_properties["subPattern"]
+    return {
+        **schema,
+        "description": "一套布局方案；整个对象控制在 512 tokens 内。",
+        "properties": properties,
+        "required": ["content", *schema["required"]],
+    }
+
+
+def build_plan_tool(card_size: str | None = None) -> dict[str, Any]:
+    option_schema = _plan_layout_option_schema(card_size)
+    return {
+        "type": "function",
+        "function": {
+            "name": "submit_card_plan",
+            "description": "提交必须展示的信息和最多两套简短布局方案。",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "jsx": {"type": "string"},
-                    "decision": {
-                        "type": "object",
-                        "properties": {
-                            "layoutPattern": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": (
-                                    "从当前 layout_patterns 资源中选择的布局名称，"
-                                    "例如 Type 1、Type 10-A、Type 11-A。不得自定义布局名称。"
-                                ),
-                            },
-                        },
-                        "required": ["layoutPattern"],
-                        "additionalProperties": True,
+                    "info_required": {
+                        "type": "string",
+                        "description": (
+                            "按照 info_process 规则列出必须展示的信息、真实 dataId 和 actionId；"
+                            "控制在 512 tokens 内。"
+                        ),
                     },
-                    "coverage": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "requirement": {"type": "string"},
-                            },
-                            "required": ["requirement"],
-                            "additionalProperties": False,
-                        },
-                    },
-                    "unmetRequirements": {"type": "array", "items": {"type": "string"}},
+                    "layout_optionA": option_schema,
+                    "layout_optionB": option_schema,
                 },
-                "required": ["jsx", "decision"],
+                "required": ["info_required", "layout_optionA"],
                 "additionalProperties": False,
             },
         },
-    },
-]
+    }
+
+
+def validate_plan_arguments(
+    arguments: dict[str, Any],
+    card_size: str | None,
+    prompt_task: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    info_required = arguments.get("info_required")
+    option_a = arguments.get("layout_optionA")
+    option_b = arguments.get("layout_optionB")
+    required_actions = _prompt_action_ids(prompt_task)
+    if not isinstance(info_required, str) or not info_required.strip():
+        return {"ok": False, "error": "info_required must be a non-empty string"}
+    if not isinstance(option_a, dict):
+        return {"ok": False, "error": "layout_optionA must be an object"}
+    for name, option in (("layout_optionA", option_a), ("layout_optionB", option_b)):
+        if option is None:
+            continue
+        if not isinstance(option, dict):
+            return {"ok": False, "error": f"{name} must be an object"}
+        if not isinstance(option.get("layoutPattern"), str) or not option["layoutPattern"].strip():
+            return {"ok": False, "error": f"{name}.layoutPattern must be a non-empty string"}
+        if not isinstance(option.get("content"), str) or not option["content"].strip():
+            return {"ok": False, "error": f"{name}.content must be a non-empty string"}
+        pattern = _canonical_layout_pattern(option.get("layoutPattern"))
+        if card_size == "2x2" and pattern not in TOP_LEVEL_2X2_TYPES:
+            return {
+                "ok": False,
+                "error": f"{name}.layoutPattern must name a documented 2x2 layout",
+            }
+        if card_size == "2x4":
+            if pattern not in TOP_LEVEL_2X4_TYPES:
+                return {
+                    "ok": False,
+                    "error": f"{name}.layoutPattern must name a documented 2x4 layout",
+                }
+            if required_actions and pattern == "12":
+                return {
+                    "ok": False,
+                    "error": (
+                        f'{name} cannot use 2x4 layout "上下双区" because the task '
+                        f"requires actionIds {sorted(required_actions)!r}; choose an Action-capable layout"
+                    ),
+                }
+            sub_errors = _validate_sub_pattern_decision(option, card_size, pattern)
+            if sub_errors:
+                return {"ok": False, "error": f"{name}: {'; '.join(sub_errors)}"}
+    return {"ok": True, "next": "submit_card_jsx"}
+
+
+def build_agent_tools(card_size: str | None = None) -> list[dict[str, Any]]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "read_generation_resource",
+                "description": "Read the next required card-generation resource in the enforced order.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "enum": [stage.key for stage in RESOURCE_STAGES],
+                        }
+                    },
+                    "required": ["name"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        build_plan_tool(card_size),
+        {
+            "type": "function",
+            "function": {
+                "name": "apply_layout_fallback",
+                "description": (
+                    "Enter the layout fallback strategy required by the Runner after repeated "
+                    "browser-layout failures. The tool only changes the repair stage; submit the "
+                    "revised JSX with submit_card_jsx on the following turn."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "strategy": {
+                            "type": "string",
+                            "enum": [
+                                "compact_component",
+                                "drop_optional_component",
+                            ],
+                        }
+                    },
+                    "required": ["strategy"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "submit_card_jsx",
+                "description": (
+                    "Submit one declarative <Card> JSX expression. It must pass syntax, component, "
+                    "resource, interaction-reference, and layout validation."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "decision": _decision_schema(card_size),
+                        "jsx": {"type": "string"},
+                        "coverage": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "requirement": {"type": "string"},
+                                },
+                                "required": ["requirement"],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "unmetRequirements": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["decision", "jsx"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+    ]
+
+
+# Backward-compatible export for callers that inspect the generic tool list.
+# The live agent uses build_agent_tools(task.size) so the model sees only the
+# layout names and decision fields valid for the current card size.
+AGENT_TOOLS = build_agent_tools()
 
 
 def execute_tool(name: str, arguments: dict[str, Any], state: OrderedWorkflowState) -> dict[str, Any]:
     if name == "read_generation_resource":
         return state.read_generation_resource(str(arguments.get("name", "")))
+    if name == "apply_layout_fallback":
+        return state.apply_layout_fallback(str(arguments.get("strategy", "")))
     if name == "submit_card_jsx":
         decision = arguments.get("decision")
         if decision is not None and not isinstance(decision, dict):

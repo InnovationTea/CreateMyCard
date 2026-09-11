@@ -259,7 +259,15 @@ def convert_emphasized_data(
         "flexShrink": 0,
     }
     if unit_height is None:
-        row_styles.update({"flexShrink": 1, "constraintSize": {"maxWidth": "100%"}})
+        # JSX's automatic content minimum protects an atomic number + unit
+        # from a full-width sibling. If every child is non-shrinking, shrinking
+        # just this Row would let its painted contents overlap that sibling.
+        # Keep content-driven/multiline units shrinkable so they can still wrap.
+        can_wrap = any(child.styles.get("flexShrink") != 0 for child in children)
+        row_styles.update({
+            "flexShrink": 1 if can_wrap else 0,
+            "constraintSize": {"maxWidth": "100%"},
+        })
     if wraps_single_raw_text:
         row_styles.update(
             {

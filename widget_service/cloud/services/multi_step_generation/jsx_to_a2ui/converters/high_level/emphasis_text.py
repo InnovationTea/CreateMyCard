@@ -28,7 +28,7 @@ def convert_emphasis_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx.prop(node, "mainText"),
         styles={
             "width": None if ctx.intrinsic_width else "matchParent",
-            "constraintSize": {"minWidth": 0, "minHeight": 27},
+            "constraintSize": {"minWidth": 0, "minHeight": 20},
             "fontSize": 20,
             "fontWeight": 700,
             "fontColor": palette(ctx).primary,
@@ -52,10 +52,15 @@ def convert_emphasis_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 "visibility": _secondary_visibility(secondary_content),
             },
         )
+        # JSX retains the 2vp gap next to an empty (zero-height) paragraph.
+        # A hidden A2UI child does not participate in itemMargin, so put that
+        # spacing on the main line and preserve it across binding updates.
+        main.styles["margin"] = {"bottom": 2}
     return column(
         ctx,
         "emphasis_text",
         [main, secondary],
+        gap=0,
         styles={
             "constraintSize": {"minWidth": 0},
             "flexShrink": 1,

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Convert widget task specs into a generic generation-task format.
 
-The converter intentionally avoids business-specific event and field mappings:
+The converter intentionally avoids business-specific field mappings:
 
-* ``eventCandidates`` becomes ``actions`` while preserving each complete event;
+* ``eventCandidates`` becomes ``actions`` while preserving each complete event
+  in the private compile context; the model-facing view replaces upstream
+  action descriptions with predefined button terms;
 * ``dataModelSchema.data`` becomes a flat ``data`` array whose items contain
   a unique path-derived ``id``, a stable source ``path``, the original
   ``description``, declared or inferred ``type``, and the sample value as
@@ -13,7 +15,8 @@ The converter intentionally avoids business-specific event and field mappings:
   that the model may reference, shortening direct ``resources/base/media``
   children to filenames for model-facing prompts;
 * the top-level semantic ``size`` field is preserved unchanged for layout routing;
-* every data field named ``updatedAt`` is omitted;
+* every data field named ``updatedAt`` and the specific
+  ``healthSport.targetDateText`` field are omitted;
 * a source ``id`` is preserved when present and is not invented when absent.
 
 The input is read completely before the output is written, so using the same
@@ -51,6 +54,25 @@ DEFAULT_INPUT = SKILL_DIR / "data" / "20_tasks_2x2_raw.json"
 DEFAULT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_processed.json"
 DEFAULT_CONTEXT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_compile_context.json"
 RAW_TASK_MARKERS = frozenset({"eventCandidates", "dataModelSchema"})
+
+BUTTON_TERMS = {
+    "event.open.settings.bluetooth": "蓝牙设置",
+    "event.open.health.sport": "开始运动",
+    "event.open.weather": "查看天气",
+    "event.viewCalendarEvent": "查看日程",
+    "event.open.health.sleep": "查看睡眠",
+    "event.enter.meeting": "加入会议",
+    "event.open.settings.battery": "电量设置",
+    "event.startNavigate": "开始导航",
+    "event.open.clock.alarm": "闹钟设置",
+    "event.open.music.daily": "推荐歌单",
+    "event.open.music.favorite": "收藏歌单",
+    "event.open.settings.dnd": "开始专注",
+    "event.setPowerSavingMode": "省电模式",
+    "event.open.settings.parentControl": "应用时长",
+    "event.open.settings.batteryHealth": "电池健康",
+    "event.call.phone": "拨打电话",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +147,7 @@ def _validate_task_size(value: Any, task_label: Any) -> str:
 
 _SUPPORTED_DATA_TYPES = frozenset({"string", "integer", "number", "boolean", "string[]"})
 _SCHEMA_LEAF_KEYS = frozenset({"type", "description", "sampleValue"})
+OMITTED_DATA_PATHS = frozenset({("healthSport", "targetDateText")})
 
 # Display-unit suffixes for upstream API fields whose raw values omit the unit.
 # Keep this keyed by the stable binding ID: descriptions are prose and must not
@@ -234,6 +257,9 @@ def convert_data(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str,
     Container field names are omitted from the result object because ``path``
     records the complete hierarchy. Lists retain their indices in that path.
     """
+    if path in OMITTED_DATA_PATHS:
+        return []
+
     if isinstance(value, list):
         converted: list[dict[str, Any]] = []
         for index, item in enumerate(value):
@@ -460,8 +486,9 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
     prompt_actions = []
     for item in compile_actions:
         prompt_action = {"id": item["id"]}
-        if item.get("description"):
-            prompt_action["description"] = item["description"]
+        button_term = BUTTON_TERMS.get(item["id"])
+        if button_term:
+            prompt_action["description"] = button_term
         prompt_actions.append(prompt_action)
 
     if "icons" in processed and "assetCandidates" not in processed:
@@ -592,7 +619,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "将原始任务拆分为模型输入和私有还原上下文；"
-            "模型输入不包含 path/call/args，私有上下文保留完整绑定和动作参数。"
+            "模型输入不包含 path/call/args/原始动作描述，"
+            "动作描述替换为预定义按钮术语，私有上下文保留完整绑定和动作参数。"
         )
     )
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)

@@ -112,8 +112,7 @@ CONTRACTS = {
     "TextBlock": contract(required=("items",)),
     "EmphasizedData": contract(optional=("unit", "dataIds"), required_one_of=("value", "items")),
     "EmphasisText": contract(required=("mainText", "secondaryText"), optional=("dataIds",)),
-    "SecondaryBody": contract(optional=("separator", "dataIds"), required_one_of=("body", "items")),
-    "Summary": contract(optional=("separator", "dataIds"), required_one_of=("content", "items")),
+    "SecondaryBody": contract(required=("items",), optional=("separator",)),
     "WeatherSummaryCard": contract(
         required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
     ),
@@ -148,7 +147,8 @@ CONTRACTS = {
     ),
     "ProgressCircleSingle": contract(
         required=("value", "icon", "label"),
-        optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds"),
+        optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "size", "trackColor", "barColor", "dataIds"),
+        size=("compact",),
     ),
     "ProgressCircle": contract(
         required=("icon", "externalText"),
@@ -158,7 +158,11 @@ CONTRACTS = {
     "NumericRatio": contract(required=("icon", "value"), optional=("unit", "appearance", "dataIds")),
     "NumericRatioStack": contract(required=("items",), optional=("appearance",)),
     "ChecklistItem": contract(required=("title", "meta"), optional=("done", "dataIds")),
-    "EventCard": contract(required=("title", "time"), optional=("location", "dataIds")),
+    "EventCard": contract(
+        required=("title", "time"),
+        optional=("location", "density", "dataIds"),
+        density=("compact",),
+    ),
     "PillButton": contract(
         required=("label",),
         optional=("icon", "appearance", "disabled", "variant", "color", "actionId"),

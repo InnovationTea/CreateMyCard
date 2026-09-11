@@ -8,27 +8,42 @@ from collections.abc import Callable
 from typing import Any
 
 from .config import MODEL_THINKING_MODE, THINKING_MODES
-from .prompt import build_system_prompt, build_user_prompt
+from .prompt import (
+    build_plan_context,
+    build_plan_prompt,
+    build_system_prompt,
+    build_user_prompt,
+)
+from .resources import GenerationResources
 from .tool_arguments import ToolArgumentError
 from .tool_arguments import parse_tool_arguments as _arguments
 from .validation import (
     browser_layout_fingerprints,
     browser_layout_needs_restructure,
+    browser_overlap_involves_emphasized_data,
+    browser_layout_requires_pattern_change,
     compact_validation_feedback,
     validate_generated_card,
 )
 from .workflow import (
-    AGENT_TOOLS,
     CompiledSubmission,
     OrderedWorkflowState,
     browser_repair_preservation_findings,
+    build_agent_tools,
     execute_tool,
     submission_reference_ids,
     tool_result_message,
+    validate_plan_arguments,
 )
 
 
 SUBMIT_MODES = ("direct", "auto")
+PLAN_MAX_TOKENS = 2048
+LAYOUT_FALLBACK_SUBMISSION_LIMITS = {
+    "compact_component": 2,
+    "drop_optional_component": 3,
+}
+
 MAX_CONSECUTIVE_NO_TOOL_CALLS = 3
 
 
@@ -36,11 +51,19 @@ class MissingToolCallError(RuntimeError):
     """The endpoint repeatedly returned no tool call for the current stage."""
 
 
-def _stage_directive(tool_name: str) -> str | None:
+def _stage_directive(tool_name: str, fallback_strategy: str | None = None) -> str | None:
+    if tool_name == "submit_card_plan":
+        return build_plan_prompt()
     if tool_name == "submit_card_jsx":
         return (
             "当前只允许调用 submit_card_jsx。不要输出普通文本、分析、解释、"
             "推理过程或 Markdown；请立即用紧凑参数调用该工具。"
+        )
+    if tool_name == "apply_layout_fallback" and fallback_strategy is not None:
+        return (
+            "当前只允许调用 apply_layout_fallback。不要输出普通文本、分析、解释、"
+            "推理过程或 Markdown；strategy 必须填写 "
+            f"{fallback_strategy!r}。"
         )
     return None
 
@@ -194,6 +217,12 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "repairLimit",
         "browserFailures",
         "remainingRepairs",
+        "fallbackStage",
+        "fallbackAttempt",
+        "fallbackAttemptLimit",
+        "fallbackRemainingAttempts",
+        "nextFallbackStrategy",
+        "strategy",
         "layoutBudgetFailures",
         "repairStrategy",
         "repeatedFindings",
@@ -314,12 +343,16 @@ class JsxA2UIAgent:
         max_tokens: int | None = None,
         thinking_mode: str = MODEL_THINKING_MODE,
         request_timeout: float = 900.0,
-        max_validation_repairs: int = 5,
+        max_validation_repairs: int = 3,
         browser_validation: bool = False,
         validation_enabled: bool = True,
         layout_budget_validation: bool = True,
         validate_dynamic_values: bool = True,
+        validate_non_empty_data_ids: bool = True,
+        enable_dynamic_data_binding: bool = True,
         submit_mode: str = "direct",
+        plan_max_tokens: int = PLAN_MAX_TOKENS,
+        resources: GenerationResources | None = None,
         verbose: bool = True,
         client: Any | None = None,
     ) -> None:
@@ -369,7 +402,16 @@ class JsxA2UIAgent:
         self.validation_enabled = validation_enabled
         self.layout_budget_validation = layout_budget_validation
         self.validate_dynamic_values = validate_dynamic_values
+        self.validate_non_empty_data_ids = validate_non_empty_data_ids
+        self.enable_dynamic_data_binding = enable_dynamic_data_binding
         self.submit_mode = resolved_submit_mode
+        if not 1 <= plan_max_tokens <= PLAN_MAX_TOKENS:
+            raise ValueError(
+                f"plan_max_tokens must be between 1 and {PLAN_MAX_TOKENS}"
+            )
+        self.plan_enabled = True
+        self.plan_max_tokens = plan_max_tokens
+        self.resources = resources or GenerationResources()
         self.verbose = verbose
         # None means unprobed. The result is cached across tasks in one batch.
         self._deepseek_forced_tool_choice_supported: bool | None = None
@@ -407,12 +449,19 @@ class JsxA2UIAgent:
         )
         state = OrderedWorkflowState(
             component_name,
+            resources=getattr(self, "resources", None) or GenerationResources(),
             compile_context=compile_context,
             prompt_task=task,
             defer_browser_validation=validation_enabled,
             validation_enabled=validation_enabled,
             validate_layout_budget=layout_budget_validation,
             validate_dynamic_values=getattr(self, "validate_dynamic_values", True),
+            validate_non_empty_data_ids=getattr(
+                self,
+                "validate_non_empty_data_ids",
+                True,
+            ),
+            enable_dynamic_data_binding=getattr(self, "enable_dynamic_data_binding", True),
         )
         messages: list[dict[str, Any]] = [
             {
@@ -428,8 +477,15 @@ class JsxA2UIAgent:
         reasoning_trace: list[dict[str, Any]] = []
         turn_trace: list[dict[str, Any]] = []
         validation_reports: list[dict[str, Any]] = []
+        plan: dict[str, Any] | None = None
         failed_submissions = 0
         repair_calls = 0
+        fallback_calls = 0
+        fallback_history: list[str] = []
+        fallback_attempts = {
+            "compact_component": 0,
+            "drop_optional_component": 0,
+        }
         tool_argument_repairs = 0
         protocol_retries = 0
         repair_pending = False
@@ -438,6 +494,9 @@ class JsxA2UIAgent:
         previous_layout_fingerprints: frozenset[str] = frozenset()
         structural_browser_repair = False
         browser_repair_baseline: CompiledSubmission | None = None
+        last_preserved_submission: CompiledSubmission | None = None
+        drop_fallback_baseline: CompiledSubmission | None = None
+        agent_tools = build_agent_tools(task.get("size"))
         started = time.monotonic()
 
         def checkpoint() -> None:
@@ -450,6 +509,7 @@ class JsxA2UIAgent:
                 "reasoning_trace": reasoning_trace,
                 "turn_trace": turn_trace,
                 "validation_reports": validation_reports,
+                "plan": plan,
             })
 
         self._log(
@@ -459,32 +519,52 @@ class JsxA2UIAgent:
             f"submit_mode={submit_mode}，"
             f"validation={'enabled' if validation_enabled else 'disabled'}，"
             f"layout_budget_validation={'enabled' if layout_budget_validation else 'disabled'}，"
-            f"browser_validation={'enabled' if browser_validation else 'disabled'}"
+            f"non_empty_data_id_validation="
+            f"{'enabled' if getattr(self, 'validate_non_empty_data_ids', True) else 'disabled'}，"
+            f"dynamic_data_binding={'enabled' if getattr(self, 'enable_dynamic_data_binding', True) else 'disabled'}，"
+            f"browser_validation={'enabled' if browser_validation else 'disabled'}，"
+            f"plan={'enabled' if getattr(self, 'plan_enabled', False) else 'disabled'}，"
+            f"plan_max_tokens={getattr(self, 'plan_max_tokens', PLAN_MAX_TOKENS)}，"
+            f"browser_fallback_after={self.max_validation_repairs}，"
+            "fallback_submission_limits="
+            f"{LAYOUT_FALLBACK_SUBMISSION_LIMITS}"
         )
 
         last_directive_target: str | None = None
         consecutive_no_tool_calls = 0
         recovery_message_index: int | None = None
         for turn in range(1, self.max_turns + 1):
-            if repair_pending:
-                repair_calls += 1
             expected_target = (
                 state.expected_stage.key
                 if state.expected_stage is not None
+                else "submit_card_plan"
+                if getattr(self, "plan_enabled", False) and plan is None
+                else f"layout_fallback:{state.required_layout_fallback}"
+                if state.required_layout_fallback is not None
                 else "submit_card_jsx"
             )
             expected_tool = (
                 "read_generation_resource"
                 if state.expected_stage is not None
+                else "submit_card_plan"
+                if getattr(self, "plan_enabled", False) and plan is None
+                else "apply_layout_fallback"
+                if state.required_layout_fallback is not None
                 else "submit_card_jsx"
             )
-            directive = _stage_directive(expected_tool) if submit_mode == "direct" else None
+            if repair_pending and expected_tool == "submit_card_jsx":
+                repair_calls += 1
+            directive = (
+                _stage_directive(expected_tool, state.required_layout_fallback)
+                if submit_mode == "direct" or expected_tool == "submit_card_plan"
+                else None
+            )
             if directive is not None and last_directive_target != expected_target:
                 messages.append({"role": "user", "content": directive})
                 last_directive_target = expected_target
             expected_tools = [
                 tool
-                for tool in AGENT_TOOLS
+                for tool in agent_tools
                 if tool["function"]["name"] == expected_tool
             ]
             request: dict[str, Any] = {
@@ -498,27 +578,32 @@ class JsxA2UIAgent:
                 "max_tokens": (
                     self.max_tokens
                     if expected_tool == "submit_card_jsx"
+                    else getattr(self, "plan_max_tokens", PLAN_MAX_TOKENS)
+                    if expected_tool == "submit_card_plan"
                     else min(self.max_tokens, 512)
                 ),
             }
             if expected_tool == "submit_card_jsx" and submit_mode == "auto":
                 request["tool_choice"] = "auto"
+            turn_thinking_mode = (
+                "disable" if expected_tool == "submit_card_plan" else self.thinking_mode
+            )
             if self.provider == "glm":
                 request["extra_body"] = {
                     "thinking": {
-                        "type": "disabled" if self.thinking_mode == "disable" else "enabled"
+                        "type": "disabled" if turn_thinking_mode == "disable" else "enabled"
                     }
                 }
             elif self.provider == "dashscope":
                 request["extra_body"] = {
-                    "enable_thinking": self.thinking_mode != "disable"
+                    "enable_thinking": turn_thinking_mode != "disable"
                 }
-                if self.thinking_mode != "disable":
-                    request["reasoning_effort"] = self.thinking_mode
+                if turn_thinking_mode != "disable":
+                    request["reasoning_effort"] = turn_thinking_mode
             elif self.provider == "deepseek":
                 request["extra_body"] = {
                     "thinking": {
-                        "type": "disabled" if self.thinking_mode == "disable" else "enabled"
+                        "type": "disabled" if turn_thinking_mode == "disable" else "enabled"
                     }
                 }
                 # Resource reads stay on the broadly compatible auto mode. The final
@@ -535,10 +620,10 @@ class JsxA2UIAgent:
                     or forced_support is False
                 ):
                     request["tool_choice"] = "auto"
-                if self.thinking_mode != "disable":
-                    request["reasoning_effort"] = self.thinking_mode
-            elif self.thinking_mode != "disable":
-                request["reasoning_effort"] = self.thinking_mode
+                if turn_thinking_mode != "disable":
+                    request["reasoning_effort"] = turn_thinking_mode
+            elif turn_thinking_mode != "disable":
+                request["reasoning_effort"] = turn_thinking_mode
             requested_tool_choice = _tool_choice_label(request.get("tool_choice"))
             effective_tool_choice = requested_tool_choice
             model_request_attempts = 1
@@ -546,17 +631,17 @@ class JsxA2UIAgent:
             self._log(f"[JSX Agent {turn}/{self.max_turns}] 当前目标：{expected_target}")
             request_started = time.monotonic()
             tool_choice_fallback = False
-            is_deepseek_direct_submit = (
+            is_deepseek_direct_tool = (
                 self.provider == "deepseek"
                 and submit_mode == "direct"
-                and expected_tool == "submit_card_jsx"
+                and expected_tool in {"submit_card_plan", "submit_card_jsx"}
             )
             try:
                 try:
                     response = await self._request(request, turn)
                 except Exception as exc:
                     forced_tool_choice_requested = request.get("tool_choice") != "auto"
-                    if is_deepseek_direct_submit and forced_tool_choice_requested:
+                    if is_deepseek_direct_tool and forced_tool_choice_requested:
                         if _is_tool_choice_compatibility_error(exc):
                             self._deepseek_forced_tool_choice_supported = False
                             request = {**request, "tool_choice": "auto"}
@@ -603,10 +688,11 @@ class JsxA2UIAgent:
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
                 setattr(exc, "validation_reports", validation_reports)
+                setattr(exc, "plan", plan)
                 raise exc
 
             forced_tool_choice_succeeded = request.get("tool_choice") != "auto"
-            if is_deepseek_direct_submit and forced_tool_choice_succeeded:
+            if is_deepseek_direct_tool and forced_tool_choice_succeeded:
                 self._deepseek_forced_tool_choice_supported = True
 
             api_elapsed = round(time.monotonic() - request_started, 2)
@@ -641,6 +727,7 @@ class JsxA2UIAgent:
                 "model_request_attempts": model_request_attempts,
                 "requested_max_tokens": request["max_tokens"],
                 "no_tool_call_recovery_attempt": consecutive_no_tool_calls,
+                "thinking_mode": turn_thinking_mode,
             }
             if tool_choice_fallback:
                 turn_record["tool_choice_fallback"] = "auto"
@@ -729,11 +816,25 @@ class JsxA2UIAgent:
                             f"received {function.name!r}"
                         ),
                     }
+                elif function.name == "submit_card_plan":
+                    result = validate_plan_arguments(
+                        arguments,
+                        task.get("size"),
+                        prompt_task=task,
+                    )
+                    if result.get("ok"):
+                        plan = arguments
+                        turn_record["plan"] = plan
                 elif function.name == "submit_card_jsx" and isinstance(arguments.get("jsx"), str):
                     submitted_jsx = arguments["jsx"]
+                    if isinstance(arguments.get("decision"), dict):
+                        turn_record["decision"] = arguments["decision"]
                     result = execute_tool(function.name, arguments, state)
                 else:
                     result = execute_tool(function.name, arguments, state)
+                    if function.name == "apply_layout_fallback" and result.get("ok"):
+                        fallback_calls += 1
+                        fallback_history.append(str(result.get("strategy") or ""))
             except Exception as exc:
                 result = {
                     "ok": False,
@@ -774,8 +875,14 @@ class JsxA2UIAgent:
                             browser_repair_baseline,
                             state.pending_submission,
                             compile_context,
+                            require_all_data_ids=(
+                                state.active_layout_fallback == "compact_component"
+                            ),
+                            drop_baseline=drop_fallback_baseline,
                         )
                     )
+                if not preservation_errors and state.active_layout_fallback != "drop_optional_component":
+                    last_preserved_submission = state.pending_submission
                 try:
                     report = await validate_generated_card(
                         source=state.pending_submission.source,
@@ -842,6 +949,7 @@ class JsxA2UIAgent:
                                 previous_fingerprints=previous_layout_fingerprints,
                             )
                         )
+                        requires_pattern_change = browser_layout_requires_pattern_change(report)
                         if current_layout_fingerprints:
                             previous_layout_fingerprints = current_layout_fingerprints
                             structural_browser_repair = (
@@ -868,6 +976,12 @@ class JsxA2UIAgent:
                         )
                         if has_browser_error:
                             repair_instruction = (
+                                "浏览器已确认至少一个业务组件的真实尺寸明显超过直接父槽，"
+                                "当前 Layout Pattern / Sub Pattern 容量不成立。必须更换布局或子布局，"
+                                "为该组件分配更大的连续区域；不要继续通过 flex、justify、gap 或固定"
+                                "尺寸做局部微调，也不得删除必需信息或 Action。"
+                                if requires_pattern_change
+                                else
                                 "当前布局需要整体重构，不要继续逐个移动组件。重新分配正文区域，"
                                 "一次解决 findings 中的全部冲突；可以完整省略真正可舍弃的信息，"
                                 "但不得删除交互、把动态值改成静态文本或用裁剪隐藏问题。"
@@ -879,6 +993,15 @@ class JsxA2UIAgent:
                                 " 修复基线使用的 dataIds="
                                 f"{sorted(baseline_data)!r}，actionIds={sorted(baseline_actions)!r}。"
                             )
+                            if browser_overlap_involves_emphasized_data(report):
+                                repair_instruction += (
+                                    " 重叠涉及 EmphasizedData：先复核业务语义；若其内容是可无损保留的"
+                                    "短文本、状态或完整格式化字符串，并且能从现有需求提供真实的"
+                                    "secondaryText，优先尝试替换为 EmphasisText。将原 value 的可见内容"
+                                    "与 dataIds.value 迁移到 mainText 和 dataIds.mainText，不得丢失、"
+                                    "拆分或静态化动态值。纯数值单位、进度关系以及应使用 EventCard 的"
+                                    "日程事件不得仅为消除重叠而替换。"
+                                )
                         else:
                             repair_instruction = (
                                 "根据 findings 修改 JSX，并再次调用 submit_card_jsx；"
@@ -904,19 +1027,75 @@ class JsxA2UIAgent:
                         if has_browser_error:
                             browser_failure = True
                             browser_failures += 1
-                            result.update({
-                                "browserFailures": browser_failures,
-                                "remainingRepairs": max(
-                                    0,
-                                    self.max_validation_repairs - browser_failures + 1,
-                                ),
-                            })
-                            if browser_failures > self.max_validation_repairs:
-                                terminal_error = RuntimeError(
-                                    "JSX 浏览器校验连续失败，已用完 "
-                                    f"{self.max_validation_repairs} 次修复机会；"
-                                    f"最后错误：{feedback}"
+                            active_fallback = state.active_layout_fallback
+                            fallback_attempt = 0
+                            fallback_attempt_limit = 0
+                            if active_fallback in fallback_attempts:
+                                fallback_attempts[active_fallback] += 1
+                                fallback_attempt = fallback_attempts[active_fallback]
+                                fallback_attempt_limit = (
+                                    LAYOUT_FALLBACK_SUBMISSION_LIMITS[active_fallback]
                                 )
+                                result.update({
+                                    "fallbackStage": active_fallback,
+                                    "fallbackAttempt": fallback_attempt,
+                                    "fallbackAttemptLimit": fallback_attempt_limit,
+                                    "fallbackRemainingAttempts": max(
+                                        0,
+                                        fallback_attempt_limit - fallback_attempt,
+                                    ),
+                                })
+                            result["browserFailures"] = browser_failures
+                            result["remainingRepairs"] = max(
+                                0,
+                                self.max_validation_repairs - browser_failures,
+                            )
+                            if active_fallback == "compact_component":
+                                if fallback_attempt < fallback_attempt_limit:
+                                    result["instruction"] = (
+                                        "紧凑组件替换第 "
+                                        f"{fallback_attempt}/{fallback_attempt_limit} 次提交"
+                                        "仍未通过浏览器校验。保持 compact_component 策略，"
+                                        "根据本轮全部 findings 再重组一次布局；下一轮直接调用 "
+                                        "submit_card_jsx，不要再次调用 apply_layout_fallback。"
+                                    )
+                                else:
+                                    drop_fallback_baseline = last_preserved_submission or browser_repair_baseline
+                                    state.require_layout_fallback("drop_optional_component")
+                                    result.update({
+                                        "nextFallbackStrategy": "drop_optional_component",
+                                        "instruction": (
+                                            "紧凑组件替换的两次提交均未通过浏览器校验。"
+                                            "下一轮只调用 apply_layout_fallback，并填写 "
+                                            "strategy='drop_optional_component'。"
+                                        ),
+                                    })
+                            elif active_fallback == "drop_optional_component":
+                                if fallback_attempt < fallback_attempt_limit:
+                                    result["instruction"] = (
+                                        "信息组件合并或删除后的第 "
+                                        f"{fallback_attempt}/{fallback_attempt_limit} 次提交"
+                                        "仍未通过浏览器校验。继续沿用 drop_optional_component 策略，"
+                                        "先固定并保留全部 Action 组件及 actionId，再重新分配剩余内容的空间；"
+                                        "下一轮直接调用 submit_card_jsx，不得删除任何 Action。"
+                                    )
+                                else:
+                                    terminal_error = RuntimeError(
+                                        "JSX 在信息组件合并或删除的三次最终兜底提交后仍未通过"
+                                        "浏览器校验；"
+                                        f"最后错误：{feedback}"
+                                    )
+                            elif browser_failures >= self.max_validation_repairs:
+                                state.require_layout_fallback("compact_component")
+                                result.update({
+                                    "fallbackStage": "normal_repair",
+                                    "nextFallbackStrategy": "compact_component",
+                                    "instruction": (
+                                        f"JSX 已连续 {browser_failures} 次未通过浏览器布局校验。"
+                                        "下一轮只调用 apply_layout_fallback，并填写 "
+                                        "strategy='compact_component'。"
+                                    ),
+                                })
             if function.name == "submit_card_jsx":
                 if _is_static_layout_failure(result):
                     static_layout_failure_streak += 1
@@ -957,14 +1136,19 @@ class JsxA2UIAgent:
                 if not browser_failure:
                     result["repairLimit"] = "max_turns"
             elif result.get("ok"):
-                repair_pending = False
+                repair_pending = function.name == "apply_layout_fallback"
             messages.append(tool_result_message(first.id, result))
+            if function.name == "submit_card_plan" and result.get("ok") and plan is not None:
+                messages.append({"role": "user", "content": build_plan_context(plan)})
             for extra in calls[1:]:
                 messages.append(tool_result_message(extra.id, {"ok": False, "error": "每轮只能调用一个工具"}))
             if repairable_failure and terminal_error is None:
+                next_strategy = state.required_layout_fallback
                 messages.append({
                     "role": "user",
                     "content": (
+                        _stage_directive("apply_layout_fallback", next_strategy)
+                        if next_strategy is not None else
                         "上一次提交未通过。请根据上一条工具结果中的 findings 和修复要求，"
                         "直接调用 submit_card_jsx，提交修复后的完整 JSX 和必需参数。"
                         "保留要求的数据绑定和动作，不要输出普通文本、分析、解释或 Markdown。"
@@ -1016,6 +1200,7 @@ class JsxA2UIAgent:
                 setattr(terminal_error, "loaded_resources", list(state.loaded_resources))
                 setattr(terminal_error, "resource_reads", list(state.resource_reads))
                 setattr(terminal_error, "validation_reports", validation_reports)
+                setattr(terminal_error, "plan", plan)
                 raise terminal_error
 
             if state.submission is not None:
@@ -1042,9 +1227,12 @@ class JsxA2UIAgent:
                     "model": self.model,
                     "provider": self.provider,
                     "thinking_mode": self.thinking_mode,
+                    **({"plan": plan} if getattr(self, "plan_enabled", False) else {}),
                     "turns": turn,
                     "failed_submissions": failed_submissions,
                     "repair_calls": repair_calls,
+                    "fallback_calls": fallback_calls,
+                    "fallback_history": fallback_history,
                     "tool_argument_repairs": tool_argument_repairs,
                     "protocol_retries": protocol_retries,
                     "elapsed_seconds": elapsed,
@@ -1054,6 +1242,9 @@ class JsxA2UIAgent:
                     "browser_validation": "enabled" if browser_validation else "skipped",
                     "layout_budget_validation": (
                         "enabled" if layout_budget_validation else "disabled"
+                    ),
+                    "dynamic_data_binding": (
+                        "enabled" if getattr(self, "enable_dynamic_data_binding", True) else "disabled"
                     ),
                     "validation_mode": (
                         "disabled"
@@ -1071,4 +1262,5 @@ class JsxA2UIAgent:
         setattr(error, "loaded_resources", list(state.loaded_resources))
         setattr(error, "resource_reads", list(state.resource_reads))
         setattr(error, "validation_reports", validation_reports)
+        setattr(error, "plan", plan)
         raise error

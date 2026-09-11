@@ -29,7 +29,6 @@ from .high_level import (
     convert_secondary_body,
     convert_secondary_body_card,
     convert_single_line_title,
-    convert_summary,
     convert_table_text,
     convert_text_block,
     convert_top_text_bottom_value,
@@ -56,7 +55,6 @@ CONVERTERS = {
     "EmphasizedData": convert_emphasized_data,
     "EmphasisText": convert_emphasis_text,
     "SecondaryBody": convert_secondary_body,
-    "Summary": convert_summary,
     "WeatherSummaryCard": convert_weather_summary_card,
     "SecondaryBodyCard": convert_secondary_body_card,
     "ProgressLine1": convert_progress_line_labels_below,
@@ -88,10 +86,12 @@ def create_context(
     card_name: str,
     appearance: str = "blue-soft",
     compile_context: CompileContext | dict | None = None,
+    enable_dynamic_data_binding: bool = True,
 ) -> ConversionContext:
     return ConversionContext(
         IdAllocator(card_name),
         convert_element,
         appearance,
         compile_context=CompileContext.from_payload(compile_context),
+        enable_dynamic_data_binding=enable_dynamic_data_binding,
     )

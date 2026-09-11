@@ -15,7 +15,9 @@ playwright-browsers/
 package-lock.json
 preview/*
 !preview/jsx-binding-runtime.js
+resources/
 scripts/build-jsx-run-gallery.js
+scripts/layout-pattern-audit.js
 
 # Python/test caches
 __pycache__/

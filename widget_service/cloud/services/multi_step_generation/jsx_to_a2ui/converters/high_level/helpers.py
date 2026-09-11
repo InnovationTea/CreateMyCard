@@ -113,6 +113,7 @@ def segmented_text(
     separator = node.props.get("separator", " ｜ ")
 
     text_styles = {
+        "width": "matchParent",
         "fontSize": font_size,
         "fontWeight": 400,
         "fontColor": font_color or palette(ctx).secondary,

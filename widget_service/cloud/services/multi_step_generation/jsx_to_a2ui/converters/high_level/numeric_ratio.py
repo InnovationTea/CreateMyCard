@@ -41,7 +41,7 @@ def convert_numeric_ratio(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "ratio_icon_image",
         node.props["icon"],
         styles={"width": 12, "height": 12, "objectFit": "contain"},
-        fill_color=palette(ctx).secondary,
+        fill_color=palette(ctx).primary,
     )
     icon = stack(
         ctx,

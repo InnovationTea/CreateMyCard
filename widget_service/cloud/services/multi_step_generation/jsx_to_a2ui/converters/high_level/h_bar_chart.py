@@ -45,8 +45,9 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         raise AssertionError()
     mode = node.props.get("mode", "light")
     current = palette(ctx)
-    dark = mode == "dark"
-    text_color = "#80FFFFFF" if dark else _alpha(current.action_text, "99")
+    # In a Card, the runtime's semantic palette overrides standalone mode.
+    dark = mode == "dark" and ctx.card_size is None
+    text_color = "#99FFFFFF" if dark else _alpha(current.action_text, "99")
     track_color = "#33FFFFFF" if dark else _alpha(current.action_text, "33")
     bar_color = "#FFFFFFFF" if dark else current.action_text
 

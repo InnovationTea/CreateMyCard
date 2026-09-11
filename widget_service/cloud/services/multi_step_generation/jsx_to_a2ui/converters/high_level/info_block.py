@@ -43,6 +43,8 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if errors:
         raise ValidationError("; ".join(errors))
     visual = node.props.get("visual")
+    current_palette = palette(ctx)
+    visual_foreground = current_palette.primary
 
     primary_value = ctx.prop(node, "primaryText")
     primary_binding = ctx.bound_data(node.props, "primaryText")
@@ -55,7 +57,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "height": 20,
             "fontSize": 14,
             "fontWeight": 700,
-            "fontColor": palette(ctx).primary,
+            "fontColor": current_palette.primary,
             "maxLines": 1,
             "textOverflow": "ellipsis",
             "flexShrink": 1,
@@ -74,7 +76,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                     "height": 16,
                     "fontSize": 10,
                     "fontWeight": 500,
-                    "fontColor": palette(ctx).secondary,
+                    "fontColor": current_palette.secondary,
                     "maxLines": 1,
                     "flexShrink": 0,
                     "visibility": ctx.unit_visibility(primary_binding),
@@ -102,7 +104,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "height": 18,
             "fontSize": 12,
             "fontWeight": 500,
-            "fontColor": palette(ctx).secondary,
+            "fontColor": current_palette.secondary,
             "maxLines": 1,
             "textOverflow": "ellipsis",
             "flexShrink": 1,
@@ -154,12 +156,12 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             progress_value,
             100,
             kind="ring",
-            color="#FFFFFFFF",
+            color=current_palette.progress_bar,
             stroke_width=6,
             styles={
                 "width": 44,
                 "height": 44,
-                "backgroundColor": "#1AFFFFFF",
+                "backgroundColor": current_palette.progress_track,
                 "flexShrink": 0,
             },
         )
@@ -168,7 +170,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "info_block_progress_icon",
             icon,
             styles={"width": 20, "height": 20, "objectFit": "contain"},
-            fill_color="#E6FFFFFF",
+            fill_color=current_palette.progress_icon,
         )
         visual_node = stack(
             ctx,
@@ -186,7 +188,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "info_block_icon",
             icon,
             styles={"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0},
-            fill_color=None if visual.get("color") == "native" else "#FFFFFFFF",
+            fill_color=None if visual.get("color") == "native" else visual_foreground,
         )
 
     return row(
@@ -195,11 +197,11 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         [copy, visual_node],
         gap=4,
         styles={
-            "width": 136,
+            "width": "matchParent",
             "height": 64,
             "padding": {"left": 8, "right": 8},
             "borderRadius": 16,
-            "backgroundColor": "#33FFFFFF",
+            "backgroundColor": current_palette.action_background,
             "alignItems": "center",
             "justifyContent": "spaceBetween",
             "flexShrink": 0,

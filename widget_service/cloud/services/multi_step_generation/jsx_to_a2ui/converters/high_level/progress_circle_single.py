@@ -14,6 +14,8 @@ from .helpers import ring_with_icon
 
 
 def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> A2UINode:
+    compact = node.props.get("size") == "compact"
+    ring_size = 44 if compact else 52
     raw_value = node.props["value"]
     value = ctx.prop(node, "value")
     value_binding = ctx.bound_data(node.props, "value")
@@ -43,7 +45,7 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         ctx,
         value=progress_value,
         icon=node.props["icon"],
-        size=52,
+        size=ring_size,
         stroke_width=6,
         icon_size=20,
         hint="single_ring",
@@ -58,7 +60,7 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
     )
     has_secondary = node.props.get("secondaryLabel") is not None
     value_styles = {
-        "height": 16 if has_secondary else 18,
+        "height": (14 if has_secondary else 16) if compact else (16 if has_secondary else 18),
         "fontSize": 10 if has_secondary else 12,
         "fontWeight": 400 if has_secondary else 500,
         "fontColor": current_palette.secondary,
@@ -111,7 +113,7 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         "ring_label",
         ctx.prop(node, "label"),
         styles={
-            "height": 20,
+            "height": 18 if compact else 20,
             "fontSize": 14,
             "fontWeight": 700,
             "fontColor": current_palette.primary,
@@ -126,7 +128,7 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
             "ring_secondary_label",
             ctx.prop(node, "secondaryLabel"),
             styles={
-                "height": 16,
+                "height": 14 if compact else 16,
                 "fontSize": 10,
                 "fontWeight": 400,
                 "fontColor": current_palette.secondary,
@@ -140,7 +142,7 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         [label, value_text, secondary],
         gap=0,
         styles={
-            "height": 52,
+            "height": (46 if has_secondary else 44) if compact else 52,
             "alignItems": "start",
             "justifyContent": "center",
             "flexShrink": 0,

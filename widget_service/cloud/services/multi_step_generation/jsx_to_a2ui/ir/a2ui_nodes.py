@@ -120,6 +120,11 @@ def collect_binding_validation_errors(
                     "<InfoBlock> dataIds.secondaryText must be a non-empty string or an "
                     "ordered array of at least two IDs"
                 )
+            elif tag == "TableText" and contract_prop == "items[].parameter":
+                errors.append(
+                    f"<TableText> dataIds.{prop} must be a non-empty string or an "
+                    "ordered array of at least two IDs"
+                )
             else:
                 errors.append(f"<{tag}> dataIds.{prop} must be a non-empty string")
             return
@@ -277,8 +282,10 @@ class ConversionContext:
     parent_content_width: int | float | None = None
     parent_content_height: int | float | None = None
     intrinsic_width: bool = False
+    parent_is_row: bool = False
     inside_backplate: bool = False
     compile_context: CompileContext = field(default_factory=CompileContext)
+    enable_dynamic_data_binding: bool = True
     used_data_ids: set[str] = field(default_factory=set)
     used_action_ids: set[str] = field(default_factory=set)
     derived_data_model: dict[str, Any] = field(default_factory=dict)
@@ -312,6 +319,8 @@ class ConversionContext:
 
     def prop(self, element: JSXElement, name: str, default: Any = None) -> Any:
         literal = element.props[name] if name in element.props else default
+        if not self.enable_dynamic_data_binding:
+            return literal
         data_ids = element.props.get("dataIds")
         value = literal
         if isinstance(data_ids, dict) and name in data_ids:
@@ -369,22 +378,39 @@ class ConversionContext:
 
     def item_prop(self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None) -> Any:
         literal = item[name] if name in item else default
+        if not self.enable_dynamic_data_binding:
+            return literal
         data_ids = item.get("dataIds")
         if not isinstance(data_ids, dict) or name not in data_ids:
             return literal
-        binding_id = data_ids[name]
-        binding = self.compile_context.data_binding(binding_id)
+        contract_prop = f"items[].{name}"
+        binding_ids = data_binding_ids(tag, contract_prop, data_ids[name])
+        if binding_ids is None:
+            raise ValidationError(f"<{tag}> items[{index}].dataIds.{name} has an invalid binding shape")
+        if len(binding_ids) > 1:
+            bindings = [self.compile_context.data_binding(binding_id) for binding_id in binding_ids]
+            self.used_data_ids.update(binding.id for binding in bindings)
+            separator = data_binding_separator(tag, contract_prop)
+            parts: list[str] = []
+            for binding_index, binding in enumerate(bindings):
+                if binding_index:
+                    parts.append(expression_string_literal(separator))
+                parts.append(self.binding_expression(binding, tag, contract_prop))
+            return a2ui_expression(parts)
+        binding = self.compile_context.data_binding(binding_ids[0])
         self.used_data_ids.add(binding.id)
         value_map = boolean_text_map_for(item, name)
         if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
             return boolean_text_expression(binding.path, value_map)
-        return self.binding_reference(binding, tag, f"items[].{name}")
+        return self.binding_reference(binding, tag, contract_prop)
 
     def bound_data(
         self,
         owner: dict[str, Any],
         name: str,
     ) -> DataBinding | None:
+        if not self.enable_dynamic_data_binding:
+            return None
         data_ids = owner.get("dataIds")
         if not isinstance(data_ids, dict) or name not in data_ids:
             return None
@@ -465,7 +491,7 @@ class ConversionContext:
         )
         # Keep the offered extent used by Grid/absolute layout separate from
         # the decision to synthesize matchParent for a text subtree.
-        return replace(self, intrinsic_width=intrinsic)
+        return replace(self, intrinsic_width=intrinsic, parent_is_row=is_row)
 
     def for_children(
         self,

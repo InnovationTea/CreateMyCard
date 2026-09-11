@@ -79,7 +79,11 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     # long text can push sibling content outside a fixed card slot.
     minimums = {"minWidth": node.props.get("minWidth", 0)}
     min_height = node.props.get("minHeight")
-    if min_height is None and any(
+    if min_height is None and node.props.get("flex") == 1:
+        # In the generated DSL, flex={1} includes shrinkable vertical content
+        # semantics. Keep this implicit default aligned with the JSX runtime.
+        min_height = 0
+    elif min_height is None and any(
         child.tag == "TextBlock" for child in node.child_elements()
     ):
         # TextBlock is internally flexible between 48vp and 64vp. Its direct
@@ -114,9 +118,7 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
             {
                 "padding": _BACKPLATE_PADDING,
                 "borderRadius": 16,
-                "backgroundColor": (
-                    "#1AFFFFFF" if appearance.primary == "#FFFFFFFF" else "#66FFFFFF"
-                ),
+                "backgroundColor": appearance.action_background,
                 "clip": True,
             }
         )
@@ -296,7 +298,16 @@ def _linear_stack(
         for child in source_children
     ]
     _center_backplate_buttons(node, source_children, children, child_ctx, is_row=is_row)
-    adapt_flex_children(source_children, children, is_row=is_row)
+    adapt_flex_children(
+        source_children, children, is_row=is_row,
+        fill_table_height=(
+            node.props.get("height") is not None
+            or (not ctx.parent_is_row and (
+                node.props.get("flex") == 1
+                or node.props.get("basis") is not None
+            ))
+        ),
+    )
     intrinsic_row_alignment = (
         _intrinsic_row_alignment(node, source_children, children)
         if is_row

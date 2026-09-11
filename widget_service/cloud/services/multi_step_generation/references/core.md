@@ -19,8 +19,8 @@
 
 ### 2.1 通用数值语义
 
-- JSX 数值必须使用表达式，例如 `gap={8}`、`basis={12}`；`Card.size` 是语义枚举，使用字符串 `size="2x2"` 或 `size="2x4"`。
-- 不要把 px 数值写成字符串，例如不要写 `gap="8"` 或 `basis="12"`。
+- JSX 数值必须使用表达式，例如 `gap={8}`、`height={36}`；`Card.size` 是语义枚举，使用字符串 `size="2x2"` 或 `size="2x4"`。
+- 不要把 px 数值写成字符串，例如不要写 `gap="8"` 或 `height="36"`。
 - enum 和特殊关键字使用字符串，例如 `direction="row"`、`width="full"`。
 - 对布局尺寸 Props 传入数字时，React 会按 CSS px 使用；项目中 vp 与 px 使用相同数值进行 1:1 预览。
 - `width="full"`、`height="full"` 会解析为 `100%`。
@@ -36,17 +36,17 @@
 | `appearance` | Card appearance enum | 无 | 生成卡片必选，合法值见第 3 节 |
 | `background` | CSS background string | 根据 appearance 或 surface | runtime 支持，但生成代码禁止使用 |
 | `padding` | `number \| string` | `12` | 通常省略；安全边距固定使用默认 12 |
-| `direction` | `"column" \| "row"` | `"column"` | 只使用这两个值 |
+| `direction` | `"column" \| "row"` | `"column"` | 生成侧必选；只使用这两个值 |
 | `gap` | `number` | `0` | 数字表示 px；常用 0、2、4、8 |
 | `align` | CSS `align-items` 值 | 未设置 | 推荐 `"stretch"`、`"flex-start"`、`"center"`、`"flex-end"` |
-| `justify` | `"start" \| "center" \| "end" \| "between"` | 未设置 | runtime 映射为对应 flex 对齐方式 |
+| `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between"` | 未设置 | 使用标准 CSS Flex 对齐值 |
 
 尺寸映射：
 
-| 输入任务 `size` | JSX | Card 尺寸 | 默认 padding | 安全内容区 | 布局规范 |
+| 输入任务 `size` | `Card.size` | Card 尺寸 | 默认 padding | 安全内容区 | 布局规范 |
 |---|---|---:|---:|---:|---|
-| `"2x2"` | `<Card size="2x2">` | 160 × 160vp | 12vp | 136 × 136vp | [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) |
-| `"2x4"` | `<Card size="2x4">` | 320 × 160vp | 12vp | 296 × 136vp | [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md) |
+| `"2x2"` | `"2x2"` | 160 × 160vp | 12vp | 136 × 136vp | [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) |
+| `"2x4"` | `"2x4"` | 320 × 160vp | 12vp | 296 × 136vp | [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md) |
 
 输入与生成链路：
 
@@ -70,28 +70,28 @@
 | Prop | JSX 类型 | runtime 默认值 | 生成侧语义 |
 |---|---|---|---|
 | `children` | `ReactNode` | — | 子组件 |
-| `direction` | `"column" \| "row"` | `"column"` | 纵向或横向排列 |
+| `direction` | `"column" \| "row"` | `"column"` | 生成侧必选；显式声明纵向或横向排列 |
 | `gap` | `number` | `0` | 子项间距，数字表示 px |
 | `align` | CSS `align-items` 值 | `"stretch"` | 推荐 `"stretch"`、`"flex-start"`、`"center"`、`"flex-end"` |
-| `justify` | `"start" \| "center" \| "end" \| "between"` | `"start"` | 主轴对齐；`between` 映射为 `space-between` |
+| `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between"` | `"flex-start"` | 主轴对齐；生成代码统一使用标准 CSS Flex 对齐值 |
 | `wrap` | `boolean` | `false` | 浏览器 runtime 兼容能力；不属于正式生成合同，生成卡禁止使用 |
-| `flex` | `0 \| 1` | 未设置 | `1` 填充剩余空间；`0` 使用内容自然尺寸 |
-| `basis` | `number \| string` | 未设置 | 固定槽位尺寸；数字转为 px，并优先于 `flex` |
+| `flex` | `0 \| 1` | 未设置 | `1` 填充剩余空间；`0` 不伸缩，并使用内容自然尺寸或显式主轴尺寸 |
 | `width` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minWidth` | `number \| string` | `0` | 通常省略，防止 Flex 子项内容撑宽 |
 | `height` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minHeight` | `number \| string` | 未设置 | 弹性内容区通常显式传 `minHeight={0}`；直接包裹自适应 `TextBlock` 时 runtime 会局部推断为 `0` |
+| `minHeight` | `number \| string` | `flex={1}` 时自动为 `0`，其他情况未设置 | 生成侧只在需要非零最小高度时显式填写；直接包裹自适应 `TextBlock` 时 runtime 也会局部推断为 `0` |
 | `mt` / `mb` / `ml` / `mr` | `number \| string` | 未设置 | 四方向外边距；优先使用 `gap`，必要时再使用 |
 | `position` | `"relative" \| "absolute"` | 未设置 | 建立定位上下文或锚点子项 |
 | `top` / `right` / `bottom` / `left` | `number \| string` | 未设置 | 只与定位 Stack 配合；数字表示 px |
-| `surface` | `"backplate"` | 未设置 | 为 2×4 Type 13 的任一父内容区启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp、内边距 6vp |
+| `surface` | `"backplate"` | 未设置 | 为内容容器启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp、内边距 6vp |
 
 关键规则：
 
-- `Stack` 默认使用 `direction="column"`：`justify` 控制垂直方向，`align` 控制水平方向。例如左对齐且底端对齐写为 `align="flex-start" justify="end"`。
-- 使用 `direction="row"` 时轴向互换：`justify` 控制水平方向，`align` 控制垂直方向。例如内容靠右且底端对齐写为 `justify="end" align="flex-end"`。
-- `basis` 优先于 `flex`。例如 `basis={12}` 会生成固定 12px 标题槽，而不是弹性区。
-- 弹性内容区使用 `flex={1} minHeight={0}`，避免内容把卡片撑出安全区。只有直接包裹自适应 `TextBlock` 的 Stack 会由 runtime 局部补充 `minHeight:0`，其他 Stack 保持浏览器默认行为。
+- 生成 JSX 中每个 `Card` 和 `Stack` 都必须显式填写 `direction="column"` 或 `direction="row"`；runtime 的 `column` 默认值只用于兼容历史 JSX。
+- `direction="column"` 时，`justify` 控制垂直方向，`align` 控制水平方向。例如左对齐且底端对齐写为 `align="flex-start" justify="flex-end"`。
+- 使用 `direction="row"` 时轴向互换：`justify` 控制水平方向，`align` 控制垂直方向。例如内容靠右且底端对齐写为 `justify="flex-end" align="flex-end"`。
+- 固定槽使用 `flex={0}`，并按父容器主轴显式填写尺寸：父级为 `column` 时填写 `height`，父级为 `row` 时填写 `width`。不要生成 `basis`；runtime 会让 `flex={0}` 的 `auto` basis 使用对应的显式主轴尺寸。
+- 不要生成 `minWidth={0}`；runtime 已默认应用该约束。
+- 弹性内容区只需使用 `flex={1}`；runtime 会自动应用 `minHeight:0`，避免内容把卡片撑出安全区。生成代码不要重复输出 `minHeight={0}`，只有需要非零最小高度时才显式填写 `minHeight`。
 - 右下角操作使用父级 `position="relative"`，子级 `position="absolute" right={0} bottom={0}`。
 - 只有需要边缘锚定的子项使用 `position="absolute"`；其余正文保持正常流式布局，不要改成手工 `top` 坐标。
 - 生成卡不得使用 `wrap` 或 `alignSelf`；需要换行时使用允许自然换行的文本组件，需要局部对齐时通过父 Stack 的 `align`／`justify` 或正式布局槽表达。
@@ -111,14 +111,12 @@
 | `gap` | `number` | `0` | 同时设置行列间距 |
 | `rowGap` | `number` | 继承 `gap` | 单独覆盖行间距 |
 | `columnGap` | `number` | 继承 `gap` | 单独覆盖列间距 |
-| `flex` | `0 \| 1` | 未设置 | 与 Stack 相同，`1` 填充剩余空间 |
-| `basis` | `number \| string` | 未设置 | 与 Stack 相同，优先于 `flex` |
+| `flex` | `0 \| 1` | 未设置 | 与 Stack 相同，`1` 填充剩余空间；固定网格区使用 `0` 与显式 `width`／`height` |
 | `width` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minWidth` | `number \| string` | `0` | 通常省略 |
 | `height` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minHeight` | `number \| string` | 未设置 | 必要时传 `0` 防止内容溢出 |
+| `minHeight` | `number \| string` | `flex={1}` 时自动为 `0`，其他情况未设置 | 生成侧只在需要非零最小高度时显式填写 |
 | `align` | CSS `align-items` 值 | 未设置 | 控制单元格内容在块轴的对齐 |
-| `justify` | CSS `justify-items` 值 | 未设置 | 推荐 `"start"`、`"center"`、`"end"`、`"stretch"`；这里不使用 `"between"` |
+| `justify` | CSS `justify-items` 值 | 未设置 | 推荐 `"start"`、`"center"`、`"end"`、`"stretch"`；该 Prop 映射 `justify-items`，不使用 `"space-between"` |
 | `mt` / `mb` | `number \| string` | 未设置 | 网格上下外边距 |
 
 `columns` 与 `rows` 的区别：
@@ -133,6 +131,7 @@
 - `rows="54px 54px"` 是完整 CSS 行模板，表示两行，每行 54px。
 - 不要写 `columns="2"`，它会被当作原始 CSS 模板字符串。
 - 不要写 `rows={2}`，它不表示“两行”。
+- 生成代码中的 `Grid` 同样不得使用 `basis` 或显式 `minWidth={0}`；固定尺寸通过 `flex={0}` 与 `width`／`height` 表达。
 
 ### 2.5 合法布局示例
 
@@ -141,12 +140,12 @@
 流式标题、弹性内容区和底部操作区：
 
 ```jsx
-<Card size="2x2" appearance="green-soft">
-  <Stack flex={0}>
+<Card direction="column" size="2x2" appearance="green-soft">
+  <Stack direction="column" flex={0}>
     <SingleLineTitle title="内存清理" />
   </Stack>
 
-  <Stack flex={1} minHeight={0} width="full" minWidth={0} mt={2} align="flex-start" justify="center">
+  <Stack direction="column" flex={1} width="full" mt={2} align="flex-start" justify="center">
     <ProgressCircleSingle
       value={43.75}
       icon="externaldrive_fill.svg"
@@ -161,7 +160,7 @@
     />
   </Stack>
 
-  <Stack basis={36} height={36} width="full" mt={8}>
+  <Stack direction="column" flex={0} height={36} width="full" mt={8}>
     <PillButton
       label="一键清理"
       appearance="card"
@@ -175,7 +174,7 @@
 
 ```jsx
 <Grid columns={2} gap={8} flex={1} align="center">
-  <Stack align="center">
+  <Stack direction="column" align="center">
     <ProgressCircle
       icon="phone_fill.svg"
       externalText="68%"
@@ -184,7 +183,7 @@
       dataIds={{ externalText: "device.phoneBatteryText" }}
     />
   </Stack>
-  <Stack align="center">
+  <Stack direction="column" align="center">
     <ProgressCircle
       icon="kidswatch_fill.svg"
       externalText="52%"
@@ -220,25 +219,23 @@
 - `ProgressCircleSingle`
 - `ProgressCircle`
 - `NumericRatio`
-- `NumericRatioStack`
 
-当前正式生成 API 的 Card 背景映射如下：
+当前正式生成 API 的 Card 背景映射如下。单色背景支持 `2x2` 与 `2x4`；融球背景只支持 `2x2`：
 
-| `Card.appearance` | 对应设计背景 | 字体模式 |
-|---|---|---|
-| `"blue-soft"` | 通用／蓝色浅色渐变 | 亮色 |
-| `"pink-soft"` | `#E64566` 红色浅色渐变 | 亮色 |
-| `"yellow-soft"` | `#F7CE00` 黄色浅色渐变 | 亮色 |
-| `"green-soft"` | `#64BB5C` 绿色浅色渐变 | 亮色 |
-| `"cyan-soft"` | `#46B1E3` 蓝青色浅色渐变 | 亮色 |
-| `"sunny-gradient"` | 晴天蓝色深色渐变 | 暗色 |
-| `"cloudy-gradient"` | 多云多椭圆深色渐变 | 暗色 |
-| `"slate-gradient"` | 雨天多椭圆深色渐变 | 暗色 |
-| `"orange-gradient"` | 运动健康深色渐变 | 暗色 |
-| `"purple-gradient"` | 睡眠深色渐变 | 暗色 |
-| `"type0-gradient"` | Type 0 专属多椭圆深色背景 | 暗色 |
+| `Card.appearance` | 对应设计背景 | 字体模式 | 支持尺寸 |
+|---|---|---|---|
+| `"solid-white"` | `#FFFFFF` 通用背景 | 单色 | `2x2`、`2x4` |
+| `"solid-blue"` | `#E5EDFE` | 单色 | `2x2`、`2x4` |
+| `"solid-orange"` | `#FFF3E6` | 单色 | `2x2`、`2x4` |
+| `"solid-green"` | `#F0FFE6` | 单色 | `2x2`、`2x4` |
+| `"solid-cyan"` | `#E6FDFF` | 单色 | `2x2`、`2x4` |
+| `"solid-purple"` | `#EDE6FF` | 单色 | `2x2`、`2x4` |
+| `"orb-orange"` | 橘色融球 | 暗色 | 仅 `2x2` |
+| `"orb-blue"` | 蓝色融球 | 暗色 | 仅 `2x2` |
+| `"orb-purple"` | 紫色融球 | 暗色 | 仅 `2x2` |
+| `"orb-green"` | 绿色融球 | 暗色 | 仅 `2x2` |
 
-`"neutral-soft"` 仅在 runtime 中保留用于兼容历史 JSX，不属于新版设计源的正式背景，不允许新生成。
+`"neutral-soft"`、`"blue-soft"`、`"pink-soft"`、`"yellow-soft"`、`"green-soft"`、`"cyan-soft"`、`"sunny-gradient"`、`"cloudy-gradient"`、`"slate-gradient"`、`"orange-gradient"`、`"purple-gradient"`、`"type0-gradient"` 仅在 runtime 中保留用于兼容历史 JSX，不属于新版设计源的正式背景，不允许新生成。历史 `2x4` JSX 若传入融球或深色渐变别名，runtime 会降级到同色系单色背景。
 
 ### 3.1 `Card.appearance` 选择规则
 
@@ -246,35 +243,33 @@
 
 | 业务语义／适用应用 | `Card.appearance` | 选择说明 |
 |---|---|---|
-| 通用场景；应用 Icon 颜色复杂、无法确定单一主色；WeMeeting、电子邮件、信息、云空间、钱包、浏览器、音乐、图库 | `"blue-soft"` | 对应设计规范中的通用背景或蓝色浅色渐变 |
-| 阅读、日历 | `"pink-soft"` | 对应 `#E64566` 红色浅色渐变；runtime 的枚举名称为 `pink-soft` |
-| 备忘录、文件管理 | `"yellow-soft"` | 对应 `#F7CE00` 黄色浅色渐变 |
-| 电话 | `"green-soft"` | 对应 `#64BB5C` 绿色浅色渐变 |
-| 地图 | `"cyan-soft"` | 对应 `#46B1E3` 蓝青色浅色渐变 |
-| 天气且天气状态为晴天 | `"sunny-gradient"` | 晴天专属蓝色深色渐变 |
-| 天气且天气状态为多云 | `"cloudy-gradient"` | 多云专属多椭圆深色背景 |
-| 天气且天气状态为雨天 | `"slate-gradient"` | 对应雨天深色渐变；不能用于晴天 |
-| 睡眠监督／睡眠 | `"purple-gradient"` | 对应睡眠深色渐变 |
-| 运动健康 | `"orange-gradient"` | 对应运动健康深色渐变 |
-| Type 0 布局 | `"type0-gradient"` | 仅允许 Type 0 使用；禁止用于 Type 1–12 及其他布局 |
+| 通用场景；多个意图或垂域；信息或组件数超过 3 个 | `"solid-white"` | 通用白色背景 |
+| 天气、出行导航、办公效率、系统信息 | `"solid-blue"`；`2x2` 可选 `"orb-blue"` | `2x4` 必须使用单色背景 |
+| 日程、日历 | `"solid-orange"` | 单色背景 |
+| 电量、通话、运动健康 | `"solid-green"`；`2x2` 运动场景可选 `"orb-orange"` | `2x4` 必须使用单色背景 |
+| 耳机 | `"solid-cyan"` | 单色背景 |
+| 睡眠、冥想、晚安 | `"solid-purple"`；`2x2` 可选 `"orb-purple"` | `2x4` 必须使用单色背景 |
+| 充电 | `"solid-green"`；`2x2` 可选 `"orb-green"` | `2x4` 必须使用单色背景 |
+| `2x2` 的运动、赛事、倒计时、卡路里、热量 | `"orb-orange"` | 融球仅限 `2x2` |
 
 选择顺序固定为：
 
-1. 输入明确属于表中的应用或场景时，使用该行指定的 `Card.appearance`。
-2. 输入没有专属映射，但符合“通用场景”或“应用 Icon 颜色复杂、无法确定单一主色”时，使用 `"blue-soft"`。
-3. 天气场景必须继续判断晴天、多云或雨天，不能仅凭“天气”选择同一种背景。
-4. 无法由以上规则确定时，不得根据相近颜色自行推断；应报告缺少对应的背景映射。
+1. 先检查 Card 尺寸；`2x4` 只能从六种 `solid-*` 单色背景中选择，不得选择 `orb-*`。
+2. 输入明确属于表中的应用或场景时，使用该行指定的单色背景。
+3. 只有 `2x2` 才能根据表中明确列出的意图改选对应融球背景。
+4. 无法由以上规则确定时，不得根据相近颜色自行推断；应使用 `"solid-white"` 通用背景。
 
-### 3.2 多椭圆背景的尺寸适配
+### 3.2 融球背景的尺寸限制
 
-`"cloudy-gradient"`、`"slate-gradient"`、`"type0-gradient"` 使用多椭圆背景层，而不是单一线性渐变。背景层只由 `Card.appearance` 创建，业务 JSX 不得自行添加椭圆 DOM、`background` Prop 或硬编码样式。
+`"orb-orange"`、`"orb-blue"`、`"orb-purple"`、`"orb-green"` 使用融球背景。JSX runtime 按视觉规范叠加椭圆色块和背景模糊，不用单一线性渐变或图片替代。融球主题只允许用于 `Card.size="2x2"`；`2x4` 必须选择单色背景。背景只由 `Card.appearance` 创建，业务 JSX 不得自行添加椭圆 DOM、`background` Prop 或硬编码样式。
+
+下面的椭圆参数由 runtime 统一实现，业务 JSX 不需要额外创建背景层：
 
 | Card 尺寸 | 右下椭圆 | 左下椭圆 | 上方椭圆 | 背板 |
 |---|---|---|---|---|
 | `2x2` · 160×160vp | 100×100vp @ 96/80 | 160×160vp @ -40/70 | 210×210vp @ -25/-90 | 160×160vp，白色 5%，模糊 50vp |
-| `2x4` · 320×160vp | 220×100vp @ 180/80 | 280×160vp @ -60/70 | 420×210vp @ -50/-90 | 320×160vp，白色 5%，模糊 50vp |
 
-两种 Card 的圆角均由 Card 规格提供，背景层不再自带 160×160vp 或 24px 圆角约束。
+融球圆角由 `2x2` Card 规格提供，背景层不再自带圆角约束。
 
 ## 4. Icon 使用范围与资源文件名
 

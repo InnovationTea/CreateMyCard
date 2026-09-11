@@ -84,6 +84,7 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 styles={
                     "width": "matchParent",
                     "height": 16,
+                    "flexShrink": 0,
                     "alignItems": "bottom",
                     "justifyContent": "spaceBetween",
                 },
@@ -95,5 +96,13 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "table_text",
         rows,
         gap=2,
-        styles={"width": "matchParent", "alignItems": "start"},
+        styles={
+            "width": "matchParent",
+            # Auto-height slots must measure the rows, not claim the whole
+            # ancestor's offered height. Definite slots opt into filling in
+            # adapt_flex_children, where the parent layout is known.
+            "height": "wrapContent",
+            "alignItems": "start",
+            "justifyContent": "spaceBetween" if len(rows) >= 3 else "start",
+        },
     )

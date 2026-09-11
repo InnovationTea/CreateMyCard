@@ -27,6 +27,7 @@ _FORMATTED_PERCENTAGE = re.compile(r"^\s*\d+(?:\.\d+)?\s*[%％]\s*$")
 EVENT_TIME_RANGE_SEPARATOR = " – "
 EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " ｜ "
 INFO_BLOCK_MULTI_VALUE_SEPARATOR = " ｜ "
+TABLE_TEXT_MULTI_VALUE_SEPARATOR = " ｜ "
 
 # One executable source of truth for both literal Props and data bindings.
 # Booleans are intentionally excluded from visible text/value Props: Python's
@@ -51,8 +52,7 @@ BINDABLE_PROP_TYPES: dict[str, dict[str, frozenset[str]]] = {
         "items[].unit": _STRING,
     },
     "EmphasisText": {"mainText": _SCALAR_TEXT, "secondaryText": _SCALAR_TEXT},
-    "SecondaryBody": {"body": _SCALAR_TEXT, "items[].value": _SCALAR_TEXT},
-    "Summary": {"content": _SCALAR_TEXT, "items[].value": _SCALAR_TEXT},
+    "SecondaryBody": {"items[].value": _SCALAR_TEXT},
     "ProgressLine1": {
         "currentValue": _NUMBER,
         "totalValue": _NUMBER,
@@ -98,9 +98,9 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
 
     Most display Props bind one ID. EventCard.time additionally accepts the
     ordered pair [dtStartId, dtEndId]. EmphasisText.mainText,
-    EmphasisText.secondaryText and InfoBlock.secondaryText accept an ordered
-    array of two or more IDs so one visible line can remain responsive to
-    multiple short source fields.
+    EmphasisText.secondaryText, InfoBlock.secondaryText and
+    TableText.items[].parameter accept an ordered array of two or more IDs so
+    one visible line can remain responsive to multiple short source fields.
     """
     if isinstance(value, str):
         return (value,)
@@ -111,6 +111,8 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
     elif tag == "EmphasisText" and prop in {"mainText", "secondaryText"}:
         expected_length = len(value) >= 2
     elif tag == "InfoBlock" and prop == "secondaryText":
+        expected_length = len(value) >= 2
+    elif tag == "TableText" and prop == "items[].parameter":
         expected_length = len(value) >= 2
     else:
         return None
@@ -127,6 +129,8 @@ def data_binding_separator(tag: str, prop: str) -> str:
         return EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR
     if tag == "InfoBlock" and prop == "secondaryText":
         return INFO_BLOCK_MULTI_VALUE_SEPARATOR
+    if tag == "TableText" and prop == "items[].parameter":
+        return TABLE_TEXT_MULTI_VALUE_SEPARATOR
     raise ValidationError(f"<{tag}> dataIds.{prop} does not support multiple data IDs")
 
 
@@ -362,7 +366,7 @@ def _relocate_unambiguous_item_value_maps(
 ) -> None:
     """Move a misplaced top-level value map to its only bound item target.
 
-    Models occasionally put ``dataValueMaps.value`` on ``Summary`` or
+    Models occasionally put ``dataValueMaps.value`` on
     ``SecondaryBody`` while the matching ``dataIds.value`` belongs to one item.
     Moving it is structure-only and safe only when exactly one item can own it.
     Ambiguous shapes remain untouched for normal contract validation.
@@ -918,10 +922,24 @@ def materialize_binding_literals(
             if not isinstance(item_ids, dict):
                 continue
             for prop, binding_id in item_ids.items():
-                if prop not in item_props or not isinstance(binding_id, str):
+                if prop not in item_props:
+                    continue
+                contract_prop = f"items[].{prop}"
+                binding_ids = data_binding_ids(element.tag, contract_prop, binding_id)
+                if binding_ids is None:
+                    continue
+                if len(binding_ids) > 1:
+                    try:
+                        bindings = [compile_context.data_binding(item_id) for item_id in binding_ids]
+                    except ValidationError:
+                        continue
+                    separator = data_binding_separator(element.tag, contract_prop)
+                    item[prop] = separator.join(
+                        str(binding.value_for_prop(element.tag, contract_prop)) for binding in bindings
+                    )
                     continue
                 try:
-                    binding = compile_context.data_binding(binding_id)
+                    binding = compile_context.data_binding(binding_ids[0])
                 except ValidationError:
                     continue
                 value_map = boolean_text_map_for(item, prop)
@@ -994,3 +1012,22 @@ def materialize_binding_literals(
             compile_context,
             _query_overrides=query_overrides,
         )
+
+
+def remove_data_binding_metadata(element: JSXElement) -> None:
+    """Remove display-data binding metadata while preserving static literals.
+
+    ``actionId`` is intentionally retained: disabling live display updates must
+    not disable button interactions.
+    """
+
+    element.props.pop("dataIds", None)
+    element.props.pop("dataValueMaps", None)
+    items = element.props.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict):
+                item.pop("dataIds", None)
+                item.pop("dataValueMaps", None)
+    for child in element.child_elements():
+        remove_data_binding_metadata(child)

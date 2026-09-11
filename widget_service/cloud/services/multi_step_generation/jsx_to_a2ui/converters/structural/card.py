@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from ...catalog.appearances import get_appearance
+from ...catalog.appearances import get_appearance, resolve_appearance_name
 from ...catalog.card_sizes import resolve_card_size
 from ...catalog.tokens import normalize_color
 from ...exceptions import ValidationError
@@ -59,9 +59,9 @@ def _content_extent(extent: object, padding: object, axis: str) -> int | float |
 
 def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     explicit_appearance = node.props.get("appearance")
-    appearance_name = str(explicit_appearance or "blue-soft")
-    appearance = get_appearance(appearance_name)
     semantic_size, width, height = resolve_card_size(node.props.get("size"))
+    appearance_name = resolve_appearance_name(explicit_appearance, semantic_size)
+    appearance = get_appearance(appearance_name)
     padding = node.props.get("padding", 12)
     inner = ctx.with_appearance(appearance_name).with_card_surface(
         semantic_size,
@@ -79,7 +79,7 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if not children:
         raise ValidationError("<Card> must contain at least one component child")
     background = node.props.get("background")
-    adapt_flex_children(source_children, children, is_row=is_row)
+    adapt_flex_children(source_children, children, is_row=is_row, fill_table_height=True)
     if stretch:
         for child in children:
             child.styles.setdefault("height" if is_row else "width", "matchParent")
