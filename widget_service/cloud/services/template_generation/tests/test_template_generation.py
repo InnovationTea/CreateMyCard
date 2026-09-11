@@ -4177,6 +4177,41 @@ class _FixedTemplateModel:
 
 
 @pytest.mark.asyncio
+async def test_deterministic_composer_skips_llm_for_property_free_single_plan() -> None:
+    task_spec = _battery_task().model_copy(update={"eventCandidates": []})
+    fields = (
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=list(fields),
+    )
+    model = _FixedTemplateModel(
+        theme_id="device-gray-blue",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewFull@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=fields,
+        action_id=None,
+        body='Template("SingleFocusLayout@1",{},Template("BatteryOverviewFull@1",{}));',
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == ("BatteryOverviewFull@1", "SingleFocusLayout@1")
+    assert model.second_layer_prompt is None
+
+
+@pytest.mark.asyncio
 async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> None:
     task_spec = TaskSpec(
         userQuery="显示厦门当前风向、风力和更新时间，点击查看天气详情",
@@ -5700,7 +5735,7 @@ def test_battery_generic_hero_requires_a_selected_layout_action():
 
 
 @pytest.mark.asyncio
-async def test_battery_hero_without_pill_action_is_repaired_to_full_template():
+async def test_battery_hero_without_pill_action_is_repaired_to_full_template(monkeypatch):
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -5742,6 +5777,7 @@ async def test_battery_hero_without_pill_action_is_repaired_to_full_template():
             return layout + 'Template("BatteryOverviewFull@1",{}));'
 
     model = RepairingBatteryModel()
+    monkeypatch.setattr(template_pipeline_module, "compose_deterministic_tree", lambda *_args: None)
     output = await generate_template_a2ui(
         _battery_task(),
         _battery_card_spec(),
@@ -5767,7 +5803,7 @@ async def test_battery_hero_without_pill_action_is_repaired_to_full_template():
 
 
 @pytest.mark.asyncio
-async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice() -> None:
+async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice(monkeypatch) -> None:
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -5811,6 +5847,7 @@ async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice() -> 
             )
 
     model = InvalidDirectCallModel()
+    monkeypatch.setattr(template_pipeline_module, "compose_deterministic_tree", lambda *_args: None)
 
     with pytest.raises(TemplateGenerationError, match="template body validation failed"):
         await generate_template_a2ui(
@@ -6061,6 +6098,52 @@ class WeatherTemplateModel:
 
 
 @pytest.mark.asyncio
+async def test_deterministic_composer_keeps_llm_for_unresolved_visible_props() -> None:
+    model = WeatherTemplateModel()
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/temperatureText", "/current/condition"],
+    )
+
+    output = await generate_template_a2ui(
+        _weather_task_spec(),
+        _weather_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
+    assert model.body_called is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_deterministic_composer_validation_failure_falls_back_to_llm(monkeypatch) -> None:
+    model = WeatherTemplateModel()
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/temperatureText", "/current/condition"],
+    )
+    monkeypatch.setattr(
+        template_pipeline_module,
+        "compose_deterministic_tree",
+        lambda _projection, _registry: 'Template("SingleFocusLayout@1",{},);',
+    )
+
+    output = await generate_template_a2ui(
+        _weather_task_spec(),
+        _weather_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
+    assert model.body_called is True
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("selector", ["search", "llm"])
 async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
     monkeypatch,
@@ -6117,6 +6200,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
         firstLayerComponentSelector=selector,
     )
     monkeypatch.setattr(template_pipeline_module, "load_template_controls", lambda: controls)
+    monkeypatch.setattr(template_pipeline_module, "compose_deterministic_tree", lambda *_args: None)
     binding = CandidateDataBinding(
         capabilityId="GetAppUsageDuration",
         writeResultTo="/data/appUsageStats",
