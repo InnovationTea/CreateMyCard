@@ -1069,6 +1069,7 @@ async function inspectBrowserCard(page) {
       heightOverflowComponents: [],
       semanticOverlaps: [],
       semanticContentOverflows: [],
+      buttonClipping: [],
       resourceElements: [],
     };
     if (!card) return result;
@@ -1282,6 +1283,50 @@ async function inspectBrowserCard(page) {
       node,
       semanticPaintedRects.get(node),
     ));
+    // Test actual button borders against clipping ancestors, not layout slots.
+    // scrollWidth cannot reveal left/up overflow from centered oversized items.
+    const buttonClipTolerance = 1.5;
+    for (const button of semanticNodes.filter((node) => node.matches(".pill-btn,.circle-btn,.card-action-btn"))) {
+      const rect = button.getBoundingClientRect();
+      for (let ancestor = button.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor);
+        // A nonzero overflow-clip-margin deliberately extends the clip edge.
+        // Do not infer that geometry from the padding box.
+        const ordinaryClipEdge = !css.overflowClipMargin || css.overflowClipMargin === "0px";
+        const clipX = css.overflowX === "hidden" || (css.overflowX === "clip" && ordinaryClipEdge);
+        const clipY = css.overflowY === "hidden" || (css.overflowY === "clip" && ordinaryClipEdge);
+        if (clipX || clipY) {
+          const bounds = ancestor.getBoundingClientRect();
+          const scaleX = ancestor.offsetWidth ? bounds.width / ancestor.offsetWidth : 1;
+          const scaleY = ancestor.offsetHeight ? bounds.height / ancestor.offsetHeight : 1;
+          const left = bounds.left + ancestor.clientLeft * scaleX;
+          const top = bounds.top + ancestor.clientTop * scaleY;
+          const right = left + ancestor.clientWidth * scaleX;
+          const bottom = top + ancestor.clientHeight * scaleY;
+          const clipped = {
+            left: clipX ? Math.max(0, left - rect.left) : 0,
+            right: clipX ? Math.max(0, rect.right - right) : 0,
+            top: clipY ? Math.max(0, top - rect.top) : 0,
+            bottom: clipY ? Math.max(0, rect.bottom - bottom) : 0,
+          };
+          if (Math.max(...Object.values(clipped)) > buttonClipTolerance) {
+            result.buttonClipping.push({
+              ...describe(button, rect),
+              clippingAncestor: {
+                ...describeNode(ancestor, bounds),
+                clipRect: relativeRect({x:left, y:top, width:right-left, height:bottom-top}),
+                overflowX: css.overflowX,
+                overflowY: css.overflowY,
+              },
+              clipped,
+            });
+            // Keep the nearest actual clipping ancestor, once per button.
+            break;
+          }
+        }
+        if (ancestor === card) break;
+      }
+    }
     // Text ranges include a few pixels of normal font leading. Allow that
     // baseline slack, but reject larger excursions caused by flex/grid shrink
     // or wrapped content escaping the semantic component that owns it.
@@ -1732,6 +1777,29 @@ function browserFindings(metrics, cardSize) {
         evidence: item,
         likelyCause: "父级 flex/grid 将组件高度压缩到不足以容纳内部文字，或文字换行后组件仍使用过小的固定高度。",
         suggestion: "增加组件及父级槽位的可用高度、减少同槽内容，或重新分组；不要依赖 flex shrink、overflow 或 Card 裁剪隐藏必需文字。",
+      },
+    ));
+  }
+  for (const item of metrics.buttonClipping || []) {
+    const sameRect = (first, second) => first && second
+      && ["x", "y", "width", "height"].every((key) => Math.abs(first[key] - second[key]) <= 0.1);
+    // Existing errors already trigger a repair. Avoid counting the exact same
+    // button outside Card or vertical clip ancestor as a second layout fault.
+    const outsideCard = (metrics.outsideBounds || []).some((entry) => sameRect(entry.rect, item.rect));
+    const verticalClip = Math.max(item.clipped.top, item.clipped.bottom) > 1.5
+      && (metrics.verticalClipping || []).some((entry) => sameRect(entry.rect, item.clippingAncestor.rect));
+    if (outsideCard || verticalClip) continue;
+    const label = diagnosticComponentLabel(item);
+    findings.push(browserFinding(
+      "error",
+      "browser-button-clipping",
+      `${label} 按钮本体被祖先容器裁切，最大裁切约 ${rounded(Math.max(...Object.values(item.clipped)))}vp`,
+      {
+        component: item.component,
+        componentText: item.componentText,
+        evidence: item,
+        likelyCause: "固定尺寸按钮超出了祖先 hidden/clip 的实际可见区域；居中对齐也可能导致向左或向上裁切。",
+        suggestion: "为按钮分配足够宽高的独立布局行或槽位（例如移到信息分栏下方），保持按钮、动态数据和事件；不要靠裁切隐藏按钮。",
       },
     ));
   }

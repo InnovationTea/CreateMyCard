@@ -15,7 +15,7 @@
 - Boolean 可直接用于 `disabled`、`done` 等 boolean Prop。文本 Prop 不接受裸 Boolean；只有同时通过同名 `dataIds` 和完整 `dataValueMaps={{ prop: { true: "…", false: "…" } }}` 声明双状态文案时，才允许把 Boolean 响应式显示为文本。
 - 所有来自输入 `data` 的可见业务值都必须绑定；通常一个显示 Prop 只绑定一个数据 ID。只有组件属性表明确声明数组形式时，才能让同一显示 Prop 绑定多个 ID。`Card`、`Stack`、`Grid`、Icon、appearance、尺寸、位置和颜色等视觉属性不得绑定。
 - 多个输入字段不得在 JSX 中手工拼成一个动态字符串。应使用组件的多 item 模式、拆成多个组件，或使用合同明确允许的有序 ID 数组；`EventCard.time` 用 ` – ` 组合开始／结束时间，`EmphasisText.mainText`、`EmphasisText.secondaryText` 和 `InfoBlock.secondaryText` 用 ` ｜ ` 组合多个短字段。添加或删除绑定不得改变其余 Props、组件树和槽位尺寸。
-- 静态 `label`、`unit` 和 `separator` 可以说明动态值，但必须遵守对应组件合同，不得改变数值和业务语义。只有输入 `data[].type` 为 `integer`／`number` 且业务值确实是数字时，才可补充静态单位；字符串业务值必须保留完整，不得自行拆分或补写单位。
+- 静态 `label`、`unit` 和 `separator` 可以说明动态值，但必须遵守对应组件合同，不得改变数值和业务语义。有单位槽的组件可为独立数字或纯数字字符串声明静态单位，保留原值及精度；完整带单位字符串必须保留完整，不得自行拆分或补写单位。
 - 格式化字符串只能绑定到接受字符串的显示 Prop；`EmphasizedData` 会自动拆分完整字符串，生成代码仍原样填写 `value="25 分钟"`。`ProgressCircle` 只绑定 `externalText`，由组件内部解析其中的数字驱动圆环；其他进度组件仍按各自属性表绑定实际进度值。`ProgressCircleSingle.value` 在没有独立数值字段时允许绑定完整的格式化百分比字符串。
 - `actionId` 只能原样引用输入 `actions[].id`。`actions[].description` 仅用于选择动作，不输出为 JSX Prop；一个控件最多引用一个动作，同一 `actionId` 在一张卡片中最多使用一次。
 
@@ -24,6 +24,14 @@
 本文件只包含两种 Card 尺寸都可使用的组件。Runner 会根据当前任务的 `Card.size`，继续拼接对应尺寸的专属组件文档。
 
 `SingleLineTitle`、`DoubleLineTitle`、`Badge`、`EmphasizedData`、`EmphasisText`、`SecondaryBody`、`Summary`、`InfoBlock`、`TableText`、`ProgressLine2`、`ProgressCircleSingle`、`ProgressCircle`、`NumericRatio`、`NumericRatioStack`、`EventCard`、`H_BarChart`、`PillButton`
+
+### 1.2 动态数据与显式单位
+
+- 原始数据及其类型不变。有独立 `unit` 槽的组件（EmphasizedData、InfoBlock、NumericRatio / NumericRatioStack、ProgressLine2 / ProgressLine2WithData），绑定无单位数字时，最终 JSX 使用原始数值加显式静态 `unit`，例如 `value={80} unit="%" dataIds={{value:"earphone.batteryLevel"}}`。
+- 纯数字字符串如 `"80.00"` 也可配合显式单位，但必须保留字符串及其精度，不能擅自改为数字 `80`。完整带单位文本如 `"80%"`、`"4.60 公里"`、`"7小时1分"` 原样绑定，不再添加静态单位，也不拆成写死的业务数据。
+- 单位依据当前输入的明确说明填写，不能根据字段名称猜测。显式 `unit=""` 关闭对裸数字的额外单位，独立 `dataIds.unit` 必须保留。单位冲突不得冒充单位换算。
+- 没有单位槽的普通文本属性继续使用绑定层兼容格式化；不得给 Summary.items 等不支持单位属性的结构添加 `unit`。进度计算参数始终保留原值，百分比组件既有的取整与默认百分比语义不变。
+- 动态完整文本仍由组件按原有设计拆为数字和小单位，生成代码不能把当前样例中的数字或单位拆成写死的业务数据。
 
 ## 2. 标题组件
 
@@ -194,15 +202,15 @@
 | 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
 |---|---|---|---|---|
 | `value` | `string \| number` | 展示单组数据，只有纯文本无数值时不使用此组件(如"正常电量"、"户外跑步") | `items` 存在时忽略 | 若绑定字段是完整格式化字符串，必须原样填写样例值，例如 `"2小时15分"`；组件会自动拆分，生成代码不得自行改写 |
-| `unit` | `string` | 仅 `integer`／`number` 输入可使用 | 不传时不显示 | 只有绑定字段的真实输入值是无单位数字时才可填写；`string` 输入无论内容如何都不得再填写 `unit` |
+| `unit` | `string` | 无单位数字或纯数字字符串可使用 | 不传时不显示 | 静态单位应显式填写；完整带单位字符串不追加单位；空字符串关闭额外单位 |
 | `items` | `Array<{ key?, value, unit?, dataIds? }>` | 多个独立数据字段时使用 | 存在时覆盖顶层 `value`、`unit` | 不用于手工拆分一个完整字符串；`"2小时15分"` 仍使用顶层 `value` 和一个原始 `dataId` |
 | `dataIds` | `{ value?: string, unit?: string }` | 对应属性来自输入数据时必选 | 不传时无绑定 | 只填写输入中真实存在的原始数据 ID，不得构造额外数据 ID |
 
 #### 数值与单位拆分规则
 
 - 判断只依据当前输入的真实 `type` 和 `value`，不得根据字段名或 description 猜测、提取单位。
-- 输入 `type` 为 `integer`／`number` 且 `value` 是独立数字时，才使用 `value + unit`。
-- 输入 `type` 为 `string` 时，将完整样例原样放入 `value`，只绑定原始 `dataId`；即使字符串看起来像 `"320千卡"`、`"25分钟"`，也不要填写 `unit`，不要手工拆成多个 `items`。
+- 输入为独立数字或纯数字字符串时，使用原始 `value + unit`；保留 `"80.00"` 等字符串精度。
+- 输入为完整带单位字符串时，将完整样例原样放入 `value`，只绑定原始 `dataId`；如 `"320千卡"`、`"25分钟"`，不要填写 `unit`，不要手工拆成多个 `items`。
 - 组件会把可完整识别的字符串自动分段。例如 `"2小时15分"` 显示为大号 `2`、小号“小时”、大号 `15`、小号“分”；无法识别时只显示完整原文，绝不同时显示原文和额外单位。
 - 摄氏温度是特例：`"29.0 ℃"`／`"29.0℃"` 显示为大号 `29.0°`，删除其中的 `C`、保留 `°`，且不生成独立单位；`"26°"` 仍作为完整大号值显示。
 
@@ -250,11 +258,11 @@
 
 | 样式属性 | 值 | 说明 |
 |---|---|---|
-| `value-typography` | Display_S / 38px / Bold 700 / 38px | 核心数值使用紧凑 `line-height: 1`；数值与单位共同收敛在 38vp 行盒内，不因不同字体的 baseline 扩大组件可见高度 |
+| `value-typography` | Display_S / 38px / Bold 700 / 38px | 核心数值使用紧凑 `line-height: 1`；单行数字行盒为 38vp，单位换行时组件按内容向下扩展，不强行裁切或压缩为 38vp |
 | `value-color` | `font-primary` | 核心数值字色 |
 | `unit-typography` | Caption_L / 12px / Regular 400 / 18px | 单位字体规格 |
 | `unit-color` | `font-secondary` | 单位字色 |
-| `align-items` | `flex-end` | 独立组件中数值与单位按行盒底部对齐；`ProgressLine2` 使用紧凑单位行盒做 baseline 对齐，但不额外扩大数值行盒 |
+| `align-items` | `baseline` | 数值与单位的第一行文字基线对齐，而非行盒底部对齐；`ProgressLine2` 保留其紧凑单位行盒及既有基线对齐 |
 | `gap` | 2px | 数值与单位、单位与下一组数值之间的水平间距 |
 | `temperature-format` | `26°` | 数值和 `°` 作为整体采用 38px Bold 样式 |
 | `description-slot` | 无 | 数值和可选单位就是全部信息 |
@@ -1100,7 +1108,7 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 |---|---|---|---|---|---|
 | `NumericRatio` | `icon` | `string` | 必选 | 无默认值 | 对象 Icon；使用当前输入中语义匹配的候选资源 `src` |
 | `NumericRatio` | `value` | `string \| number` | 必选 | 数字值截去小数部分并默认补 `%`，字符串原样显示 | 动态原始百分比使用数字，例如 `43.75` 可见为 `43%`；已有完整展示文本时可使用 `"43%"` |
-| `NumericRatio` | `unit` | `string` | 可选 | 数字值默认 `%`，字符串默认空 | 静态单位；传空字符串可关闭数字值的默认百分号 |
+| `NumericRatio` | `unit` | `string` | 裸数字的新生成 JSX 显式填写 | 旧 JSX 数字值兼容默认 `%`，字符串默认空 | 静态单位；完整带单位字符串不重复追加；传空字符串关闭默认百分号 |
 | `NumericRatio` | `appearance` | `"card"` | 生成 Card 必选 | 默认 img 模式 | 启用卡片 Icon mask |
 | `NumericRatio` | `dataIds` | `{ value?: string }` | `value` 来自输入数据时必选 | 不传时无绑定 | 仅允许绑定 `value`；Icon 和静态单位不得绑定 |
 | `NumericRatioStack` | `items` | `Array<{ key?, icon, value, unit?, dataIds? }>` | 必选，设计规范固定三项 | runtime 接受任意长度 | 每项必须包含当前输入中语义匹配的候选资源 `src` 和数值 `value`，并通过 `dataIds.value` 独立绑定；对象语义由 Icon 承载 |
@@ -1118,16 +1126,19 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
       {
         icon: "earphone_case_16644.svg",
         value: 80,
+        unit: "%",
         dataIds: { value: "earbuds.caseBatteryPercent" },
       },
       {
         icon: "l_circle_fill.svg",
         value: 76,
+        unit: "%",
         dataIds: { value: "earbuds.leftBatteryPercent" },
       },
       {
         icon: "r_circle_fill.svg",
         value: 74,
+        unit: "%",
         dataIds: { value: "earbuds.rightBatteryPercent" },
       },
     ]}

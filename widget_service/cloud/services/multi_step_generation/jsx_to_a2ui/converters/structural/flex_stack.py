@@ -217,6 +217,60 @@ def _intrinsic_row_alignment(
     return {"start": "top", "center": "center", "end": "bottom"}[alignment]
 
 
+def _center_backplate_buttons(
+    parent: JSXElement,
+    sources: list[JSXElement],
+    children: list[A2UINode],
+    ctx: ConversionContext,
+    *,
+    is_row: bool,
+) -> None:
+    """Lower the runtime's backplate pill align-self without changing siblings."""
+    if not ctx.inside_backplate:
+        return
+    row_height: object = "matchParent"
+    if is_row and parent.props.get("height") is None:
+        # A matchParent child can expand an auto-height A2UI Row to the whole
+        # offered height. Only use an intrinsic height when every child has a
+        # definite height; do not guess wrapping text or flexible row heights.
+        row_height = 0.0
+        for child in children:
+            height = _number(child.styles.get("height"))
+            if height is None:
+                return
+            constraints = child.styles.get("constraintSize", {})
+            minimum = _number(constraints.get("minHeight")) or 0
+            outer_height = max(height, minimum) + _edge_extent(
+                child.styles.get("margin"), "top", "bottom",
+            )
+            row_height = max(row_height, outer_height)
+    for index, source in enumerate(sources):
+        if source.tag != "PillButton" or source.props.get("appearance") != "card":
+            continue
+        button = children[index]
+        # The wrapper fills only the cross axis. The button itself keeps its
+        # fixed dimensions and event, including when wider than its parent.
+        width = button.styles.get("width") if is_row else "matchParent"
+        if not is_row and ctx.intrinsic_width:
+            width = None
+        children[index] = column(
+            ctx,
+            "pill_alignment",
+            [button],
+            styles={
+                "width": width,
+                "height": row_height if is_row else button.styles.get("height"),
+                # A short Row still centers the fixed-height button; its
+                # alignment slot must not force the cross axis up to 36vp.
+                "constraintSize": {"minWidth": 0, "minHeight": 0 if is_row else 36},
+                "layoutWeight": 0,
+                "flexShrink": 0,
+                "alignItems": "center",
+                "justifyContent": "center",
+            },
+        )
+
+
 def _linear_stack(
     node: JSXElement,
     ctx: ConversionContext,
@@ -241,6 +295,7 @@ def _linear_stack(
         child_ctx.for_flex_child(child, is_row=is_row, stretch=stretch).convert(child)
         for child in source_children
     ]
+    _center_backplate_buttons(node, source_children, children, child_ctx, is_row=is_row)
     adapt_flex_children(source_children, children, is_row=is_row)
     intrinsic_row_alignment = (
         _intrinsic_row_alignment(node, source_children, children)

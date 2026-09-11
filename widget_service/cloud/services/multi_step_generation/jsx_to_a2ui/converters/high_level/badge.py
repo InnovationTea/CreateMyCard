@@ -20,6 +20,10 @@ def convert_badge(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "badge",
         [label],
         styles={
+            # Badge has its own content width, even inside a stretching Column.
+            "width": "wrapContent",
+            "constraintSize": {"maxWidth": "100%"},
+            "flexShrink": 0,
             "height": 16,
             "padding": {"left": 6, "right": 6},
             "borderRadius": 8,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -119,6 +120,7 @@ _BROWSER_LAYOUT_CODES = frozenset(
         "browser-vertical-clipping",
         "browser-semantic-overlap",
         "browser-semantic-content-overflow",
+        "browser-button-clipping",
     }
 )
 
@@ -159,6 +161,69 @@ def browser_layout_fingerprints(report: dict[str, Any]) -> frozenset[str]:
     return frozenset(fingerprints)
 
 
+def _finite_vector(value: Any, fields: tuple[str, ...]) -> tuple[int | float, ...] | None:
+    if not isinstance(value, dict):
+        return None
+    numbers = tuple(value.get(field) for field in fields)
+    for number in numbers:
+        if isinstance(number, bool) or not isinstance(number, (int, float)):
+            return None
+        if isinstance(number, float) and not math.isfinite(number):
+            return None
+    return numbers
+
+
+def _card_overflow_identity(item: dict[str, Any]) -> tuple[Any, ...] | None:
+    """Identify only matching owner/text evidence of one Card boundary breach."""
+    code = item.get("code")
+    if code not in {"browser-overflow", "browser-semantic-content-overflow"}:
+        return None
+    evidence = item.get("evidence")
+    if not isinstance(evidence, dict) or not evidence.get("component"):
+        return None
+    rect = _finite_vector(evidence.get("rect"), ("x", "y", "width", "height"))
+    element = evidence.get("element")
+    if rect is None or not isinstance(element, dict) or not element.get("tag"):
+        return None
+    sides = ("left", "top", "right", "bottom")
+    if code == "browser-semantic-content-overflow":
+        if _finite_vector(evidence.get("ownerOverflow"), sides) != (0, 0, 0, 0):
+            return None
+        overflow = _finite_vector(evidence.get("cardOverflow"), sides)
+    else:
+        overflow = _finite_vector(evidence.get("overflow"), sides)
+    if overflow is None or min(overflow) < 0 or max(overflow) <= 0:
+        return None
+    return (
+        evidence["component"], evidence.get("componentText"),
+        element.get("tag"), element.get("className"), rect, overflow,
+        json.dumps(evidence.get("parentLayout"), sort_keys=True, ensure_ascii=False),
+    )
+
+
+def _independent_layout_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
+    groups: list[list[dict[str, Any]]] = []
+    for item in _error_findings(report):
+        if str(item.get("code") or "") not in _BROWSER_LAYOUT_CODES:
+            continue
+        identity = _card_overflow_identity(item)
+        duplicate = next((group for group in groups
+                          if len(group) == 1 and identity is not None
+                          and group[0].get("code") != item.get("code")
+                          and _card_overflow_identity(group[0]) == identity), None)
+        if duplicate is None:
+            groups.append([item])
+        else:
+            duplicate.append(item)
+    findings = []
+    for group in groups:
+        entry = dict(group[0])
+        if len(group) > 1:
+            entry["relatedFindings"] = [_compact_finding(item) for item in group[1:]]
+        findings.append(entry)
+    return findings
+
+
 def browser_layout_needs_restructure(
     report: dict[str, Any],
     *,
@@ -168,7 +233,7 @@ def browser_layout_needs_restructure(
 
     current = browser_layout_fingerprints(report)
     repeated = sorted(current & previous_fingerprints)
-    layout_errors = [item for item in _error_findings(report) if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
+    layout_errors = _independent_layout_findings(report)
     has_total_overflow = any(item.get("code") == "browser-height-overflow" for item in layout_errors)
     return bool(repeated or has_total_overflow or len(layout_errors) >= 2), repeated
 
@@ -188,6 +253,7 @@ def _compact_finding(item: dict[str, Any]) -> dict[str, Any]:
         "likelyCause",
         "suggestion",
         "details",
+        "relatedFindings",
     ):
         value = item.get(field)
         if value is None:
@@ -225,6 +291,7 @@ def _aggregate_layout_findings(
                 "code": item.get("code"),
                 "message": item.get("message"),
                 **({"evidence": compact_evidence} if compact_evidence is not None else {}),
+                **({"relatedFindings": item["relatedFindings"]} if item.get("relatedFindings") else {}),
             }
         )
     if structural_repair:
@@ -259,12 +326,14 @@ def compact_validation_feedback(
 ) -> list[dict[str, Any]]:
     compact: list[dict[str, Any]] = []
     findings = _error_findings(report)
-    layout_findings = [item for item in findings if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
+    layout_findings = _independent_layout_findings(report)
     layout_aggregated = len(layout_findings) >= 2
+    layout_emitted = False
     for item in findings:
-        if item in layout_findings:
-            if not layout_aggregated:
-                compact.append(_compact_finding(item))
+        if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES:
+            if not layout_aggregated and not layout_emitted:
+                compact.extend(_compact_finding(finding) for finding in layout_findings)
+                layout_emitted = True
             continue
         compact.append(_compact_finding(item))
     if layout_aggregated:

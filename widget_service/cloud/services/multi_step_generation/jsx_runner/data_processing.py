@@ -140,6 +140,7 @@ DISPLAY_UNIT_SUFFIX_BY_BINDING_ID: dict[str, str] = {
     "healthSport.exerciseHeartRateAvg": "次/分钟",
     "healthSport.exerciseHeartRateMax": "次/分钟",
     "healthSport.exerciseHeartRateMin": "次/分钟",
+    "healthSport.sleepScore": "分",
     "phoneBattery.batterySOC": "%",
     "weather.current.feelsLikeC": "℃",
     "weather.current.humidityPercent": "%",
@@ -449,7 +450,9 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
         unit = item.get("displayUnit")
         if unit:
             prompt_item["description"] += (
-                f"（原值用于数值计算；文本展示自动追加单位“{unit}”，无需重复填写单位。）"
+                f"（原值不变；使用有 unit 槽的组件时，value 保留原值，显式填写 unit=“{unit}”；"
+                "完整带单位字符串不再追加单位。"
+                "没有 unit 槽的普通文本由绑定层兼容格式化。）"
             )
         prompt_data.append(prompt_item)
 

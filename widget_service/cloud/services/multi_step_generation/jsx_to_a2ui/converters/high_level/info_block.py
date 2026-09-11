@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ...catalog.display_values import normalize_percentage_value
 from ...catalog.display_units import repeats_numeric_unit
+from ...catalog.display_values import normalize_percentage_value
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
@@ -46,7 +46,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
 
     primary_value = ctx.prop(node, "primaryText")
     primary_binding = ctx.bound_data(node.props, "primaryText")
-    primary_display = primary_binding.display_value if primary_binding is not None else primary_value
+    primary_display = primary_binding.value if primary_binding is not None else primary_value
     primary = text(
         ctx,
         "info_block_primary_value",
@@ -63,7 +63,8 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         },
     )
     primary_children: list[A2UINode] = [primary]
-    if node.props.get("unit") is not None and not repeats_numeric_unit(primary_display, node.props["unit"]):
+    explicit_unit = node.props.get("unit")
+    if explicit_unit is not None and not repeats_numeric_unit(primary_display, explicit_unit):
         primary_children.append(
             text(
                 ctx,
@@ -76,6 +77,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                     "fontColor": palette(ctx).secondary,
                     "maxLines": 1,
                     "flexShrink": 0,
+                    "visibility": ctx.unit_visibility(primary_binding),
                 },
             )
         )

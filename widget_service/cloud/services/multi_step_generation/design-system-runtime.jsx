@@ -787,10 +787,10 @@
 /* ── EmphasizedData · 统一数值组件 ──────────────── */
 .ed{
   display:inline-flex;
-  /* Keep the 12px unit inside the value's 38px layout box. Baseline alignment
-     combines the two font metrics and can make the flex item's box 3px taller,
-     causing the next semantic component to be reported as overlapping. */
-  align-items:flex-end;
+  /* Align the text baselines, not the bottoms of their different line boxes.
+     A wrapping unit keeps its first baseline beside the number and expands
+     downwards in normal flow. Do not clip it to the numeric line's height. */
+  align-items:baseline;
   gap:2px;
   font-family:"HarmonyHeiTi","HarmonyOS Sans SC","HarmonyOS Sans",sans-serif;}
 .ed-val{
@@ -2177,6 +2177,15 @@
   const emphasizedCelsiusPattern = /^\s*([+-]?\d+(?:\.\d+)?)\s*(?:℃|°\s*C|摄氏度)\s*$/i;
 
   function normalizeEmphasizedItem(item) {
+    if (item.dataIds?.unit) return [item];
+    const numeric = typeof item.value === 'number'
+      || (typeof item.value === 'string' && /^[+-]?\d+(?:\.\d+)?$/.test(item.value.trim()));
+    if (numeric && ['℃', '°C', '摄氏度'].includes(item.unit)) {
+      return [{...item, value: `${String(item.value).trim()}°`, unit: undefined}];
+    }
+    if (numeric && typeof item.value === 'string' && item.unit) {
+      return [{...item, value: item.value.trim()}];
+    }
     if (typeof item.value !== "string") return [item];
 
     const celsius = emphasizedCelsiusPattern.exec(item.value);
@@ -2198,7 +2207,7 @@
   }
 
   function EmphasizedData({ value, unit, items, dataIds, className, ...rest }) {
-    const normalized = (items || [{ value, unit }]).flatMap(normalizeEmphasizedItem);
+    const normalized = (items || [{ value, unit, dataIds }]).flatMap(normalizeEmphasizedItem);
     return (
       <div className={cx("ed", className)} {...rest}>
         {normalized.map((item, index) => (

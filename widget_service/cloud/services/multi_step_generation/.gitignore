@@ -13,7 +13,8 @@ data/
 node_modules/
 playwright-browsers/
 package-lock.json
-preview/
+preview/*
+!preview/jsx-binding-runtime.js
 scripts/build-jsx-run-gallery.js
 
 # Python/test caches

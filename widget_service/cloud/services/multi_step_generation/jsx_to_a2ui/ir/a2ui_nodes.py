@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 import copy
+import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
@@ -10,9 +10,9 @@ from ..catalog.bindings import (
     CompileContext,
     DataBinding,
     a2ui_expression,
+    binding_value_type_error,
     boolean_text_expression,
     boolean_text_map_for,
-    binding_value_type_error,
     collect_display_semantic_errors,
     data_binding_ids,
     data_binding_separator,
@@ -22,6 +22,7 @@ from ..catalog.bindings import (
     normalized_boolean_text_map,
     value_type,
 )
+from ..catalog.display_units import has_unit_slot
 from ..catalog.display_values import (
     DisplayPlan,
     derived_path_for_source,
@@ -31,7 +32,6 @@ from ..catalog.display_values import (
 )
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
-
 
 BASE_COMPONENTS = frozenset(
     {
@@ -358,6 +358,8 @@ class ConversionContext:
 
     @staticmethod
     def uses_unit_text_model(binding: DataBinding, tag: str, name: str) -> bool:
+        if has_unit_slot(tag, name):
+            return False
         return (
             bool(binding.display_unit)
             and isinstance(binding.value, str)
@@ -398,6 +400,19 @@ class ConversionContext:
         set_pointer_value(self.derived_data_model, path, model)
         self.used_data_ids.add(binding.id)
         return path, plan
+
+    def unit_visibility(self, binding: DataBinding | None) -> str | None:
+        """A separately declared unit is painted only beside unitless string data.
+
+        Keep the node live through numeric-string, formatted-text and status
+        updates, without concatenating a unit twice or changing source values.
+        """
+        visibility = None
+        if binding is not None and isinstance(binding.value, str):
+            path, _ = self.register_derived_display(binding)
+            reference = data_model_expression_reference(f"{path}/isUnitlessNumber")
+            visibility = f"{{{{ {reference} ? 'visible' : 'none' }}}}"
+        return visibility
 
     def action_props(self, element: JSXElement) -> dict[str, Any]:
         action_id = element.props.get("actionId")

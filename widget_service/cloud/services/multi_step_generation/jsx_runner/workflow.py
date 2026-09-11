@@ -508,6 +508,8 @@ def _validate_action_slot_compatibility(
     root: JSXElement,
     decision: dict[str, Any] | None = None,
     expected_size: str | None = None,
+    *,
+    advisory_issues: list[tuple[str, str]] | None = None,
 ) -> None:
     """Reject action components placed in a slot for another button family."""
     issues: list[str] = []
@@ -540,10 +542,17 @@ def _validate_action_slot_compatibility(
                 "a 2x2 InfoBlock card may only contain its two InfoBlock business "
                 "components; remove: " + ", ".join(dict.fromkeys(extra_business_components))
             )
-    if info_blocks:
+    if info_blocks and advisory_issues is not None:
         appearance = root.props.get("appearance")
-        if not isinstance(appearance, str) or not appearance.endswith("-gradient"):
-            issues.append("InfoBlock must be placed on a *-gradient Card")
+        if isinstance(appearance, str) and appearance.endswith("-soft"):
+            # The theme name alone does not prove a rendering error. Keep
+            # the color risk visible without rejecting an otherwise valid card.
+            advisory_issues.append((
+                "info-block-appearance-risk",
+                f"InfoBlock on '{appearance}' may have low-contrast translucent backplates "
+                "or default white icons/progress rings when present; "
+                "appearance compatibility is advisory only, not a submission error.",
+            ))
     for ratio_stack in (node for node in _walk(root) if node.tag == "NumericRatioStack"):
         items = ratio_stack.props.get("items")
         if isinstance(items, list) and len(items) != 3:
@@ -2877,6 +2886,7 @@ class OrderedWorkflowState:
                     root,
                     decision,
                     self.expected_card_size,
+                    advisory_issues=semantic_warning_messages,
                 ),
                 lambda: _validate_progress_line_theme(root),
                 lambda: _validate_layout_decision(root, decision, self.expected_card_size),

@@ -29,6 +29,11 @@ from .workflow import (
 
 
 SUBMIT_MODES = ("direct", "auto")
+MAX_CONSECUTIVE_NO_TOOL_CALLS = 3
+
+
+class MissingToolCallError(RuntimeError):
+    """The endpoint repeatedly returned no tool call for the current stage."""
 
 
 def _stage_directive(tool_name: str) -> str | None:
@@ -38,6 +43,20 @@ def _stage_directive(tool_name: str) -> str | None:
             "推理过程或 Markdown；请立即用紧凑参数调用该工具。"
         )
     return None
+
+
+def _tool_choice_label(tool_choice: Any) -> str:
+    """Return a compact, JSON-safe label for one outbound tool choice."""
+
+    if tool_choice == "auto":
+        return "auto"
+    if isinstance(tool_choice, dict):
+        function = tool_choice.get("function")
+        if isinstance(function, dict):
+            name = str(function.get("name") or "").strip()
+            if name:
+                return f"required:{name}"
+    return str(tool_choice or "unknown")
 
 
 def _is_tool_choice_compatibility_error(exc: Exception) -> bool:
@@ -444,6 +463,8 @@ class JsxA2UIAgent:
         )
 
         last_directive_target: str | None = None
+        consecutive_no_tool_calls = 0
+        recovery_message_index: int | None = None
         for turn in range(1, self.max_turns + 1):
             if repair_pending:
                 repair_calls += 1
@@ -518,6 +539,10 @@ class JsxA2UIAgent:
                     request["reasoning_effort"] = self.thinking_mode
             elif self.thinking_mode != "disable":
                 request["reasoning_effort"] = self.thinking_mode
+            requested_tool_choice = _tool_choice_label(request.get("tool_choice"))
+            effective_tool_choice = requested_tool_choice
+            model_request_attempts = 1
+            tool_choice_fallback_reason: str | None = None
             self._log(f"[JSX Agent {turn}/{self.max_turns}] 当前目标：{expected_target}")
             request_started = time.monotonic()
             tool_choice_fallback = False
@@ -536,6 +561,13 @@ class JsxA2UIAgent:
                             self._deepseek_forced_tool_choice_supported = False
                             request = {**request, "tool_choice": "auto"}
                             tool_choice_fallback = True
+                            tool_choice_fallback_reason = (
+                                "deepseek-forced-tool-choice-unsupported"
+                            )
+                            effective_tool_choice = _tool_choice_label(
+                                request.get("tool_choice")
+                            )
+                            model_request_attempts += 1
                             self._log(
                                 f"[JSX Agent {turn}/{self.max_turns}] "
                                 "当前 DeepSeek 接口不支持强制工具调用，"
@@ -555,7 +587,18 @@ class JsxA2UIAgent:
                     "status": "request_error",
                     "error_type": type(exc).__name__,
                     "error": str(exc),
+                    "configured_submit_mode": submit_mode,
+                    "requested_tool_choice": requested_tool_choice,
+                    "effective_tool_choice": effective_tool_choice,
+                    "model_request_attempts": model_request_attempts,
+                    "requested_max_tokens": request["max_tokens"],
+                    "no_tool_call_recovery_attempt": consecutive_no_tool_calls,
                 })
+                if tool_choice_fallback_reason is not None:
+                    turn_trace[-1]["tool_choice_fallback"] = "auto"
+                    turn_trace[-1]["tool_choice_fallback_reason"] = (
+                        tool_choice_fallback_reason
+                    )
                 setattr(exc, "turn_trace", turn_trace)
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
@@ -581,7 +624,6 @@ class JsxA2UIAgent:
                     "content": str(reasoning),
                 })
             assistant_payload = _assistant_payload(message)
-            messages.append(assistant_payload)
             calls = list(message.tool_calls or [])
             turn_record: dict[str, Any] = {
                 "turn": turn,
@@ -593,12 +635,20 @@ class JsxA2UIAgent:
                 "reasoning_length": len(reasoning),
                 "tool_call_count": len(calls),
                 "tool_names": [str(getattr(call.function, "name", "")) for call in calls],
+                "configured_submit_mode": submit_mode,
+                "requested_tool_choice": requested_tool_choice,
+                "effective_tool_choice": effective_tool_choice,
+                "model_request_attempts": model_request_attempts,
+                "requested_max_tokens": request["max_tokens"],
+                "no_tool_call_recovery_attempt": consecutive_no_tool_calls,
             }
             if tool_choice_fallback:
                 turn_record["tool_choice_fallback"] = "auto"
+                turn_record["tool_choice_fallback_reason"] = tool_choice_fallback_reason
             if assistant_content:
                 turn_record["assistant_content"] = assistant_content
             if not calls:
+                consecutive_no_tool_calls += 1
                 if finish_reason == "length":
                     recovery = (
                         f"上一轮在 {expected_target} 阶段因输出长度限制被截断。"
@@ -613,17 +663,41 @@ class JsxA2UIAgent:
                     )
                     turn_record["recovery"] = "request_expected_tool"
                 turn_record["status"] = "no_tool_call"
+                turn_record["consecutive_no_tool_calls"] = consecutive_no_tool_calls
+                turn_record["assistant_content_retained_in_messages"] = False
+                recovery_exhausted = consecutive_no_tool_calls >= MAX_CONSECUTIVE_NO_TOOL_CALLS
+                turn_record["no_tool_call_recovery_exhausted"] = recovery_exhausted
                 turn_trace.append(turn_record)
                 checkpoint()
                 self._log(
                     f"[JSX Agent {turn}/{self.max_turns}] 模型未调用工具；"
                     f"finish_reason={finish_reason or 'unknown'}，API耗时={api_elapsed:.2f}s"
                 )
-                messages.append({"role": "user", "content": recovery})
+                if recovery_exhausted:
+                    error = MissingToolCallError(
+                        f"模型连续 {consecutive_no_tool_calls} 次未返回当前阶段 "
+                        f"{expected_target} 要求的工具调用，已停止恢复重试。"
+                    )
+                    error.turn_trace = turn_trace
+                    error.loaded_resources = list(state.loaded_resources)
+                    error.resource_reads = list(state.resource_reads)
+                    error.validation_reports = validation_reports
+                    raise error
+                if recovery_message_index is None:
+                    recovery_message_index = len(messages)
+                    messages.append({"role": "user", "content": recovery})
+                else:
+                    messages[recovery_message_index] = {"role": "user", "content": recovery}
                 continue
 
+            messages.append(assistant_payload)
+            recovery_message_index = None
             first = calls[0]
             function = first.function
+            if function.name == expected_tool:
+                if consecutive_no_tool_calls:
+                    turn_record["no_tool_call_recovery_succeeded"] = True
+                consecutive_no_tool_calls = 0
             submitted_jsx: str | None = None
             argument_repairs: list[str] = []
             try:
@@ -887,6 +961,15 @@ class JsxA2UIAgent:
             messages.append(tool_result_message(first.id, result))
             for extra in calls[1:]:
                 messages.append(tool_result_message(extra.id, {"ok": False, "error": "每轮只能调用一个工具"}))
+            if repairable_failure and terminal_error is None:
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "上一次提交未通过。请根据上一条工具结果中的 findings 和修复要求，"
+                        "直接调用 submit_card_jsx，提交修复后的完整 JSX 和必需参数。"
+                        "保留要求的数据绑定和动作，不要输出普通文本、分析、解释或 Markdown。"
+                    ),
+                })
             level = _tool_result_log_level(result)
             if result.get("ok") and result.get("warnings"):
                 first_warning = result["warnings"][0]

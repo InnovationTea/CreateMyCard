@@ -8,14 +8,40 @@ import unicodedata
 from decimal import Decimal
 from typing import Any
 
-
 UNIT_ALIASES = {
     "%": ("%", "％"),
     "℃": ("℃", "°C", "摄氏度"),
     "分钟": ("分钟", "分"),
     "次/分钟": ("次/分钟", "次／分钟", "次/分", "次／分", "bpm"),
 }
+
+# Props with a separate, public JSX unit slot. Other text Props retain their
+# existing display formatting; calculation Props never receive display suffixes.
+UNIT_SLOT_PROPS = {
+    "EmphasizedData": frozenset({"value", "items[].value"}),
+    "ProgressLine2": frozenset({"value", "items[].value"}),
+    "ProgressLine2WithData": frozenset({"value", "items[].value"}),
+    "InfoBlock": frozenset({"primaryText"}),
+    "NumericRatio": frozenset({"value"}),
+    "NumericRatioStack": frozenset({"items[].value"}),
+}
 _NUMBER_TEXT = re.compile(r"[+-]?[0-9]+(?:\.[0-9]+)?")
+
+
+def has_unit_slot(tag: str, prop: str) -> bool:
+    return prop in UNIT_SLOT_PROPS.get(tag, ())
+
+
+def units_equivalent(left: str, right: str) -> bool:
+    normalized_left = unicodedata.normalize("NFKC", left).strip().casefold()
+    normalized_right = unicodedata.normalize("NFKC", right).strip().casefold()
+    if normalized_left == normalized_right:
+        return True
+    for aliases in UNIT_ALIASES.values():
+        normalized = {unicodedata.normalize("NFKC", item).casefold() for item in aliases}
+        if normalized_left in normalized and normalized_right in normalized:
+            return True
+    return False
 
 
 def is_unitless_number(value: Any) -> bool:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
-from ..base.layout import column, row, stack
+from ..base.layout import column, stack
 from ..base.text import text
 from ..common import palette
 
@@ -11,8 +11,9 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     current_palette = palette(ctx)
     has_location = node.props.get("location") is not None
     event_height = 54 if has_location else 38
-    # The event itself explicitly wraps its text height. Only its rail fills
-    # that local height; it must not make the event fill the outer card slot.
+    # Measure the text first in an overlay Stack. Its matchParent decoration
+    # is measured against that local box, not a flexible Row's offered height.
+    # Do not use a weighted Divider: the rail must never size the event.
     dot = stack(
         ctx,
         "event_dot",
@@ -24,23 +25,29 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "borderWidth": 1.5,
             "borderColor": "#FFFF2F23",
             "flexShrink": 0,
+            "margin": {"top": 5},
         },
     )
     line = ctx.make(
         "Divider",
         "event_line",
-        styles={"vertical": True, "strokeWidth": 1, "color": "#FFD8D8D8", "layoutWeight": 1},
+        styles={
+            "vertical": True,
+            "strokeWidth": 1,
+            "color": "#FFD8D8D8",
+            "height": "matchParent",
+            "layoutWeight": 0,
+        },
     )
-    rail = column(
+    rail = stack(
         ctx,
         "event_rail",
-        [dot, line],
-        gap=5,
+        [line],
+        align="top",
         styles={
             "width": 8,
             "height": "matchParent",
-            "padding": {"top": 5},
-            "alignItems": "center",
+            "padding": {"top": 18},
             "flexShrink": 0,
         },
     )
@@ -95,14 +102,28 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "event_details",
         [time, location],
         gap=0,
-        styles={"width": "matchParent", "flexShrink": 0, "constraintSize": {"minWidth": 0}, "alignItems": "start"},
+        styles={
+            "width": "matchParent",
+            "flexShrink": 0,
+            "constraintSize": {"minWidth": 0},
+            "alignItems": "start",
+        },
     )
     body = column(
         ctx,
         "event_content",
         [title, details],
         gap=4,
-        styles={"layoutWeight": 1, "flexShrink": 1, "constraintSize": {"minWidth": 0}, "alignItems": "start"},
+        styles={
+            # A percentage width participates in Stack's initial measurement;
+            # matchParent would defer this height-defining child as well.
+            "width": "100%",
+            "padding": {"left": 15},
+            "layoutWeight": 0,
+            "flexShrink": 0,
+            "constraintSize": {"minWidth": 0},
+            "alignItems": "start",
+        },
     )
     constraint_size = {
         "minWidth": 0,
@@ -110,16 +131,15 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     }
     if ctx.card_size != "2x4":
         constraint_size["maxWidth"] = 116
-    return row(
+    return stack(
         ctx,
         "event_card",
-        [rail, body],
-        gap=7,
+        [body, rail, dot],
+        align="topStart",
         styles={
             "width": "matchParent",
             "height": "wrapContent",
             "flexShrink": 1,
             "constraintSize": constraint_size,
-            "alignItems": "top",
         },
     )

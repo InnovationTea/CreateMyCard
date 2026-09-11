@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..exceptions import ValidationError
-from .display_units import format_display_unit
+from .display_units import format_display_unit, is_unitless_number
 
 # Keep this list intentionally explicit.  A full match is safer than guessing
 # that arbitrary copy surrounding a number is a unit.
@@ -211,6 +211,7 @@ def source_display_model(raw_value: Any, display_unit: str | None = None) -> tup
     """Keep numerical derivations separate from optional text-only formatting."""
     plan = normalize_display_value(raw_value)
     model = plan.data_model_value()
+    model["isUnitlessNumber"] = is_unitless_number(raw_value)
     if display_unit:
         formatted = format_display_unit(raw_value, display_unit)
         plan = normalize_display_value(formatted)

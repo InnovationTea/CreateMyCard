@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -9,9 +10,14 @@ from typing import Any
 
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
+from .display_units import (
+    format_display_unit,
+    has_unit_slot,
+    is_unitless_number,
+    repeats_numeric_unit,
+    units_equivalent,
+)
 from .display_values import normalize_display_value
-from .display_units import format_display_unit
-
 
 _STRING = frozenset({"string"})
 _NUMBER = frozenset({"integer", "number"})
@@ -584,6 +590,8 @@ class DataBinding:
 
     def value_for_prop(self, tag: str, prop: str) -> Any:
         allowed = BINDABLE_PROP_TYPES.get(tag, {}).get(prop)
+        if has_unit_slot(tag, prop):
+            return self.value
         if allowed == _NUMBER or (tag in {"ProgressCircleSingle", "Gauge"} and prop == "value"):
             return self.value
         return self.display_value
@@ -773,6 +781,64 @@ def _override_query_grounded_binding(
     return compile_context.override_data_binding_value(binding.id, value)
 
 
+def normalize_unit_slots(element: JSXElement, compile_context: CompileContext) -> None:
+    """Materialize unit declarations before saving/validating the final JSX.
+
+    Raw values stay authoritative. Never infer units from a JSX preview literal,
+    change source types, overwrite an explicit empty unit, or freeze a unit ID.
+    """
+    owners = [(element.props, "primaryText" if element.tag == "InfoBlock" else "value")]
+    items = element.props.get("items")
+    if isinstance(items, list):
+        owners = []
+        for item in items:
+            if isinstance(item, dict):
+                owners.append((item, "items[].value"))
+    for owner, prop in owners:
+        if not has_unit_slot(element.tag, prop):
+            continue
+        name = prop.removeprefix("items[].")
+        ids = owner.get("dataIds")
+        if not isinstance(ids, dict):
+            continue
+        binding_id = ids.get(name)
+        if not isinstance(binding_id, str) or not binding_id:
+            continue
+        binding = compile_context.data_binding(binding_id)
+        owner[name] = copy.deepcopy(binding.value)
+        if "unit" in ids:
+            continue
+        unit = owner.get("unit")
+        if is_unitless_number(binding.value):
+            if unit is None:
+                if binding.display_unit:
+                    owner["unit"] = binding.display_unit
+                elif element.tag in {"NumericRatio", "NumericRatioStack"}:
+                    if isinstance(binding.value, int | float):
+                        owner["unit"] = "%"
+            elif unit and binding.display_unit:
+                if not units_equivalent(unit, binding.display_unit):
+                    raise ValidationError(
+                        f"<{element.tag}> unit conflicts with {binding.id} display unit"
+                    )
+        elif isinstance(binding.value, str) and isinstance(unit, str) and unit:
+            if repeats_numeric_unit(binding.value, unit):
+                owner.pop("unit", None)
+            else:
+                plan = normalize_display_value(binding.value)
+                if plan.mode == "parts":
+                    if element.tag in {"EmphasizedData", "ProgressLine2", "ProgressLine2WithData"}:
+                        logging.getLogger(__name__).warning(
+                            "<%s> ignores static unit %r: complete source text %r is authoritative",
+                            element.tag, unit, binding.value,
+                        )
+                        owner.pop("unit", None)
+                        continue
+                    raise ValidationError(
+                        f"<{element.tag}> unit conflicts with complete source text"
+                    )
+
+
 def materialize_binding_literals(
     element: JSXElement,
     compile_context: CompileContext,
@@ -841,20 +907,6 @@ def materialize_binding_literals(
                 element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
             else:
                 element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
-        if element.tag in {"EmphasizedData", "ProgressLine2", "ProgressLine2WithData"}:
-            value_id = data_ids.get("value")
-            if isinstance(value_id, str):
-                try:
-                    value_binding = compile_context.data_binding(value_id)
-                except ValidationError:
-                    value_binding = None
-                has_derived_parts = value_binding is not None and isinstance(value_binding.display_value, str)
-                if value_binding is not None and value_binding.display_unit and "unit" in data_ids:
-                    element.props["value"] = copy.deepcopy(value_binding.value)
-                if has_derived_parts:
-                    has_derived_parts = normalize_display_value(value_binding.display_value).mode == "parts"
-                if has_derived_parts and "unit" not in data_ids:
-                    element.props.pop("unit", None)
 
     item_props = {name.removeprefix("items[].") for name in allowed if name.startswith("items[].")}
     items = element.props.get("items")
@@ -889,31 +941,20 @@ def materialize_binding_literals(
                     item[prop] = copy.deepcopy(binding.value_for_prop(element.tag, f"items[].{prop}"))
                 else:
                     item[prop] = copy.deepcopy(binding.value_for_prop(element.tag, f"items[].{prop}"))
-            if element.tag in {"EmphasizedData", "ProgressLine2", "ProgressLine2WithData"}:
-                value_id = item_ids.get("value")
-                if isinstance(value_id, str):
-                    try:
-                        value_binding = compile_context.data_binding(value_id)
-                    except ValidationError:
-                        value_binding = None
-                    has_derived_parts = value_binding is not None and isinstance(value_binding.display_value, str)
-                    if value_binding is not None and value_binding.display_unit and "unit" in item_ids:
-                        item["value"] = copy.deepcopy(value_binding.value)
-                    if has_derived_parts:
-                        has_derived_parts = normalize_display_value(value_binding.display_value).mode == "parts"
-                    if has_derived_parts and "unit" not in item_ids:
-                        item.pop("unit", None)
 
     # Legacy model output sometimes split one complete formatted string into a
     # bound first item plus invented, unbound sibling items.  Canonicalize that
     # shape to the new single-source contract before validation and lowering.
     if element.tag == "EmphasizedData" and isinstance(items, list):
         bound_formatted: list[tuple[str, DataBinding]] = []
+        has_bound_unit = False
         for item in items:
             if not isinstance(item, dict):
                 continue
             item_ids = item.get("dataIds")
             binding_id = item_ids.get("value") if isinstance(item_ids, dict) else None
+            if isinstance(item_ids, dict) and "unit" in item_ids:
+                has_bound_unit = True
             if not isinstance(binding_id, str):
                 continue
             try:
@@ -922,7 +963,7 @@ def materialize_binding_literals(
                 continue
             if isinstance(binding.value, str) and normalize_display_value(binding.value).mode == "parts":
                 bound_formatted.append((binding_id, binding))
-        if len(bound_formatted) == 1 and all(
+        if not has_bound_unit and len(bound_formatted) == 1 and all(
             not isinstance(item, dict)
             or not isinstance(item.get("dataIds"), dict)
             or item["dataIds"].get("value") == bound_formatted[0][0]
@@ -933,6 +974,8 @@ def materialize_binding_literals(
             element.props.pop("unit", None)
             element.props["value"] = copy.deepcopy(binding.value)
             element.props["dataIds"] = {"value": binding_id}
+
+    normalize_unit_slots(element, compile_context)
 
     for child in element.child_elements():
         materialize_binding_literals(
