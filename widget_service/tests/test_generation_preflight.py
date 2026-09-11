@@ -68,9 +68,11 @@ def test_generation_tool_schema_matches_source_direct_result_contract():
 
 
 def _weather_binding(arguments=None, output_fields=None):
+    if arguments is None:
+        arguments = {"prefectureName": "杭州市", "forecastDays": 1}
     return {
         "capabilityId": "ViewWeather",
-        "arguments": arguments or {"prefectureName": "杭州市", "forecastDays": 1},
+        "arguments": arguments,
         "writeResultTo": "/data/weather",
         "candidateOutputFields": output_fields or ["/current/condition"],
     }
@@ -109,10 +111,26 @@ def test_preflight_accepts_weather_without_district_and_builds_specs():
     assert weather_schema["location"]["cityCode"]
 
 
-def test_preflight_reports_exact_missing_weather_argument_path():
+@pytest.mark.parametrize("arguments", [{}, {"districtName": "滨江区"}])
+def test_preflight_accepts_weather_without_prefecture(arguments):
+    request = _request(candidateDataBindings=[_weather_binding(arguments=arguments)])
+
+    result = _run(request)
+
+    assert result.blocking_issues == ()
+    assert result.card_spec is not None
+    assert result.task_spec is not None
+    bindings = result.card_spec.dataBindings
+    assert bindings is not None
+    assert len(bindings) == 1
+    assert bindings[0].arguments == arguments
+    assert "prefectureName" not in bindings[0].arguments
+
+
+def test_preflight_reports_exact_invalid_weather_argument_path():
     request = _request(
         candidateDataBindings=[
-            _weather_binding(arguments={"districtName": "滨江区"})
+            _weather_binding(arguments={"prefectureName": ""})
         ]
     )
 
@@ -125,7 +143,7 @@ def test_preflight_reports_exact_missing_weather_argument_path():
     assert issue.retryable is True
     assert "JSON 类型 string" in issue.expected
     assert "城市名" in issue.expected
-    assert "无法唯一确定时询问用户" in issue.repairInstruction
+    assert "最小长度" in issue.message
     assert issue.referenceSource.endswith("inputSchema")
     assert result.card_spec is None
     assert result.task_spec is None
@@ -432,7 +450,7 @@ async def test_generation_preflight_failure_does_not_call_model_or_start_directi
     monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
     request = _request(
         candidateDataBindings=[
-            _weather_binding(arguments={"districtName": "滨江区"})
+            _weather_binding(arguments={"districtName": "滨江区", "prefectureName": ""})
         ]
     )
 
@@ -443,12 +461,16 @@ async def test_generation_preflight_failure_does_not_call_model_or_start_directi
         )
 
     details = exc_info.value.details()
-    assert details["stage"] == "generationPreflight"
-    assert details["modelCalled"] is False
-    assert details["retryable"] is True
-    assert details["requiredActions"] == ["FIX_AND_RETRY"]
-    assert "修正全部 issues" in details["agentInstruction"]
-    assert details["issues"][0]["path"].endswith("/prefectureName")
+    assert details.get("stage") == "generationPreflight"
+    assert details.get("modelCalled") is False
+    assert details.get("retryable") is True
+    assert details.get("requiredActions") == ["FIX_AND_RETRY"]
+    instruction = details.get("agentInstruction")
+    assert isinstance(instruction, str)
+    assert "修正全部 issues" in instruction
+    issues = details.get("issues")
+    assert isinstance(issues, list) and len(issues) == 1
+    assert issues[0].get("path") == "/candidateDataBindings/0/arguments/prefectureName"
     assert "滨江区" not in str(details)
 
 

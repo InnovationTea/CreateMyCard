@@ -1,7 +1,7 @@
 [
   {
     "id": "ViewWeather",
-    "description":  "查询国内某个城市或地区的当前天气以及未来数日天气预报，包含温度、湿度等各类天气指标。注意，天气查询只支持到区县，当前不支持查询国外的天气。",
+    "description": "查询国内某个城市或地区的当前天气以及未来数日天气预报，包含温度、湿度等各类天气指标。用户未指定城市时，默认查询用户当前地理位置的天气。注意，天气查询只支持到区县，当前不支持查询国外的天气。",
     "defaultWriteResultTo": "/data/weather",
     "dependencies": {
       "requiredPackages": [
@@ -21,7 +21,7 @@
         "prefectureName": {
           "type": "string",
           "minLength": 1,
-          "description": "城市名，如'杭州市'。若可以根据用户query或上下文来推断出是哪个城市，则填写对应城市；该字段可不传，不传时默认会使用用户当前地理位置。"
+          "description": "城市名，如'杭州市'。可选。若可以根据用户query或上下文来推断出是哪个城市，则填写对应城市名，否则不用传入。"
         },
         "forecastDays": {
           "type": "integer",
@@ -31,7 +31,6 @@
         }
       },
       "required": [
-        "prefectureName"
       ]
     },
     "outputSchema": {
@@ -138,8 +137,8 @@
             },
             "alertLevel": {
               "type": "string",
-              "description": "预警信息。",
-              "sampleValue": ""
+              "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+              "sampleValue": "大风蓝色预警"
             }
           }
         },
