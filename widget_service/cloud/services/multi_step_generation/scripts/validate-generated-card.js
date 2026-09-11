@@ -1496,7 +1496,7 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
       new URL(runtimeAssetUrl(resource.value), assetBaseUrl).href
     )));
     browser = await chromium.launch({ 
-      headless: false,
+      headless: true,
       executablePath,
     });
     context = await browser.newContext({ viewport: { width: 520, height: 420 }, deviceScaleFactor: 1 });
