@@ -20,32 +20,32 @@
 ["/data/countdown/countdownDays",32]
 ```
 
-## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·融球青绿）
+## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·青色纯色）
 ### user
 ```json
 {"userQuery":"实时展示华为耳机连接状态、左右耳及充电盒电量，并提供蓝牙设置入口","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100","sampleValue":95}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-battery-teal"},["title_area","content_area","action_area"]]
-["title_area","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#99FFFFFF"}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"backgroundColor":"#FFE6FDFF"},["title_area","content_area","action_area"]]
+["title_area","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#991F8F99"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
-["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
 ["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
 ["left_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
 ["right_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
 ["case_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["case_badge","case_num","case_unit"]]
-["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
-["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
+["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
+["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
+["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#331F8F99","actionInk":"#FF1F8F99","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
 ["/data/earphone/isConnected",true]
 ["/data/earphone/earphoneName","FreeBuds Pro 3"]
 ["/data/earphone/leftBatteryLevel",47]
@@ -53,28 +53,28 @@
 ["/data/earphone/batteryLevel",95]
 ```
 
-## 示例三（2x2-V03）：Free Clip 2 歌单（S3 单信息+双按钮·融球青绿）
+## 示例三（2x2-V03）：Free Clip 2 歌单（S3 单信息+双按钮·青色纯色）
 ### user
 ```json
 {"userQuery":"展示耳机名称与左右耳电量，同时提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"Free Clip 2"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":8,"design":"fusion-ball-battery-teal"},["header_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":8,"backgroundColor":"#FFE6FDFF"},["header_area","action_area"]]
 ["header_area","Column",{"width":136,"justifyContent":"start","alignItems":"start","itemMargin":6,"padding":{"bottom":10},"flexShrink":1},["device_name","battery_row"]]
-["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
 ["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":0},["left_item","right_item"]]
 ["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1AFFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0},["cta_play","cta_fav"]]
-["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
-["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
+["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#331F8F99","actionInk":"#FF1F8F99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
+["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#331F8F99","actionInk":"#FF1F8F99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
 ["/data/earphone/earphoneName","Free Clip 2"]
 ["/data/earphone/leftBatteryLevel",47]
 ["/data/earphone/rightBatteryLevel",95]
@@ -156,27 +156,27 @@
 ["/data/calendar/events/0/eventLocation","五和大道华为基地"]
 ```
 
-## 示例七（2x2-V07）：今日步数（S2 数值亚型·整卡隐式入口·运动橙色融球）
+## 示例七（2x2-V07）：今日步数（S2 数值亚型·整卡隐式入口·绿色纯色）
 ### user
 ```json
 {"userQuery":"我今天活动量如何，帮我做个运动小组件，看看走了多少步和消耗多少热量，点击可以进入运动详情。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"全天累计步数","sampleValue":2319},"dailyDistanceText":{"type":"string","description":"总距离文本（含单位）","sampleValue":"1.19 公里"},"dailyTotalCaloriesText":{"type":"string","description":"总消耗热量文本（含单位）","sampleValue":"59 千卡"}}}},"assetCandidates":[{"src":"resources/base/media/figure_run.svg","description":"跑步人形图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"design":"fusion-ball-sport-orange"},["title_area","content_area","bottom_area"]]
-["title_area","CardHeader",{"title":"今日步数","fontColor":"#99FFFFFF","icon":"resources/base/media/figure_run.svg","fillColor":"#99FFFFFF"}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"backgroundColor":"#FFF0FFE6"},["title_area","content_area","bottom_area"]]
+["title_area","CardHeader",{"title":"今日步数","fontColor":"#9952991F","icon":"resources/base/media/figure_run.svg","fillColor":"#9952991F"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row","step_bar"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":2},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
-["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","padding":{"bottom":4},"maxLines":1}]
-["step_bar","Progress",{"type":"linear","width":136,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/dailySteps"},"total":8760,"color":"#FFFFFFFF","backgroundColor":"#33FFFFFF"}]
+["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FF52991F","maxLines":1}]
+["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FF52991F","padding":{"bottom":4},"maxLines":1}]
+["step_bar","Progress",{"type":"linear","width":136,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/dailySteps"},"total":8760,"color":"#FF52991F","backgroundColor":"#3352991F"}]
 ["bottom_area","Column",{"width":136,"height":34,"itemMargin":2,"justifyContent":"start","flexShrink":0},["aux_1","aux_2"]]
 ["aux_1","Row",{"itemMargin":4,"alignItems":"center"},["aux_1_t","aux_1_v"]]
-["aux_1_t","Text",{"content":"运动距离","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#99FFFFFF","maxLines":1}]
+["aux_1_t","Text",{"content":"运动距离","fontSize":12,"fontWeight":400,"fontColor":"#9952991F","maxLines":1}]
+["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#9952991F","maxLines":1}]
 ["aux_2","Row",{"itemMargin":4,"alignItems":"center"},["aux_2_t","aux_2_v"]]
-["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#99FFFFFF","maxLines":1}]
+["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#9952991F","maxLines":1}]
+["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#9952991F","maxLines":1}]
 ["/data/healthSport/dailySteps",2319]
 ["/data/healthSport/dailyDistanceText","1.19 公里"]
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
