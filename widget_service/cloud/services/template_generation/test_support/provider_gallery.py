@@ -183,6 +183,10 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
+    "CountdownOverviewSupport@1": ("asset.icon_timing",),
+    "CountdownOverviewTravelSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
@@ -1044,7 +1048,11 @@ def _support_template_pairs(
                 selections.append(GalleryTemplateSelection(definition, template))
     partners = sorted(
         selections,
-        key=lambda item: (item.business.capability_id != "ViewWeather", item.template.template_id),
+        key=lambda item: (
+            item.business.capability_id != "ViewWeather",
+            not item.template.supported_event_ids,
+            item.template.template_id,
+        ),
     )
     pairs: list[GalleryTemplatePair] = []
     for selection in selections:

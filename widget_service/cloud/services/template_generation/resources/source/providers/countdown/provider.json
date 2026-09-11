@@ -40,11 +40,28 @@
       "supportedEventIds": [],
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
-      "description": "倒计时 Support，第一行主文本展示剩余天数，第二行辅助文本展示可信标题或默认标题；用于 TwoSupportLayout，当前没有关联事件，必须省略 actionId。",
+      "description": "倒计时 Support，第一行主文本展示剩余天数，第二行辅助文本展示可信标题或默认标题；可选倒计时语义的计时图标；用于 TwoSupportLayout，当前没有关联事件，必须省略 actionId。",
       "entry": "templates/countdown-overview.cardtpl",
       "primaryData": ["/countdownDays"],
       "secondaryData": [],
-      "optionalData": []
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "timerIcon": ["countdown"]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewTravelSupport@1",
+      "supportedEventIds": ["event.open.clock.alarm"],
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "出行倒计时 Support，在双业务布局中展示出发主题和剩余天数，可选倒计时语义的计时图标，可在胶囊内部绑定闹钟跳转。",
+      "entry": "templates/countdown-overview.cardtpl",
+      "primaryData": ["/countdownDays"],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "timerIcon": ["countdown"]
+      }
     }
   ],
   "compatibility": {

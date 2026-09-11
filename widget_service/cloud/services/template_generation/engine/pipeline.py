@@ -523,16 +523,21 @@ def _provider_binding_roots(
     bindings = card_spec.get("dataBindings")
     if not isinstance(bindings, list):
         return ()
-    roots = tuple(
-        item.get("writeResultTo")
-        for item in bindings
-        if isinstance(item, dict)
-        and item.get("capabilityId") == capability_id
-        and _valid_provider_binding_root(item.get("writeResultTo"))
-    )
+
+    roots: list[str] = []
+    for item in bindings:
+        if not isinstance(item, dict):
+            continue
+        if item.get("capabilityId") != capability_id:
+            continue
+        root = item.get("writeResultTo")
+        if not _valid_provider_binding_root(root):
+            continue
+        roots.append(root)
+
     if len(set(roots)) != len(roots):
         return ()
-    return roots
+    return tuple(roots)
 
 
 def _valid_provider_binding_root(value: Any) -> bool:
