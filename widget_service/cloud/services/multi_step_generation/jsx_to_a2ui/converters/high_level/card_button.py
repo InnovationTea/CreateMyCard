@@ -4,7 +4,7 @@ from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.image import image
-from ..base.layout import row
+from ..base.layout import row, stack
 from ..base.text import text
 from ..common import palette
 
@@ -18,7 +18,7 @@ def collect_card_button_conversion_errors(node: JSXElement) -> list[str]:
 
 def _colors(ctx: ConversionContext) -> tuple[str, str]:
     current = palette(ctx)
-    if current.name.endswith("-gradient"):
+    if current.name.startswith("orb-") or current.name.endswith("-gradient"):
         return "#33FFFFFF", "#FFFFFFFF"
     return current.action_background, current.action_text
 
@@ -60,6 +60,21 @@ def _content(
                 icon,
                 styles={"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0},
                 fill_color=foreground,
+            )
+        )
+    else:
+        children.append(
+            stack(
+                ctx,
+                "card_button_icon_placeholder",
+                [],
+                styles={
+                    "width": 24,
+                    "height": 24,
+                    "borderRadius": 12,
+                    "backgroundColor": _with_opacity(foreground, 0.2),
+                    "flexShrink": 0,
+                },
             )
         )
     return children

@@ -30,6 +30,7 @@ from services.multi_step_generation.jsx_runner.run_summary import (  # noqa: E40
     terminal_summary_lines,
 )
 from services.multi_step_generation.jsx_runner.agent import (  # noqa: E402
+    PLAN_MAX_TOKENS,
     SUBMIT_MODES,
     JsxA2UIAgent,
 )
@@ -152,14 +153,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--max-browser-repairs",
-        "--max-validation-repairs",
-        dest="max_validation_repairs",
+        "--browser-fallback-after",
         type=int,
-        default=5,
+        default=3,
         help=(
-            "启用浏览器验证后允许的浏览器修复次数（默认：5）；"
-            "旧参数名 --max-validation-repairs 仍兼容。普通静态校验由 --max-turns 控制。"
+            "浏览器布局校验失败达到多少次后进入紧凑组件兜底（默认：3）；"
+            "普通静态校验由 --max-turns 控制。"
         ),
     )
     validation_group = parser.add_mutually_exclusive_group()
@@ -196,6 +195,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.set_defaults(no_layout_budget_validation=True)
     parser.add_argument("--thinking-mode", choices=THINKING_MODES, default=MODEL_THINKING_MODE)
+    parser.add_argument(
+        "--plan-max-tokens",
+        type=int,
+        default=PLAN_MAX_TOKENS,
+        help=f"规划阶段最大输出 Token（1～{PLAN_MAX_TOKENS}，默认：{PLAN_MAX_TOKENS}）。",
+    )
+    parser.add_argument(
+        "--few-shot",
+        action="store_true",
+        help="在 2x4 的 layout_patterns 中加载 few-shot 示例；默认关闭，2x2 不受影响。",
+    )
     failure_group = parser.add_mutually_exclusive_group()
     failure_group.add_argument(
         "--continue-on-error",
@@ -218,6 +228,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "组件合同、布局、资源、交互、浏览器和 A2UI 编译校验仍然执行。"
         ),
     )
+    parser.add_argument(
+        "--skip-empty-data-id-validation",
+        action="store_true",
+        help="跳过 dataIds 空值校验；不关闭其他绑定、布局和协议校验。",
+    )
+    binding_group = parser.add_mutually_exclusive_group()
+    binding_group.add_argument(
+        "--enable-dynamic-data-binding",
+        dest="enable_dynamic_data_binding",
+        action="store_true",
+        help="生成动态数据绑定（默认启用）。",
+    )
+    binding_group.add_argument(
+        "--disable-dynamic-data-binding",
+        dest="enable_dynamic_data_binding",
+        action="store_false",
+        help="仅离线静态预览：保留 JSX 字面值，不生成实时数据绑定。",
+    )
+    parser.set_defaults(enable_dynamic_data_binding=True)
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--check", action="store_true", help="只执行本地兼容性预检，不调用模型。")
     return parser.parse_args(argv)
@@ -228,8 +257,9 @@ def preflight(
     context_path: Path | None = None,
     *,
     browser_validation: bool = False,
+    include_few_shot: bool = False,
 ) -> None:
-    resources = GenerationResources()
+    resources = GenerationResources(include_few_shot=include_few_shot)
     missing = resources.missing_files()
     if not JSX_VALIDATOR_PATH.is_file():
         missing.append(JSX_VALIDATOR_PATH)
@@ -253,10 +283,28 @@ async def async_main(args: argparse.Namespace) -> int:
     validation_enabled = not args.no_validation
     browser_validation = validation_enabled and args.with_browser_validation
     layout_budget_validation = validation_enabled and not args.no_layout_budget_validation
+    bridge_options = BridgeOptions(
+        max_turns=args.max_turns,
+        max_tokens=args.max_tokens,
+        thinking_mode=args.thinking_mode,
+        request_timeout=args.request_timeout,
+        browser_fallback_after=args.browser_fallback_after,
+        browser_validation=browser_validation,
+        validation_enabled=validation_enabled,
+        layout_budget_validation=layout_budget_validation,
+        validate_dynamic_values=not args.skip_dynamic_value_validation,
+        validate_non_empty_data_ids=not args.skip_empty_data_id_validation,
+        enable_dynamic_data_binding=args.enable_dynamic_data_binding,
+        include_few_shot=args.few_shot,
+        plan_max_tokens=args.plan_max_tokens,
+        submit_mode=args.submit_mode,
+        verbose=not args.quiet,
+    )
     preflight(
         args.input,
         args.context,
         browser_validation=browser_validation,
+        include_few_shot=bridge_options.include_few_shot,
     )
     loaded_tasks = load_tasks(args.input.resolve())
     selected_loaded_tasks = select_tasks(
@@ -303,6 +351,9 @@ async def async_main(args: argparse.Namespace) -> int:
                     "loadedTasks": len(loaded_tasks),
                     "selectedTasks": len(prepared_tasks),
                     "preprocessedTasks": preprocessed_tasks,
+                    "fewShotEnabled": bridge_options.include_few_shot,
+                    "planMaxTokens": bridge_options.plan_max_tokens,
+                    "browserFallbackAfter": bridge_options.browser_fallback_after,
                     "generatableComponents": sorted(generatable_contracts()),
                 },
                 ensure_ascii=False,
@@ -318,19 +369,6 @@ async def async_main(args: argparse.Namespace) -> int:
     duplicate_names = sorted({name for name in task_names if task_names.count(name) > 1})
     if duplicate_names:
         raise ValueError("任务生成的组件名重复：" + ", ".join(duplicate_names))
-    bridge_options = BridgeOptions(
-        max_turns=args.max_turns,
-        max_tokens=args.max_tokens,
-        thinking_mode=args.thinking_mode,
-        request_timeout=args.request_timeout,
-        max_browser_repairs=args.max_validation_repairs,
-        browser_validation=browser_validation,
-        validation_enabled=validation_enabled,
-        layout_budget_validation=layout_budget_validation,
-        validate_dynamic_values=not args.skip_dynamic_value_validation,
-        submit_mode=args.submit_mode,
-        verbose=not args.quiet,
-    )
     bridge = JsxA2UIBridge(options=bridge_options)
     agent = bridge.create_agent(agent_factory=JsxA2UIAgent)
     run_id, run_dir = create_run_dir(args.output_dir, args.run_id)
@@ -347,7 +385,13 @@ async def async_main(args: argparse.Namespace) -> int:
         "maxTurns": args.max_turns,
         "submitMode": args.submit_mode,
         "requestTimeoutSeconds": args.request_timeout,
-        "maxBrowserRepairs": args.max_validation_repairs if validation_enabled else 0,
+        "browserFallbackAfter": (
+            bridge_options.browser_fallback_after if validation_enabled else 0
+        ),
+        "planMaxTokens": bridge_options.plan_max_tokens,
+        "fewShotEnabled": bridge_options.include_few_shot,
+        "nonEmptyDataIdValidationEnabled": bridge_options.validate_non_empty_data_ids,
+        "dynamicDataBindingEnabled": bridge_options.enable_dynamic_data_binding,
         "browserValidationEnabled": browser_validation,
         "layoutBudgetValidationEnabled": layout_budget_validation,
         "validationMode": (
@@ -450,7 +494,13 @@ async def async_main(args: argparse.Namespace) -> int:
                 compile_context=compile_context,
                 trace_callback=checkpoint_trace,
             )
-            paths = write_card(result, run_dir, task, compile_context=compile_context)
+            effective_compile_context = result.get("compile_context", compile_context)
+            paths = write_card(
+                result,
+                run_dir,
+                task,
+                compile_context=effective_compile_context,
+            )
         except Exception as exc:
             failure = {
                 "taskId": task_id,
@@ -498,7 +548,7 @@ async def async_main(args: argparse.Namespace) -> int:
                 manifest["elapsedSeconds"] = round(time.monotonic() - run_started_monotonic, 2)
                 write_json(manifest_path, manifest)
                 persist_summary()
-                raise
+                raise exc
             continue
 
         semantic_status = str(result.get("semantic_status") or "completed")

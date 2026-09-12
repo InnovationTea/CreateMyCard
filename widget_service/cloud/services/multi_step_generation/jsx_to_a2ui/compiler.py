@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .catalog.bindings import CompileContext, materialize_binding_literals
+from .catalog.bindings import CompileContext, materialize_binding_literals, remove_data_binding_metadata
 from .catalog.display_values import merge_data_models
 from .converters.registry import create_context
 from .emitter.messages import build_messages
@@ -27,6 +27,8 @@ def compile_source(
     compile_all: bool = False,
     data_models: dict[str, dict[str, Any]] | None = None,
     compile_contexts: dict[str, CompileContext | dict[str, Any]] | None = None,
+    user_query: str | None = None,
+    enable_dynamic_data_binding: bool = True,
 ) -> dict[str, list[dict[str, Any]]]:
     cards = extract_card_functions(source)
     if card:
@@ -47,8 +49,19 @@ def compile_source(
     for name, jsx in selected.items():
         compile_context_payload = (compile_contexts or {}).get(name)
         compile_context = CompileContext.from_payload(compile_context_payload)
-        materialize_binding_literals(jsx, compile_context)
-        context = create_context(name, compile_context=compile_context)
+        if enable_dynamic_data_binding:
+            materialize_binding_literals(
+                jsx,
+                compile_context,
+                user_query=user_query,
+            )
+        else:
+            remove_data_binding_metadata(jsx)
+        context = create_context(
+            name,
+            compile_context=compile_context,
+            enable_dynamic_data_binding=enable_dynamic_data_binding,
+        )
         root = context.convert(jsx)
         explicit_data_model = (data_models or {}).get(name)
         if explicit_data_model is not None and context.used_data_ids:

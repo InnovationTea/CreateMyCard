@@ -21,12 +21,34 @@ _CONTRACT_BLOCK = re.compile(
 )
 _CONTRACT_LINE = re.compile(r"^\s*(?P<name>[A-Za-z_$][\w$]*)\s*:\s*\{(?P<body>.*)\},?\s*$")
 _ARRAY_FIELD = r"\b{field}\s*:\s*\[(?P<values>[^]]*)\]"
+FEW_SHOT_2X4_PATH = SKILL_DIR / "references" / "fewshots" / "end_to_end_2x4.md"
 
 
-# Model-facing Card appearances follow the 0819 designer source. The browser
-# runtime supports neutral-soft only for old JSX, so it is intentionally absent
-# here. The JSX-to-A2UI appearance catalog accepts this same generated set.
-GENERATION_CARD_APPEARANCES = frozenset(
+# Model-facing Card appearances follow the current v15 designer source.
+# Legacy *-soft/*-gradient names remain runtime/compiler compatibility aliases,
+# but are intentionally absent from the generated JSX contract.
+GENERATION_CARD_APPEARANCES_SOLID = frozenset(
+    {
+        "solid-white",
+        "solid-blue",
+        "solid-orange",
+        "solid-green",
+        "solid-cyan",
+        "solid-purple",
+    }
+)
+GENERATION_CARD_APPEARANCES_ORB = frozenset(
+    {
+        "orb-orange",
+        "orb-blue",
+        "orb-purple",
+        "orb-green",
+    }
+)
+GENERATION_CARD_APPEARANCES = (
+    GENERATION_CARD_APPEARANCES_SOLID | GENERATION_CARD_APPEARANCES_ORB
+)
+LEGACY_CARD_APPEARANCES = frozenset(
     {
         "blue-soft",
         "pink-soft",
@@ -41,6 +63,21 @@ GENERATION_CARD_APPEARANCES = frozenset(
         "type0-gradient",
     }
 )
+
+
+def generation_card_appearances(
+    card_size: str | None = None,
+    *,
+    include_legacy: bool = False,
+) -> frozenset[str]:
+    current = (
+        GENERATION_CARD_APPEARANCES_SOLID
+        if card_size == "2x4"
+        else GENERATION_CARD_APPEARANCES
+    )
+    if include_legacy:
+        return current | LEGACY_CARD_APPEARANCES
+    return current
 
 
 # Runtime and converter capabilities are intentionally broader than the model-facing
@@ -58,7 +95,6 @@ GENERATION_COMPONENTS_COMMON = frozenset(
         "H_BarChart",
         "InfoBlock",
         "NumericRatio",
-        "NumericRatioStack",
         "PillButton",
         "ProgressCircle",
         "ProgressCircleSingle",
@@ -66,7 +102,6 @@ GENERATION_COMPONENTS_COMMON = frozenset(
         "SecondaryBody",
         "SingleLineTitle",
         "Stack",
-        "Summary",
         "TableText",
     }
 )
@@ -93,7 +128,6 @@ GENERATION_COMPONENTS = frozenset(
         "H_BarChart",
         "InfoBlock",
         "NumericRatio",
-        "NumericRatioStack",
         "PillButton",
         "ProgressCircle",
         "ProgressCircleSingle",
@@ -101,7 +135,6 @@ GENERATION_COMPONENTS = frozenset(
         "SecondaryBody",
         "SingleLineTitle",
         "Stack",
-        "Summary",
         "TableText",
         "TextBlock",
         "TopTextBottomValue",
@@ -146,7 +179,6 @@ _GENERATION_REQUIRED_PROPS = {
     "ProgressCircleSingle": frozenset({"appearance", "ariaLabel"}),
     "ProgressCircle": frozenset({"appearance", "ariaLabel"}),
     "NumericRatio": frozenset({"appearance"}),
-    "NumericRatioStack": frozenset({"appearance"}),
     "PillButton": frozenset({"appearance"}),
     "CircleButton": frozenset({"appearance"}),
 }
@@ -168,7 +200,6 @@ for _component_name in (
     "ProgressCircleSingle",
     "ProgressCircle",
     "NumericRatio",
-    "NumericRatioStack",
     "PillButton",
     "CircleButton",
 ):
@@ -223,7 +254,11 @@ def runtime_component_props(runtime_path: Path | None = None) -> dict[str, set[s
     }
 
 
-def generatable_contracts(card_size: str | None = None) -> dict[str, Contract]:
+def generatable_contracts(
+    card_size: str | None = None,
+    *,
+    include_legacy_appearances: bool = True,
+) -> dict[str, Contract]:
     runtime = runtime_component_props()
     available_components = generation_components_for_size(card_size)
     result: dict[str, Contract] = {}
@@ -246,6 +281,11 @@ def generatable_contracts(card_size: str | None = None) -> dict[str, Contract]:
         enums = {key: values for key, values in (item.enums or {}).items() if key in required or key in optional}
         for key, values in _GENERATION_ENUM_OVERRIDES.get(name, {}).items():
             if key in required or key in optional:
+                if name == "Card" and key == "appearance":
+                    values = generation_card_appearances(
+                        card_size,
+                        include_legacy=include_legacy_appearances,
+                    )
                 enums[key] = values
         result[name] = Contract(
             required=required,
@@ -340,28 +380,49 @@ def format_generation_contract(card_size: str | None = None) -> str:
         "只允许提交一个以 <Card> 为根的声明式 JSX 表达式。",
         "禁止原生 HTML、style/className、spread props、变量读取、函数调用、条件表达式、Hooks 和副作用。",
         "属性表达式只允许字符串、数字、布尔值、null，以及 JSON-like 数组/对象；布局必须显式表达。",
-        "Stack.alignSelf 与 Stack.wrap 仅属于浏览器 runtime 能力，不属于可生成子集。",
+        "Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"。",
+        "Stack/Grid 的 basis、minWidth 以及 Stack.alignSelf、Stack.wrap 仅属于 runtime 兼容能力，不属于可生成子集。",
+        "固定槽使用 flex={0}，并按父级 direction 通过 width 或 height 声明主轴尺寸。",
         "禁止使用 Card.background 和仅供实现层覆盖的硬编码颜色属性。",
         "",
-        "Card appearance 必选值：" + ", ".join(sorted(GENERATION_CARD_APPEARANCES)),
+        "Card appearance 必选值：" + ", ".join(sorted(generation_card_appearances(card_size))),
         "",
         "## 组件",
     ]
-    for name, item in generatable_contracts(card_size).items():
+    for name, item in generatable_contracts(
+        card_size,
+        include_legacy_appearances=False,
+    ).items():
+        required = set(item.required)
+        optional = set(item.optional)
+        enums = dict(item.enums or {})
+        if name in {"Card", "Stack"}:
+            required.add("direction")
+            optional.discard("direction")
+            enums["direction"] = frozenset({"column", "row"})
+            if "justify" in optional:
+                enums["justify"] = frozenset(
+                    {"flex-start", "center", "flex-end", "space-between"}
+                )
+        if name in {"Stack", "Grid"}:
+            optional.difference_update({"basis", "minWidth"})
         lines.append(f"\n### {name}")
-        lines.append("required: " + (", ".join(sorted(item.required)) or "无"))
+        lines.append("required: " + (", ".join(sorted(required)) or "无"))
         lines.append("requiredOneOf: " + (", ".join(sorted(item.required_one_of)) or "无"))
-        lines.append("optional: " + (", ".join(sorted(item.optional)) or "无"))
+        lines.append("optional: " + (", ".join(sorted(optional)) or "无"))
         for prop, type_label in sorted(bindable_prop_type_labels(name).items()):
             lines.append(f"{prop} type: {type_label}")
-        for prop, values in sorted((item.enums or {}).items()):
+        for prop, values in sorted(enums.items()):
+            if prop not in required and prop not in optional:
+                continue
             lines.append(f"{prop}: " + ", ".join(str(value) for value in sorted(values, key=str)))
     return "\n".join(lines) + "\n"
 
 
 class GenerationResources:
-    def __init__(self) -> None:
+    def __init__(self, *, include_few_shot: bool = False) -> None:
         self._by_key = {stage.key: stage for stage in RESOURCE_STAGES}
+        self.include_few_shot = include_few_shot
 
     @property
     def keys(self) -> tuple[str, ...]:
@@ -374,6 +435,8 @@ class GenerationResources:
         paths.extend(
             SKILL_DIR / "references" / "layouts" / f"layout_patterns_{size}.md" for size in CARD_SIZE_DIMENSIONS
         )
+        if self.include_few_shot:
+            paths.append(FEW_SHOT_2X4_PATH)
         paths.append(SKILL_DIR / "design-system-runtime.jsx")
         return [path for path in paths if not path.exists()]
 
@@ -400,9 +463,11 @@ class GenerationResources:
                 allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
                 raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
             files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
+            if self.include_few_shot and resolved_size == "2x4":
+                files += (FEW_SHOT_2X4_PATH,)
         else:
             if stage.path is None:
-                raise AssertionError
+                raise AssertionError()
             files = (stage.path,)
         return files
 

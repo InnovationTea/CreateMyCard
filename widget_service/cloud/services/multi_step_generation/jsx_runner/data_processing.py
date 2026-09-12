@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """Convert widget task specs into a generic generation-task format.
 
-The converter intentionally avoids business-specific event and field mappings:
+The converter intentionally avoids business-specific field mappings:
 
-* ``eventCandidates`` becomes ``actions`` while preserving each complete event;
+* ``eventCandidates`` becomes ``actions`` while preserving each complete event
+  in the private compile context; the model-facing view replaces upstream
+  action descriptions with predefined button terms;
 * ``dataModelSchema.data`` becomes a flat ``data`` array whose items contain
   a unique path-derived ``id``, a stable source ``path``, the original
   ``description``, declared or inferred ``type``, and the sample value as
-  ``value``;
+  ``value``; known unitless API fields retain their source types while private
+  display-unit metadata controls text formatting without changing calculations;
 * ``assetCandidates`` keeps the ordered ``id``/``src``/``description`` records
-  that the model may reference;
+  that the model may reference, shortening direct ``resources/base/media``
+  children to filenames for model-facing prompts;
 * the top-level semantic ``size`` field is preserved unchanged for layout routing;
-* every data field named ``updatedAt`` is omitted;
+* every data field named ``updatedAt`` and the specific
+  ``healthSport.targetDateText`` field are omitted;
 * a source ``id`` is preserved when present and is not invented when absent.
 
 The input is read completely before the output is written, so using the same
@@ -39,12 +44,35 @@ if str(SKILL_DIR) not in sys.path:
     sys.path.insert(0, str(SKILL_DIR))
 
 from jsx_runner.card_sizes import CARD_SIZE_DIMENSIONS  # noqa: E402
+from jsx_to_a2ui.catalog.display_units import (  # noqa: E402
+    format_display_unit,
+    has_display_unit,
+)
 
 
 DEFAULT_INPUT = SKILL_DIR / "data" / "20_tasks_2x2_raw.json"
 DEFAULT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_processed.json"
 DEFAULT_CONTEXT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_compile_context.json"
 RAW_TASK_MARKERS = frozenset({"eventCandidates", "dataModelSchema"})
+
+BUTTON_TERMS = {
+    "event.open.settings.bluetooth": "蓝牙设置",
+    "event.open.health.sport": "开始运动",
+    "event.open.weather": "查看天气",
+    "event.viewCalendarEvent": "查看日程",
+    "event.open.health.sleep": "查看睡眠",
+    "event.enter.meeting": "加入会议",
+    "event.open.settings.battery": "电量设置",
+    "event.startNavigate": "开始导航",
+    "event.open.clock.alarm": "闹钟设置",
+    "event.open.music.daily": "推荐歌单",
+    "event.open.music.favorite": "收藏歌单",
+    "event.open.settings.dnd": "开始专注",
+    "event.setPowerSavingMode": "省电模式",
+    "event.open.settings.parentControl": "应用时长",
+    "event.open.settings.batteryHealth": "电池健康",
+    "event.call.phone": "拨打电话",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +147,47 @@ def _validate_task_size(value: Any, task_label: Any) -> str:
 
 _SUPPORTED_DATA_TYPES = frozenset({"string", "integer", "number", "boolean", "string[]"})
 _SCHEMA_LEAF_KEYS = frozenset({"type", "description", "sampleValue"})
+OMITTED_DATA_PATHS = frozenset({("healthSport", "targetDateText")})
+
+# Display-unit suffixes for upstream API fields whose raw values omit the unit.
+# Keep this keyed by the stable binding ID: descriptions are prose and must not
+# silently change preprocessing behavior when their wording changes.
+DISPLAY_UNIT_SUFFIX_BY_BINDING_ID: dict[str, str] = {
+    "calendar.events.0.countdownDays": "天",
+    "calendar.events.0.remindTime.0": "分钟",
+    "countdown.countdownDays": "天",
+    "earphone.batteryLevel": "%",
+    "earphone.leftBatteryLevel": "%",
+    "earphone.rightBatteryLevel": "%",
+    "healthSport.dailySteps": "步",
+    "healthSport.exerciseHeartRateAvg": "次/分钟",
+    "healthSport.exerciseHeartRateMax": "次/分钟",
+    "healthSport.exerciseHeartRateMin": "次/分钟",
+    "healthSport.sleepScore": "分",
+    "phoneBattery.batterySOC": "%",
+    "weather.current.feelsLikeC": "℃",
+    "weather.current.humidityPercent": "%",
+    "weather.current.temperatureC": "℃",
+    "weather.current.windLevel": "级",
+    "weather1.current.temperatureC": "℃",
+    "weather2.current.temperatureC": "℃",
+}
+
+
+def _format_binding_value(binding_id: str, value: Any) -> tuple[Any, bool]:
+    """Append a missing display-unit suffix to a known binding value.
+
+    Return ``(value, changed)``. A formatted string supplied by the API wins,
+    making preprocessing idempotent and preventing values such as ``"68%"``
+    from becoming ``"68%%"``.
+    """
+    unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(binding_id)
+    if unit is None:
+        return copy.deepcopy(value), False
+    if has_display_unit(value, unit):
+        return value, False
+    formatted = format_display_unit(value, unit)
+    return formatted, formatted != value
 
 
 def _data_type(value: Any, declared: Any = None) -> str:
@@ -189,6 +258,9 @@ def convert_data(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str,
     Container field names are omitted from the result object because ``path``
     records the complete hierarchy. Lists retain their indices in that path.
     """
+    if path in OMITTED_DATA_PATHS:
+        return []
+
     if isinstance(value, list):
         converted: list[dict[str, Any]] = []
         for index, item in enumerate(value):
@@ -261,6 +333,24 @@ def convert_actions(value: Any, task_label: Any) -> list[dict[str, Any]]:
         seen_ids.add(action_id)
         actions.append(copy.deepcopy(event))
     return actions
+
+
+DEFAULT_ASSET_ROOT = "resources/base/media/"
+
+
+def model_asset_src(source: str) -> str:
+    """Return the compact resource reference exposed to the JSX model.
+
+    Runtime and JSX -> A2UI both resolve a plain filename against
+    ``resources/base/media/``. Keep non-default and nested paths intact so the
+    model never loses information that the default resolver cannot reconstruct.
+    """
+    normalized = source.replace("\\", "/")
+    if normalized.startswith(DEFAULT_ASSET_ROOT):
+        relative = normalized[len(DEFAULT_ASSET_ROOT):]
+        if relative and "/" not in relative:
+            return relative
+    return normalized
 
 
 def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]]:
@@ -366,27 +456,40 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
             raise ValueError(f"任务 {task_label!r} 的 data[{index}].description 必须是非空字符串。")
         if "value" not in item:
             raise ValueError(f"任务 {task_label!r} 的 data[{index}] 缺少 value。")
+        normalized_type = _data_type(item["value"], item.get("type"))
         normalized_item = copy.deepcopy(item)
         normalized_item["description"] = description.strip()
-        normalized_item["type"] = _data_type(item["value"], item.get("type"))
+        normalized_item["type"] = normalized_type
+        unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(item["id"])
+        _, value_was_formatted = _format_binding_value(item["id"], item["value"])
+        if value_was_formatted:
+            normalized_item["displayUnit"] = unit
         compile_data.append(normalized_item)
     _validate_unique_binding_records(compile_data, task_label)
-    prompt_data = [
-        {
+    prompt_data: list[dict[str, Any]] = []
+    for item in compile_data:
+        prompt_item = {
             "id": item["id"],
             "type": item["type"],
             "description": item.get("description", ""),
             "value": copy.deepcopy(item["value"]),
         }
-        for item in compile_data
-    ]
+        unit = item.get("displayUnit")
+        if unit:
+            prompt_item["description"] += (
+                f"（原值不变；使用有 unit 槽的组件时，value 保留原值，显式填写 unit=“{unit}”；"
+                "完整带单位字符串不再追加单位。"
+                "没有 unit 槽的普通文本由绑定层兼容格式化。）"
+            )
+        prompt_data.append(prompt_item)
 
     compile_actions = convert_actions(processed.get("actions", []), processed.get("id", fallback_index))
     prompt_actions = []
     for item in compile_actions:
         prompt_action = {"id": item["id"]}
-        if item.get("description"):
-            prompt_action["description"] = item["description"]
+        button_term = BUTTON_TERMS.get(item["id"])
+        if button_term:
+            prompt_action["description"] = button_term
         prompt_actions.append(prompt_action)
 
     if "icons" in processed and "assetCandidates" not in processed:
@@ -395,6 +498,10 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
         processed.get("assetCandidates", []),
         task_label,
     )
+    prompt_assets = [
+        {**item, "src": model_asset_src(item["src"])}
+        for item in prompt_assets
+    ]
 
     prompt_task = copy.deepcopy(processed)
     prompt_task["data"] = prompt_data
@@ -513,7 +620,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "将原始任务拆分为模型输入和私有还原上下文；"
-            "模型输入不包含 path/call/args，私有上下文保留完整绑定和动作参数。"
+            "模型输入不包含 path/call/args/原始动作描述，"
+            "动作描述替换为预定义按钮术语，私有上下文保留完整绑定和动作参数。"
         )
     )
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)

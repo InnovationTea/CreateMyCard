@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ..exceptions import ValidationError
 
@@ -10,7 +10,7 @@ class Appearance:
     name: str
     background: str
     gradient: dict | None
-    shadow: dict
+    shadow: dict | None
     primary: str
     secondary: str
     action_background: str
@@ -24,130 +24,59 @@ class Appearance:
     progress_icon: str
 
 
-_SOFT_SHADOW = {"offsetX": 0, "offsetY": 2, "radius": 8, "color": "#1A000000"}
-_STRONG_SHADOW = {"offsetX": 0, "offsetY": 2, "radius": 8, "color": "#2E000000"}
-
-
-def _gradient(*stops: tuple[str, float]) -> dict:
-    colors: list[list[object]] = []
-    for color, offset in stops:
-        colors.append([color, offset])
-    return {
-        "angle": 180,
-        "colors": colors,
-        "repeating": False,
-    }
-
-
-def _soft(name: str, accent: str) -> Appearance:
+def _palette(name: str, background: str, content: str, stops: tuple[str, ...] = ()) -> Appearance:
+    primary = f"#FF{content}"
+    secondary = f"#99{content}"
+    tertiary = f"#1A{content}"
+    gradient = None
+    if stops:
+        gradient = {
+            "angle": 180,
+            "colors": [[f"#FF{color}", offset] for color, offset in zip(stops, (0, 0.68, 1), strict=True)],
+            "repeating": False,
+        }
     return Appearance(
-        name=name,
-        background="#FFFFFFFF",
-        gradient=_gradient((f"#1A{accent}", 0), ("#00FFFFFF", 1)),
-        shadow=_SOFT_SHADOW,
-        primary="#FF000000",
-        secondary="#99000000",
-        action_background=f"#1A{accent}",
-        action_text=f"#FF{accent}",
-        action_icon=f"#FF{accent}",
-        circle_background=f"#FF{accent}",
-        circle_text="#FFFFFFFF",
-        circle_icon="#FFFFFFFF",
-        progress_track="#1A000000",
-        progress_bar="#FF64BB5C",
-        progress_icon="#99000000",
+        name=name, background=f"#FF{background}", gradient=gradient, shadow=None,
+        primary=primary, secondary=secondary,
+        action_background=tertiary, action_text=primary, action_icon=primary,
+        circle_background=tertiary, circle_text=primary, circle_icon=primary,
+        progress_track=f"#33{content}", progress_bar=primary, progress_icon=secondary,
     )
 
 
-def _dark(
-    name: str,
-    gradient: dict,
-    action_accent: str,
-    *,
-    background: str,
-) -> Appearance:
-    return Appearance(
-        name=name,
-        background=background,
-        gradient=gradient,
-        shadow=_STRONG_SHADOW,
-        primary="#FFFFFFFF",
-        secondary="#99FFFFFF",
-        action_background="#FFFFFFFF",
-        action_text=action_accent,
-        action_icon=action_accent,
-        circle_background="#FFFFFFFF",
-        circle_text=action_accent,
-        circle_icon=action_accent,
-        progress_track="#1AFFFFFF",
-        progress_bar="#FFFFFFFF",
-        progress_icon="#99FFFFFF",
-    )
-
-
-# A2UI v0.9 cannot reproduce the runtime's backdrop blur. Keep these
-# multi-ellipse appearances smooth by lowering them to linear gradients.
-_CLOUDY_GRADIENT = _gradient(
-    ("#FF2B3242", 0),
-    ("#FF7486A0", 0.68),
-    ("#FF5A6C84", 1),
-)
-_SLATE_GRADIENT = _gradient(
-    ("#FF173573", 0),
-    ("#FF008FBF", 0.68),
-    ("#FF4174D9", 1),
-)
-_TYPE0_LINEAR_FALLBACK = _gradient(
-    ("#FFBF3F26", 0),
-    ("#FFFF8E3E", 0.68),
-    ("#FFFAA89E", 1),
-)
-
-
+# A2UI-only orb fallback: retain the source palette as a linear approximation.
+# JSX uses the authored ellipse layers and backdrop blur, not these gradients.
 APPEARANCES: dict[str, Appearance] = {
-    "blue-soft": _soft("blue-soft", "0A59F7"),
-    "green-soft": _soft("green-soft", "64BB5C"),
-    "neutral-soft": _soft("neutral-soft", "000000"),
-    "pink-soft": _soft("pink-soft", "E64566"),
-    "yellow-soft": _soft("yellow-soft", "F7CE00"),
-    "cyan-soft": _soft("cyan-soft", "46B1E3"),
-    "sunny-gradient": _dark(
-        "sunny-gradient",
-        _gradient(("#FF317AF7", 0), ("#FF46B1E3", 1)),
-        "#FF317AF7",
-        background="#FF317AF7",
-    ),
-    "cloudy-gradient": _dark(
-        "cloudy-gradient",
-        _CLOUDY_GRADIENT,
-        "#FF2B3242",
-        background="#FF2B3242",
-    ),
-    "slate-gradient": _dark(
-        "slate-gradient",
-        _SLATE_GRADIENT,
-        "#FF173573",
-        background="#FF173573",
-    ),
-    "purple-gradient": _dark(
-        "purple-gradient",
-        _gradient(("#FFAC49F5", 0), ("#FFC386F0", 1)),
-        "#FFAC49F5",
-        background="#FFAC49F5",
-    ),
-    "orange-gradient": _dark(
-        "orange-gradient",
-        _gradient(("#FFED6F21", 0), ("#FFF9A01E", 1)),
-        "#FFED6F21",
-        background="#FFED6F21",
-    ),
-    "type0-gradient": _dark(
-        "type0-gradient",
-        _TYPE0_LINEAR_FALLBACK,
-        "#FFBF3F26",
-        background="#FFBF3F26",
-    ),
+    "solid-white": _palette("solid-white", "FFFFFF", "000000"),
+    "solid-blue": _palette("solid-blue", "E5EDFE", "1F4799"),
+    "solid-orange": _palette("solid-orange", "FFF3E6", "99661F"),
+    "solid-green": _palette("solid-green", "F0FFE6", "52991F"),
+    "solid-cyan": _palette("solid-cyan", "E6FDFF", "1F8F99"),
+    "solid-purple": _palette("solid-purple", "EDE6FF", "401F99"),
+    "orb-orange": _palette("orb-orange", "BF3F26", "FFFFFF", ("BF3F26", "FF8E3E", "FAA89E")),
+    "orb-blue": _palette("orb-blue", "121E59", "FFFFFF", ("121E59", "8FA2D9", "52CCCC")),
+    "orb-purple": _palette("orb-purple", "1B1259", "FFFFFF", ("1B1259", "5761D9", "B398D9")),
+    "orb-green": _palette("orb-green", "17734C", "FFFFFF", ("17734C", "26BFA6", "60BF98")),
 }
+
+APPEARANCE_ALIASES = {
+    "neutral-soft": "solid-white",
+    "blue-soft": "solid-blue",
+    "pink-soft": "solid-orange",
+    "yellow-soft": "solid-orange",
+    "green-soft": "solid-green",
+    "cyan-soft": "solid-cyan",
+    "sunny-gradient": "orb-blue",
+    "cloudy-gradient": "orb-blue",
+    "slate-gradient": "orb-blue",
+    "purple-gradient": "orb-purple",
+    "orange-gradient": "orb-orange",
+    "type0-gradient": "orb-orange",
+}
+APPEARANCES.update({
+    alias: replace(APPEARANCES[target], name=alias)
+    for alias, target in APPEARANCE_ALIASES.items()
+})
 
 
 def get_appearance(name: str | None) -> Appearance:
@@ -156,3 +85,11 @@ def get_appearance(name: str | None) -> Appearance:
         return APPEARANCES[key]
     except KeyError as exc:
         raise ValidationError(f"unknown Card appearance {key!r}") from exc
+
+
+def resolve_appearance_name(name: str | None, size: str | None = None) -> str:
+    canonical = APPEARANCE_ALIASES.get(name, name) or "solid-white"
+    get_appearance(canonical)
+    if size == "2x4" and canonical.startswith("orb-"):
+        return canonical.replace("orb-", "solid-", 1)
+    return canonical

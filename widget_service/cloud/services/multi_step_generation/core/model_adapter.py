@@ -258,11 +258,20 @@ class _Completions:
         max_tokens = request.get("max_tokens", 8192)
         if not isinstance(max_tokens, int) or max_tokens < 1:
             raise ValueError("max_tokens must be a positive integer")
+        enable_thinking = self.owner.thinking_mode != "disable"
+        extra_body = request.get("extra_body")
+        thinking = extra_body.get("thinking") if isinstance(extra_body, dict) else None
+        if isinstance(thinking, dict):
+            thinking_type = thinking.get("type")
+            if thinking_type not in {"enabled", "disabled"}:
+                raise ValueError("thinking.type must be 'enabled' or 'disabled'")
+            enable_thinking = thinking_type == "enabled"
         completion = await self.owner.complete(
             messages,
             tools=tools,
             tool_choice=request.get("tool_choice", "auto"),
             max_tokens=max_tokens,
+            enable_thinking=enable_thinking,
         )
         tool_calls = tuple(
             _ToolCall(
@@ -316,6 +325,7 @@ class PlatformChatClient:
         tools: list[dict[str, object]],
         tool_choice: ToolChoice,
         max_tokens: int,
+        enable_thinking: bool,
     ) -> _ModelCompletion:
         plans: list[tuple[Provider, str, int]] = [
             (
@@ -350,6 +360,7 @@ class PlatformChatClient:
                     tools=tools,
                     tool_choice=tool_choice,
                     max_tokens=max_tokens,
+                    enable_thinking=enable_thinking,
                 )
             except Exception as exc:
                 if _is_tool_choice_compatibility_error(exc):
@@ -369,6 +380,7 @@ class PlatformChatClient:
         tools: list[dict[str, object]],
         tool_choice: ToolChoice,
         max_tokens: int,
+        enable_thinking: bool,
     ) -> _ModelCompletion:
         max_attempts = retry_count + 1
         for attempt in range(1, max_attempts + 1):
@@ -384,6 +396,7 @@ class PlatformChatClient:
                             tools=tools,
                             tool_choice=tool_choice,
                             max_tokens=max_tokens,
+                            enable_thinking=enable_thinking,
                         )
                 finally:
                     semaphore.release()
@@ -413,6 +426,7 @@ class PlatformChatClient:
         tools: list[dict[str, object]],
         tool_choice: ToolChoice,
         max_tokens: int,
+        enable_thinking: bool,
     ) -> _ModelCompletion:
         if provider == "deepseek_platform":
             return await self._complete_deepseek_platform(
@@ -420,6 +434,7 @@ class PlatformChatClient:
                 tools=tools,
                 tool_choice=tool_choice,
                 max_tokens=max_tokens,
+                enable_thinking=enable_thinking,
             )
         if provider == "llmclient":
             return await self._complete_llmclient(
@@ -427,6 +442,7 @@ class PlatformChatClient:
                 tools=tools,
                 tool_choice=tool_choice,
                 max_tokens=max_tokens,
+                enable_thinking=enable_thinking,
             )
         raise PlatformModelError(
             f"unsupported platform model provider: {provider}",
@@ -440,6 +456,7 @@ class PlatformChatClient:
         tools: list[dict[str, object]],
         tool_choice: ToolChoice,
         max_tokens: int,
+        enable_thinking: bool,
     ) -> _ModelCompletion:
         settings = self.settings
         if not settings.deepseek_platform_access_key.strip():
@@ -461,7 +478,7 @@ class PlatformChatClient:
                 "modelName": settings.deepseek_platform_model_name,
                 "modelParam": {},
                 "extra_body": {
-                    "enable_thinking": self.thinking_mode != "disable",
+                    "enable_thinking": enable_thinking,
                 },
                 "messages": [dict(item) for item in messages],
                 "tools": tools,
@@ -508,6 +525,7 @@ class PlatformChatClient:
         tools: list[dict[str, object]],
         tool_choice: ToolChoice,
         max_tokens: int,
+        enable_thinking: bool,
     ) -> _ModelCompletion:
         settings = self.settings
         if not settings.deepseek_api_key:
@@ -517,7 +535,7 @@ class PlatformChatClient:
             "user": settings.deepseek_user,
             "model": settings.deepseek_model,
             "stream": True,
-            "extra_body": {"enable_thinking": self.thinking_mode != "disable"},
+            "extra_body": {"enable_thinking": enable_thinking},
             "stream_options": {
                 "include_usage": settings.deepseek_include_usage,
                 "debug_usage": settings.deepseek_debug_usage,

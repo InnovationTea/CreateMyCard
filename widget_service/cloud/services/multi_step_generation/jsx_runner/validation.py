@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from .config import JSX_VALIDATOR_PATH, REPO_ROOT, validator_subprocess_environment
 
@@ -105,7 +106,7 @@ async def validate_generated_card(
             if attempt >= infrastructure_retries:
                 if infrastructure_retries:
                     raise ValidatorInfrastructureError(f"JSX 校验基础设施连续 {attempt + 1} 次失败：{exc}") from exc
-                raise
+                raise exc
             await asyncio.sleep(min(0.5 * (2**attempt), 2.0))
 
     raise AssertionError("unreachable")
@@ -119,6 +120,7 @@ _BROWSER_LAYOUT_CODES = frozenset(
         "browser-vertical-clipping",
         "browser-semantic-overlap",
         "browser-semantic-content-overflow",
+        "browser-button-clipping",
     }
 )
 
@@ -159,6 +161,114 @@ def browser_layout_fingerprints(report: dict[str, Any]) -> frozenset[str]:
     return frozenset(fingerprints)
 
 
+def browser_overlap_involves_emphasized_data(report: dict[str, Any]) -> bool:
+    """Return whether a browser-confirmed semantic overlap involves EmphasizedData."""
+
+    for item in _error_findings(report):
+        if item.get("code") != "browser-semantic-overlap":
+            continue
+        components = item.get("components")
+        if isinstance(components, list) and "EmphasizedData" in components:
+            return True
+        if item.get("component") == "EmphasizedData":
+            return True
+        evidence = item.get("evidence")
+        if not isinstance(evidence, dict):
+            continue
+        evidence_components = evidence.get("components")
+        if isinstance(evidence_components, list) and "EmphasizedData" in evidence_components:
+            return True
+        for key in ("first", "second", "owner", "component"):
+            value = evidence.get(key)
+            if value == "EmphasizedData":
+                return True
+            if isinstance(value, dict) and value.get("component") == "EmphasizedData":
+                return True
+    return False
+
+
+def _finite_vector(value: Any, fields: tuple[str, ...]) -> tuple[int | float, ...] | None:
+    if not isinstance(value, dict):
+        return None
+    numbers = tuple(value.get(field) for field in fields)
+    for number in numbers:
+        if isinstance(number, bool) or not isinstance(number, (int, float)):
+            return None
+        if isinstance(number, float) and not math.isfinite(number):
+            return None
+    return numbers
+
+
+class _CardOverflowIdentity(NamedTuple):
+    component: Any
+    component_text: Any
+    element_tag: Any
+    element_class: Any
+    rect: tuple[int | float, ...]
+    overflow: tuple[int | float, ...]
+    parent_layout: str
+
+
+def _card_overflow_identity(item: dict[str, Any]) -> _CardOverflowIdentity | None:
+    """Identify only matching owner/text evidence of one Card boundary breach."""
+    code = item.get("code")
+    if code not in {"browser-overflow", "browser-semantic-content-overflow"}:
+        return None
+    evidence = item.get("evidence")
+    if not isinstance(evidence, dict) or not evidence.get("component"):
+        return None
+    rect = _finite_vector(evidence.get("rect"), ("x", "y", "width", "height"))
+    element = evidence.get("element")
+    if rect is None or not isinstance(element, dict) or not element.get("tag"):
+        return None
+    sides = ("left", "top", "right", "bottom")
+    if code == "browser-semantic-content-overflow":
+        if _finite_vector(evidence.get("ownerOverflow"), sides) != (0, 0, 0, 0):
+            return None
+        overflow = _finite_vector(evidence.get("cardOverflow"), sides)
+    else:
+        overflow = _finite_vector(evidence.get("overflow"), sides)
+    if overflow is None or min(overflow) < 0 or max(overflow) <= 0:
+        return None
+    return _CardOverflowIdentity(
+        component=evidence["component"],
+        component_text=evidence.get("componentText"),
+        element_tag=element.get("tag"),
+        element_class=element.get("className"),
+        rect=rect,
+        overflow=overflow,
+        parent_layout=json.dumps(evidence.get("parentLayout"), sort_keys=True, ensure_ascii=False),
+    )
+
+
+def _independent_layout_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
+    groups: list[list[dict[str, Any]]] = []
+    for item in _error_findings(report):
+        if str(item.get("code") or "") not in _BROWSER_LAYOUT_CODES:
+            continue
+        identity = _card_overflow_identity(item)
+        duplicate = None
+        for group in groups:
+            if len(group) != 1 or identity is None:
+                continue
+            if group[0].get("code") == item.get("code"):
+                continue
+            if _card_overflow_identity(group[0]) == identity:
+                duplicate = group
+                break
+        if duplicate is None:
+            groups.append([item])
+        else:
+            duplicate.append(item)
+    findings = []
+    for group in groups:
+        entry = dict(group[0])
+        if len(group) > 1:
+            entry["relatedFindings"] = [_compact_finding(item) for item in group[1:]]
+        findings.append(entry)
+    return findings
+
+
 def browser_layout_needs_restructure(
     report: dict[str, Any],
     *,
@@ -168,9 +278,27 @@ def browser_layout_needs_restructure(
 
     current = browser_layout_fingerprints(report)
     repeated = sorted(current & previous_fingerprints)
-    layout_errors = [item for item in _error_findings(report) if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
+    layout_errors = _independent_layout_findings(report)
     has_total_overflow = any(item.get("code") == "browser-height-overflow" for item in layout_errors)
-    return bool(repeated or has_total_overflow or len(layout_errors) >= 2), repeated
+    requires_pattern_change = any(
+        item.get("layoutChangeRequired") is True for item in layout_errors
+    )
+    return bool(
+        requires_pattern_change
+        or repeated
+        or has_total_overflow
+        or len(layout_errors) >= 2
+    ), repeated
+
+
+def browser_layout_requires_pattern_change(report: dict[str, Any]) -> bool:
+    """Return whether browser geometry proves the current slot is infeasible."""
+
+    return any(
+        item.get("layoutChangeRequired") is True
+        for item in _error_findings(report)
+        if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES
+    )
 
 
 def _compact_finding(item: dict[str, Any]) -> dict[str, Any]:
@@ -188,6 +316,8 @@ def _compact_finding(item: dict[str, Any]) -> dict[str, Any]:
         "likelyCause",
         "suggestion",
         "details",
+        "relatedFindings",
+        "layoutChangeRequired",
     ):
         value = item.get(field)
         if value is None:
@@ -225,12 +355,22 @@ def _aggregate_layout_findings(
                 "code": item.get("code"),
                 "message": item.get("message"),
                 **({"evidence": compact_evidence} if compact_evidence is not None else {}),
+                **({"relatedFindings": item["relatedFindings"]} if item.get("relatedFindings") else {}),
             }
         )
-    if structural_repair:
+    requires_pattern_change = any(
+        item.get("layoutChangeRequired") is True for item in findings
+    )
+    if requires_pattern_change:
+        suggestion = (
+            "至少一个业务组件的真实尺寸明显超过直接父槽，当前 Layout Pattern / Sub Pattern "
+            "容量不成立。必须更换布局或子布局并分配更大的连续区域；不要继续通过 flex、"
+            "justify、gap 或固定尺寸做局部微调，也不得删除必需的 dataIds 或 actionId。"
+        )
+    elif structural_repair:
         suggestion = (
             "当前不是单个组件的轻微偏移。请重新分配整个正文区域：减少真正可舍弃的"
-            "次要内容，重新分组组件并调整共同父级的 flex/height/basis/gap；不要继续逐个"
+            "次要内容，重新分组组件并调整共同父级的 direction/flex/width/height/gap；不要继续逐个"
             "移动组件，也不得删除必需的 dataIds、actionId 或把动态值改成静态文本。"
         )
     else:
@@ -248,6 +388,7 @@ def _aggregate_layout_findings(
         },
         "likelyCause": "当前内容总量、组件固定尺寸和父级槽位分配不兼容。",
         "suggestion": suggestion,
+        **({"layoutChangeRequired": True} if requires_pattern_change else {}),
     }
 
 
@@ -259,12 +400,14 @@ def compact_validation_feedback(
 ) -> list[dict[str, Any]]:
     compact: list[dict[str, Any]] = []
     findings = _error_findings(report)
-    layout_findings = [item for item in findings if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
+    layout_findings = _independent_layout_findings(report)
     layout_aggregated = len(layout_findings) >= 2
+    layout_emitted = False
     for item in findings:
-        if item in layout_findings:
-            if not layout_aggregated:
-                compact.append(_compact_finding(item))
+        if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES:
+            if not layout_aggregated and not layout_emitted:
+                compact.extend(_compact_finding(finding) for finding in layout_findings)
+                layout_emitted = True
             continue
         compact.append(_compact_finding(item))
     if layout_aggregated:

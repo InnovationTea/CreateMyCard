@@ -32,7 +32,7 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         raise ValidationError("; ".join(errors))
     items = node.props["items"]
     if not isinstance(items, list):
-        raise AssertionError
+        raise AssertionError()
     current = palette(ctx)
     # The JSX runtime maps TextBlock to the card action color on light cards,
     # but deliberately overrides it to white on every dark/gradient card.
@@ -43,7 +43,7 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     blocks: list[A2UINode] = []
     for index, item in enumerate(items):
         if not isinstance(item, dict):
-            raise AssertionError
+            raise AssertionError()
         blocks.append(
             column(
                 ctx,

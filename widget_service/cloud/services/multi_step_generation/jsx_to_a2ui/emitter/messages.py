@@ -37,8 +37,14 @@ def build_source_update_messages(
     surface_id: str,
     source_path: str,
     raw_value: Any,
+    *,
+    display_unit: str | None = None,
 ) -> tuple[list[dict[str, Any]], DisplayPlan]:
-    """Build synchronized source and EmphasizedData display-model updates."""
+    """Build source/display updates; forward the context binding's displayUnit.
+
+    When the returned plan changes shape, rebuild the affected components as
+    well. Omitting display_unit preserves the legacy formatted-source contract.
+    """
     messages: list[dict[str, Any]] = []
 
     def append_update(path: str, value: Any) -> None:
@@ -51,5 +57,5 @@ def build_source_update_messages(
             },
         })
 
-    plan = apply_source_update(append_update, source_path, raw_value)
+    plan = apply_source_update(append_update, source_path, raw_value, display_unit=display_unit)
     return messages, plan

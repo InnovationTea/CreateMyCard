@@ -360,12 +360,26 @@ function elementProps(element) {
     .map((attribute) => [jsxName(attribute.name), attributeValue(attribute)]));
 }
 
-function cardButtonSlotDimensions(parent, childIndex) {
+function preferredAxisSize(element, parent, axis) {
+  const props = elementProps(element);
+  const parentProps = elementProps(parent);
+  let value = props.get(axis);
+  const mainAxis = (parentProps.get("direction") ?? "column") === "row" ? "width" : "height";
+  if (["Card", "Stack"].includes(jsxName(parent?.openingElement?.name))
+    && axis === mainAxis && props.get("position") !== "absolute") {
+    if (props.get("basis") != null) value = props.get("basis");
+    else if (props.get("flex") === 1) return null;
+  }
+  const minimum = props.get(axis === "width" ? "minWidth" : "minHeight");
+  return Number.isFinite(value) && Number.isFinite(minimum) ? Math.max(value, minimum) : value;
+}
+
+function cardButtonSlotDimensions(parent, childIndex, ancestor = null) {
   const parentName = jsxName(parent?.openingElement?.name);
   const props = elementProps(parent);
   if (parentName === "Stack") {
-    const width = props.get("width");
-    const height = props.get("height");
+    const width = preferredAxisSize(parent, ancestor, "width");
+    const height = preferredAxisSize(parent, ancestor, "height");
     return {
       width: Number.isFinite(width) ? width : null,
       height: Number.isFinite(height) ? height : null,
@@ -400,9 +414,38 @@ function isCardButtonSlot(element) {
   return children.length === 1 && jsxName(children[0].openingElement.name) === "CardButton";
 }
 
+function fixedSlotKind(element) {
+  const name = jsxName(element?.openingElement?.name);
+  if (["CardButton", "InfoBlock"].includes(name)) return name;
+  const children = directJsxChildren(element);
+  const childName = children.length === 1 ? jsxName(children[0].openingElement.name) : null;
+  return name === "Stack" && ["CardButton", "InfoBlock"].includes(childName) ? childName : null;
+}
+
+function validateFixedSlotDimensions(element) {
+  const findings = [];
+  const parentName = jsxName(element.openingElement.name);
+  const isGrid = parentName === "Grid";
+  directJsxChildren(element).forEach((child, index) => {
+    const kind = fixedSlotKind(child);
+    if (kind === null || (!isGrid && kind !== "CardButton")) return;
+    const dimensions = isGrid ? cardButtonSlotDimensions(element, index) : {};
+    for (const [axis, expected] of [["width", 144], ["height", 64]]) {
+      const explicit = jsxName(child.openingElement.name) === "Stack" ? preferredAxisSize(child, element, axis) : null;
+      const value = explicit == null || explicit === "full" ? dimensions[axis] : explicit;
+      if (Number.isFinite(value) && value !== expected) {
+        findings.push(finding("error", "fixed-slot-dimension",
+          `2x4 fixed slot ${axis} must be ${expected}vp; found ${value}vp`));
+      }
+    }
+  });
+  return findings;
+}
+
 function validateCardButtonSlots(root, cardSize) {
   const findings = [];
-  const visit = (element) => {
+  const visit = (element, ancestor = null) => {
+    if (cardSize === "2x4") findings.push(...validateFixedSlotDimensions(element));
     const children = directJsxChildren(element);
     const parentName = jsxName(element.openingElement.name);
     const directCardButtons = children.filter((child) => jsxName(child.openingElement.name) === "CardButton");
@@ -421,7 +464,7 @@ function validateCardButtonSlots(root, cardSize) {
         "each CardButton in a Stack must be the only child of its own explicit or flex-allocated slot; Grid cells are already slots",
       ));
     }
-    if (cardSize === "2x4" && children.filter(isCardButtonSlot).length >= 2) {
+    if (cardSize === "2x4" && children.some((child) => fixedSlotKind(child) !== null)) {
       const props = elementProps(element);
       const columns = props.get("columns") ?? 2;
       const multiColumnGrid = parentName === "Grid" && (
@@ -429,25 +472,38 @@ function validateCardButtonSlots(root, cardSize) {
         || (typeof columns === "string" && columns.trim().split(/\s+/).length > 1)
       );
       if (multiColumnGrid) {
-        const slotCount = children.filter(isCardButtonSlot).length;
-        if (columns !== 2 || ![3, 4].includes(slotCount)) {
+        for (const axis of ["rowGap", "columnGap"]) {
+          const gap = props.get(axis) ?? props.get("gap") ?? 0;
+          if (Number.isFinite(gap) && gap !== 8) {
+            findings.push(finding("error", "fixed-grid-gap", `四槽宫格 ${axis} must be 8vp; found ${gap}vp`));
+          }
+        }
+        const kinds = children.map(fixedSlotKind);
+        const columnCount = typeof columns === "string" ? columns.trim().split(/\s+/).length : columns;
+        if (columnCount !== 2 || kinds.length !== 4 || kinds.some((kind) => kind === null)) {
           findings.push(finding(
             "error",
             "card-button-grid-layout",
-            "a multi-column CardButton Grid must be the documented Type 9 layout with two columns and three or four actions",
+            "四槽宫格 requires four valid CardButton/InfoBlock slots in a two-column Grid",
           ));
         }
-      } else if (["Card", "Stack"].includes(parentName) && (props.get("direction") ?? "column") === "row") {
+        if (kinds.length === 4 && kinds.every((kind) => kind !== null)
+          && (kinds[0] !== kinds[2] || kinds[1] !== kinds[3])) {
+          findings.push(finding("error", "card-button-grid-layout",
+            "四槽宫格 mixed CardButton/InfoBlock slots must use the same component type within each column"));
+        }
+      } else if (children.filter(isCardButtonSlot).length >= 2
+        && ["Card", "Stack"].includes(parentName) && (props.get("direction") ?? "column") === "row") {
         findings.push(finding(
           "error",
           "card-button-horizontal-layout",
-          "outside the documented Type 9 Grid, 2x4 CardButton actions must be stacked vertically; a single horizontal row is not allowed",
+          "outside the documented 四槽宫格, 2x4 CardButton actions must be stacked vertically; a single horizontal row is not allowed",
         ));
       }
     }
     children.forEach((child, index) => {
       if (jsxName(child.openingElement.name) === "CardButton") {
-        const { width, height } = cardButtonSlotDimensions(element, index);
+        const { width, height } = cardButtonSlotDimensions(element, index, ancestor);
         if (Number.isFinite(width) && Number.isFinite(height) && width < height) {
           findings.push(finding(
             "error",
@@ -470,7 +526,7 @@ function validateCardButtonSlots(root, cardSize) {
           ));
         }
       }
-      visit(child);
+      visit(child, element);
     });
   };
   visit(root);
@@ -742,6 +798,9 @@ function validateStructure(source, componentName, schema, task) {
       }
       resolvedCardSize = taskCardSize || CARD_SIZE_PRESETS[actualSize] || (actualSize === 160 ? CARD_SIZE_PRESETS["2x2"] : null);
       if (!schema.appearances.has(provided.get("appearance"))) findings.push(finding("error", "card-appearance", `unsupported Card.appearance: ${JSON.stringify(provided.get("appearance"))}`));
+      if (resolvedCardSize?.token === "2x4" && String(provided.get("appearance")).startsWith("orb-")) {
+        findings.push(finding("error", "card-appearance", "2x4 generated cards must use solid appearances; orb themes are 2x2 only"));
+      }
       const padding = provided.has("padding") ? provided.get("padding") : 12;
       if (padding !== 12 && padding !== "12px") {
         findings.push(finding("error", "card-padding", "Card.padding must be omitted or equal to 12vp"));
@@ -788,15 +847,17 @@ function validateStructure(source, componentName, schema, task) {
       });
     }
     if (["ProgressLine2", "H_BarChart", "Gauge"].includes(name)) {
-      const expectedMode = typeof cardAppearance === "string" && cardAppearance.endsWith("-gradient") ? "dark" : "light";
+      const darkAppearance = resolvedCardSize?.token !== "2x4" && typeof cardAppearance === "string"
+        && (cardAppearance.startsWith("orb-") || cardAppearance.endsWith("-gradient"));
+      const expectedMode = darkAppearance ? "dark" : "light";
       if (provided.get("mode") !== expectedMode) findings.push(finding("error", "component-mode", `<${name}> on Card appearance=${JSON.stringify(cardAppearance)} must use mode=${JSON.stringify(expectedMode)}`));
     }
     if (name === "InfoBlock") {
       const visual = provided.get("visual");
       const visualKeys = visual && typeof visual === "object" && !Array.isArray(visual) ? Object.keys(visual) : [];
-      if (!visual || !["icon", "progressCircle"].includes(visual.type) || typeof visual.icon !== "string" || !visual.icon.trim()) {
+      if (visual !== undefined && (!visual || !["icon", "progressCircle"].includes(visual.type) || typeof visual.icon !== "string" || !visual.icon.trim())) {
         findings.push(finding("error", "info-block-visual", '<InfoBlock> visual must select icon or progressCircle and provide a non-empty icon src'));
-      } else {
+      } else if (visual !== undefined) {
         const allowedKeys = visual.type === "icon" ? ["type", "icon", "color"] : ["type", "icon"];
         if (visualKeys.some((key) => !allowedKeys.includes(key)) || (visual.type === "icon" && ![undefined, "native"].includes(visual.color))) findings.push(finding("error", "info-block-visual", '<InfoBlock> visual contains unsupported fields or color'));
       }
@@ -846,7 +907,7 @@ function validateResources(signature, task) {
       findings.push(finding(
         "error",
         "resource-not-candidate",
-        `${resource.component}.${resource.prop}=${JSON.stringify(resource.value)} is not an exact src from input assetCandidates`,
+        `${resource.component}.${resource.prop}=${JSON.stringify(resource.value)} is not an exact model-facing src from input assetCandidates`,
       ));
     }
   }
@@ -1013,6 +1074,7 @@ async function inspectBrowserCard(page) {
       heightOverflowComponents: [],
       semanticOverlaps: [],
       semanticContentOverflows: [],
+      buttonClipping: [],
       resourceElements: [],
     };
     if (!card) return result;
@@ -1028,7 +1090,7 @@ async function inspectBrowserCard(page) {
     const tolerance = 0.75;
     const semanticSelector = [
       ".title-demo-row", ".badge", ".data-display", ".info-block", ".top-text-bottom-value", ".table-text", ".text-block", ".bar-chart", ".gauge", ".ed", ".emphasis-text", ".secondary-body",
-      ".summary-text", ".pb", ".pl2", ".pc-single-combo", ".pc-component",
+      ".pb", ".pl2", ".pc-single-combo", ".pc-component",
       ".numeric-ratio-stack", ".numeric-ratio", ".cli", ".ec", ".pill-btn", ".circle-btn", ".card-action-btn",
     ].join(",");
     const textOf = (node) => (node?.textContent || "").trim().replace(/\s+/g, " ").slice(0, 100);
@@ -1037,7 +1099,7 @@ async function inspectBrowserCard(page) {
       const names = [
         ["title-demo-row", "Title"], ["badge", "Badge"], ["data-display", "DataDisplay"], ["info-block", "InfoBlock"], ["top-text-bottom-value", "TopTextBottomValue"], ["table-text", "TableText"], ["text-block", "TextBlock"], ["bar-chart", "H_BarChart"], ["gauge", "Gauge"], ["ed", "EmphasizedData"],
         ["emphasis-text", "EmphasisText"], ["secondary-body", "SecondaryBody"],
-        ["summary-text", "Summary"], ["pb", "ProgressLine1"], ["pl2", "ProgressLine2"],
+        ["pb", "ProgressLine1"], ["pl2", "ProgressLine2"],
         ["pc-single-combo", "ProgressCircleSingle"], ["pc-component", "ProgressCircle"],
         ["numeric-ratio-stack", "NumericRatioStack"], ["numeric-ratio", "NumericRatio"],
         ["cli", "ChecklistItem"], ["ec", "EventCard"], ["pill-btn", "PillButton"],
@@ -1226,6 +1288,50 @@ async function inspectBrowserCard(page) {
       node,
       semanticPaintedRects.get(node),
     ));
+    // Test actual button borders against clipping ancestors, not layout slots.
+    // scrollWidth cannot reveal left/up overflow from centered oversized items.
+    const buttonClipTolerance = 1.5;
+    for (const button of semanticNodes.filter((node) => node.matches(".pill-btn,.circle-btn,.card-action-btn"))) {
+      const rect = button.getBoundingClientRect();
+      for (let ancestor = button.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor);
+        // A nonzero overflow-clip-margin deliberately extends the clip edge.
+        // Do not infer that geometry from the padding box.
+        const ordinaryClipEdge = !css.overflowClipMargin || css.overflowClipMargin === "0px";
+        const clipX = css.overflowX === "hidden" || (css.overflowX === "clip" && ordinaryClipEdge);
+        const clipY = css.overflowY === "hidden" || (css.overflowY === "clip" && ordinaryClipEdge);
+        if (clipX || clipY) {
+          const bounds = ancestor.getBoundingClientRect();
+          const scaleX = ancestor.offsetWidth ? bounds.width / ancestor.offsetWidth : 1;
+          const scaleY = ancestor.offsetHeight ? bounds.height / ancestor.offsetHeight : 1;
+          const left = bounds.left + ancestor.clientLeft * scaleX;
+          const top = bounds.top + ancestor.clientTop * scaleY;
+          const right = left + ancestor.clientWidth * scaleX;
+          const bottom = top + ancestor.clientHeight * scaleY;
+          const clipped = {
+            left: clipX ? Math.max(0, left - rect.left) : 0,
+            right: clipX ? Math.max(0, rect.right - right) : 0,
+            top: clipY ? Math.max(0, top - rect.top) : 0,
+            bottom: clipY ? Math.max(0, rect.bottom - bottom) : 0,
+          };
+          if (Math.max(...Object.values(clipped)) > buttonClipTolerance) {
+            result.buttonClipping.push({
+              ...describe(button, rect),
+              clippingAncestor: {
+                ...describeNode(ancestor, bounds),
+                clipRect: relativeRect({x:left, y:top, width:right-left, height:bottom-top}),
+                overflowX: css.overflowX,
+                overflowY: css.overflowY,
+              },
+              clipped,
+            });
+            // Keep the nearest actual clipping ancestor, once per button.
+            break;
+          }
+        }
+        if (ancestor === card) break;
+      }
+    }
     // Text ranges include a few pixels of normal font leading. Allow that
     // baseline slack, but reject larger excursions caused by flex/grid shrink
     // or wrapped content escaping the semantic component that owns it.
@@ -1296,7 +1402,18 @@ async function inspectBrowserCard(page) {
     }
     const requiredCardInset = 12;
     for (const node of semanticNodes) {
-      const rect = visibleRect(node);
+      const visible = visibleRect(node);
+      const content = semanticPaintedRects.get(node);
+      // scrollHeight can include font leading outside an otherwise valid line
+      // box. Use the existing component/descendant extent on the vertical axis
+      // only; keep horizontal spacing and all other checks unchanged.
+      const rect = {
+        ...visible,
+        y: content.y,
+        top: content.top,
+        bottom: content.bottom,
+        height: content.height,
+      };
       const distances = {
         left: rect.left - cardRect.left,
         top: rect.top - cardRect.top,
@@ -1379,7 +1496,7 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
       new URL(runtimeAssetUrl(resource.value), assetBaseUrl).href
     )));
     browser = await chromium.launch({ 
-      headless: false,
+      headless: true,
       executablePath,
     });
     context = await browser.newContext({ viewport: { width: 520, height: 420 }, deviceScaleFactor: 1 });
@@ -1493,8 +1610,8 @@ function browserFindings(metrics, cardSize) {
           ? "该组件使用的 src 无法由浏览器加载，可能是资源路径错误、文件缺失或资源服务不可达。"
           : "浏览器请求失败，但当前 DOM 中没有找到使用该 URL 的具体组件，可能是 runtime 或样式资源。",
         suggestion: owner
-          ? "将该组件的资源属性改为输入 assetCandidates 中存在且可访问的 src。"
-          : "检查失败 URL 的来源；如果属于组件资源，请使用输入 assetCandidates 提供的完整 src。",
+          ? "将该组件的资源属性改为输入 assetCandidates 中存在且可访问的模型侧 src；默认媒体资源只写文件名。"
+          : "检查失败 URL 的来源；如果属于默认媒体资源，请使用输入 assetCandidates 提供的文件名，不要手写 resources/base/media/。",
       },
     ));
   }
@@ -1546,9 +1663,9 @@ function browserFindings(metrics, cardSize) {
           offendingComponents: offenders,
         },
         likelyCause: offenders.length
-          ? `靠近或超出卡片底部的组件包括：${offenders.map(diagnosticComponentLabel).join("、")}。内容总高度、固定 height/basis 或纵向 gap 超出了 Card 高度。`
-          : "内容总高度、固定 height/basis 或纵向 gap 超出了 Card 高度，但浏览器未能唯一定位某个语义组件。",
-        suggestion: "优先调整父级 Stack 的 flex、height/basis 和纵向 gap，或重新分组内容；不要依靠 overflow、裁剪或压缩固定尺寸组件。",
+          ? `靠近或超出卡片底部的组件包括：${offenders.map(diagnosticComponentLabel).join("、")}。内容总高度、固定 height 或纵向 gap 超出了 Card 高度。`
+          : "内容总高度、固定 height 或纵向 gap 超出了 Card 高度，但浏览器未能唯一定位某个语义组件。",
+        suggestion: "优先调整父级 Stack 的 direction、flex、height 和纵向 gap，或重新分组内容；不要依靠 overflow、裁剪或压缩固定尺寸组件。",
       },
     ));
   }
@@ -1567,7 +1684,7 @@ function browserFindings(metrics, cardSize) {
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
         likelyCause: "组件的固定尺寸、绝对定位，或父级 Stack/Grid 分配的空间与组件实际尺寸不兼容。",
-        suggestion: "根据 overflow 方向检查该组件及父级容器的 width/height、basis、flex、position 和 gap，保证组件完整位于 Card 安全区内。",
+        suggestion: "根据 overflow 方向检查该组件及父级容器的 direction、width、height、flex、position 和 gap，保证组件完整位于 Card 安全区内。",
       },
     ));
   }
@@ -1582,6 +1699,13 @@ function browserFindings(metrics, cardSize) {
       .map(([edge]) => `${edge} ${rounded(item.distances[edge])}vp`)
       .join("、");
     const label = diagnosticComponentLabel(item);
+    const parentWidth = Number(item.parentLayout?.rect?.width);
+    const componentWidth = Number(item.rect?.width);
+    const isProgressCircleSingleLabelOverflow = item.component === "ProgressCircleSingle"
+      && Number.isFinite(parentWidth)
+      && Number.isFinite(componentWidth)
+      && componentWidth > parentWidth + 0.75
+      && (item.shortfall.left > 0.75 || item.shortfall.right > 0.75);
     findings.push(browserFinding(
       severity,
       "browser-edge-spacing",
@@ -1590,8 +1714,12 @@ function browserFindings(metrics, cardSize) {
         component: item.component || "未知 DOM 节点",
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
-        likelyCause: "组件位置、尺寸或父级布局占用了 Card 的 12vp 安全内边距。",
-        suggestion: "调整父级 Stack/Grid 的 padding、width、height、basis、flex 或定位，使组件四边均位于 Card 的 12vp 安全区内。",
+        likelyCause: isProgressCircleSingleLabelOverflow
+          ? `ProgressCircleSingle 的环形区域、间距和 label 共同形成 ${rounded(componentWidth)}vp 固有宽度，超过父内容区的 ${rounded(parentWidth)}vp；label 过长且组件不换行，因此侵入 Card 安全边距。`
+          : "组件位置、尺寸或父级布局占用了 Card 的 12vp 安全内边距。",
+        suggestion: isProgressCircleSingleLabelOverflow
+          ? "保留 ProgressCircleSingle、value、dataIds 和完整 ariaLabel，优先概括静态 label，使其不超过 5 个汉字（例如将“白天降雨概率”缩短为“降雨概率”）；不要仅为通过校验而替换组件或删除动态数据。若 label 必须动态绑定且无法缩短，再重新选择能容纳完整文本的布局或组件。"
+          : "调整父级 Stack/Grid 的 padding、direction、width、height、flex 或定位，使组件四边均位于 Card 的 12vp 安全区内。",
       },
     ));
   }
@@ -1628,7 +1756,7 @@ function browserFindings(metrics, cardSize) {
           : "组件内容为单行或含固定宽度子项，而父级分配宽度不足。",
         suggestion: rejectsTruncation
           ? "减少或重新分组 TopTextBottomValue.items，或改用更适合密集信息的组件；不得依赖压缩、裁剪或省略号。"
-          : "检查父级 width/basis/flex；若组件规范允许换行，应提供足够高度并允许换行。",
+          : "检查父级 direction/width/height/flex；若组件规范允许换行，应提供足够高度并允许换行。",
       },
     ));
   }
@@ -1636,6 +1764,34 @@ function browserFindings(metrics, cardSize) {
     const firstLabel = diagnosticComponentLabel(overlap.first);
     const secondLabel = diagnosticComponentLabel(overlap.second);
     const vertical = overlap.overlap.height <= overlap.overlap.width;
+    const slotAxis = vertical ? "height" : "width";
+    const infeasibleSlots = [overlap.first, overlap.second]
+      .map((item) => {
+        const componentSize = Number(item?.rect?.[slotAxis]);
+        const parentSize = Number(item?.parentLayout?.rect?.[slotAxis]);
+        if (!Number.isFinite(componentSize) || !Number.isFinite(parentSize) || parentSize <= 0) return null;
+        const deficit = componentSize - parentSize;
+        // Ignore sub-pixel rounding and small typography differences. A gap of
+        // more than 4vp means the direct slot itself cannot contain the
+        // semantic component, so nudging flex/gap is not a reliable repair.
+        if (deficit <= 4) return null;
+        return {
+          component: item.component || "未知 DOM 节点",
+          componentText: item.componentText || "",
+          axis: slotAxis,
+          componentSize,
+          parentSize,
+          deficit,
+        };
+      })
+      .filter(Boolean);
+    const layoutChangeRequired = infeasibleSlots.length > 0;
+    const infeasibleDescription = infeasibleSlots
+      .map((item) => (
+        `${item.component} 实际${vertical ? "高度" : "宽度"} ${rounded(item.componentSize)}vp，`
+        + `直接父槽只有 ${rounded(item.parentSize)}vp，缺少 ${rounded(item.deficit)}vp`
+      ))
+      .join("；");
     findings.push(browserFinding(
       "error",
       "browser-semantic-overlap",
@@ -1644,8 +1800,16 @@ function browserFindings(metrics, cardSize) {
         components: [overlap.first.component, overlap.second.component],
         componentTexts: [overlap.first.componentText, overlap.second.componentText],
         evidence: overlap,
-        likelyCause: `${vertical ? "纵向" : "横向"}槽位、gap、固定尺寸或绝对定位不足以容纳这两个独立组件。`,
-        suggestion: `调整两个组件共同父级的 ${vertical ? "height/basis、flex 或纵向 gap" : "width/basis、flex 或横向 gap"}，使其矩形不再相交；不要通过隐藏其中一个必需组件规避问题。`,
+        ...(layoutChangeRequired ? {
+          layoutChangeRequired: true,
+          details: { axis: slotAxis, infeasibleSlots },
+        } : {}),
+        likelyCause: layoutChangeRequired
+          ? `${infeasibleDescription}；当前 Layout Pattern / Sub Pattern 的槽位容量不成立。`
+          : `${vertical ? "纵向" : "横向"}槽位、gap、固定尺寸或绝对定位不足以容纳这两个独立组件。`,
+        suggestion: layoutChangeRequired
+          ? "必须更换 Layout Pattern 或 Sub Pattern，为该组件分配更大的连续区域；不要继续通过 flex、justify、gap 或固定 height/width 做局部微调，也不得压缩、隐藏或删除必需内容。"
+          : `调整两个组件共同父级的 ${vertical ? "height、flex 或纵向 gap" : "width、flex 或横向 gap"}，使其矩形不再相交；不要通过隐藏其中一个必需组件规避问题。`,
       },
     ));
   }
@@ -1665,6 +1829,29 @@ function browserFindings(metrics, cardSize) {
         evidence: item,
         likelyCause: "父级 flex/grid 将组件高度压缩到不足以容纳内部文字，或文字换行后组件仍使用过小的固定高度。",
         suggestion: "增加组件及父级槽位的可用高度、减少同槽内容，或重新分组；不要依赖 flex shrink、overflow 或 Card 裁剪隐藏必需文字。",
+      },
+    ));
+  }
+  for (const item of metrics.buttonClipping || []) {
+    const sameRect = (first, second) => first && second
+      && ["x", "y", "width", "height"].every((key) => Math.abs(first[key] - second[key]) <= 0.1);
+    // Existing errors already trigger a repair. Avoid counting the exact same
+    // button outside Card or vertical clip ancestor as a second layout fault.
+    const outsideCard = (metrics.outsideBounds || []).some((entry) => sameRect(entry.rect, item.rect));
+    const verticalClip = Math.max(item.clipped.top, item.clipped.bottom) > 1.5
+      && (metrics.verticalClipping || []).some((entry) => sameRect(entry.rect, item.clippingAncestor.rect));
+    if (outsideCard || verticalClip) continue;
+    const label = diagnosticComponentLabel(item);
+    findings.push(browserFinding(
+      "error",
+      "browser-button-clipping",
+      `${label} 按钮本体被祖先容器裁切，最大裁切约 ${rounded(Math.max(...Object.values(item.clipped)))}vp`,
+      {
+        component: item.component,
+        componentText: item.componentText,
+        evidence: item,
+        likelyCause: "固定尺寸按钮超出了祖先 hidden/clip 的实际可见区域；居中对齐也可能导致向左或向上裁切。",
+        suggestion: "为按钮分配足够宽高的独立布局行或槽位（例如移到信息分栏下方），保持按钮、动态数据和事件；不要靠裁切隐藏按钮。",
       },
     ));
   }

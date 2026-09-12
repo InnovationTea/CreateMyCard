@@ -93,9 +93,9 @@ CONTRACTS = {
     "Icon": contract(optional=("name", "src", "size", "alt", "decorative")),
     "AppIcon": contract(optional=("name", "src", "alt")),
     "WeatherIcon": contract(optional=("name", "src", "alt")),
-    "SingleLineTitle": contract(required=("title",), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")),
+    "SingleLineTitle": contract(required=("title",), optional=("dataIds",)),
     "DoubleLineTitle": contract(
-        required=("title", "secondaryInfo"), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")
+        required=("title", "secondaryInfo"), optional=("dataIds",)
     ),
     "Badge": contract(
         required=("value",),
@@ -104,16 +104,15 @@ CONTRACTS = {
     ),
     "DataDisplay": contract(required=("label", "value", "supportingText"), optional=("dataIds",)),
     "InfoBlock": contract(
-        required=("primaryText", "secondaryText", "visual"),
-        optional=("unit", "dataIds"),
+        required=("primaryText", "secondaryText"),
+        optional=("unit", "visual", "dataIds"),
     ),
     "TopTextBottomValue": contract(required=("items",)),
     "TableText": contract(required=("items",)),
     "TextBlock": contract(required=("items",)),
     "EmphasizedData": contract(optional=("unit", "dataIds"), required_one_of=("value", "items")),
     "EmphasisText": contract(required=("mainText", "secondaryText"), optional=("dataIds",)),
-    "SecondaryBody": contract(optional=("separator", "dataIds"), required_one_of=("body", "items")),
-    "Summary": contract(optional=("separator", "dataIds"), required_one_of=("content", "items")),
+    "SecondaryBody": contract(required=("items",), optional=("separator",)),
     "WeatherSummaryCard": contract(
         required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
     ),
@@ -148,7 +147,11 @@ CONTRACTS = {
     ),
     "ProgressCircleSingle": contract(
         required=("value", "icon", "label"),
-        optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds"),
+        optional=(
+            "displayValue", "secondaryLabel", "ariaLabel", "appearance",
+            "size", "trackColor", "barColor", "dataIds",
+        ),
+        size=("compact",),
     ),
     "ProgressCircle": contract(
         required=("icon", "externalText"),
@@ -158,7 +161,11 @@ CONTRACTS = {
     "NumericRatio": contract(required=("icon", "value"), optional=("unit", "appearance", "dataIds")),
     "NumericRatioStack": contract(required=("items",), optional=("appearance",)),
     "ChecklistItem": contract(required=("title", "meta"), optional=("done", "dataIds")),
-    "EventCard": contract(required=("title", "time"), optional=("location", "dataIds")),
+    "EventCard": contract(
+        required=("title", "time"),
+        optional=("location", "density", "dataIds"),
+        density=("compact",),
+    ),
     "PillButton": contract(
         required=("label",),
         optional=("icon", "appearance", "disabled", "variant", "color", "actionId"),

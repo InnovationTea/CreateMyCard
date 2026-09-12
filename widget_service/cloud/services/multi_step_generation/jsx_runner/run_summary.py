@@ -60,7 +60,17 @@ def _contains_any(text: str, tokens: Iterable[str]) -> bool:
     return False
 
 
+def _is_a2ui_output_error(message: str, phase: str, code: str) -> bool:
+    markers = {str(value).strip().lower().replace("-", "_") for value in (phase, code)}
+    return (
+        "a2ui_protocol_output" in markers
+        or "produced an unsupported nested a2ui expression" in message.lower()
+    )
+
+
 def _message_category(message: str, phase: str = "", code: str = "") -> str:
+    if _is_a2ui_output_error(message, phase, code):
+        return "conversion"
     text = f"{phase} {code} {message}".lower()
     if _contains_any(
         text,
@@ -118,6 +128,8 @@ def _message_category(message: str, phase: str = "", code: str = "") -> str:
 
 
 def _reason_code(message: str, phase: str = "", code: str = "") -> str:
+    if _is_a2ui_output_error(message, phase, code):
+        return "a2ui-conversion-output"
     text = message.lower()
     patterns = (
         (
@@ -221,6 +233,26 @@ def _task_metrics(
     inferred_tool_argument_repairs = 0
     inferred_protocol_retries = 0
     repair_pending = False
+    requested_forced_tool_choice_calls = 0
+    requested_auto_tool_choice_calls = 0
+    effective_forced_tool_choice_calls = 0
+    effective_auto_tool_choice_calls = 0
+    unobserved_tool_choice_calls = 0
+    submit_requested_forced_tool_choice_calls = 0
+    submit_requested_auto_tool_choice_calls = 0
+    submit_effective_forced_tool_choice_calls = 0
+    submit_effective_auto_tool_choice_calls = 0
+    submit_unobserved_tool_choice_calls = 0
+    tool_choice_fallbacks = 0
+    model_request_attempts = 0
+    missing_tool_calls_after_rejection = 0
+    missing_tool_call_seconds_after_rejection = 0.0
+    actual_repair_submissions = 0
+    no_tool_call_count = 0
+    no_tool_call_api_seconds = 0.0
+    no_tool_call_recovery_requests = 0
+    no_tool_call_recovered_sequences = 0
+    no_tool_call_recovery_limit_failures = 0
     pending_rejection_reasons: list[dict[str, Any]] = []
     retry_reason_items: list[dict[str, Any]] = []
     issue_reason_items: list[dict[str, Any]] = []
@@ -230,13 +262,53 @@ def _task_metrics(
         if not isinstance(turn, dict):
             continue
         has_later_turn = turn_index + 1 < len(turns)
+        repair_was_pending = repair_pending
         if repair_pending:
             inferred_repair_calls += 1
             if pending_rejection_reasons:
                 retry_reason_items.extend(pending_rejection_reasons)
                 pending_rejection_reasons = []
+        requested_tool_choice = str(turn.get("requested_tool_choice") or "")
+        effective_tool_choice = str(turn.get("effective_tool_choice") or "")
+        is_submit_request = str(turn.get("target") or "") == "submit_card_jsx"
+        if requested_tool_choice == "auto":
+            requested_auto_tool_choice_calls += 1
+            if is_submit_request:
+                submit_requested_auto_tool_choice_calls += 1
+        elif requested_tool_choice.startswith("required:"):
+            requested_forced_tool_choice_calls += 1
+            if is_submit_request:
+                submit_requested_forced_tool_choice_calls += 1
+        if effective_tool_choice == "auto":
+            effective_auto_tool_choice_calls += 1
+            if is_submit_request:
+                submit_effective_auto_tool_choice_calls += 1
+        elif effective_tool_choice.startswith("required:"):
+            effective_forced_tool_choice_calls += 1
+            if is_submit_request:
+                submit_effective_forced_tool_choice_calls += 1
+        else:
+            unobserved_tool_choice_calls += 1
+            if is_submit_request:
+                submit_unobserved_tool_choice_calls += 1
+        attempts = turn.get("model_request_attempts")
+        model_request_attempts += (
+            attempts
+            if isinstance(attempts, int) and not isinstance(attempts, bool) and attempts >= 1
+            else 1
+        )
+        if turn.get("tool_choice_fallback") == "auto":
+            tool_choice_fallbacks += 1
         status = str(turn.get("status") or "")
         tool = str(turn.get("tool") or "")
+        if repair_was_pending and tool == "submit_card_jsx":
+            actual_repair_submissions += 1
+        if _number(turn.get("no_tool_call_recovery_attempt")) > 0:
+            no_tool_call_recovery_requests += 1
+        if turn.get("no_tool_call_recovery_succeeded") is True:
+            no_tool_call_recovered_sequences += 1
+        if turn.get("no_tool_call_recovery_exhausted") is True:
+            no_tool_call_recovery_limit_failures += 1
         result = turn.get("tool_result") if isinstance(turn.get("tool_result"), dict) else {}
         if isinstance(turn.get("tool_argument_repair"), dict):
             inferred_tool_argument_repairs += 1
@@ -275,6 +347,13 @@ def _task_metrics(
             accepted_submissions += 1
             repair_pending = False
         elif status == "no_tool_call":
+            no_tool_call_count += 1
+            no_tool_call_api_seconds += _number(turn.get("api_elapsed_seconds"))
+            if repair_was_pending:
+                missing_tool_calls_after_rejection += 1
+                missing_tool_call_seconds_after_rejection += _number(
+                    turn.get("api_elapsed_seconds")
+                )
             message = (
                 "model output was truncated"
                 if turn.get("finish_reason") == "length"
@@ -346,7 +425,27 @@ def _task_metrics(
         "status": trace.get("status"),
         "elapsedSeconds": _rounded(elapsed),
         "modelCalls": len(turns),
+        "modelRequestAttempts": model_request_attempts,
         "modelApiSeconds": _rounded(api_seconds),
+        "requestedForcedToolChoiceCalls": requested_forced_tool_choice_calls,
+        "requestedAutoToolChoiceCalls": requested_auto_tool_choice_calls,
+        "effectiveForcedToolChoiceCalls": effective_forced_tool_choice_calls,
+        "effectiveAutoToolChoiceCalls": effective_auto_tool_choice_calls,
+        "unobservedToolChoiceCalls": unobserved_tool_choice_calls,
+        "submitRequestedForcedToolChoiceCalls": submit_requested_forced_tool_choice_calls,
+        "submitRequestedAutoToolChoiceCalls": submit_requested_auto_tool_choice_calls,
+        "submitEffectiveForcedToolChoiceCalls": submit_effective_forced_tool_choice_calls,
+        "submitEffectiveAutoToolChoiceCalls": submit_effective_auto_tool_choice_calls,
+        "submitUnobservedToolChoiceCalls": submit_unobserved_tool_choice_calls,
+        "toolChoiceFallbacks": tool_choice_fallbacks,
+        "missingToolCallsAfterRejection": missing_tool_calls_after_rejection,
+        "missingToolCallSecondsAfterRejection": _rounded(missing_tool_call_seconds_after_rejection),
+        "actualRepairSubmissions": actual_repair_submissions,
+        "noToolCallCount": no_tool_call_count,
+        "noToolCallApiSeconds": _rounded(no_tool_call_api_seconds),
+        "noToolCallRecoveryRequests": no_tool_call_recovery_requests,
+        "noToolCallRecoveredSequences": no_tool_call_recovered_sequences,
+        "noToolCallRecoveryLimitFailures": no_tool_call_recovery_limit_failures,
         "submissionFailures": rejected_submissions,
         "validatedSubmissions": 0 if validation_mode == "disabled" else rejected_submissions + accepted_submissions,
         "acceptedSubmissions": accepted_submissions,
@@ -397,7 +496,40 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
     success_times = [row["elapsedSeconds"] for row in task_rows if row["status"] != "failed"]
     failure_times = [row["elapsedSeconds"] for row in task_rows if row["status"] == "failed"]
     total_calls = sum(row["modelCalls"] for row in task_rows)
+    total_request_attempts = sum(row["modelRequestAttempts"] for row in task_rows)
     total_api_seconds = sum(row["modelApiSeconds"] for row in task_rows)
+    requested_forced_tool_choices = sum(
+        row["requestedForcedToolChoiceCalls"] for row in task_rows
+    )
+    requested_auto_tool_choices = sum(
+        row["requestedAutoToolChoiceCalls"] for row in task_rows
+    )
+    effective_forced_tool_choices = sum(
+        row["effectiveForcedToolChoiceCalls"] for row in task_rows
+    )
+    effective_auto_tool_choices = sum(
+        row["effectiveAutoToolChoiceCalls"] for row in task_rows
+    )
+    unobserved_tool_choices = sum(row["unobservedToolChoiceCalls"] for row in task_rows)
+    submit_requested_forced_tool_choices = sum(
+        row["submitRequestedForcedToolChoiceCalls"] for row in task_rows
+    )
+    submit_requested_auto_tool_choices = sum(
+        row["submitRequestedAutoToolChoiceCalls"] for row in task_rows
+    )
+    submit_effective_forced_tool_choices = sum(
+        row["submitEffectiveForcedToolChoiceCalls"] for row in task_rows
+    )
+    submit_effective_auto_tool_choices = sum(
+        row["submitEffectiveAutoToolChoiceCalls"] for row in task_rows
+    )
+    submit_unobserved_tool_choices = sum(
+        row["submitUnobservedToolChoiceCalls"] for row in task_rows
+    )
+    tool_choice_fallbacks = sum(row["toolChoiceFallbacks"] for row in task_rows)
+    missing_tool_calls_after_rejection = sum(
+        row["missingToolCallsAfterRejection"] for row in task_rows
+    )
     total_submission_failures = sum(row["submissionFailures"] for row in task_rows)
     total_validated_submissions = sum(row["validatedSubmissions"] for row in task_rows)
     total_accepted_submissions = sum(row["acceptedSubmissions"] for row in task_rows)
@@ -422,6 +554,7 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "model": manifest.get("model"),
             "provider": manifest.get("provider"),
             "thinkingMode": manifest.get("thinkingMode"),
+            "submitMode": manifest.get("submitMode"),
             "validationMode": manifest.get("validationMode"),
             "layoutBudgetValidationEnabled": manifest.get("layoutBudgetValidationEnabled"),
             "browserValidationEnabled": manifest.get("browserValidationEnabled"),
@@ -457,7 +590,23 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
         },
         "modelUsage": {
             "modelCalls": total_calls,
+            "modelRequestAttempts": total_request_attempts,
             "averageCallsPerAttemptedTask": _rounded(total_calls / attempted) if attempted else 0.0,
+            "toolChoice": {
+                "requestedForcedCalls": requested_forced_tool_choices,
+                "requestedAutoCalls": requested_auto_tool_choices,
+                "effectiveForcedCalls": effective_forced_tool_choices,
+                "effectiveAutoCalls": effective_auto_tool_choices,
+                "compatibilityFallbacks": tool_choice_fallbacks,
+                "unobservedCalls": unobserved_tool_choices,
+                "submit": {
+                    "requestedForcedCalls": submit_requested_forced_tool_choices,
+                    "requestedAutoCalls": submit_requested_auto_tool_choices,
+                    "effectiveForcedCalls": submit_effective_forced_tool_choices,
+                    "effectiveAutoCalls": submit_effective_auto_tool_choices,
+                    "unobservedCalls": submit_unobserved_tool_choices,
+                },
+            },
             "tokens": dict(token_totals),
             "averageTokensPerAttemptedTask": {
                 key: _rounded(value / attempted) if attempted else 0.0 for key, value in token_totals.items()
@@ -475,6 +624,22 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "repairCalls": total_repairs,
             "toolArgumentRepairs": total_argument_repairs,
             "protocolRetries": total_protocol_retries,
+            "missingToolCallsAfterRejection": missing_tool_calls_after_rejection,
+            "missingToolCallSecondsAfterRejection": _rounded(sum(
+                row["missingToolCallSecondsAfterRejection"] for row in task_rows
+            )),
+            "actualRepairSubmissions": sum(row["actualRepairSubmissions"] for row in task_rows),
+            "noToolCallCount": sum(row["noToolCallCount"] for row in task_rows),
+            "noToolCallApiSeconds": _rounded(sum(row["noToolCallApiSeconds"] for row in task_rows)),
+            "noToolCallRecoveryRequests": sum(
+                row["noToolCallRecoveryRequests"] for row in task_rows
+            ),
+            "noToolCallRecoveredSequences": sum(
+                row["noToolCallRecoveredSequences"] for row in task_rows
+            ),
+            "noToolCallRecoveryLimitFailures": sum(
+                row["noToolCallRecoveryLimitFailures"] for row in task_rows
+            ),
             "repairedTasks": repaired_tasks,
             "tasksWithToolArgumentRepairs": sum(1 for row in task_rows if row["toolArgumentRepairs"] > 0),
             "tasksWithProtocolRetries": sum(1 for row in task_rows if row["protocolRetries"] > 0),
@@ -509,6 +674,7 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
         f"- Run ID: `{run.get('runId')}`",
         f"- Status: `{run.get('status')}`",
         f"- Model: `{run.get('provider')}/{run.get('model')}`",
+        f"- Configured submit mode: `{run.get('submitMode') or 'unknown'}`",
         f"- Validation: `{run.get('validationMode')}`",
         f"- Python layout budget: `{_enabled_state(run.get('layoutBudgetValidationEnabled'))}`",
         f"- Browser validation: `{_enabled_state(run.get('browserValidationEnabled'))}`",
@@ -537,6 +703,21 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
             f"**{usage['averageCallsPerAttemptedTask']}** per attempted task"
         ),
         (
+            f"- Model request attempts: **{usage['modelRequestAttempts']}** "
+            f"(tool-choice compatibility fallbacks: "
+            f"**{usage['toolChoice']['compatibilityFallbacks']}**)"
+        ),
+        (
+            "- Submit tool choice — requested forced/auto: "
+            f"**{usage['toolChoice']['submit']['requestedForcedCalls']} / "
+            f"{usage['toolChoice']['submit']['requestedAutoCalls']}**; "
+            "effective forced/auto: "
+            f"**{usage['toolChoice']['submit']['effectiveForcedCalls']} / "
+            f"{usage['toolChoice']['submit']['effectiveAutoCalls']}**; "
+            "unobserved legacy submit calls: "
+            f"**{usage['toolChoice']['submit']['unobservedCalls']}**"
+        ),
+        (
             f"- Model API time: **{timing['modelApiTotalSeconds']}s**, average "
             f"**{timing['averageModelCallSeconds']}s** per call"
         ),
@@ -552,8 +733,27 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
         ),
         f"- Conversion failures: **{validation['conversionFailures']}**",
         f"- Repair calls: **{validation['repairCalls']}**",
+        f"- Actual repair submissions: **{validation['actualRepairSubmissions']}**",
         f"- Local tool-argument repairs: **{validation['toolArgumentRepairs']}**",
         f"- Tool-protocol retries: **{validation['protocolRetries']}**",
+        (
+            "- Missing tool calls after a rejected submission: "
+            f"**{validation['missingToolCallsAfterRejection']}**"
+        ),
+        (
+            "- Missing-tool-call API time after rejection: "
+            f"**{validation['missingToolCallSecondsAfterRejection']}s**"
+        ),
+        (
+            f"- All missing-tool-call responses / API time: **{validation['noToolCallCount']} / "
+            f"{validation['noToolCallApiSeconds']}s**"
+        ),
+        (
+            "- Recorded empty-response recovery requests / recovered sequences / limit failures: "
+            f"**{validation['noToolCallRecoveryRequests']} / "
+            f"{validation['noToolCallRecoveredSequences']} / "
+            f"{validation['noToolCallRecoveryLimitFailures']}**"
+        ),
         f"- Repaired tasks: **{validation['repairedTasks']}**",
         f"- Repair distribution: `{validation['repairCallDistribution']}`",
         f"- Warnings: **{validation['warningCount']}**",
@@ -579,8 +779,10 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
             "## Per task",
             "",
             "| Task | Component | Status | Elapsed | Calls | Submit failures | "
-            "Repairs | Arg repairs | Protocol retries | Reasons |",
-            "|---|---|---|---:|---:|---:|---:|---:|---:|---|",
+            "Repairs | Effective F/A | Fallbacks | Missing after reject | "
+            "Missing API time after reject | "
+            "Arg repairs | Protocol retries | Reasons |",
+            "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for task in summary["tasks"]:
@@ -588,6 +790,10 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
             f"| {_markdown_cell(task['taskId'])} | {_markdown_cell(task['componentName'])} | "
             f"{_markdown_cell(task['status'])} | {task['elapsedSeconds']}s | {task['modelCalls']} | "
             f"{task['submissionFailures']} | {task['repairCalls']} | "
+            f"{task['submitEffectiveForcedToolChoiceCalls']}/"
+            f"{task['submitEffectiveAutoToolChoiceCalls']} | "
+            f"{task['toolChoiceFallbacks']} | {task['missingToolCallsAfterRejection']} | "
+            f"{task['missingToolCallSecondsAfterRejection']}s | "
             f"{task['toolArgumentRepairs']} | {task['protocolRetries']} | "
             f"{_markdown_cell(', '.join(task['reasonCodes']))} |"
         )
@@ -615,6 +821,18 @@ def terminal_summary_lines(summary: dict[str, Any]) -> list[str]:
             f"submit-failures={validation['submissionFailures']}, "
             f"rejected={validation['rejectedSubmissions']}, repair-calls={validation['repairCalls']}, "
             f"arg-repairs={validation['toolArgumentRepairs']}, protocol-retries={validation['protocolRetries']}"
+        ),
+        (
+            "[Summary] tool-choice "
+            "submit-effective-forced="
+            f"{summary['modelUsage']['toolChoice']['submit']['effectiveForcedCalls']}, "
+            "submit-effective-auto="
+            f"{summary['modelUsage']['toolChoice']['submit']['effectiveAutoCalls']}, "
+            f"fallbacks={summary['modelUsage']['toolChoice']['compatibilityFallbacks']}, "
+            "submit-unobserved="
+            f"{summary['modelUsage']['toolChoice']['submit']['unobservedCalls']}, "
+            "missing-after-reject="
+            f"{validation['missingToolCallsAfterRejection']}"
         ),
         f"[Summary] top retry reasons: {top_reasons}",
     ]

@@ -14,6 +14,7 @@ from models.generation import ModelRequestContext
 
 from ..jsx_runner.agent import JsxA2UIAgent
 from ..jsx_runner.data_processing import prepare_task
+from ..jsx_runner.resources import GenerationResources
 from .input_adapter import task_spec_payload
 from .model_adapter import PlatformChatClient
 from .options import BridgeOptions
@@ -77,11 +78,15 @@ class JsxA2UIBridge:
             max_tokens=resolved.max_tokens,
             thinking_mode=resolved.thinking_mode,
             request_timeout=resolved.request_timeout,
-            max_validation_repairs=resolved.max_browser_repairs,
+            max_validation_repairs=resolved.browser_fallback_after,
             browser_validation=resolved.browser_validation,
             validation_enabled=resolved.validation_enabled,
             layout_budget_validation=resolved.layout_budget_validation,
             validate_dynamic_values=resolved.validate_dynamic_values,
+            validate_non_empty_data_ids=resolved.validate_non_empty_data_ids,
+            enable_dynamic_data_binding=resolved.enable_dynamic_data_binding,
+            plan_max_tokens=resolved.plan_max_tokens,
+            resources=GenerationResources(include_few_shot=resolved.include_few_shot),
             submit_mode=resolved.submit_mode,
             verbose=resolved.verbose,
             client=client,
@@ -143,7 +148,7 @@ class JsxA2UIBridge:
                 trace_data,
                 result,
                 prepared.prompt_task,
-                prepared.compile_context,
+                result.get("compile_context", prepared.compile_context),
             )
 
         logger.info(

@@ -74,7 +74,7 @@ def collect_conversion_preflight_errors(root: JSXElement) -> list[str]:
             errors.extend(collect_gauge_conversion_errors(node))
         elif node.tag == "CardButton":
             errors.extend(collect_card_button_conversion_errors(node))
-        elif node.tag in {"Summary", "SecondaryBody"} and "items" in node.props:
+        elif node.tag == "SecondaryBody" and "items" in node.props:
             errors.extend(collect_segmented_text_conversion_errors(node))
         for child in node.child_elements():
             walk(child, node)
