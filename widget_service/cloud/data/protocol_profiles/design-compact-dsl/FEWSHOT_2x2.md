@@ -137,10 +137,11 @@
 ["/data/earphone/chargingStatusDesc","充电中"]
 ```
 
-## 示例六（2x2-V06）：日程待办（S2 会议时间线亚型·黄色纯色）
+## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·黄色纯色）
+2x2 最终只展示一个会议，且 userQuery 包含会议/入会/下一场会语义或候选 `intentName` 为 `EnterMeeting` 时，优先使用本例；仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
 ### user
 ```json
-{"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-meeting"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0}}]}}},"assetCandidates":[]}
+{"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/example"}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
@@ -156,10 +157,11 @@
 ["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"clip"}]
 ["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"ellipsis"}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#3399661F","actionInk":"#FF99661F","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-meeting"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#3399661F","actionInk":"#FF99661F","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"flexShrink":0}]
 ["/data/calendar/events/0/title","UI需求评审会"]
 ["/data/calendar/events/0/dtStart","14:00 - 15:30"]
 ["/data/calendar/events/0/eventLocation","深圳市龙岗区五和大..."]
+["/data/calendar/events/0/oneClickServiceLink","wemeet://join/example"]
 ```
 
 ## 示例七（2x2-V07）：今日步数（S2 数值亚型·整卡隐式入口·绿色纯色）
