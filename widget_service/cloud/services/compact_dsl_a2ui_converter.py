@@ -863,8 +863,8 @@ def _normalize_special_action_units(
             normalized.append(component)
             continue
         props = copy.deepcopy(component.props)
-        props.setdefault("actionInk", action_ink)
-        props.setdefault("actionSurface", f"#33{action_ink[3:]}")
+        props["actionInk"] = action_ink
+        props["actionSurface"] = f"#33{action_ink[3:]}"
         normalized.append(
             ComponentRow(
                 component.component_id,
