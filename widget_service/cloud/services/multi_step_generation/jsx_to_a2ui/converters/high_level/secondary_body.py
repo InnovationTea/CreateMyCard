@@ -22,7 +22,7 @@ def convert_secondary_body(node: JSXElement, ctx: ConversionContext) -> A2UINode
         for index in range(0, len(items), 2):
             row_node = JSXElement(
                 tag=node.tag,
-                props={**node.props, "items": items[index : index + 2]},
+                props={**node.props, "items": items[index:index + 2]},
                 children=[],
             )
             rows.append(

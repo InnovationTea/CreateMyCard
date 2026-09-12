@@ -173,6 +173,7 @@ DISPLAY_UNIT_SUFFIX_BY_BINDING_ID: dict[str, str] = {
     "weather2.current.temperatureC": "℃",
 }
 
+
 def _format_binding_value(binding_id: str, value: Any) -> tuple[Any, bool]:
     """Append a missing display-unit suffix to a known binding value.
 

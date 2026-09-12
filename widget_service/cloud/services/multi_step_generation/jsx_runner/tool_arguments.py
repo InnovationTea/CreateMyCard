@@ -151,39 +151,43 @@ def _recover_submit_jsx_first(source: str) -> tuple[dict[str, Any], list[str]] |
 
 
 def _recover_submit_decision_first(source: str) -> tuple[dict[str, Any], list[str]] | None:
+    recovered: tuple[dict[str, Any], list[str]] | None = None
     opening = re.search(r'"jsx"\s*:\s*"', source)
-    if opening is None:
-        return None
-    prefix_source = source[:opening.start()].rstrip().rstrip(",") + "}"
-    try:
-        prefix, prefix_repairs = _load_object(prefix_source)
-    except (json.JSONDecodeError, TypeError):
-        return None
-    if not isinstance(prefix.get("decision"), dict) or "jsx" in prefix:
-        return None
-
-    value_start = opening.end()
-    boundary = re.compile(r'"\s*,?\s*(?P<field>"(?:coverage|unmetRequirements)")\s*:')
-    for match in boundary.finditer(source, value_start):
-        jsx = _decode_opaque_string(source[value_start:match.start()]).strip()
-        if not _valid_recovered_jsx(jsx):
-            continue
+    prefix: dict[str, Any] | None = None
+    prefix_repairs: list[str] = []
+    if opening is not None:
+        prefix_source = source[:opening.start()].rstrip().rstrip(",") + "}"
         try:
-            tail, tail_repairs = _load_object("{" + source[match.start("field"):])
+            prefix, prefix_repairs = _load_object(prefix_source)
         except (json.JSONDecodeError, TypeError):
-            continue
-        return (
-            {**prefix, "jsx": jsx, **tail},
-            ["recovered_opaque_jsx", *prefix_repairs, *tail_repairs],
-        )
-
-    closing = re.search(r'"\s*}\s*$', source[value_start:])
-    if closing is None:
-        return None
-    jsx = _decode_opaque_string(source[value_start:value_start + closing.start()]).strip()
-    if not _valid_recovered_jsx(jsx):
-        return None
-    return {**prefix, "jsx": jsx}, ["recovered_opaque_jsx", *prefix_repairs]
+            # A malformed prefix cannot be repaired by treating it as JSX.
+            prefix = None
+    valid_prefix = prefix is not None and isinstance(prefix.get("decision"), dict)
+    if opening is not None and valid_prefix and "jsx" not in prefix:
+        value_start = opening.end()
+        boundary = re.compile(r'"\s*,?\s*(?P<field>"(?:coverage|unmetRequirements)")\s*:')
+        for match in boundary.finditer(source, value_start):
+            jsx = _decode_opaque_string(source[value_start:match.start()]).strip()
+            if not _valid_recovered_jsx(jsx):
+                continue
+            try:
+                tail, tail_repairs = _load_object("{" + source[match.start("field"):])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            recovered = (
+                {**prefix, "jsx": jsx, **tail},
+                ["recovered_opaque_jsx", *prefix_repairs, *tail_repairs],
+            )
+            break
+        if recovered is None:
+            closing = re.search(r'"\s*}\s*$', source[value_start:])
+            if closing is not None:
+                jsx = _decode_opaque_string(
+                    source[value_start:value_start + closing.start()]
+                ).strip()
+                if _valid_recovered_jsx(jsx):
+                    recovered = {**prefix, "jsx": jsx}, ["recovered_opaque_jsx", *prefix_repairs]
+    return recovered
 
 
 def _recover_submit_jsx(source: str) -> tuple[dict[str, Any], list[str]] | None:

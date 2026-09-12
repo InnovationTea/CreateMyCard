@@ -20,10 +20,16 @@ def _adapt_paragraph_slot_basis(source: JSXElement, converted: A2UINode) -> None
         source.tag != "Stack"
         or isinstance(basis, bool)
         or not isinstance(basis, (int, float))
-        or basis < 0
+    ):
+        return
+    if (
+        basis < 0
         or source.props.get("height") is not None
         or source.props.get("minHeight") is not None
-        or source.props.get("direction") not in {None, "column"}
+    ):
+        return
+    if (
+        source.props.get("direction") not in {None, "column"}
         or source.props.get("position") not in {None, "static"}
     ):
         return

@@ -358,12 +358,15 @@ class ConversionContext:
         return reference
 
     def binding_reference(self, binding: DataBinding, tag: str, name: str) -> Any:
+        value: Any
         if self.uses_unit_text_model(binding, tag, name):
             path, _ = self.register_derived_display(binding)
-            return {"path": f"{path}/unitText"}
-        if binding.value_for_prop(tag, name) != binding.value:
-            return a2ui_expression([self.binding_expression(binding, tag, name)])
-        return {"path": binding.path}
+            value = {"path": f"{path}/unitText"}
+        elif binding.value_for_prop(tag, name) != binding.value:
+            value = a2ui_expression([self.binding_expression(binding, tag, name)])
+        else:
+            value = {"path": binding.path}
+        return value
 
     @staticmethod
     def uses_unit_text_model(binding: DataBinding, tag: str, name: str) -> bool:
@@ -376,33 +379,40 @@ class ConversionContext:
             and name not in {"currentValue", "totalValue"}
         )
 
-    def item_prop(self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None) -> Any:
-        literal = item[name] if name in item else default
-        if not self.enable_dynamic_data_binding:
-            return literal
+    def item_prop(
+        self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None,
+    ) -> Any:
+        value: Any = item[name] if name in item else default
         data_ids = item.get("dataIds")
-        if not isinstance(data_ids, dict) or name not in data_ids:
-            return literal
-        contract_prop = f"items[].{name}"
-        binding_ids = data_binding_ids(tag, contract_prop, data_ids[name])
-        if binding_ids is None:
-            raise ValidationError(f"<{tag}> items[{index}].dataIds.{name} has an invalid binding shape")
-        if len(binding_ids) > 1:
-            bindings = [self.compile_context.data_binding(binding_id) for binding_id in binding_ids]
-            self.used_data_ids.update(binding.id for binding in bindings)
-            separator = data_binding_separator(tag, contract_prop)
-            parts: list[str] = []
-            for binding_index, binding in enumerate(bindings):
-                if binding_index:
-                    parts.append(expression_string_literal(separator))
-                parts.append(self.binding_expression(binding, tag, contract_prop))
-            return a2ui_expression(parts)
-        binding = self.compile_context.data_binding(binding_ids[0])
-        self.used_data_ids.add(binding.id)
-        value_map = boolean_text_map_for(item, name)
-        if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
-            return boolean_text_expression(binding.path, value_map)
-        return self.binding_reference(binding, tag, contract_prop)
+        if self.enable_dynamic_data_binding and isinstance(data_ids, dict) and name in data_ids:
+            contract_prop = f"items[].{name}"
+            binding_ids = data_binding_ids(tag, contract_prop, data_ids[name])
+            if binding_ids is None:
+                raise ValidationError(
+                    f"<{tag}> items[{index}].dataIds.{name} has an invalid binding shape"
+                )
+            if len(binding_ids) > 1:
+                bindings = []
+                for binding_id in binding_ids:
+                    bindings.append(self.compile_context.data_binding(binding_id))
+                self.used_data_ids.update(binding.id for binding in bindings)
+                separator = data_binding_separator(tag, contract_prop)
+                parts: list[str] = []
+                for binding_index, binding in enumerate(bindings):
+                    if binding_index:
+                        parts.append(expression_string_literal(separator))
+                    parts.append(self.binding_expression(binding, tag, contract_prop))
+                value = a2ui_expression(parts)
+            else:
+                binding = self.compile_context.data_binding(binding_ids[0])
+                self.used_data_ids.add(binding.id)
+                value_map = boolean_text_map_for(item, name)
+                is_boolean = binding.data_type == "boolean" or isinstance(binding.value, bool)
+                if value_map is not None and is_boolean:
+                    value = boolean_text_expression(binding.path, value_map)
+                else:
+                    value = self.binding_reference(binding, tag, contract_prop)
+        return value
 
     def bound_data(
         self,

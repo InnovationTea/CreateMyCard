@@ -147,7 +147,10 @@ CONTRACTS = {
     ),
     "ProgressCircleSingle": contract(
         required=("value", "icon", "label"),
-        optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "size", "trackColor", "barColor", "dataIds"),
+        optional=(
+            "displayValue", "secondaryLabel", "ariaLabel", "appearance",
+            "size", "trackColor", "barColor", "dataIds",
+        ),
         size=("compact",),
     ),
     "ProgressCircle": contract(

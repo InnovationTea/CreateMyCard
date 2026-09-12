@@ -268,9 +268,13 @@ def _removed_business_components(
         values.extend(node.props.get(name) for name in ("label", "supportingText"))
         values.extend(item.get("label") for item in (node.props.get("items") or [])
                       if isinstance(item, dict))
-        return {re.sub(r"\s+", "", str(value)) for value in values
-                if isinstance(value, (str, int, float)) and not isinstance(value, bool)
-                and str(value).strip()}
+        texts = set()
+        for value in values:
+            if not isinstance(value, (str, int, float)) or isinstance(value, bool):
+                continue
+            if str(value).strip():
+                texts.add(re.sub(r"\s+", "", str(value)))
+        return texts
 
     candidate_nodes = components(candidate)
     candidate_data = set().union(*(_referenced_binding_ids(node)[0] for node in candidate_nodes))
@@ -912,7 +916,10 @@ def _card_button_slot_dimensions(
 ) -> tuple[float | None, float | None]:
     """Return only statically provable CardButton parent-slot dimensions."""
     if parent.tag == "Stack":
-        width = _number(preferred_axis_size(parent, ancestor, "width")) if ancestor else _number(parent.props.get("width"))
+        if ancestor:
+            width = _number(preferred_axis_size(parent, ancestor, "width"))
+        else:
+            width = _number(parent.props.get("width"))
         height = _number(preferred_axis_size(parent, ancestor, "height")) if ancestor else _explicit_height(parent)
         return width, height
     if parent.tag != "Grid":
@@ -1602,13 +1609,12 @@ def _validate_vertical_container(
     if not parent_can_close:
         issues.append(_vertical_overflow_message(path, minimum_total, inner))
 
-    if (
+    can_estimate_flow = (
         parent_can_close
         and node.tag == "Stack"
         and len(children) >= 2
-        and inner_width is not None
-        and advisory_issues is not None
-    ):
+    )
+    if can_estimate_flow and inner_width is not None and advisory_issues is not None:
         estimated_total = gap_total + sum(
             _estimated_auto_height(
                 child,
@@ -1687,11 +1693,12 @@ def _budget_tree_with_resolved_basis(root: JSXElement) -> JSXElement:
     """Use a private tree so budgets never read a size overridden by basis."""
     def visit(node: JSXElement, parent: JSXElement | None) -> JSXElement:
         props = node.props
-        if (
-            parent is not None and parent.tag in {"Card", "Stack"}
-            and node.props.get("position") != "absolute"
-            and _numeric_basis(node) is not None
-        ):
+        in_flex_parent = parent is not None and parent.tag in {"Card", "Stack"}
+        if in_flex_parent and node.props.get("position") != "absolute":
+            has_basis = _numeric_basis(node) is not None
+        else:
+            has_basis = False
+        if has_basis:
             axis = "width" if parent.props.get("direction", "column") == "row" else "height"
             if axis in props:
                 props = {**props, axis: preferred_axis_size(node, parent, axis)}
@@ -2802,13 +2809,14 @@ def _prompt_action_ids(prompt_task: dict[str, Any] | None) -> set[str]:
     actions = prompt_task.get("actions")
     if not isinstance(actions, list):
         return set()
-    return {
-        action_id
-        for action in actions
-        if isinstance(action, dict)
-        and isinstance((action_id := action.get("id")), str)
-        and action_id
-    }
+    action_ids = set()
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        action_id = action.get("id")
+        if isinstance(action_id, str) and action_id:
+            action_ids.add(action_id)
+    return action_ids
 
 
 def _validate_required_action_coverage(
@@ -2828,12 +2836,12 @@ def _validate_required_action_coverage(
     # browser happens to find enough pixels and reports no overflow.
     sub_pattern = (decision or {}).get("subPattern")
     regions = root.child_elements()
-    if (
+    has_side_subpatterns = (
         expected_size == "2x4"
         and pattern == "13"
         and isinstance(sub_pattern, dict)
-        and len(regions) == 2
-    ):
+    )
+    if has_side_subpatterns and len(regions) == 2:
         for region_name, region_node in zip(("left", "right"), regions):
             declared_sub_pattern = _canonical_sub_pattern(sub_pattern.get(region_name))
             if declared_sub_pattern != "Sub-118-B 标题单内容":
@@ -2853,13 +2861,13 @@ def _validate_required_action_coverage(
                 f"actionIds {sorted(required_actions)!r}; choose an Action-capable layout"
             )
 
-    used_actions = {
-        action_id
-        for node in _walk(root)
-        if node.tag in {"PillButton", "CircleButton", "CardButton"}
-        and isinstance((action_id := node.props.get("actionId")), str)
-        and action_id
-    }
+    used_actions = set()
+    for node in _walk(root):
+        if node.tag not in {"PillButton", "CircleButton", "CardButton"}:
+            continue
+        action_id = node.props.get("actionId")
+        if isinstance(action_id, str) and action_id:
+            used_actions.add(action_id)
     missing_actions = sorted(required_actions - used_actions)
     if missing_actions:
         issues.append(

@@ -3994,13 +3994,16 @@ a{text-decoration:none}
     const cardAppearance = CARD_APPEARANCES[resolvedAppearance];
     let cardTone;
     if (cardAppearance) cardTone = DARK_CARD_APPEARANCES.has(resolvedAppearance) ? "dark" : "light";
+    let cardColorMode;
+    if (cardTone === "dark") cardColorMode = "dark";
+    else if (cardAppearance) cardColorMode = "monochrome";
     return (
       <div
         className={cx("ds-frame", cardAppearance && "generated-card-frame", className)}
         data-appearance={resolvedAppearance}
         data-card-size={semanticSize}
         data-tone={cardTone}
-        data-color-mode={cardTone === "dark" ? "dark" : (cardAppearance ? "monochrome" : undefined)}
+        data-color-mode={cardColorMode}
         style={{
           boxSizing: "border-box",
           position: "relative",
@@ -4366,11 +4369,9 @@ a{text-decoration:none}
   function SecondaryBody({ body: legacyBody, items, separator = " ｜ ", children, dataIds, className, ...rest }) {
     // `items` is the only public generation API. Keep legacy `body` rendering
     // here only so previously saved previews do not become blank.
-    const resolvedItems = Array.isArray(items)
-      ? items
-      : legacyBody != null
-        ? [{ value: legacyBody }]
-        : [];
+    let resolvedItems = [];
+    if (Array.isArray(items)) resolvedItems = items;
+    else if (legacyBody != null) resolvedItems = [{ value: legacyBody }];
     const itemCount = resolvedItems.length;
     const forcedMultiline = itemCount > 2;
     const elementRef = React.useRef(null);

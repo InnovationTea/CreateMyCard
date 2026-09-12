@@ -5,7 +5,7 @@ import json
 import math
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from .config import JSX_VALIDATOR_PATH, REPO_ROOT, validator_subprocess_environment
 
@@ -199,7 +199,17 @@ def _finite_vector(value: Any, fields: tuple[str, ...]) -> tuple[int | float, ..
     return numbers
 
 
-def _card_overflow_identity(item: dict[str, Any]) -> tuple[Any, ...] | None:
+class _CardOverflowIdentity(NamedTuple):
+    component: Any
+    component_text: Any
+    element_tag: Any
+    element_class: Any
+    rect: tuple[int | float, ...]
+    overflow: tuple[int | float, ...]
+    parent_layout: str
+
+
+def _card_overflow_identity(item: dict[str, Any]) -> _CardOverflowIdentity | None:
     """Identify only matching owner/text evidence of one Card boundary breach."""
     code = item.get("code")
     if code not in {"browser-overflow", "browser-semantic-content-overflow"}:
@@ -220,10 +230,14 @@ def _card_overflow_identity(item: dict[str, Any]) -> tuple[Any, ...] | None:
         overflow = _finite_vector(evidence.get("overflow"), sides)
     if overflow is None or min(overflow) < 0 or max(overflow) <= 0:
         return None
-    return (
-        evidence["component"], evidence.get("componentText"),
-        element.get("tag"), element.get("className"), rect, overflow,
-        json.dumps(evidence.get("parentLayout"), sort_keys=True, ensure_ascii=False),
+    return _CardOverflowIdentity(
+        component=evidence["component"],
+        component_text=evidence.get("componentText"),
+        element_tag=element.get("tag"),
+        element_class=element.get("className"),
+        rect=rect,
+        overflow=overflow,
+        parent_layout=json.dumps(evidence.get("parentLayout"), sort_keys=True, ensure_ascii=False),
     )
 
 
@@ -233,10 +247,15 @@ def _independent_layout_findings(report: dict[str, Any]) -> list[dict[str, Any]]
         if str(item.get("code") or "") not in _BROWSER_LAYOUT_CODES:
             continue
         identity = _card_overflow_identity(item)
-        duplicate = next((group for group in groups
-                          if len(group) == 1 and identity is not None
-                          and group[0].get("code") != item.get("code")
-                          and _card_overflow_identity(group[0]) == identity), None)
+        duplicate = None
+        for group in groups:
+            if len(group) != 1 or identity is None:
+                continue
+            if group[0].get("code") == item.get("code"):
+                continue
+            if _card_overflow_identity(group[0]) == identity:
+                duplicate = group
+                break
         if duplicate is None:
             groups.append([item])
         else:
