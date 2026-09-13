@@ -115,6 +115,42 @@ def _weather_card_spec() -> dict[str, object]:
     }
 
 
+@pytest.mark.parametrize("has_updated_at", [False, True])
+@pytest.mark.parametrize("requires_updated_at", [False, True])
+def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
+    has_updated_at: bool, requires_updated_at: bool,
+) -> None:
+    weather = {
+        "location": {"prefectureName": _field("深圳市")},
+        "current": {"windDirection": _field("东南风"), "windLevel": _field(2, "integer")},
+    }
+    fields = ["/location/prefectureName", "/current/windDirection", "/current/windLevel"]
+    required = list(fields)
+    if has_updated_at:
+        weather["updatedAt"] = _field("09:00")
+        fields.append("/updatedAt")
+    if requires_updated_at:
+        required.append("/updatedAt")
+    task = TaskSpec(
+        userQuery="查看城市风况", size="2x2", dataModelSchema={"data": {"weather": weather}},
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather", writeResultTo="/data/weather", candidateOutputFields=fields,
+    )
+    intent = TemplateSearchIntent(requiredOutputFieldsByCapability={"ViewWeather": tuple(required)})
+    arguments = (intent, task, get_cardplan_registry(), (binding,), _weather_card_spec())
+    if requires_updated_at and not has_updated_at:
+        with pytest.raises(TemplateRetrievalMiss, match="required output fields"):
+            search_template_variants(*arguments)
+        return
+    result = search_template_variants(*arguments)
+    candidate_ids = []
+    for business in result.business_candidates:
+        for candidate in business.candidates:
+            candidate_ids.append(candidate.template_id)
+    assert "WeatherOverviewWindHero@1" in candidate_ids
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),

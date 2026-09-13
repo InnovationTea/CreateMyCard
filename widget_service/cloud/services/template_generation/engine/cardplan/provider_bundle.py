@@ -1327,14 +1327,15 @@ def _template_line_quote(line: str, quote: str | None) -> str | None:
 
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
     single = re.fullmatch(
-        r"#(?:if|elseif)[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        r"#(?:if|elseif)[ \t]+(![ \t]*)?(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if single is not None:
-        namespace, name = single.groups()
-        if namespace == "props":
-            return f'IfParam("{name}",', f'IfMissingParam("{name}",'
-        return f'IfBind("{name}",', f'IfMissingBind("{name}",'
+        negated, namespace, name = single.groups()
+        kind = "Param" if namespace == "props" else "Bind"
+        present = f'If{kind}("{name}",'
+        missing = f'IfMissing{kind}("{name}",'
+        return (missing, present) if negated is not None else (present, missing)
     grouped = re.fullmatch(
         r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
         r"data\.([A-Za-z_][A-Za-z0-9_]*)",

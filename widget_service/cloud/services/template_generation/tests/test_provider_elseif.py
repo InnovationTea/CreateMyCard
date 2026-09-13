@@ -58,6 +58,50 @@ def _texts(node: Nested2Node) -> list[object]:
     return values
 
 
+@pytest.mark.parametrize("prefix", ("#if", '#if props.flag\nText("首选")\n#elseif'))
+@pytest.mark.parametrize("spacing", ("", " "))
+@pytest.mark.parametrize("present", (False, True))
+def test_negated_binding_selects_missing_branch_and_guards_else(
+    prefix: str, spacing: str, present: bool,
+) -> None:
+    definition = _definition(
+        f'{prefix} !{spacing}data.first\nText("缺失")\n#else\nText(data.first)\n#end'
+    )
+    bindings = _bindings(("first",)) if present else {}
+    root = _instantiate_blueprint(definition.variants[0].root, {}, bindings)
+    assert _texts(root) == (["${data.context.first}"] if present else ["缺失"])
+    assert "IfMissing" not in _serialize_node(root)
+
+
+@pytest.mark.parametrize("name,value", (("label", ""), ("flag", False), ("count", 0)))
+@pytest.mark.parametrize("state", ("present", "none", "missing"))
+def test_negated_prop_uses_presence_not_truthiness(name: str, value: object, state: str) -> None:
+    definition = _definition(
+        f'#if !props.{name}\nText("缺失")\n#else\nText("存在")\n#endif'
+    )
+    params = {}
+    if state == "present":
+        params[name] = value
+    elif state == "none":
+        params[name] = None
+    root = _instantiate_blueprint(definition.variants[0].root, params)
+    assert _texts(root) == (["存在"] if state == "present" else ["缺失"])
+
+
+@pytest.mark.parametrize("body", (
+    "#if !data.first\nText(data.first)\n#endif",
+    "#if !props.label\nText(props.label)\n#endif",
+    '#if !data.unknown\nText("未知")\n#endif',
+    '#if !props.unknown\nText("未知")\n#endif',
+    '#if !!data.first\nText("重复")\n#endif',
+    '#if !data.first & props.label\nText("混合")\n#endif',
+    '#if !data.first && props.label\nText("混合")\n#endif',
+))
+def test_negated_condition_rejects_unguarded_references_and_invalid_targets(body: str) -> None:
+    with pytest.raises(ValueError):
+        _definition(body)
+
+
 @pytest.mark.parametrize("ending", ("#endif", "#end"))
 @pytest.mark.parametrize("available", tuple(product((False, True), repeat=3)))
 def test_elseif_selects_first_available_binding(
