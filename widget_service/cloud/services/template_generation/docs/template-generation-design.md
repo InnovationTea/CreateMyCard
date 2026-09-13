@@ -50,6 +50,15 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 仍保留动态引用，不读取样例值选分支；单字段和无字段分支不保留分隔符。配置将四个路径统一列为可选，首层不得强补
 温度要求；Search 仍须完整覆盖用户显式字段。该调整不放开单业务天气卡的必需字段门禁，整卡主题仍归 HeroContent。
 
+出行组合补充两个受控形态：无动作的“倒计时 + 后日天气”使用
+`CountdownOverviewSupport@1 + WeatherOverviewDaily2TravelSupport@1`；带一个动作的出行请求使用
+`CountdownOverviewTravelSupport@1 + WeatherOverviewTravelSupport@1`。天气内容沿用
+`WeatherOverviewConditionHero@1` 的天气现象主视觉和无内层底板结构，并在辅助行展示温度及降雨概率；
+布局将出行倒计时与天气分别放入两个等高、独立底色和圆角的 Support 胶囊槽，胶囊间距及左右内边距均为
+8vp。出行闹钟动作只绑定出行倒计时胶囊，天气详情动作只绑定天气胶囊，不生成底部根动作。逐日字段只登记
+`daily[2]` 与 `daily[4]` 的明确用例，不扩展为任意数组索引匹配。上述出行双业务 Support 统一采用
+14vp 主标题和 10vp 副标题。
+
 ## 4. 编译期条件
 
 Provider `.cardtpl` 的结构按 `#if data.xxx` / `#if props.xxx`、可选的多个 `#elseif`、可选 `#else`
@@ -58,6 +67,10 @@ Provider `.cardtpl` 的结构按 `#if data.xxx` / `#if props.xxx`、可选的多
 `#elseif` 沿用 `#if` 的绑定/参数可用性条件，也支持两个直接数据绑定的 `&&`；按声明顺序只选择第一个
 条件成立的分支。没有命中时选择 `#else`，没有 `#else` 时不生成该条件块的内容。空的已命中分支仍阻止
 后续分支；`#elseif` 不得出现在 `#else` 之后，各分支必须通过引用边界校验。
+
+`#if` / `#elseif` 支持 `!data.xxx` 和 `!props.xxx`，以同一可用性判定取反；
+`false`、`0`、空字符串参数仍视为已提供，不属于否定分支。否定分支不能直接引用缺失字段，
+对应 `#else` 可以引用。数据与参数的混合条件使用嵌套指令，不支持单个 `&`；具体语法见模板契约。
 
 条件块支持嵌套，只判断 binding 或参数是否可用，不读取数据值。属性值通过
 `#Expr(condition ? present : absent)` 按 binding 或参数是否可用确定性选择。

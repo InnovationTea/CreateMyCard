@@ -16,7 +16,7 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
 )
 from services.protocol_registry import A2UIProtocolRegistry
-from utils.trigger_mq import trigger_mq
+from utils.ops_metrics import report_ops_metrics
 
 IssueStage = Literal["conversion", "validation"]
 IssueSeverity = Literal["error", "warning"]
@@ -134,7 +134,7 @@ class DesignCompactProcessor:
                 card_spec=context.card_spec,
             )
         except CompactDslConversionError as exc:
-            trigger_mq(body={"taskFailValidation": 1})
+            report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
         try:

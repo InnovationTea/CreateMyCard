@@ -119,6 +119,7 @@ _ASSET_SEMANTIC_TERMS = {
     "clean": ("clean", "cleanup", "clear", "清理", "释放"),
     "app": ("app", "application", "应用", "软件"),
     "timer": ("timer", "timing", "hourglass", "计时", "时长", "时间"),
+    "countdown": ("countdown", "timing", "hourglass", "stopwatch", "沙漏", "秒表"),
     "settings": ("settings", "setting", "设置"),
     "parental-control": (
         "parental control",
