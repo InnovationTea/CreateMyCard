@@ -106,7 +106,7 @@
 
 
 
-## 示例五（2x2-V05）：手机+耳机电量（S4 上下双蒙版·青色纯色）
+## 示例五（2x2-V05）：手机+耳机电量（S4 上下双背板·青色纯色）
 本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 S4；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。
 ### user
 ```json
@@ -138,7 +138,7 @@
 ```
 
 ## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·黄色纯色）
-2x2 最终只展示一个会议，且 userQuery 包含会议/入会/下一场会语义或候选 `intentName` 为 `EnterMeeting` 时，优先使用本例；仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
+2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery 包含会议/入会/下一场会语义或候选 `intentName` 为 `EnterMeeting` 时，才使用本例；出现任一其他业务时改走 S4，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
 ### user
 ```json
 {"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/example"}}]}}},"assetCandidates":[]}
@@ -149,10 +149,8 @@
 ["day_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
 ["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FF99661F","maxLines":1,"textOverflow":"clip"}]
 ["content_area","Row",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":8,"alignItems":"start","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
-["timeline","Column",{"width":8,"height":44,"itemMargin":0,"alignItems":"center","flexShrink":0},["timeline_dot","timeline_line"]]
-["timeline_dot","Text",{"content":"●","width":8,"height":8,"fontSize":8,"fontWeight":400,"fontColor":"#FF99661F","maxLines":1,"flexShrink":0}]
-["timeline_line","Divider",{"width":1.5,"height":36,"strokeWidth":1.5,"vertical":true,"color":"#1A99661F","flexShrink":0}]
-["meeting_texts","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":6,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
+["timeline","TimelineUnit",{"color":"#FF99661F","lineColor":"#1A99661F"}]
+["meeting_texts","Column",{"width":"matchParent","height":44,"layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
 ["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#FF99661F","maxLines":1,"textOverflow":"clip"}]
 ["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"clip"}]
 ["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"ellipsis"}]
