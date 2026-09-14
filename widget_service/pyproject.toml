@@ -27,7 +27,6 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "ruff>=0.5.0",
     "mypy>=1.11.0",
-    "pylint==4.0.8",
 ]
 
 [build-system]
@@ -45,36 +44,6 @@ src = ["cloud", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["UP009"]
-
-[tool.pylint.main]
-py-version = "3.12"
-persistent = false
-
-# CodeCheck 不可用时的基础预检；不是 H0301 或全量 CodeCheck 的等价规则集。
-# 类型推断和风格规则尚未纳入此门禁，覆盖范围见 template_generation/docs/README.md。
-[tool.pylint.messages_control]
-disable = ["all"]
-enable = [
-    "syntax-error",
-    "undefined-variable",
-    "used-before-assignment",
-    "possibly-used-before-assignment",
-    "return-outside-function",
-    "return-in-init",
-    "assignment-from-no-return",
-    "assignment-from-none",
-    "inconsistent-return-statements",
-    "unreachable",
-    "return-in-finally",
-    "bare-except",
-    "duplicate-except",
-    "duplicate-key",
-    "dangerous-default-value",
-]
-
-[tool.pylint.reports]
-reports = false
-score = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
