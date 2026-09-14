@@ -223,3 +223,30 @@
 ["/data/calendar/events/0/dtEnd","15:30"]
 ["/data/calendar/events/0/entityId","calendar-event-001"]
 ```
+
+## 示例十六（2x4-V09）：天气与手机电量双业务（W9-dual-backboards·蓝色纯色）
+### user
+```json
+{"userQuery":"同时显示上海天气和手机电量，并分别提供查看天气和打开电池设置按钮。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"borderRadius":20,"clip":true,"backgroundColor":"#FFE5EDFE","alignItems":"center"},["weatherZone","batteryZone"]]
+["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["weatherTitle","weatherContent","weatherButton"]]
+["weatherTitle","Text",{"content":"上海天气","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherValue","weatherStatus"]]
+["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '℃' }}","width":120,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["weatherButton","Button",{"label":"查看天气","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["batteryZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["batteryTitle","batteryContent","batteryButton"]]
+["batteryTitle","Text",{"content":"手机电量","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["batteryContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["batteryValue","batteryStatus"]]
+["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":120,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["batteryStatus","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["batteryButton","Button",{"label":"电池设置","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["/data/weather/location/cityCode","101020100"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/temperatureC",29]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
+```
