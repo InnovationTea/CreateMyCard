@@ -13,14 +13,11 @@ contract checks remain the responsibility of the ``generateWidgetCard`` service.
 
 from __future__ import annotations
 
-import logging
-
 from .aesthetic_baseline_validator import AestheticBaselineValidator
 from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
 from .cardspec_validator import CardSpecValidator
 from .component_validator import ComponentValidator
-from .context import ValidationContext
 from .contrast_validator import ContrastValidator
 from .cross_validator import CrossValidator
 from .diagnostics import Reporter
@@ -28,8 +25,6 @@ from .display_unit_validator import DisplayUnitValidator
 from .effective_capability_validator import EffectiveCapabilityValidator
 from .expression_validator import ExpressionValidator
 from .protocol_validator import ProtocolValidator
-
-_LOGGER = logging.getLogger(__name__)
 
 STATIC_VALIDATORS = [
     ProtocolValidator(),
@@ -62,11 +57,14 @@ def selected_stages(stage: str) -> list[str]:
         return ["hard"]
     if stage == "semantic":
         return ["hard", "semantic"]
+    # "quality" and "all" both run every declared stage. The online variant has
+    # no quality-stage validators, so passing "quality" or "all" is functionally
+    # identical to passing "semantic".
     return ["hard", "semantic", "quality"]
 
 
 def run_pipeline(
-    context: ValidationContext,
+    context,
     rules,
     reporter: Reporter,
     stage: str,
@@ -79,9 +77,6 @@ def run_pipeline(
             return
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
             return
-        if current_stage == "quality" and context.has_fusion_template_root():
-            _LOGGER.info("quality_validation_skipped reason=template_root")
-            continue
         for validator in validators:
             if validator.stage == current_stage:
                 validator.validate(context, rules, reporter)
