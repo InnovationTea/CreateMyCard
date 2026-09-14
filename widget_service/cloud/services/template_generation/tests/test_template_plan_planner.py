@@ -20,6 +20,7 @@ from services.template_generation.engine.cardplan.parser import parse_ux_layout_
 from services.template_generation.engine.cardplan.prompt import action_bindings
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_plan_planner import (
+    _has_semantic_action_icon,
     plan_template_candidates,
     planner_component_candidates,
     planner_required_template_groups,
@@ -35,6 +36,26 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     search_template_variants,
 )
 from services.template_generation.engine.tersel_converter import TerselConversionError
+
+
+@pytest.mark.parametrize(("selected", "description", "expected"), [
+    (True, "默认黑色的电池图标，适用省电模式、节能电池", True),
+    (False, "默认黑色的电池图标，适用省电模式、节能电池", False),
+    (True, "默认黑色的太阳图标，适用晴天", False),
+    (True, "默认黑色的电池图标，适用电量展示", False),
+])
+def test_icon_action_accepts_power_saving_asset_only_for_selected_power_event(
+    selected: bool, description: str, expected: bool,
+) -> None:
+    task = TaskSpec(
+        userQuery="显示手机电量", size="2x2", dataModelSchema={},
+        eventCandidates=[EventAction(
+            id="event.setPowerSavingMode", call="clickToIntent", args={},
+        )],
+        assetCandidates=[{"src": "resources/base/media/example.svg", "description": description}],
+    )
+    selected_ids = ("event.setPowerSavingMode",) if selected else ()
+    assert _has_semantic_action_icon(task, selected_ids) is expected
 
 
 def _field(value: object, data_type: str = "string") -> dict[str, object]:
@@ -92,6 +113,42 @@ def _weather_card_spec() -> dict[str, object]:
             {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}
         ],
     }
+
+
+@pytest.mark.parametrize("has_updated_at", [False, True])
+@pytest.mark.parametrize("requires_updated_at", [False, True])
+def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
+    has_updated_at: bool, requires_updated_at: bool,
+) -> None:
+    weather = {
+        "location": {"prefectureName": _field("深圳市")},
+        "current": {"windDirection": _field("东南风"), "windLevel": _field(2, "integer")},
+    }
+    fields = ["/location/prefectureName", "/current/windDirection", "/current/windLevel"]
+    required = list(fields)
+    if has_updated_at:
+        weather["updatedAt"] = _field("09:00")
+        fields.append("/updatedAt")
+    if requires_updated_at:
+        required.append("/updatedAt")
+    task = TaskSpec(
+        userQuery="查看城市风况", size="2x2", dataModelSchema={"data": {"weather": weather}},
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather", writeResultTo="/data/weather", candidateOutputFields=fields,
+    )
+    intent = TemplateSearchIntent(requiredOutputFieldsByCapability={"ViewWeather": tuple(required)})
+    arguments = (intent, task, get_cardplan_registry(), (binding,), _weather_card_spec())
+    if requires_updated_at and not has_updated_at:
+        with pytest.raises(TemplateRetrievalMiss, match="required output fields"):
+            search_template_variants(*arguments)
+        return
+    result = search_template_variants(*arguments)
+    candidate_ids = []
+    for business in result.business_candidates:
+        for candidate in business.candidates:
+            candidate_ids.append(candidate.template_id)
+    assert "WeatherOverviewWindHero@1" in candidate_ids
 
 
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:

@@ -68,6 +68,10 @@ Provider `.cardtpl` 的结构按 `#if data.xxx` / `#if props.xxx`、可选的多
 条件成立的分支。没有命中时选择 `#else`，没有 `#else` 时不生成该条件块的内容。空的已命中分支仍阻止
 后续分支；`#elseif` 不得出现在 `#else` 之后，各分支必须通过引用边界校验。
 
+`#if` / `#elseif` 支持 `!data.xxx` 和 `!props.xxx`，以同一可用性判定取反；
+`false`、`0`、空字符串参数仍视为已提供，不属于否定分支。否定分支不能直接引用缺失字段，
+对应 `#else` 可以引用。数据与参数的混合条件使用嵌套指令，不支持单个 `&`；具体语法见模板契约。
+
 条件块支持嵌套，只判断 binding 或参数是否可用，不读取数据值。属性值通过
 `#Expr(condition ? present : absent)` 按 binding 或参数是否可用确定性选择。
 两类指令都必须在 CardPlan/Tersel 之前消除，不进入最终 A2UI，不输出 `If` 组件。
@@ -114,14 +118,24 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 
 ## 7. 模板内容根与对比度边界
 
-合入 PR186 的内容根标识：公共 A2UI 校验根保持 `root`，非融球模板及预览产物为
-`root → template_root`；融球模板为
+公共 A2UI 校验根保持 `root`，非融球 `2x2` 固定布局模板为
+`root → template_root → __genui_render_component__root_1`，防溢出前缀直接标记原布局骨架，
+不再增加专用防溢出 Stack。单业务、双业务及各主题使用同一规则；根背景保持不变，安全边距从根节点
+移到 `template_root`，骨架属性和内容不变。独立模板预览仍为 `root → template_root`；
+不含单一布局骨架的旧 CardPlan shell 和非 `2x2` 产物保持原结构。融球模板仍为
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 
-公共对比度校验只在遇到 ID 精确等于 `template_root` 的节点时停止遍历该子树，不为模板内容
-新增 `VISUAL.CONTRAST` error 或 warning。仅豁免已标记的模板区域，不按 `template_root_` 等前缀
-匹配，也不因卡片含模板就跳过并列的非模板区域；普通模型生成及模板回退路径仍按原规则校验。
-该规则不改变组件结构、表达式、数据绑定、事件、素材等校验，也不恢复运行时 IF 支持。
+公共调度器确认根 `root` 的 `children` 数组直接引用实际存在且 ID 精确等于 `template_root` 的组件，
+且组件 ID 无重复后，跳过整卡
+`quality` 阶段，包括并列的背景、标题和动作。不按文本或前缀匹配；每次修复后重新识别标记。
+不依赖 `fusionBallBackground`，非融球、融球及独立模板预览使用相同规则。
+缺少模板标记、孤立标记、非直接子节点、重复 ID、普通生成及模板回退产物不自动豁免。
+标记是工程约定，不是不可伪造的来源凭证；解析失败与组件引用合法性仍按原规则检查。
+跳过记录 `quality_validation_skipped reason=template_root`，不视为实际质量通过或伪造分数，
+也不因被跳过的检查触发质量修复。
+该规则不改变 hard、semantic 和转换前校验，也不恢复运行时 IF 支持。
+独立调用对比度校验器使用同一模板根判断，符合条件整卡跳过，否则所有内容正常检查。
+`has_fusion_template_root()` 保留既有方法名以兼容调用，但不再检查融球背景。
 
 回归覆盖普通模板、融球模板、预览模板、精确标识、非模板并列节点及其它校验继续生效。

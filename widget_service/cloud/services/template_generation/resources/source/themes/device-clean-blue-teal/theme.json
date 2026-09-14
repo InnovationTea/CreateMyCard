@@ -3,7 +3,7 @@
   "themeProfileId": "device-clean-blue-teal",
   "description": "设备资源暖橙渐变",
   "firstLayerRule": {"path": "first-layer.md"},
-  "supportedCapabilityIds": ["GetPhoneBatteryInfo", "GetSystemMemInfo"],
+  "supportedCapabilityIds": ["GetSystemMemInfo"],
   "paletteSceneIds": ["device.cleanup", "device.resource"],
   "primaryColor": "#E6000000",
   "supportContentColor": "#99000000",

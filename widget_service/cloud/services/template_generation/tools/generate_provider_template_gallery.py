@@ -31,6 +31,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
+        "--include-template-examples", action="store_true",
+        help="追加模版场景示例页签的八个演示需求，不改变默认画廊矩阵",
+    )
+    parser.add_argument(
         "--model-failure-attempts",
         type=int,
         default=2,
@@ -72,6 +76,12 @@ async def run(args: argparse.Namespace) -> int:
                 f"画廊模拟输入已生成：Provider={len(manifest.providers)}，"
                 f"用例={case_count}"
             )
+        if args.include_template_examples:
+            from services.template_generation.test_support.template_examples import (
+                append_template_examples,
+            )
+
+            append_template_examples(input_root)
         provider_ids = set(args.provider) or None
         summary = await generate_provider_gallery(
             input_root,
