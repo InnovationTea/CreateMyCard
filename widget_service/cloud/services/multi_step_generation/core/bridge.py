@@ -219,6 +219,9 @@ class JsxA2UIBridge:
                 "reasoning_trace": trace_data.get("reasoning_trace", []),
                 "turn_trace": trace_data.get("turn_trace", []),
                 "validation_reports": trace_data.get("validation_reports", []),
+                "plan": result.get("plan", trace_data.get("plan")),
+                "decision": result.get("decision", trace_data.get("decision")),
+                "warnings": result.get("warnings", trace_data.get("warnings", [])),
                 "turns": result.get("turns", 0),
                 "elapsed_seconds": result.get("elapsed_seconds", 0.0),
                 "coverage": result.get("coverage", []),
@@ -288,6 +291,9 @@ class JsxA2UIBridge:
             "loaded_resources",
             "resource_reads",
             "validation_reports",
+            "plan",
+            "decision",
+            "warnings",
         ):
             value = getattr(error, key, None)
             if value is not None:

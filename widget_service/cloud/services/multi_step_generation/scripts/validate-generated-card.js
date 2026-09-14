@@ -39,59 +39,29 @@ const parser = loadModule(["@babel/parser"], "@babel/parser");
 
 function loadChromium() {
   let playwright;
-
   try {
     playwright = loadModule(["playwright"], "playwright");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Playwright Node.js 依赖缺失。请先在项目根目录运行 ` +
-      `\`npm install\`。原始错误：${message}`,
+      `Playwright Node.js 依赖缺失。请先在项目根目录运行 \`npm install\`。原始错误：${error.message}`,
     );
   }
 
   const { chromium } = playwright;
-
-  if (!chromium || typeof chromium.launch !== "function") {
+  let executablePath;
+  try {
+    executablePath = chromium.executablePath();
+  } catch (error) {
     throw new Error(
-      "Playwright chromium 对象无效，缺少 launch() 方法。",
+      `无法确定 Chromium 安装位置。请运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`）。原始错误：${error.message}`,
     );
   }
-
-  const customChromiumPath =
-    process.env.CHROMIUM_EXECUTABLE_PATH ||
-    "/opt/chrome-linux/chrome";
-
-  let executablePath;
-
-  if (fs.existsSync(customChromiumPath)) {
-    executablePath = customChromiumPath;
-  } else {
-    try {
-      executablePath = chromium.executablePath();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `无法确定 Chromium 安装位置。请运行 ` +
-        `\`npm run install:chromium\` 或 ` +
-        `\`npx playwright install chromium\`。原始错误：${message}`,
-      );
-    }
-
-    if (!executablePath || !fs.existsSync(executablePath)) {
-      throw new Error(
-        `Playwright Chromium 浏览器未安装（预期位置：` +
-        `${executablePath || "未知"}）。请运行 ` +
-        `\`npm run install:chromium\` 或 ` +
-        `\`npx playwright install chromium\`。`,
-      );
-    }
+  if (!executablePath || !fs.existsSync(executablePath)) {
+    throw new Error(
+      `Playwright Chromium 浏览器未安装（预期位置：${executablePath || "未知"}）。请在项目根目录运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`），然后重新执行浏览器校验。`,
+    );
   }
-
-  return {
-    chromium,
-    executablePath,
-  };
+  return chromium;
 }
 
 const skillDir = path.resolve(__dirname, "..");
@@ -732,9 +702,6 @@ function validateStructure(source, componentName, schema, task) {
   const root = returnExpression(fn);
   const rootName = root?.type === "JSXElement" ? jsxName(root.openingElement.name) : null;
   if (rootName !== "Card") findings.push(finding("error", "card-root", `generated card root must be <Card>, found ${rootName || root?.type || "nothing"}`));
-  if (/(?:#[0-9a-f]{3,8}\b|\brgba?\s*\(|\b(?:linear|radial)-gradient\s*\()/i.test(source)) {
-    findings.push(finding("error", "hardcoded-color", "hard-coded colors or gradients are forbidden"));
-  }
   if (!root) return { findings, root: null, signature: null, cardSize: null };
 
   const rootProps = new Map(root.openingElement.attributes
@@ -769,6 +736,12 @@ function validateStructure(source, componentName, schema, task) {
       }
       const prop = jsxName(attribute.name);
       const value = attributeValue(attribute);
+      // Inspect presentation attributes only: order IDs, copy and asset URLs
+      // containing e.g. #abc123 are not hard-coded styles.
+      if (["style", "color", "background", "backgroundColor", "borderColor", "fill", "stroke"].includes(prop)
+          && /(?:#[0-9a-f]{3,8}\b|\brgba?\s*\(|\b(?:linear|radial)-gradient\s*\()/i.test(JSON.stringify(value))) {
+        findings.push(finding("error", "hardcoded-color", `hard-coded colors or gradients are forbidden on <${name}>.${prop}`));
+      }
       provided.set(prop, value);
       if (["className", "style"].includes(prop)) findings.push(finding("error", "forbidden-prop", `${prop} is forbidden on <${name}> at line ${attribute.loc?.start.line}`));
       const compilerMetadata = prop === "dataValueMaps" && allowed.has("dataIds");
@@ -1485,7 +1458,7 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
   // Resolve the executable before starting the HTTP server. A missing browser
   // must fail immediately instead of leaving the server alive until Python's
   // validator timeout expires.
-  const { chromium, executablePath } = loadChromium();
+  const chromium = loadChromium();
   const serverInfo = await startStaticServer(previewHtml);
   let browser = null;
   let context = null;
@@ -1495,10 +1468,7 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
     const allowedUnavailableResources = new Set((resources || []).map((resource) => (
       new URL(runtimeAssetUrl(resource.value), assetBaseUrl).href
     )));
-    browser = await chromium.launch({ 
-      headless: true,
-      executablePath,
-    });
+    browser = await chromium.launch({ headless: true });
     context = await browser.newContext({ viewport: { width: 520, height: 420 }, deviceScaleFactor: 1 });
     page = await context.newPage();
     const runtimeErrors = [];
@@ -1771,9 +1741,8 @@ function browserFindings(metrics, cardSize) {
         const parentSize = Number(item?.parentLayout?.rect?.[slotAxis]);
         if (!Number.isFinite(componentSize) || !Number.isFinite(parentSize) || parentSize <= 0) return null;
         const deficit = componentSize - parentSize;
-        // Ignore sub-pixel rounding and small typography differences. A gap of
-        // more than 4vp means the direct slot itself cannot contain the
-        // semantic component, so nudging flex/gap is not a reliable repair.
+        // Ignore sub-pixel rounding and small typography differences. Record
+        // the current slot deficit, without declaring the whole layout invalid.
         if (deficit <= 4) return null;
         return {
           component: item.component || "未知 DOM 节点",
@@ -1785,7 +1754,8 @@ function browserFindings(metrics, cardSize) {
         };
       })
       .filter(Boolean);
-    const layoutChangeRequired = infeasibleSlots.length > 0;
+    // A measured undersized slot proves overflow, not that every valid
+    // allocation within this layout pattern is impossible.
     const infeasibleDescription = infeasibleSlots
       .map((item) => (
         `${item.component} 实际${vertical ? "高度" : "宽度"} ${rounded(item.componentSize)}vp，`
@@ -1800,16 +1770,9 @@ function browserFindings(metrics, cardSize) {
         components: [overlap.first.component, overlap.second.component],
         componentTexts: [overlap.first.componentText, overlap.second.componentText],
         evidence: overlap,
-        ...(layoutChangeRequired ? {
-          layoutChangeRequired: true,
-          details: { axis: slotAxis, infeasibleSlots },
-        } : {}),
-        likelyCause: layoutChangeRequired
-          ? `${infeasibleDescription}；当前 Layout Pattern / Sub Pattern 的槽位容量不成立。`
-          : `${vertical ? "纵向" : "横向"}槽位、gap、固定尺寸或绝对定位不足以容纳这两个独立组件。`,
-        suggestion: layoutChangeRequired
-          ? "必须更换 Layout Pattern 或 Sub Pattern，为该组件分配更大的连续区域；不要继续通过 flex、justify、gap 或固定 height/width 做局部微调，也不得压缩、隐藏或删除必需内容。"
-          : `调整两个组件共同父级的 ${vertical ? "height、flex 或纵向 gap" : "width、flex 或横向 gap"}，使其矩形不再相交；不要通过隐藏其中一个必需组件规避问题。`,
+        ...(infeasibleSlots.length ? {details: {axis: slotAxis, slotDeficits: infeasibleSlots}} : {}),
+        likelyCause: `${infeasibleDescription ? infeasibleDescription + "；" : ""}${vertical ? "纵向" : "横向"}槽位、gap、固定尺寸或绝对定位不足以容纳这两个独立组件。`,
+        suggestion: `调整两个组件共同父级的 ${vertical ? "height、flex 或纵向 gap" : "width、flex 或横向 gap"}，使其矩形不再相交；不要通过隐藏其中一个必需组件规避问题。`,
       },
     ));
   }

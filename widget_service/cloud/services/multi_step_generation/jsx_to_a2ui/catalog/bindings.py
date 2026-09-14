@@ -87,7 +87,14 @@ BINDABLE_PROP_TYPES: dict[str, dict[str, frozenset[str]]] = {
     "NumericRatio": {"value": _SCALAR_TEXT},
     "NumericRatioStack": {"items[].value": _SCALAR_TEXT},
     "ChecklistItem": {"title": _SCALAR_TEXT, "meta": _SCALAR_TEXT, "done": _BOOLEAN},
-    "EventCard": {"title": _SCALAR_TEXT, "time": _SCALAR_TEXT, "location": _SCALAR_TEXT},
+    "EventCard": {
+        "title": _SCALAR_TEXT,
+        "time": _SCALAR_TEXT,
+        "location": _SCALAR_TEXT,
+        "items[].title": _SCALAR_TEXT,
+        "items[].time": _SCALAR_TEXT,
+        "items[].location": _SCALAR_TEXT,
+    },
 }
 
 BINDABLE_PROPS: dict[str, frozenset[str]] = {tag: frozenset(props) for tag, props in BINDABLE_PROP_TYPES.items()}
@@ -96,7 +103,7 @@ BINDABLE_PROPS: dict[str, frozenset[str]] = {tag: frozenset(props) for tag, prop
 def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
     """Normalize one display Prop's public dataIds value.
 
-    Most display Props bind one ID. EventCard.time additionally accepts the
+    Most display Props bind one ID. EventCard time fields additionally accept the
     ordered pair [dtStartId, dtEndId]. EmphasisText.mainText,
     EmphasisText.secondaryText, InfoBlock.secondaryText and
     TableText.items[].parameter accept an ordered array of two or more IDs so
@@ -106,7 +113,7 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
         return (value,)
     if not isinstance(value, list):
         return None
-    if tag == "EventCard" and prop == "time":
+    if tag == "EventCard" and prop in {"time", "items[].time"}:
         expected_length = len(value) == 2
     elif tag == "EmphasisText" and prop in {"mainText", "secondaryText"}:
         expected_length = len(value) >= 2
@@ -123,7 +130,7 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
 
 def data_binding_separator(tag: str, prop: str) -> str:
     """Return the fixed visible separator for one supported multi-ID Prop."""
-    if tag == "EventCard" and prop == "time":
+    if tag == "EventCard" and prop in {"time", "items[].time"}:
         return EVENT_TIME_RANGE_SEPARATOR
     if tag == "EmphasisText" and prop in {"mainText", "secondaryText"}:
         return EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR
@@ -172,6 +179,40 @@ def _is_path_binding(value: Any) -> bool:
     )
 
 
+def explicit_clock_values(text: str) -> set[str]:
+    """Normalize explicit clock times only, never durations or relative dates."""
+    values = {f"{int(h):02d}:{m}" for h, m in re.findall(r"(?<!\d)([01]?\d|2[0-3])[:：]([0-5]\d)(?!\d)", text)}
+    digits = {char: index for index, char in enumerate("零一二三四五六七八九")}
+    digits["两"] = 2
+
+    def number(token: str) -> int:
+        if token.isdigit():
+            return int(token)
+        if "十" in token:
+            before, after = token.split("十")
+            return (digits.get(before, 1) * 10) + digits.get(after, 0)
+        return digits.get(token, -1)
+
+    for period, hour, minute in re.findall(
+        r"(凌晨|早上|上午|中午|下午|晚上|今晚|今早|明晚|明早)\s*([零一二三四五六七八九十两\d]{1,3})[点时](半|[零一二三四五六七八九十两\d]{1,3}分)?(?![零一二三四五六七八九十两\d半刻秒])", text,
+    ):
+        h = number(hour)
+        m = 30 if minute == "半" else number(minute[:-1]) if minute else 0
+        if not 0 <= h <= 12:
+            continue
+        if period in {"下午", "晚上", "今晚", "明晚"} and 1 <= h < 12:
+            h += 12
+        elif period == "中午" and h == 12:
+            pass
+        elif period == "中午":
+            continue  # e.g. noon one o'clock is not normalized by this rule.
+        elif period in {"凌晨", "早上", "上午", "今早", "明早"} and h == 12:
+            continue  # Ambiguous midnight/noon phrasing.
+        if 0 <= h < 24 and 0 <= m < 60:
+            values.add(f"{h:02d}:{m:02d}")
+    return values
+
+
 def _literal_is_explicit_in_query(literal: Any, user_query: str | None) -> bool:
     """Return whether a bound display literal is explicitly stated by the user.
 
@@ -184,7 +225,7 @@ def _literal_is_explicit_in_query(literal: Any, user_query: str | None) -> bool:
         return False
     if isinstance(literal, str):
         value = literal.strip()
-        return bool(value) and value in user_query
+        return bool(value) and (value in user_query or value in explicit_clock_values(user_query))
     if isinstance(literal, (int, float)):
         token = re.escape(format(literal, ".15g"))
         return re.search(rf"(?<![\d.]){token}(?![\d.])", user_query) is not None
@@ -848,6 +889,7 @@ def materialize_binding_literals(
     compile_context: CompileContext,
     *,
     user_query: str | None = None,
+    locked_initial_ids: frozenset[str] = frozenset(),
     _query_overrides: dict[str, Any] | None = None,
 ) -> None:
     """Resolve bound literals for normalized JSX and A2UI initial data.
@@ -899,6 +941,7 @@ def materialize_binding_literals(
                 element.props[prop] = value_map[binding.value]
             elif (
                 prop in element.props
+                and binding.id not in locked_initial_ids
                 and _literal_matches_binding_storage_type(element.props[prop], binding)
                 and _literal_is_explicit_in_query(element.props[prop], user_query)
             ):
@@ -947,6 +990,7 @@ def materialize_binding_literals(
                     item[prop] = value_map[binding.value]
                 elif (
                     prop in item
+                    and binding.id not in locked_initial_ids
                     and _literal_matches_binding_storage_type(item[prop], binding)
                     and _literal_is_explicit_in_query(item[prop], user_query)
                 ):
@@ -1000,6 +1044,7 @@ def materialize_binding_literals(
             child,
             compile_context,
             user_query=user_query,
+            locked_initial_ids=locked_initial_ids,
             _query_overrides=query_overrides,
         )
 

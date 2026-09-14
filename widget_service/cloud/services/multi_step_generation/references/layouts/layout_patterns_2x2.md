@@ -19,7 +19,7 @@
 |---|---|---|---|
 | 标题区 | 按布局必选 | `flex0; height:auto` | 宽度占满 136vp；高度由标题组件实际撑开，不参与剩余空间分配 |
 | 内容区 | 必选 | 通常为 `flex1` | 必须继续说明是高度自适应、宽度自适应或宽高均自适应 |
-| PillButton 区 | 按布局必选或可选 | `flex0`; 136 × 36vp | 只能用于 2×2 的底部整宽操作槽；“标题内容单按钮”“标题主次内容单按钮”必选一个，“双列内容单按钮”可选一个，“标题内容双按钮”“紧凑内容双按钮”必选两个；runtime 圆角固定为 30vp |
+| PillButton 区 | 按布局必选或可选 | `flex0`; 136 × 36vp | 只能用于 2×2 的底部整宽操作槽；“标题内容单按钮”“标题主次内容单按钮”必选一个，“双列内容单按钮”可选一个，“紧凑内容双按钮”必选两个；runtime 圆角固定为 30vp |
 | CircleButton 区 | 所属布局必选 | `flex0`; 操作槽 40 × 40vp | 槽内居中放置 runtime 的 36 × 36vp `CircleButton`；Icon 20 × 20vp，不显示文字，由外层布局锚定安全内容区右下角 |
 | 标题与下方内容间距 | 有标题布局必选 | 8vp | 从标题区实际底部开始计算 |
 | 其他主要区域间距 | 按布局必选 | 8vp | 用于同级内容区、内容组与按钮、次要信息与 CircleButton；可选区域不存在时同时移除其占位和相邻间距 |
@@ -48,18 +48,15 @@
 | 同级：四个可独立识别的内容 | 无 | `flow` | 无 | 内容四宫格 | 内容区内部使用 2×2 四宫格，不放置操作按钮 |
 | 单层：一个主体内容 | 必选 | `flow` | 1 个 `PillButton` | 标题内容单按钮 | 使用底部整宽按钮；没有 Action 时改用“标题单内容” |
 | 主次：Hero 主要信息 + 紧密关联的次要信息 | 必选 | `flow` | 1 个 `PillButton` | 标题主次内容单按钮 | Hero 与次要信息按内容自然撑高、不等分；底部按钮必选 |
-| 同级：两个对象横向并列 | 必选 | `flow` | 0 或 1 个 `PillButton` | 双列内容单按钮 | 固定 18vp 单行标题；两个 64vp 固定宽度内容列横向并列并共同自适应剩余高度；按钮可选，存在时固定在底部 |
-| 单层：一个连续正文区域 | 必选 | `anchor` | 1 个 `CircleButton` | 标题正文角标按钮 | 正文固定使用左侧 88vp 宽度，Action 锚定右下角 |
+| 同级：两个占比对象横向并列 | 必选 | `flow` | 0 或 1 个 `PillButton` | 双列内容单按钮 | 仅用于偶数环：使用自然高度的单行标题槽；两个 64vp 固定宽度内容列必须各放置一个 `ProgressCircle size="sm"`，不得替换为其他业务组件；按钮可选，存在时固定在底部 |
 | 主次：Hero 主要信息 + 左下次要信息 | 必选 | `anchor` | 1 个 `CircleButton` | 标题锚点内容 | 次要信息可向上扩展，但必须与 Hero 保持至少 8vp |
 | 单层：一个紧凑内容 | 无 | `flow` | 2 个 `PillButton` | 紧凑内容双按钮 | 内容区固定为 136 × 48vp，两个整宽 Action 均必选 |
-| 单层：一个紧凑内容 | 必选 | `flow` | 2 个 `PillButton` | 标题内容双按钮 | 标题和两个 Action 均必选；必须先确认剩余内容高度足够 |
 
 ### 2.2 根据 Action 确认操作区
 
 - 先按真实内容高度检查底部空间。标题和必需内容完整呈现后，若仍可闭合出内容与按钮之间的 `8vp` 间距及 `136 × 36vp` 底部操作槽，必须优先选择带可见操作文本的 `PillButton`，并改用“标题内容单按钮”“标题主次内容单按钮”或其他提供底部整宽操作槽的兼容布局。
-- 不得仅因 action 提供 Icon，或为了沿用“标题正文角标按钮”，而把本可放入底部的 `PillButton` 降级为 `CircleButton`。
 - 只有底部 `136 × 36vp` 操作槽确实无法与必需内容共同容纳、右下 `40 × 40vp` 操作槽可以安全避让正文，并且操作仅靠 Icon 也能明确表达时，才使用 `CircleButton`；完整操作名称写入 `ariaLabel`。
-- 有两个 action 时全部使用 PillButton，使用“标题内容双按钮”或“紧凑内容双按钮”，上下排列，禁止 `CircleButton` 加 `PillButton`。
+- 有两个 action 时全部使用 PillButton，使用“紧凑内容双按钮”，上下排列，禁止 `CircleButton` 加 `PillButton`。
 
 ## 3. 布局实现与JSX写法
 
@@ -111,7 +108,7 @@
 
 尺寸与闭合：内容高 `136 − T − 8`。
 操作区：无；不保留操作槽及其相邻间距。
-内容对齐：内容区左对齐且底端对齐。
+内容对齐：内容区左对齐且底端对齐，显示使用`align="flex-start" justify="flex-end"`。
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
@@ -145,7 +142,7 @@
 
 ### 3.4 标题双内容
 
-尺寸与闭合：单区高 `(136 − T − 8 − 8) ÷ 2`。
+尺寸与闭合：每个内容区高 `(136 − T − 8 − 8) ÷ 2`。
 操作区：无；不保留操作槽及其相邻间距。
 内容对齐：核心区左对齐且顶端对齐；明细区左对齐且底端对齐。
 
@@ -185,9 +182,9 @@
 
 ### 3.6 标题内容单按钮
 
-尺寸与闭合：内容高 `136 − T − 8 − 8 − 36`。
+尺寸与闭合：内容区高 `136 − T − 8 − 8 − 36`。
 操作区：必选底部整宽 `PillButton`，槽位为 136 × 36vp，runtime 圆角为 30vp；文字必选，20vp Icon 可选。没有 Action 时改用“标题单内容”。
-内容对齐：内容区必须显式使用 `align="flex-start"`、`justify="flex-start"`，使主体内容左对齐且顶端对齐；不得纵向居中或贴底。
+内容对齐：内容区左对齐且顶端对齐，必须显式使用 `align="flex-start"`、`justify="flex-start"`；不得纵向居中或贴底。
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-green" gap={8}>
@@ -252,24 +249,24 @@
 
 ### 3.8 双列内容单按钮
 
-标题区：必选 `SingleLineTitle`，槽位固定为 136 × 18vp，不使用 `DoubleLineTitle`，不随内容区参与弹性分配。
-内容区：必选左右两个固定列，列宽均为 64vp，列间距为 8vp，满足 `64 + 8 + 64 = 136`；双列外层使用 `flex={1}`，两列高度填满该内容区并随剩余空间自适应。
+标题区：必选 `SingleLineTitle`，不使用 `DoubleLineTitle`，不随内容区参与弹性分配。
+内容区：该布局仅允许偶数环组件。必选左右两个固定列，列宽均为 64vp，列间距为 8vp，满足 `64 + 8 + 64 = 136`；双列外层使用 `flex={1}`，两列高度填满该内容区并随剩余空间自适应。每列必须且只能放置一个 `ProgressCircle size="sm"`，两个圆环分别表达两个同级占比对象；不得放置 `ProgressCircleSingle`、文本组件、图表或其他业务组件，也不得在任一列增加第二个业务组件。
 操作区：可选底部整宽 `PillButton`。存在 Action 且内容能够闭合时使用，槽位固定为 136 × 36vp，runtime 圆角为 30vp；文字必选，20vp Icon 可选。没有 Action 时同时移除按钮槽和内容区下方的相邻 8vp 间距，不得改用其他按钮填位。
-尺寸与闭合：无按钮时内容高 `136 − 18 − 8 = 110vp`；有按钮时内容高 `136 − 18 − 8 − 8 − 36 = 66vp`。
+尺寸与闭合：无按钮时内容高 `136 − T − 8`；有按钮时内容高 `136 − T − 8 − 8 − 36`。
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
-  <Stack direction="column" flex={0} height={18} width="full">
+  <Stack direction="column" flex={0} width="full">
     <SingleLineTitle title="设备状态" />
   </Stack>
 
   <Stack direction="row" flex={1} width="full" gap={8}>
     <Stack direction="column" flex={0} width={64} height="full">
-      {/* 同级对象 A */}
+      {/* <ProgressCircle size="sm" ... /> */}
     </Stack>
 
     <Stack direction="column" flex={0} width={64} height="full">
-      {/* 同级对象 B */}
+      {/* <ProgressCircle size="sm" ... /> */}
     </Stack>
   </Stack>
 
@@ -287,60 +284,27 @@
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
-  <Stack direction="column" flex={0} height={18} width="full">
+  <Stack direction="column" flex={0} width="full">
     <SingleLineTitle title="设备状态" />
   </Stack>
 
   <Stack direction="row" flex={1} width="full" gap={8}>
     <Stack direction="column" flex={0} width={64} height="full">
-      {/* 同级对象 A */}
+      {/* <ProgressCircle size="sm" ... /> */}
     </Stack>
 
     <Stack direction="column" flex={0} width={64} height="full">
-      {/* 同级对象 B */}
+      {/* <ProgressCircle size="sm" ... /> */}
     </Stack>
   </Stack>
 </Card>
 ```
 
-### 3.9 标题正文角标按钮
+### 3.9 标题锚点内容
 
-尺寸与闭合：标题下方正文画布高 `136 − T − 8`；正文宽 88vp；底部横向满足 `88 + 8 + 40 = 136`；Action 为 40 × 40vp。
-操作区：必选 40 × 40vp 操作槽，槽内居中放置 runtime 的 36 × 36vp `CircleButton`；操作槽锚定安全内容区右下角，20vp Icon 必选，不显示文字，`ariaLabel` 必选。
-
-“标题正文角标按钮”是分层锚点布局：
-- `CircleButton` 自身不负责定位；`right={0}`、`bottom={0}` 属于外层 `Stack`。
-- 正文从标题区实际底部 + 8vp 开始，固定占用左侧 88vp，并在剩余高度内自适应。
-- Action 固定锚定安全内容区右下角；正文与 Action 保持 8vp 水平间距，不得依赖覆盖、裁剪或隐藏必需文字避让按钮。
-
-```jsx
-<Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
-  <Stack direction="column" flex={0}>
-    <SingleLineTitle title="需求评审会" />
-  </Stack>
-
-  <Stack direction="column" flex={1} width="full" position="relative">
-    <Stack direction="column" position="absolute" left={0} top={0} bottom={0} width={88}>
-      {/* 正文 */}
-    </Stack>
-
-    <Stack direction="column" position="absolute" right={0} bottom={0} width={40} height={40} align="center" justify="center">
-      <CircleButton
-        icon="phone_fill.svg"
-        ariaLabel="快捷操作"
-        appearance="card"
-        actionId="action.quick"
-      />
-    </Stack>
-  </Stack>
-</Card>
-```
-
-### 3.10 标题锚点内容
-
-尺寸与闭合：标题下方高 `136 − T − 8`；底部 `88 + 8 + 40 = 136`。
-操作区：必选 40 × 40vp 操作槽，槽内居中放置 runtime 的 36 × 36vp `CircleButton`；操作槽锚定安全内容区右下角，20vp Icon 必选，不显示文字，`ariaLabel` 必选。
-内容对齐：Hero 从标题区实际底部 + 8vp 开始；次要信息左对齐并锚定左下角，内容增高时只能向上扩展，且与 Hero 保持至少 8vp。
+尺寸与闭合：标题下方可用高度 `136 − T − 8`；底部闭合校验为 `88 + 8 + 40 = 136`。
+操作区：必选 40 × 40vp 操作槽，槽内居中放置 runtime 的 36 × 36vp `CircleButton`；操作槽锚定安全内容区右下角，必选 20vp Icon ，不显示文字，`ariaLabel` 必选。
+内容对齐：Hero 从标题区实际底部 + 8vp 开始；次要信息左对齐并锚定左下角，内容增高时只能向上扩展，且与 Hero 保持至少 8vp，右侧与操作区保持 8vp。
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
@@ -371,48 +335,15 @@
 </Card>
 ```
 
-### 3.11 紧凑内容双按钮
+### 3.10 紧凑内容双按钮
 
-尺寸与闭合：`48 + 8 + 36 + 8 + 36 = 136`。
-操作区：两个必选 `PillButton` 在底部上下排列，每个槽位为 136 × 36vp，垂直间距为 8vp。
-
-```jsx
-<Card direction="column" size="2x2" appearance="solid-white" gap={8}>
-  <Stack direction="column" flex={0} height={48} width="full">
-    {/* 内容区 */}
-  </Stack>
-
-  <Stack direction="column" flex={0} height={36} width="full">
-    <PillButton
-      label="主要操作"
-      appearance="card"
-      actionId="action.primary"
-    />
-  </Stack>
-
-  <Stack direction="column" flex={0} height={36} width="full">
-    <PillButton
-      label="次要操作"
-      appearance="card"
-      actionId="action.secondary"
-    />
-  </Stack>
-</Card>
-```
-
-### 3.12 标题内容双按钮
-
-尺寸与闭合：内容高 `136 − T − 8 − 8 − 36 − 8 − 36 = 40 − T`。
+尺寸与闭合：内容区为 136 x 48vp，显式使用 `align="flex-start"`、`justify="flex-start"`。内容区使用 `ProgressCircleSingle` 时，必须显式传入 `size="compact"`；禁止省略 `size` 使用高度至少为 52vp 的默认规格。
 操作区：两个必选 `PillButton` 在底部上下排列，每个槽位为 136 × 36vp，垂直间距为 8vp。
 
 ```jsx
 <Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
-  <Stack direction="column" flex={0}>
-    <SingleLineTitle title="设备控制" />
-  </Stack>
-
-  <Stack direction="column" flex={1} width="full">
-    {/* 紧凑内容区 */}
+  <Stack direction="column" flex={1} width="full" align="flex-start" justify="flex-start">
+    {/* 使用 ProgressCircleSingle 时必须写 size="compact" */}
   </Stack>
 
   <Stack direction="column" flex={0} height={36} width="full">
@@ -425,7 +356,6 @@
 </Card>
 ```
 
-该布局的内容空间非常有限。必须先按标题实际高度计算剩余高度；无法容纳业务组件时停止并报告，不得强行裁剪。
 
 ## 4. 常见错误
 
@@ -434,4 +364,4 @@
 - 安全内容区内使用 `right={0}`、`bottom={0}`；`Card` 已提供 12vp padding，不要重复写 12。圆形操作槽固定为 40 × 40vp。
 - 不要同时用父级 `gap` 和空白 `Stack` 表示同一段间距。
 - 不要让整宽组件在 `align="flex-start"` 的父容器内按内容宽度收缩。
-- “标题内容双按钮”和带 `DoubleLineTitle` 的布局必须先计算剩余高度；不足以容纳业务组件时不得生成。
+- 带 `DoubleLineTitle` 的布局必须先计算剩余高度；不足以容纳业务组件时不得生成。

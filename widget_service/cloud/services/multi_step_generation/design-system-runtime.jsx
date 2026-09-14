@@ -1371,6 +1371,21 @@
   line-height:14px;}
 .ec[data-density="compact"] .ec-time{flex-shrink:0;}
 .ec[data-density="compact"] .ec-location{flex:1 1 auto;}
+.ec[data-multiple="true"]{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  gap:var(--event-card-items-gap,8px);
+  align-items:stretch;
+  height:100%;}
+.ec[data-multiple="true"] .ec-item{
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:8px minmax(0,1fr);
+  column-gap:7px;
+  align-items:stretch;
+  width:100%;
+  min-width:0;}
 
 /* ── ChecklistItem ────────────────────────────────── */
 .cli{
@@ -2389,7 +2404,7 @@ a{text-decoration:none}
 .pc-single-type10a-content{
   align-items:flex-start;
   justify-content:center;}
-.pc-single-type11a-card{
+.pc-single-type14-card{
   box-sizing:border-box;
   position:relative;
   isolation:isolate;
@@ -2398,24 +2413,24 @@ a{text-decoration:none}
   height:160px;
   padding:12px;
   border-radius:20px;}
-.pc-single-type11a-title{
+.pc-single-type14-title{
   position:absolute;
   top:12px;
   right:12px;
   left:12px;
   height:18px;}
-.pc-single-type11a-hero{
+.pc-single-type14-hero{
   position:absolute;
   top:38px;
   right:12px;
   left:12px;
   height:52px;}
-.pc-single-type11a-secondary{
+.pc-single-type14-secondary{
   position:absolute;
   bottom:12px;
   left:12px;
   width:88px;}
-.pc-single-type11a-action{
+.pc-single-type14-action{
   position:absolute;
   right:12px;
   bottom:12px;
@@ -3202,6 +3217,21 @@ a{text-decoration:none}
   line-height:14px;}
 .ec[data-density="compact"] .ec-time{flex:0 0 auto;}
 .ec[data-density="compact"] .ec-location{flex:1 1 0;}
+.ec[data-multiple="true"]{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  gap:var(--event-card-items-gap,8px);
+  align-items:stretch;
+  height:100%;}
+.ec[data-multiple="true"] .ec-item{
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:8px minmax(0,1fr);
+  column-gap:8px;
+  align-items:stretch;
+  width:100%;
+  min-width:0;}
 .event-card-demo-card{
   box-sizing:border-box;
   width:160px;
@@ -3313,7 +3343,7 @@ a{text-decoration:none}
   flex-direction:column;
   align-items:flex-start;
   gap:4px;}
-.numeric-ratio-type11a-card{
+.numeric-ratio-type14-card{
   box-sizing:border-box;
   position:relative;
   isolation:isolate;
@@ -3322,30 +3352,30 @@ a{text-decoration:none}
   height:160px;
   padding:12px;
   border-radius:20px;}
-.numeric-ratio-type11a-title{
+.numeric-ratio-type14-title{
   position:absolute;
   top:12px;
   right:12px;
   left:12px;
   height:18px;}
-.numeric-ratio-type11a-hero{
+.numeric-ratio-type14-hero{
   position:absolute;
   top:38px;
   right:12px;
   left:12px;}
-.numeric-ratio-type11a-secondary{
+.numeric-ratio-type14-secondary{
   position:absolute;
   bottom:12px;
   left:12px;
   width:88px;
   height:auto;}
-.numeric-ratio-type11a-action{
+.numeric-ratio-type14-action{
   position:absolute;
   right:12px;
   bottom:12px;
   width:40px;
   height:40px;}
-.emphasized-data-type11a-card{
+.emphasized-data-type14-card{
   box-sizing:border-box;
   position:relative;
   isolation:isolate;
@@ -3354,19 +3384,19 @@ a{text-decoration:none}
   height:160px;
   padding:12px;
   border-radius:20px;}
-.emphasized-data-type11a-card > :not(.card-bg-orb__canvas){z-index:1;}
-.emphasized-data-type11a-title{
+.emphasized-data-type14-card > :not(.card-bg-orb__canvas){z-index:1;}
+.emphasized-data-type14-title{
   position:absolute;
   top:12px;
   right:12px;
   left:12px;
   height:18px;}
-.emphasized-data-type11a-hero{
+.emphasized-data-type14-hero{
   position:absolute;
   top:38px;
   right:12px;
   left:12px;}
-.emphasized-data-type11a-secondary{
+.emphasized-data-type14-secondary{
   position:absolute;
   bottom:12px;
   left:12px;
@@ -3375,10 +3405,10 @@ a{text-decoration:none}
   flex-direction:column;
   align-items:flex-start;
   gap:2px;}
-.emphasized-data-type11a-secondary .secondary-body{
+.emphasized-data-type14-secondary .secondary-body{
   font-size:var(--fs-bs);
   line-height:16px;}
-.emphasized-data-type11a-action{
+.emphasized-data-type14-action{
   position:absolute;
   right:12px;
   bottom:12px;
@@ -3543,8 +3573,8 @@ a{text-decoration:none}
 .title-position-demo,
 .button-card-position-demo,
 .bg-template-preview,
-.numeric-ratio-type11a-card,
-.emphasized-data-type11a-card{
+.numeric-ratio-type14-card,
+.emphasized-data-type14-card{
   border:0;
   box-shadow:none;}
 .bg-template-preview::after{box-shadow:none;}
@@ -4830,26 +4860,69 @@ a{text-decoration:none}
     );
   }
 
-  function EventCard({ title, time, location, density, dataIds, className, ...rest }) {
+  function EventCard({ items, title, time, location, density, dataIds, className, ...rest }) {
     const compact = density === "compact";
-    return (
-      <div className={cx("ec", className)} data-density={compact ? "compact" : undefined} {...rest}>
+    const schedules = Array.isArray(items) ? items.slice(0, 2) : [{ title, time, location, dataIds }];
+    const elementRef = React.useRef(null);
+    const renderSchedule = (schedule, index, wrapped) => {
+      const content = (
+        <>
         <div className="ec-rail" aria-hidden="true"><span className="ec-dot" /><span className="ec-line" /></div>
         <div className="ec-content">
-          <span className="ec-title">{title}</span>
+          <span className="ec-title">{schedule.title}</span>
           {compact ? (
             <div className="ec-meta">
-              <span className="ec-time">{time}</span>
-              {location != null && <span className="ec-meta-separator" aria-hidden="true">｜</span>}
-              {location != null && <span className="ec-location">{location}</span>}
+              <span className="ec-time">{schedule.time}</span>
+              {schedule.location != null && <span className="ec-meta-separator" aria-hidden="true">｜</span>}
+              {schedule.location != null && <span className="ec-location">{schedule.location}</span>}
             </div>
           ) : (
             <>
-              <span className="ec-time">{time}</span>
-              {location != null && <span className="ec-location">{location}</span>}
+              <span className="ec-time">{schedule.time}</span>
+              {schedule.location != null && <span className="ec-location">{schedule.location}</span>}
             </>
           )}
         </div>
+        </>
+      );
+      return wrapped ? <div className="ec-item" key={index}>{content}</div> : content;
+    };
+    const multiple = schedules.length > 1;
+    React.useLayoutEffect(() => {
+      const element = elementRef.current;
+      if (!element || !multiple) return undefined;
+
+      const updateGap = () => {
+        const itemNodes = Array.from(element.querySelectorAll(":scope > .ec-item"));
+        if (itemNodes.length !== 2 || element.clientHeight <= 0) return;
+        const contentHeight = itemNodes.reduce(
+          // clientHeight/offsetHeight stay in layout pixels when a preview
+          // applies CSS transform scaling; DOMRect values do not.
+          (total, itemNode) => total + itemNode.offsetHeight,
+          0,
+        );
+        const gap = element.clientHeight >= contentHeight + 8 ? 8 : 4;
+        element.style.setProperty("--event-card-items-gap", `${gap}px`);
+      };
+      updateGap();
+
+      const resizeObserver = typeof global.ResizeObserver === "function"
+        ? new global.ResizeObserver(updateGap)
+        : null;
+      resizeObserver?.observe(element);
+      Array.from(element.children).forEach((child) => resizeObserver?.observe(child));
+      const mutationObserver = typeof global.MutationObserver === "function"
+        ? new global.MutationObserver(updateGap)
+        : null;
+      mutationObserver?.observe(element, { childList: true, characterData: true, subtree: true });
+      return () => {
+        resizeObserver?.disconnect();
+        mutationObserver?.disconnect();
+      };
+    }, [multiple, items, title, time, location, density]);
+    return (
+      <div ref={elementRef} className={cx("ec", className)} data-density={compact ? "compact" : undefined} data-multiple={multiple ? "true" : undefined} {...rest}>
+        {multiple ? schedules.map((schedule, index) => renderSchedule(schedule, index, true)) : renderSchedule(schedules[0], 0, false)}
       </div>
     );
   }
@@ -4911,7 +4984,7 @@ a{text-decoration:none}
     DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["dataIds"] },
     Badge: { required: ["value"], optional: ["dataIds"], color: ["blue", "orange", "green", "red", "purple", "cyan", "pink"] },
     EmphasizedData: { requiredOneOf: ["value", "items"], optional: ["unit", "dataIds"] },
-    EmphasisText: { required: ["mainText", "secondaryText"], optional: ["dataIds"] },
+    EmphasisText: { required: ["mainText"], optional: ["secondaryText", "dataIds"] },
     SecondaryBody: { required: ["items"], itemsMinLength: 1, optional: ["separator"] },
     DataDisplay: { required: ["label", "value", "supportingText"], optional: ["dataIds"] },
     InfoBlock: { required: ["primaryText", "secondaryText"], optional: ["unit", "visual", "dataIds"] },
@@ -4931,7 +5004,7 @@ a{text-decoration:none}
     NumericRatio: { required: ["icon", "value"], optional: ["unit", "appearance", "dataIds"] },
     NumericRatioStack: { required: ["items"], optional: ["appearance"] },
     ChecklistItem: { required: ["title", "meta"], optional: ["done", "dataIds"] },
-    EventCard: { required: ["title", "time"], optional: ["location", "density", "dataIds"], density: ["compact"] },
+    EventCard: { requiredOneOf: ["items", "title"], optional: ["time", "location", "density", "dataIds"], density: ["compact"] },
     PillButton: { required: ["label"], optional: ["icon", "appearance", "disabled", "actionId"], variant: ["emphasis", "normal"], color: ["primary", "secondary", "success", "discovery", "danger", "warning", "caution"] },
     CircleButton: { required: ["icon", "ariaLabel"], optional: ["appearance", "disabled", "actionId"], variant: ["emphasis", "normal"], color: ["primary", "secondary", "success", "discovery", "danger", "warning", "caution"] },
     CardButton: { required: ["text"], optional: ["icon", "disabled", "actionId"] },

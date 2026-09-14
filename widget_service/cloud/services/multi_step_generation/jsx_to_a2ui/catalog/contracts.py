@@ -111,7 +111,7 @@ CONTRACTS = {
     "TableText": contract(required=("items",)),
     "TextBlock": contract(required=("items",)),
     "EmphasizedData": contract(optional=("unit", "dataIds"), required_one_of=("value", "items")),
-    "EmphasisText": contract(required=("mainText", "secondaryText"), optional=("dataIds",)),
+    "EmphasisText": contract(required=("mainText",), optional=("secondaryText", "dataIds")),
     "SecondaryBody": contract(required=("items",), optional=("separator",)),
     "WeatherSummaryCard": contract(
         required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
@@ -162,8 +162,8 @@ CONTRACTS = {
     "NumericRatioStack": contract(required=("items",), optional=("appearance",)),
     "ChecklistItem": contract(required=("title", "meta"), optional=("done", "dataIds")),
     "EventCard": contract(
-        required=("title", "time"),
-        optional=("location", "density", "dataIds"),
+        required_one_of=("items", "title"),
+        optional=("time", "location", "density", "dataIds"),
         density=("compact",),
     ),
     "PillButton": contract(

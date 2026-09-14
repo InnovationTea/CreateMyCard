@@ -7,20 +7,69 @@ from ..base.text import text
 from ..common import palette
 
 
-def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
+def collect_event_card_conversion_errors(node: JSXElement) -> list[str]:
+    items = node.props.get("items")
+    if items is None:
+        errors: list[str] = []
+        if "title" not in node.props:
+            errors.append("<EventCard> legacy single-event form requires title")
+        if "time" not in node.props:
+            errors.append("<EventCard> legacy single-event form requires time")
+        return errors
+    errors = []
+    if any(name in node.props for name in ("title", "time", "location", "dataIds")):
+        errors.append(
+            "<EventCard> items cannot be combined with top-level title, time, location, or dataIds"
+        )
+    if not isinstance(items, list) or not 1 <= len(items) <= 2:
+        return errors + ["<EventCard> items must contain one or two schedules"]
+    allowed = {"title", "time", "location", "dataIds", "dataValueMaps"}
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append(f"<EventCard> items[{index}] must be an object")
+            continue
+        missing = {"title", "time"} - set(item)
+        if missing:
+            errors.append(
+                f"<EventCard> items[{index}] is missing required fields: "
+                + ", ".join(sorted(missing))
+            )
+        unknown = set(item) - allowed
+        if unknown:
+            errors.append(
+                f"<EventCard> items[{index}] has unsupported fields: "
+                + ", ".join(sorted(unknown))
+            )
+    return errors
+
+
+def _convert_event(
+    node: JSXElement,
+    ctx: ConversionContext,
+    item: dict | None,
+    index: int | None,
+) -> A2UINode:
     current_palette = palette(ctx)
-    has_location = node.props.get("location") is not None
+    owner = node.props if item is None else item
+    has_location = owner.get("location") is not None
     compact = node.props.get("density") == "compact"
     event_height = 32 if compact else 50 if has_location else 34
     rail_top = 17 if compact else 18
-    # The rail has zero layout height. Paint a bounded line through its
-    # unclipped box and clip it at the text-sized event boundary. This avoids
-    # a wrapContent/matchParent height cycle without fixing the event height
-    # or estimating whether a dynamic title occupies one or two lines.
-    max_event_height = event_height if compact else event_height + 18
+    # Native layout constrains children of a zero-height Stack even when
+    # clip is false. Use a positive rail bounded by the minimum event height.
+    # This fallback deliberately does not extend with a two-line title:
+    # matchParent would reintroduce the intrinsic-height sizing cycle.
+    rail_height = event_height - rail_top
+    prefix = "event" if index is None else f"event_{index}"
+
+    def value(name: str):
+        if item is None:
+            return ctx.prop(node, name)
+        return ctx.item_prop(node.tag, item, index or 0, name)
+
     dot = stack(
         ctx,
-        "event_dot",
+        f"{prefix}_dot",
         [],
         styles={
             "width": 8,
@@ -34,26 +83,27 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     )
     line = ctx.make(
         "Divider",
-        "event_line",
+        f"{prefix}_line",
         styles={
             "vertical": True,
             "strokeWidth": 1,
             "color": current_palette.secondary,
-            "height": max_event_height - rail_top,
+            "width": 1,
+            "height": rail_height,
             "flexShrink": 0,
             "layoutWeight": 0,
         },
     )
     rail = stack(
         ctx,
-        "event_rail",
+        f"{prefix}_rail",
         [line],
         align="top",
         styles={
             "width": 8,
-            "height": 0,
+            "height": rail_height,
             "margin": {"top": rail_top},
-            "clip": False,
+            "clip": True,
             "flexShrink": 0,
         },
     )
@@ -72,8 +122,8 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         title_styles["height"] = 16
     title = text(
         ctx,
-        "event_title",
-        ctx.prop(node, "title"),
+        f"{prefix}_title",
+        value("title"),
         styles=title_styles,
     )
     time_styles = {
@@ -90,8 +140,8 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         time_styles["width"] = "matchParent"
     time = text(
         ctx,
-        "event_time",
-        ctx.prop(node, "time"),
+        f"{prefix}_time",
+        value("time"),
         styles=time_styles,
     )
     location = None
@@ -111,8 +161,8 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             location_styles["width"] = "matchParent"
         location = text(
             ctx,
-            "event_location",
-            ctx.prop(node, "location"),
+            f"{prefix}_location",
+            value("location"),
             styles=location_styles,
         )
     if compact:
@@ -122,7 +172,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 [
                     text(
                         ctx,
-                        "event_meta_separator",
+                        f"{prefix}_meta_separator",
                         "｜",
                         styles={
                             "height": 14,
@@ -137,7 +187,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             )
         details = row(
             ctx,
-            "event_details",
+            f"{prefix}_details",
             detail_children,
             gap=4,
             styles={
@@ -151,7 +201,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     else:
         details = column(
             ctx,
-            "event_details",
+            f"{prefix}_details",
             [time, location],
             gap=0,
             styles={
@@ -163,11 +213,11 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         )
     body = column(
         ctx,
-        "event_content",
+        f"{prefix}_content",
         [title, details],
         gap=2 if compact else 0,
         styles={
-            # The text subtree is the only height-defining overlay child.
+            # Text can grow beyond the bounded decorative rail.
             "width": "100%",
             "padding": {"left": 15},
             "layoutWeight": 0,
@@ -184,7 +234,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         constraint_size["maxWidth"] = 116
     return stack(
         ctx,
-        "event_card",
+        "event_card" if index is None else f"{prefix}_item",
         [body, rail, dot],
         align="topStart",
         styles={
@@ -192,6 +242,44 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "height": "wrapContent",
             "clip": True,
             "flexShrink": 1,
+            "constraintSize": constraint_size,
+        },
+    )
+
+
+def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
+    errors = collect_event_card_conversion_errors(node)
+    if errors:
+        from ...exceptions import ValidationError
+
+        raise ValidationError(errors[0])
+    items = node.props.get("items")
+    if not isinstance(items, list):
+        return _convert_event(node, ctx, None, None)
+    events = [_convert_event(node, ctx, item, index) for index, item in enumerate(items)]
+    if len(events) == 1:
+        events[0].id = ctx.allocator.next("event_card")
+        return events[0]
+    compact = node.props.get("density") == "compact"
+    minimum_height = sum(
+        32 if compact else 50 if item.get("location") is not None else 34
+        for item in items
+    ) + 4
+    constraint_size = {"minWidth": 0, "minHeight": minimum_height}
+    if ctx.card_size != "2x4":
+        constraint_size["maxWidth"] = 116
+    return column(
+        ctx,
+        "event_card",
+        events,
+        # The protocol has no content-measurement conditional. Use the safe
+        # fallback tier instead of spaceBetween, which can create arbitrary gaps.
+        gap=4,
+        styles={
+            "width": "matchParent",
+            "height": "matchParent",
+            "layoutWeight": 1,
+            "justifyContent": "start",
             "constraintSize": constraint_size,
         },
     )

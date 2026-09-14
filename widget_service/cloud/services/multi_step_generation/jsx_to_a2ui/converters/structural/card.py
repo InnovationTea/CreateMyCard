@@ -9,6 +9,7 @@ from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import adapt_flex_children, column, row
+from .flex_stack import _minimum_node_height
 
 
 def _align(value: object, *, is_row: bool) -> str | None:
@@ -57,6 +58,110 @@ def _content_extent(extent: object, padding: object, axis: str) -> int | float |
     return None
 
 
+def _number(value: object) -> float | None:
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return float(value)
+    return None
+
+
+def _vertical_edges(value: object) -> float:
+    number = _number(value)
+    if number is not None:
+        return number * 2
+    if not isinstance(value, dict):
+        return 0
+    return (_number(value.get("top")) or 0) + (_number(value.get("bottom")) or 0)
+
+
+def _is_event_group(node: A2UINode) -> bool:
+    return (
+        node.component == "Column"
+        and len(node.children) == 2
+        and node.id.endswith("_event_card")
+        and all(child.id.endswith(f"_event_{index}_item") for index, child in enumerate(node.children))
+    )
+
+
+def _resolved_outer_height(node: A2UINode, offered_height: float | None) -> float:
+    explicit = _number(node.styles.get("height"))
+    if explicit is not None:
+        return explicit
+    if node.styles.get("height") == "matchParent" and offered_height is not None:
+        return offered_height
+    if (_number(node.styles.get("layoutWeight")) or 0) > 0 and offered_height is not None:
+        return offered_height
+    return _minimum_node_height(node)
+
+
+def _event_height_upper_bound(node: A2UINode, width: float | None) -> float:
+    """Reserve both title lines unless a literal conservatively fits one line.
+
+    Bindings can change after compilation. Never use their initial sample or
+    a Text minHeight as proof that the native title will remain one line.
+    """
+    minimum = _minimum_node_height(node)
+    pending = list(node.children)
+    while pending:
+        child = pending.pop()
+        pending.extend(child.children)
+        if not child.id.endswith("_title") or child.styles.get("maxLines") != 2:
+            continue
+        maximum = (node.styles.get("constraintSize") or {}).get("maxWidth")
+        if isinstance(maximum, (int, float)):
+            width = min(width, maximum) if width is not None else maximum
+        content = child.props.get("content")
+        font = _number(child.styles.get("fontSize")) or 14
+        literal_fits = (
+            isinstance(content, str) and "{{" not in content and "\n" not in content
+            and width is not None and len(content.encode("utf-16-le")) / 2 * font <= width - 15
+        )
+        return minimum if literal_fits else minimum + 18
+    return minimum
+
+
+def _resolve_event_group_gaps(
+    node: A2UINode, offered_height: float | None, offered_width: float | None = None,
+) -> None:
+    """Use 8vp only with a conservative capacity proof; otherwise keep 4vp."""
+    outer_height = _resolved_outer_height(node, offered_height)
+    content_height = max(0, outer_height - _vertical_edges(node.styles.get("padding")))
+    width = _number(node.styles.get("width"))
+    if width is None:
+        width = offered_width
+    content_width = _content_extent(width, node.styles.get("padding", 0), "width")
+
+    if _is_event_group(node):
+        item_height = sum(_event_height_upper_bound(child, content_width) for child in node.children)
+        node.props["itemMargin"] = 8 if content_height >= item_height + 8 else 4
+
+    if not node.children:
+        return
+    if node.component != "Column":
+        for child in node.children:
+            # A Row's width belongs to all columns, not to each child. Unknown
+            # allocations must not be treated as proof of single-line titles.
+            child_width = content_width if node.component == "Stack" else None
+            _resolve_event_group_gaps(child, content_height, child_width)
+        return
+
+    gap = _number(node.props.get("itemMargin")) or 0
+    available_for_children = max(0, content_height - gap * max(0, len(node.children) - 1))
+    weights = [max(0, _number(child.styles.get("layoutWeight")) or 0) for child in node.children]
+    fixed_height = sum(
+        _resolved_outer_height(child, None)
+        for child, weight in zip(node.children, weights, strict=True)
+        if weight == 0
+    )
+    total_weight = sum(weights)
+    flexible_height = max(0, available_for_children - fixed_height)
+    for child, weight in zip(node.children, weights, strict=True):
+        if weight > 0 and total_weight > 0:
+            allocated = max(_minimum_node_height(child), flexible_height * weight / total_weight)
+        else:
+            allocated = _resolved_outer_height(child, None)
+        _resolve_event_group_gaps(child, allocated, content_width)
+
+
 def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     explicit_appearance = node.props.get("appearance")
     semantic_size, width, height = resolve_card_size(node.props.get("size"))
@@ -100,10 +205,12 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         if value is not None:
             resolved_styles[key] = value
     layout = row if is_row else column
-    return layout(
+    result = layout(
         inner,
         "root",
         children,
         gap=node.props.get("gap", 0),
         styles=resolved_styles,
     )
+    _resolve_event_group_gaps(result, float(height))
+    return result

@@ -369,8 +369,8 @@ def _aggregate_layout_findings(
         )
     elif structural_repair:
         suggestion = (
-            "当前不是单个组件的轻微偏移。请重新分配整个正文区域：减少真正可舍弃的"
-            "次要内容，重新分组组件并调整共同父级的 direction/flex/width/height/gap；不要继续逐个"
+            "当前不是单个组件的轻微偏移。请重新分配整个正文区域：无损合并或替换"
+            "组件，重新分组并调整共同父级的 direction/flex/width/height/gap；不要继续逐个"
             "移动组件，也不得删除必需的 dataIds、actionId 或把动态值改成静态文本。"
         )
     else:
@@ -422,7 +422,7 @@ def compact_validation_feedback(
         entry = next(item for item in compact if item.get("code") == layout_code)
         entry["suggestion"] = (
             "同类布局错误在修复后再次出现。不要继续局部移动组件；请重新分配整个正文区域，"
-            "保持必需 dataIds/actionId，并只省略真正可舍弃的信息。"
+            "保留已选事实与全部 dataIds/actionId，不得通过删信息消除布局错误。"
         )
         entry["repeated"] = True
     over_limit_with_layout = len(compact) > limit and layout_aggregated and limit > 0

@@ -312,11 +312,11 @@ def _task_metrics(
         result = turn.get("tool_result") if isinstance(turn.get("tool_result"), dict) else {}
         if isinstance(turn.get("tool_argument_repair"), dict):
             inferred_tool_argument_repairs += 1
-        if status == "tool_failed" and result.get("phase") == "tool_arguments":
+        if status == "tool_failed" and result.get("phase") in {"tool_arguments", "truncated_tool_call"}:
             item = {
                 "taskId": task_id,
                 "category": "model_protocol",
-                "code": "invalid-tool-arguments",
+                "code": "truncated-tool-call" if result.get('phase') == 'truncated_tool_call' else "invalid-tool-arguments",
                 "message": str(result.get("error") or "tool arguments were invalid JSON"),
             }
             if has_later_turn:
@@ -377,6 +377,14 @@ def _task_metrics(
                     "message": str(turn.get("error") or "model request failed"),
                 }
             )
+        elif status == "tool_failed" and tool == "submit_card_plan" and result.get('phase') == 'plan_contract':
+            item = {
+                "taskId": task_id, "category": "plan_contract", "code": "plan-contract",
+                "message": str(result.get("error") or "plan validation failed"),
+            }
+            if has_later_turn:
+                retry_reason_items.append(item)
+            issue_reason_items.append(item)
         elif status == "tool_failed" and tool != "submit_card_jsx":
             item = {
                 "taskId": task_id,
@@ -571,6 +579,7 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "insufficientInputTasks": insufficient,
             "failedTasks": failed,
             "unverifiedTasks": int(manifest.get("unverifiedTasks") or 0),
+            "semanticUnverifiedTasks": int(manifest.get("semanticUnverifiedTasks") or 0),
             "producedRatePercent": _rate(produced, attempted),
             "firstPassTasks": first_pass_tasks,
             "firstPassRatePercent": _rate(first_pass_tasks, produced),
@@ -681,6 +690,8 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
         f"- Input: `{run.get('input')}`",
         "",
         "## Outcome",
+        "",
+        f"- Generated cards with unverified semantic coverage: {outcome['semanticUnverifiedTasks']}",
         "",
         "| Requested | Attempted | Produced | Completed | Partial | Insufficient | Failed | First pass |",
         "|---:|---:|---:|---:|---:|---:|---:|---:|",

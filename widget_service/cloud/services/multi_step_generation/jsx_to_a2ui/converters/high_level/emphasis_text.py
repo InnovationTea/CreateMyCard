@@ -36,8 +36,10 @@ def convert_emphasis_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         },
     )
     secondary = None
-    if node.props.get("secondaryText") is not None:
-        secondary_content = ctx.prop(node, "secondaryText")
+    # Resolve the binding before deciding whether this optional line exists.
+    # A null initial literal can still have a path that receives later updates.
+    secondary_content = ctx.prop(node, "secondaryText")
+    if secondary_content is not None:
         secondary = text(
             ctx,
             "emphasis_secondary",

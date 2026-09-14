@@ -396,6 +396,23 @@ def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]
     return candidates
 
 
+def _filtered_data_fields(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str, str]]:
+    """Explain historical filtering without changing the input contract."""
+    if path in OMITTED_DATA_PATHS:
+        return [{"dataId": _binding_id(path), "reason": "excluded by existing OMITTED_DATA_PATHS policy"}]
+    if isinstance(value, list):
+        return [item for index, child in enumerate(value) for item in _filtered_data_fields(child, path + (index,))]
+    if not isinstance(value, dict) or "sampleValue" in value:
+        return []
+    result = []
+    for key, child in value.items():
+        if key == "updatedAt":
+            result.append({"dataId": _binding_id(path + (key,)), "reason": "updatedAt is filtered by the existing input adapter"})
+        else:
+            result.extend(_filtered_data_fields(child, path + (key,)))
+    return result
+
+
 def convert_task(task: dict[str, Any], fallback_index: int | None = None) -> dict[str, Any]:
     """Convert one source task and emit stable fields in generation order."""
     task_label = task.get("id", fallback_index)
@@ -418,6 +435,10 @@ def convert_task(task: dict[str, Any], fallback_index: int | None = None) -> dic
             "assetCandidates": convert_asset_candidates(task.get("assetCandidates"), task_label),
         }
     )
+    filtered = _filtered_data_fields(schema["data"])
+    if filtered:
+        result["inputWarnings"] = [{"code": "input-field-filtered", "severity": "warning", **item}
+                                   for item in filtered]
     return result
 
 

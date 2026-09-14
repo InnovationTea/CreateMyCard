@@ -2,142 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import math
 import re
-from pathlib import Path
 from typing import Any
 
 TOP_LEVEL_2X2_TYPES = frozenset(
-    {"0", "1", "2", "3", "6", "10-A", "10-B", "10-C", "11-A", "12", "14", "15"}
+    {"0", "1", "2", "3", "6", "10-A", "10-B", "12", "14", "15"}
 )
 TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15"})
 FIXED_SLOT_COMPONENTS = frozenset({"CardButton", "InfoBlock"})
-_MISSING = object()
-
-# Shared with the gallery audit; regression tests compare this table with §2.5.
-SUB_PATTERN_CONTRACT = json.loads(
-    (Path(__file__).resolve().parents[1] / "references/layouts/subpattern_contracts.json")
-    .read_text(encoding="utf-8")
-)
-
-
-def _sub140_skeleton_valid(skeleton: Any, blocks: list[Any], expected_blocks: int) -> bool:
-    if not skeleton or skeleton.props.get("gap") != 8 or len(blocks) != expected_blocks:
-        return False
-    if not blocks:
-        return False
-    for node in _descendants([blocks[0]]):
-        if node.tag in SUB_PATTERN_CONTRACT["titleComponents"]:
-            return True
-    return False
-
-
-def _sub140_columns_valid(row: Any, columns: list[Any]) -> bool:
-    if not row or row.tag != "Stack" or row.props.get("direction") != "row":
-        return False
-    if row.props.get("flex") != 1 or row.props.get("gap") != 8 or len(columns) != 2:
-        return False
-    for node in columns:
-        if node.tag != "Stack" or node.props.get("flex") != 1:
-            return False
-    return True
-
-
-def sub_pattern_composition_errors(
-    root: Any, pattern: str, sub_patterns: dict[str, str],
-) -> list[str]:
-    """Count authored component instances, not wrappers, fields or rendered DOM."""
-    if pattern not in {"13", "15"} or not sub_patterns:
-        return []
-    children = root.child_elements()
-    if (root.props.get("direction") != "row" or len(children) != 2
-            or any(child.tag != "Stack" for child in children)):
-        return ["2x4 declared subpatterns require two direct Stack regions in a row Card"]
-    regions = {"left": children[0], "right": children[1]} if pattern == "13" else {"content": children[0]}
-    errors = []
-    for region, name in sub_patterns.items():
-        code = name.split()[0]
-        expected = SUB_PATTERN_CONTRACT["patterns"][code]
-        counts = {"content": 0, "titles": 0, "buttons": 0}
-        buttons = []
-        content_nodes = []
-        pending = [regions[region]]
-        while pending:
-            node = pending.pop()
-            if node.tag in SUB_PATTERN_CONTRACT["structuralComponents"]:
-                pending.extend(node.child_elements())
-            elif node.tag in SUB_PATTERN_CONTRACT["titleComponents"]:
-                counts["titles"] += 1
-            elif node.tag in SUB_PATTERN_CONTRACT["buttonComponents"]:
-                counts["buttons"] += 1
-                buttons.append(node.tag)
-            elif node.tag not in SUB_PATTERN_CONTRACT["decorationComponents"]:
-                # Business components are atomic even when they contain JSX.
-                counts["content"] += 1
-                content_nodes.append(node)
-        count_labels = (
-            ("content", "content components"),
-            ("titles", "title components"),
-            ("buttons", "buttons"),
-        )
-        for key, label in count_labels:
-            required = expected.get(key, _MISSING)
-            if required is _MISSING:
-                raise KeyError(key)
-            actual = counts.get(key)
-            if actual is None:
-                raise KeyError(key)
-            allowed = required if isinstance(required, list) else [required]
-            if actual not in allowed:
-                errors.append(
-                    f"decision.subPattern.{region} {code} requires exactly "
-                    f"{required} {label}; found {actual}"
-                )
-        if expected["buttons"] and any(button != "PillButton" for button in buttons):
-            errors.append(f"decision.subPattern.{region} {code} only allows PillButton in its action slot")
-        component = expected.get("contentComponent")
-        if component:
-            for node in content_nodes:
-                if (
-                    node.tag == component["name"]
-                    and node.props.get("size", "sm") == component["size"]
-                ):
-                    continue
-                errors.append(
-                    f'decision.subPattern.{region} {code} requires {component["name"]} '
-                    f'size="{component["size"]}" content components'
-                )
-                break
-        if code == "Sub-140-D":
-            candidates = _descendants([regions[region]])
-            skeleton = None
-            for node in candidates:
-                if node.tag != "Stack" or node.props.get("width") != 140:
-                    continue
-                if node.props.get("height") == 136:
-                    skeleton = node
-                    break
-            blocks = skeleton.child_elements() if skeleton else []
-            expected_blocks = 3 if buttons else 2
-            if not _sub140_skeleton_valid(skeleton, blocks, expected_blocks):
-                errors.append(
-                    f"{code} requires a leading title and two-column content; "
-                    "omit the entire button slot when absent"
-                )
-            row = blocks[1] if len(blocks) > 1 else None
-            columns = row.child_elements() if row else []
-            if not _sub140_columns_valid(row, columns):
-                errors.append(
-                    f"{code} requires an adaptive flex=1 row "
-                    "with two equal flex=1 columns and gap=8"
-                )
-            if buttons:
-                if not blocks or blocks[-1].props.get("width") != 136:
-                    errors.append(f"{code} requires a final 136x36vp button slot")
-                elif blocks[-1].props.get("height") != 36:
-                    errors.append(f"{code} requires a final 136x36vp button slot")
-    return errors
 
 # Public names are the exact labels exposed to the generation model. The
 # historical numeric codes stay internal so the existing geometry validators
@@ -145,13 +18,11 @@ def sub_pattern_composition_errors(
 LAYOUT_PATTERN_2X2_CODES = {
     "核心居中": "0",
     "标题单内容": "1",
-    "标题双内容": "2",
     "双信息块": "3",
+    "标题双内容": "2",
     "内容四宫格": "6",
     "标题内容单按钮": "10-A",
     "标题主次内容单按钮": "10-B",
-    "标题内容双按钮": "10-C",
-    "标题正文角标按钮": "11-A",
     "双列内容单按钮": "12",
     "标题锚点内容": "14",
     "紧凑内容双按钮": "15",
@@ -203,7 +74,7 @@ def layout_pattern_name(size: str, code: str) -> str:
     )
     return names.get(code, code)
 
-_TWO_BY_TWO_TITLE_TYPES = frozenset({"1", "2", "10-A", "10-B", "10-C", "11-A", "12", "14"})
+_TWO_BY_TWO_TITLE_TYPES = frozenset({"1", "2", "10-A", "10-B", "12", "14"})
 _TWO_BY_TWO_NO_TITLE_TYPES = frozenset({"0", "3", "6", "15"})
 
 
@@ -272,20 +143,93 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
         errors.append(f'2x2 layout "{pattern_name}" requires exactly one title component')
     if pattern in _TWO_BY_TWO_NO_TITLE_TYPES and title_count:
         errors.append(f'2x2 layout "{pattern_name}" does not provide a title slot')
+    children = root.child_elements()
+    title_slots = []
+    for child in children:
+        if child.tag != "Stack":
+            continue
+        for node in _descendants([child]):
+            if node.tag in {"SingleLineTitle", "DoubleLineTitle"}:
+                title_slots.append(child)
+                break
+    if pattern == "1":
+        content_slots = [child for child in children if child not in title_slots]
+        if len(title_slots) != 1 or len(content_slots) != 1:
+            errors.append('2x2 layout "标题单内容" requires one title slot and one content region')
+        else:
+            content = content_slots[0]
+            if (
+                content.tag != "Stack"
+                or content.props.get("flex") != 1
+                or content.props.get("width") != "full"
+                or content.props.get("align") != "flex-start"
+                or content.props.get("justify") != "flex-end"
+            ):
+                errors.append(
+                    '2x2 layout "标题单内容" content region must use flex={1}, '
+                    'width="full", align="flex-start" and justify="flex-end"'
+                )
+    if pattern == "15":
+        non_compact_progress_circles = [
+            node
+            for node in descendants
+            if node.tag == "ProgressCircleSingle" and node.props.get("size") != "compact"
+        ]
+        if non_compact_progress_circles:
+            errors.append(
+                '2x2 layout "紧凑内容双按钮" requires every ProgressCircleSingle '
+                'to explicitly declare size="compact"'
+            )
+        button_slots = [
+            child
+            for child in children
+            if child.tag == "Stack"
+            and any(node.tag == "PillButton" for node in _descendants([child]))
+        ]
+        content_slots = [child for child in children if child not in button_slots]
+        pill_buttons = [node for node in descendants if node.tag == "PillButton"]
+        other_buttons = [
+            node for node in descendants if node.tag in {"CircleButton", "CardButton"}
+        ]
+        if len(button_slots) != 2 or len(pill_buttons) != 2 or other_buttons:
+            errors.append(
+                '2x2 layout "紧凑内容双按钮" requires exactly two PillButton slots'
+            )
+        elif any(
+            slot.props.get("flex") != 0
+            or slot.props.get("height") != 36
+            or slot.props.get("width") != "full"
+            for slot in button_slots
+        ):
+            errors.append(
+                '2x2 layout "紧凑内容双按钮" requires two 136 × 36vp '
+                'flex={0} PillButton slots'
+            )
+        if len(content_slots) != 1 or not children or content_slots[0] is not children[0]:
+            errors.append(
+                '2x2 layout "紧凑内容双按钮" requires one leading adaptive content region'
+            )
+        else:
+            content = content_slots[0]
+            if (
+                content.tag != "Stack"
+                or content.props.get("flex") != 1
+                or content.props.get("width") != "full"
+                or content.props.get("align") != "flex-start"
+                or content.props.get("justify") != "flex-start"
+                or root.props.get("gap") != 8
+            ):
+                errors.append(
+                    '2x2 layout "紧凑内容双按钮" content region must use flex={1}, '
+                    'width="full", align="flex-start", justify="flex-start" and Card gap={8}'
+                )
     if pattern == "12":
-        children = root.child_elements()
-        title_slots = []
-        for child in children:
-            if child.tag != "Stack":
-                continue
-            for node in _descendants([child]):
-                if node.tag in {"SingleLineTitle", "DoubleLineTitle"}:
-                    title_slots.append(child)
-                    break
         if len(title_slots) == 1:
             title_slot = title_slots[0]
-            if title_slot.props.get("height") != 18:
-                errors.append('2x2 layout "双列内容单按钮" requires a fixed 18vp title slot')
+            if title_slot.props.get("flex") != 0 or title_slot.props.get("height") not in {None, "auto"}:
+                errors.append(
+                    '2x2 layout "双列内容单按钮" requires a flex={0} natural-height title slot'
+                )
             title_nodes = [
                 node
                 for node in _descendants([title_slot])
@@ -337,6 +281,89 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                     '2x2 layout "双列内容单按钮" requires two 64vp fixed-width columns '
                     'with gap={8} inside a flex={1} content region'
                 )
+            else:
+                column_components = [
+                    [
+                        node
+                        for node in _descendants(column.child_elements())
+                        if node.tag not in {"Stack", "Grid"}
+                    ]
+                    for column in columns
+                ]
+                if any(
+                    len(components) != 1
+                    or components[0].tag != "ProgressCircle"
+                    or components[0].props.get("size", "sm") != "sm"
+                    for components in column_components
+                ):
+                    errors.append(
+                        '2x2 layout "双列内容单按钮" only allows exactly two '
+                    'ProgressCircle size="sm" components, one in each column'
+                )
+    if pattern == "14":
+        content_slots = [child for child in children if child not in title_slots]
+        if len(title_slots) != 1 or len(content_slots) != 1:
+            errors.append('2x2 layout "标题锚点内容" requires one title slot and one content region')
+        else:
+            content = content_slots[0]
+            content_children = content.child_elements() if content.tag == "Stack" else []
+            valid_content = (
+                content.tag == "Stack"
+                and content.props.get("direction", "column") == "column"
+                and content.props.get("flex") == 1
+                and content.props.get("width") == "full"
+                and content.props.get("gap") == 8
+                and len(content_children) == 2
+            )
+            if not valid_content:
+                errors.append(
+                    '2x2 layout "标题锚点内容" requires a flex={1} content region '
+                    'with Hero, bottom row and gap={8}'
+                )
+            else:
+                hero, bottom = content_children
+                bottom_children = bottom.child_elements() if bottom.tag == "Stack" else []
+                valid_hero = (
+                    hero.tag == "Stack"
+                    and hero.props.get("flex") == 1
+                    and hero.props.get("width") == "full"
+                )
+                valid_bottom = (
+                    bottom.tag == "Stack"
+                    and bottom.props.get("direction") == "row"
+                    and bottom.props.get("width") == "full"
+                    and bottom.props.get("minHeight") == 40
+                    and bottom.props.get("gap") == 8
+                    and bottom.props.get("align") == "flex-end"
+                    and len(bottom_children) == 2
+                )
+                if not valid_hero or not valid_bottom:
+                    errors.append(
+                        '2x2 layout "标题锚点内容" requires an adaptive Hero and a '
+                        'bottom-aligned 88 + 8 + 40vp row'
+                    )
+                else:
+                    secondary, action = bottom_children
+                    circle_buttons = [
+                        node for node in _descendants(action.child_elements())
+                        if node.tag == "CircleButton"
+                    ]
+                    if (
+                        secondary.tag != "Stack"
+                        or secondary.props.get("width") != 88
+                        or secondary.props.get("align") != "flex-start"
+                        or secondary.props.get("justify") != "flex-end"
+                        or action.tag != "Stack"
+                        or action.props.get("width") != 40
+                        or action.props.get("height") != 40
+                        or action.props.get("align") != "center"
+                        or action.props.get("justify") != "center"
+                        or len(circle_buttons) != 1
+                    ):
+                        errors.append(
+                            '2x2 layout "标题锚点内容" requires an 88vp secondary region, '
+                            'an 8vp gap and one centered CircleButton in a 40 × 40vp slot'
+                        )
     return list(dict.fromkeys(errors))
 
 

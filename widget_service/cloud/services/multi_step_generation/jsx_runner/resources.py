@@ -161,6 +161,9 @@ _GENERATION_FORBIDDEN_PROPS = {
     "ProgressLine2": frozenset({"barColor"}),
     "ProgressCircleSingle": frozenset({"trackColor", "barColor"}),
     "ProgressCircle": frozenset({"value", "trackColor", "barColor", "density"}),
+    # The scalar EventCard API remains compiler/runtime compatibility only.
+    # Generated cards aggregate one or two schedules through items.
+    "EventCard": frozenset({"title", "time", "location", "dataIds"}),
 }
 
 _GENERATION_REQUIRED_PROPS = {
@@ -179,6 +182,7 @@ _GENERATION_REQUIRED_PROPS = {
     "ProgressCircleSingle": frozenset({"appearance", "ariaLabel"}),
     "ProgressCircle": frozenset({"appearance", "ariaLabel"}),
     "NumericRatio": frozenset({"appearance"}),
+    "EventCard": frozenset({"items"}),
     "PillButton": frozenset({"appearance"}),
     "CircleButton": frozenset({"appearance"}),
 }
@@ -274,6 +278,7 @@ def generatable_contracts(
             continue
         forbidden = _GENERATION_FORBIDDEN_PROPS.get(name, frozenset())
         required = item.required | _GENERATION_REQUIRED_PROPS.get(name, frozenset())
+        required_one_of = item.required_one_of - forbidden - required
         # dataValueMaps is compiler metadata.  It is validated and consumed
         # before the visual runtime, so it need not be a DOM/runtime Prop.
         compiler_metadata = {"dataValueMaps"} if "dataIds" in runtime_props else set()
@@ -291,7 +296,7 @@ def generatable_contracts(
             required=required,
             optional=optional,
             enums=enums,
-            required_one_of=item.required_one_of,
+            required_one_of=required_one_of,
         )
     return result
 

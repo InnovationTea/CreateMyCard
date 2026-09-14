@@ -406,6 +406,7 @@ async def async_main(args: argparse.Namespace) -> int:
         "requestedTasks": len(tasks),
         "attemptedTasks": 0,
         "completedTasks": 0,
+        "semanticUnverifiedTasks": 0,
         "partialTasks": 0,
         "insufficientInputTasks": 0,
         "unverifiedTasks": 0,
@@ -530,6 +531,7 @@ async def async_main(args: argparse.Namespace) -> int:
                     "resource_reads": resource_reads or [],
                     "turn_trace": getattr(exc, "turn_trace", []),
                     "validation_reports": getattr(exc, "validation_reports", []),
+                    "plan": getattr(exc, "plan", None),
                 }
             )
             write_json(manifest_path, manifest)
@@ -562,7 +564,11 @@ async def async_main(args: argparse.Namespace) -> int:
         if semantic_status == "completed":
             card_status = "completed" if validation_status == "passed" else "completed_unverified"
             manifest["completedTasks"] = int(manifest["completedTasks"]) + 1
-        elif semantic_status in {"partial", "unverified"}:
+        elif semantic_status == "unverified":
+            card_status = "generated_unverified"
+            manifest["completedTasks"] = int(manifest["completedTasks"]) + 1
+            manifest["semanticUnverifiedTasks"] = int(manifest["semanticUnverifiedTasks"]) + 1
+        elif semantic_status == "partial":
             card_status = "partial" if validation_status == "passed" else "partial_unverified"
             manifest["partialTasks"] = int(manifest["partialTasks"]) + 1
         else:
@@ -571,12 +577,20 @@ async def async_main(args: argparse.Namespace) -> int:
         if validation_status == "unverified":
             manifest["unverifiedTasks"] = int(manifest["unverifiedTasks"]) + 1
 
+        decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+        decision_fields = {}
+        if isinstance(decision.get("layoutPattern"), str):
+            decision_fields["layoutPattern"] = decision["layoutPattern"]
+        if "subPattern" in decision:
+            decision_fields["subPattern"] = decision["subPattern"]
         card_entry = {
             "taskId": task_id,
             "componentName": name,
             "status": card_status,
+            "generationStatus": "generated",
             "semanticStatus": semantic_status,
             "validationStatus": validation_status,
+            **decision_fields,
             **paths,
         }
         manifest["cards"].append(card_entry)

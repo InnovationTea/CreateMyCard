@@ -9,7 +9,19 @@ CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 PROTOCOL_VERSION = "v0.9"
 
 
-def build_messages(root: A2UINode, surface_id: str, data_model: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def build_messages(
+    root: A2UINode,
+    surface_id: str,
+    data_model: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    components = flatten_tree(root)
+    # Keep reference dimensions for conversion/layout calculations. Only the
+    # emitted surface root fills the host; do not mutate the tree or children.
+    components[0]["styles"] = {
+        **root.styles,
+        "width": "matchParent",
+        "height": "matchParent",
+    }
     messages: list[dict[str, Any]] = [
         {
             "version": PROTOCOL_VERSION,
@@ -19,7 +31,7 @@ def build_messages(root: A2UINode, surface_id: str, data_model: dict[str, Any] |
             "version": PROTOCOL_VERSION,
             "updateComponents": {
                 "surfaceId": surface_id,
-                "components": flatten_tree(root),
+                "components": components,
             },
         },
     ]

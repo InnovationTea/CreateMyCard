@@ -13,7 +13,7 @@
 
 `data[].value` 是动态字段的预览样例，不会覆盖 `userQuery` 明确给出的同义当前事实。单 ID 绑定冲突时，可见 Prop 使用 `userQuery` 中的具体值，但仍必须绑定原数据 `id`，以便后续实时数据继续更新同一显示 Prop。多 ID 组合字段不从查询文本反向猜测各字段值。
 
-`dataIds` 只能逐字引用当前输入 `data[].id` 中真实存在的值。通常一个显示 Prop 对应一个 ID；`EventCard.time` 可按 `[dtStartId, dtEndId]` 绑定开始与结束两个 ID，`EmphasisText.mainText` 和 `secondaryText` 可使用包含两个或更多 ID 的有序数组，具体写法见当前尺寸加载的组件文档。根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案属于静态 UI 文案，不需要绑定；只有输入 `data[]` 明确提供了对应业务字段时，标题或副标题才绑定。不得按业务域猜测或虚构 `calendar.cardTitle`、`memory.cardTitle` 等 ID。
+`dataIds` 只能逐字引用当前输入 `data[].id` 中真实存在的值。通常一个显示 Prop 对应一个 ID；`EventCard.items[].time` 可按 `[dtStartId, dtEndId]` 绑定开始与结束两个 ID，`EmphasisText.mainText` 和 `secondaryText` 可使用包含两个或更多 ID 的有序数组，具体写法见当前尺寸加载的组件文档。根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案属于静态 UI 文案，不需要绑定；只有输入 `data[]` 明确提供了对应字段时，标题或副标题才绑定。不得按业务域猜测或虚构 `calendar.cardTitle`、`memory.cardTitle` 等 ID。
 
 ## 2. 布局原语真实 API
 

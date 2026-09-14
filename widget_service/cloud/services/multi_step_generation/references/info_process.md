@@ -60,9 +60,9 @@
 | 单层标题 | `{title}` | `SingleLineTitle` | 只有一行纯文本标题 | 标题还需要表达连接状态、地点等第二层信息时不用；不向该组件添加 Icon |
 | 标题 + 次要信息 | `{title, secondaryInfo}` | `DoubleLineTitle` | `title` 与 `secondaryInfo` 均有独立语义，例如设备名称 + 连接状态 | 不要把普通说明文字放进 `secondaryInfo`；严禁同时出现`SingleLineTitle`与`DoubleLineTitle` |
 | 标题中的数量 | `{title, count: number \| formattedNumber}` | `Badge` | 未读数、总数、数量等与标题绑定的数值；字符串只用于 `99+` 等格式化数值 | 不用于状态、类别、普通标签或说明文字 |
-| 纯单值 | `{label?, value, unit? / supportingText?}` | `DataDisplay` / `EmphasizedData` | 不包含目标、基准、等级、时间轴、分段或进度关系的数值事实。先以整张卡片为单位统计数据叙事：有且仅有一个完整数据叙事，结构为 `label + value + unit／supportingText`，且不存在标题、操作或其他并列数据事实时，选择 `DataDisplay` 并固定使用无标题的“核心居中”；丰富信息中的主要数值，或只有数值与可选单位时，选择 `EmphasizedData` | 不得为了选择 `DataDisplay` 将天气状态、空气质量、最高温度、最低温度等并列事实拼成一条辅助信息；进度关系中的绝对值不重复映射为纯单值；区间档位、可比较数据或多维同等属性不用 |
-| 重点短语 + 次级短语 | `{mainText, secondaryText}` | `EmphasisText` | 主文本和次文本共同表达一个重点状态，例如“86分 / 良好” | 只有一个文本时不用；纯数值与单位优先使用 `EmphasizedData` |
-| 辅助正文与辅助信息 | `{items: [{label?, value}, ...]}` | `SecondaryBody` | 需要按自然语言连续阅读的正文级说明、描述或结论，以及来源、更新时间、结果说明等辅助信息；单个完整字段也使用只含一个 item 的数组，少量字段只有在合并后仍是一句自然语言时才放入同一组件 | 两项及以上能够稳定拆成“静态标签 + 独立动态参数”的并列属性不得使用，应选择 `TableText`；不得用多个单项 `SecondaryBody` 模拟纵向表格；不承载核心数值，不增加背板、图标或按钮 |
+| 纯单值 | `{label?, value, unit? / supportingText?}` | `DataDisplay` / `EmphasizedData` | 不包含目标、基准、等级、时间轴、分段或进度关系的数值事实。先以整张卡片为单位统计数据叙事：有且仅有一个完整数据叙事，结构为 `label + value + unit／supportingText`，且不存在标题、操作或其他并列数据事实时，选择 `DataDisplay` 并固定使用无标题的“核心居中”；丰富信息中与用户意图相关性最高的核心数值选择 `EmphasizedData`，由数值与单位构成，单位可由独立 `unit` 或完整格式化字符串承载；同一分区只允许一个核心信息 | 不得为了选择 `DataDisplay` 将天气状态、空气质量、最高温度、最低温度等并列事实拼成一条辅助信息；不得在同一分区并列或堆叠多个 `EmphasizedData`，也不得再用 `EmphasisText` 强调另一项核心信息；进度关系中的绝对值不重复映射为纯单值；区间档位、可比较数据或多维同等属性不用 |
+| 核心文本 | `{mainText, secondaryText?}` | `EmphasisText` | 分区内与用户意图相关性最高的核心文本数据；由一个主文本字段，或主文本加次文本两个字段构成，`secondaryText` 非必选；同一分区只允许一个核心信息 | 没有真实且必要的第二字段时省略 `secondaryText`，不得虚构；不得在同一分区并列或堆叠多个 `EmphasisText`，也不得再用 `EmphasizedData` 强调另一项核心信息；纯数值与单位优先使用 `EmphasizedData` |
+| 次要正文与补充说明 | `{items: [{label?, value}, ...]}` | `SecondaryBody` | 分区内核心信息之外的其余补充说明，由至少两个次要字段构成；必须与同一分区内的核心数据搭配使用，不会作为该分区唯一的业务信息独立存在。继续按实际可用宽度自适应分组和换行 | 单个补充字段不用；两项及以上能够稳定拆成“静态标签 + 独立动态参数”的并列属性应选择 `TableText`；不得用多个单项 `SecondaryBody` 模拟纵向表格；不承载核心数值，不增加背板、图标或按钮 |
 | 同一实体的多维同等属性 | `{items: [{label, value, unit?}, ...]}` | `TableText` / `TopTextBottomValue` / `TextBlock` | 两项及以上数据属于同一实体，每项都能形成“静态标签 + 独立动态参数”，彼此同等且需要逐项识别。含文本或空间紧凑时优先选择 `TableText`；全为数值单位且宽度充足时可选择 `TopTextBottomValue` 或 `TextBlock`。`TopTextBottomValue` 仅用于恰好三组数值单位数据 | 不用于自然语言正文；存在核心值与明细层级时，核心值单独使用对应核心组件，其余两项及以上明细使用 `TableText`；多项数据属于同一指标并需要比较大小或排序时不用；只有一项时不用这些多项组件 |
 | 核心数值 + 线性进度 | `{label?, percent?, current?, total?, displayValue?: {value, unit?, qualifier?}}` | `ProgressLine2` | 存在明确方向和参照终点，需要表达“当前完成到哪里、距离目标还差多少”时使用，例如步数／目标步数、任务完成量／总量、下载或安装进度；容量占用率只有在语义明确为“已使用／总容量”时才可使用 | 手机、耳机或其他单个设备的剩余电量不用；当前状态余量、普通百分比属性、不需要核心数值槽，或必须在 Track 下方同时显示左右标签时不用 |
 | 多项同指标比较 | `{items: [{label, value, unit?}, ...]}` | `H_BarChart` | 至少两项同维度数据，每项有主体标签和同一指标值，单位相同或可统一，并且需要比较大小或排序；总表中的 `BarChart` 对应真实 JSX 组件 `H_BarChart` | 只有一项时不用；同一实体的跨单位、跨类型属性且各项同等时改按多维属性选择；不能统一为同一比较尺度时不用 |
@@ -71,7 +71,7 @@
 | 3 个占比值 | `{items: [{percent, icon}, {percent, icon}, {percent, icon}]}` | `NumericRatio` × 3 | 每项分别使用一个 `NumericRatio`，显示 Icon 和取整后的百分比且不使用 Bar；根据布局分配的可用宽高，通过外层标准 `Stack` 横向或纵向排列三个组件；对象语义由 Icon 或模块标题承载 | 不用于 1、2 或 4 个占比值；不得增加额外的组合组件；逐项纯文本 Label 必须可见时不用 |
 | 4 个占比值 | `{items: [{percent, icon}, {percent, icon}, {percent, icon}, {percent, icon}]}` | `ProgressCircle` × 4 | 四个同级对象使用紧凑圆环，每项显示取整后的百分比并可独立识别；2×2 卡片使用“内容四宫格” | 不通过多个 `NumericRatio` 表达四项数据；逐项纯文本 Label 必须可见时不用 |
 | 两组紧凑主副文本 | `{groups: [{primaryText, secondaryText, unit?, visual?}, {primaryText, secondaryText, unit?, visual?}]}` | `InfoBlock` × 2 | 完成基础性质识别后再判定：同一张卡片中有且仅有两组可独立理解的信息，每组都具有一个主文本和一个副文本槽位；有明确图形识别或占比语义时可增加 Icon 或 ProgressCircle 尾部视觉，没有合适视觉或文本需要完整宽度时省略 `visual`。单设备剩余电量可作为其中一组，使用 `primaryText={percent}`、静态 `unit="%"` 和 `visual.type="progressCircle"`。总表中的 `InfoTile` 对应真实 JSX 组件 `InfoBlock`；命中后两组分别映射一个 `InfoBlock`，2×2 使用无独立标题的“双信息块”，2×4 可将它们放入同一内容列，并将 Action 保留在独立操作区 | 只有一组、三组及以上或任一组缺少主、副文本槽位时不用；不得为满足旧视觉结构虚构 Icon；普通百分比仅作为副文本事实时不得据此启用 ProgressCircle；聚合后不得再重复实例化内部来源组件 |
-| 日程、会议、时间序列事件 | `{events: [{title, time | (dtStart + dtEnd), date?, location?}]}` | `EventCard` | 每条事件的标题和时间必选；只有开始时间时绑定单个时间 ID，开始与结束分字段时共同组成一个时间范围；日期和地点可选；多条事件按时间先后排列 | 不用于普通提醒或无时间信息的内容；当前无月份视图组件 |
+| 日程、会议、时间序列事件 | `{events: [{title, time | (dtStart + dtEnd), date?, location?}]}` | `EventCard` | 一个 `EventCard.items` 最多放两条日程；每条的标题和时间必选，地点可选；两条按时间先后排列并由组件自适应分配间距，禁止拆成两个 `EventCard` | 不用于普通提醒或无时间信息的内容；当前无月份视图组件 |
 | 2×2 操作 | `{cardSize: "2x2", action: {label?, icon?, ariaLabel?}}` | `PillButton` / `CircleButton` | 先检查标题和必需内容完整呈现后，底部是否仍能留出 `8vp` 间距和 `136 × 36vp` 操作槽；能留出时优先使用带明确操作文本的 `PillButton`，Icon 可选。只有无法容纳该底部槽、但右下 `36 × 36vp` 槽可安全避让内容，且操作仅靠 Icon 也能明确表达时，才使用 `CircleButton`，并将完整操作名称写入 `ariaLabel` | 不得仅因 action 提供 Icon 就选择 `CircleButton`；`CircleButton` 不得用于 2×4；不得补造缺失的操作语义或 Icon |
 | 2×4 单 Action 组 | `{cardSize: "2x4", actions: [oneAction]}` | `PillButton` / `CardButton` | 优先在所属子布局内使用 `PillButton`；子布局无法安全容纳时，使用“左内容右侧双槽”的右下固定槽和 `CardButton`。操作文本必选，按钮不得横跨整卡 | 不得因按钮类型改变 Action 语义；缺少操作文本时停止并报告；不得使用 `CircleButton` |
 | 2×4 多 Action 组 | `{cardSize: "2x4", actions: [actionA, actionB, ...]}` | `CardButton` | 同一语义组／操作区域有两个及以上 Action 时使用；两个 Action 可进入“左内容右侧双槽”的右侧固定槽列，四个 Action 可使用“四槽宫格”；三个 Action 只有在另有一个真实同级 `InfoBlock` 时才能共同组成“四槽宫格” | 禁止只做一行左右并排或生成整卡宽按钮；缺少操作文本时停止并报告；同一个 Action 只能表达一次 |
@@ -80,9 +80,9 @@
 多字段文本按以下顺序选择：
 
 1. 先判断字段之间是否存在核心与明细层级。
-2. 存在核心值时，核心值使用 `EmphasizedData`、`EmphasisText` 或对应进度组件；剩余两项及以上明细使用 `TableText`。
+2. 存在核心值时，每个分区只选择一个 `EmphasizedData`、`EmphasisText` 或对应进度组件作为核心信息；不得在同一分区制造第二个核心信息。剩余两项及以上明细根据语义使用 `TableText` 或与核心信息搭配的 `SecondaryBody`。
 3. 不存在主次且至少两项均可拆成“静态标签 + 独立动态参数”时，优先使用 `TableText`，不得使用多个 `SecondaryBody` 分行模拟。
-4. 只有内容需要作为完整句子连续阅读时，才使用 `SecondaryBody`。
+4. 只有多个补充字段需要作为正文连续阅读，并且同一分区已经存在核心信息时，才使用 `SecondaryBody`；`SecondaryBody` 不独立存在。
 5. 请求进度组件但输入缺少目标值、总量或比例时，可以报告进度要求无法满足，但仍须保持核心字段的视觉层级，不得将核心值降级为普通辅助正文。
 
 `ProgressCircleSingle`、`InfoBlock` 的进度环分支与 `ProgressLine2` 按以下顺序区分：
