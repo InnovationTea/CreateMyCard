@@ -692,7 +692,9 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        for field_path in weather_template.fields:
+            if field_path.endswith("/condition"):
+                sample_overrides[f"/data/weather{field_path}"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
         (
             template

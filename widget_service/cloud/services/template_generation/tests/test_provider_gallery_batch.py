@@ -195,6 +195,36 @@ def _find_case(
     )
 
 
+def test_gallery_sample_overrides_stay_inside_projected_fields(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.missingReason:
+                continue
+            payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+            request = provider_gallery._request_from_envelope(payload)
+            projected_paths: set[str] = set()
+            for binding in request.candidateDataBindings or []:
+                for field in binding.candidateOutputFields or []:
+                    projected_paths.add(binding.writeResultTo + field)
+            overrides = provider_gallery._gallery_sample_overrides_from_envelope(payload)
+            assert set(overrides).issubset(projected_paths), case.caseId
+
+
+def test_forecast_support_overrides_use_declared_day_index(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    matches = []
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.targetTemplateId != "WeatherOverviewDaily2TravelSupport@1":
+                continue
+            payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+            overrides = provider_gallery._gallery_sample_overrides_from_envelope(payload)
+            assert overrides == {"/data/weather/daily/2/condition": "多云"}
+            matches.append(case.scenarioId)
+    assert set(matches) == {"dual-support-content", "dual-support-one-action"}
+
+
 def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) -> None:
     input_root = tmp_path / "inputs"
     stale_input = input_root / "providers" / "weather" / "stale.json"
