@@ -655,7 +655,10 @@ def convert_compact_dsl_to_a2ui(
     )
 
     normalized_components = [_normalize_component(row) for row in components]
-    normalized_components = _normalize_special_action_units(normalized_components)
+    normalized_components = _normalize_special_action_units(
+        normalized_components,
+        size=size,
+    )
     normalized_components = _normalize_ring_stack_children(normalized_components)
     data_model = _build_data_model(data_rows)
 
@@ -852,28 +855,120 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
 
 def _normalize_special_action_units(
     components: list[ComponentRow],
+    *,
+    size: str,
 ) -> list[ComponentRow]:
     action_ink = _action_ink_for_root(components)
     if action_ink is None:
         return components
 
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    parents = {
+        child_id: component
+        for component in components
+        for child_id in component.children
+    }
+    action_ids = {
+        component.component_id
+        for component in components
+        if _is_plain_action_component(component)
+    }
+    repaired_action_ids: set[str] = set()
+    for component in components:
+        if component.component_id not in action_ids:
+            continue
+        background = component.props.get("backgroundColor")
+        if isinstance(background, str) and background.upper() == action_ink:
+            repaired_action_ids.add(component.component_id)
+    repaired_descendant_ids = _descendant_component_ids(
+        repaired_action_ids,
+        components_by_id,
+    )
+    action_surface = f"#33{action_ink[3:]}"
+    full_width_action_ids: set[str] = set()
+    bottom_layout_ids: set[str] = set()
+    if size == "2x4":
+        for component_id in action_ids:
+            parent = parents.get(component_id)
+            if parent is None or parent.props.get("width") != 296:
+                continue
+            if parent.children != (component_id,):
+                continue
+            full_width_action_ids.add(component_id)
+            layout = parents.get(parent.component_id)
+            if layout is None or layout.component_type != "Column":
+                continue
+            if layout.children[-1:] != (parent.component_id,):
+                continue
+            if layout.props.get("height") == "matchParent":
+                bottom_layout_ids.add(layout.component_id)
+
     normalized: list[ComponentRow] = []
     for component in components:
-        if component.component_type != "ActionUnit":
-            normalized.append(component)
-            continue
         props = copy.deepcopy(component.props)
-        props["actionInk"] = action_ink
-        props["actionSurface"] = f"#33{action_ink[3:]}"
+        component_id = component.component_id
+        if component.component_type == "ActionUnit":
+            props["actionInk"] = action_ink
+            props["actionSurface"] = action_surface
+        elif component_id in repaired_action_ids:
+            props["backgroundColor"] = action_surface
+            if component.component_type == "Button":
+                props["fontColor"] = action_ink
+        elif component_id in repaired_descendant_ids:
+            if component.component_type == "Text":
+                props["fontColor"] = action_ink
+            elif component.component_type == "Image" and "fillColor" in props:
+                props["fillColor"] = action_ink
+
+        if component_id in full_width_action_ids:
+            props["width"] = 296
+        if component_id in bottom_layout_ids:
+            props["padding"] = 12
+            props["justifyContent"] = "spaceBetween"
+
         normalized.append(
             ComponentRow(
-                component.component_id,
+                component_id,
                 component.component_type,
                 props,
                 component.children,
             )
         )
     return normalized
+
+
+def _is_plain_action_component(component: ComponentRow) -> bool:
+    if not component.props.get("onClick"):
+        return False
+    if component.component_type == "Button":
+        return True
+    if component.component_type != "Row":
+        return False
+    return (
+        component.props.get("height") == 36
+        and component.props.get("borderRadius") in {18, 20}
+    )
+
+
+def _descendant_component_ids(
+    root_ids: set[str],
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    descendants: set[str] = set()
+    pending = list(root_ids)
+    while pending:
+        component = components_by_id.get(pending.pop())
+        if component is None:
+            continue
+        for child_id in component.children:
+            if child_id in descendants:
+                continue
+            descendants.add(child_id)
+            pending.append(child_id)
+    return descendants
 
 
 def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
