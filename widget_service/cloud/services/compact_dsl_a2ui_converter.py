@@ -36,6 +36,7 @@ _COMPONENT_TYPES = frozenset(
         "Button",
         "ActionUnit",
         "CardHeader",
+        "TimelineUnit",
         "Checkbox",
     }
 )
@@ -2022,6 +2023,8 @@ def _convert_component_rows(
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
         return _convert_card_header(component, card_size)
+    if component.component_type == "TimelineUnit":
+        return _convert_timeline_unit(component)
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component, action_icon_size)
     return [
@@ -2029,6 +2032,62 @@ def _convert_component_rows(
             component,
             hide_label=hide_label,
         )
+    ]
+
+
+def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
+    allowed = {"color", "lineColor"}
+    if component.children or set(component.props) != allowed:
+        raise CompactDslConversionError(
+            "TimelineUnit requires color/lineColor only and must not declare children."
+        )
+    for name in allowed:
+        value = component.props[name]
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
+            raise CompactDslConversionError(f"TimelineUnit.{name} must use #AARRGGBB.")
+
+    dot_id = f"{component.component_id}_dot"
+    line_id = f"{component.component_id}_line"
+    return [
+        {
+            "id": component.component_id,
+            "component": "Column",
+            "children": [dot_id, line_id],
+            "itemMargin": 0,
+            "styles": {
+                "width": 8,
+                "height": 44,
+                "alignItems": "center",
+                "flexShrink": 0,
+            },
+        },
+        {
+            "id": dot_id,
+            "component": "Text",
+            "content": "\u25cf",
+            "styles": {
+                "width": 8,
+                "height": 8,
+                "fontSize": 8,
+                "fontWeight": 400,
+                "fontColor": component.props["color"],
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "flexShrink": 0,
+            },
+        },
+        {
+            "id": line_id,
+            "component": "Divider",
+            "styles": {
+                "width": 1.5,
+                "height": 36,
+                "strokeWidth": 1.5,
+                "vertical": True,
+                "color": component.props["lineColor"],
+                "flexShrink": 0,
+            },
+        },
     ]
 
 
