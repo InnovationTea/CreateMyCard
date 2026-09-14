@@ -138,7 +138,7 @@
 ```
 
 ## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·黄色纯色）
-2x2 最终只展示一个会议，且 userQuery 包含会议/入会/下一场会语义或候选 `intentName` 为 `EnterMeeting` 时，优先使用本例；仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
+2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery 包含会议/入会/下一场会语义或候选 `intentName` 为 `EnterMeeting` 时，才使用本例；出现任一其他业务时改走 S4，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
 ### user
 ```json
 {"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/example"}}]}}},"assetCandidates":[]}

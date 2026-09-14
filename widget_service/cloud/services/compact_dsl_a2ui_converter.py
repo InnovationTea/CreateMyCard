@@ -649,6 +649,7 @@ def convert_compact_dsl_to_a2ui(
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
     validate_card_header_layout(components, size=size)
+    validate_timeline_unit_scope(components)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -806,6 +807,34 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
     generated_ids = {f"{header.component_id}_title", f"{header.component_id}_icon"}
     if any(item.component_id in generated_ids for item in components):
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
+
+
+def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
+    if not any(item.component_type == "TimelineUnit" for item in components):
+        return
+    if any(_has_non_calendar_data_binding(item.props) for item in components):
+        raise CompactDslConversionError(
+            "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
+        )
+
+
+def _has_non_calendar_data_binding(value: Any) -> bool:
+    if isinstance(value, str):
+        paths = (match.group("path") for match in _A2UI_BINDING_PATH_PATTERN.finditer(value))
+        return any(_is_non_calendar_data_path(path) for path in paths)
+    if isinstance(value, dict):
+        if set(value) == {"path"}:
+            return _is_non_calendar_data_path(value.get("path"))
+        return any(_has_non_calendar_data_binding(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_non_calendar_data_binding(item) for item in value)
+    return False
+
+
+def _is_non_calendar_data_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value.startswith("/data/"):
+        return False
+    return value != "/data/calendar" and not value.startswith("/data/calendar/")
 
 
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
@@ -2047,42 +2076,56 @@ def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
             raise CompactDslConversionError(f"TimelineUnit.{name} must use #AARRGGBB.")
 
     dot_id = f"{component.component_id}_dot"
+    dot_fill_id = f"{dot_id}_fill"
     line_id = f"{component.component_id}_line"
     return [
         {
             "id": component.component_id,
             "component": "Column",
             "children": [dot_id, line_id],
-            "itemMargin": 0,
+            "itemMargin": 4,
             "styles": {
                 "width": 8,
                 "height": 44,
+                "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
+                "justifyContent": "start",
                 "alignItems": "center",
                 "flexShrink": 0,
+                "clip": True,
             },
         },
         {
             "id": dot_id,
-            "component": "Text",
-            "content": "\u25cf",
+            "component": "Stack",
+            "children": [dot_fill_id],
             "styles": {
                 "width": 8,
                 "height": 8,
-                "fontSize": 8,
-                "fontWeight": 400,
-                "fontColor": component.props["color"],
-                "maxLines": 1,
-                "textOverflow": "clip",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "borderColor": component.props["color"],
+                "backgroundColor": "#00FFFFFF",
+                "alignContent": "center",
                 "flexShrink": 0,
+            },
+        },
+        {
+            "id": dot_fill_id,
+            "component": "Divider",
+            "styles": {
+                "width": 0,
+                "height": 0,
+                "strokeWidth": 0,
+                "color": "#00FFFFFF",
             },
         },
         {
             "id": line_id,
             "component": "Divider",
             "styles": {
-                "width": 1.5,
-                "height": 36,
-                "strokeWidth": 1.5,
+                "width": 1,
+                "layoutWeight": 1,
+                "strokeWidth": 1,
                 "vertical": True,
                 "color": component.props["lineColor"],
                 "flexShrink": 0,

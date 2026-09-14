@@ -486,7 +486,7 @@ ActionUnit——卡级 CTA：
 
 ## 5.16 高级组件（TimelineUnit，仅 2x2 单会议）
 
-- TimelineUnit 只用于 S2 单会议时间线，只输出一行且不带 children，由转换器固定展开为 `8×44vp` 的圆点和竖线；必填 `color`、`lineColor`，均为 `#AARRGGBB`，禁止手写圆点 Text 或 Divider 代替。
+- TimelineUnit 只用于整卡唯一业务为 calendar 的 S2 单会议时间线；只要还展示天气、耳机、电量等任一其他业务，就禁止 TimelineUnit 并改走 S4。TimelineUnit 只输出一行且不带 children，由转换器固定展开为 `8×8vp` 空心圆圈和下接竖线，整体轨道高 `44vp`；必填 `color`、`lineColor`，均为 `#AARRGGBB`，禁止手写字符圆点、圆圈或 Divider 代替。
 - `content_area` 必须为 `Row -> [timeline, meeting_texts]`；`timeline` 使用 TimelineUnit，`meeting_texts` 固定高 `44vp`、`itemMargin:4`，只包含会议标题、时间、地点 Text。时间、地点不得包装为 Row，不得生成时钟、日历、位置等 Image；使用 TimelineUnit 时该会议内容区必须为零个 Image。
 - TimelineUnit 是时间线结构，不计入图标数量。示例：`["timeline","TimelineUnit",{"color":"#FF99661F","lineColor":"#1A99661F"}]`。
 
@@ -638,7 +638,7 @@ ActionUnit——卡级 CTA：
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
 - region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 为环形 Progress 与中心图标或读数的叠放组合，左下展示状态视觉；使用环内图标时，右下动作预先采用纯文字入口并预算文字宽度，标题不配图标；icon-round 仅在满足 2.5 节区域互斥及用户指定例外时选用）。
-- 会议时间线亚型：`2x2` 最终只展示一个 `calendar.events[0]`，且 userQuery 明确包含会议、入会或下一场会语义，或存在 `intentName:"EnterMeeting"` 候选时，强制参考 FEWSHOT_2x2 V06，使用黄色纯色时间线布局，不得改选普通 S2 信息列或会议融球；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议时间和地点前后禁止任何 Image。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变该路由。多条会议或日程列表不适用本亚型。
+- 会议时间线亚型：先确认整卡只有 calendar 这 1 个业务且最终只展示一个 `calendar.events[0]`；在此前提下，userQuery 明确包含会议、入会或下一场会语义，或存在 `intentName:"EnterMeeting"` 候选时，才强制参考 FEWSHOT_2x2 V06。使用黄色纯色时间线布局，不得改选普通 S2 信息列或会议融球；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议时间和地点前后禁止任何 Image。若还展示任一非 calendar 业务，即使存在 EnterMeeting，也必须改走 S4，禁止 V06、TimelineUnit 和独立 action_area。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变单业务路由。多条会议或日程列表不适用本亚型。
 - 槽位：标题、两行信息、至多一个显式动作。
 - 禁止：两个按钮、三个数据域。允许 content_area 通过 `layoutWeight:1` 占用剩余高度，内容区只允许环中心图标，图标默认固定 `width:20、height:20、flexShrink:0`（用户明确指定尺寸除外），不得随容器拉伸；内部间距使用显式 `itemMargin`，不得扩大间距填满容器。
 
@@ -652,6 +652,7 @@ ActionUnit——卡级 CTA：
 ### `S4-parallel-zones`（双方平行信息）
 
 - 用于：两个独立展示对象的并列分区，可为不同业务（天气+打车、内存+耳机），也可为同类业务（两座城市的天气）；不能将同一对象的多个字段当成双业务。
+- calendar 会议与任一其他业务共同展示时也属于 S4；即使存在 EnterMeeting 候选，也禁止套用 V06 或 TimelineUnit，会议内容只放在所属 zone 内。
 - region：只允许上下纵堆，固定为 `root -> [zone_top, zone_bottom]`，root `itemMargin:8`；两 zone 均为 `136×64vp`、borderRadius 16、内容色 10% 背板，且 `64 + 8 + 64 = 136`，不得增加 title/header/footer/action_area，也禁止左右双业务布局。zone 内以文字组为主，只有需要视觉主体时才使用 `Row -> [文字组, 视觉主体]`。
 - 两块背板 Row/Column 必须显式写 `padding:{left:12,right:12,top:0,bottom:0}`。内部可用宽度为 `136 - 12 - 12 = 112vp`；独立 20vp 图标与文字间距 8vp 时，文字列及其 Text 最多宽 `112 - 20 - 8 = 84vp`，不能沿用无背板布局的 88/136vp。左侧图标距 root 左边 24vp；右侧图标贴内部右边缘，距 root 右边 24vp（左坐标 116vp）。内层 Row 最多宽 112vp；环图按环外框计算预算，图标仍在环中心，不单独移位。不能漏掉背板、内边距或用 root 的 padding 代替。
 - action：有匹配事件时直接把 `onClick` 绑定到所属 zone，不生成独立 Button、ActionUnit、action_area 或动作文案；S4 的 root 严禁 `onClick`，即使全卡只有一个显式或隐式事件也不得绑定 root。每区最多 1 个属于自身业务的 handler，两个业务各有动作时分别绑定各自 zone。同一事件不得重复绑定 root、另一区域或内部子组件。
