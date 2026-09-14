@@ -194,7 +194,10 @@ def explicit_clock_values(text: str) -> set[str]:
         return digits.get(token, -1)
 
     for period, hour, minute in re.findall(
-        r"(凌晨|早上|上午|中午|下午|晚上|今晚|今早|明晚|明早)\s*([零一二三四五六七八九十两\d]{1,3})[点时](半|[零一二三四五六七八九十两\d]{1,3}分)?(?![零一二三四五六七八九十两\d半刻秒])", text,
+        r"(凌晨|早上|上午|中午|下午|晚上|今晚|今早|明晚|明早)\s*"
+        r"([零一二三四五六七八九十两\d]{1,3})[点时]"
+        r"(半|[零一二三四五六七八九十两\d]{1,3}分)?(?![零一二三四五六七八九十两\d半刻秒])",
+        text,
     ):
         h = number(hour)
         m = 30 if minute == "半" else number(minute[:-1]) if minute else 0
@@ -884,6 +887,21 @@ def normalize_unit_slots(element: JSXElement, compile_context: CompileContext) -
                     )
 
 
+def _can_override_query_literal(
+    owner: dict[str, Any],
+    prop: str,
+    binding: DataBinding,
+    locked_initial_ids: frozenset[str],
+    user_query: str | None,
+) -> bool:
+    if prop not in owner or binding.id in locked_initial_ids:
+        return False
+    return (
+        _literal_matches_binding_storage_type(owner[prop], binding)
+        and _literal_is_explicit_in_query(owner[prop], user_query)
+    )
+
+
 def materialize_binding_literals(
     element: JSXElement,
     compile_context: CompileContext,
@@ -939,11 +957,8 @@ def materialize_binding_literals(
             value_map = boolean_text_map_for(element.props, prop)
             if value_map is not None and isinstance(binding.value, bool):
                 element.props[prop] = value_map[binding.value]
-            elif (
-                prop in element.props
-                and binding.id not in locked_initial_ids
-                and _literal_matches_binding_storage_type(element.props[prop], binding)
-                and _literal_is_explicit_in_query(element.props[prop], user_query)
+            elif _can_override_query_literal(
+                element.props, prop, binding, locked_initial_ids, user_query,
             ):
                 binding = _override_query_grounded_binding(
                     compile_context,
@@ -988,11 +1003,8 @@ def materialize_binding_literals(
                 value_map = boolean_text_map_for(item, prop)
                 if value_map is not None and isinstance(binding.value, bool):
                     item[prop] = value_map[binding.value]
-                elif (
-                    prop in item
-                    and binding.id not in locked_initial_ids
-                    and _literal_matches_binding_storage_type(item[prop], binding)
-                    and _literal_is_explicit_in_query(item[prop], user_query)
+                elif _can_override_query_literal(
+                    item, prop, binding, locked_initial_ids, user_query,
                 ):
                     binding = _override_query_grounded_binding(
                         compile_context,

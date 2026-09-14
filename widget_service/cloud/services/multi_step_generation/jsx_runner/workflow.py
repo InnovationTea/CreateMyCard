@@ -2577,10 +2577,10 @@ def _required_fact_display_values(node: JSXElement, *, include_bound: bool = Fal
         items = node.props.get("items")
         if not isinstance(items, list):
             continue
-        field = prop.removeprefix("items[].")
+        item_prop = prop.removeprefix("items[].")
         for index, item in enumerate(items):
-            if isinstance(item, dict) and field in item:
-                yield f"items[{index}].{field}", item[field]
+            if isinstance(item, dict) and item_prop in item:
+                yield f"items[{index}].{item_prop}", item[item_prop]
 
 
 def _literal_is_grounded_in_query(literal: object, prompt_task: dict[str, Any] | None) -> bool:
@@ -2608,14 +2608,22 @@ def _unplanned_query_values(root, context, prompt_task, resolved_ids):
             if not isinstance(ids, dict):
                 continue
             for prop, key in ids.items():
-                if (prefix + prop not in BINDABLE_PROPS.get(node.tag, ()) or not isinstance(key, str)
-                        or key not in context.data or key in resolved_ids or prop not in owner):
+                if prefix + prop not in BINDABLE_PROPS.get(node.tag, ()):
+                    continue
+                if not isinstance(key, str) or key not in context.data:
+                    continue
+                if key in resolved_ids or prop not in owner:
                     continue
                 binding = context.data[key]
                 if (owner[prop] != binding.value_for_prop(node.tag, prefix + prop)
                         and _literal_is_grounded_in_query(owner[prop], prompt_task)):
                     item = {'severity': 'warning', 'code': 'unplanned-query-value', 'dataId': key,
-                            'message': f'JSX proposes {owner[prop]!r} for {key!r}, but no per-ID initialValue was established. Retaining input {binding.value!r}; verify field identity in the plan, not just presence in userQuery.'}
+                            'message': (
+                                f'JSX proposes {owner[prop]!r} for {key!r}, '
+                                'but no per-ID initialValue was established. '
+                                f'Retaining input {binding.value!r}; '
+                                'verify field identity in the plan, not just presence in userQuery.'
+                            )}
                     if item not in warnings:
                         warnings.append(item)
     return warnings
@@ -2982,9 +2990,13 @@ def _effective_binding_ids(root: JSXElement) -> tuple[set[str], set[str]]:
         allowed = BINDABLE_PROPS.get(node.tag, frozenset())
         bindings = node.props.get("dataIds")
         if isinstance(bindings, dict):
-            data_ids.update(_data_ids({key: value for key, value in bindings.items()
-                                      if key in allowed and not key.startswith("items[].")
-                                      and key not in _inactive_scalar_props(node)}))
+            active_bindings = {}
+            for key, value in bindings.items():
+                if key not in allowed or key.startswith("items[]."):
+                    continue
+                if key not in _inactive_scalar_props(node):
+                    active_bindings[key] = value
+            data_ids.update(_data_ids(active_bindings))
         items = node.props.get("items")
         if isinstance(items, list):
             for item in items:
@@ -3179,14 +3191,17 @@ def _error_retryable(exc: ConversionError) -> bool:
 
 def _validation_finding(exc: ConversionError) -> dict[str, str]:
     phase = _error_phase(exc)
-    if phase == "contract_or_protocol" and any(marker in str(exc) for marker in (
-        "items must contain one or two schedules", "a Card may contain at most one EventCard",
-        "cannot use SecondaryBody as its only business information",
-        "generated SecondaryBody.items requires at least two supplemental fields",
-    )):
-        # These are deterministic component-organization constraints, not
-        # unknown props or binding errors. Repeated failures need restructuring.
-        phase = "layout_structure"
+    if phase == "contract_or_protocol":
+        layout_markers = (
+            "items must contain one or two schedules", "a Card may contain at most one EventCard",
+            "cannot use SecondaryBody as its only business information",
+            "generated SecondaryBody.items requires at least two supplemental fields",
+        )
+        for marker in layout_markers:
+            if marker in str(exc):
+                # Component-organization constraints require restructuring.
+                phase = "layout_structure"
+                break
     return {
         "severity": "error",
         "code": phase.replace("_", "-"),
@@ -3255,18 +3270,33 @@ class OrderedWorkflowState:
         resolved_ids = {fact["dataId"] for fact in facts if "initialValue" in fact}
         # A layout-only replan cannot turn previously unverified evidence into
         # permission to override a value. Only a newly evidenced value clears it.
-        warnings.extend(warning for warning in self.plan_warnings
-                        if warning.get("code") == "plan-initial-value-unverified"
-                        and warning.get("dataId") not in resolved_ids)
+        for warning in self.plan_warnings:
+            if warning.get("code") != "plan-initial-value-unverified":
+                continue
+            if warning.get("dataId") not in resolved_ids:
+                warnings.append(warning)
         if self.required_facts is not None:
             query = str((self.prompt_task or {}).get("userQuery") or "")
             previous = checkable_facts(self.required_facts, query)
-            identities = {(key, fact[key]) for fact in facts for key in ("dataId", "actionId", "text") if key in fact}
-            removed = [fact for fact in previous if any(
-                (key, fact[key]) not in identities for key in ("dataId", "actionId", "text") if key in fact)]
+            identities = set()
+            for fact in facts:
+                for key in ("dataId", "actionId", "text"):
+                    if key in fact:
+                        identities.add((key, fact[key]))
+            removed = []
+            for fact in previous:
+                for key in ("dataId", "actionId", "text"):
+                    if key in fact and (key, fact[key]) not in identities:
+                        removed.append(fact)
+                        break
             if removed:
                 warnings.append({"severity": "warning", "phase": "plan_contract", "code": "plan-facts-changed",
-                                 "message": "Replanning removed model-selected targets; recheck the user request. The previous plan is not an authoritative requirement list, so this does not trigger a retry.",
+                                 "message": (
+                                     "Replanning removed model-selected targets; "
+                                     "recheck the user request. The previous plan is not an "
+                                     "authoritative requirement list, "
+                                     "so this does not trigger a retry."
+                                 ),
                                  "details": {"removedFacts": removed}})
             # A layout-only replan must not erase an already resolved initial value.
             # An explicitly evidenced correction is validated normally above.
@@ -3489,7 +3519,10 @@ class OrderedWorkflowState:
         plan_coverage_warnings = []
         if self.required_facts is not None:
             used_data, used_actions = _effective_binding_ids(root)
-            literals = [value for node in _walk(root) for _, value in _required_fact_display_values(node, include_bound=True)]
+            literals = []
+            for node in _walk(root):
+                for _, value in _required_fact_display_values(node, include_bound=True):
+                    literals.append(value)
             # Input actions are checked independently (including their slots).
             # Do not report the same missing action again as a fact failure.
             unavailable = unavailable_data_ids(parsed_compile_context) if parsed_compile_context is not None else set()
@@ -3501,7 +3534,11 @@ class OrderedWorkflowState:
             if missing:
                 plan_coverage_warnings.append({
                     "severity": "warning", "phase": "semantic_coverage", "code": "plan-coverage-unverified",
-                    "message": "JSX does not match some model-planned display targets. This does not prove missing user-required information; review coverage without retrying solely for this warning.",
+                    "message": (
+                        "JSX does not match some model-planned display targets. "
+                        "This does not prove missing user-required information; "
+                        "review coverage without retrying solely for this warning."
+                    ),
                     "details": {"missingFacts": missing},
                 })
 
@@ -3717,7 +3754,12 @@ def build_plan_tool(card_size: str | None = None, compile_context: dict[str, Any
                     "info_required": required_facts_schema(CompileContext.from_payload(compile_context)),
                     "data_exclusions": {
                         "type": "object",
-                        "description": "可选的非展示字段说明：真实 dataId → 原因（如仅操作参数、内部标识、背景或用户不需要）。无需逐项填写全部输入；不要为消除清点 warning 展示无关字段。不能与 info_required.dataId 重复，也不能因布局拥挤排除用户要求。",
+                        "description": (
+                            "可选的非展示字段说明：真实 dataId → 原因"
+                            "（如仅操作参数、内部标识、背景或用户不需要）。"
+                            "无需逐项填写全部输入；不要为消除清点 warning 展示无关字段。"
+                            "不能与 info_required.dataId 重复，也不能因布局拥挤排除用户要求。"
+                        ),
                         "additionalProperties": {"type": "string"},
                     },
                     "layout_optionA": option_schema,
@@ -3747,7 +3789,10 @@ def _validate_plan_arguments(
         if not isinstance(option, dict):
             errors.append(f"{name} must be an object")
             continue
-        pattern = _canonical_layout_pattern(option.get("layoutPattern")) if isinstance(option.get("layoutPattern"), str) else None
+        pattern = (
+            _canonical_layout_pattern(option.get("layoutPattern"))
+            if isinstance(option.get("layoutPattern"), str) else None
+        )
         if not isinstance(option.get("layoutPattern"), str) or not option["layoutPattern"].strip():
             errors.append(f"{name}.layoutPattern must be a non-empty string")
         elif card_size == "2x2" and pattern not in TOP_LEVEL_2X2_TYPES:
@@ -3757,11 +3802,19 @@ def _validate_plan_arguments(
                 errors.append(f"{name}.layoutPattern must name a documented 2x4 layout")
             else:
                 if required_actions and pattern == "12":
-                    errors.append(f'{name} cannot use 2x4 layout "上下双区" because the task requires actionIds {sorted(required_actions)!r}; choose an Action-capable layout')
-                errors.extend(f"{name}: {error}" for error in _validate_sub_pattern_decision(option, card_size, pattern))
+                    errors.append(
+                        f'{name} cannot use 2x4 layout "上下双区" '
+                        'because the task requires actionIds '
+                        f'{sorted(required_actions)!r}; choose an Action-capable layout'
+                    )
+                for error in _validate_sub_pattern_decision(option, card_size, pattern):
+                    errors.append(f"{name}: {error}")
         if not isinstance(option.get("content"), str) or not option["content"].strip():
             plan_warnings.append({"severity": "warning", "code": "plan-description-missing",
-                                  "message": f"{name}.content is missing; layout structure is checked against the submitted JSX"})
+                                  "message": (
+                                      f"{name}.content is missing; "
+                                      "layout structure is checked against the submitted JSX"
+                                  )})
     facts = []
     exclusions = {}
     try:
@@ -3783,7 +3836,8 @@ def _validate_plan_arguments(
         # list is not an empty plan; checking it would invent missing-ID errors.
         try:
             exclusions = validate_data_inventory(
-                facts, arguments.get("data_exclusions"), CompileContext.from_payload(context_with_initial_values(facts, compile_context)),
+                facts, arguments.get("data_exclusions"),
+                CompileContext.from_payload(context_with_initial_values(facts, compile_context)),
                 prompt_task, plan_warnings,
             )
         except ConversionError as exc:
@@ -3820,7 +3874,10 @@ def validate_plan_arguments(
     return result
 
 
-def build_agent_tools(card_size: str | None = None, compile_context: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def build_agent_tools(
+    card_size: str | None = None,
+    compile_context: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     return [
         {
             "type": "function",

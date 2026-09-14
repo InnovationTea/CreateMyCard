@@ -128,6 +128,15 @@ def preferred_axis_size(node: Any, parent: Any, axis: str) -> Any:
     return value
 
 
+def _stack_matches(node: Any, expected: dict[str, Any]) -> bool:
+    if node.tag != "Stack":
+        return False
+    for prop, value in expected.items():
+        if node.props.get(prop) != value:
+            return False
+    return True
+
+
 def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
     """Validate only the topology made definite by an explicit 2x2 pattern."""
     if pattern not in TOP_LEVEL_2X2_TYPES:
@@ -158,13 +167,9 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             errors.append('2x2 layout "标题单内容" requires one title slot and one content region')
         else:
             content = content_slots[0]
-            if (
-                content.tag != "Stack"
-                or content.props.get("flex") != 1
-                or content.props.get("width") != "full"
-                or content.props.get("align") != "flex-start"
-                or content.props.get("justify") != "flex-end"
-            ):
+            if not _stack_matches(content, {
+                "flex": 1, "width": "full", "align": "flex-start", "justify": "flex-end",
+            }):
                 errors.append(
                     '2x2 layout "标题单内容" content region must use flex={1}, '
                     'width="full", align="flex-start" and justify="flex-end"'
@@ -180,12 +185,14 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 '2x2 layout "紧凑内容双按钮" requires every ProgressCircleSingle '
                 'to explicitly declare size="compact"'
             )
-        button_slots = [
-            child
-            for child in children
-            if child.tag == "Stack"
-            and any(node.tag == "PillButton" for node in _descendants([child]))
-        ]
+        button_slots = []
+        for child in children:
+            if child.tag != "Stack":
+                continue
+            for node in _descendants([child]):
+                if node.tag == "PillButton":
+                    button_slots.append(child)
+                    break
         content_slots = [child for child in children if child not in button_slots]
         pill_buttons = [node for node in descendants if node.tag == "PillButton"]
         other_buttons = [
@@ -212,11 +219,9 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
         else:
             content = content_slots[0]
             if (
-                content.tag != "Stack"
-                or content.props.get("flex") != 1
-                or content.props.get("width") != "full"
-                or content.props.get("align") != "flex-start"
-                or content.props.get("justify") != "flex-start"
+                not _stack_matches(content, {
+                    "flex": 1, "width": "full", "align": "flex-start", "justify": "flex-start",
+                })
                 or root.props.get("gap") != 8
             ):
                 errors.append(
@@ -349,15 +354,12 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                         if node.tag == "CircleButton"
                     ]
                     if (
-                        secondary.tag != "Stack"
-                        or secondary.props.get("width") != 88
-                        or secondary.props.get("align") != "flex-start"
-                        or secondary.props.get("justify") != "flex-end"
-                        or action.tag != "Stack"
-                        or action.props.get("width") != 40
-                        or action.props.get("height") != 40
-                        or action.props.get("align") != "center"
-                        or action.props.get("justify") != "center"
+                        not _stack_matches(secondary, {
+                            "width": 88, "align": "flex-start", "justify": "flex-end",
+                        })
+                        or not _stack_matches(action, {
+                            "width": 40, "height": 40, "align": "center", "justify": "center",
+                        })
                         or len(circle_buttons) != 1
                     ):
                         errors.append(

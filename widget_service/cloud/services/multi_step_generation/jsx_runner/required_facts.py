@@ -68,9 +68,16 @@ def unavailable_data_ids(context: CompileContext) -> set[str]:
 
 def input_availability_warnings(context: CompileContext) -> list[dict[str, Any]]:
     unavailable = unavailable_data_ids(context)
-    warnings = [{'severity': 'warning', 'code': 'input-value-unavailable', 'dataId': key,
-                 'message': 'Input value is empty; retain user-requested display bindings for future updates. Do not invent a value or retry JSX to supply it. Action-only parameters do not require a display binding.'}
-                for key in sorted(unavailable)]
+    warnings = []
+    for key in sorted(unavailable):
+        warnings.append({
+            'severity': 'warning', 'code': 'input-value-unavailable', 'dataId': key,
+            'message': (
+                'Input value is empty; retain user-requested display bindings for future updates. '
+                'Do not invent a value or retry JSX to supply it. '
+                'Action-only parameters do not require a display binding.'
+            ),
+        })
 
     def paths(value):
         if isinstance(value, str):
@@ -90,7 +97,11 @@ def input_availability_warnings(context: CompileContext) -> list[dict[str, Any]]
             if context.data[key].path in dependencies:
                 warnings.append({'severity': 'warning', 'code': 'action-input-unavailable',
                                  'dataId': key, 'actionId': action.id,
-                                 'message': 'Action references an empty input value; button presence does not prove that navigation is usable. Fix the input, not the JSX layout.'})
+                                 'message': (
+                                     'Action references an empty input value; button presence does '
+                                     'not prove that navigation is usable. '
+                                     'Fix the input, not the JSX layout.'
+                                 )})
     return warnings
 
 
@@ -131,7 +142,12 @@ def validate_data_inventory(
             'severity': 'warning', 'phase': 'plan_contract', 'code': 'plan-data-unaccounted',
             'dataIds': missing,
             'message': 'Input data IDs are not mapped in the plan: ' + repr(missing)
-                       + '. Coverage is unverified, not proven missing. Use real dataId bindings for requested display facts; do not display internal IDs or background fields merely to clear this warning. No plan retry is required for this warning.',
+                       + (
+                           '. Coverage is unverified, not proven missing. Use real dataId bindings '
+                           'for requested display facts; do not display internal IDs or background '
+                           'fields merely to clear this warning. '
+                           'No plan retry is required for this warning.'
+                       ),
         })
     if errors:
         raise ValidationError('; '.join(errors))
@@ -153,9 +169,23 @@ def is_verbatim_requirement(text: str, query: str) -> bool:
         suffix = query[match.end():]
         if re.match(r"\s*的(?:状态|数量|完成|进度|标题|长度)", suffix):
             continue  # Quoted object name is not necessarily requested copy.
-        if re.search(r"(?:展示|显示|写上|display|show|write)\s*(?:待办事项|待办|正文|文案|文字|文本|内容|text|copy)?\s*[:：]?\s*$", clause, re.I):
+        if re.search(
+            r"(?:展示|显示|写上|display|show|write)\s*"
+            r"(?:待办事项|待办|正文|文案|文字|文本|内容|text|copy)?\s*[:：]?\s*$",
+            clause, re.I,
+        ):
             return True
     return False
+
+
+def _has_unambiguous_initial_evidence(value: Any, evidence: Any, query: str) -> bool:
+    if not _nonempty(evidence) or evidence not in query:
+        return False
+    if not _literal_is_explicit_in_query(value, evidence):
+        return False
+    if isinstance(value, str) and re.fullmatch(r"\d{2}:\d{2}", value):
+        return len(explicit_clock_values(evidence)) <= 1
+    return True
 
 
 def validate_required_facts(
@@ -195,7 +225,10 @@ def validate_required_facts(
             warn("plan-metadata-normalized", f"{where}.requirement was derived from its target")
         quote = fact.get("sourceQuote")
         if not _nonempty(quote) or quote not in query:
-            warn("plan-evidence-unverified", f"{where}.sourceQuote is not a verbatim quote; it is not evidence of coverage")
+            warn(
+                "plan-evidence-unverified",
+                f"{where}.sourceQuote is not a verbatim quote; it is not evidence of coverage",
+            )
         targets = [key for key in ("dataId", "actionId", "text") if key in fact]
         invalid_targets = [key for key in targets if not _nonempty(fact[key])]
         if invalid_targets:
@@ -206,11 +239,18 @@ def validate_required_facts(
                 warn("plan-initial-value-unverified", f"{where}.initialValue has no dataId; no override applied")
                 fact.pop("initialValue")
             fact.pop("valueSourceQuote", None)
-            warn("plan-requirement-unverified", f"{where} has no mapped target; retain the requirement for generation and semantic review")
+            warn(
+                "plan-requirement-unverified",
+                f"{where} has no mapped target; "
+                "retain the requirement for generation and semantic review",
+            )
             normalized.append(fact)
             continue
         if len(targets) > 1:
-            warn("plan-metadata-normalized", f"{where} was split into independent targets without deleting requirements")
+            warn(
+                "plan-metadata-normalized",
+                f"{where} was split into independent targets without deleting requirements",
+            )
         for target in targets:
             item = {key: value for key, value in fact.items()
                     if key not in {"dataId", "actionId", "text", "initialValue", "valueSourceQuote"}}
@@ -220,7 +260,11 @@ def validate_required_facts(
                 if target == "actionId":
                     context.action_binding(item[target])
                 if target == "text" and not is_verbatim_requirement(item["text"], query):
-                    warn("plan-text-advisory", f"{where}.text={item['text']!r} is descriptive or paraphrasable; exact wording will not block JSX")
+                    warn(
+                        "plan-text-advisory",
+                        f"{where}.text={item['text']!r} is descriptive or paraphrasable; "
+                        "exact wording will not block JSX",
+                    )
                 if target == "dataId" and "initialValue" in fact:
                     value = fact["initialValue"]
                     evidence = fact.get("valueSourceQuote")
@@ -232,26 +276,32 @@ def validate_required_facts(
                         raise ValidationError(f"{where}.initialValue must be finite")
                     if type(value) is type(binding.value) and value == binding.value and not evidence:
                         pass  # Explicitly repeating the sample is a no-op.
-                    elif (_nonempty(evidence) and evidence in query
-                          and _literal_is_explicit_in_query(value, evidence)
-                          and not (isinstance(value, str) and re.fullmatch(r"\d{2}:\d{2}", value)
-                                   and len(explicit_clock_values(evidence)) > 1)):
+                    elif _has_unambiguous_initial_evidence(value, evidence, query):
                         item.update(initialValue=value, valueSourceQuote=evidence)
                     else:
                         warn("plan-initial-value-unverified",
-                             f"{where}: proposed initialValue={value!r}, evidence={evidence!r} cannot be verified; no override applied",
+                             f"{where}: proposed initialValue={value!r}, evidence={evidence!r} "
+                             "cannot be verified; no override applied",
                              dataId=item[target])
                 elif "initialValue" in fact and "dataId" not in targets:
                     warn("plan-initial-value-unverified", f"{where}.initialValue has no dataId; no override applied")
                 elif "valueSourceQuote" in fact and "initialValue" not in fact:
-                    warn("plan-unused-value-source-quote", f"{where}.valueSourceQuote ignored because initialValue was not supplied; binding retained")
+                    warn(
+                        "plan-unused-value-source-quote",
+                        f"{where}.valueSourceQuote ignored because initialValue was not supplied; "
+                        "binding retained",
+                    )
                 identity = (target, item[target])
                 previous = seen.get(identity)
                 if previous is not None:
-                    if ("initialValue" in previous and "initialValue" in item
-                            and (type(previous["initialValue"]) is not type(item["initialValue"])
-                                 or previous["initialValue"] != item["initialValue"])):
-                        raise ValidationError(f"{where} has conflicting initial values for {item[target]!r}")
+                    if "initialValue" in previous and "initialValue" in item:
+                        if (
+                            type(previous["initialValue"]) is not type(item["initialValue"])
+                            or previous["initialValue"] != item["initialValue"]
+                        ):
+                            raise ValidationError(
+                                f"{where} has conflicting initial values for {item[target]!r}"
+                            )
                     if "initialValue" in item:
                         previous.update(initialValue=item["initialValue"], valueSourceQuote=item["valueSourceQuote"])
                     if item["requirement"] not in previous["requirement"]:
@@ -269,8 +319,13 @@ def validate_required_facts(
 
 def checkable_facts(facts: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
     """Targets we can compare with JSX, not proof of user-required coverage."""
-    return [fact for fact in facts if "dataId" in fact or "actionId" in fact
-            or ("text" in fact and is_verbatim_requirement(fact["text"], query))]
+    checkable = []
+    for fact in facts:
+        if "dataId" in fact or "actionId" in fact:
+            checkable.append(fact)
+        elif "text" in fact and is_verbatim_requirement(fact["text"], query):
+            checkable.append(fact)
+    return checkable
 
 
 def context_with_initial_values(

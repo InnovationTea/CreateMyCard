@@ -60,7 +60,11 @@ def _repair_root_keys(result: dict[str, Any]) -> set[str]:
         if code in {"layout-structure", "layout-budget"}:
             roots.update("layout:" + repr(value) for value in _layout_failure_fingerprint({"findings": [item]}))
         elif "required input actionIds are missing from the generated card:" in str(item.get("message", "")):
-            missing_actions = str(item["message"]).split("required input actionIds are missing from the generated card:", 1)[1].split(";", 1)[0]
+            missing_actions = (
+                str(item["message"])
+                .split("required input actionIds are missing from the generated card:", 1)[1]
+                .split(";", 1)[0]
+            )
             roots.update("information:actionId:" + value for value in re.findall(r"'([^']+)'", missing_actions))
     return roots
 
@@ -306,12 +310,15 @@ def _static_layout_repair_feedback(
 
 def _layout_failure_fingerprint(result: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     """Ignore changing vp values, but retain the violated constraint and region."""
-    return tuple(sorted(
-        (str(item.get("code")), re.sub(r"\d+(?:\.\d+)?vp", "<vp>", str(item.get("message", ""))))
-        for item in result.get("findings", [])
-        if isinstance(item, dict) and item.get("severity") == "error"
-        and item.get("code") in {"layout-budget", "layout-structure"}
-    ))
+    fingerprints = []
+    for item in result.get("findings", []):
+        if not isinstance(item, dict) or item.get("severity") != "error":
+            continue
+        if item.get("code") not in {"layout-budget", "layout-structure"}:
+            continue
+        message = re.sub(r"\d+(?:\.\d+)?vp", "<vp>", str(item.get("message", "")))
+        fingerprints.append((str(item.get("code")), message))
+    return tuple(sorted(fingerprints))
 
 
 def _tool_result_log_level(result: dict[str, Any]) -> str:
@@ -920,7 +927,11 @@ class JsxA2UIAgent:
                             "plan_contract: plan could not be validated within its bounded attempts; "
                             "no JSX was accepted. Last plan error: " + str(result.get("error"))
                         )
-            if function.name == "submit_card_jsx" and submitted_jsx is not None and state.active_layout_fallback == "compact_component":
+            if (
+                function.name == "submit_card_jsx"
+                and submitted_jsx is not None
+                and state.active_layout_fallback == "compact_component"
+            ):
                 fallback_attempts["compact_component"] += 1
             if function.name == "submit_card_jsx" and result.get("ok") and state.pending_submission is not None:
                 preservation_errors: list[dict[str, Any]] = []
@@ -990,10 +1001,18 @@ class JsxA2UIAgent:
                                 report_errors.append(item)
                         current_layout_fingerprints = browser_layout_fingerprints(report)
                         has_browser_error = bool(current_layout_fingerprints)
-                        runtime_errors = [item for item in report_errors
-                                          if str(item.get("code") or "") in {"browser-runtime", "browser-mount", "browser-resource-request"}]
+                        runtime_errors = []
+                        for item in report_errors:
+                            if str(item.get("code") or "") in {
+                                "browser-runtime", "browser-mount", "browser-resource-request",
+                            }:
+                                runtime_errors.append(item)
                         if runtime_errors:
-                            terminal_error = RuntimeError("validation_runtime: renderer execution failed; not a layout repair: " + str(runtime_errors))
+                            terminal_error = RuntimeError(
+                                "validation_runtime: renderer execution failed; "
+                                "not a layout repair: "
+                                + str(runtime_errors)
+                            )
                         needs_restructure, repeated_findings = (
                             browser_layout_needs_restructure(
                                 report,
@@ -1083,11 +1102,17 @@ class JsxA2UIAgent:
                             )
                             if repeated_findings:
                                 result["repeatedFindings"] = repeated_findings
-            if (function.name == "submit_card_jsx" and submitted_jsx is not None
-                    and not result.get("ok") and result.get("retryable", True)
-                    and terminal_error is None):
+            failed_jsx_submission = (
+                function.name == "submit_card_jsx"
+                and submitted_jsx is not None
+                and not result.get("ok")
+            )
+            if failed_jsx_submission and result.get("retryable", True) and terminal_error is None:
                 roots = _repair_root_keys(result)
-                submission_key = (submitted_jsx.strip(), json.dumps(arguments.get('decision'), sort_keys=True, ensure_ascii=False))
+                submission_key = (
+                    submitted_jsx.strip(),
+                    json.dumps(arguments.get('decision'), sort_keys=True, ensure_ascii=False),
+                )
                 no_progress = submission_key == previous_failed_submission
                 previous_failed_submission = submission_key
                 if no_progress:
@@ -1116,13 +1141,15 @@ class JsxA2UIAgent:
                     result.update(fallbackStage="compact_component", fallbackAttempt=attempt,
                                   fallbackAttemptLimit=limit, fallbackRemainingAttempts=max(0, limit - attempt))
                     compact_exhausted = attempt >= limit
-                replan_reason = (
-                    "bounded non-lossy repairs exhausted" if compact_exhausted
-                    else "identical failed JSX resubmitted without progress" if no_progress and not browser_failure and getattr(self, "plan_enabled", False)
-                    else "required_information: repeated omissions" if information_count >= 3
-                    else "layout contracts still fail" if layout_count >= 3 and getattr(self, "plan_enabled", False)
-                    else None
-                )
+                replan_reason = None
+                if compact_exhausted:
+                    replan_reason = "bounded non-lossy repairs exhausted"
+                elif no_progress and not browser_failure and getattr(self, "plan_enabled", False):
+                    replan_reason = "identical failed JSX resubmitted without progress"
+                elif information_count >= 3:
+                    replan_reason = "required_information: repeated omissions"
+                elif layout_count >= 3 and getattr(self, "plan_enabled", False):
+                    replan_reason = "layout contracts still fail"
                 if replan_reason:
                     # Decide once after the full report. Mixed error families
                     # must not spend two replan budgets or overwrite a terminal error.
@@ -1146,16 +1173,23 @@ class JsxA2UIAgent:
                             ),
                         )
                     else:
-                        terminal_error = RuntimeError(replan_reason + "; required facts were preserved. " + str(result.get("error")))
-                elif browser_failure and state.active_layout_fallback is None and (no_progress or browser_failures >= self.max_validation_repairs):
-                    # Runner-only transition: no model call just to change mode.
-                    state.active_layout_fallback = "compact_component"
-                    previous_failed_submission = None
-                    fallback_history.append("compact_component")
-                    result.update(
-                        fallbackStage="compact_component",
-                        instruction=str(result.get("instruction", "")) + "\n" + build_layout_fallback_prompt("compact_component"),
-                    )
+                        terminal_error = RuntimeError(
+                            replan_reason + "; required facts were preserved. "
+                            + str(result.get("error"))
+                        )
+                elif browser_failure and state.active_layout_fallback is None:
+                    if no_progress or browser_failures >= self.max_validation_repairs:
+                        # Runner-only transition: no model call just to change mode.
+                        state.active_layout_fallback = "compact_component"
+                        previous_failed_submission = None
+                        fallback_history.append("compact_component")
+                        result.update(
+                            fallbackStage="compact_component",
+                            instruction=(
+                                str(result.get("instruction", "")) + "\n"
+                                + build_layout_fallback_prompt("compact_component")
+                            ),
+                        )
             failed_submit = function.name == "submit_card_jsx" and not result.get("ok")
             non_retryable_failure = result.get("retryable") is False and terminal_error is None
             if failed_submit and non_retryable_failure:

@@ -407,7 +407,10 @@ def _filtered_data_fields(value: Any, path: tuple[str | int, ...] = ()) -> list[
     result = []
     for key, child in value.items():
         if key == "updatedAt":
-            result.append({"dataId": _binding_id(path + (key,)), "reason": "updatedAt is filtered by the existing input adapter"})
+            result.append({
+                "dataId": _binding_id(path + (key,)),
+                "reason": "updatedAt is filtered by the existing input adapter",
+            })
         else:
             result.extend(_filtered_data_fields(child, path + (key,)))
     return result

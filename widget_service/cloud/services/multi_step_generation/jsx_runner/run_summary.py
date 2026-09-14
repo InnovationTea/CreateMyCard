@@ -316,7 +316,10 @@ def _task_metrics(
             item = {
                 "taskId": task_id,
                 "category": "model_protocol",
-                "code": "truncated-tool-call" if result.get('phase') == 'truncated_tool_call' else "invalid-tool-arguments",
+                "code": (
+                    "truncated-tool-call" if result.get('phase') == 'truncated_tool_call'
+                    else "invalid-tool-arguments"
+                ),
                 "message": str(result.get("error") or "tool arguments were invalid JSON"),
             }
             if has_later_turn:
