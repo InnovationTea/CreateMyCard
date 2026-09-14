@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import inspect
 import json
 from itertools import product
 
@@ -15,12 +17,61 @@ from services.template_generation.engine.cardplan.compiler import (
 from services.template_generation.engine.cardplan.models import TemplateDefinition
 from services.template_generation.engine.cardplan.provider_bundle import (
     _parse_component_body,
+    _template_directive_components,
     compile_card_template,
 )
 from services.template_generation.engine.tersel_converter import Nested2Node, convert_tersel_to_a2ui
 from services.template_generation.profile import read_tersel_protocol_profile
 
 _NAMES = ("first", "second", "third")
+
+
+@pytest.mark.parametrize("keyword", ("if", "elseif"))
+@pytest.mark.parametrize(
+    "target,expected",
+    (
+        ("data.first", ('IfBind("first",', 'IfMissingBind("first",')),
+        ("props.flag", ('IfParam("flag",', 'IfMissingParam("flag",')),
+        ("!data.first", ('IfMissingBind("first",', 'IfBind("first",')),
+        ("! props.flag", ('IfMissingParam("flag",', 'IfParam("flag",')),
+        (
+            "data.first && data.second",
+            ('IfAllBind(["first","second"],', 'IfAnyMissingBind(["first","second"],'),
+        ),
+    ),
+)
+def test_directive_components_preserve_pair_type_and_order(
+    keyword: str, target: str, expected: tuple[str, str],
+) -> None:
+    result = _template_directive_components(f"#{keyword} {target}", 23)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    assert all(isinstance(value, str) for value in result)
+    assert result == expected
+
+
+@pytest.mark.parametrize("keyword", ("if", "elseif"))
+@pytest.mark.parametrize(
+    "target",
+    (
+        "data.first && data.first",
+        "data.first && props.flag",
+        "data.first || data.second",
+        "!!data.first",
+        "data.first.value",
+    ),
+)
+def test_directive_components_preserve_invalid_target_error(keyword: str, target: str) -> None:
+    with pytest.raises(ValueError) as error:
+        _template_directive_components(f"#{keyword} {target}", 23)
+    assert str(error.value) == f"Provider Template #{keyword} target is invalid at line 23"
+
+
+def test_directive_components_keep_one_return_for_codecheck() -> None:
+    """固定单一返回出口，防止再次混用条件表达式和二元组返回。"""
+    function = ast.parse(inspect.getsource(_template_directive_components)).body[0]
+    returns = [node for node in ast.walk(function) if isinstance(node, ast.Return)]
+    assert len(returns) == 1
 
 
 def _definition(body: str) -> TemplateDefinition:

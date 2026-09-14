@@ -98,6 +98,32 @@ Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返�
 4. 新增或修改资源：同时检查 `provider.json`、分层规则、`.cardtpl` 和能力清单。
 5. 回归：运行模块测试和预览数据集校验，具体命令见预览文档。
 
+### Python 静态预检
+
+无法获取流水线 CodeCheck 版本或规则包时，暂用开发依赖中固定版本的 Pylint 做本地预检。
+规则统一维护于 `widget_service/pyproject.toml`，修改 Python 文件后与 Ruff、相关单测一起执行：
+
+```bash
+# 在 widget_service 目录执行；Python 环境需安装本项目 dev 依赖。
+python -m ruff check cloud/services/template_generation/engine/cardplan/provider_bundle.py cloud/services/template_generation/tests/test_provider_elseif.py
+PYTHONPATH=cloud python -m pylint --rcfile=pyproject.toml cloud/services/template_generation/engine/cardplan/provider_bundle.py cloud/services/template_generation/tests/test_provider_elseif.py
+git diff --check
+```
+
+文件参数替换为本次实际修改的 Python 文件，不仅限于以上示例。当前基础规则覆盖语法错误、变量使用、
+无返回值赋值、返回语句一致性、不可达语句、`finally` 返回、裸异常、重复异常/字典键和可变默认参数。
+不使用 `--exit-zero` 吞掉检查失败；历史问题和新增问题必须分别记录。
+
+Pylint `inconsistent-return-statements`（R1710）不等同于流水线的 H0301：它不能完整验证所有分支
+的返回类型和二元组长度，也不会必然拒绝“条件表达式返回与二元组返回混用”。对
+`_template_directive_components()`，保留带类型注解的统一返回变量，并以回归测试验证返回顺序、
+二元组类型/长度、非法指令异常和单一返回出口；不能通过伪值、强制字符串化或屏蔽告警改变真实语义。
+
+基础门禁暂不包含全量类型推断或风格规则。扩大至 Pylint `E/F` 与 `unbalanced-tuple-unpacking`
+规则的试跑发现，本文件既有 Pydantic 字段被推断成 `FieldInfo`（E1101）和动态列表构造后的解包
+（W0632）告警，需要另行核验或适配，不能把基础规则通过称作“全量 Pylint/CodeCheck 通过”。
+后续可获取原流水线时，仍需用同版本、同规则集复扫。
+
 ## 目录概览
 
 ```text
