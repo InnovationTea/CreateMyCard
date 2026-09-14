@@ -400,6 +400,10 @@ class ThemeDefinition(StrictModel):
     )
     root_style: dict[str, Any] = Field(alias="rootStyle")
     action_style: CardActionStyle = Field(alias="actionStyle")
+    allow_template_action_background_override: bool = Field(
+        default=True,
+        alias="allowTemplateActionBackgroundOverride",
+    )
     support_content_style: CardSupportContentStyle | None = Field(
         default=None,
         alias="supportContentStyle",

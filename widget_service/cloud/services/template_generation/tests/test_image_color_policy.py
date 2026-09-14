@@ -188,7 +188,10 @@ def test_legacy_weather_entry_does_not_infer_image_color(
     "icon_weather_thermometer.svg", "icon_weather_thermometer_medium.svg",
     "sun_max.svg", "icon_weather_wind.svg",
 ))
-def test_two_support_final_a2ui_preserves_weather_template_fill(filename: str) -> None:
+@pytest.mark.parametrize("has_feels_like", (False, True))
+def test_two_support_final_a2ui_preserves_weather_template_fill(
+    filename: str, has_feels_like: bool,
+) -> None:
     registry = get_cardplan_registry()
     catalog = json.loads(_ASSETS.read_text(encoding="utf-8"))
     source = "resources/base/media/" + filename
@@ -217,7 +220,15 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(filename: str) -
                 templateId=template_id, coveredExplicitFields=definition.required_data,
             ),),
         ))
-    data["weather"]["location"]["cityCode"] = {"type": "string", "sampleValue": "021"}
+    weather = data.get("weather")
+    assert isinstance(weather, dict)
+    location = weather.get("location")
+    current = weather.get("current")
+    assert isinstance(location, dict)
+    assert isinstance(current, dict)
+    location["cityCode"] = {"type": "string", "sampleValue": "021"}
+    if not has_feels_like:
+        current.pop("feelsLikeC", None)
     task = TaskSpec(
         userQuery="展示手机电量与天气", size="2x2", dataModelSchema={"data": data},
         assetCandidates=[asset],
@@ -265,12 +276,13 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(filename: str) -
     components = update.get("components")
     assert isinstance(components, list)
     images = [node for node in components if node.get("component") == "Image"]
-    assert len(images) == 1
-    image = images[0]
-    assert image.get("src") == source
-    styles = image.get("styles")
-    assert isinstance(styles, dict)
-    assert styles.get("fillColor") == "#991F4595"
-    assert styles.get("width") == styles.get("height") == 24
+    assert len(images) == (0 if has_feels_like else 1)
+    if not has_feels_like:
+        image = images[0]
+        assert image.get("src") == source
+        styles = image.get("styles")
+        assert isinstance(styles, dict)
+        assert styles.get("fillColor") == "#991F4595"
+        assert styles.get("width") == styles.get("height") == 24
     assert "_preserveOriginalColor" not in result.effective_output
     assert "_preserveOriginalColor" not in result.a2ui
