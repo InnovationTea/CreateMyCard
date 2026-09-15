@@ -34,11 +34,11 @@ def convert_top_text_bottom_value(node: JSXElement, ctx: ConversionContext) -> A
         raise ValidationError("; ".join(errors))
     items = node.props["items"]
     if not isinstance(items, list):
-        raise AssertionError
+        raise AssertionError()
     item_nodes: list[A2UINode] = []
     for index, item in enumerate(items):
         if not isinstance(item, dict):
-            raise AssertionError
+            raise AssertionError()
         item_nodes.append(
             column(
                 ctx,

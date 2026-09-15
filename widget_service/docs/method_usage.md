@@ -119,6 +119,15 @@ artifact 的 `cardSpec.suggestSize`。指令帧
 `streamContent` 外层为 command 消息 JSON，`content` 保存原指令 JSON 字符串，`content_type` 固定为
 `aIWidgetDirectives`，`event` 固定为 `command`，`process_time` 使用当前本地时间，`task_id` 使用 requestId。
 
+指令下发日志：`widget_directive_sending` 表示开始发送，`widget_directive_sent` 表示
+WebSocket 发送完成（不代表端侧已执行），`widget_directive_send_failed` 表示发送失败，异常详情见
+同请求的 `widget_operation_ws_send_failed`。开关关闭时记录 `widget_directive_skipped`。
+日志包含 `request_id`、`operation`、`intent_name`、`state`、`card_id`、`size` 和
+`streaming_text_id`；`AIWidgetStart` 对应 `start`，`AIWidgetEnd` 对应 `success/failure`。
+`widget_directive_sending` 的 `command` 打印实际构造的指令包，包括结束指令中的产物 URL。
+仅在日志副本中将 `content` JSON 字符串展开为对象，便于查看 `directives`、`executeParam`
+和 `session`；递归移除 `uid/userId/callingUid/odid` 等用户标识，实际下发内容保持不变。
+
 `generateWidgetCard` 固定使用标准 A2UI Form profile，后端由
 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND` 选择；`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择
 Design profile，后端由 `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND` 选择并生成
@@ -455,7 +464,6 @@ Design Compact 两个生成入口都受同一个编辑开关控制，并沿用�
     "artifactUrl": "https://obs.todo.local/widget/artifact_uuid.md",
     "artifactDigest": "sha256:xxx",
     "suggestSize": "2x4",
-    "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
     "errorCode": "",
     "effectiveCapabilities": {
@@ -607,7 +615,7 @@ async generate_widget_card(
 9. 启用 Validator 时校验标准 artifact；转换 error 与 Validator error 统一交给 RetryController
 10. RetryController 按开关和最大次数执行有限 repair，每轮重新经过同一 Processor 和 Validator
 11. ArtifactStore 异步保存可用 artifact，当前为 OBS TODO hook
-12. ResponsePlanner 生成 status 和 message
+12. ResponsePlanner 生成 status 和内部 message；响应模型序列化时排除 message，暂不对外返回。
 ```
 
 使用示例：

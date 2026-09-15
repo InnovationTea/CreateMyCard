@@ -516,6 +516,9 @@ ArtifactStore.save
 
 ## 13. 响应数据流
 
+生成结果暂不返回 `message`。内部话术继续保留，统一由响应模型的
+`Field(exclude=True)` 排除；需要恢复输出时移除该标记。错误详情中的 `error.message` 不受影响。
+
 业务响应示例：
 
 ```json
@@ -524,7 +527,6 @@ ArtifactStore.save
   "artifactUrl": "上传后的地址",
   "artifactDigest": "sha256:...",
   "suggestSize": "2x4",
-  "message": "已为你生成卡片。",
   "removedCapabilities": [],
   "errorCode": "",
   "effectiveCapabilities": {

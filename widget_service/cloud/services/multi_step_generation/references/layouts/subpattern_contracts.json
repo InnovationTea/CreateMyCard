@@ -1,0 +1,20 @@
+{
+  "structuralComponents": ["Card", "Stack", "Grid"],
+  "titleComponents": ["SingleLineTitle", "DoubleLineTitle"],
+  "buttonComponents": ["PillButton", "CardButton", "CircleButton"],
+  "decorationComponents": ["Badge", "Icon", "AppIcon", "WeatherIcon"],
+  "patterns": {
+    "Sub-118-A": {"content": 1, "titles": 0, "buttons": 0},
+    "Sub-118-B": {"content": 1, "titles": 1, "buttons": 0},
+    "Sub-118-C": {"content": 2, "titles": 1, "buttons": 0},
+    "Sub-118-D": {"content": 1, "titles": 1, "buttons": 1},
+    "Sub-140-A": {"content": 1, "titles": 0, "buttons": 0},
+    "Sub-140-B": {"content": 1, "titles": 1, "buttons": 0},
+    "Sub-140-C": {"content": 1, "titles": 1, "buttons": 1},
+    "Sub-140-D": {"content": 2, "titles": 1, "buttons": [0, 1], "contentComponent": {"name": "ProgressCircle", "size": "sm"}},
+    "Sub-140-E": {"content": 2, "titles": 0, "buttons": 0},
+    "Sub-140-F": {"content": 2, "titles": 1, "buttons": 1},
+    "Sub-140-G": {"content": 2, "titles": 1, "buttons": 0},
+    "Sub-140-H": {"content": 4, "titles": 0, "buttons": 0}
+  }
+}

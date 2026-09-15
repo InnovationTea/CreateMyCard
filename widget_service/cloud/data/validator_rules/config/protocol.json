@@ -33,7 +33,7 @@
     "Progress": ["value", "total"],
     "Button": ["label", "enabled"],
     "Checkbox": ["label", "value", "select"],
-    "Row": ["children", "itemMargin"],
+    "Row": ["children", "itemMargin", "wrap"],
     "Column": ["children", "itemMargin"],
     "List": ["children", "space"],
     "Stack": ["children"]

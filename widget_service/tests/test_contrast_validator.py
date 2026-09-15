@@ -4,6 +4,10 @@ from typing import Any
 import pytest
 
 from services.card_validation import validate_card
+from services.card_validation.context import ValidationContext
+from services.card_validation.contrast_validator import ContrastValidator
+from services.card_validation.diagnostics import Reporter
+from services.card_validation.source_parser import SourceParser
 
 
 def _dsl(text_color: str, background_color: str) -> str:
@@ -171,7 +175,7 @@ def test_template_root_text_itself_skips_contrast() -> None:
 
 
 @pytest.mark.parametrize("template_first", [True, False])
-def test_template_subtree_does_not_skip_non_template_siblings(template_first: bool) -> None:
+def test_template_root_skips_whole_card_contrast(template_first: bool) -> None:
     components = _template_components()
     children = ["template_root", "external"]
     components[0]["children"] = children if template_first else list(reversed(children))
@@ -181,10 +185,54 @@ def test_template_subtree_does_not_skip_non_template_siblings(template_first: bo
     })
     reporter = validate_card(dsl_text=_component_dsl(components))
 
-    contrast = [item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"]
-    assert len(contrast) == 1
-    assert contrast[0].severity == "error"
-    assert "/external/" in contrast[0].json_pointer
+    assert not reporter.has_code("VISUAL.CONTRAST")
+
+
+@pytest.mark.parametrize("fusion", [False, True])
+def test_direct_contrast_validator_uses_template_marker_without_fusion_dependency(
+    fusion: bool, caplog,
+) -> None:
+    components = _template_components()
+    if fusion:
+        children = components[0].get("children")
+        assert isinstance(children, list)
+        children.append("fusionBallBackground")
+        components.append({"id": "fusionBallBackground", "component": "Stack"})
+    reporter = Reporter({})
+    context = SourceParser().parse(_component_dsl(components), "", reporter)
+    with caplog.at_level("INFO"):
+        ContrastValidator().validate(context, {}, reporter)
+    assert not reporter.has_code("VISUAL.CONTRAST")
+    assert "quality_validation_skipped reason=template_root validator=contrast" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("root_id", "children", "template_exists", "duplicate_ids", "expected"),
+    [
+        ("root", ["template_root"], True, set(), True),
+        ("root", ["template_root", "fusionBallBackground"], True, set(), True),
+        ("root", ["fusionBallBackground"], True, set(), False),
+        ("root", ["template_root"], False, set(), False),
+        ("root", ["content"], True, set(), False),
+        ("root", "template_root", True, set(), False),
+        ("root", ["template_root_0"], True, set(), False),
+        ("other_root", ["template_root"], True, set(), False),
+        ("root", ["template_root"], True, {"template_root"}, False),
+    ],
+)
+def test_template_root_exemption_keeps_structural_guards(
+    root_id: str, children: Any, template_exists: bool,
+    duplicate_ids: set[str], expected: bool,
+) -> None:
+    root = {"id": root_id, "component": "Stack", "children": children}
+    components = {root_id: root}
+    if template_exists:
+        components["template_root"] = {"id": "template_root", "component": "Column"}
+    context = ValidationContext(
+        root_id=root_id, root_component=root, components_by_id=components,
+        duplicate_component_ids=duplicate_ids,
+    )
+    assert context.has_fusion_template_root() is expected
 
 
 @pytest.mark.parametrize("wrapper_id", [

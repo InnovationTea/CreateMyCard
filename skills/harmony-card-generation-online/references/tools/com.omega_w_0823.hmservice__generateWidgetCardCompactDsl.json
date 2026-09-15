@@ -109,10 +109,6 @@
         "type": "String",
         "description": "微服务最终裁决的卡片尺寸。"
       },
-      "message": {
-        "type": "String",
-        "description": "完整成功时可使用的用户可读说明。"
-      },
       "removedCapabilities": {
         "type": "Array",
         "description": "本轮被移除的能力及原因。",

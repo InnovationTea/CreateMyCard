@@ -258,7 +258,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 116
+    assert len(registry.provider_template_ids) == 119
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -643,15 +643,92 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
     )
     assert definition.secondary_data == (
         "/location/prefectureName",
-        "/updatedAt",
     )
-    assert definition.optional_data == ()
+    assert definition.optional_data == ("/updatedAt",)
     assert variant.required_bindings == (
         "city",
         "windDirection",
         "windLevel",
-        "updatedAt",
     )
+    assert variant.optional_bindings == ("updatedAt",)
+
+
+@pytest.mark.parametrize("fusion", [False, True])
+@pytest.mark.parametrize("has_updated_at", [False, True])
+def test_weather_wind_hero_optional_time_row_is_pruned(
+    fusion: bool, has_updated_at: bool,
+) -> None:
+    registry = get_cardplan_registry(fusion)
+    variant = registry.require_template("WeatherOverviewWindHero@1").variants[0]
+    bindings = {name: f"${{data.weather.{name}}}" for name in variant.required_bindings}
+    if has_updated_at:
+        bindings["updatedAt"] = "${data.weather.updatedAt}"
+    root = _instantiate_blueprint(
+        variant.root, {}, bindings, registry.theme_reference_values("family-weather-care-blue"),
+    )
+    assert len(root.children) == (3 if has_updated_at else 2)
+    assert root.children[1].values[-1].get("height") == 48
+    assert root.children[1].values[-1].get("itemMargin") == 0
+    if has_updated_at:
+        time_row = root.children[-1]
+        assert time_row.values[-1].get("height") == 12
+        assert time_row.children[0].values[0] == "{{ ${/data/weather/updatedAt} }}"
+        assert time_row.children[0].values[-1].get("fontSize") == 10
+
+
+@pytest.mark.parametrize("fusion", [False, True])
+@pytest.mark.parametrize(
+    ("template_id", "text_path", "font_size", "height"),
+    [
+        ("WeatherOverviewDailyDateFull@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyDateFull@1", (1, 1), 12, 20),
+        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 32, None),
+        ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
+        ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
+        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 20, 28),
+        ("WeatherOverviewConditionHero@1", (1, 0), 20, 28),
+        ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
+    ],
+)
+def test_weather_refreshed_text_geometry(
+    fusion: bool, template_id: str, text_path: tuple[int, ...], font_size: int, height: int | None,
+) -> None:
+    variant = get_cardplan_registry(fusion).require_template(template_id).variants[0]
+    node = variant.root
+    for index in text_path:
+        node = node.children[index]
+    assert node.component == "Text"
+    options = _template_node_options(node)
+    assert options.get("fontSize") == font_size
+    assert options.get("height") == height
+
+
+@pytest.mark.parametrize("fusion", (False, True))
+@pytest.mark.parametrize("has_feels_like", (False, True))
+@pytest.mark.parametrize("has_icon", (False, True))
+def test_weather_support_icon_only_without_feels_like(
+    fusion: bool, has_feels_like: bool, has_icon: bool,
+) -> None:
+    registry = get_cardplan_registry(fusion)
+    variant = registry.require_template("WeatherOverviewTemperatureSupport@1").variants[0]
+    bindings = {"condition": "${data.weather.current.condition}"}
+    if has_feels_like:
+        bindings["feelsLikeC"] = "${data.weather.current.feelsLikeC}"
+    params = {"conditionIcon": "resources/base/media/icon_weather_sunny.svg"} if has_icon else {}
+    root = _instantiate_blueprint(
+        variant.root, params, bindings, registry.theme_reference_values("family-weather-care-blue"),
+    )
+    assert len(root.children) == (2 if has_icon and not has_feels_like else 1)
+    if has_icon and not has_feels_like:
+        assert root.children[-1].component_type == "Image"
+        assert root.children[-1].values[-1].get("width") == 24
+        assert root.children[-1].values[-1].get("height") == 24
+
+
+def test_weather_rain_probability_label_does_not_claim_humidity() -> None:
+    variant = get_cardplan_registry().require_template("WeatherOverviewDailyRainFull@1").variants[0]
+    label = variant.root.children[0].children[1].children[1]
+    assert label.values[0].value == "降雨概率"
 
 
 def test_weather_dual_city_full_matches_q034_data_contract() -> None:
@@ -675,6 +752,58 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
     assert definition.bindings["secondTemperature"].root_index == 1
     assert variant.optional_bindings == ("firstCity", "secondCity")
 
+    city_panels = variant.root.children
+    assert len(city_panels) == 2
+    for panel in city_panels:
+        assert panel.component == "Stack"
+        options = _template_node_options(panel)
+        assert options.get("layoutWeight") == 1
+        assert "height" not in options
+
+
+@pytest.mark.parametrize(
+    ("template_id", "value_binding"),
+    [
+        ("WeatherOverviewUvFull@1", "uvIndex"),
+        ("WeatherOverviewAirQualityHero@1", "airQuality"),
+    ],
+)
+def test_weather_index_templates_use_20vp_primary_values(
+    template_id: str, value_binding: str,
+) -> None:
+    registry = get_cardplan_registry()
+    variant = registry.require_template(template_id).variants[0]
+    bindings = {}
+    for name in variant.required_bindings:
+        bindings[name] = f"${{data.weather.{name}}}"
+    root = _instantiate_blueprint(
+        variant.root, {}, bindings, registry.theme_reference_values("family-weather-care-blue"),
+    )
+    value_column = root.children[0].children[1] if value_binding == "uvIndex" else root.children[1]
+    assert value_column.component_type == "Column"
+    value = value_column.children[0]
+    assert value.component_type == "Text"
+    assert value.values[0] == bindings.get(value_binding)
+    value_options = value.values[-1]
+    assert isinstance(value_options, dict)
+    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontWeight") == 700
+    if value_binding == "uvIndex":
+        options = value_column.values[-1]
+        assert isinstance(options, dict)
+        assert "height" not in options
+        assert "layoutWeight" not in options
+        assert options.get("itemMargin") == 0
+        assert value_options.get("height") == 28
+        label = value_column.children[1]
+        assert label.component_type == "Text"
+        assert label.values[0] == "紫外线"
+        label_options = label.values[-1]
+        assert isinstance(label_options, dict)
+        assert label_options.get("fontSize") == 12
+        assert label_options.get("height") == 20
+        assert label_options.get("fontWeight") == 400
+
 
 def test_weather_care_alert_full_matches_q043_data_contract() -> None:
     definition = get_cardplan_registry().require_template("WeatherOverviewCareAlertFull@1")
@@ -696,7 +825,7 @@ def test_weather_care_alert_full_matches_q043_data_contract() -> None:
     assert variant.optional_bindings == ()
 
 
-def test_weather_care_alert_full_uses_three_section_layout() -> None:
+def test_weather_care_alert_full_groups_header_and_focus_above_details() -> None:
     definition = get_cardplan_registry().require_template("WeatherOverviewCareAlertFull@1")
     root = _instantiate_blueprint(
         definition.variants[0].root,
@@ -713,17 +842,24 @@ def test_weather_care_alert_full_uses_three_section_layout() -> None:
         },
     )
 
-    header, focus, details = root.children
+    top, details = root.children
+    header, focus = top.children
+    assert top.component_type == "Column"
+    assert top.values[-1].get("itemMargin") == 0
     assert header.component_type == "Row"
-    assert header.values[-1]["height"] == 20
-    assert header.children[1].values[-1]["width"] == 20
-    assert header.children[1].values[-1]["height"] == 20
+    assert header.values[-1].get("height") == 20
+    assert header.children[1].values[-1].get("width") == 20
+    assert header.children[1].values[-1].get("height") == 20
     assert focus.component_type == "Column"
     assert "无预警信息" in repr(focus.children[0].values[0])
     assert focus.children[1].values[0] == "天气预警"
     assert details.component_type == "Column"
-    assert details.values[-1]["height"] == 40
-    assert details.values[-1]["padding"] == {"right": 34}
+    assert "height" not in details.values[-1]
+    assert "padding" not in details.values[-1]
+    assert details.values[-1].get("itemMargin") == 0
+    for text in details.children:
+        assert text.values[-1].get("height") == 20
+        assert text.values[-1].get("fontSize") == 12
 
 
 @pytest.mark.parametrize(
@@ -1013,6 +1149,7 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.templates) == set(registry.provider_template_ids)
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-device-green",
         "2x2-two-support",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
@@ -1541,7 +1678,6 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
     theme = get_cardplan_registry().require_theme("device-clean-blue-teal")
 
     assert theme.supported_capability_ids == (
-        "GetPhoneBatteryInfo",
         "GetSystemMemInfo",
     )
     assert theme.primary_color == "#E6000000"
@@ -1570,6 +1706,7 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert set(disabled_registry.themes) == {
         "2x2-two-support",
         "audio-product-neutral-violet",
+        "battery-device-green",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -3187,8 +3324,57 @@ def test_new_support_templates_follow_two_line_contract(
         assert support_options.get("height") is None
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    assert support_options.get("fontSize") == 12
+    if template_id == "CountdownOverviewSupport@1":
+        # 双业务 Support 主标题 14vp、副标题 10vp。
+        assert support_options.get("fontSize") == 10
+    else:
+        assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
+
+
+@pytest.mark.parametrize("fusion", [False, True])
+def test_heart_rate_icon_compact_wraps_content_with_20vp_value(fusion: bool) -> None:
+    registry = get_cardplan_registry(fusion)
+    variant = registry.require_template("HeartRateOverviewIconCompact@1").variants[0]
+    assert "height" not in _template_node_options(variant.root)
+    assert _template_node_options(variant.root).get("itemMargin") == 0
+    header, value_row = variant.root.children
+    assert header.component == "Row"
+    assert _template_node_options(header).get("height") == 20
+    assert _template_node_options(header).get("itemMargin") == 0
+    assert [node.component for node in header.children] == ["Text", "Image"]
+    icon_options = _template_node_options(header.children[1])
+    assert icon_options.get("width") == 20
+    assert icon_options.get("height") == 20
+    assert value_row.component == "Row"
+    assert "height" not in _template_node_options(value_row)
+    assert _template_node_options(value_row).get("itemMargin") == 4
+    assert _template_node_options(value_row).get("alignItems") == "bottom"
+    value, unit = value_row.children
+    assert _template_node_options(value).get("fontSize") == 20
+    assert _template_node_options(value).get("fontWeight") == 700
+    assert unit.values[0].value == "次/分钟"
+    assert _template_node_options(unit).get("fontSize") == 12
+    assert "margin" not in _template_node_options(unit)
+
+
+@pytest.mark.parametrize("fusion", [False, True])
+def test_compact_two_action_layout_keeps_flexible_content_above_fixed_actions(fusion: bool) -> None:
+    variant = get_cardplan_registry(fusion).require_template("CompactTwoActionLayout@1").variants[0]
+    root_options = _template_node_options(variant.root)
+    assert root_options.get("justifyContent") == "start"
+    assert root_options.get("itemMargin") == 0
+    content, actions = variant.root.children
+    content_options = _template_node_options(content)
+    assert "height" not in content_options
+    assert content_options.get("layoutWeight") == 1
+    assert content_options.get("itemMargin") == 0
+    action_options = _template_node_options(actions)
+    assert action_options.get("height") == 80
+    assert action_options.get("itemMargin") == 8
+    assert len(actions.children) == 2
+    for action in actions.children:
+        assert _template_node_options(action).get("height") == 36
 
 
 def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
@@ -4235,7 +4421,7 @@ async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> N
             'Template("HeroActionLayout@1",{},'
             'Template("WeatherOverviewWindHero@1",{}),'
             'Template("PillAction@1",{"actionId":"event.open.weather",'
-            '"label":"天气详情"}));'
+            '"label":"查看详情"}));'
         ),
     )
 
@@ -4250,11 +4436,11 @@ async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> N
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
     assert not any(
-        component.get("content") == "天气详情" for component in components
+        component.get("content") == "查看详情" for component in components
     ), [
         component
         for component in components
-        if component.get("content") == "天气详情" or component.get("onClick")
+        if component.get("content") == "查看详情" or component.get("onClick")
     ]
     clickable = [component for component in components if component.get("onClick")]
     assert len(clickable) == 1
@@ -5957,7 +6143,11 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert root.get("component") == "Stack"
         assert root.get("children") == ["fusionBallBackground", "template_root"]
     else:
-        assert root.get("component") == "Column"
+        assert root.get("component") == "Stack"
+        assert root.get("children") == ["template_root"]
+        foreground = components_by_id.get("template_root")
+        assert isinstance(foreground, dict)
+        assert foreground.get("children") == ["__genui_render_component__root_1"]
         assert "fusionBallBackground" not in components_by_id
         root_styles = root.get("styles")
         assert isinstance(root_styles, dict)
@@ -6243,7 +6433,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
                 'Template("HeroActionLayout@1",{},'
                 'Template("WeatherOverviewHero@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather",'
-                '"label":"天气详情"}));'
+                '"label":"查看详情"}));'
             )
 
     controls = TemplateControls(
@@ -6304,7 +6494,7 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
                 'Template("CompactTwoActionLayout@1",{},'
                 'Template("WeatherOverviewCompact@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather",'
-                '"label":"天气详情"}),'
+                '"label":"查看详情"}),'
                 'Template("PillAction@1",{"actionId":"event.open.music.daily",'
                 '"label":"每日推荐"}));'
             )
@@ -6336,7 +6526,7 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
     )
 
     assert output.a2ui.count('"call":"clickToIntent"') == 2
-    assert "天气详情" in output.a2ui and "每日推荐" in output.a2ui
+    assert "查看详情" in output.a2ui and "每日推荐" in output.a2ui
     assert output.template_ids == (
         "WeatherOverviewCompact@1",
         "PillAction@1",
@@ -6816,8 +7006,17 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert root["children"] == ["template_root"]
     assert components_by_id["template_root"]["styles"]["padding"] == 12
     assert components_by_id["template_root"]["children"] == [
-        "__genui_render_component__template_root"
+        "__genui_render_component__root_1"
     ]
+    assert components_by_id["__genui_render_component__root_1"]["component"] == "Stack"
+    assert "__genui_render_component__template_root" not in component_ids
+    compact_rows = [json.loads(line) for line in captured["compact"].splitlines()]
+    compact_skeletons = [
+        row for row in compact_rows if row[0] == "__genui_render_component__root_1"
+    ]
+    assert len(compact_skeletons) == 1
+    assert compact_skeletons[0][1] == "Stack"
+    assert "__genui_render_component__template_root" not in captured["compact"]
     assert "fusionBallBackground" not in component_ids
     assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
@@ -7264,7 +7463,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
         body=(
             'Template("HeroActionLayout@1",{},Template("WeatherOverviewHero@1",{}),'
             'Template("PillAction@1",{"actionId":"event.open.weather",'
-            '"label":"天气详情"}));'
+            '"label":"查看详情"}));'
         ),
     )
     task_spec = _weather_task_spec()
@@ -7306,7 +7505,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
 
     assert model.body_called is True
     assert '"call":"clickToDeeplink"' in output.a2ui
-    assert "天气详情" in output.a2ui
+    assert "查看详情" in output.a2ui
     assert "cityCode" in output.projected_task_spec.dataModelSchema["data"]["weather"]["location"]
     assert model.second_layer_prompt is not None
     second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
@@ -7497,9 +7696,9 @@ async def test_duplicate_weather_pill_actions_keep_independent_event_bindings():
                 'Template("CompactTwoActionLayout@1",{},'
                 'Template("WeatherOverviewCompact@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather#1",'
-                '"label":"天气详情"}),'
+                '"label":"查看详情"}),'
                 'Template("PillAction@1",{"actionId":"event.open.weather#2",'
-                '"label":"天气详情"}));'
+                '"label":"查看详情"}));'
         ),
     )
 

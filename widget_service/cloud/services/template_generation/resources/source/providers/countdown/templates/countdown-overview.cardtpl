@@ -34,7 +34,78 @@ Column(
 )
 #End
 
-#Template CountdownOverviewSupport@1(props: { title?: string, actionId?: string })
+#Template CountdownOverviewTravelSupport@1(props: { title?: string, timerIcon?: asset, actionId?: string })
+data = {
+    days: $path("/countdownDays")
+}
+
+Column(
+  {
+    "_advancedComponent": "CountdownOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": { "left": 8, "right": 8 },
+    "justifyContent": "center",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Column(
+      {
+        "itemMargin": 3,
+        "justifyContent": "center",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Text(
+        Expr("剩余" + data.days + "天"),
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "flexShrink": 0
+        }
+      ),
+      Text(
+        #Expr(props.title ? props.title : "出发倒计时"),
+        {
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    ),
+    #if props.timerIcon
+      Image(
+        props.timerIcon,
+        {
+          "width": 24,
+          "height": 24,
+          "objectFit": "contain",
+          "flexShrink": 0,
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+    #endif
+  )
+)
+#End
+
+#Template CountdownOverviewSupport@1(props: { title?: string, timerIcon?: asset, actionId?: string })
 data = {
     days: $path("/countdownDays")
 }
@@ -44,7 +115,7 @@ Row(
     "_advancedComponent": "CountdownOverview",
     "width": "matchParent",
     "padding": { "left": 8, "right": 8 },
-    "justifyContent": "start",
+    "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
     "constraintSize": { "minWidth": 0, "minHeight": 0 },
@@ -76,7 +147,7 @@ Row(
       Text(
         props.title,
         {
-          "fontSize": 12,
+          "fontSize": 10,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
@@ -88,7 +159,7 @@ Row(
       Text(
         "倒计时",
         {
-          "fontSize": 12,
+          "fontSize": 10,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
@@ -97,7 +168,19 @@ Row(
         }
       ),
     #endif
-  )
+  ),
+  #if props.timerIcon
+    Image(
+      props.timerIcon,
+      {
+        "width": 24,
+        "height": 24,
+        "objectFit": "contain",
+        "flexShrink": 0,
+        "fillColor": $theme('supportContentColor')
+      }
+    )
+  #endif
 )
 #End
 

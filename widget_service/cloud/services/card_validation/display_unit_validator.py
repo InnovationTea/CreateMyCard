@@ -121,10 +121,12 @@ class DisplayUnitValidator(BaseValidator):
             following_indexes = range(value_index + 1, len(children))
             for child_index in following_indexes:
                 child_id = children[child_index]
-                if not isinstance(child_id, str) or not static_text_contains_rule(
-                    components_by_id.get(child_id, {}).get("content"),
-                    rule,
-                ):
+                if not isinstance(child_id, str):
+                    break
+                sibling_content = components_by_id.get(child_id, {}).get("content")
+                if expression_references(sibling_content):
+                    break
+                if not static_text_contains_rule(sibling_content, rule):
                     break
                 sibling_ids.add(child_id)
         return len(sibling_ids)

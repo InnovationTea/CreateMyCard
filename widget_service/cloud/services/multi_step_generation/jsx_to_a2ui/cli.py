@@ -39,6 +39,16 @@ def _parser() -> argparse.ArgumentParser:
             "with --all use an object keyed by card name"
         ),
     )
+    convert.add_argument(
+        "--enable-dynamic-data-binding",
+        action="store_true",
+        default=True,
+        help="lower dataIds to live A2UI data paths (enabled by default)",
+    )
+    convert.add_argument(
+        "--disable-dynamic-data-binding", dest="enable_dynamic_data_binding",
+        action="store_false", help="explicit static export using JSX literals",
+    )
     return parser
 
 
@@ -72,6 +82,7 @@ def main(argv: list[str] | None = None) -> int:
             card=args.card,
             compile_all=args.all,
             compile_contexts=compile_contexts,
+            enable_dynamic_data_binding=args.enable_dynamic_data_binding,
         )
         output_dir = args.output_dir
         if args.all and args.output is None and output_dir is None:

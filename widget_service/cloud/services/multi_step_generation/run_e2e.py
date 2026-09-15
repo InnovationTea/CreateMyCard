@@ -721,11 +721,14 @@ def _trace_entry(result: CaseResult) -> dict[str, Any]:
         validation_status = "passed" if browser_validation == "enabled" else "unverified"
         if semantic_status == "completed":
             status = "completed" if validation_status == "passed" else "completed_unverified"
-        elif semantic_status in {"partial", "unverified"}:
+        elif semantic_status == "unverified":
+            status = "generated_unverified"
+        elif semantic_status == "partial":
             status = "partial" if validation_status == "passed" else "partial_unverified"
         else:
             status = "insufficient_input"
         trace["status"] = status
+        trace["generation_status"] = "generated"
         trace["semantic_status"] = semantic_status
         trace["validation_status"] = validation_status
     else:
@@ -742,6 +745,7 @@ def _manifest_card(result: CaseResult, trace: dict[str, Any]) -> dict[str, Any] 
         "taskId": result.index,
         "componentName": captured.component_name,
         "status": trace.get("status", "completed"),
+        "generationStatus": trace.get("generation_status", "unknown"),
         "semanticStatus": trace.get("semantic_status", "completed"),
         "validationStatus": trace.get("validation_status", "unknown"),
         "jsx": captured.jsx,
@@ -750,6 +754,12 @@ def _manifest_card(result: CaseResult, trace: dict[str, Any]) -> dict[str, Any] 
         card["a2ui"] = captured.a2ui
     if captured.context:
         card["context"] = captured.context
+    decision = trace.get("decision")
+    if isinstance(decision, dict):
+        if isinstance(decision.get("layoutPattern"), str):
+            card["layoutPattern"] = decision["layoutPattern"]
+        if "subPattern" in decision:
+            card["subPattern"] = decision["subPattern"]
     return card
 
 
@@ -775,6 +785,7 @@ def _build_manifest(
         if card is not None:
             cards.append(card)
     completed = 0
+    semantic_unverified = 0
     partial = 0
     insufficient = 0
     unverified = 0
@@ -786,7 +797,10 @@ def _build_manifest(
         semantic_status = trace.get("semantic_status")
         if semantic_status == "completed":
             completed += 1
-        elif semantic_status in {"partial", "unverified"}:
+        elif semantic_status == "unverified":
+            completed += 1
+            semantic_unverified += 1
+        elif semantic_status == "partial":
             partial += 1
         elif semantic_status == "insufficient_input":
             insufficient += 1
@@ -821,6 +835,7 @@ def _build_manifest(
         "requestedTasks": len(paths),
         "attemptedTasks": len(results),
         "completedTasks": completed,
+        "semanticUnverifiedTasks": semantic_unverified,
         "partialTasks": partial,
         "insufficientInputTasks": insufficient,
         "unverifiedTasks": unverified,

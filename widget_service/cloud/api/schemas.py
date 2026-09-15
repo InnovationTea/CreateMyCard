@@ -274,7 +274,8 @@ class GenerateWidgetCardResponse(BaseModel):
     artifactUrl: str = ""
     artifactDigest: str = ""
     suggestSize: WidgetSize
-    message: str
+    # 暂不对外输出话术；内部保留，恢复输出时移除 exclude=True。
+    message: str = Field(exclude=True)
     removedCapabilities: list[RemovedCapability] = Field(default_factory=list)
     errorCode: str = ""
     effectiveCapabilities: dict[str, list[Any]] = Field(default_factory=dict)

@@ -9,7 +9,19 @@ CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 PROTOCOL_VERSION = "v0.9"
 
 
-def build_messages(root: A2UINode, surface_id: str, data_model: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def build_messages(
+    root: A2UINode,
+    surface_id: str,
+    data_model: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    components = flatten_tree(root)
+    # Keep reference dimensions for conversion/layout calculations. Only the
+    # emitted surface root fills the host; do not mutate the tree or children.
+    components[0]["styles"] = {
+        **root.styles,
+        "width": "matchParent",
+        "height": "matchParent",
+    }
     messages: list[dict[str, Any]] = [
         {
             "version": PROTOCOL_VERSION,
@@ -19,7 +31,7 @@ def build_messages(root: A2UINode, surface_id: str, data_model: dict[str, Any] |
             "version": PROTOCOL_VERSION,
             "updateComponents": {
                 "surfaceId": surface_id,
-                "components": flatten_tree(root),
+                "components": components,
             },
         },
     ]
@@ -37,8 +49,14 @@ def build_source_update_messages(
     surface_id: str,
     source_path: str,
     raw_value: Any,
+    *,
+    display_unit: str | None = None,
 ) -> tuple[list[dict[str, Any]], DisplayPlan]:
-    """Build synchronized source and EmphasizedData display-model updates."""
+    """Build source/display updates; forward the context binding's displayUnit.
+
+    When the returned plan changes shape, rebuild the affected components as
+    well. Omitting display_unit preserves the legacy formatted-source contract.
+    """
     messages: list[dict[str, Any]] = []
 
     def append_update(path: str, value: Any) -> None:
@@ -51,5 +69,5 @@ def build_source_update_messages(
             },
         })
 
-    plan = apply_source_update(append_update, source_path, raw_value)
+    plan = apply_source_update(append_update, source_path, raw_value, display_unit=display_unit)
     return messages, plan

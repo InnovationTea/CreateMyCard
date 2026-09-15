@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from ..catalog.bindings import CompileContext, normalize_unit_slots
 from ..catalog.contracts import validate_jsx_component
-from ..catalog.bindings import CompileContext
 from ..ir.a2ui_nodes import A2UINode, ConversionContext, IdAllocator
 from ..parser.jsx_ast import JSXElement
 from .high_level import (
     convert_badge,
+    convert_card_button,
     convert_checklist_item,
     convert_circle_button,
-    convert_card_button,
     convert_data_display,
     convert_double_line_title,
     convert_emphasis_text,
@@ -29,7 +29,6 @@ from .high_level import (
     convert_secondary_body,
     convert_secondary_body_card,
     convert_single_line_title,
-    convert_summary,
     convert_table_text,
     convert_text_block,
     convert_top_text_bottom_value,
@@ -37,7 +36,6 @@ from .high_level import (
 )
 from .structural import convert_card, convert_flex_stack, convert_grid
 from .structural.icon import convert_app_icon, convert_icon, convert_weather_icon
-
 
 CONVERTERS = {
     "Card": convert_card,
@@ -57,7 +55,6 @@ CONVERTERS = {
     "EmphasizedData": convert_emphasized_data,
     "EmphasisText": convert_emphasis_text,
     "SecondaryBody": convert_secondary_body,
-    "Summary": convert_summary,
     "WeatherSummaryCard": convert_weather_summary_card,
     "SecondaryBodyCard": convert_secondary_body_card,
     "ProgressLine1": convert_progress_line_labels_below,
@@ -81,6 +78,7 @@ CONVERTERS = {
 def convert_element(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     validate_jsx_component(node)
     ctx.validate_bindings(node)
+    normalize_unit_slots(node, ctx.compile_context)
     return CONVERTERS[node.tag](node, ctx)
 
 
@@ -88,10 +86,12 @@ def create_context(
     card_name: str,
     appearance: str = "blue-soft",
     compile_context: CompileContext | dict | None = None,
+    enable_dynamic_data_binding: bool = True,
 ) -> ConversionContext:
     return ConversionContext(
         IdAllocator(card_name),
         convert_element,
         appearance,
         compile_context=CompileContext.from_payload(compile_context),
+        enable_dynamic_data_binding=enable_dynamic_data_binding,
     )

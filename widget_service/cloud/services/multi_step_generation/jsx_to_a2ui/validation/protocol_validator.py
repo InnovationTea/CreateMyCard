@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import math
 from typing import Any
 
 from ..exceptions import ValidationError
@@ -34,7 +35,7 @@ PROPS = {
     "Progress": {"value", "total"},
     "Button": {"label", "enabled"},
     "Checkbox": {"label", "value", "select"},
-    "Row": {"children", "itemMargin"},
+    "Row": {"children", "itemMargin", "wrap"},
     "Column": {"children", "itemMargin"},
     "List": {"children", "space"},
     "Stack": {"children"},
@@ -55,7 +56,7 @@ STYLES = {
     "Progress": {"color", "type", "strokeWidth"},
     "Button": {"fontColor", "fontSize", "fontWeight", "maxFontSize", "minFontSize"},
     "Checkbox": {"selectedColor", "shape"},
-    "Row": {"justifyContent", "alignItems"},
+    "Row": {"justifyContent", "alignItems", "wrap"},
     "Column": {"justifyContent", "alignItems"},
     "List": {"listDirection", "scrollBar"},
     "Stack": {"alignContent"},
@@ -129,6 +130,8 @@ def _validate_number(value: Any, where: str, *, minimum: float | None = None, ma
         return
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValidationError(f"{where} must be a number or dynamic binding")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValidationError(f"{where} must be finite")
     if minimum is not None and value < minimum:
         raise ValidationError(f"{where} must be >= {minimum}")
     if maximum is not None and value > maximum:
@@ -232,6 +235,12 @@ def validate_components(components: list[dict[str, Any]]) -> None:
                 f"{node_id}.styles.objectFit",
             )
         if component == "Row":
+            for value, where in (
+                (item.get("wrap"), f"{node_id}.wrap"),
+                (styles.get("wrap"), f"{node_id}.styles.wrap"),
+            ):
+                _validate_dynamic_binding(value, where)
+                _validate_enum(value, {"noWrap", "wrap"}, where)
             if styles.get("alignItems") not in {None, "top", "center", "bottom"}:
                 raise ValidationError(f"{node_id}.styles.alignItems is invalid for Row")
         if component == "Column":
@@ -297,6 +306,25 @@ def validate_components(components: list[dict[str, Any]]) -> None:
     roots = ids - referenced
     if len(roots) != 1:
         raise ValidationError(f"surface must have exactly one root component; found {sorted(roots)}")
+    edges = {item["id"]: item.get("children", []) for item in components}
+    visited: set[str] = set()
+    active: set[str] = set()
+    pending = [(next(iter(roots)), False)]
+    while pending:
+        node, leaving = pending.pop()
+        if leaving:
+            active.remove(node)
+            visited.add(node)
+            continue
+        if node in active:
+            raise ValidationError(f"component children contain a cycle at {node!r}")
+        if node in visited:
+            continue
+        active.add(node)
+        pending.append((node, True))
+        pending.extend((child, False) for child in edges[node])
+    if visited != ids:
+        raise ValidationError(f"components are unreachable from the surface root: {sorted(ids - visited)}")
 
 
 def validate_messages(messages: list[dict[str, Any]]) -> None:

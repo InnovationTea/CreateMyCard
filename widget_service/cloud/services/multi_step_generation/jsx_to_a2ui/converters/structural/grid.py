@@ -225,6 +225,9 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     # A2UI grid remains shrinkable inside a fixed card region.
     minimums: dict[str, object] = {"minWidth": node.props.get("minWidth", 0)}
     min_height = node.props.get("minHeight")
+    if min_height is None and node.props.get("flex") == 1:
+        # Match the JSX runtime: flexible grids are shrinkable by default.
+        min_height = 0
     if min_height is not None:
         minimums["minHeight"] = min_height
     if minimums:
