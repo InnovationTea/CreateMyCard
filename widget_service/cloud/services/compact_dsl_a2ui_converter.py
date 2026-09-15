@@ -665,6 +665,7 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
+    normalized_components = _normalize_timeline_unit_spacing(normalized_components)
     normalized_components = _normalize_small_backboard_icon_alignment(
         normalized_components,
         size=size,
@@ -823,6 +824,36 @@ def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
         raise CompactDslConversionError(
             "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
         )
+
+
+def _normalize_timeline_unit_spacing(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    timeline_ids = {
+        component.component_id
+        for component in components
+        if component.component_type == "TimelineUnit"
+    }
+    parent_ids = {
+        component.component_id
+        for component in components
+        if component.component_type == "Row"
+        and any(child_id in timeline_ids for child_id in component.children)
+    }
+    normalized = []
+    for component in components:
+        props = copy.deepcopy(component.props)
+        if component.component_id in parent_ids:
+            props["itemMargin"] = 8
+        normalized.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                props,
+                component.children,
+            )
+        )
+    return normalized
 
 
 def _has_non_calendar_data_binding(value: Any) -> bool:
@@ -2212,7 +2243,7 @@ def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
             "itemMargin": 4,
             "styles": {
                 "width": 8,
-                "height": 44,
+                "height": 48,
                 "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
                 "justifyContent": "start",
                 "alignItems": "center",
