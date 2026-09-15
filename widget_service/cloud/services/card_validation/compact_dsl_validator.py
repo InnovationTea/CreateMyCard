@@ -58,6 +58,7 @@ def validate_compact_dsl(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
+    visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
@@ -69,6 +70,22 @@ def validate_compact_dsl(
             binding_paths,
             errors,
         )
+        visible_props = {
+            key: value for key, value in component.props.items() if key != "onClick"
+        }
+        _collect_binding_context(
+            visible_props,
+            location,
+            visible_binding_paths,
+            [],
+        )
+
+    _collect_layout_route_errors(
+        components,
+        task_spec,
+        visible_binding_paths,
+        errors,
+    )
 
     data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(
@@ -83,6 +100,45 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _collect_layout_route_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    visible_binding_paths: list[str],
+    errors: list[str],
+) -> None:
+    if task_spec.get("size") != "2x4":
+        return
+    data_roots = {
+        parts[1]
+        for path in visible_binding_paths
+        if len(parts := path.strip("/").split("/")) >= 2 and parts[0] == "data"
+    }
+    if len(data_roots) != 2:
+        return
+
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    root = components_by_id.get("root")
+    if root is not None and root.component_type == "Row" and len(root.children) == 2:
+        backboards = [components_by_id.get(child_id) for child_id in root.children]
+        if all(
+            backboard is not None
+            and backboard.component_type == "Column"
+            and backboard.props.get("width") == 144
+            and backboard.props.get("height") == 136
+            for backboard in backboards
+        ):
+            return
+
+    roots = ", ".join(sorted(data_roots))
+    errors.append(
+        f"2x4 card displays two data roots ({roots}) and must use W9: root must "
+        "be a Row with exactly two direct 144x136 Column backboards. Do not use "
+        "a shared title, a shared action area, or stacked full-width business rows."
+    )
 
 
 def _collect_component_contract_errors(

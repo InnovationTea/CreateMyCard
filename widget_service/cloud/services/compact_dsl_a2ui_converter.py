@@ -1164,7 +1164,11 @@ def _normalize_small_backboard_icon_alignment(
             continue
         children = [components_by_id.get(child_id) for child_id in backboard.children]
         text = next(
-            (child for child in children if child and child.component_type == "Column"),
+            (
+                child
+                for child in children
+                if child and child.component_type in {"Column", "Text"}
+            ),
             None,
         )
         icon = next(
