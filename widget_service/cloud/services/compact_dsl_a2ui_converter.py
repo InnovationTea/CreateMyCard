@@ -665,6 +665,10 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
+    normalized_components = _normalize_small_backboard_icon_alignment(
+        normalized_components,
+        size=size,
+    )
     data_model = _build_data_model(data_rows)
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
@@ -1095,6 +1099,85 @@ def _two_by_two_dual_zone_ids(
     ):
         return set()
     return set(root.children)
+
+
+def _normalize_small_backboard_icon_alignment(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    if size == "2x2":
+        candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
+        backboard_width = 136
+        text_width = 84
+    elif size == "2x4":
+        candidate_ids = {
+            component.component_id
+            for component in components
+            if component.props.get("width") == 144
+            and component.props.get("height") == 64
+        }
+        backboard_width = 144
+        text_width = 92
+    else:
+        return components
+
+    replacements: dict[str, ComponentRow] = {}
+    for candidate_id in candidate_ids:
+        backboard = components_by_id[candidate_id]
+        if backboard.component_type != "Row" or len(backboard.children) != 2:
+            continue
+        children = [components_by_id.get(child_id) for child_id in backboard.children]
+        text = next(
+            (child for child in children if child and child.component_type == "Column"),
+            None,
+        )
+        icon = next(
+            (child for child in children if child and child.component_type == "Image"),
+            None,
+        )
+        if text is None or icon is None:
+            continue
+
+        backboard_props = {
+            **backboard.props,
+            "width": backboard_width,
+            "height": 64,
+            "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
+            "itemMargin": 8,
+            "justifyContent": "start",
+            "alignItems": "center",
+        }
+        replacements[backboard.component_id] = ComponentRow(
+            backboard.component_id,
+            backboard.component_type,
+            backboard_props,
+            (text.component_id, icon.component_id),
+        )
+        replacements[text.component_id] = ComponentRow(
+            text.component_id,
+            text.component_type,
+            {**text.props, "width": text_width},
+            text.children,
+        )
+        replacements[icon.component_id] = ComponentRow(
+            icon.component_id,
+            icon.component_type,
+            {
+                **icon.props,
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0,
+            },
+            icon.children,
+        )
+
+    return [replacements.get(component.component_id, component) for component in components]
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
