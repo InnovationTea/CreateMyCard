@@ -183,6 +183,24 @@ py -3.12 -m pytest tests\test_service_units.py -s -q
 真实 WebSocket 联调时，业务日志由单独运行的 `cloud/start_websocket_server.py` 进程输出，应在服务终端查看；
 本地文件日志位于 `cloud/logs/agent_YYYYMMDD.log`。客户端测试终端只显示请求响应和脚本打印的校验报告。
 
+## GitHub PR 自动测试
+
+`.github/workflows/tests.yml` 在 PR 创建、重新打开和追加提交时自动执行，也支持手动触发。
+流程使用 Ubuntu 和 Python 3.12，安装 `requirements.txt`，在 `widget_service/` 下运行：
+
+```powershell
+python -m pytest tests -q -ra --junitxml=test-results/pytest.xml
+```
+
+执行范围为 `widget_service/tests/` 中 pytest 自动发现的用例；不包含其它目录下的测试和
+`pressure_test_ws.py` 压测脚本。CI 不启动真实 WebSocket 服务，依赖该服务的联调用例按现有逻辑
+跳过，跳过原因在日志和 JUnit 报告中保留。测试失败会使检查失败，报告作为 Actions artifact 上传。
+同一 PR 追加提交后，会取消之前尚未完成的运行。
+
+如需测试失败时禁止合并，在 GitHub 目标分支的保护规则或 Ruleset 中将
+`Widget service tests` 设置为必需状态检查。仅添加 workflow 不会自动启用禁止合并规则；
+`CODEOWNERS` 的必需审批同样取决于 GitHub 分支规则。
+
 ## API
 
 ```text
