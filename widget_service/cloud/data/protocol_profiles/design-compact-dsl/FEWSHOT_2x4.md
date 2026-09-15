@@ -2,6 +2,8 @@
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
 
+2x4 最终恰好两个业务数据块时必须参考 V09：root 直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。
+
 ## 示例八（2x4-V01）：三行近期日程列表（W7-list-rows·黄色纯色）
 ### user
 ```json
@@ -134,9 +136,10 @@
 ["/data/healthSport/dailySteps",2031]
 ```
 ## 示例十三（2x4-V06）：无标题设备电量四联（W8-quad-cells·青色纯色）
+W8 四数据布局自身固定无卡级标题，不依赖用户额外提出“无标题”；四个 `144×64vp` 小内容背板必须占满安全内容区，不为 header 压缩高度。
 ### user
 ```json
-{"userQuery":"无标题显示手机、左耳、右耳和耳机盒电量，使用2×2等分格。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68},"batterySOCText":{"type":"string","description":"手机电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"手机电量等级","sampleValue":"正常电量"}},"earphone":{"leftBatteryLevel":{"type":"integer","description":"左耳电量0到100","sampleValue":76},"leftChargingStatusDesc":{"type":"string","description":"左耳充电状态","sampleValue":"未充电"},"rightBatteryLevel":{"type":"integer","description":"右耳电量0到100","sampleValue":78},"rightChargingStatusDesc":{"type":"string","description":"右耳充电状态","sampleValue":"未充电"},"batteryLevel":{"type":"integer","description":"耳机盒电量0到100","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"耳机盒充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/l_circle_fill.svg","description":"本地左耳图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"本地右耳图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
+{"userQuery":"显示手机、左耳、右耳和耳机盒电量，使用2×2等分格。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68},"batterySOCText":{"type":"string","description":"手机电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"手机电量等级","sampleValue":"正常电量"}},"earphone":{"leftBatteryLevel":{"type":"integer","description":"左耳电量0到100","sampleValue":76},"leftChargingStatusDesc":{"type":"string","description":"左耳充电状态","sampleValue":"未充电"},"rightBatteryLevel":{"type":"integer","description":"右耳电量0到100","sampleValue":78},"rightChargingStatusDesc":{"type":"string","description":"右耳充电状态","sampleValue":"未充电"},"batteryLevel":{"type":"integer","description":"耳机盒电量0到100","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"耳机盒充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/l_circle_fill.svg","description":"本地左耳图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"本地右耳图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
 ```
 ### assistant
 ```genui
@@ -225,6 +228,7 @@
 ```
 
 ## 示例十六（2x4-V09）：天气与手机电量双业务（W9-dual-backboards·蓝色纯色）
+W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。
 ### user
 ```json
 {"userQuery":"同时显示上海天气和手机电量，并分别提供查看天气和打开电池设置按钮。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
