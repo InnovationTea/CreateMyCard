@@ -62,7 +62,7 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 
 ### 筛选和尺寸预算
 
-- 数据最多选择 2 个核心候选；事件最多 2 个主动作。列表中每个实际可点击下标仍须分别构造事件参数。
+- 数据最多选择 2 个核心候选；事件最多 2 个主动作。同一个事件 id 构造的多个事件视作一个主动作。
 - 素材选择 1～4 个强相关 ID，没有匹配时传空数组。不得只为填满画面新增数据、高风险动作或无关事件。
 - 用户明确指定 2x2/2x4 时优先尊重；否则默认 2x2，包含数据且至少两个点击能力时建议 2x4。
 - 2x2 以 1 个焦点、最多 3 个主区域和 1 个主动作为预算，主要展示项通常 1～3 项，紧凑且不新增主区域时最多 4 项；
@@ -80,13 +80,15 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 | capabilityId | 数据取本轮完整 schema 中的 ID；事件取本轮概述对应项的 ID |
 | arguments | 只使用本轮 inputSchema.properties 声明字段并满足完整类型与必填约束 |
 | writeResultTo | 优先本轮 schema 默认路径，否则构造不冲突的 /data/{semanticKey}；不能相同、互为父子或覆盖 |
-| candidateOutputFields | 可省略；仅用 outputSchema 可推导的叶子 JSON Pointer，数组使用 /0、/1 等非负整数下标；不按主区域数设入口字段上限 |
+| candidateOutputFields | 可省略；仅用 outputSchema 可推导的叶子 JSON Pointer ，不按主区域数设入口字段上限；当某字段的 `type` 为 `array` 时，访问具体列表项必须在 JSON Pointer 中使用从 `0` 开始的非负整数下标： `/daily/1/<field>` 表示 `daily` 列表第二项的`<field>`数据。 |
 | action | 对同项 actionTemplate 完整深拷贝，只按 dynamicArguments 指定路径替换动态值 |
 | candidateAssetIds | 只用本轮概述 ID，不编造素材路径 |
 
+
+
 dynamicArguments.path 相对 actionTemplate.args；intentName、空字符串及其它固定字段必须原样保留。
 动态占位符无法安全解析且默认值也不合法时移除整项，核心动作因此缺失时重新判断满足度。
-多个列表下标可点击时，为每个展示下标构造对应事件参数，不全部引用第 0 项。
+列表中的数据需要绑定事件时，如果该事件不对所有数据通用，需要为每个数据构造独立事件，使用相同的事件 id，匹配数据对应的事件参数，不全部引用第 0 项数据。
 高风险或不可逆动作仅在用户明确要求且概述支持时选择。
 候选不是最终界面内容；最终过滤和写入由微服务负责。
 
