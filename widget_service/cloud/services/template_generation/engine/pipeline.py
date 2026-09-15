@@ -107,8 +107,16 @@ async def generate_template_a2ui(
             task_spec,
             trusted_template_sample_overrides or {},
         )
+    except ValueError as exc:
+        raise TemplateRouteNotApplicable(f"template sample override failed: {exc}") from exc
+
+    try:
         registry = get_cardplan_registry(enable_fusion_ball)
         controls = load_template_controls()
+    except ValueError as exc:
+        raise TemplateRouteNotApplicable(f"template registry is unavailable: {exc}") from exc
+
+    try:
         available_capability_ids = _card_spec_capability_ids(card_spec)
         effective_capability_ids = resolve_available_capability_ids(
             task_spec,
@@ -125,7 +133,7 @@ async def generate_template_a2ui(
             f"summary={json_for_log(_task_spec_log_summary(selected_task_spec))}"
         )
     except ValueError as exc:
-        raise TemplateRouteNotApplicable("template registry is unavailable") from exc
+        raise TemplateRouteNotApplicable(f"template data preparation failed: {exc}") from exc
 
     async def generate_json(
         prompt: list[dict[str, str]],

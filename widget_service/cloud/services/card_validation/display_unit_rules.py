@@ -127,8 +127,8 @@ def static_text_contains_rule(value: Any, rule: DisplayUnitRule) -> bool:
     )
 
 
-def _static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
-    """仅供确定性去重使用，避免删除同时包含业务说明的完整 Text。"""
+def static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
+    """识别纯单位文本，不将独立业务说明归属于前面的数值。"""
     return isinstance(value, str) and any(
         _normalized_unit(value) in _normalized_aliases(unit) for unit in rule.units
     )
@@ -175,6 +175,8 @@ def repair_repeated_display_units(
 
     removed_child_ids: set[str] = set()
     for parent in by_id.values():
+        if parent.get("component") not in {"Row", "Column"}:
+            continue
         children = parent.get("children")
         if not isinstance(children, list):
             continue
@@ -188,10 +190,10 @@ def repair_repeated_display_units(
             following_indexes = range(value_index + 1, len(repaired_children))
             for sibling_index in following_indexes:
                 sibling_id = repaired_children[sibling_index]
-                if not _static_text_exactly_matches_rule(
-                    by_id.get(sibling_id, {}).get("content"),
-                    rule,
-                ):
+                sibling = by_id.get(sibling_id, {})
+                if sibling.get("component") != "Text":
+                    break
+                if not static_text_exactly_matches_rule(sibling.get("content"), rule):
                     break
                 matching_siblings.append(sibling_id)
             keep_count = 0 if rule.unit_included else 1

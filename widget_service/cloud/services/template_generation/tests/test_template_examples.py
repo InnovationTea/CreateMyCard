@@ -3,10 +3,13 @@
 import json
 from datetime import date
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
 from models.generation import EventAction, TaskSpec
+from services.template_generation.engine import pipeline as template_pipeline
+from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.prompt import action_bindings
 from services.template_generation.engine.pipeline import _with_trusted_sample_overrides
 from services.template_generation.test_support import provider_gallery as gallery
@@ -218,3 +221,60 @@ def test_sample_override_rejects_invalid_array_paths(path: str) -> None:
     with pytest.raises(ValueError, match="trusted sample override"):
         _with_trusted_sample_overrides(spec, {path: "替换"})
     assert spec.model_dump_json() == original
+
+
+@pytest.mark.asyncio
+async def test_invalid_sample_path_keeps_cause_before_registry_or_model(monkeypatch) -> None:
+    spec = TaskSpec(userQuery="后日天气", size="2x2", dataModelSchema={
+        "data": {"weather": {"daily": [{}, {}, {
+            "condition": {"type": "string", "sampleValue": "多云"},
+        }]}},
+    })
+    original = spec.model_dump_json()
+    model = AsyncMock()
+
+    def unexpected_registry(_fusion):
+        pytest.fail("非法样例覆盖不能继续加载注册表")
+
+    monkeypatch.setattr(template_pipeline, "get_cardplan_registry", unexpected_registry)
+    with pytest.raises(
+        TemplateRouteNotApplicable, match="template sample override failed",
+    ) as error:
+        await template_pipeline.generate_template_a2ui(
+            spec, {}, (), model,
+            trusted_template_sample_overrides={"/data/weather/current/condition": "多云"},
+        )
+
+    assert "/data/weather/current/condition" in str(error.value)
+    assert isinstance(error.value.__cause__, ValueError)
+    assert spec.model_dump_json() == original
+    model.generate_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failed_step", "expected_message"),
+    [
+        ("get_cardplan_registry", "template registry is unavailable"),
+        ("apply_content_selectors", "template data preparation failed"),
+    ],
+)
+async def test_preparation_errors_keep_their_stage_and_cause(
+    monkeypatch, failed_step: str, expected_message: str,
+) -> None:
+    spec = TaskSpec(userQuery="测试", size="2x2", dataModelSchema={})
+    model = AsyncMock()
+    monkeypatch.setattr(template_pipeline, "get_cardplan_registry", lambda _fusion: object())
+    monkeypatch.setattr(template_pipeline, "load_template_controls", lambda: object())
+    monkeypatch.setattr(template_pipeline, "resolve_available_capability_ids", lambda *_args: ())
+
+    def fail_step(*_args):
+        raise ValueError("preparation failure detail")
+
+    monkeypatch.setattr(template_pipeline, failed_step, fail_step)
+    with pytest.raises(TemplateRouteNotApplicable, match=expected_message) as error:
+        await template_pipeline.generate_template_a2ui(spec, {}, (), model)
+
+    assert "preparation failure detail" in str(error.value)
+    assert isinstance(error.value.__cause__, ValueError)
+    model.generate_json.assert_not_called()

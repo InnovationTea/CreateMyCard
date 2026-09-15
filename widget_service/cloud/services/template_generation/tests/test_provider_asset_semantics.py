@@ -335,4 +335,17 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         assert isinstance(gallery_test, dict)
         overrides = gallery_test.get("sampleOverrides")
         assert isinstance(overrides, dict)
-        assert overrides.get("/data/weather/current/condition") == "多云"
+        bindings = content.get("candidateDataBindings")
+        assert isinstance(bindings, list)
+        condition_paths: set[str] = set()
+        for binding in bindings:
+            if binding.get("writeResultTo") != "/data/weather":
+                continue
+            fields = binding.get("candidateOutputFields")
+            assert isinstance(fields, list)
+            for field in fields:
+                if field.endswith("/condition"):
+                    condition_paths.add("/data/weather" + field)
+        assert condition_paths, case.caseId
+        for condition_path in condition_paths:
+            assert overrides.get(condition_path) == "多云", case.caseId
