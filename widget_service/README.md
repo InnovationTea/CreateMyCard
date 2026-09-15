@@ -201,10 +201,10 @@ python -m pytest tests -q -ra --junitxml=test-results/pytest.xml
 `Widget service tests` 设置为必需状态检查。仅添加 workflow 不会自动启用禁止合并规则；
 `CODEOWNERS` 的必需审批同样取决于 GitHub 分支规则。
 
-接入时的本地基线检查（2026-09-15，Python 3.12，按 requirements.txt 安装）在收集阶段出现
-17 个错误，用例尚未执行：默认配置缺少 `ai_widget_data_huashan_enable`、依赖清单未提供
-`json_repair`，以及 `test_sync_capability_schemas.py` 引用的
-`widget_service/scripts/sync_capability_schemas.py` 不存在。上述已有问题尚待修复，CI 会如实报错。
+接入时发现的收集错误已修复：补齐默认运维打点开关以及 `json-repair`、`aiohttp` 依赖，
+移除引用已在 PR #236 删除的同步脚本的遗留测试。2026-09-15 本地 Python 3.12 回归结果为
+523 个通过、16 个跳过、47 个失败（另有 24 个子测试通过）。剩余失败涉及配置校验、
+版本区间、提示词预期、WebSocket 指标映射等现有问题；CI 会继续如实报错。
 
 ## API
 
