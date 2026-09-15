@@ -661,7 +661,15 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
-    normalized_components = _normalize_ring_stack_children(normalized_components)
+    normalized_components = _normalize_ring_stack_children(
+        normalized_components,
+        size=size,
+    )
+    normalized_components = _normalize_timeline_unit_spacing(normalized_components)
+    normalized_components = _normalize_small_backboard_icon_alignment(
+        normalized_components,
+        size=size,
+    )
     data_model = _build_data_model(data_rows)
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
@@ -816,6 +824,36 @@ def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
         raise CompactDslConversionError(
             "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
         )
+
+
+def _normalize_timeline_unit_spacing(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    timeline_ids = {
+        component.component_id
+        for component in components
+        if component.component_type == "TimelineUnit"
+    }
+    parent_ids = {
+        component.component_id
+        for component in components
+        if component.component_type == "Row"
+        and any(child_id in timeline_ids for child_id in component.children)
+    }
+    normalized = []
+    for component in components:
+        props = copy.deepcopy(component.props)
+        if component.component_id in parent_ids:
+            props["itemMargin"] = 8
+        normalized.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                props,
+                component.children,
+            )
+        )
+    return normalized
 
 
 def _has_non_calendar_data_binding(value: Any) -> bool:
@@ -1016,42 +1054,165 @@ def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
 
 def _normalize_ring_stack_children(
     components: list[ComponentRow],
+    *,
+    size: str,
 ) -> list[ComponentRow]:
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
     component_types = {
         component.component_id: component.component_type
         for component in components
     }
+    dual_zone_ids = (
+        _two_by_two_dual_zone_ids(components_by_id)
+        if size == "2x2"
+        else set()
+    )
+    dual_zone_descendants = _descendant_component_ids(
+        dual_zone_ids,
+        components_by_id,
+    )
     normalized: list[ComponentRow] = []
     for component in components:
-        if component.component_type != "Stack":
-            normalized.append(component)
-            continue
+        props = component.props
         children = list(component.children)
         progress_ids = [
             child for child in children if component_types.get(child) == "Progress"
         ]
+        ring_progress_ids = [
+            child
+            for child in progress_ids
+            if components_by_id[child].props.get("type") == "ring"
+        ]
+        is_ring = component.component_type == "Progress" and props.get("type") == "ring"
+        if size == "2x2" and (is_ring or ring_progress_ids):
+            ring_size = (
+                44 if component.component_id in dual_zone_descendants else 52
+            )
+            props = {**props, "width": ring_size, "height": ring_size}
+            if is_ring:
+                props["strokeWidth"] = 6
         image_ids = [
             child for child in children if component_types.get(child) == "Image"
         ]
-        if not progress_ids or not image_ids:
-            normalized.append(component)
-            continue
-        reordered_ids = set(progress_ids)
-        reordered_ids.update(image_ids)
-        remaining_ids = [
-            child
-            for child in children
-            if child not in reordered_ids
-        ]
+        if component.component_type == "Stack" and progress_ids and image_ids:
+            reordered_ids = set(progress_ids + image_ids)
+            remaining_ids = [
+                child for child in children if child not in reordered_ids
+            ]
+            children = image_ids + progress_ids + remaining_ids
         normalized.append(
             ComponentRow(
                 component.component_id,
                 component.component_type,
-                component.props,
-                tuple(image_ids + progress_ids + remaining_ids),
+                props,
+                tuple(children),
             )
         )
     return normalized
+
+
+def _two_by_two_dual_zone_ids(
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column" or len(root.children) != 2:
+        return set()
+    zones = [components_by_id.get(child_id) for child_id in root.children]
+    if any(zone is None for zone in zones):
+        return set()
+    if not all(
+        zone.props.get("width") == 136 and zone.props.get("height") == 64
+        for zone in zones
+        if zone is not None
+    ):
+        return set()
+    return set(root.children)
+
+
+def _normalize_small_backboard_icon_alignment(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    if size == "2x2":
+        candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
+        backboard_width = 136
+        text_width = 84
+    elif size == "2x4":
+        candidate_ids = {
+            component.component_id
+            for component in components
+            if component.props.get("width") == 144
+            and component.props.get("height") == 64
+        }
+        backboard_width = 144
+        text_width = 92
+    else:
+        return components
+
+    replacements: dict[str, ComponentRow] = {}
+    for candidate_id in candidate_ids:
+        backboard = components_by_id[candidate_id]
+        if backboard.component_type != "Row" or len(backboard.children) != 2:
+            continue
+        children = [components_by_id.get(child_id) for child_id in backboard.children]
+        text = next(
+            (
+                child
+                for child in children
+                if child and child.component_type in {"Column", "Text"}
+            ),
+            None,
+        )
+        icon = next(
+            (child for child in children if child and child.component_type == "Image"),
+            None,
+        )
+        if text is None or icon is None:
+            continue
+
+        backboard_props = {
+            **backboard.props,
+            "width": backboard_width,
+            "height": 64,
+            "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
+            "itemMargin": 8,
+            "justifyContent": "start",
+            "alignItems": "center",
+        }
+        replacements[backboard.component_id] = ComponentRow(
+            backboard.component_id,
+            backboard.component_type,
+            backboard_props,
+            (text.component_id, icon.component_id),
+        )
+        replacements[text.component_id] = ComponentRow(
+            text.component_id,
+            text.component_type,
+            {**text.props, "width": text_width},
+            text.children,
+        )
+        replacements[icon.component_id] = ComponentRow(
+            icon.component_id,
+            icon.component_type,
+            {
+                **icon.props,
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0,
+            },
+            icon.children,
+        )
+
+    return [replacements.get(component.component_id, component) for component in components]
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
@@ -2086,7 +2247,7 @@ def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
             "itemMargin": 4,
             "styles": {
                 "width": 8,
-                "height": 44,
+                "height": 48,
                 "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
                 "justifyContent": "start",
                 "alignItems": "center",

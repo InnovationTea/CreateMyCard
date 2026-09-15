@@ -2,6 +2,8 @@
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
 
+2x4 最终恰好两个业务数据块时必须参考 V09：root 必须是 Row，并直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止生成上下两个 `296×64vp` 背板或任何其它上下双业务布局。
+
 ## 示例八（2x4-V01）：三行近期日程列表（W7-list-rows·黄色纯色）
 ### user
 ```json
@@ -37,7 +39,7 @@
 ["ringArea","Column",{"width":144,"height":113,"justifyContent":"center","alignItems":"center"},["ringStack"]]
 ["ringStack","Stack",{"width":92,"height":92,"alignContent":"center"},["ring","ringValue"]]
 ["ring","Progress",{"type":"ring","width":92,"height":92,"strokeWidth":8,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F8F99","backgroundColor":"#1F1F8F99"}]
-["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F8F99","textAlign":"center","maxLines":1}]
+["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F8F99","textAlign":"center","maxLines":1}]
 ["info","Column",{"width":144,"height":113,"itemMargin":4,"justifyContent":"center"},["infoTitle","level","status"]]
 ["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
@@ -60,16 +62,16 @@
 ["body","Column",{"width":296,"height":108,"itemMargin":8},["progressSlot","details"]]
 ["progressSlot","Column",{"width":296,"height":50,"itemMargin":4,"justifyContent":"center"},["progressText","progress"]]
 ["progressText","Row",{"width":296,"alignItems":"bottom","itemMargin":6},["score","scoreLabel"]]
-["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":20,"fontWeight":700,"fontColor":"#FF401F99","maxLines":1}]
-["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":10,"fontWeight":400,"fontColor":"#99401F99","padding":{"bottom":2},"maxLines":1}]
+["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":18,"fontWeight":700,"fontColor":"#FF401F99","maxLines":1}]
+["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":12,"fontWeight":400,"fontColor":"#99401F99","padding":{"bottom":2},"maxLines":1}]
 ["progress","Progress",{"type":"linear","width":296,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF401F99","backgroundColor":"#1F401F99"}]
 ["details","Row",{"width":296,"height":50,"itemMargin":8},["night","deep"]]
 ["night","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#1A401F99","itemMargin":2,"justifyContent":"center"},["nightLabel","nightValue"]]
 ["nightLabel","Text",{"content":"睡眠时长","width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
-["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
+["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
 ["deep","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#1A401F99","itemMargin":2,"justifyContent":"center"},["deepLabel","deepValue"]]
 ["deepLabel","Text",{"content":"深睡时长","width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
-["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
+["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
 ["/data/healthSport/sleepScore",82]
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
@@ -83,7 +85,7 @@
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"#FFFFF3E6"},["content"]]
 ["content","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":10},["hero","plans"]]
-["hero","Column",{"width":146,"height":136,"justifyContent":"spaceBetween"},["tag","count","recovery"]]
+["hero","Column",{"width":146,"height":136,"justifyContent":"spaceBetween"},["count","tag","recovery"]]
 ["tag","Text",{"content":"距离HK100越野赛","width":146,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["count","Row",{"width":146,"height":44,"itemMargin":5,"alignItems":"bottom"},["days","unit"]]
 ["days","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FF99661F","maxLines":1}]
@@ -91,15 +93,15 @@
 ["recovery","Column",{"width":146,"height":28,"itemMargin":3},["recoveryBar","recoveryLabels"]]
 ["recoveryBar","Progress",{"type":"linear","width":146,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF99661F","backgroundColor":"#4799661F"}]
 ["recoveryLabels","Row",{"width":146,"justifyContent":"spaceBetween"},["recoveryName","recoveryValue"]]
-["recoveryName","Text",{"content":"训练恢复度","fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
-["recoveryValue","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["recoveryName","Text",{"content":"训练恢复度","fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["recoveryValue","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["plans","Column",{"width":140,"height":136,"itemMargin":8},["plan0","plan1"]]
 ["plan0","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#1A99661F","itemMargin":3,"justifyContent":"center"},["plan0Title","plan0Desc"]]
 ["plan0Title","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF99661F","maxLines":1}]
-["plan0Desc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["plan0Desc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["plan1","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#1A99661F","itemMargin":3,"justifyContent":"center"},["plan1Title","plan1Desc"]]
 ["plan1Title","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF99661F","maxLines":1}]
-["plan1Desc","Text",{"content":{"path":"/data/calendar/events/1/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["plan1Desc","Text",{"content":{"path":"/data/calendar/events/1/description"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["/data/countdown/countdownDays",32]
 ["/data/healthSport/sleepScore",82]
 ["/data/calendar/events/0/title","周一训练计划"]
@@ -118,25 +120,26 @@
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"spaceBetween"},["title","metrics"]]
 ["title","CardHeader",{"title":"我的健康数据","fontColor":"#9952991F"}]
 ["metrics","Row",{"width":296,"height":84,"justifyContent":"spaceBetween","alignItems":"center"},["metric0","sep0","metric1","sep1","metric2"]]
-["metric0","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label0","value0"]]
+["metric0","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value0","label0"]]
 ["label0","Text",{"content":"睡眠得分","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#9952991F","textAlign":"center","maxLines":1}]
-["value0","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
+["value0","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
 ["sep0","Divider",{"width":1,"height":64,"vertical":true,"color":"#5952991F"}]
-["metric1","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label1","value1"]]
+["metric1","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value1","label1"]]
 ["label1","Text",{"content":"消耗热量","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#9952991F","textAlign":"center","maxLines":1}]
-["value1","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
+["value1","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
 ["sep1","Divider",{"width":1,"height":64,"vertical":true,"color":"#5952991F"}]
-["metric2","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label2","value2"]]
+["metric2","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value2","label2"]]
 ["label2","Text",{"content":"今日步数","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#9952991F","textAlign":"center","maxLines":1}]
-["value2","Text",{"content":"{{ ${/data/healthSport/dailySteps} + '步' }}","width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
+["value2","Text",{"content":"{{ ${/data/healthSport/dailySteps} + '步' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF52991F","textAlign":"center","maxLines":1}]
 ["/data/healthSport/sleepScore",80]
 ["/data/healthSport/dailyTotalCaloriesText","92 千卡"]
 ["/data/healthSport/dailySteps",2031]
 ```
 ## 示例十三（2x4-V06）：无标题设备电量四联（W8-quad-cells·青色纯色）
+W8 四数据布局自身固定无卡级标题，不依赖用户额外提出“无标题”；四个 `144×64vp` 小内容背板必须占满安全内容区，不为 header 压缩高度。
 ### user
 ```json
-{"userQuery":"无标题显示手机、左耳、右耳和耳机盒电量，使用2×2等分格。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68},"batterySOCText":{"type":"string","description":"手机电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"手机电量等级","sampleValue":"正常电量"}},"earphone":{"leftBatteryLevel":{"type":"integer","description":"左耳电量0到100","sampleValue":76},"leftChargingStatusDesc":{"type":"string","description":"左耳充电状态","sampleValue":"未充电"},"rightBatteryLevel":{"type":"integer","description":"右耳电量0到100","sampleValue":78},"rightChargingStatusDesc":{"type":"string","description":"右耳充电状态","sampleValue":"未充电"},"batteryLevel":{"type":"integer","description":"耳机盒电量0到100","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"耳机盒充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/l_circle_fill.svg","description":"本地左耳图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"本地右耳图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
+{"userQuery":"显示手机、左耳、右耳和耳机盒电量，使用2×2等分格。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68},"batterySOCText":{"type":"string","description":"手机电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"手机电量等级","sampleValue":"正常电量"}},"earphone":{"leftBatteryLevel":{"type":"integer","description":"左耳电量0到100","sampleValue":76},"leftChargingStatusDesc":{"type":"string","description":"左耳充电状态","sampleValue":"未充电"},"rightBatteryLevel":{"type":"integer","description":"右耳电量0到100","sampleValue":78},"rightChargingStatusDesc":{"type":"string","description":"右耳充电状态","sampleValue":"未充电"},"batteryLevel":{"type":"integer","description":"耳机盒电量0到100","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"耳机盒充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/l_circle_fill.svg","description":"本地左耳图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"本地右耳图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
 ```
 ### assistant
 ```genui
@@ -144,31 +147,31 @@
 ["grid","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8},["row0","row1"]]
 ["row0","Row",{"width":296,"height":64,"itemMargin":8},["phoneCell","leftCell"]]
 ["row1","Row",{"width":296,"height":64,"itemMargin":8},["rightCell","caseCell"]]
-["phoneCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"spaceBetween","alignItems":"center"},["phoneText","phoneRing"]]
-["phoneText","Column",{"width":64,"itemMargin":2},["phoneValue","phoneStatus"]]
-["phoneValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
-["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["phoneCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"start","alignItems":"center","itemMargin":8},["phoneText","phoneRing"]]
+["phoneText","Column",{"width":72,"itemMargin":2},["phoneValue","phoneStatus"]]
+["phoneValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":72,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
+["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":72,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["phoneRing","Stack",{"width":40,"height":40,"alignContent":"center"},["phoneArc","phoneCore"]]
 ["phoneArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F8F99","backgroundColor":"#331F8F99"}]
 ["phoneCore","Image",{"src":"resources/base/media/phone_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F8F99"}]
-["leftCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"spaceBetween","alignItems":"center"},["leftText","leftRing"]]
-["leftText","Column",{"width":64,"itemMargin":2},["leftValue","leftStatus"]]
-["leftValue","Text",{"content":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
-["leftStatus","Text",{"content":{"path":"/data/earphone/leftChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["leftCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"start","alignItems":"center","itemMargin":8},["leftText","leftRing"]]
+["leftText","Column",{"width":72,"itemMargin":2},["leftValue","leftStatus"]]
+["leftValue","Text",{"content":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","width":72,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
+["leftStatus","Text",{"content":{"path":"/data/earphone/leftChargingStatusDesc"},"width":72,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["leftRing","Stack",{"width":40,"height":40,"alignContent":"center"},["leftArc","leftCore"]]
 ["leftArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/leftBatteryLevel"},"total":100,"color":"#FF1F8F99","backgroundColor":"#331F8F99"}]
 ["leftCore","Image",{"src":"resources/base/media/l_circle_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F8F99"}]
-["rightCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"spaceBetween","alignItems":"center"},["rightText","rightRing"]]
-["rightText","Column",{"width":64,"itemMargin":2},["rightValue","rightStatus"]]
-["rightValue","Text",{"content":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
-["rightStatus","Text",{"content":{"path":"/data/earphone/rightChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["rightCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"start","alignItems":"center","itemMargin":8},["rightText","rightRing"]]
+["rightText","Column",{"width":72,"itemMargin":2},["rightValue","rightStatus"]]
+["rightValue","Text",{"content":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","width":72,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
+["rightStatus","Text",{"content":{"path":"/data/earphone/rightChargingStatusDesc"},"width":72,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["rightRing","Stack",{"width":40,"height":40,"alignContent":"center"},["rightArc","rightCore"]]
 ["rightArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/rightBatteryLevel"},"total":100,"color":"#FF1F8F99","backgroundColor":"#331F8F99"}]
 ["rightCore","Image",{"src":"resources/base/media/r_circle_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F8F99"}]
-["caseCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"spaceBetween","alignItems":"center"},["caseText","caseRing"]]
-["caseText","Column",{"width":64,"itemMargin":2},["caseValue","caseStatus"]]
-["caseValue","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
-["caseStatus","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["caseCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#1A1F8F99","justifyContent":"start","alignItems":"center","itemMargin":8},["caseText","caseRing"]]
+["caseText","Column",{"width":72,"itemMargin":2},["caseValue","caseStatus"]]
+["caseValue","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '%' }}","width":72,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
+["caseStatus","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":72,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
 ["caseRing","Stack",{"width":40,"height":40,"alignContent":"center"},["caseArc","caseCore"]]
 ["caseArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF1F8F99","backgroundColor":"#331F8F99"}]
 ["caseCore","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F8F99"}]
@@ -193,10 +196,10 @@
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"start"},["kicker","lower"]]
 ["kicker","Text",{"content":"日程安排","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["event","Column",{"width":296,"height":76,"itemMargin":6,"justifyContent":"end"},["eventTitle","eventDesc"]]
-["eventTitle","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":296,"fontSize":20,"fontWeight":500,"fontColor":"#FF99661F","maxLines":1}]
-["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":2}]
+["eventTitle","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":296,"fontSize":18,"fontWeight":500,"fontColor":"#FF99661F","maxLines":1}]
+["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":2}]
 ["lower","Column",{"width":296,"height":113,"justifyContent":"end"},["event","date"]]
-["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["/data/calendar/events/0/title","需求评审会"]
 ["/data/calendar/events/0/description","评审卡片数据接口与视觉还原结果"]
 ["/data/calendar/events/0/startDate","12-18"]
@@ -225,6 +228,7 @@
 ```
 
 ## 示例十六（2x4-V09）：天气与手机电量双业务（W9-dual-backboards·蓝色纯色）
+W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。两个业务只能左右排列，禁止改成上下两个全宽背板。
 ### user
 ```json
 {"userQuery":"同时显示上海天气和手机电量，并分别提供查看天气和打开电池设置按钮。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
@@ -232,16 +236,16 @@
 ### assistant
 ```genui
 ["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"borderRadius":20,"clip":true,"backgroundColor":"#FFE5EDFE","alignItems":"center"},["weatherZone","batteryZone"]]
-["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["weatherTitle","weatherContent","weatherButton"]]
+["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["weatherContent","weatherButton"]]
 ["weatherTitle","Text",{"content":"上海天气","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherValue","weatherStatus"]]
-["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '℃' }}","width":120,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherValue","weatherTitle","weatherStatus"]]
+["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '℃' }}","width":120,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
 ["weatherButton","Button",{"label":"查看天气","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
-["batteryZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["batteryTitle","batteryContent","batteryButton"]]
+["batteryZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["batteryContent","batteryButton"]]
 ["batteryTitle","Text",{"content":"手机电量","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["batteryContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["batteryValue","batteryStatus"]]
-["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":120,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["batteryContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["batteryValue","batteryTitle","batteryStatus"]]
+["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":120,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["batteryStatus","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
 ["batteryButton","Button",{"label":"电池设置","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
 ["/data/weather/location/cityCode","101020100"]
@@ -249,4 +253,37 @@
 ["/data/weather/current/temperatureC",29]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
+```
+
+## 示例十七（2x4-V10）：天气、手机与耳机三数据（W10-triple-backboards·蓝色纯色）
+### user
+```json
+{"userQuery":"重点显示上海天气，同时显示手机电量、充电状态、温度和耳机连接状态，并分别提供对应入口。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"},"batteryTemperatureText":{"type":"string","description":"电池温度文本","sampleValue":"29℃"}},"earphone":{"isConnected":{"type":"boolean","description":"耳机是否连接","sampleValue":true},"earphoneName":{"type":"string","description":"耳机名称","sampleValue":"FreeBuds Pro"}}}},"assetCandidates":[{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
+```
+### assistant
+```genui
+["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"borderRadius":20,"clip":true,"backgroundColor":"#FFE5EDFE","justifyContent":"center","alignItems":"center"},["weatherZone","secondaryColumn"]]
+["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#1A1F4799"},["weatherContent","weatherButton"]]
+["weatherLabel","Text",{"content":"上海天气","width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherValue","weatherLabel","weatherStatus"]]
+["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '℃' }}","width":120,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["weatherButton","Button",{"label":"查看天气","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["secondaryColumn","Column",{"width":144,"height":136,"itemMargin":8},["batteryZone","earphoneZone"]]
+["batteryZone","Column",{"width":144,"height":64,"padding":12,"itemMargin":2,"borderRadius":16,"backgroundColor":"#1A1F4799","justifyContent":"center","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["batteryValue","batteryAux"]]
+["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":120,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["batteryAux","Text",{"content":"{{ ${/data/phoneBattery/chargingStatusDesc} + ' | ' + ${/data/phoneBattery/batteryTemperatureText} }}","width":120,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["earphoneZone","Row",{"width":144,"height":64,"padding":12,"itemMargin":8,"borderRadius":16,"backgroundColor":"#1A1F4799","justifyContent":"start","alignItems":"center","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["earphoneText","earphoneIcon"]]
+["earphoneText","Column",{"width":92,"itemMargin":2,"justifyContent":"center"},["earphoneValue","earphoneStatus"]]
+["earphoneValue","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":92,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["earphoneStatus","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":92,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["earphoneIcon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
+["/data/weather/location/cityCode","101020100"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/temperatureC",29]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
+["/data/phoneBattery/batteryTemperatureText","29℃"]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","FreeBuds Pro"]
 ```

@@ -22,13 +22,119 @@ _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用普通组件、渐变、圆形、
 光斑或其它方式模拟融球效果。root 必须按非融球背景规则生成。"""
 
+_COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，必须锁定 FEWSHOT_2x2 的 V01，
+不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown` 与 `/data/calendar`
+拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
+
+- 固定视觉顺序：顶部居中目标名称，中部居中 38fp 倒计时数字及 12fp 单位；
+  存在用户明确要求的时间时，只在数字下方增加一行 12fp/400 辅助文字。
+- 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
+  无法提取目标名称时固定使用“倒计时”。
+- 数字右侧单位只能写“天”，禁止写“天后开始”“天后参加”等长后缀。
+- 至多保留一个动作；需要可见按钮时放在 root 最后一项并固定沉底，
+  不得把标题、时间和数字重组为 countdown_group 或其它自由布局。
+- 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
+  `fusion-ball-sport-orange`，不允许时使用倒计时对应的黄色纯色。"""
+
+_COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
+_TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
+
+_SIZE_LAYOUT_ROUTE_LOCKS = {
+    "2x2": """# 本次尺寸骨架硬约束（高优先级）
+
+2x2 若最终展示两个独立业务对象，必须且只能使用 S4：root 为 Column，直接子组件
+只能是上下两个 `136×64vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
+公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
+可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
+降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。""",
+    "2x4": """# 本次尺寸骨架硬约束（高优先级）
+
+2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
+`144×136vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
+使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
+`296×64vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
+不得自由拼接骨架。""",
+}
+
 
 class PromptBuilder:
+    @staticmethod
+    def _data_roots(task_spec: TaskSpec) -> tuple[str, ...]:
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return ()
+        return tuple(data_schema)
+
+    @staticmethod
+    def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
+        if task_spec.size != "2x4" or len(PromptBuilder._data_roots(task_spec)) != 2:
+            return few_shot
+
+        lines = few_shot.splitlines()
+        headings = [
+            index for index, line in enumerate(lines) if line.startswith("## ")
+        ]
+        start = next(
+            (
+                index
+                for index in headings
+                if _TWO_BY_FOUR_DUAL_FEW_SHOT_ID in lines[index]
+            ),
+            None,
+        )
+        if start is None:
+            return few_shot
+        end = next((index for index in headings if index > start), len(lines))
+        preamble_end = headings[0] if headings else 0
+        return "\n".join([*lines[:preamble_end], *lines[start:end]]).strip()
+
+    @staticmethod
+    def _uses_countdown_v01(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x2":
+            return False
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict) or not data_schema:
+            return False
+        if set(data_schema) - {"countdown", "calendar"}:
+            return False
+        if not PromptBuilder._contains_schema_field(data_schema, "countdownDays"):
+            return False
+
+        query = task_spec.userQuery.casefold()
+        if any(marker in query for marker in _COUNTDOWN_QUERY_MARKERS):
+            return True
+        return "天" in query and any(
+            marker in query for marker in ("还有", "剩余", "距离", "多久")
+        )
+
+    @staticmethod
+    def _contains_schema_field(value: Any, field_name: str) -> bool:
+        if isinstance(value, dict):
+            return field_name in value or any(
+                PromptBuilder._contains_schema_field(child, field_name)
+                for child in value.values()
+            )
+        if isinstance(value, list):
+            return any(
+                PromptBuilder._contains_schema_field(child, field_name)
+                for child in value
+            )
+        return False
+
     @staticmethod
     def _with_size_few_shot(system_prompt: str, task_spec: TaskSpec) -> str:
         profile_dir = get_settings().data_root / "protocol_profiles" / DESIGN_COMPACT_PROFILE_ID
         few_shot = (profile_dir / f"FEWSHOT_{task_spec.size}.md").read_text(encoding="utf-8")
-        return f"{system_prompt}\n\n{few_shot}"
+        few_shot = PromptBuilder._select_few_shot(few_shot, task_spec)
+        prompt = (
+            f"{system_prompt}\n\n{few_shot}\n\n"
+            f"{_SIZE_LAYOUT_ROUTE_LOCKS[task_spec.size]}"
+        )
+        if PromptBuilder._uses_countdown_v01(task_spec):
+            return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+        return prompt
 
     def build_design_compact(
         self,
