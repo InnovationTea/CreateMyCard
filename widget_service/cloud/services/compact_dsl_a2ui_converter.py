@@ -661,7 +661,10 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
-    normalized_components = _normalize_ring_stack_children(normalized_components)
+    normalized_components = _normalize_ring_stack_children(
+        normalized_components,
+        size=size,
+    )
     data_model = _build_data_model(data_rows)
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
@@ -1016,42 +1019,82 @@ def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
 
 def _normalize_ring_stack_children(
     components: list[ComponentRow],
+    *,
+    size: str,
 ) -> list[ComponentRow]:
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
     component_types = {
         component.component_id: component.component_type
         for component in components
     }
+    dual_zone_ids = (
+        _two_by_two_dual_zone_ids(components_by_id)
+        if size == "2x2"
+        else set()
+    )
+    dual_zone_descendants = _descendant_component_ids(
+        dual_zone_ids,
+        components_by_id,
+    )
     normalized: list[ComponentRow] = []
     for component in components:
-        if component.component_type != "Stack":
-            normalized.append(component)
-            continue
+        props = component.props
         children = list(component.children)
         progress_ids = [
             child for child in children if component_types.get(child) == "Progress"
         ]
+        ring_progress_ids = [
+            child
+            for child in progress_ids
+            if components_by_id[child].props.get("type") == "ring"
+        ]
+        is_ring = component.component_type == "Progress" and props.get("type") == "ring"
+        if size == "2x2" and (is_ring or ring_progress_ids):
+            ring_size = (
+                44 if component.component_id in dual_zone_descendants else 52
+            )
+            props = {**props, "width": ring_size, "height": ring_size}
+            if is_ring:
+                props["strokeWidth"] = 6
         image_ids = [
             child for child in children if component_types.get(child) == "Image"
         ]
-        if not progress_ids or not image_ids:
-            normalized.append(component)
-            continue
-        reordered_ids = set(progress_ids)
-        reordered_ids.update(image_ids)
-        remaining_ids = [
-            child
-            for child in children
-            if child not in reordered_ids
-        ]
+        if component.component_type == "Stack" and progress_ids and image_ids:
+            reordered_ids = set(progress_ids + image_ids)
+            remaining_ids = [
+                child for child in children if child not in reordered_ids
+            ]
+            children = image_ids + progress_ids + remaining_ids
         normalized.append(
             ComponentRow(
                 component.component_id,
                 component.component_type,
-                component.props,
-                tuple(image_ids + progress_ids + remaining_ids),
+                props,
+                tuple(children),
             )
         )
     return normalized
+
+
+def _two_by_two_dual_zone_ids(
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column" or len(root.children) != 2:
+        return set()
+    zones = [components_by_id.get(child_id) for child_id in root.children]
+    if any(zone is None for zone in zones):
+        return set()
+    if not all(
+        zone.props.get("width") == 136 and zone.props.get("height") == 64
+        for zone in zones
+        if zone is not None
+    ):
+        return set()
+    return set(root.children)
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
