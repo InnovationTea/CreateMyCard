@@ -780,6 +780,8 @@ class WidgetGenerationService:
             )
             artifact_validator = ArtifactValidator()
             validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            if validation_errors:
+                report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
                 artifact_validator,
                 "error_prompt_contexts",
