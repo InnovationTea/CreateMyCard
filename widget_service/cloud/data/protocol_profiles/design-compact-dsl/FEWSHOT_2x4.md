@@ -2,7 +2,7 @@
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
 
-2x4 最终恰好两个业务数据块时必须参考 V09：root 直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。
+2x4 最终恰好两个业务数据块时必须参考 V09：root 必须是 Row，并直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止生成上下两个 `296×64vp` 背板或任何其它上下双业务布局。
 
 ## 示例八（2x4-V01）：三行近期日程列表（W7-list-rows·黄色纯色）
 ### user
@@ -63,15 +63,15 @@
 ["progressSlot","Column",{"width":296,"height":50,"itemMargin":4,"justifyContent":"center"},["progressText","progress"]]
 ["progressText","Row",{"width":296,"alignItems":"bottom","itemMargin":6},["score","scoreLabel"]]
 ["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":18,"fontWeight":700,"fontColor":"#FF401F99","maxLines":1}]
-["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":10,"fontWeight":400,"fontColor":"#99401F99","padding":{"bottom":2},"maxLines":1}]
+["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":12,"fontWeight":400,"fontColor":"#99401F99","padding":{"bottom":2},"maxLines":1}]
 ["progress","Progress",{"type":"linear","width":296,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF401F99","backgroundColor":"#1F401F99"}]
 ["details","Row",{"width":296,"height":50,"itemMargin":8},["night","deep"]]
 ["night","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#1A401F99","itemMargin":2,"justifyContent":"center"},["nightLabel","nightValue"]]
 ["nightLabel","Text",{"content":"睡眠时长","width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
-["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
+["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
 ["deep","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#1A401F99","itemMargin":2,"justifyContent":"center"},["deepLabel","deepValue"]]
 ["deepLabel","Text",{"content":"深睡时长","width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
-["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
+["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":12,"fontWeight":400,"fontColor":"#99401F99","maxLines":1}]
 ["/data/healthSport/sleepScore",82]
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
@@ -93,15 +93,15 @@
 ["recovery","Column",{"width":146,"height":28,"itemMargin":3},["recoveryBar","recoveryLabels"]]
 ["recoveryBar","Progress",{"type":"linear","width":146,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF99661F","backgroundColor":"#4799661F"}]
 ["recoveryLabels","Row",{"width":146,"justifyContent":"spaceBetween"},["recoveryName","recoveryValue"]]
-["recoveryName","Text",{"content":"训练恢复度","fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
-["recoveryValue","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["recoveryName","Text",{"content":"训练恢复度","fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["recoveryValue","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["plans","Column",{"width":140,"height":136,"itemMargin":8},["plan0","plan1"]]
 ["plan0","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#1A99661F","itemMargin":3,"justifyContent":"center"},["plan0Title","plan0Desc"]]
 ["plan0Title","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF99661F","maxLines":1}]
-["plan0Desc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["plan0Desc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["plan1","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#1A99661F","itemMargin":3,"justifyContent":"center"},["plan1Title","plan1Desc"]]
 ["plan1Title","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF99661F","maxLines":1}]
-["plan1Desc","Text",{"content":{"path":"/data/calendar/events/1/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["plan1Desc","Text",{"content":{"path":"/data/calendar/events/1/description"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["/data/countdown/countdownDays",32]
 ["/data/healthSport/sleepScore",82]
 ["/data/calendar/events/0/title","周一训练计划"]
@@ -197,9 +197,9 @@ W8 四数据布局自身固定无卡级标题，不依赖用户额外提出“�
 ["kicker","Text",{"content":"日程安排","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["event","Column",{"width":296,"height":76,"itemMargin":6,"justifyContent":"end"},["eventTitle","eventDesc"]]
 ["eventTitle","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":296,"fontSize":18,"fontWeight":500,"fontColor":"#FF99661F","maxLines":1}]
-["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":2}]
+["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":2}]
 ["lower","Column",{"width":296,"height":113,"justifyContent":"end"},["event","date"]]
-["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":10,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
+["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":12,"fontWeight":400,"fontColor":"#9999661F","maxLines":1}]
 ["/data/calendar/events/0/title","需求评审会"]
 ["/data/calendar/events/0/description","评审卡片数据接口与视觉还原结果"]
 ["/data/calendar/events/0/startDate","12-18"]
@@ -228,7 +228,7 @@ W8 四数据布局自身固定无卡级标题，不依赖用户额外提出“�
 ```
 
 ## 示例十六（2x4-V09）：天气与手机电量双业务（W9-dual-backboards·蓝色纯色）
-W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。
+W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。两个业务只能左右排列，禁止改成上下两个全宽背板。
 ### user
 ```json
 {"userQuery":"同时显示上海天气和手机电量，并分别提供查看天气和打开电池设置按钮。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
