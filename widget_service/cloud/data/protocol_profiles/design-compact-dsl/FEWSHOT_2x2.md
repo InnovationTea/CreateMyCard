@@ -5,7 +5,7 @@
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
 
 ## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·融球暖橙）
-倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部，不得把大数字移到目标名称上方。若实际 TaskSpec 有一个动作，在 root 末尾追加 `action_area`，`value_group` 仍必须使用 `layoutWeight:1` 占满中间剩余高度，使 36vp 按钮固定距卡片底部 12vp。
+倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部，不得把大数字移到目标名称上方。
 ### user
 ```json
 {"userQuery":"使用2*2规格，做个运动会倒数日卡片。展示距离运动会的倒计时天数","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数","sampleValue":32}}}},"assetCandidates":[]}
@@ -15,7 +15,7 @@
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"design":"fusion-ball-sport-orange"},["title_area","value_group"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
 ["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
-["value_group","Row",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"bottom","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
+["value_group","Row",{"width":136,"justifyContent":"center","alignItems":"bottom","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
 ["/data/countdown/countdownDays",32]
