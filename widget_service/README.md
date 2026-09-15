@@ -201,11 +201,6 @@ python -m pytest tests -q -ra --junitxml=test-results/pytest.xml
 `Widget service tests` 设置为必需状态检查。仅添加 workflow 不会自动启用禁止合并规则；
 `CODEOWNERS` 的必需审批同样取决于 GitHub 分支规则。
 
-接入时发现的收集错误已修复：补齐默认运维打点开关以及 `json-repair`、`aiohttp` 依赖，
-移除引用已在 PR #236 删除的同步脚本的遗留测试。2026-09-15 本地 Python 3.12 回归结果为
-523 个通过、16 个跳过、47 个失败（另有 24 个子测试通过）。剩余失败涉及配置校验、
-版本区间、提示词预期、WebSocket 指标映射等现有问题；CI 会继续如实报错。
-
 ## API
 
 ```text
