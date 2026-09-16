@@ -693,7 +693,16 @@ async def _send_widget_directive_command(
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
+    intent_name = "AIWidgetStart" if state is WidgetDirectiveState.START else "AIWidgetEnd"
+    log_context = (
+        f"request_id={request_id} operation={operation} intent_name={intent_name} "
+        f"state={state.value} card_id={card_id} size={size} "
+        f"streaming_text_id={streaming_text_id}"
+    )
     if not _widget_directive_commands_enabled():
+        logger.info(
+            f"{_MODULE} widget_directive_skipped {log_context} reason=commands_disabled"
+        )
         return True
     response = build_widget_directive_response(
         raw_payload,
@@ -704,13 +713,27 @@ async def _send_widget_directive_command(
         size,
         artifact_url,
     )
-    return await _send_websocket_json(
+    command_for_log = json.loads(response.reply.streamInfo.streamContent)
+    directive_content = command_for_log.get("content")
+    if not isinstance(directive_content, str):
+        raise ValueError("widget directive content must be a JSON string")
+    command_for_log["content"] = json.loads(directive_content)
+    logger.info(
+        f"{_MODULE} widget_directive_sending {log_context} "
+        f"command={json_for_log(_sanitize_json_log_value(command_for_log))}"
+    )
+    sent = await _send_websocket_json(
         websocket,
         response.model_dump(mode="json", exclude_none=True),
         operation,
         request_id,
         f"command_{state.value}",
     )
+    if sent:
+        logger.info(f"{_MODULE} widget_directive_sent {log_context}")
+    else:
+        logger.error(f"{_MODULE} widget_directive_send_failed {log_context}")
+    return sent
 
 
 def _widget_directive_commands_enabled() -> bool:

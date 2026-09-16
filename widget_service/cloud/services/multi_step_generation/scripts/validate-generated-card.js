@@ -39,59 +39,29 @@ const parser = loadModule(["@babel/parser"], "@babel/parser");
 
 function loadChromium() {
   let playwright;
-
   try {
     playwright = loadModule(["playwright"], "playwright");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Playwright Node.js 依赖缺失。请先在项目根目录运行 ` +
-      `\`npm install\`。原始错误：${message}`,
+      `Playwright Node.js 依赖缺失。请先在项目根目录运行 \`npm install\`。原始错误：${error.message}`,
     );
   }
 
   const { chromium } = playwright;
-
-  if (!chromium || typeof chromium.launch !== "function") {
+  let executablePath;
+  try {
+    executablePath = chromium.executablePath();
+  } catch (error) {
     throw new Error(
-      "Playwright chromium 对象无效，缺少 launch() 方法。",
+      `无法确定 Chromium 安装位置。请运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`）。原始错误：${error.message}`,
     );
   }
-
-  const customChromiumPath =
-    process.env.CHROMIUM_EXECUTABLE_PATH ||
-    "/opt/chrome-linux/chrome";
-
-  let executablePath;
-
-  if (fs.existsSync(customChromiumPath)) {
-    executablePath = customChromiumPath;
-  } else {
-    try {
-      executablePath = chromium.executablePath();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `无法确定 Chromium 安装位置。请运行 ` +
-        `\`npm run install:chromium\` 或 ` +
-        `\`npx playwright install chromium\`。原始错误：${message}`,
-      );
-    }
-
-    if (!executablePath || !fs.existsSync(executablePath)) {
-      throw new Error(
-        `Playwright Chromium 浏览器未安装（预期位置：` +
-        `${executablePath || "未知"}）。请运行 ` +
-        `\`npm run install:chromium\` 或 ` +
-        `\`npx playwright install chromium\`。`,
-      );
-    }
+  if (!executablePath || !fs.existsSync(executablePath)) {
+    throw new Error(
+      `Playwright Chromium 浏览器未安装（预期位置：${executablePath || "未知"}）。请在项目根目录运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`），然后重新执行浏览器校验。`,
+    );
   }
-
-  return {
-    chromium,
-    executablePath,
-  };
+  return chromium;
 }
 
 const skillDir = path.resolve(__dirname, "..");

@@ -36,6 +36,7 @@ _COMPONENT_TYPES = frozenset(
         "Button",
         "ActionUnit",
         "CardHeader",
+        "TimelineUnit",
         "Checkbox",
     }
 )
@@ -648,6 +649,7 @@ def convert_compact_dsl_to_a2ui(
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
     validate_card_header_layout(components, size=size)
+    validate_timeline_unit_scope(components)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -655,7 +657,10 @@ def convert_compact_dsl_to_a2ui(
     )
 
     normalized_components = [_normalize_component(row) for row in components]
-    normalized_components = _normalize_special_action_units(normalized_components)
+    normalized_components = _normalize_special_action_units(
+        normalized_components,
+        size=size,
+    )
     normalized_components = _normalize_ring_stack_children(normalized_components)
     data_model = _build_data_model(data_rows)
 
@@ -804,6 +809,34 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
 
 
+def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
+    if not any(item.component_type == "TimelineUnit" for item in components):
+        return
+    if any(_has_non_calendar_data_binding(item.props) for item in components):
+        raise CompactDslConversionError(
+            "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
+        )
+
+
+def _has_non_calendar_data_binding(value: Any) -> bool:
+    if isinstance(value, str):
+        paths = (match.group("path") for match in _A2UI_BINDING_PATH_PATTERN.finditer(value))
+        return any(_is_non_calendar_data_path(path) for path in paths)
+    if isinstance(value, dict):
+        if set(value) == {"path"}:
+            return _is_non_calendar_data_path(value.get("path"))
+        return any(_has_non_calendar_data_binding(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_non_calendar_data_binding(item) for item in value)
+    return False
+
+
+def _is_non_calendar_data_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value.startswith("/data/"):
+        return False
+    return value != "/data/calendar" and not value.startswith("/data/calendar/")
+
+
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
@@ -852,28 +885,120 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
 
 def _normalize_special_action_units(
     components: list[ComponentRow],
+    *,
+    size: str,
 ) -> list[ComponentRow]:
     action_ink = _action_ink_for_root(components)
     if action_ink is None:
         return components
 
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    parents = {
+        child_id: component
+        for component in components
+        for child_id in component.children
+    }
+    action_ids = {
+        component.component_id
+        for component in components
+        if _is_plain_action_component(component)
+    }
+    repaired_action_ids: set[str] = set()
+    for component in components:
+        if component.component_id not in action_ids:
+            continue
+        background = component.props.get("backgroundColor")
+        if isinstance(background, str) and background.upper() == action_ink:
+            repaired_action_ids.add(component.component_id)
+    repaired_descendant_ids = _descendant_component_ids(
+        repaired_action_ids,
+        components_by_id,
+    )
+    action_surface = f"#33{action_ink[3:]}"
+    full_width_action_ids: set[str] = set()
+    bottom_layout_ids: set[str] = set()
+    if size == "2x4":
+        for component_id in action_ids:
+            parent = parents.get(component_id)
+            if parent is None or parent.props.get("width") != 296:
+                continue
+            if parent.children != (component_id,):
+                continue
+            full_width_action_ids.add(component_id)
+            layout = parents.get(parent.component_id)
+            if layout is None or layout.component_type != "Column":
+                continue
+            if layout.children[-1:] != (parent.component_id,):
+                continue
+            if layout.props.get("height") == "matchParent":
+                bottom_layout_ids.add(layout.component_id)
+
     normalized: list[ComponentRow] = []
     for component in components:
-        if component.component_type != "ActionUnit":
-            normalized.append(component)
-            continue
         props = copy.deepcopy(component.props)
-        props.setdefault("actionInk", action_ink)
-        props.setdefault("actionSurface", f"#33{action_ink[3:]}")
+        component_id = component.component_id
+        if component.component_type == "ActionUnit":
+            props["actionInk"] = action_ink
+            props["actionSurface"] = action_surface
+        elif component_id in repaired_action_ids:
+            props["backgroundColor"] = action_surface
+            if component.component_type == "Button":
+                props["fontColor"] = action_ink
+        elif component_id in repaired_descendant_ids:
+            if component.component_type == "Text":
+                props["fontColor"] = action_ink
+            elif component.component_type == "Image" and "fillColor" in props:
+                props["fillColor"] = action_ink
+
+        if component_id in full_width_action_ids:
+            props["width"] = 296
+        if component_id in bottom_layout_ids:
+            props["padding"] = 12
+            props["justifyContent"] = "spaceBetween"
+
         normalized.append(
             ComponentRow(
-                component.component_id,
+                component_id,
                 component.component_type,
                 props,
                 component.children,
             )
         )
     return normalized
+
+
+def _is_plain_action_component(component: ComponentRow) -> bool:
+    if not component.props.get("onClick"):
+        return False
+    if component.component_type == "Button":
+        return True
+    if component.component_type != "Row":
+        return False
+    return (
+        component.props.get("height") == 36
+        and component.props.get("borderRadius") in {18, 20}
+    )
+
+
+def _descendant_component_ids(
+    root_ids: set[str],
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    descendants: set[str] = set()
+    pending = list(root_ids)
+    while pending:
+        component = components_by_id.get(pending.pop())
+        if component is None:
+            continue
+        for child_id in component.children:
+            if child_id in descendants:
+                continue
+            descendants.add(child_id)
+            pending.append(child_id)
+    return descendants
 
 
 def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
@@ -1927,6 +2052,8 @@ def _convert_component_rows(
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
         return _convert_card_header(component, card_size)
+    if component.component_type == "TimelineUnit":
+        return _convert_timeline_unit(component)
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component, action_icon_size)
     return [
@@ -1934,6 +2061,76 @@ def _convert_component_rows(
             component,
             hide_label=hide_label,
         )
+    ]
+
+
+def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
+    allowed = {"color", "lineColor"}
+    if component.children or set(component.props) != allowed:
+        raise CompactDslConversionError(
+            "TimelineUnit requires color/lineColor only and must not declare children."
+        )
+    for name in allowed:
+        value = component.props[name]
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
+            raise CompactDslConversionError(f"TimelineUnit.{name} must use #AARRGGBB.")
+
+    dot_id = f"{component.component_id}_dot"
+    dot_fill_id = f"{dot_id}_fill"
+    line_id = f"{component.component_id}_line"
+    return [
+        {
+            "id": component.component_id,
+            "component": "Column",
+            "children": [dot_id, line_id],
+            "itemMargin": 4,
+            "styles": {
+                "width": 8,
+                "height": 44,
+                "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
+                "justifyContent": "start",
+                "alignItems": "center",
+                "flexShrink": 0,
+                "clip": True,
+            },
+        },
+        {
+            "id": dot_id,
+            "component": "Stack",
+            "children": [dot_fill_id],
+            "styles": {
+                "width": 8,
+                "height": 8,
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "borderColor": component.props["color"],
+                "backgroundColor": "#00FFFFFF",
+                "alignContent": "center",
+                "flexShrink": 0,
+            },
+        },
+        {
+            "id": dot_fill_id,
+            "component": "Divider",
+            "styles": {
+                "width": 0,
+                "height": 0,
+                "strokeWidth": 0,
+                "color": "#00FFFFFF",
+            },
+        },
+        {
+            "id": line_id,
+            "component": "Divider",
+            "styles": {
+                "width": 1,
+                "layoutWeight": 1,
+                "strokeWidth": 1,
+                "vertical": True,
+                "color": component.props["lineColor"],
+                "flexShrink": 0,
+            },
+        },
     ]
 
 
