@@ -186,6 +186,109 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     assert prompt[0] == {"role": "system", "content": "other design rules"}
 
 
+def test_two_by_two_dual_business_selects_only_s4_few_shot() -> None:
+    task_spec = TaskSpec(
+        userQuery="展示北京出差倒计时和当地天气",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "countdown": {
+                    "countdownDays": {"type": "integer"},
+                },
+                "weather": {
+                    "current": {
+                        "temperatureC": {"type": "number"},
+                    }
+                },
+            }
+        },
+    )
+    few_shot = "\n".join(
+        [
+            "# 2x2 Few-shot",
+            "",
+            "## 示例一（2x2-V01）：倒计时",
+            "countdown example",
+            "## 示例五（2x2-V05）：双业务",
+            "dual example",
+            "## 示例六（2x2-V06）：会议",
+            "meeting example",
+        ]
+    )
+
+    selected = PromptBuilder._select_few_shot(few_shot, task_spec)
+
+    assert "2x2-V05" in selected
+    assert "dual example" in selected
+    assert "2x2-V01" not in selected
+    assert "2x2-V06" not in selected
+
+
+def test_two_by_two_single_countdown_selects_only_v01_few_shot() -> None:
+    task_spec = TaskSpec(
+        userQuery="79天后参加广州马拉松，显示倒计时",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "countdown": {
+                    "countdownDays": {"type": "integer"},
+                }
+            }
+        },
+    )
+    few_shot = "\n".join(
+        [
+            "# 2x2 Few-shot",
+            "",
+            "## 示例一（2x2-V01）：倒计时",
+            "countdown example",
+            "## 示例五（2x2-V05）：双业务",
+            "dual example",
+        ]
+    )
+
+    selected = PromptBuilder._select_few_shot(few_shot, task_spec)
+
+    assert "2x2-V01" in selected
+    assert "countdown example" in selected
+    assert "2x2-V05" not in selected
+
+
+def test_two_by_two_single_business_excludes_s4_few_shot() -> None:
+    task_spec = TaskSpec(
+        userQuery="展示耳机盒电量和充电状态",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "batteryLevel": {"type": "integer"},
+                    "chargingStatusDesc": {"type": "string"},
+                }
+            }
+        },
+    )
+    few_shot = "\n".join(
+        [
+            "# 2x2 Few-shot",
+            "",
+            "## 示例二（2x2-V02）：耳机单业务",
+            "earphone example",
+            "## 示例五（2x2-V05）：双业务",
+            "dual example",
+            "## 示例六（2x2-V06）：会议",
+            "meeting example",
+        ]
+    )
+
+    selected = PromptBuilder._select_few_shot(few_shot, task_spec)
+
+    assert "2x2-V02" in selected
+    assert "earphone example" in selected
+    assert "2x2-V05" not in selected
+    assert "dual example" not in selected
+    assert "2x2-V06" in selected
+
+
 @pytest.mark.parametrize(
     ("design_token", "expected_palette"),
     [
