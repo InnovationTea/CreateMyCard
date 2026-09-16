@@ -34,15 +34,15 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         raise ValidationError("; ".join(errors))
     items = node.props.get("items")
     if not isinstance(items, list):
-        raise AssertionError
+        raise AssertionError()
 
     rows: list[A2UINode] = []
     for index, item in enumerate(items):
         if not isinstance(item, dict):
-            raise AssertionError
+            raise AssertionError()
         label = item.get("label")
         if not isinstance(label, str):
-            raise AssertionError
+            raise AssertionError()
 
         label_node = text(
             ctx,
@@ -84,6 +84,7 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 styles={
                     "width": "matchParent",
                     "height": 16,
+                    "flexShrink": 0,
                     "alignItems": "bottom",
                     "justifyContent": "spaceBetween",
                 },
@@ -95,5 +96,13 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "table_text",
         rows,
         gap=2,
-        styles={"width": "matchParent", "alignItems": "start"},
+        styles={
+            "width": "matchParent",
+            # Auto-height slots must measure the rows, not claim the whole
+            # ancestor's offered height. Definite slots opt into filling in
+            # adapt_flex_children, where the parent layout is known.
+            "height": "wrapContent",
+            "alignItems": "start",
+            "justifyContent": "spaceBetween" if len(rows) >= 3 else "start",
+        },
     )

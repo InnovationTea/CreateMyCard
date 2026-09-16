@@ -40,9 +40,9 @@ def convert_circle_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         align="center",
         props=props,
         styles={
-            "width": 36,
-            "height": 36,
-            "borderRadius": 18,
+            "width": 36 if node.props.get("appearance") == "card" else 40,
+            "height": 36 if node.props.get("appearance") == "card" else 40,
+            "borderRadius": 18 if node.props.get("appearance") == "card" else 20,
             "backgroundColor": background,
             "flexShrink": 0,
         },

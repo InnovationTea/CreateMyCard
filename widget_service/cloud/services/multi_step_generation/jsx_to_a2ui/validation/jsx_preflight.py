@@ -8,6 +8,7 @@ from ..converters.high_level.helpers import collect_segmented_text_conversion_er
 from ..converters.high_level.gauge import collect_gauge_conversion_errors
 from ..converters.high_level.h_bar_chart import collect_h_bar_chart_conversion_errors
 from ..converters.high_level.info_block import collect_info_block_conversion_errors
+from ..converters.high_level.event_card import collect_event_card_conversion_errors
 from ..converters.high_level.numeric_ratio import collect_numeric_ratio_conversion_errors
 from ..converters.high_level.numeric_ratio_stack import (
     collect_numeric_ratio_stack_conversion_errors,
@@ -64,6 +65,8 @@ def collect_conversion_preflight_errors(root: JSXElement) -> list[str]:
             errors.extend(collect_table_text_conversion_errors(node))
         elif node.tag == "InfoBlock":
             errors.extend(collect_info_block_conversion_errors(node))
+        elif node.tag == "EventCard":
+            errors.extend(collect_event_card_conversion_errors(node))
         elif node.tag == "TopTextBottomValue":
             errors.extend(collect_top_text_bottom_value_conversion_errors(node))
         elif node.tag == "TextBlock":
@@ -74,7 +77,7 @@ def collect_conversion_preflight_errors(root: JSXElement) -> list[str]:
             errors.extend(collect_gauge_conversion_errors(node))
         elif node.tag == "CardButton":
             errors.extend(collect_card_button_conversion_errors(node))
-        elif node.tag in {"Summary", "SecondaryBody"} and "items" in node.props:
+        elif node.tag == "SecondaryBody" and "items" in node.props:
             errors.extend(collect_segmented_text_conversion_errors(node))
         for child in node.child_elements():
             walk(child, node)

@@ -24,6 +24,8 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WeatherOverviewTemperatureSupport@1 | event.open.weather |
 | WeatherOverviewTemperatureUvSupport@1 | event.open.weather |
 | WeatherOverviewTemperaturecoldLevelSupport@1 | event.open.weather |
+| WeatherOverviewDaily2TravelSupport@1 | 空 |
+| WeatherOverviewTravelSupport@1 | event.open.weather |
 | BatteryOverviewSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | BatteryOverviewStatusSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | ScheduleOverviewTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
@@ -31,6 +33,7 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | ScheduleOverviewStartTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewDateSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | CountdownOverviewSupport@1 | 空 |
+| CountdownOverviewTravelSupport@1 | event.open.clock.alarm |
 | BluetoothDeviceOverviewEarbudsSupport@1 | event.open.settings.bluetooth |
 | BluetoothDeviceOverviewChargeSupport@1 | event.open.settings.bluetooth |
 | BluetoothDeviceOverviewConnectionSupport@1 | event.open.settings.bluetooth |
@@ -43,7 +46,8 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 
 事件含义及参数以请求版本的 event_capabilities.json 为准。步数、训练及运动心率允许锻炼页作为关联入口，
 不得宣称直达步数、心率或某次训练详情。睡眠不能复用锻炼事件；耳机不能绑定手机电池设置或音乐歌单。
-运行内存清理不是存储空间设置；倒计时不使用闹钟替代。应用时长及系统内存仍受原数据能力门禁约束。
+运行内存清理不是存储空间设置；通用倒计时不使用闹钟替代，只有出行倒计时 Support 可以消费用户明确要求的
+闹钟跳转。应用时长及系统内存仍受原数据能力门禁约束。
 
 ## 分配和校验
 
@@ -69,5 +73,5 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 0/1/2 动作只生成可行组合；倒计时没有事件，搭档有事件时可生成 0/1 动作，不生成 2 动作案例。
 单业务独立动作案例仍沿用原契约。端侧显示继续每组一张，操作差异由自动化测试覆盖。
 
-回归覆盖：19 个模板白名单、未声明/空配置拒绝、同类事件实例编号、同城市/同日程约束、跨业务错绑、
+回归覆盖：全部 Support 模板白名单、未声明/空配置拒绝、同类事件实例编号、同城市/同日程约束、跨业务错绑、
 无合法 Plan、篡改 Plan、非 Planner 编译入口、Prompt 白名单同步及画廊不生成不可行动作数量。

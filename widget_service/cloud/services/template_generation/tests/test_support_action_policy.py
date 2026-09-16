@@ -66,6 +66,10 @@ _APPROVED = {
     "WeatherOverviewTemperaturecoldLevelSupport@1": [
         "event.open.weather"
     ],
+    "WeatherOverviewDaily2TravelSupport@1": [],
+    "WeatherOverviewTravelSupport@1": [
+        "event.open.weather"
+    ],
     "BatteryOverviewSupport@1": [
         "event.open.settings.battery",
         "event.open.settings.batteryHealth",
@@ -93,6 +97,9 @@ _APPROVED = {
         "event.enter.meeting"
     ],
     "CountdownOverviewSupport@1": [],
+    "CountdownOverviewTravelSupport@1": [
+        "event.open.clock.alarm"
+    ],
     "BluetoothDeviceOverviewEarbudsSupport@1": [
         "event.open.settings.bluetooth"
     ],

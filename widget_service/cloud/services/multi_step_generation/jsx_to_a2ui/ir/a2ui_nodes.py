@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 import copy
+import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
@@ -9,28 +9,29 @@ from ..catalog.bindings import (
     BINDABLE_PROPS,
     CompileContext,
     DataBinding,
-    EVENT_TIME_RANGE_SEPARATOR,
     a2ui_expression,
+    binding_value_type_error,
     boolean_text_expression,
     boolean_text_map_for,
-    binding_value_type_error,
     collect_display_semantic_errors,
     data_binding_ids,
+    data_binding_separator,
     data_model_expression_reference,
     expression_string_literal,
     is_boolean_text_mapping_target,
     normalized_boolean_text_map,
     value_type,
 )
+from ..catalog.display_units import has_unit_slot
 from ..catalog.display_values import (
     DisplayPlan,
     derived_path_for_source,
     normalize_display_value,
     set_pointer_value,
+    source_display_model,
 )
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
-
 
 BASE_COMPONENTS = frozenset(
     {
@@ -109,6 +110,21 @@ def collect_binding_validation_errors(
                     "<EventCard> dataIds.time must be a non-empty string or an "
                     "ordered array of exactly two IDs: [dtStartId, dtEndId]"
                 )
+            elif tag == "EmphasisText" and contract_prop in {"mainText", "secondaryText"}:
+                errors.append(
+                    f"<EmphasisText> dataIds.{contract_prop} must be a non-empty string or an "
+                    "ordered array of at least two IDs"
+                )
+            elif tag == "InfoBlock" and contract_prop == "secondaryText":
+                errors.append(
+                    "<InfoBlock> dataIds.secondaryText must be a non-empty string or an "
+                    "ordered array of at least two IDs"
+                )
+            elif tag == "TableText" and contract_prop == "items[].parameter":
+                errors.append(
+                    f"<TableText> dataIds.{prop} must be a non-empty string or an "
+                    "ordered array of at least two IDs"
+                )
             else:
                 errors.append(f"<{tag}> dataIds.{prop} must be a non-empty string")
             return
@@ -127,6 +143,11 @@ def collect_binding_validation_errors(
         map_location = f"{owner_path}.dataValueMaps.{display_prop}" if owner_path else f"dataValueMaps.{display_prop}"
         has_value_map = isinstance(raw_maps, dict) and display_prop in raw_maps
         value_map = raw_maps.get(display_prop) if has_value_map else None
+        if len(binding_ids) > 1 and has_value_map:
+            errors.append(
+                f"<{tag}> {map_location} cannot be used with a multi-ID binding; "
+                "bind Boolean status text through one data ID instead"
+            )
         for item in binding_ids:
             try:
                 binding = compile_context.data_binding(item)
@@ -134,6 +155,12 @@ def collect_binding_validation_errors(
                 errors.append(str(exc))
                 continue
             actual = binding.data_type or value_type(binding.value)
+            if len(binding_ids) > 1 and actual == "boolean":
+                errors.append(
+                    f"<{tag}> {prop} multi-ID bindings only accept string or numeric display data; "
+                    f"Boolean data {binding.id!r} must use a separate single-ID text binding"
+                )
+                continue
             if actual == "boolean" and is_boolean_text_mapping_target(tag, contract_prop):
                 if not has_value_map:
                     errors.append(
@@ -254,8 +281,11 @@ class ConversionContext:
     card_content_height: int | float | None = None
     parent_content_width: int | float | None = None
     parent_content_height: int | float | None = None
+    intrinsic_width: bool = False
+    parent_is_row: bool = False
     inside_backplate: bool = False
     compile_context: CompileContext = field(default_factory=CompileContext)
+    enable_dynamic_data_binding: bool = True
     used_data_ids: set[str] = field(default_factory=set)
     used_action_ids: set[str] = field(default_factory=set)
     derived_data_model: dict[str, Any] = field(default_factory=dict)
@@ -289,6 +319,8 @@ class ConversionContext:
 
     def prop(self, element: JSXElement, name: str, default: Any = None) -> Any:
         literal = element.props[name] if name in element.props else default
+        if not self.enable_dynamic_data_binding:
+            return literal
         data_ids = element.props.get("dataIds")
         value = literal
         if isinstance(data_ids, dict) and name in data_ids:
@@ -298,11 +330,12 @@ class ConversionContext:
             if len(binding_ids) > 1:
                 bindings = [self.compile_context.data_binding(item) for item in binding_ids]
                 self.used_data_ids.update(binding.id for binding in bindings)
+                separator = data_binding_separator(element.tag, name)
                 parts: list[str] = []
                 for index, binding in enumerate(bindings):
                     if index:
-                        parts.append(expression_string_literal(EVENT_TIME_RANGE_SEPARATOR))
-                    parts.append(data_model_expression_reference(binding.path))
+                        parts.append(expression_string_literal(separator))
+                    parts.append(self.binding_expression(binding, element.tag, name))
                 value = a2ui_expression(parts)
             else:
                 binding = self.compile_context.data_binding(binding_ids[0])
@@ -311,27 +344,83 @@ class ConversionContext:
                 if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
                     value = boolean_text_expression(binding.path, value_map)
                 else:
-                    value = {"path": binding.path}
+                    value = self.binding_reference(binding, element.tag, name)
         return value
 
-    def item_prop(self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None) -> Any:
-        literal = item[name] if name in item else default
+    def binding_expression(self, binding: DataBinding, tag: str, name: str) -> str:
+        reference = data_model_expression_reference(binding.path)
+        if self.uses_unit_text_model(binding, tag, name):
+            path, _ = self.register_derived_display(binding)
+            return data_model_expression_reference(f"{path}/unitText")
+        if binding.value_for_prop(tag, name) != binding.value:
+            suffix = expression_string_literal(binding.display_unit)
+            return f"{reference} + {suffix}"
+        return reference
+
+    def binding_reference(self, binding: DataBinding, tag: str, name: str) -> Any:
+        value: Any
+        if self.uses_unit_text_model(binding, tag, name):
+            path, _ = self.register_derived_display(binding)
+            value = {"path": f"{path}/unitText"}
+        elif binding.value_for_prop(tag, name) != binding.value:
+            value = a2ui_expression([self.binding_expression(binding, tag, name)])
+        else:
+            value = {"path": binding.path}
+        return value
+
+    @staticmethod
+    def uses_unit_text_model(binding: DataBinding, tag: str, name: str) -> bool:
+        if has_unit_slot(tag, name):
+            return False
+        return (
+            bool(binding.display_unit)
+            and isinstance(binding.value, str)
+            and not (tag in {"ProgressCircleSingle", "Gauge"} and name == "value")
+            and name not in {"currentValue", "totalValue"}
+        )
+
+    def item_prop(
+        self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None,
+    ) -> Any:
+        value: Any = item[name] if name in item else default
         data_ids = item.get("dataIds")
-        if not isinstance(data_ids, dict) or name not in data_ids:
-            return literal
-        binding_id = data_ids[name]
-        binding = self.compile_context.data_binding(binding_id)
-        self.used_data_ids.add(binding.id)
-        value_map = boolean_text_map_for(item, name)
-        if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
-            return boolean_text_expression(binding.path, value_map)
-        return {"path": binding.path}
+        if self.enable_dynamic_data_binding and isinstance(data_ids, dict) and name in data_ids:
+            contract_prop = f"items[].{name}"
+            binding_ids = data_binding_ids(tag, contract_prop, data_ids[name])
+            if binding_ids is None:
+                raise ValidationError(
+                    f"<{tag}> items[{index}].dataIds.{name} has an invalid binding shape"
+                )
+            if len(binding_ids) > 1:
+                bindings = []
+                for binding_id in binding_ids:
+                    bindings.append(self.compile_context.data_binding(binding_id))
+                self.used_data_ids.update(binding.id for binding in bindings)
+                separator = data_binding_separator(tag, contract_prop)
+                parts: list[str] = []
+                for binding_index, binding in enumerate(bindings):
+                    if binding_index:
+                        parts.append(expression_string_literal(separator))
+                    parts.append(self.binding_expression(binding, tag, contract_prop))
+                value = a2ui_expression(parts)
+            else:
+                binding = self.compile_context.data_binding(binding_ids[0])
+                self.used_data_ids.add(binding.id)
+                value_map = boolean_text_map_for(item, name)
+                is_boolean = binding.data_type == "boolean" or isinstance(binding.value, bool)
+                if value_map is not None and is_boolean:
+                    value = boolean_text_expression(binding.path, value_map)
+                else:
+                    value = self.binding_reference(binding, tag, contract_prop)
+        return value
 
     def bound_data(
         self,
         owner: dict[str, Any],
         name: str,
     ) -> DataBinding | None:
+        if not self.enable_dynamic_data_binding:
+            return None
         data_ids = owner.get("dataIds")
         if not isinstance(data_ids, dict) or name not in data_ids:
             return None
@@ -343,9 +432,23 @@ class ConversionContext:
         """Register one private display model derived from an original binding."""
         plan = normalize_display_value(binding.value)
         path = derived_path_for_source(binding.path)
-        set_pointer_value(self.derived_data_model, path, plan.data_model_value())
+        model, _ = source_display_model(binding.value, binding.display_unit)
+        set_pointer_value(self.derived_data_model, path, model)
         self.used_data_ids.add(binding.id)
         return path, plan
+
+    def unit_visibility(self, binding: DataBinding | None) -> str | None:
+        """A separately declared unit is painted only beside unitless string data.
+
+        Keep the node live through numeric-string, formatted-text and status
+        updates, without concatenating a unit twice or changing source values.
+        """
+        visibility = None
+        if binding is not None and isinstance(binding.value, str):
+            path, _ = self.register_derived_display(binding)
+            reference = data_model_expression_reference(f"{path}/isUnitlessNumber")
+            visibility = f"{{{{ {reference} ? 'visible' : 'none' }}}}"
+        return visibility
 
     def action_props(self, element: JSXElement) -> dict[str, Any]:
         action_id = element.props.get("actionId")
@@ -377,7 +480,28 @@ class ConversionContext:
             card_content_height=height,
             parent_content_width=width,
             parent_content_height=height,
+            intrinsic_width=False,
         )
+
+    def for_flex_child(
+        self,
+        element: JSXElement,
+        *,
+        is_row: bool,
+        stretch: bool,
+    ) -> ConversionContext:
+        """Distinguish content-sized children from allocated horizontal slots."""
+        has_width = element.props.get("width") is not None
+        has_row_slot = is_row and (
+            element.props.get("basis") is not None
+            or element.props.get("flex") == 1
+        )
+        intrinsic = not (has_width or has_row_slot) and (
+            is_row or self.intrinsic_width or not stretch
+        )
+        # Keep the offered extent used by Grid/absolute layout separate from
+        # the decision to synthesize matchParent for a text subtree.
+        return replace(self, intrinsic_width=intrinsic, parent_is_row=is_row)
 
     def for_children(
         self,
@@ -385,6 +509,7 @@ class ConversionContext:
         parent_content_width: int | float | None = None,
         parent_content_height: int | float | None = None,
         enters_backplate: bool = False,
+        intrinsic_width: bool = False,
     ) -> ConversionContext:
         """Return the inherited layout context used to lower child nodes."""
         return replace(
@@ -392,6 +517,7 @@ class ConversionContext:
             parent_content_width=parent_content_width,
             parent_content_height=parent_content_height,
             inside_backplate=self.inside_backplate or enters_backplate,
+            intrinsic_width=intrinsic_width,
         )
 
 

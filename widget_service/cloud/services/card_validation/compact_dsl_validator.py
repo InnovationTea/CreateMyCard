@@ -25,6 +25,55 @@ _REFERENCE_CANVAS_HEIGHT = {
     "2x4": 150.0,
     "4x2": 150.0,
 }
+_NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
+_COMMON_DISPLAY_UNITS = frozenset(
+    {
+        "%",
+        "°C",
+        "℃",
+        "°F",
+        "天",
+        "小时",
+        "分钟",
+        "分",
+        "秒",
+        "毫秒",
+        "步",
+        "次",
+        "件",
+        "个",
+        "条",
+        "项",
+        "人",
+        "级",
+        "公里",
+        "千米",
+        "米",
+        "厘米",
+        "毫米",
+        "km",
+        "m",
+        "cm",
+        "mm",
+        "kg",
+        "g",
+        "mg",
+        "kcal",
+        "千卡",
+        "cal",
+        "mL",
+        "ml",
+        "L",
+        "A",
+        "mA",
+        "V",
+        "W",
+        "kW",
+        "kWh",
+        "bpm",
+        "次/分钟",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -58,8 +107,10 @@ def validate_compact_dsl(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
+    visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
+    _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
     for component in components:
         location = f"component {component.component_id}.props"
@@ -69,6 +120,22 @@ def validate_compact_dsl(
             binding_paths,
             errors,
         )
+        visible_props = {
+            key: value for key, value in component.props.items() if key != "onClick"
+        }
+        _collect_binding_context(
+            visible_props,
+            location,
+            visible_binding_paths,
+            [],
+        )
+
+    _collect_layout_route_errors(
+        components,
+        task_spec,
+        visible_binding_paths,
+        errors,
+    )
 
     data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(
@@ -83,6 +150,145 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _collect_hero_value_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return
+
+    numeric_paths: dict[str, str | None] = {}
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is None or font_size <= 18:
+            continue
+        path = _pure_numeric_binding_path(
+            component.props.get("content"),
+            data_model_schema,
+        )
+        numeric_paths[component.component_id] = path
+        if path is not None:
+            continue
+        errors.append(
+            f"component {component.component_id}: fontSize {_format_vp(font_size)} "
+            "is reserved for a pure number/integer value. Text, formatted values, "
+            "names, dates, times, and statuses must use at most 18fp on their own line."
+        )
+
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        for index, child_id in enumerate(component.children[:-1]):
+            if child_id not in numeric_paths:
+                continue
+            numeric_path = numeric_paths[child_id]
+            suffix = components_by_id.get(component.children[index + 1])
+            if suffix is None or suffix.component_type != "Text":
+                continue
+            content = suffix.props.get("content")
+            if _is_allowed_display_unit(
+                content,
+                numeric_path or "",
+                data_model_schema,
+            ):
+                continue
+            value_source = numeric_path or "the preceding value"
+            errors.append(
+                f"component {component.component_id}: Text {suffix.component_id} "
+                f"after the large numeric value must contain only a real unit for "
+                f"{value_source}. Move labels or descriptions to a separate line."
+            )
+
+
+def _pure_numeric_binding_path(
+    content: Any,
+    data_model_schema: dict[str, Any],
+) -> str | None:
+    path: str | None = None
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        path = candidate if isinstance(candidate, str) else None
+    elif isinstance(content, str):
+        match = _EXPRESSION_PATTERN.fullmatch(content.strip())
+        if match is not None:
+            reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
+            if reference is not None:
+                path = reference.group("path").strip()
+        elif re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
+            return ""
+    if path is None:
+        return None
+    schema_node = _schema_node_at_path(data_model_schema, path)
+    if _schema_type(schema_node) not in _NUMERIC_SCHEMA_TYPES:
+        return None
+    return path
+
+
+def _is_allowed_display_unit(
+    content: Any,
+    numeric_path: str,
+    data_model_schema: dict[str, Any],
+) -> bool:
+    if not isinstance(content, str):
+        return False
+    unit = content.strip()
+    if not unit:
+        return False
+    if unit in _COMMON_DISPLAY_UNITS:
+        return True
+    schema_node = _schema_node_at_path(data_model_schema, numeric_path)
+    if not isinstance(schema_node, dict):
+        return False
+    description = schema_node.get("description")
+    return isinstance(description, str) and unit in description
+
+
+def _collect_layout_route_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    visible_binding_paths: list[str],
+    errors: list[str],
+) -> None:
+    if task_spec.get("size") != "2x4":
+        return
+    data_roots = {
+        parts[1]
+        for path in visible_binding_paths
+        if len(parts := path.strip("/").split("/")) >= 2 and parts[0] == "data"
+    }
+    if len(data_roots) != 2:
+        return
+
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    root = components_by_id.get("root")
+    if root is not None and root.component_type == "Row" and len(root.children) == 2:
+        backboards = [components_by_id.get(child_id) for child_id in root.children]
+        if all(
+            backboard is not None
+            and backboard.component_type == "Column"
+            and backboard.props.get("width") == 144
+            and backboard.props.get("height") == 136
+            for backboard in backboards
+        ):
+            return
+
+    roots = ", ".join(sorted(data_roots))
+    errors.append(
+        f"2x4 card displays two data roots ({roots}) and must use W9: root must "
+        "be a Row with exactly two direct 144x136 Column backboards. Do not use "
+        "a shared title, a shared action area, or stacked full-width business rows."
+    )
 
 
 def _collect_component_contract_errors(

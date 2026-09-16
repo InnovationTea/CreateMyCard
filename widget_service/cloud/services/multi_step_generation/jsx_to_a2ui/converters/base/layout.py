@@ -13,16 +13,57 @@ def _explicit_child_weights(children: list[A2UINode | None]) -> None:
             child.styles.setdefault("layoutWeight", 0)
 
 
-def orient_child_flex_basis(
+def _adapt_paragraph_slot_basis(source: JSXElement, converted: A2UINode) -> None:
+    """Keep a basis-only paragraph slot's automatic content minimum."""
+    basis = source.props.get("basis")
+    if (
+        source.tag != "Stack"
+        or isinstance(basis, bool)
+        or not isinstance(basis, (int, float))
+    ):
+        return
+    if (
+        basis < 0
+        or source.props.get("height") is not None
+        or source.props.get("minHeight") is not None
+    ):
+        return
+    if (
+        source.props.get("direction") not in {None, "column"}
+        or source.props.get("position") not in {None, "static"}
+    ):
+        return
+    children = source.child_elements()
+    if not children or any(child.tag != "SecondaryBody" for child in children):
+        return
+    # CSS flex-basis does not cap min-height:auto. A wrapped paragraph can
+    # enlarge this slot, whereas an A2UI height would pin it to one line.
+    # Leave explicit sizes, horizontal bases and other component trees alone.
+    converted.styles.pop("height", None)
+    converted.styles.setdefault("constraintSize", {})["minHeight"] = basis
+    converted.styles.update({"layoutWeight": 0, "flexShrink": 0})
+
+
+def adapt_flex_children(
     source_children: list[JSXElement],
     converted_children: list[A2UINode],
     *,
     is_row: bool,
+    fill_table_height: bool = False,
 ) -> None:
-    """Lower a child's flex basis onto the actual main axis of its parent."""
-    if not is_row:
-        return
+    """Preserve child sizing semantics along the parent's actual main axis."""
     for source, converted in zip(source_children, converted_children, strict=True):
+        if source.tag == "TableText" and fill_table_height:
+            converted.styles["height"] = "100%"
+        if not is_row:
+            # JSX wrapping paragraphs retain their content-based minimum height.
+            # An explicit one-line A2UI minimum must not let their layout box
+            # shrink while all lines continue painting outside it. Row children
+            # still need horizontal shrinking so their text can wrap normally.
+            if source.tag == "SecondaryBody":
+                converted.styles["flexShrink"] = 0
+            _adapt_paragraph_slot_basis(source, converted)
+            continue
         basis = source.props.get("basis")
         if basis is None:
             continue

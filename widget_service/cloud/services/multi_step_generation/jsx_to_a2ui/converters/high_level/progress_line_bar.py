@@ -13,6 +13,9 @@ from ..common import palette
 from .emphasized_data import convert_emphasized_data
 
 
+_UNIT_BASELINE_INSET = 4
+
+
 def collect_progress_line2_conversion_errors(node: JSXElement) -> list[str]:
     return []
 
@@ -48,10 +51,10 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
     if errors:
         raise ValidationError("; ".join(errors))
     dark = node.props.get("mode", "light") == "dark"
-    track_color = "#66FFFFFF" if dark else "#1A000000"
+    track_color = "#33FFFFFF" if dark and ctx.card_size is None else palette(ctx).progress_track
     raw_bar_color = node.props.get("barColor")
     if raw_bar_color is None:
-        bar_color = "#FFFFFFFF" if dark else "#FF0A59F7"
+        bar_color = "#FFFFFFFF" if dark and ctx.card_size is None else palette(ctx).progress_bar
     else:
         bar_color = (
             palette(ctx).primary
@@ -79,7 +82,7 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
             if current_id is not None and total_id is None and total == 100:
                 current_binding = ctx.bound_data(node.props, "currentValue")
                 if current_binding is None:
-                    raise AssertionError
+                    raise AssertionError()
                 derived_root, _ = ctx.register_derived_display(current_binding)
                 display_node = JSXElement(
                     "EmphasizedData",
@@ -112,20 +115,29 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
             if current_is_number and total_is_positive_number:
                 percent = math.trunc(max(0, min(100, current / total * 100)))
             display_node = JSXElement("EmphasizedData", {"value": percent, "unit": "%"})
-    # ProgressLine2 keeps the ordinary 38vp value line box and tightens the
-    # unit to its 12vp font box. A2UI has no baseline alignment mode, so the
-    # supported bottom alignment is the closest deterministic equivalent.
+    # JSX baseline-aligns the 38vp value and 12vp unit. A2UI only bottom-aligns
+    # component boxes, so lift the smaller unit by 4vp to match the measured
+    # browser baseline while preserving the 38vp row and 56vp layout budget.
     data = convert_emphasized_data(
         display_node,
         ctx,
         value_height=38,
         unit_height=12,
-        unit_bottom_inset=0,
+        unit_bottom_inset=_UNIT_BASELINE_INSET,
     )
+    # JSX paints the whole value row 3vp lower while keeping the track at its
+    # normal-flow position. A2UI has no transform primitive, so preserve the
+    # same 56vp total, 3vp visual gap and 4vp bottom inset with an equivalent
+    # margin/gap/padding combination.
+    data.styles["margin"] = {"top": 3}
     return column(
         ctx,
         "progress_value_above",
         [data, bar],
-        gap=8,
-        styles={"width": "matchParent", "alignItems": "start"},
+        gap=3,
+        styles={
+            "width": "matchParent",
+            "alignItems": "start",
+            "padding": {"bottom": 4},
+        },
     )

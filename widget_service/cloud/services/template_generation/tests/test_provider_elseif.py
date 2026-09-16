@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import inspect
 import json
 from itertools import product
 
@@ -15,12 +17,61 @@ from services.template_generation.engine.cardplan.compiler import (
 from services.template_generation.engine.cardplan.models import TemplateDefinition
 from services.template_generation.engine.cardplan.provider_bundle import (
     _parse_component_body,
+    _template_directive_components,
     compile_card_template,
 )
 from services.template_generation.engine.tersel_converter import Nested2Node, convert_tersel_to_a2ui
 from services.template_generation.profile import read_tersel_protocol_profile
 
 _NAMES = ("first", "second", "third")
+
+
+@pytest.mark.parametrize("keyword", ("if", "elseif"))
+@pytest.mark.parametrize(
+    "target,expected",
+    (
+        ("data.first", ('IfBind("first",', 'IfMissingBind("first",')),
+        ("props.flag", ('IfParam("flag",', 'IfMissingParam("flag",')),
+        ("!data.first", ('IfMissingBind("first",', 'IfBind("first",')),
+        ("! props.flag", ('IfMissingParam("flag",', 'IfParam("flag",')),
+        (
+            "data.first && data.second",
+            ('IfAllBind(["first","second"],', 'IfAnyMissingBind(["first","second"],'),
+        ),
+    ),
+)
+def test_directive_components_preserve_pair_type_and_order(
+    keyword: str, target: str, expected: tuple[str, str],
+) -> None:
+    result = _template_directive_components(f"#{keyword} {target}", 23)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    assert all(isinstance(value, str) for value in result)
+    assert result == expected
+
+
+@pytest.mark.parametrize("keyword", ("if", "elseif"))
+@pytest.mark.parametrize(
+    "target",
+    (
+        "data.first && data.first",
+        "data.first && props.flag",
+        "data.first || data.second",
+        "!!data.first",
+        "data.first.value",
+    ),
+)
+def test_directive_components_preserve_invalid_target_error(keyword: str, target: str) -> None:
+    with pytest.raises(ValueError) as error:
+        _template_directive_components(f"#{keyword} {target}", 23)
+    assert str(error.value) == f"Provider Template #{keyword} target is invalid at line 23"
+
+
+def test_directive_components_keep_one_return_for_codecheck() -> None:
+    """固定单一返回出口，防止再次混用条件表达式和二元组返回。"""
+    function = ast.parse(inspect.getsource(_template_directive_components)).body[0]
+    returns = [node for node in ast.walk(function) if isinstance(node, ast.Return)]
+    assert len(returns) == 1
 
 
 def _definition(body: str) -> TemplateDefinition:
@@ -56,6 +107,50 @@ def _texts(node: Nested2Node) -> list[object]:
     for child in node.children:
         values.extend(_texts(child))
     return values
+
+
+@pytest.mark.parametrize("prefix", ("#if", '#if props.flag\nText("首选")\n#elseif'))
+@pytest.mark.parametrize("spacing", ("", " "))
+@pytest.mark.parametrize("present", (False, True))
+def test_negated_binding_selects_missing_branch_and_guards_else(
+    prefix: str, spacing: str, present: bool,
+) -> None:
+    definition = _definition(
+        f'{prefix} !{spacing}data.first\nText("缺失")\n#else\nText(data.first)\n#end'
+    )
+    bindings = _bindings(("first",)) if present else {}
+    root = _instantiate_blueprint(definition.variants[0].root, {}, bindings)
+    assert _texts(root) == (["${data.context.first}"] if present else ["缺失"])
+    assert "IfMissing" not in _serialize_node(root)
+
+
+@pytest.mark.parametrize("name,value", (("label", ""), ("flag", False), ("count", 0)))
+@pytest.mark.parametrize("state", ("present", "none", "missing"))
+def test_negated_prop_uses_presence_not_truthiness(name: str, value: object, state: str) -> None:
+    definition = _definition(
+        f'#if !props.{name}\nText("缺失")\n#else\nText("存在")\n#endif'
+    )
+    params = {}
+    if state == "present":
+        params[name] = value
+    elif state == "none":
+        params[name] = None
+    root = _instantiate_blueprint(definition.variants[0].root, params)
+    assert _texts(root) == (["存在"] if state == "present" else ["缺失"])
+
+
+@pytest.mark.parametrize("body", (
+    "#if !data.first\nText(data.first)\n#endif",
+    "#if !props.label\nText(props.label)\n#endif",
+    '#if !data.unknown\nText("未知")\n#endif',
+    '#if !props.unknown\nText("未知")\n#endif',
+    '#if !!data.first\nText("重复")\n#endif',
+    '#if !data.first & props.label\nText("混合")\n#endif',
+    '#if !data.first && props.label\nText("混合")\n#endif',
+))
+def test_negated_condition_rejects_unguarded_references_and_invalid_targets(body: str) -> None:
+    with pytest.raises(ValueError):
+        _definition(body)
 
 
 @pytest.mark.parametrize("ending", ("#endif", "#end"))

@@ -53,12 +53,14 @@ data = {
 Column({
   "width": "matchParent",
   "height": "matchParent",
-  "justifyContent": "spaceBetween",
+  "justifyContent": "start",
   "alignItems": "center",
+  "itemMargin": 0,
 },
   Column({
     "width": "matchParent",
-    "layoutWeight": 1
+    "layoutWeight": 1,
+    "itemMargin": 0,
   }, children[0]),
   Column({
     "width": "matchParent",

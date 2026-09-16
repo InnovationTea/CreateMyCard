@@ -17,6 +17,7 @@ asset.src.url.mapping: ""
 enable_artifact_validation: true
 enable_a2ui_model_mock: true
 enable_ids_mock: true
+ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
 enable_validation_failure_retry: false

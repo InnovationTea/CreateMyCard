@@ -7,7 +7,6 @@ OpenAI 兼容的流式 LLM 客户端。
 以 async generator 形式逐 token 返回生成文本。
 """
 
-import asyncio
 import json
 import time
 from collections.abc import AsyncGenerator
@@ -15,9 +14,9 @@ from dataclasses import dataclass
 
 import websockets
 
-from config.config import get_settings
 from app.logger import json_for_log, logger
-from utils.trigger_mq import trigger_mq
+from config.config import get_settings
+from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[LLMClient]"
 
@@ -130,14 +129,14 @@ async def stream_genui(
 
     except websockets.exceptions.ConnectionClosedOK:
         logger.info(f"{_MODULE} websocket_closed_normally")
-        trigger_mq(body={"taskFailModelCrash": 1})
+        report_ops_metrics(body={"taskFailModelCrash": 1})
     except websockets.exceptions.ConnectionClosedError as e:
         logger.error(f"{_MODULE} websocket_closed_abnormally error={e!r}")
-        trigger_mq(body={"taskFailModelCrash": 1})
+        report_ops_metrics(body={"taskFailModelCrash": 1})
         raise
     except Exception as e:
         logger.error(f"{_MODULE} websocket_error error_type={type(e).__name__} error={e!r}")
-        trigger_mq(body={"taskFailModelCrash": 1})
+        report_ops_metrics(body={"taskFailModelCrash": 1})
         raise
     finally:
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
@@ -162,16 +161,25 @@ async def stream_genui(
             f"tokens_per_sec={speed_str} token/s"
         )
 
-        trigger_mq(body={
-            "modelInputTokens": int(input_tokens) if input_tokens else 0,
-            "modelOutputTokens": int(completion_tokens) if completion_tokens else 0,
-            "modelTotalTime": duration_ms if duration_ms else 0.0,
-            "modelFirstTokenTime": first_token_latency_ms if first_token_latency_ms else 0.0,
-            "modelInferenceTime": duration_ms - first_token_latency_ms if duration_ms and
-                                                                          first_token_latency_ms else 0.0,
-            "modelInferenceSpeedTps": float(speed_str) if speed_str and speed_str != "N/A" else 0.0,
-            "taskFailModelCrash": 0
-        })
+        report_ops_metrics(
+            body={
+                "modelInputTokens": int(input_tokens) if input_tokens else 0,
+                "modelOutputTokens": int(completion_tokens) if completion_tokens else 0,
+                "modelTotalTime": duration_ms if duration_ms else 0.0,
+                "modelFirstTokenTime": (
+                    first_token_latency_ms if first_token_latency_ms else 0.0
+                ),
+                "modelInferenceTime": (
+                    duration_ms - first_token_latency_ms
+                    if duration_ms and first_token_latency_ms
+                    else 0.0
+                ),
+                "modelInferenceSpeedTps": (
+                    float(speed_str) if speed_str and speed_str != "N/A" else 0.0
+                ),
+                "taskFailModelCrash": 0,
+            }
+        )
 
         if usage:
             logger.info(f"{_MODULE} usage_stats usage={json_for_log(usage)}")

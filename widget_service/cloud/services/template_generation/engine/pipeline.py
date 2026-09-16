@@ -227,6 +227,21 @@ async def generate_template_a2ui(
         raise TemplateGenerationError("selected template generation failed") from exc
 
 
+def _sample_override_child(current: Any, part: str, pointer: str) -> Any:
+    """只遍历已有样例结构，不创建缺失字段或扩展数组。"""
+    result: Any = None
+    if isinstance(current, dict) and part in current:
+        result = current[part]
+    elif isinstance(current, list) and part.isascii() and part.isdecimal():
+        index = int(part)
+        if part != str(index) or index >= len(current):
+            raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+        result = current[index]
+    else:
+        raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+    return result
+
+
 def _with_trusted_sample_overrides(
     task_spec: TaskSpec,
     sample_overrides: dict[str, Any],
@@ -241,9 +256,7 @@ def _with_trusted_sample_overrides(
         current: Any = schema
         for raw_part in pointer.removeprefix("/").split("/"):
             part = raw_part.replace("~1", "/").replace("~0", "~")
-            if not isinstance(current, dict) or part not in current:
-                raise ValueError(f"trusted sample override path is unavailable: {pointer}")
-            current = current[part]
+            current = _sample_override_child(current, part, pointer)
         if not isinstance(current, dict) or "sampleValue" not in current:
             raise ValueError(f"trusted sample override target is not a field: {pointer}")
         if sample_value is None or not isinstance(sample_value, (str, int, float, bool)):
@@ -553,16 +566,21 @@ def _provider_binding_roots(
     bindings = card_spec.get("dataBindings")
     if not isinstance(bindings, list):
         return ()
-    roots = tuple(
-        item.get("writeResultTo")
-        for item in bindings
-        if isinstance(item, dict)
-        and item.get("capabilityId") == capability_id
-        and _valid_provider_binding_root(item.get("writeResultTo"))
-    )
+
+    roots: list[str] = []
+    for item in bindings:
+        if not isinstance(item, dict):
+            continue
+        if item.get("capabilityId") != capability_id:
+            continue
+        root = item.get("writeResultTo")
+        if not _valid_provider_binding_root(root):
+            continue
+        roots.append(root)
+
     if len(set(roots)) != len(roots):
         return ()
-    return roots
+    return tuple(roots)
 
 
 def _valid_provider_binding_root(value: Any) -> bool:

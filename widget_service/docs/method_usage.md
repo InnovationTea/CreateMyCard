@@ -119,6 +119,15 @@ artifact 的 `cardSpec.suggestSize`。指令帧
 `streamContent` 外层为 command 消息 JSON，`content` 保存原指令 JSON 字符串，`content_type` 固定为
 `aIWidgetDirectives`，`event` 固定为 `command`，`process_time` 使用当前本地时间，`task_id` 使用 requestId。
 
+指令下发日志：`widget_directive_sending` 表示开始发送，`widget_directive_sent` 表示
+WebSocket 发送完成（不代表端侧已执行），`widget_directive_send_failed` 表示发送失败，异常详情见
+同请求的 `widget_operation_ws_send_failed`。开关关闭时记录 `widget_directive_skipped`。
+日志包含 `request_id`、`operation`、`intent_name`、`state`、`card_id`、`size` 和
+`streaming_text_id`；`AIWidgetStart` 对应 `start`，`AIWidgetEnd` 对应 `success/failure`。
+`widget_directive_sending` 的 `command` 打印实际构造的指令包，包括结束指令中的产物 URL。
+仅在日志副本中将 `content` JSON 字符串展开为对象，便于查看 `directives`、`executeParam`
+和 `session`；递归移除 `uid/userId/callingUid/odid` 等用户标识，实际下发内容保持不变。
+
 `generateWidgetCard` 固定使用标准 A2UI Form profile，后端由
 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND` 选择；`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择
 Design profile，后端由 `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND` 选择并生成

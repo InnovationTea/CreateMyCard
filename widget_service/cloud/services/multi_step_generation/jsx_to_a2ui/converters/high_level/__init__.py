@@ -22,7 +22,6 @@ from .progress_ring import convert_progress_ring
 from .secondary_body import convert_secondary_body
 from .secondary_body_card import convert_secondary_body_card
 from .single_line_title import convert_single_line_title
-from .summary import convert_summary
 from .table_text import convert_table_text
 from .text_block import convert_text_block
 from .top_text_bottom_value import convert_top_text_bottom_value

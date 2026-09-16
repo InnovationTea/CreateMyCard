@@ -183,6 +183,10 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
+    "CountdownOverviewSupport@1": ("asset.icon_timing",),
+    "CountdownOverviewTravelSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
@@ -573,6 +577,22 @@ def _data_binding(
     }
 
 
+def _single_template_data_bindings(
+    definition: BusinessDefinition,
+    template: ProviderTemplateDefinition | None,
+) -> list[dict[str, Any]]:
+    """双城市模板按声明顺序提供独立绑定，其余模板保持原数据根。"""
+    bindings = [_data_binding(definition, template)]
+    if template is not None and template.template_id == "WeatherOverviewDualCityFull@1":
+        bindings = []
+        for index, city in enumerate(("成都市", "上海市"), start=1):
+            binding = _data_binding(definition, template)
+            binding["writeResultTo"] = f"/data/weather{index}"
+            binding["arguments"] = {"prefectureName": city, "forecastDays": 1}
+            bindings.append(binding)
+    return bindings
+
+
 def _candidate_asset_ids(
     target_template: ProviderTemplateDefinition | None,
     asset_capabilities: dict[str, dict[str, Any]],
@@ -657,6 +677,20 @@ def _gallery_sample_overrides(
     )
     if weather_displays_temperature:
         sample_overrides["/data/weather/current/temperatureText"] = "29°"
+    if (
+        weather_template is not None
+        and weather_template.template_id == "WeatherOverviewDualCityFull@1"
+    ):
+        sample_overrides.update(
+            {
+                "/data/weather1/location/prefectureName": "成都市",
+                "/data/weather1/current/temperatureC": 26,
+                "/data/weather1/current/condition": "多云",
+                "/data/weather2/location/prefectureName": "上海市",
+                "/data/weather2/current/temperatureC": 29,
+                "/data/weather2/current/condition": "晴",
+            }
+        )
     if weather_template is not None and weather_template.suffix == "Support":
         sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
@@ -703,7 +737,7 @@ def _request_envelope(
     template_description = (
         target_template.description if target_template is not None else business_description
     )
-    data_bindings = [_data_binding(definition, target_template)]
+    data_bindings = _single_template_data_bindings(definition, target_template)
     action_count = 0
     if scenario_id == "single-two-actions":
         action_count = 2
@@ -724,6 +758,11 @@ def _request_envelope(
             f"生成一个2×2完整信息卡片，按“{template_description}”展示，"
             "不显示操作按钮。"
         )
+    if (
+        target_template is not None
+        and target_template.template_id == "WeatherOverviewDualCityFull@1"
+    ):
+        user_query += "按顺序分别展示成都市和上海市的当前温度及天气现象。"
     action_ids = _ACTION_IDS_BY_BUSINESS[definition.business_id][:action_count]
     event_candidates = [
         _event_candidate(event_capabilities, action_id) for action_id in action_ids
@@ -1044,7 +1083,11 @@ def _support_template_pairs(
                 selections.append(GalleryTemplateSelection(definition, template))
     partners = sorted(
         selections,
-        key=lambda item: (item.business.capability_id != "ViewWeather", item.template.template_id),
+        key=lambda item: (
+            item.business.capability_id != "ViewWeather",
+            not item.template.supported_event_ids,
+            item.template.template_id,
+        ),
     )
     pairs: list[GalleryTemplatePair] = []
     for selection in selections:
@@ -1430,6 +1473,7 @@ def _expected_action_count(scenario_id: str) -> int:
     return {
         "single-two-actions": 2,
         "single-one-action": 1,
+        "single-icon-action": 1,
         "single-content": 0,
         "dual-one-action": 1,
         "dual-support-content": 0,

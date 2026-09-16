@@ -59,7 +59,7 @@ _ACTION_LABELS = {
     "event.open.settings.batteryHealth": "电池健康",
     "event.open.settings.parentControl": "管控时间",
     "event.open.settings.storage": "存储设置",
-    "event.open.weather": "天气详情",
+    "event.open.weather": "查看详情",
     "event.open.clock.alarm": "设置闹钟",
     "event.open.music.daily": "每日推荐",
     "event.open.music.favorite": "心动歌单",
@@ -132,6 +132,7 @@ _ASSET_SEMANTIC_TERMS = {
     "clean": ("clean", "cleanup", "clear", "清理", "释放"),
     "app": ("app", "application", "应用", "软件"),
     "timer": ("timer", "timing", "hourglass", "计时", "时长", "时间"),
+    "countdown": ("countdown", "timing", "hourglass", "stopwatch", "沙漏", "秒表"),
     "settings": ("settings", "setting", "设置"),
     "parental-control": (
         "parental control",

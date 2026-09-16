@@ -15,7 +15,7 @@ from config.config import Settings
 from custom.model_transport import ModelTransportError
 from models.generation import ModelRequestContext
 from utils.base_utils import sts_config
-from utils.trigger_mq import trigger_mq
+from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[DeepSeek Platform]"
 
@@ -66,10 +66,10 @@ class DeepSeekPlatformClient:
                             first_token_at = time.perf_counter()
                         return final_text
         except ModelTransportError:
-            trigger_mq(body={"taskFailModelCrash": 1})
+            report_ops_metrics(body={"taskFailModelCrash": 1})
             raise
         except Exception as exc:
-            trigger_mq(body={"taskFailModelCrash": 1})
+            report_ops_metrics(body={"taskFailModelCrash": 1})
             logger.error(
                 f"{_MODULE} request_failed exception_type={type(exc).__name__} "
                 f"exception={exc!r}"
@@ -112,15 +112,21 @@ class DeepSeekPlatformClient:
                 f"output_preview=\n{final_text}"
             )
 
-            trigger_mq(body={
-                "modelInputTokens": int(input_tokens) if input_tokens else 0,
-                "modelOutputTokens": int(completion_tokens) if completion_tokens else 0,
-                "modelTotalTime": duration_ms if duration_ms else 0.0,
-                "modelFirstTokenTime": first_token_latency_ms if first_token_latency_ms else 0.0,
-                "modelInferenceTime": decode_duration_ms if decode_duration_ms else 0.0,
-                "modelInferenceSpeedTps": float(speed_str) if speed_str and speed_str != "N/A" else 0.0,
-                "taskFailModelCrash": 0
-            })
+            report_ops_metrics(
+                body={
+                    "modelInputTokens": int(input_tokens) if input_tokens else 0,
+                    "modelOutputTokens": int(completion_tokens) if completion_tokens else 0,
+                    "modelTotalTime": duration_ms if duration_ms else 0.0,
+                    "modelFirstTokenTime": (
+                        first_token_latency_ms if first_token_latency_ms else 0.0
+                    ),
+                    "modelInferenceTime": decode_duration_ms if decode_duration_ms else 0.0,
+                    "modelInferenceSpeedTps": (
+                        float(speed_str) if speed_str and speed_str != "N/A" else 0.0
+                    ),
+                    "taskFailModelCrash": 0,
+                }
+            )
 
         raise ModelTransportError(
             "DeepSeek Platform connection closed before finalText",
