@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "e2926b2525f2e314ff8b09265240b555dc3075fea30bbb63d4fd61cfc5880f0e",
+      "response": "{\"themeId\":\"fusion-schedule-cool\",\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/eventCount\",\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/isAllDay\"]},\"action\":[\"event.viewCalendarEvent\",\"event.open.clock.alarm\"]}"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个电池体检卡片，看手机剩余电量、电量等级、电池健康状态、实时温度和信息更新时间，点击查看电池健康设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/batteryCapacityLevelDesc",
+          "/healthStatusDesc",
+          "/batteryTemperatureText",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "电池体检",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.batteryHealth",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "smart_charge_battery_health"
+          }
+        }
+      }
+    ],
+    "description": "电量+健康+温度+更新时间",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.heat_generation"
+    ]
+  },
+  "session": {
+    "interactionId": "049",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "utterance": {
+    "original": "帮我做个电池体检卡片，看手机剩余电量、电量等级、电池健康状态、实时温度和信息更新时间，点击查看电池健康设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个电池体检卡片，看手机剩余电量、电量等级、电池健康状态、实时温度和信息更新时间，点击查看电池健康设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/batteryCapacityLevelDesc",
+        "/healthStatusDesc",
+        "/batteryTemperatureText",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "电池体检",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.batteryHealth",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "smart_charge_battery_health"
+        }
+      }
+    }
+  ],
+  "description": "电量+健康+温度+更新时间",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.heat_generation"
+  ]
+}

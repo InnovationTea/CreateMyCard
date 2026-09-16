@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "3fa682c187fd6b235a1598bd081dff3cbc9a4a769db13651ef671b2019229f53",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarphoneCaseHero@1\", {\"caseIcon\": \"resources/base/media/earphone_case_16644.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}));"
+    },
+    {
+      "key": "47c8b08a306cfd85461d47d4fa3d826dbdcbcef63be5e6038ff412666f91d20f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/batteryLevel\",\"/chargingStatusDesc\"]},\"action\":[\"event.open.settings.bluetooth\"]}"
+    }
+  ]
+}

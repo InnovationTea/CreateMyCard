@@ -1,0 +1,342 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFE5EDFE",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 0,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 20,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "日程详情",
+            "id": "template_root_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "height": 12,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": 112
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1",
+            "src": "resources/base/media/calendar_fill.svg",
+            "styles": {
+              "fillColor": "#991F4799",
+              "flexShrink": 0,
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0",
+              "template_root_0_1_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 70,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "clip": true,
+              "flexShrink": 0,
+              "height": 70,
+              "justifyContent": "start",
+              "padding": {
+                "bottom": 2,
+                "left": 0,
+                "right": 0,
+                "top": 6
+              },
+              "width": 8
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_1_0_0",
+            "styles": {
+              "alignContent": "center",
+              "borderColor": "#FF1F4799",
+              "borderRadius": 4,
+              "borderWidth": 1.5,
+              "flexShrink": 0,
+              "height": 8,
+              "width": 8
+            }
+          },
+          {
+            "component": "Divider",
+            "id": "template_root_0_1_0_0_0",
+            "styles": {
+              "color": "#FF1F4799",
+              "height": 0,
+              "strokeWidth": 0,
+              "vertical": false,
+              "width": 0
+            }
+          },
+          {
+            "component": "Divider",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "color": "#331F4799",
+              "height": 50,
+              "strokeWidth": 1,
+              "vertical": true,
+              "width": 1
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_1_0",
+              "template_root_0_1_1_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_1",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/title} }}",
+            "id": "template_root_0_1_1_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF1F4799",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 20,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_1_1_0",
+              "template_root_0_1_1_1_1",
+              "template_root_0_1_1_1_2"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_1_1",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/isAllDay} ? '全天' : '非全天' }}",
+            "id": "template_root_0_1_1_1_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/timeZone} }}",
+            "id": "template_root_0_1_1_1_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/eventLocation} }}",
+            "id": "template_root_0_1_1_1_2",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "calendar": {
+              "events": [
+                {
+                  "eventLocation": "深圳市龙岗区五和大道",
+                  "isAllDay": true,
+                  "timeZone": "示例数据",
+                  "title": "UI需求评审会"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "CalendarOverview",
+    "capabilityId": "GetCalendarEvents",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.calendar.cli",
+    "size": "2x2"
+  },
+  "templateId": "ScheduleOverviewTimezoneAllDayFull@1"
+}

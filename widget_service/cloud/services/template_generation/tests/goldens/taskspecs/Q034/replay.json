@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "50c1ef5091c32d5b696e020fff8fed600e5f2e211f4da855147f0c7aee9ae610",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/temperatureC\",\"/current/condition\"]}}"
+    },
+    {
+      "key": "c9d4b421371da82dc5fb5ef20590146ea66fd7515a697662b32762487544d101",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDualCityFull@1\", {}));"
+    }
+  ]
+}

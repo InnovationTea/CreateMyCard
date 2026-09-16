@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "b0a973289df115b4120337eb496c84db50e7889a071afa987e67919d32284997",
+      "response": "Template(\"CompactTwoActionLayout@1\", {}, Template(\"SleepOverviewScoreCompact@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    },
+    {
+      "key": "e5ccedb387bbac8250aaa5570b0ce3d6127f4c22717bcdb04c0d08f1e60ba3fc",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/sleepScore\"},\"action\":[\"event.open.settings.parentControl\",\"event.open.clock.alarm\"]}"
+    }
+  ]
+}

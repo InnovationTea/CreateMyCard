@@ -1,0 +1,368 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FF121259",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#FF121259",
+                    0
+                  ],
+                  [
+                    "#FF2B65D9",
+                    1
+                  ]
+                ],
+                "direction": "RightBottom"
+              },
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "end",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_0",
+            "styles": {
+              "alignContent": "center",
+              "backgroundColor": "#1ACCEEFF",
+              "borderRadius": 12,
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 60,
+              "padding": {
+                "bottom": 7,
+                "left": 10,
+                "right": 10,
+                "top": 7
+              },
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0_0",
+              "template_root_0_0_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "center",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0_0_0",
+              "template_root_0_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0_0_0",
+            "styles": {
+              "alignItems": "start",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0_0_0_0",
+              "template_root_0_0_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0_0_0_0",
+            "itemMargin": 1,
+            "styles": {
+              "alignItems": "end",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "layoutWeight": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/temperatureC} }}",
+            "id": "template_root_0_0_0_0_0_0",
+            "styles": {
+              "fontColor": "#FFCCDDFF",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "°",
+            "id": "template_root_0_0_0_0_0_1",
+            "styles": {
+              "fontColor": "#FFCCDDFF",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/location/prefectureName} }}",
+            "id": "template_root_0_0_0_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#99CCDDFF",
+              "fontSize": 10,
+              "fontWeight": 500,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/condition} }}",
+            "id": "template_root_0_0_0_1",
+            "styles": {
+              "fontColor": "#99CCDDFF",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "textAlign": "left",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_1",
+            "styles": {
+              "alignContent": "center",
+              "backgroundColor": "#1ACCEEFF",
+              "borderRadius": 12,
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 60,
+              "padding": {
+                "bottom": 7,
+                "left": 10,
+                "right": 10,
+                "top": 7
+              },
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "center",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0_0",
+              "template_root_0_1_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1_0_0",
+            "styles": {
+              "alignItems": "start",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0_0_0",
+              "template_root_0_1_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1_0_0_0",
+            "itemMargin": 1,
+            "styles": {
+              "alignItems": "end",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "layoutWeight": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/temperatureC} }}",
+            "id": "template_root_0_1_0_0_0_0",
+            "styles": {
+              "fontColor": "#FFCCDDFF",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "°",
+            "id": "template_root_0_1_0_0_0_1",
+            "styles": {
+              "fontColor": "#FFCCDDFF",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/location/prefectureName} }}",
+            "id": "template_root_0_1_0_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#99CCDDFF",
+              "fontSize": 10,
+              "fontWeight": 500,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/condition} }}",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "fontColor": "#99CCDDFF",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "textAlign": "left",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "weather": {
+              "current": {
+                "condition": "示例数据",
+                "temperatureC": 68.0
+              },
+              "location": {
+                "prefectureName": "示例数据"
+              }
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "WeatherOverview",
+    "capabilityId": "ViewWeather",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.weather.cli",
+    "size": "2x2"
+  },
+  "templateId": "WeatherOverviewDualCityFull@1"
+}

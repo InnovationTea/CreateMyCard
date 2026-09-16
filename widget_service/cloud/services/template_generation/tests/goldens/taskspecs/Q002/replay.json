@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "119cc44ccdd23590d50e300e4155341ef428766c76a14ad08e5fffaf68c4f1f7",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/daily/1/date\",\"/daily/1/weekday\",\"/daily/1/condition\"]}}"
+    },
+    {
+      "key": "23fcf1503c4ae8377300e66eb056450745f1248b7e4d1f934bfdeadef5bb3286",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDailyDateFull@1\", {\"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}));"
+    }
+  ]
+}

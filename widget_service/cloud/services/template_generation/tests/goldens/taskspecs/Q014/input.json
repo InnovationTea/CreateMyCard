@@ -1,0 +1,119 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个充电状态卡片，看手机是否在充电、使用的充电器类型和耳机仓是否在充电，点一下打开电池设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/chargingStatusDesc",
+          "/pluggedTypeDesc"
+        ]
+      },
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "设备充电",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.battery",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        }
+      }
+    ],
+    "description": "手机和耳机充电",
+    "candidateAssetIds": [
+      "asset.bolt_fill",
+      "asset.icon_phone",
+      "asset.earphone_case_16644"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "014",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个充电状态卡片，看手机是否在充电、使用的充电器类型和耳机仓是否在充电，点一下打开电池设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个充电状态卡片，看手机是否在充电、使用的充电器类型和耳机仓是否在充电，点一下打开电池设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "设备充电",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.battery",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "battery"
+        }
+      }
+    }
+  ],
+  "description": "手机和耳机充电",
+  "candidateAssetIds": [
+    "asset.bolt_fill",
+    "asset.icon_phone",
+    "asset.earphone_case_16644"
+  ]
+}

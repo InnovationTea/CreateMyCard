@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4aee99c5027aac2fb9bf08c5b21b47a675d634332aed3ddbae0b1d2a9dc48396",
+      "response": "{\"themeId\":\"fusion-battery-teal\",\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\",\"/leftBatteryLevel\",\"/rightBatteryLevel\"]},\"action\":[\"event.open.music.daily\"]}"
+    },
+    {
+      "key": "f57cb5bca83e5e9ffd4f09ba68683a181b8b2ec78474cd559cc335681421395c",
+      "response": "Template(\"WideHalfTwoCompactLayout@1\", {}, Template(\"BluetoothDeviceOverviewTripleBatteryWideHalf@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\", \"leftEarIcon\": \"resources/base/media/icon_earphone.svg\", \"rightEarIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"BatteryOverviewPhoneTextCompact@1\", {}), Template(\"PlaylistCompactAction@1\", {\"actionId\": \"event.open.music.daily\", \"label\": \"每日推荐\", \"icon\": \"resources/base/media/music_fill.svg\"}));"
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFFFFF",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#1AF9A01E",
+                    0
+                  ],
+                  [
+                    "#00FFFFFF",
+                    1
+                  ]
+                ],
+                "direction": "Bottom"
+              },
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1",
+              "template_root_0_2"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "设备电量",
+            "id": "template_root_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#E6000000",
+              "fontSize": 16,
+              "fontWeight": 700,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '电量 ' + ${/data/phoneBattery/batterySOCText} + '，' + ${/data/phoneBattery/batteryCapacityLevelDesc} + '，' + ${/data/phoneBattery/chargingStatusDesc} }}",
+            "id": "template_root_0_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#99000000",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 3,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_2_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_2",
+            "styles": {
+              "alignContent": "bottomStart",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "layoutWeight": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_2_0_0",
+              "template_root_0_2_0_1"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_2_0",
+            "styles": {
+              "alignContent": "center",
+              "flexShrink": 0,
+              "height": 52,
+              "width": 52
+            }
+          },
+          {
+            "component": "Progress",
+            "id": "template_root_0_2_0_0",
+            "styles": {
+              "backgroundColor": "#1A0A59F7",
+              "color": "#FFF9A01E",
+              "height": 52,
+              "strokeWidth": 6,
+              "type": "ring",
+              "width": 52
+            },
+            "total": 100,
+            "value": "{{ ${/data/phoneBattery/batterySOC} }}"
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_2_0_1",
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "styles": {
+              "fillColor": "#99000000",
+              "height": 24,
+              "objectFit": "contain",
+              "width": 24
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "phoneBattery": {
+              "batteryCapacityLevelDesc": "正常电量",
+              "batterySOC": 68,
+              "batterySOCText": "68%",
+              "chargingStatusDesc": "未充电"
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "BatteryOverview",
+    "capabilityId": "GetPhoneBatteryInfo",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.battery.cli",
+    "size": "2x2"
+  },
+  "templateId": "BatteryOverviewFull@1"
+}

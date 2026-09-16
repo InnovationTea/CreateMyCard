@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "ed0db6626213792d902321747c20043afbb982b5ee89195cd5e443a82eb00a9f",
+      "response": "{\"themeId\":\"fusion-sport-orange\",\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/feelsLikeC\",\"/current/windLevel\"],\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseHeartRateAvg\"]},\"action\":[\"event.open.music.favorite\"]}"
+    }
+  ]
+}

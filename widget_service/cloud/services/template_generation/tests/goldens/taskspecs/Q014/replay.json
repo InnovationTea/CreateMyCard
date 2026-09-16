@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "8bf38a3800dcc2c1c8b9c8a187f88eadc5eed502761a4f8a32e96ec4dff7dd84",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"BatteryOverviewStatusSupport@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\", \"actionId\": \"event.open.settings.battery\"}), Template(\"BluetoothDeviceOverviewChargeSupport@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\"}));"
+    },
+    {
+      "key": "d8c0e96ce3c0503897beb812d2c47b6105b24a8f4553696077b2462c54bd0deb",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/chargingStatusDesc\",\"/pluggedTypeDesc\"],\"GetEarphoneInfo\":[\"/chargingStatusDesc\"]},\"action\":[\"event.open.settings.battery\"]}"
+    }
+  ]
+}

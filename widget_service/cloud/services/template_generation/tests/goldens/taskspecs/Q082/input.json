@@ -1,0 +1,109 @@
+{
+  "content": {
+    "userQuery": "做个运动耳机卡片，展示最近一次运动类型、时长、左右耳机和耳机仓电量，点击打开收藏歌单。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel"
+        ]
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/exerciseTypeName",
+          "/exerciseDurationText"
+        ]
+      }
+    ],
+    "title": "运动歌单",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.favorite",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          }
+        }
+      }
+    ],
+    "description": "最近运动类型时长+三路耳机电量+收藏歌单",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.icon_earphone",
+      "asset.earphone_case_16644",
+      "asset.music_fill"
+    ],
+    "bundleName": "com.omega_w_0823.hmservice"
+  },
+  "session": {
+    "interactionId": "082",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "utterance": {
+    "original": "做个运动耳机卡片，展示最近一次运动类型、时长、左右耳机和耳机仓电量，点击打开收藏歌单。",
+    "type": "text"
+  },
+  "userQuery": "做个运动耳机卡片，展示最近一次运动类型、时长、左右耳机和耳机仓电量，点击打开收藏歌单。",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.favorite",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.omega_w_0823.hmservice",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ]
+    },
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ]
+    }
+  ],
+  "title": "运动歌单",
+  "description": "最近运动类型时长+三路耳机电量+收藏歌单",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.icon_earphone",
+    "asset.earphone_case_16644",
+    "asset.music_fill"
+  ]
+}

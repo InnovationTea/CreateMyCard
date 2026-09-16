@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "54f737b363991e87f9ec8b2f3e340fa2876909b726e9236fad0828245703e229",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/current/temperatureC\",\"/current/condition\"]},\"action\":[\"event.open.weather\"]}"
+    },
+    {
+      "key": "7ddd50a24398be676c245adabc3063ca79056989255a354ca7ec9afa6e5aefe2",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"出差倒计时\"}), Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"北京市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\", \"actionId\": \"event.open.weather\"}));"
+    }
+  ]
+}

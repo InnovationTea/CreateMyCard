@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "59a27eaed15b17e09d0d6314d006c62f2870995bb555ef0931307a215c615c3b",
+      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewCaseSettingsHero@1\", {}), Template(\"BatteryOverviewChargeStatusHero@1\", {\"batteryIcon\": \"resources/base/media/icon_phone.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
+    },
+    {
+      "key": "e2e461a9704005d244367fdf08deb915e4c1f5cb710a5aa4e6988366d23cf09b",
+      "response": "{\"themeId\": \"fusion-battery-teal\", \"requiredOutputFieldsByCapability\": {\"GetEarphoneInfo\": [\"/chargingStatusDesc\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\", \"/chargingStatusDesc\", \"/pluggedTypeDesc\"]}, \"action\": [\"event.open.settings.bluetooth\", \"event.open.settings.battery\"]}"
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFF0FFE6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 68,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
+            "id": "template_root_0_0",
+            "styles": {
+              "fontColor": "#FF52991F",
+              "fontSize": 16,
+              "fontWeight": 700,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0",
+              "template_root_0_1_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "耳机",
+            "id": "template_root_0_1_0",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 10,
+              "fontWeight": 400
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/earphone/earphoneName} }}",
+            "id": "template_root_0_1_1",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 10,
+              "fontWeight": 400
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "earphone": {
+              "batteryLevel": 80,
+              "earphoneName": "FreeBuds Pro"
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "BluetoothDeviceOverview",
+    "capabilityId": "GetEarphoneInfo",
+    "layoutKind": "Compact",
+    "providerId": "com.huawei.earphone.cli",
+    "size": "2x2"
+  },
+  "templateId": "BluetoothDeviceOverviewEarphoneCompact@1"
+}

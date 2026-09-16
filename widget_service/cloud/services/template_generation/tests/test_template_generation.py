@@ -2902,6 +2902,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewCaseConnectionHero@1",
         "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
         "BluetoothDeviceOverviewMusicFull@1",
     }
     progress_count = 0
@@ -2923,7 +2924,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             )
             assert color.name == expected_color
 
-    assert progress_count == 20
+    assert progress_count == 22
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -2983,6 +2984,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewNapFull@1", "sourceIcon"),
         ("SleepOverviewNapHero@1", "sourceIcon"),
         ("WorkoutOverviewSupport@1", "sourceIcon"),
+        ("WorkoutOverviewTypeDurationCompact@1", "sourceIcon"),
     }
     expected_inherited_assets = {
         ("WorkoutOverviewFull@1", "sourceIcon"),

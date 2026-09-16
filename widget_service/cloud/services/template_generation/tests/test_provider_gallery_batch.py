@@ -214,7 +214,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     # newer upstream generator (shuifeng/codex/fix-provider-gallery-validation)
     # targets a far-ahead mainline with templates this branch does not carry.
     # Numbers below are pinned to what the current tree actually derives.
-    assert len(all_cases) == 144
+    assert len(all_cases) == 168
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -304,7 +304,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
             if case.targetTemplateId:
                 targeted_cases.append(case)
     # NOTE(gallery-counts): see test_gallery_inputs_cover_all_provider_business_scenarios.
-    assert len(targeted_cases) == 143
+    assert len(targeted_cases) == 167
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -653,10 +653,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
     summary = await runner.run(input_root, output_root, dry_run=True)
 
     # NOTE(gallery-counts): see test_gallery_inputs_cover_all_provider_business_scenarios.
-    assert summary.total == 144
+    assert summary.total == 168
     assert summary.failed == 0
-    assert summary.missing == 10
-    assert summary.not_generated == 134
+    assert summary.missing == 12
+    assert summary.not_generated == 156
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 10
@@ -797,8 +797,8 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
     # 倒计时 Support 未开放事件白名单，少一个带动作场景。
     # NOTE(gallery-counts): the len*3-1 formula assumes one case per support
     # per scenario; the shipped one-pair-per-support generator derives 42.
-    assert len(provider.cases) == 42
-    assert len({case.caseId for case in provider.cases}) == 42
+    assert len(provider.cases) == 66
+    assert len({case.caseId for case in provider.cases}) == 66
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -825,11 +825,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
     # NOTE(gallery-counts): see test_gallery_inputs_cover_all_provider_business_scenarios.
-    assert summary.total == 42
-    assert summary.success == 38
-    assert summary.missing == 4
+    assert summary.total == 66
+    assert summary.success == 60
+    assert summary.missing == 6
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 38
+    assert len(service.requests) == 60
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2

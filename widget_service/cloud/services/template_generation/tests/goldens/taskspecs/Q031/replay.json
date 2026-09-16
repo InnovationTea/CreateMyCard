@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1253dc487d338f3d976073ea4ed2e628e8412706c3ce50610c9f5300de895eae",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/isConnected\",\"/earphoneName\"]},\"action\":[\"event.open.music.favorite\"]}"
+    },
+    {
+      "key": "ce645bd2e687709800989d391a16d57e53256671a35fcddd6c3c79cee665b0c1",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\"}));"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "f2dffb38b4f270caa9dc99bb3275eb4ecf7b4d4c027c6c29b9135c368d308126",
+      "response": "{\"themeId\": \"fusion-schedule-cool\", \"requiredOutputFieldsByCapability\": {\"GetCalendarEvents\": [\"/events/0/title\", \"/events/0/dtStart\", \"/events/0/dtEnd\", \"/events/0/eventLocation\", \"/events/0/description\"], \"ViewWeather\": [\"/current/condition\", \"/current/temperatureText\", \"/current/feelsLikeC\", \"/current/humidityPercent\", \"/current/windDirection\", \"/current/windLevel\", \"/current/alertLevel\"]}, \"action\": []}"
+    }
+  ]
+}

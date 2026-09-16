@@ -1,0 +1,164 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFF0E6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 68,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0",
+            "styles": {
+              "alignItems": "center",
+              "backgroundColor": "#3399521F",
+              "borderRadius": 20,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "padding": {
+                "bottom": 0,
+                "left": 12,
+                "right": 16,
+                "top": 0
+              },
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "center",
+              "layoutWeight": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/dailySteps} }}",
+            "id": "template_root_0_0_0",
+            "styles": {
+              "fontColor": "#FF99521F",
+              "fontSize": 14,
+              "fontWeight": 700,
+              "height": 19,
+              "maxLines": 1,
+              "textAlign": "start",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "步数",
+            "id": "template_root_0_0_1",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 13,
+              "maxLines": 1,
+              "textAlign": "start",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_1",
+            "src": "resources/base/media/figure_run.svg",
+            "styles": {
+              "flexShrink": 0,
+              "height": 24,
+              "objectFit": "contain",
+              "width": 24
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "healthSport": {
+              "dailySteps": 6200
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "GenericMetricOverview",
+    "capabilityId": "GetHealthAndSportSummary",
+    "layoutKind": "Compact",
+    "providerId": "com.huawei.health-sport.cli",
+    "size": "2x2"
+  },
+  "templateId": "GenericMetricOverviewCompact@1"
+}

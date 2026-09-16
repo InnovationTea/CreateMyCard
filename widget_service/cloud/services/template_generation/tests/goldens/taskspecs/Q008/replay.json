@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "71d4d3334b0c929072cf1d915e888fc185d171900e957adab91615d90560a375",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/2/condition\",\"/daily/2/temperatureRangeText\"]},\"action\":[]}"
+    }
+  ]
+}

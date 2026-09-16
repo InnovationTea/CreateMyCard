@@ -1,0 +1,85 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "明天带孩子去成都公园，帮我做个健康指数卡片，重点看紫外线等级，再看空气质量和感冒指数。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "成都市",
+          "forecastDays": 2
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/daily/1/airQuality",
+          "/daily/1/uvIndex",
+          "/daily/1/coldLevel"
+        ]
+      }
+    ],
+    "title": "公园活动",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "紫外线和健康指数",
+    "candidateAssetIds": [
+      "asset.sun_max",
+      "asset.cold",
+      "asset.icon_allergy"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "016",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "明天带孩子去成都公园，帮我做个健康指数卡片，重点看紫外线等级，再看空气质量和感冒指数。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "明天带孩子去成都公园，帮我做个健康指数卡片，重点看紫外线等级，再看空气质量和感冒指数。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "成都市",
+        "forecastDays": 2
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/daily/1/airQuality",
+        "/daily/1/uvIndex",
+        "/daily/1/coldLevel"
+      ]
+    }
+  ],
+  "title": "公园活动",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "紫外线和健康指数",
+  "candidateAssetIds": [
+    "asset.sun_max",
+    "asset.cold",
+    "asset.icon_allergy"
+  ]
+}

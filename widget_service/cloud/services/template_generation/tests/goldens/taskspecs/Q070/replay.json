@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "2bd6c25aa340da60d819c260e6e84dc8474051eae41e2441a36b3aedbaa82791",
+      "response": "{\"themeId\":\"fusion-sport-orange\",\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseCalorieText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseHeartRateAvg\"]},\"action\":[]}"
+    }
+  ]
+}
