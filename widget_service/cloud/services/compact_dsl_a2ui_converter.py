@@ -834,12 +834,12 @@ def _normalize_timeline_unit_spacing(
         for component in components
         if component.component_type == "TimelineUnit"
     }
-    parent_ids = {
-        component.component_id
-        for component in components
-        if component.component_type == "Row"
-        and any(child_id in timeline_ids for child_id in component.children)
-    }
+    parent_ids = set()
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        if any(child_id in timeline_ids for child_id in component.children):
+            parent_ids.add(component.component_id)
     normalized = []
     for component in components:
         props = copy.deepcopy(component.props)
@@ -1146,12 +1146,12 @@ def _normalize_small_backboard_icon_alignment(
         backboard_width = 136
         text_width = 84
     elif size == "2x4":
-        candidate_ids = {
-            component.component_id
-            for component in components
-            if component.props.get("width") == 144
-            and component.props.get("height") == 64
-        }
+        candidate_ids = set()
+        for component in components:
+            if component.props.get("width") != 144:
+                continue
+            if component.props.get("height") == 64:
+                candidate_ids.add(component.component_id)
         backboard_width = 144
         text_width = 92
     else:
