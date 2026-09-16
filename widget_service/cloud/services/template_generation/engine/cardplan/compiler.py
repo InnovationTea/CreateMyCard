@@ -858,6 +858,8 @@ def _expand_call(
     if wire_id not in contract.allowed_template_ids:
         raise TerselConversionError(f"Template is not allowed: {wire_id}")
     definition = registry.require_template(wire_id)
+    if definition.fallback_only and not contract.allowed_template_plans:
+        raise TerselConversionError("General Template requires a trusted Search and Planner result")
     if definition.allowed_parent_components and parent not in definition.allowed_parent_components:
         raise TerselConversionError(f"Template parent is not allowed: {wire_id}/{parent}")
     if len(call.values) == 1 and isinstance(call.values[0], dict):
@@ -880,6 +882,10 @@ def _expand_call(
     if bool(call.children) != definition.accepts_children:
         expected = "with children" if definition.accepts_children else "without children"
         raise TerselConversionError(f"Template must be called {expected}: {wire_id}")
+    data_arguments = None
+    if definition.data_parameters_schema:
+        data_arguments = params.get("data")
+        params = {key: value for key, value in params.items() if key != "data"}
     errors = sorted(Draft202012Validator(variant.parameters_schema).iter_errors(params), key=str)
     if errors:
         raise TerselConversionError(
@@ -900,12 +906,13 @@ def _expand_call(
         raise TerselConversionError(
             f"Provider Template does not support the card size: {wire_id}/{task_spec.size}"
         )
-    _validate_provider_template_state(
-        wire_id,
-        str(size),
-        task_spec,
-        business_names=_contract_ux_business_component_names(contract, registry),
-    )
+    if not definition.data_parameters_schema:
+        _validate_provider_template_state(
+            wire_id,
+            str(size),
+            task_spec,
+            business_names=_contract_ux_business_component_names(contract, registry),
+        )
     is_card_template = definition.source_format in CARDTPL_SOURCE_FORMATS
     if is_card_template and definition.compatible_theme_profile_ids:
         if contract.theme_profile_id not in definition.compatible_theme_profile_ids:
@@ -919,6 +926,10 @@ def _expand_call(
         task_spec,
         provider_binding_roots,
     )
+    if definition.data_parameters_schema:
+        variant = _materialize_parameterized_variant(
+            definition, variant, data_arguments, task_spec, contract, provider_binding_roots,
+        )
     spread_parent = _template_spread_parent(variant.root)
     layout_template_id = (
         definition.template_id
@@ -963,6 +974,10 @@ def _expand_call(
             registry.theme_reference_values(contract.theme_profile_id),
             spread_children=expanded_children,
         )
+    if definition.data_parameters_schema:
+        from .general_templates import validate_parameter_coverage
+
+        validate_parameter_coverage(root, definition, contract)
     budget_root = root
     if definition.provider_id == _ACTION_PROVIDER_ID:
         root, action_ids = _wrap_action_template(
@@ -992,6 +1007,41 @@ def _expand_call(
         if action_id not in state.action_ids:
             state.action_ids.append(action_id)
     return root
+
+
+def _materialize_parameterized_variant(
+    definition: TemplateDefinition,
+    variant: TemplateVariant,
+    arguments: Any,
+    task_spec: TaskSpec,
+    contract: HybridBodyContract,
+    binding_roots: dict[str, tuple[str, ...]],
+) -> TemplateVariant:
+    from .data_parameters import (
+        array_size,
+        materialize_data_root,
+        resolve_data_arguments,
+        select_data_size,
+    )
+    from .general_templates import parameter_data_paths, required_parameter_paths
+
+    roots = binding_roots.get(definition.capability_id or "", ())
+    if len(roots) != 1 or roots[0] != definition.data_domain:
+        raise TerselConversionError("General Template requires its approved capability data root")
+    paths = parameter_data_paths(definition, task_spec)
+    required = required_parameter_paths(definition, contract)
+    if required:
+        paths = {path: kind for path, kind in paths.items() if path in required}
+    values = resolve_data_arguments(definition.data_parameters_schema, arguments, paths, roots[0])
+    from .general_semantics import validate_general_focus, validate_general_main_value
+
+    validate_general_main_value(definition, values, paths)
+    validate_general_focus(
+        definition, values, required_parameter_paths(definition, contract, primary=True),
+    )
+    count = array_size(definition.data_parameters_schema, arguments)
+    selected = select_data_size(variant.root, definition.data_parameters_schema, count)
+    return variant.model_copy(update={"root": materialize_data_root(selected, values)})
 
 
 def _wrap_action_template(
@@ -6239,7 +6289,12 @@ def _validate_business_template_action(
     )
     if action is None or action.action_id not in contract.content_action_ids:
         raise TerselConversionError("Business Template Action is not approved.")
-    if not supports_business_action(definition, action, card_size):
+    from .general_templates import required_parameter_paths
+
+    if not supports_business_action(
+        definition, action, card_size,
+        display_paths=tuple(required_parameter_paths(definition, contract)),
+    ):
         raise TerselConversionError(
             f"Business Template Action does not match supported events or data context: "
             f"{definition.wire_id}/{action.action_id}"

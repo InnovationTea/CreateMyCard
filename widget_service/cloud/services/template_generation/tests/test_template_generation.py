@@ -258,7 +258,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 119
+    assert len(registry.provider_template_ids) == 247
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -1119,7 +1119,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 22
+    assert len(calendar.local_template_ids) == 34
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -2943,7 +2943,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 18
+    assert len(preserved_assets) == 78
     assert themed_assets == expected_themed_assets
     assert inherited_assets == expected_inherited_assets
 
@@ -2996,8 +2996,8 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 11
-    assert ring_icon_count == 10
+    assert progress_count == 15
+    assert ring_icon_count == 14
 
 
 def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
@@ -3135,13 +3135,15 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 22
+    assert len(calendar.local_template_ids) == 34
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
-    assert not any(
-        template_id.endswith("Compact@1") for template_id in calendar.local_template_ids
-    )
+    compact_ids = {name for name in calendar.local_template_ids if name.endswith("Compact@1")}
+    assert compact_ids == {
+        "ScheduleOverviewGeneralNumberCompact@1", "ScheduleOverviewGeneralTextCompact@1",
+        "ScheduleOverviewGeneralPairCompact@1",
+    }
 
     date_full = registry.require_template("ScheduleOverviewDateFull@1")
     assert date_full.primary_data == (
@@ -3224,6 +3226,13 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewStatusSupport@1",
     }
 
+    expected_template_ids.update({
+        "BatteryOverviewGeneralNumberFull@1", "BatteryOverviewGeneralNumberHero@1",
+        "BatteryOverviewGeneralNumberCompact@1", "BatteryOverviewGeneralNumberSupport@1",
+    })
+    for kind in ("Text", "Pair"):
+        for shape in ("Full", "Hero", "Compact", "Support"):
+            expected_template_ids.add(f"BatteryOverviewGeneral{kind}{shape}@1")
     assert set(battery.local_template_ids) == expected_template_ids
     compact = registry.require_template("BatteryOverviewCompact@1")
     assert compact.primary_data == ("/batterySOC",)

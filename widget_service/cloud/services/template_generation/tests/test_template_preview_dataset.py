@@ -16,20 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 110
+    assert manifest["templateCount"] == 238
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 22,
-        "Compact": 13,
-        "Hero": 31,
-        "Full": 31,
+        "Support": 54,
+        "Compact": 45,
+        "Hero": 63,
+        "Full": 63,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 99, "2x4": 11}
-    assert len(cases) == 110
-    assert len({case["templateId"] for case in cases}) == 110
+    assert manifest["countsBySize"] == {"2x2": 227, "2x4": 11}
+    assert len(cases) == 238
+    assert len({case["templateId"] for case in cases}) == 238
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -138,6 +138,9 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/feelsLikeC",
                 "/location/prefectureName", "/location/districtName",
             )
+        elif "General" in case.template_id:
+            assert case.primary_data == case.secondary_data == case.optional_data == ()
+            assert "通用数据预览" in json.dumps(case.messages, ensure_ascii=False)
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)

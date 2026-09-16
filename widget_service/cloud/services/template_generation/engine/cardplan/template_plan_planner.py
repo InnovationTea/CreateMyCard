@@ -108,7 +108,14 @@ def plan_template_candidates(
     drafts.sort(key=lambda item: (*tuple(-value for value in item.score), item.sequence))
     deduplicated = _deduplicate_drafts(drafts)
     top_theme = deduplicated[0].plan.theme_id
-    same_theme = [item for item in deduplicated if item.plan.theme_id == top_theme]
+    top_businesses = _plan_business_ids(deduplicated[0].plan)
+    same_theme = []
+    for item in deduplicated:
+        if item.plan.theme_id != top_theme:
+            continue
+        if _plan_business_ids(item.plan) != top_businesses:
+            continue
+        same_theme.append(item)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
         for index, item in enumerate(same_theme[:_MAX_PLANS])
@@ -344,6 +351,8 @@ def _business_slot(
         for path in definition.primary_data
         if path in group.explicit_fields or path == focus
     )
+    if definition.fallback_only and focus is not None and focus in group.explicit_fields:
+        primary_matches = (focus,)
     return TemplatePlanBusinessSlot(
         position=position,
         businessId=group.business_id,
@@ -389,7 +398,9 @@ def _business_action_assignment_options(
         eligible: list[int] = []
         for slot in slots:
             definition = registry.require_template(slot.template_id)
-            if supports_business_action(definition, action, card_size):
+            if supports_business_action(
+                definition, action, card_size, display_paths=slot.covered_explicit_fields,
+            ):
                 eligible.append(slot.position)
         if not eligible:
             return ()

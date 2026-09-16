@@ -24,6 +24,14 @@ from services.template_generation.engine.theme_reference import (
     translate_theme_reference_calls,
 )
 
+from .data_parameters import (
+    DATA_SIZE_CONDITIONS,
+    MAX_DATA_ARRAY_ITEMS,
+    DataParameterType,
+    data_symbols,
+    select_data_size,
+    split_data_signature,
+)
 from .models import (
     CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -72,6 +80,7 @@ _CONDITIONAL_BINDING_COMPONENTS = (
     | _GROUPED_CONDITIONAL_BINDING_COMPONENTS
 )
 _CONDITIONAL_COMPONENTS = _CONDITIONAL_PARAMETER_COMPONENTS | _CONDITIONAL_BINDING_COMPONENTS
+_CONDITIONAL_COMPONENTS = _CONDITIONAL_COMPONENTS | DATA_SIZE_CONDITIONS
 _TEMPLATE_COMPONENTS = _COMPONENTS | _LAYOUT_COMPONENTS | _CONDITIONAL_COMPONENTS
 _CONTAINERS = (
     frozenset({"Row", "Column", "List", "Stack"})
@@ -177,6 +186,11 @@ class ProviderTemplateEntry(StrictModel):
     )
     supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
     entry: str = Field(min_length=1)
+    fallback_only: bool = Field(default=False, alias="fallbackOnly")
+    general_content_kind: Literal["number", "text", "pair"] | None = Field(
+        default=None, alias="generalContentKind",
+    )
+    general_data_paths: tuple[str, ...] = Field(default=(), alias="generalDataPaths")
 
     @model_validator(mode="after")
     def supported_events_are_valid(self) -> ProviderTemplateEntry:
@@ -439,7 +453,12 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             "requires_layout_action": entry.requires_layout_action,
             "asset_parameter_semantic_tags": asset_tags,
             "supported_event_ids": entry.supported_event_ids,
+            "fallback_only": entry.fallback_only,
+            "general_content_kind": entry.general_content_kind,
+            "general_data_paths": entry.general_data_paths,
         })
+        if entry.fallback_only != bool(definition.data_parameters_schema):
+            raise ValueError("Parameterized data Templates must explicitly declare fallbackOnly")
         if entry.supported_event_ids:
             for variant in definition.variants:
                 properties = variant.parameters_schema.get("properties", {})
@@ -530,12 +549,22 @@ def _compile_ui_card_template(
 ) -> TemplateDefinition:
     """Compile the UI-oriented ``#Template Id(props, ...children)`` syntax."""
     signature, block = _ui_template_block(source, expected_wire_id)
+    data_schema, signature = split_data_signature(signature)
     signature_contract = _ui_template_signature(signature)
     properties = signature_contract.properties
+    if data_schema and "data" in properties:
+        raise ValueError("Parameterized Template reserves the data argument name")
     required_params = signature_contract.required_params
     asset_tags = signature_contract.asset_tags
     accepts_children = signature_contract.accepts_children
-    template_data = _ui_template_data(block, output_schema, binding_count)
+    if data_schema:
+        if expected_capability_id is None or data_domain is None or binding_count != 1:
+            raise ValueError("Parameterized Template requires one capability data root")
+        if primary_data or secondary_data or optional_data:
+            raise ValueError("Parameterized Template must not declare fixed data paths")
+        template_data = _UiTemplateData({}, {}, {}, block)
+    else:
+        template_data = _ui_template_data(block, output_schema, binding_count)
     bindings = template_data.bindings
     required_bindings = template_data.required_bindings
     optional_bindings = template_data.optional_bindings
@@ -575,31 +604,10 @@ def _compile_ui_card_template(
     _validate_template_child_slot_indexes(indexed_children)
     _validate_event_action_placement(root)
     _validate_image_color_declarations(root)
-    binding_references, parameter_references = _template_references(root)
-    if not binding_references <= set(bindings):
-        unknown_data = sorted(binding_references - set(bindings))
-        raise ValueError(f"unknown Provider Template data reference: {unknown_data}")
-    if not parameter_references <= set(properties):
-        raise ValueError(
-            "unknown Provider Template props reference: "
-            f"{sorted(parameter_references - set(properties))}"
-        )
-    _validate_interpolation_bindings(root, bindings)
-    guarded_params, guarded_bindings = _validate_conditional_guards(
-        root,
-        properties,
-        bindings,
-        set(required_params),
-        set(required_bindings),
-    )
-    if not set(required_bindings) <= binding_references:
-        raise ValueError("Provider Template must reference every $path declaration")
-    if not binding_references <= set(required_bindings) | guarded_bindings:
-        raise ValueError("Provider Template $optionalPath reference must be conditionally guarded")
-    if not set(required_params) <= parameter_references:
-        raise ValueError("Provider Template must reference every required prop")
-    if not parameter_references <= set(required_params) | guarded_params:
-        raise ValueError("Provider Template optional prop reference must be conditionally guarded")
+    if data_schema:
+        _validate_parameterized_root(root, data_schema, properties, required_params)
+    else:
+        _validate_fixed_data_root(root, properties, required_params, bindings, required_bindings)
     schema = {
         "type": "object",
         "properties": properties,
@@ -647,6 +655,8 @@ def _compile_ui_card_template(
             "businessId": business_id,
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
+            "dataParametersSchema": data_schema,
+            "dataSourceSchema": output_schema if data_schema else {},
             "bindingCount": binding_count,
             "primaryData": primary_data,
             "primaryDataFields": _data_fields(primary_data, output_schema),
@@ -664,6 +674,73 @@ def _compile_ui_card_template(
     )
 
 
+def _validate_fixed_data_root(
+    root: TemplateNode,
+    properties: dict[str, Any],
+    required_params: tuple[str, ...],
+    bindings: dict[str, TemplateBinding],
+    required_bindings: dict[str, TemplateBinding],
+) -> None:
+    binding_references, parameter_references = _template_references(root)
+    if not binding_references <= set(bindings):
+        unknown_data = sorted(binding_references - set(bindings))
+        raise ValueError(f"unknown Provider Template data reference: {unknown_data}")
+    if not parameter_references <= set(properties):
+        raise ValueError(
+            "unknown Provider Template props reference: "
+            f"{sorted(parameter_references - set(properties))}"
+        )
+    if any(node.component in DATA_SIZE_CONDITIONS for node in _walk_template_nodes(root)):
+        raise ValueError("Data size conditions require parameterized Template data")
+    _validate_interpolation_bindings(root, bindings)
+    guarded_params, guarded_bindings = _validate_conditional_guards(
+        root, properties, bindings, set(required_params), set(required_bindings),
+    )
+    if not set(required_bindings) <= binding_references:
+        raise ValueError("Provider Template must reference every $path declaration")
+    if not binding_references <= set(required_bindings) | guarded_bindings:
+        raise ValueError("Provider Template $optionalPath reference must be conditionally guarded")
+    if not set(required_params) <= parameter_references:
+        raise ValueError("Provider Template must reference every required prop")
+    if not parameter_references <= set(required_params) | guarded_params:
+        raise ValueError("Provider Template optional prop reference must be conditionally guarded")
+
+
+def _validate_parameterized_root(
+    root: TemplateNode,
+    schema: dict[str, Any],
+    properties: dict[str, Any],
+    required_params: tuple[str, ...],
+) -> None:
+    referenced_fields: set[str] = set()
+    for count in range(MAX_DATA_ARRAY_ITEMS + 1):
+        selected = select_data_size(root, schema, count)
+        symbols = data_symbols(schema, count)
+        required_symbols: set[str] = set()
+        for name in symbols:
+            field_name = name.split("[", 1)[0]
+            if "[" in name or field_name in schema.get("required", ()):
+                required_symbols.add(name)
+        references, params = _template_references(selected)
+        referenced_fields.update(name.split("[", 1)[0] for name in references)
+        if references - set(symbols):
+            raise ValueError(
+                "Template data reference is unknown or its array index is out of range"
+            )
+        if params - set(properties):
+            raise ValueError("Template props reference is unknown")
+        if required_symbols - references:
+            raise ValueError("Template must display every supplied required data parameter")
+        if set(required_params) - params:
+            raise ValueError("Template must reference every required prop")
+        _validate_interpolation_bindings(selected, symbols)
+        _validate_conditional_guards(
+            selected, properties, symbols, set(required_params), required_symbols,
+        )
+    if set(schema.get("properties", {})) - referenced_fields:
+        raise ValueError("Template must reference every declared data parameter")
+
+
 def _ui_root_literal_option(root: TemplateNode, name: str) -> Any:
     for value in root.values:
         if value.kind != "object":
@@ -679,13 +756,18 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
     blocks: dict[str, tuple[str, str]] = {}
     index = 0
     header_re = re.compile(
-        r"^\s*#Template\s+([A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*)\((.*)\)\s*$"
+        r"^\s*#Template\s+([A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*)\((.*)\)\s*$",
+        re.S,
     )
     while index < len(lines):
         if not lines[index].strip():
             index += 1
             continue
-        match = header_re.fullmatch(lines[index])
+        header = lines[index]
+        while header.count("(") > header.count(")") and index + 1 < len(lines):
+            index += 1
+            header += "\n" + lines[index]
+        match = header_re.fullmatch(header)
         if match is None:
             raise ValueError(f"expected UI #Template declaration at line {index + 1}")
         wire_id, signature = match.groups()
@@ -708,7 +790,7 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
 def _ui_template_signature(
     signature: str,
 ) -> _UiTemplateSignature:
-    match = re.fullmatch(r"props\s*:\s*\{(.*)\}\s*(,\s*\.\.\.children\s*)?", signature)
+    match = re.fullmatch(r"props\s*:\s*\{(.*)\}\s*(,\s*\.\.\.children\s*)?", signature, re.S)
     if match is None:
         raise ValueError("Provider Template signature must declare props and optional ...children")
     props_source, raw_children = match.groups()
@@ -1327,6 +1409,20 @@ def _template_line_quote(line: str, quote: str | None) -> str | None:
 
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
     components: tuple[str, str]
+    size_condition = re.fullmatch(
+        r"#(?:if|elseif)\s+data\.([A-Za-z][A-Za-z0-9_]*)\.size\s*==\s*([0-2])",
+        content,
+    )
+    if size_condition is not None:
+        name, count = size_condition.groups()
+        components = (f'IfDataSize("{name}", {count},', f'IfNotDataSize("{name}", {count},')
+    else:
+        components = _presence_directive_components(content, line_number)
+    return components
+
+
+def _presence_directive_components(content: str, line_number: int) -> tuple[str, str]:
+    components: tuple[str, str]
     single = re.fullmatch(
         r"#(?:if|elseif)[ \t]+(![ \t]*)?(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
@@ -1521,7 +1617,17 @@ def _component_node(node: ast.AST) -> TemplateNode:
         raise ValueError(f"Provider Template leaf cannot contain children: {component}")
     if spread_children and component not in _CONTAINERS:
         raise ValueError(f"Provider Template leaf cannot spread children: {component}")
-    if component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
+    if component in DATA_SIZE_CONDITIONS:
+        if len(values) != 2 or not children:
+            raise ValueError("Template data size condition requires name, count and children")
+        name, count = values
+        if name.kind != "literal" or not isinstance(name.value, str):
+            raise ValueError("Template data size condition name is invalid")
+        if count.kind != "literal" or type(count.value) is not int:
+            raise ValueError("Template data size condition count is invalid")
+        if not 0 <= count.value <= MAX_DATA_ARRAY_ITEMS:
+            raise ValueError("Template data size condition exceeds the array budget")
+    elif component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
         if len(values) != 1 or not children:
             raise ValueError(
                 f"Provider Template {component} requires two binding names and children"
@@ -1607,6 +1713,15 @@ def _validate_template_child_slot_indexes(indexes: tuple[int, ...]) -> None:
 
 
 def _template_value(node: ast.AST) -> TemplateValue:
+    if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute):
+        owner = node.value.value
+        index = node.slice
+        if isinstance(owner, ast.Name) and owner.id == "data":
+            if not isinstance(index, ast.Constant) or type(index.value) is not int:
+                raise ValueError("Template data index must be a non-negative integer literal")
+            if not 0 <= index.value < MAX_DATA_ARRAY_ITEMS:
+                raise ValueError("Template data index exceeds the array budget")
+            return TemplateValue(kind="binding", name=f"{node.value.attr}[{index.value}]")
     owner = node.value if isinstance(node, ast.Attribute) else None
     has_supported_owner = isinstance(owner, ast.Name) and owner.id in {"props", "data"}
     has_valid_name = isinstance(node, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(node.attr)
@@ -1750,7 +1865,7 @@ def _interpolation_value(call: ast.Call) -> TemplateValue:
     cursor = 0
     matches = tuple(
         re.finditer(
-            r"\$\{(?:(props|data)\.)?([A-Za-z_][A-Za-z0-9_]*)\}",
+            r"\$\{(?:(props|data)\.)?([A-Za-z_][A-Za-z0-9_]*(?:\[[0-9]+\])?)\}",
             source,
         )
     )
@@ -2164,7 +2279,7 @@ def _template_references(root: TemplateNode) -> tuple[set[str], set[str]]:
 def _validate_conditional_guards(
     root: TemplateNode,
     properties: dict[str, Any],
-    bindings: dict[str, TemplateBinding],
+    bindings: dict[str, TemplateBinding] | dict[str, DataParameterType],
     required_params: set[str],
     required_bindings: set[str],
 ) -> tuple[set[str], set[str]]:
@@ -2272,7 +2387,7 @@ def _validate_conditional_guards(
 
 def _validate_interpolation_bindings(
     root: TemplateNode,
-    bindings: dict[str, TemplateBinding],
+    bindings: dict[str, TemplateBinding] | dict[str, DataParameterType],
 ) -> None:
     for node in _walk_template_nodes(root):
         for index, value in enumerate(node.values):
@@ -2324,7 +2439,7 @@ def _validate_event_action_placement(root: TemplateNode) -> None:
 
 def _validate_dynamic_template_value(
     value: TemplateValue,
-    bindings: dict[str, TemplateBinding],
+    bindings: dict[str, TemplateBinding] | dict[str, DataParameterType],
     *,
     direct: bool,
 ) -> None:
@@ -2573,7 +2688,7 @@ def provider_template_admission(
         return context_admission
     if definition.source_format not in CARDTPL_SOURCE_FORMATS:
         return ProviderTemplateAdmission(True)
-    if not definition.bindings:
+    if not definition.bindings and not definition.data_parameters_schema:
         return ProviderTemplateAdmission(True)
     capability_id = definition.capability_id
     if not capability_id:
@@ -2609,7 +2724,7 @@ def provider_template_variant_admission(
         return context_admission
     if definition.source_format not in CARDTPL_SOURCE_FORMATS:
         return ProviderTemplateAdmission(True)
-    if not definition.bindings:
+    if not definition.bindings and not definition.data_parameters_schema:
         return ProviderTemplateAdmission(True)
     capability_id = definition.capability_id
     if not capability_id:

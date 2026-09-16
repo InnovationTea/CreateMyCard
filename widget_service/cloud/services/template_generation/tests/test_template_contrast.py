@@ -55,7 +55,7 @@ def test_compiled_template_skips_contrast_with_template_root(size: str, fusion: 
 
 def test_all_template_previews_keep_contrast_exemption() -> None:
     cases = build_template_preview_cases()
-    assert len(cases) == 110
+    assert len(cases) == 238
     for case in cases:
         a2ui = "\n".join(json.dumps(message) for message in case.messages)
         assert '"template_root"' in a2ui

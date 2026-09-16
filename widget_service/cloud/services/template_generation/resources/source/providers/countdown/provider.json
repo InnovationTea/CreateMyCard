@@ -2,8 +2,12 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.countdown.cli",
   "providerVersion": "1.1.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetCountdownDays",
@@ -21,7 +25,9 @@
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 Full 摘要，可选静态标题。",
       "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": ["/countdownDays"],
+      "primaryData": [
+        "/countdownDays"
+      ],
       "secondaryData": [],
       "optionalData": []
     },
@@ -31,7 +37,9 @@
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 Hero 摘要，可选静态标题，适合搭配一个主操作。",
       "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": ["/countdownDays"],
+      "primaryData": [
+        "/countdownDays"
+      ],
       "secondaryData": [],
       "optionalData": []
     },
@@ -42,26 +50,154 @@
       "capabilityId": "GetCountdownDays",
       "description": "倒计时 Support，第一行主文本展示剩余天数，第二行辅助文本展示可信标题或默认标题；可选倒计时语义的计时图标；用于 TwoSupportLayout，当前没有关联事件，必须省略 actionId。",
       "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": ["/countdownDays"],
+      "primaryData": [
+        "/countdownDays"
+      ],
       "secondaryData": [],
       "optionalData": [],
       "assetParameterSemanticTags": {
-        "timerIcon": ["countdown"]
+        "timerIcon": [
+          "countdown"
+        ]
       }
     },
     {
       "templateId": "CountdownOverviewTravelSupport@1",
-      "supportedEventIds": ["event.open.clock.alarm"],
+      "supportedEventIds": [
+        "event.open.clock.alarm"
+      ],
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "出行倒计时 Support，在双业务布局中展示出发主题和剩余天数，可选倒计时语义的计时图标，可在胶囊内部绑定闹钟跳转。",
       "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": ["/countdownDays"],
+      "primaryData": [
+        "/countdownDays"
+      ],
       "secondaryData": [],
       "optionalData": [],
       "assetParameterSemanticTags": {
-        "timerIcon": ["countdown"]
+        "timerIcon": [
+          "countdown"
+        ]
       }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralTextFull@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralTextHero@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralTextCompact@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralTextSupport@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.clock.alarm"
+      ]
+    },
+    {
+      "templateId": "CountdownOverviewGeneralNumberFull@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralNumberHero@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralNumberCompact@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      }
+    },
+    {
+      "templateId": "CountdownOverviewGeneralNumberSupport@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "CountdownOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "timerIcon": [
+          "timer"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.clock.alarm"
+      ]
     }
   ],
   "compatibility": {

@@ -16,6 +16,8 @@ contractVersion: hybrid-body-contract/0.5
 1. 只输出一个以 `Template(` 开头、以 `);` 结束的完整直接调用树，不输出 Markdown、解释或代码块。
 2. 调用只允许位置参数：`Template("templateId@version", {"prop": value}, ...children)`。禁止变量赋值、
    `return`、关键字参数、对象方法调用、JSX、数组 children 和任意其他函数。
+   唯一的数据调用例外：声明 dataSchema 的通用模板允许 data 内使用 `$path("/相对路径")` 和
+   `Expr("标签" + data.字段)`，由可信编译器保留为端侧动态值，不在云侧计算。
 3. Props 必须是字面量对象，严格使用 templateContracts/layoutContracts/actionContracts 中的完整签名；
    不得新增字段、改写类型或伪造未批准值。
 4. 根必须从 allowedUxLayouts 中选择一个与业务模板后缀及动作形态匹配的布局 Template。每个
@@ -24,7 +26,8 @@ contractVersion: hybrid-body-contract/0.5
    已选事件必须各一次写入与语义业务匹配的 Support 模板可选 actionId Prop。
 5. 当动态契约允许 HeroTitleContentActionLayout 时，根必须恰好有三个直接 children：位置 0 选择
    HeroTitle 业务模板，位置 1 选择 HeroContent 业务模板，位置 2 选择 PillAction；不得交换、重复或嵌套。
-6. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、业务文本、
-   数据路径、绑定、事件执行字段、A2UI 或候选外 Template。
+6. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、事件执行字段、
+   A2UI 或候选外 Template。仅声明 dataSchema 的模板可在 data 内填充展示文本和批准的动态路径；
+   必须展示 coveredExplicitFields 的全部字段，数字显示保留单位，禁止用样例值替换动态数据。
 7. 只按动态契约选择完整模板，不判断运行时数据值或按样例数据改写模板；当前不支持 IF/If 组件。
 <!-- prompt:end -->

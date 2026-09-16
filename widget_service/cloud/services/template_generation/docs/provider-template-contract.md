@@ -65,6 +65,102 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
+### 通用垂域数据参数
+
+现有作者语法兼容增加独立 `data` 签名，模板条目必须显式声明 `fallbackOnly: true`，保留本业务
+`businessId`、`capabilityId` 和形态后缀。此类模板不再声明固定 `primaryData/secondaryData/optionalData`
+或模板内 `data = {...}`；数据路径由第二层填写，并由可信编译器核验所属能力根与本轮可用字段。
+普通模板的固定绑定、Props 和条件语义保持不变。
+
+```text
+#Template WeatherOverviewGeneralNumberCompact@1(
+  data: { location: string, mainNumberValue: string, ...supportValues: string[] },
+  props: { conditionIcon?: asset }
+)
+Column(
+  Row(Text(data.location), Text(data.mainNumberValue)),
+  #if data.supportValues.size == 1
+    Text(data.supportValues[0])
+  #elseif data.supportValues.size == 2
+    Text(`${data.supportValues[0]} | ${data.supportValues[1]}`)
+  #endif
+)
+#End
+```
+
+示例省略样式；正式共享生成源位于 `tools/generate_general_templates.py`，每个垂域生成
+`templates/general-number.cardtpl`、`general-text.cardtpl` 和 `general-pair.cardtpl`，不得直接修改派生文件。11 个既有业务各增加 Number、Text、Pair 三族的 Full、Hero、Compact、
+Support；倒计时只有一个输出字段，省去不可用的 Pair 四形态，共 128 个通用模板。
+日程仍使用 `ScheduleOverview` 模板族和业务标记。Support 继承业务图标
+语义和已批准事件白名单，保留两行内容、14vp/700 主文字、12vp/400 辅助文字及 24vp 图标。
+
+第二层调用示例：
+
+```text
+Template("WeatherOverviewGeneralTextCompact@1", {
+  data: {
+    location: $path("/location/prefectureName"),
+    mainTextValue: $path("/current/coldLevel"),
+    mainLabel: "感冒风险",
+    supportValues: [Expr("湿度" + data.humidityPercent + "%"), "注意补水"]
+  }
+})
+```
+
+- 数据标量支持 string、number、integer、boolean；纯值保持类型，不自动把数值改成字符串。
+  `Expr` 当前开放给 string 显示槽，所有可能结果分支必须是 string；数字需通过显式标签/单位拼接形成
+  文本。路径类型必须匹配，number 接受 integer；非法值、缺失必选参数和非有限数值均拒绝。
+- `$path` 是相对本业务能力根的 JSON Pointer，不接受绝对 `/data/...`、其它能力或未批准的字段。
+  `Expr` 支持已批准完整相对点路径（如 `data.current.coldLevel`）或唯一叶名（如 `data.coldLevel`）；
+  重名叶字段必须写完整路径。字符串、运算、三元及 `size()` 沿用受限 Form 表达式，禁止任意函数执行。
+- 签名最多声明一个标量数组，最多 2 项；`...` 仅标记数组参数，不允许对象展开。调用必须显式传列表，
+  可以混合纯值、路径和表达式，不接受运行时数组路径。每项仍按声明标量类型校验。
+- `#if/#elseif data.<array>.size == 0/1/2` 只判断本轮列表长度，支持 `#else`；索引仅允许 `[0]`、`[1]`。
+  加载时枚举全部长度并检查分支索引与引用；展开后数组和数量条件不进入 A2UI，不读取 sampleValue。
+  每个声明数据参数都必须被引用，每个已提供数组项都必须进入对应分支。
+- 通用模板只在该业务没有任何专用候选时选择。Planner 布局、主题和动作分配规则不变；最终 Text
+  必须覆盖全部显式动态字段，不能通过静态样例替换或在不可见参数中塞路径来满足覆盖。
+- 固定路径的业务场景回放仍由 `test_support/provider_gallery.py` 生成；通用模板通过独立参数化测试
+  验证 Search→Planner→二层契约→编译链。`preview_dataset.py` 同时提供全部通用模板的独立版式预览，
+  其中“通用数据预览”是演示文案，不代表真实 LLM 生成、真实设备数据或真机验收。
+
+### 内容族与业务视觉基线
+
+通用条目使用 `generalContentKind` 区分 `number`、`text`、`pair`。Number 的 `mainNumberValue`
+只允许数值、数值带单位的路径或表达式；不得填入“感冒风险低”等状态句子，指标名称放在 `mainLabel`。
+Text 使用 `mainTextValue`，可以显示状态、标题、日期时段或数值的文字说明；带多个单位的时长仍属于一个
+数值量，Number 按应用时长、睡眠等本业务的字号排版。Pair 使用
+`firstLabel/firstValue/secondLabel/secondValue`，分别标明两项数据的含义，不把多指标拼成一个大号数值。
+三族均保留 `supportValues`，Number/Text 的 `mainLabel` 可选。只有无专用候选时才启用这些族。
+
+| 业务 | 现有正式参考 | 通用布局保留的差异 |
+|---|---|---|
+| 天气 | Full、UvFull | 左对齐数值 32vp / 状态 20vp，角标图标，辅助天气同行 |
+| 应用时长 | Full、Hero | 应用名与原色图标在上，主时长 24vp，辅助内容分行 |
+| 电量 | Full、HealthLevelHero | 数值居中，可选电量环；文字类采用健康状态层级 |
+| 耳机 | Hero、EarbudPairFull | 居中设备信息和前置图标，双项按左右指标分栏 |
+| 日程 | DateFull、TitleHero | 日期/计数与标题分层、前置日历图标，说明和地点分行 |
+| 倒计时 | Full、Hero | 居中 40vp 数值，目标名称在上，辅助说明在下 |
+| 日常活动 | Full、WideFull | 左对齐 38vp 活动量，辅助指标分行 |
+| 心率 | Full、MinMaxFull | 居中 38vp 主值，双指标参考最小/最大值排版 |
+| 睡眠 | Full、NapFull | 时长与状态 20vp，辅助时段分行，评分可用线性进度 |
+| 专业运动 | Full、Hero | 前置运动图标，类型/时长 24vp，辅助数据分行 |
+| 内存 | Full、Support | 居中资源指标，可选百分比环与分行说明 |
+
+Compact/Support 采用各业务紧凑形态的高度预算，Pair 为两项各保留标签和值。
+Number Full/Hero 的电量、内存和睡眠可填 `progressValue`；该值只接受 0–100 的纯数值，或已声明的
+百分比/睡眠评分路径。不能把步数、温度或时长伪装成百分比，也不从显示字符串解析数值绘制进度。
+
+运动健康通过 `generalDataPaths` 明确业务字段边界；心率可共享对应运动的类型和时间上下文，不能引用
+睡眠或活动字段。同一能力存在多个业务方案时，Planner 保留最高排序方案的业务集合与主题，再提供同集合
+的备选布局，以满足原有二层作用域约束；布局打分、动作分配与形态预算不变。
+
+`tools/audit_general_template_coverage.py` 按指定能力清单审计 87 个叶字段模式：30 项数值量、27 项文字、
+23 项上下文和 7 项内部标识/动作控制字段。三族可表达 80 项展示字段，80 项分别有真实编译链回归；
+这不代表任意字段组合或整集合列表都受支持。数组必须落到已批准具体索引，Pair 只展示两个值。
+同一健康能力的跨业务组合（例如步数与睡眠评分同时作为主业务）仍受现有按能力分组的 Planner 限制，
+不能以“80 个字段可单独编译”声称此类组合已覆盖。
+
 ### Support 内嵌事件白名单
 
 业务模板条目通过 `supportedEventIds` 声明可消费的注册事件类型 ID；不填写动作实例后缀，也不复制
@@ -201,7 +297,7 @@ Provider 画廊可通过内部受信参数指定待测模板。该模式仍须�
 受信模板声明路径取交集，避免仅用于状态判定的 TaskSpec 运行时字段被误判为模板展示需求；该参数不属于
 公开生成接口，普通用户请求不得使用。
 
-模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。模板头只定义外部
+模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。固定路径模板头定义外部
 `props`；`?` 表示可选，支持 `string`、`asset`、`number`、`integer` 和 `boolean`：
 
 Provider `.cardtpl` 中的组件统一采用 Tersel Option 3，只写内联样式，不写 DesignToken。模板是受信资源，
@@ -497,7 +593,8 @@ Layout、业务顺序、准确模板 ID 和 Action 消费位置。每个 Plan �
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
 
-第二层只在最多三个 Plan 中完整选择一个，并补全所选模板允许开放的 Props 和可信素材；不得自行更换
+第二层只在最多三个 Plan 中完整选择一个，并补全所选模板允许开放的 Props、可信素材及通用模板的
+`data` 参数；不得自行更换
 Theme、Layout、业务顺序、模板 ID 或 Action 消费位置，也不得跨 Plan 混用。它不接收 TaskSpec、
 `dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，不得用基础组件补业务内容。编译器在展开前验证
 最终调用树与且仅与一个 Plan 完全一致，混合两个 Plan 或重复、遗漏 Action 均按契约失败。
@@ -511,9 +608,9 @@ PillAction Props 包含 `actionId`、`label` 和可选 `icon`，IconAction Props
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-106 个无 Variant 的业务 UI 模板，其中 18 个是 Support；当前形成 11 个业务组，且每个业务组至少有一个
-Support。Layout Provider 另提供 7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，
-运行时 Registry 共 115 个模板。
+110 个固定路径业务 UI 模板与 128 个参数化通用模板，共 238 个业务模板，其中 54 个是 Support；当前形成
+11 个业务组。Layout Provider 另提供 7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，
+运行时 Registry 共 247 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

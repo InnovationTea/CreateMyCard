@@ -15,6 +15,7 @@ from services.template_generation.engine.advanced.content_selectors import (
 )
 
 from .business_actions import supports_business_action
+from .general_templates import required_parameter_paths
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
 from .models import (
     CARDTPL_SOURCE_FORMATS,
@@ -22,6 +23,7 @@ from .models import (
     Fact,
     HybridBodyContract,
     HybridLimits,
+    TemplateDefinition,
 )
 from .provider_bundle import (
     provider_template_admission,
@@ -614,7 +616,10 @@ def build_template_prompt_contracts(
                     for action in contract.action_bindings:
                         if action.action_id not in contract.content_action_ids:
                             continue
-                        if supports_business_action(definition, action, task_spec.size):
+                        if supports_business_action(
+                            definition, action, task_spec.size,
+                            display_paths=tuple(required_parameter_paths(definition, contract)),
+                        ):
                             allowed_action_ids.append(action.action_id)
                     source_contract["allowedActionIds"] = allowed_action_ids
                     source_contract["supportedEventIds"] = definition.supported_event_ids
@@ -634,9 +639,18 @@ def build_template_prompt_contracts(
                     "parameterRelations": [
                         item.model_dump(by_alias=True) for item in variant.parameter_relations
                     ],
+                    **_general_template_prompt_contract(definition, task_spec, contract),
                 }
             )
     return tuple(prompt_contracts)
+
+
+def _general_template_prompt_contract(
+    definition: TemplateDefinition, task_spec: TaskSpec, contract: HybridBodyContract,
+) -> dict[str, Any]:
+    from .general_templates import general_prompt_contract
+
+    return general_prompt_contract(definition, task_spec, contract)
 
 
 def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
@@ -955,7 +969,7 @@ def _eligible_ranked_templates(
 ):
     eligible_templates = []
     for definition in _ranked_templates(text, registry):
-        if definition.provider_id == _ACTION_PROVIDER_ID:
+        if definition.provider_id == _ACTION_PROVIDER_ID or definition.fallback_only:
             continue
         admitted = _provider_template_is_admitted(
             definition,
@@ -1009,11 +1023,14 @@ def admitted_provider_template_variants(
             task_spec,
             card_spec,
         ).admitted
-        and _provider_variant_matches_trusted_state(
-            definition.wire_id,
-            variant.size,
-            task_spec,
-            card_spec,
+        and (
+            bool(definition.data_parameters_schema)
+            or _provider_variant_matches_trusted_state(
+                definition.wire_id,
+                variant.size,
+                task_spec,
+                card_spec,
+            )
         )
     )
     return tuple(

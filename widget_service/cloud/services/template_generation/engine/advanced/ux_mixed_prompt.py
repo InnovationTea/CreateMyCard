@@ -119,7 +119,8 @@ def build_ux_mixed_validation_retry_prompt(
                 "若原动态契约包含 planCandidates，必须完整选择其中一个原子 Plan，"
                 "不得跨 Plan 混用布局、业务模板或 Action 消费位置；"
                 "每个 requiredLocalTemplateGroups 恰好选择一个业务 Template；"
-                "不得新增基础组件、业务文本、Action 或候选外 Template。"
+                "不得新增基础组件、Action 或候选外 Template；"
+                "仅声明 dataSchema 的通用模板可填写 data 内的展示文本和批准路径。"
                 "只输出类 Tersel 调用树，不要解释。"
             ),
         },
@@ -411,7 +412,7 @@ def build_ux_mixed_prompt(
     )
     business_template_contracts = build_template_prompt_contracts(
         selected_template_ids,
-        contract,
+        contract.model_copy(update={"allowed_template_plans": template_plans}),
         registry,
         task_spec=task_spec,
         card_spec=card_spec,
@@ -568,7 +569,8 @@ def build_ux_mixed_prompt(
             (
                 "Planner 已给出最多三个完整原子 Plan。必须完整选择其中一个 Plan，"
                 "严格保持 layoutTemplateId、业务 Template 顺序以及 Action 消费位置；"
-                "不得跨 Plan 混用。仅补全所选 Template 的开放 Props 与可信素材。"
+                "不得跨 Plan 混用。补全所选 Template 的开放 Props 与可信素材；"
+                "仅声明 dataSchema 的通用模板还需填写 data，严格遵循 dataSources 与 dataRules。"
                 if template_plans
                 else (
                     "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"

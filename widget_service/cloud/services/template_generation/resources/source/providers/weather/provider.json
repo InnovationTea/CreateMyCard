@@ -56,7 +56,9 @@
     },
     {
       "templateId": "WeatherOverviewTravelSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "出行天气 Support，参考 ConditionHero 以天气现象为主视觉，并辅助展示 daily[4] 的温度范围和降雨概率，或当前温度；可选表达气温的温度计或与天气一致的状态图标，可在胶囊内部绑定天气详情跳转。",
@@ -124,7 +126,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "assetParameterSemanticTags": {
         "conditionIcon": [
           "weather-indicator"
@@ -148,7 +152,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureUvSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "紫外线天气 Support：主行展示城市和温度，辅助行展示天气现象及紫外线等级；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",
@@ -167,7 +173,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperaturecoldLevelSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "感冒风险天气 Support：主行展示城市和温度，辅助行展示天气现象及感冒风险；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",
@@ -348,7 +356,9 @@
       "secondaryData": [
         "/location/prefectureName"
       ],
-      "optionalData": ["/updatedAt"]
+      "optionalData": [
+        "/updatedAt"
+      ]
     },
     {
       "templateId": "WeatherOverviewDualCityFull@1",
@@ -372,7 +382,9 @@
       "capabilityId": "ViewWeather",
       "description": "明日天气 Full，12vp 地点标题下突出 20vp 天气现象，并以 12vp 展示日期和星期。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/condition"],
+      "primaryData": [
+        "/daily/1/condition"
+      ],
       "secondaryData": [
         "/daily/1/date",
         "/daily/1/weekday"
@@ -387,8 +399,12 @@
       "capabilityId": "ViewWeather",
       "description": "明日降雨 Full，上组展示 32vp 降雨概率及 12vp 说明，主值不锁定行高，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/rainProbabilityPercent"],
-      "secondaryData": ["/daily/1/temperatureRangeText"],
+      "primaryData": [
+        "/daily/1/rainProbabilityPercent"
+      ],
+      "secondaryData": [
+        "/daily/1/temperatureRangeText"
+      ],
       "optionalData": []
     },
     {
@@ -413,12 +429,191 @@
       "capabilityId": "ViewWeather",
       "description": "明日健康指数 Full，上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/uvIndex"],
+      "primaryData": [
+        "/daily/1/uvIndex"
+      ],
       "secondaryData": [
         "/daily/1/airQuality",
         "/daily/1/coldLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "WeatherOverviewGeneralTextFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralTextHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralTextCompact@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralTextSupport@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.weather"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewGeneralNumberFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralNumberHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralNumberCompact@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralNumberSupport@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.weather"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewGeneralPairFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralPairHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralPairCompact@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewGeneralPairSupport@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "WeatherOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.weather"
+      ]
     }
   ],
   "compatibility": {

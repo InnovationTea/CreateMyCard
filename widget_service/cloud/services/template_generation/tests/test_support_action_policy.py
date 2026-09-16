@@ -221,7 +221,18 @@ def test_policy_inventory_covers_every_business_support() -> None:
         definition = registry.require_template(template_id)
         if definition.business_id is not None and template_id.endswith("Support@1"):
             support_ids.add(template_id)
-    assert support_ids == set(_APPROVED)
+    general_ids = set()
+    for definition in registry.templates.values():
+        if definition.fallback_only and definition.wire_id.endswith("Support@1"):
+            general_ids.add(definition.wire_id)
+            expected: set[str] = set()
+            for template_id, events in _APPROVED.items():
+                original = registry.require_template(template_id)
+                if original.business_id == definition.business_id:
+                    expected.update(events)
+            assert set(definition.supported_event_ids) == expected
+    assert len(general_ids) == 32
+    assert support_ids == set(_APPROVED) | general_ids
 
 
 @pytest.mark.parametrize("template_id", tuple(_APPROVED))

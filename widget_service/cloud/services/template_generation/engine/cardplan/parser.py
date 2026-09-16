@@ -22,7 +22,9 @@ from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
 )
 
+from .data_parameters import data_argument_from_ast
 from .models import SourceSpan
+from .runtime_expression import translate_runtime_expressions
 
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"}) | UX_LAYOUT_COMPONENT_IDS
@@ -223,6 +225,8 @@ def _parse_template_call(
 def _literal_value(node: ast.AST, depth: int) -> Any:
     if depth > MAX_NESTING_DEPTH:
         raise TerselConversionError("CardPlan literal nesting exceeds 32 levels.")
+    if isinstance(node, ast.Call):
+        return data_argument_from_ast(node)
     if isinstance(node, ast.Constant):
         if isinstance(node.value, str) and len(node.value) > MAX_STRING_LENGTH:
             raise TerselConversionError("CardPlan string exceeds the size limit.")
@@ -258,6 +262,10 @@ def _literal_value(node: ast.AST, depth: int) -> Any:
 
 def _python_compatible_source(source: str) -> str:
     try:
+        source = translate_runtime_expressions(source)
+    except ValueError as exc:
+        raise TerselConversionError(str(exc)) from exc
+    try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
     except tokenize.TokenError as exc:
         raise TerselConversionError(
@@ -268,6 +276,12 @@ def _python_compatible_source(source: str) -> str:
     for index, token in enumerate(tokens):
         value = literals.get(token.string, token.string)
         token_type = token.type
+        if token.string == "$" and index + 1 < len(tokens):
+            following = tokens[index + 1]
+            if following.string == "path" and token.end == following.start:
+                value = "_CardPlanData"
+        if token.string == "path" and index > 0 and tokens[index - 1].string == "$":
+            value = "Path"
         if token.type == tokenize.NAME and _next_token_is_colon(tokens, index):
             value = repr(token.string)
             token_type = tokenize.STRING

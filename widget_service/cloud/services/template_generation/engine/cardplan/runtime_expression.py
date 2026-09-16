@@ -10,6 +10,9 @@ from .models import TemplateValue
 
 _EXPR_CALL = re.compile(r"(?<![\w.$#])Expr\s*\(")
 _DATA_REFERENCE = re.compile(r"data\.([A-Za-z_][A-Za-z0-9_]*)")
+_DATA_PATH_REFERENCE = re.compile(
+    r"data\.([A-Za-z_][A-Za-z0-9_]*(?:(?:\.[A-Za-z_][A-Za-z0-9_]*)|(?:\.[0-9]+))*)"
+)
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _CLOSERS = {"(": ")", "[": "]", "{": "}"}
 
@@ -81,9 +84,10 @@ def _call_end(source: str, opening: int) -> int:
     raise ValueError("Provider Template Expr call is not closed")
 
 
-def parse_runtime_expression(source: str) -> TemplateValue:
+def parse_runtime_expression(source: str, *, allow_data_paths: bool = False) -> TemplateValue:
     """将受限 JS 表达式转为已有的 literal/binding IR 并复用 A2UI 语法校验。"""
     parts: list[TemplateValue] = []
+    data_reference = _DATA_PATH_REFERENCE if allow_data_paths else _DATA_REFERENCE
     index = 0
     while index < len(source):
         char = source[index]
@@ -95,7 +99,7 @@ def parse_runtime_expression(source: str) -> TemplateValue:
             template_parts, index = _read_template(source, index)
             parts.extend(template_parts)
             continue
-        reference = _DATA_REFERENCE.match(source, index)
+        reference = data_reference.match(source, index)
         if reference is not None:
             parts.append(TemplateValue(kind="binding", name=reference.group(1)))
             index = reference.end()

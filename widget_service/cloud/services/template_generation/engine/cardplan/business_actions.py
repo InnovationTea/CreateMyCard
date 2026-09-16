@@ -21,6 +21,8 @@ def supports_business_action(
     definition: TemplateDefinition,
     action: ActionBinding,
     card_size: str,
+    *,
+    display_paths: tuple[str, ...] = (),
 ) -> bool:
     """只检查可信事件与模板的关联；事件 call/args 的注册校验仍由原入口负责。"""
     if action.event_id not in definition.supported_event_ids:
@@ -33,10 +35,12 @@ def supports_business_action(
         if "actionId" in properties:
             accepts_action = True
             break
-    return accepts_action and _matches_business_data(definition, action)
+    return accepts_action and _matches_business_data(definition, action, display_paths)
 
 
-def _matches_business_data(definition: TemplateDefinition, action: ActionBinding) -> bool:
+def _matches_business_data(
+    definition: TemplateDefinition, action: ActionBinding, display_paths: tuple[str, ...],
+) -> bool:
     if action.event_id == "event.open.weather":
         if definition.data_domain is None:
             return False
@@ -49,8 +53,11 @@ def _matches_business_data(definition: TemplateDefinition, action: ActionBinding
         return False
     field, argument = calendar_argument
     event_paths: set[str] = set()
-    for binding in definition.bindings.values():
-        parts = binding.path.split("/")
+    paths = tuple(binding.path for binding in definition.bindings.values())
+    if definition.data_parameters_schema:
+        paths = display_paths
+    for path in paths:
+        parts = path.split("/")
         if len(parts) >= 4 and parts[1] == "events" and parts[2].isdigit():
             event_paths.add(f"{definition.data_domain}/events/{parts[2]}/{field}")
     if len(event_paths) != 1:

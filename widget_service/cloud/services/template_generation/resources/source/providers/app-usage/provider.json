@@ -94,8 +94,14 @@
     },
     {
       "templateId": "AppUsageOverviewSupport@1",
-      "supportedEventIds": ["event.open.settings.parentControl"],
-      "assetParameterSemanticTags": { "appIcon": ["app-icon"] },
+      "supportedEventIds": [
+        "event.open.settings.parentControl"
+      ],
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app-icon"
+        ]
+      },
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，展示应用名称和时长。组件形态：support。可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -106,6 +112,183 @@
         "/appUsage/durationText"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralTextFull@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralTextHero@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralTextCompact@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralTextSupport@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.parentControl"
+      ]
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralNumberFull@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralNumberHero@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralNumberCompact@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralNumberSupport@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.parentControl"
+      ]
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralPairFull@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralPairHero@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralPairCompact@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      }
+    },
+    {
+      "templateId": "AppUsageOverviewGeneralPairSupport@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "AppUsageOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "appIcon": [
+          "app"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.parentControl"
+      ]
     }
   ],
   "compatibility": {
