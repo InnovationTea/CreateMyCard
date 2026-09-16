@@ -25,6 +25,55 @@ _REFERENCE_CANVAS_HEIGHT = {
     "2x4": 160.0,
     "4x2": 160.0,
 }
+_NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
+_COMMON_DISPLAY_UNITS = frozenset(
+    {
+        "%",
+        "°C",
+        "℃",
+        "°F",
+        "天",
+        "小时",
+        "分钟",
+        "分",
+        "秒",
+        "毫秒",
+        "步",
+        "次",
+        "件",
+        "个",
+        "条",
+        "项",
+        "人",
+        "级",
+        "公里",
+        "千米",
+        "米",
+        "厘米",
+        "毫米",
+        "km",
+        "m",
+        "cm",
+        "mm",
+        "kg",
+        "g",
+        "mg",
+        "kcal",
+        "千卡",
+        "cal",
+        "mL",
+        "ml",
+        "L",
+        "A",
+        "mA",
+        "V",
+        "W",
+        "kW",
+        "kWh",
+        "bpm",
+        "次/分钟",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +110,7 @@ def validate_compact_dsl(
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
+    _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
     for component in components:
         location = f"component {component.component_id}.props"
@@ -100,6 +150,106 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _collect_hero_value_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return
+
+    numeric_paths: dict[str, str | None] = {}
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is None or font_size <= 18:
+            continue
+        path = _pure_numeric_binding_path(
+            component.props.get("content"),
+            data_model_schema,
+        )
+        numeric_paths[component.component_id] = path
+        if path is not None:
+            continue
+        errors.append(
+            f"component {component.component_id}: fontSize {_format_vp(font_size)} "
+            "is reserved for a pure number/integer value. Text, formatted values, "
+            "names, dates, times, and statuses must use at most 18fp on their own line."
+        )
+
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        for index, child_id in enumerate(component.children[:-1]):
+            if child_id not in numeric_paths:
+                continue
+            numeric_path = numeric_paths[child_id]
+            suffix = components_by_id.get(component.children[index + 1])
+            if suffix is None or suffix.component_type != "Text":
+                continue
+            content = suffix.props.get("content")
+            if _is_allowed_display_unit(
+                content,
+                numeric_path or "",
+                data_model_schema,
+            ):
+                continue
+            value_source = numeric_path or "the preceding value"
+            errors.append(
+                f"component {component.component_id}: Text {suffix.component_id} "
+                f"after the large numeric value must contain only a real unit for "
+                f"{value_source}. Move labels or descriptions to a separate line."
+            )
+
+
+def _pure_numeric_binding_path(
+    content: Any,
+    data_model_schema: dict[str, Any],
+) -> str | None:
+    path: str | None = None
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        path = candidate if isinstance(candidate, str) else None
+    elif isinstance(content, str):
+        match = _EXPRESSION_PATTERN.fullmatch(content.strip())
+        if match is not None:
+            reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
+            if reference is not None:
+                path = reference.group("path").strip()
+        elif re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
+            return ""
+    if path is None:
+        return None
+    schema_node = _schema_node_at_path(data_model_schema, path)
+    if _schema_type(schema_node) not in _NUMERIC_SCHEMA_TYPES:
+        return None
+    return path
+
+
+def _is_allowed_display_unit(
+    content: Any,
+    numeric_path: str,
+    data_model_schema: dict[str, Any],
+) -> bool:
+    if not isinstance(content, str):
+        return False
+    unit = content.strip()
+    if not unit:
+        return False
+    if unit in _COMMON_DISPLAY_UNITS:
+        return True
+    schema_node = _schema_node_at_path(data_model_schema, numeric_path)
+    if not isinstance(schema_node, dict):
+        return False
+    description = schema_node.get("description")
+    return isinstance(description, str) and unit in description
 
 
 def _collect_layout_route_errors(
