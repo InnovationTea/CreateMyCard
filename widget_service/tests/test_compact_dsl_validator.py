@@ -109,3 +109,86 @@ def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
     assert "64 + 40 + 36 + 8 × 2 = 156 > 136" in prompt
     assert "itemMargin 不生效" not in prompt
     assert "两者可以同时设置" in prompt
+
+
+def test_rejects_large_string_value_and_fake_inline_unit() -> None:
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{"width":160,"height":160},["value_row"]]',
+            '["value_row","Row",{"width":136},["value_num","value_unit"]]',
+            '["value_num","Text",{"content":{"path":'
+            '"/data/calendar/events/0/title"},"fontSize":30}]',
+            '["value_unit","Text",{"content":"最近安排","fontSize":12}]',
+            '["/data/calendar/events/0/title","项目例会"]',
+        ]
+    )
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": {
+                                "type": "string",
+                                "description": "日程标题",
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "assetCandidates": [],
+        "eventCandidates": [],
+    }
+
+    with pytest.raises(CompactDslValidationError) as raised:
+        validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+    assert any(
+        "reserved for a pure number/integer value" in error
+        for error in raised.value.errors
+    )
+    assert any(
+        "must contain only a real unit" in error
+        for error in raised.value.errors
+    )
+
+
+def test_accepts_large_numeric_value_with_real_inline_unit() -> None:
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{"width":160,"height":160},["value_row"]]',
+            '["value_row","Row",{"width":136},["value_num","value_unit"]]',
+            '["value_num","Text",{"content":{"path":'
+            '"/data/healthSport/dailySteps"},"fontSize":30}]',
+            '["value_unit","Text",{"content":"步","fontSize":12}]',
+            '["/data/healthSport/dailySteps",6200]',
+        ]
+    )
+
+    result = validate_compact_dsl(
+        compact_dsl,
+        task_spec={
+            "size": "2x2",
+            "dataModelSchema": {
+                "data": {
+                    "healthSport": {
+                        "dailySteps": {
+                            "type": "integer",
+                            "description": "全天累计步数",
+                        }
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    assert result.warnings == ()
