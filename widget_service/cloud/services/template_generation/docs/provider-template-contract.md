@@ -317,6 +317,8 @@ Column({"width": "matchParent", "itemMargin": 4},
   A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
   文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
+- `#Template` 的参数声明可以跨行，缩进和换行不改变参数契约；开发用格式化命令见
+  [文档中心的 CardTpl 格式化说明](README.md#cardtpl-格式化)。
 
 编译期多分支示例（可选字段须事先通过 `$optionalPath` 声明）：
 

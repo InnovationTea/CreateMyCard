@@ -679,24 +679,32 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
     blocks: dict[str, tuple[str, str]] = {}
     index = 0
     header_re = re.compile(
-        r"^\s*#Template\s+([A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*)\((.*)\)\s*$"
+        r"^\s*#Template\s+([A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*)\(([^()]*)\)\s*$",
+        re.S,
     )
     while index < len(lines):
         if not lines[index].strip():
             index += 1
             continue
-        match = header_re.fullmatch(lines[index])
+        header_end = index
+        header_lines = [lines[index]]
+        while not header_lines[-1].rstrip().endswith(")"):
+            header_end += 1
+            if header_end >= len(lines) or lines[header_end].lstrip().startswith("#"):
+                raise ValueError(f"expected UI #Template declaration at line {index + 1}")
+            header_lines.append(lines[header_end])
+        match = header_re.fullmatch("\n".join(header_lines))
         if match is None:
             raise ValueError(f"expected UI #Template declaration at line {index + 1}")
         wire_id, signature = match.groups()
         if wire_id in blocks:
             raise ValueError(f"duplicate Provider Template block: {wire_id}")
-        end = index + 1
+        end = header_end + 1
         while end < len(lines) and lines[end].strip() != "#End":
             end += 1
         if end == len(lines):
             raise ValueError(f"Provider Template is not closed: {wire_id}")
-        body_lines = lines[slice(index + 1, end)]
+        body_lines = lines[slice(header_end + 1, end)]
         blocks[wire_id] = (signature.strip(), "\n".join(body_lines).strip())
         index = end + 1
     try:
@@ -708,7 +716,7 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
 def _ui_template_signature(
     signature: str,
 ) -> _UiTemplateSignature:
-    match = re.fullmatch(r"props\s*:\s*\{(.*)\}\s*(,\s*\.\.\.children\s*)?", signature)
+    match = re.fullmatch(r"props\s*:\s*\{(.*)\}\s*(,\s*\.\.\.children\s*)?", signature, re.S)
     if match is None:
         raise ValueError("Provider Template signature must declare props and optional ...children")
     props_source, raw_children = match.groups()
