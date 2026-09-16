@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "9026054f28959b148f289e44a75687e0fc5b1f5b1aefeac6d3cbd1e8d1e90d2b",
-      "response": "{\"themeId\":\"fusion-sport-orange\",\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseDurationText\",\"/exerciseHeartRateAvg\"]},\"action\":[\"event.open.health.sport\"]}"
-    }
-  ]
-}

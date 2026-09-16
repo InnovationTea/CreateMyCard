@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "9f4907d57f53c73d8d7c32400aa648054aebdc9bf6111db3dec2510f314ec7cc",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/districtName\",\"/daily/4/airQuality\",\"/daily/4/uvIndex\",\"/daily/4/coldLevel\"]}}"
-    }
-  ]
-}

@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "2369ced3ddc874495d3a432eec86ae3920fabbef4179ec5c5e4ad33f8256ba7b",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/targetDateText\",\"/exerciseTypeName\",\"/exerciseHeartRateMin\"]},\"action\":[\"event.open.music.favorite\"]}"
-    }
-  ]
-}

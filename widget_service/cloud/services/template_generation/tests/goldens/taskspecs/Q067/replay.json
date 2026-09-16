@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "8d9bb6d3028ed668ba6585805e9c8e498372b4f354ef444ace6f2de9b7173411",
-      "response": "{\"themeId\": \"fusion-schedule-cool\", \"requiredOutputFieldsByCapability\": {\"GetCalendarEvents\": [\"/events/0/dtStart\", \"/events/0/eventLocation\", \"/events/0/remindTime/0\"]}, \"action\": [\"event.startNavigate\"]}"
-    }
-  ]
-}

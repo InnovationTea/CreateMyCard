@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "f757453365a7dbeffaefbf96bcf90ab6bc3a7137402a31494f5ed3e8a300242c",
-      "response": "{\"themeId\":\"fusion-battery-teal\",\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyDistanceText\",\"/dailyTotalCaloriesText\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/batteryTemperatureText\"]},\"action\":[\"event.setPowerSavingMode\"]}"
-    }
-  ]
-}

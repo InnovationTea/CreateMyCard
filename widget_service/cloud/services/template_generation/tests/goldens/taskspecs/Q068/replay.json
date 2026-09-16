@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "b86e8ba53d8e1e8fb184bae4c11446183264df3bbff06cfc7cfedfe0889a56a2",
-      "response": "{\n  \"themeId\": \"fusion-schedule-cool\",\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCountdownDays\": [\n      \"/countdownDays\"\n    ],\n    \"GetCalendarEvents\": [\n      \"/eventCount\",\n      \"/events/0/title\",\n      \"/events/0/dtStart\",\n      \"/events/1/title\",\n      \"/events/1/dtStart\"\n    ]\n  },\n  \"action\": [\n    \"event.viewCalendarEvent\"\n  ]\n}"
-    }
-  ]
-}

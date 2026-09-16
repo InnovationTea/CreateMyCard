@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "6d052920221985686d54631b90cbbaf17c19d64f21d64bbca3f7a34ad19f2d81",
-      "response": "{\"themeId\": \"fusion-battery-teal\", \"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/current/windLevel\", \"/daily/0/rainProbabilityPercent\"], \"GetEarphoneInfo\": [\"/isConnected\", \"/batteryLevel\"]}, \"action\": [\"event.open.music.favorite\"]}"
-    }
-  ]
-}
