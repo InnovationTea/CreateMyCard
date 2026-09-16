@@ -207,6 +207,12 @@ def _resolve_argument(
         errors = list(Draft202012Validator(schema).iter_errors(argument))
         if errors:
             raise TerselConversionError(f"Template data type mismatch: {errors[0].message}")
+        if isinstance(argument, str) and re.match(r"\s*(?:\$path|Expr)\s*\(", argument):
+            raise TerselConversionError(
+                "Template data cannot quote a $path or Expr call. Remove the outer quotes; "
+                'use mainTextValue: $path("/approved/path") or '
+                "mainNumberValue: Expr('' + data.approvedNumber), never string literals."
+            )
         if isinstance(argument, str) and any(token in argument for token in ("${", "{{", "}}")):
             raise TerselConversionError("Template literal data cannot contain binding syntax")
         if isinstance(argument, float) and not math.isfinite(argument):
@@ -216,7 +222,10 @@ def _resolve_argument(
 
 
 def _resolve_expression(source: str, paths: dict[str, str], root: str) -> str:
-    expression = parse_runtime_expression(source, allow_data_paths=True)
+    try:
+        expression = parse_runtime_expression(source, allow_data_paths=True)
+    except ValueError as exc:
+        raise TerselConversionError(f"Template data Expr is invalid: {exc}") from exc
     parts: list[str] = []
     for item in expression.items:
         if item.kind == "binding":

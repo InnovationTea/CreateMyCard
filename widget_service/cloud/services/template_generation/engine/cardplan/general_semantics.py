@@ -232,4 +232,7 @@ def validate_general_focus(
             referenced.update(normalize_wrapped_expression(value).references)
     domain = definition.data_domain or ""
     if any(domain + field not in referenced for field in required):
-        raise TerselConversionError("General main value must display the requested primary field")
+        raise TerselConversionError(
+            "General main value must display the requested primary field: "
+            f"{sorted(required)}. Use unquoted $path(...) or Expr(...) calls, not string literals."
+        )

@@ -446,3 +446,38 @@ def test_general_calendar_support_action_matches_displayed_event(
     assert supports_business_action(
         definition, action, "2x2", display_paths=display_paths,
     ) is accepted
+
+
+@pytest.mark.parametrize("expression", [
+    'data.events[0].remindTime[0] + "分钟"',
+    'data.events.0.remindTime.0 + "分钟"',
+    '`提前${data.events[0].remindTime[0]}分钟`',
+])
+def test_general_expression_preserves_approved_array_indices(expression: str) -> None:
+    schema = {"type": "object", "properties": {"value": {"type": "string"}}}
+    result = resolve_data_arguments(
+        schema, {"value": DataExpressionArgument(expression)},
+        {"/events/0/remindTime/0": "integer"}, "/data/calendar",
+    )
+    assert "/data/calendar/events/0/remindTime/0" in result.get("value", "")
+
+
+@pytest.mark.parametrize("expression", [
+    'data.events[1].remindTime[0] + "分钟"',
+    'data.events[index].remindTime[0] + "分钟"',
+    'data.events[0].undeclared + "分钟"',
+])
+def test_general_expression_rejects_unapproved_array_indices(expression: str) -> None:
+    schema = {"type": "object", "properties": {"value": {"type": "string"}}}
+    with pytest.raises(TerselConversionError):
+        resolve_data_arguments(
+            schema, {"value": DataExpressionArgument(expression)},
+            {"/events/0/remindTime/0": "integer"}, "/data/calendar",
+        )
+
+
+@pytest.mark.parametrize("value", ['$path("/value")', "Expr('' + data.value)"])
+def test_quoted_data_call_is_reported_as_repairable_error(value: str) -> None:
+    schema = {"type": "object", "properties": {"value": {"type": "string"}}}
+    with pytest.raises(TerselConversionError, match="Remove the outer quotes"):
+        resolve_data_arguments(schema, {"value": value}, {"/value": "string"}, "/data/test")

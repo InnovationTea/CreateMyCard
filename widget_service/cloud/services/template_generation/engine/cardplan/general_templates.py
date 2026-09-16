@@ -89,10 +89,16 @@ def general_prompt_contract(
         "dataSources": sources,
         "dataRules": (
             "data 接受纯数据、$path(相对路径) 或 Expr(表达式)。路径只能来自 dataSources；"
+            "$path(...) 和 Expr(...) 是调用，必须直接输出，不能用引号包成字符串；"
+            "例如 mainTextValue: $path(\"/已批准字段\")，不能写成 mainTextValue: \"$path(...)\"。"
             "Expr 用 data.xxx 引用相对路径，或唯一的叶字段名。"
             "用户要求的动态字段必须通过路径或表达式显示，不得用样例值替换；"
             "所有 coveredExplicitFields 必须出现在最终 UI。"
-            "数字字段用于字符串槽时用 Expr('标签' + data.xxx + '单位')。"
+            "数字字段用于字符串槽时用 Expr(data.xxx + '单位')；"
+            "unitIncluded=true 的字符串已带单位，直接 $path(...)，不得再次追加单位。"
+            "数组字段使用完整路径，如 Expr(data.events[0].countdownDays + '天')。"
+            "无单位数字转文字可用 Expr('' + data.xxx)，不得直接把数值 $path 放入字符串槽。"
+            "Number 主值不拼接标签，文字主值和辅助信息可以拼接名称。"
             "supportValues 必须是本轮有限参数数组，不是运行时数组路径。"
             "data 外的字段仍按 propsSchema 填写，省略未提供的可选 Props。"
         ),

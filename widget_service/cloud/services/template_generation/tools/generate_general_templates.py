@@ -167,7 +167,7 @@ def _text(
     *,
     primary: bool = True,
     lines: int = 1,
-    align: str = "left",
+    align: str = "start",
     weight: int | None = None,
 ) -> str:
     color = "primaryColor" if primary else "supportContentColor"
@@ -235,15 +235,17 @@ def _pair_body(style: dict[str, Any], shape: str) -> str:
 def _single_body(style: dict[str, Any], shape: str, kind: str) -> str:
     value_name = "mainNumberValue" if kind == "Number" else "mainTextValue"
     size = int(style.get("number" if kind == "Number" else "text", 20))
-    size = min(size, 32) if shape == "Hero" else size
-    align = "center" if style.get("align") == "center" else "left"
+    hero_max = 20 if style.get("meter") == "linear" and kind == "Number" else 24
+    size = min(size, hero_max) if shape == "Hero" else size
+    align = "center" if style.get("align") == "center" else "start"
     lines = 2 if kind == "Text" and shape == "Full" and size <= 20 else 1
     value = _text(f"data.{value_name}", size, (size + 8) * lines, lines=lines, align=align)
-    label = _text("data.mainLabel", 12, 16, primary=False, align=align)
+    linear_hero = shape == "Hero" and kind == "Number" and style.get("meter") == "linear"
+    label = _text("data.mainLabel", 12, 12 if linear_hero else 16, primary=False, align=align)
     if kind == "Number" and style.get("meter"):
         meter = style.get("meter")
         if meter == "ring":
-            height = 52 if shape == "Full" else 44
+            height = 52 if shape == "Full" else 32
             ring_text = _text(f"data.{value_name}", 16, 24, align="center")
             chart = (
                 f'Stack({{"width": "matchParent", "height": {height}, "alignContent": "center"}},\n'
@@ -256,12 +258,13 @@ def _single_body(style: dict[str, Any], shape: str, kind: str) -> str:
         else:
             value += (
                 ",\n#if data.progressValue\n"
-                'Progress({"value": data.progressValue, "total": 100, "height": 12, '
+                'Progress({"value": data.progressValue, "total": 100, '
+                f'"height": {8 if linear_hero else 12}, '
                 '"width": "matchParent", "strokeWidth": 8, "color": $theme(\'progressColor\'), '
                 "\"backgroundColor\": $theme('progressBackgroundColor')})\n#endif"
             )
     return _column(
-        value + ",\n#if data.mainLabel\n" + label + "\n#endif",
+        "#if data.mainLabel\n" + label + "\n#endif\n" + value,
         align=str(style.get("align", "start")),
     )
 

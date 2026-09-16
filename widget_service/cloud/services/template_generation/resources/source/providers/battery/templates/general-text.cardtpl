@@ -5,19 +5,19 @@ Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constrain
 Image(props.batteryIcon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
 #endif
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 )
 ),
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "center", "clip": true, "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.mainTextValue, {"width": "matchParent", "height": 56, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 2, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
 #if data.mainLabel
 Text(data.mainLabel, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
+Text(data.mainTextValue, {"width": "matchParent", "height": 56, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 2, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 ),
 #if data.supportValues.size == 1
-Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #elseif data.supportValues.size == 2
-Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 )
 #End
@@ -29,19 +29,19 @@ Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constrain
 Image(props.batteryIcon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
 #endif
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 )
 ),
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "center", "clip": true, "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.mainTextValue, {"width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
 #if data.mainLabel
 Text(data.mainLabel, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
+Text(data.mainTextValue, {"width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 ),
 #if data.supportValues.size == 1
-Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #elseif data.supportValues.size == 2
-Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 )
 #End
@@ -51,22 +51,22 @@ Column({"_advancedComponent": "BatteryOverview", "width": "matchParent", "height
 Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
 #if data.mainLabel
-Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #else
-Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 ),
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.mainTextValue, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.mainTextValue, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 ),
 #if props.batteryIcon
 Image(props.batteryIcon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
 #endif
 ),
 #if data.supportValues.size == 1
-Text(data.supportValues[0], {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.supportValues[0], {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #elseif data.supportValues.size == 2
-Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 )
 #End
@@ -76,22 +76,22 @@ Column({"_advancedComponent": "BatteryOverview", "width": "matchParent", "height
 Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
 #if data.mainLabel
-Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #else
-Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 ),
 Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-Text(data.mainTextValue, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.mainTextValue, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 ),
 #if props.batteryIcon
 Image(props.batteryIcon, {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
 #endif
 ),
 #if data.supportValues.size == 1
-Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #elseif data.supportValues.size == 2
-Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "left", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
 #endif
 )
 #End

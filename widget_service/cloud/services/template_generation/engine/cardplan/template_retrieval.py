@@ -517,9 +517,16 @@ def restrict_query_to_preferred_templates(
         if record.template_id not in preferred_ids:
             continue
         matched_ids.add(record.template_id)
-        available_paths_by_capability.setdefault(record.capability_id, set()).update(
-            record.available_paths
-        )
+        available = available_paths_by_capability.setdefault(record.capability_id, set())
+        if record.fallback_only:
+            from .general_semantics import general_field_is_allowed
+
+            definition = registry.require_template(record.template_id)
+            for path in query.required_output_fields_by_capability.get(record.capability_id, ()):
+                if general_field_is_allowed(definition, path):
+                    available.add(path)
+        else:
+            available.update(record.available_paths)
     if matched_ids != preferred_ids:
         raise TemplateRetrievalMiss("trusted template candidate is outside Search records")
     required_fields = {

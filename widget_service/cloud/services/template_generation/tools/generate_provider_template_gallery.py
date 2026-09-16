@@ -31,6 +31,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
+        "--include-general-templates", action="store_true",
+        help="追加通用模板独立页签，遵守专用候选优先规则",
+    )
+    parser.add_argument(
         "--include-template-examples", action="store_true",
         help="追加模版场景示例页签的八个演示需求，不改变默认画廊矩阵",
     )
@@ -76,6 +80,12 @@ async def run(args: argparse.Namespace) -> int:
                 f"画廊模拟输入已生成：Provider={len(manifest.providers)}，"
                 f"用例={case_count}"
             )
+        if args.include_general_templates:
+            from services.template_generation.test_support.general_gallery import (
+                append_general_templates,
+            )
+
+            append_general_templates(input_root)
         if args.include_template_examples:
             from services.template_generation.test_support.template_examples import (
                 append_template_examples,

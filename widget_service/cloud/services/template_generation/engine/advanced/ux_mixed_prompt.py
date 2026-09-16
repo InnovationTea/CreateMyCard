@@ -252,6 +252,12 @@ def build_ux_mixed_prompt(
     has_weather = any(component.name == "WeatherOverview" for component in components)
     weather_builtin_assets = _weather_builtin_assets_for_components(components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
+    heart_rate_ids = candidate_ids_by_component.get("HeartRateOverview", ())
+    has_fixed_heart_rate = any(
+        registry.require_template(template_id).business_id == "HeartRateOverview"
+        and not registry.require_template(template_id).data_parameters_schema
+        for template_id in heart_rate_ids
+    )
     effective_required_template_groups = tuple(
         _required_template_group(group, base.requested_template_ids)
         for group in effective_required_template_groups
@@ -296,7 +302,7 @@ def build_ux_mixed_prompt(
             protected_literals = tuple(
                 item for item in protected_literals if item not in server_owned_weather_literals
             )
-    if has_heart_rate:
+    if has_heart_rate and (has_fixed_heart_rate or "HeartRateOverview" in direct_components):
         heart_rate_facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
         if heart_rate_facts is None:
             raise ValueError("HeartRateOverview has no trusted exercise heart-rate facts")
