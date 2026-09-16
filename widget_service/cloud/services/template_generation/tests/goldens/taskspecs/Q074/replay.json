@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "657d4349bc02c3ab704ef7ea53598f10ef60cc018242aa429feb0519cdefde82",
-      "response": "{\"themeId\":\"fusion-weather-blue\",\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/feelsLikeC\",\"/current/windLevel\",\"/current/alertLevel\",\"/current/coldLevel\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"action\":[\"event.open.weather\",\"event.open.settings.battery\"]}"
-    }
-  ]
-}

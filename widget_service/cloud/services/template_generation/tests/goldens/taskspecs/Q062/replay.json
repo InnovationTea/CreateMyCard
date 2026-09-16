@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "f5e87ee508ac70f42b41f484cf1eed992726b740740f77d14ec4745bba730a4c",
-      "response": "{\"themeId\":\"fusion-weather-blue\",\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/feelsLikeC\",\"/current/alertLevel\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\"]},\"action\":[\"event.startNavigate\"]}"
-    }
-  ]
-}

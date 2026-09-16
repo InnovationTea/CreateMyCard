@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "f7faa42fb99fa5a729b75ca0b60243655d1a0b69e90553bfbde8b7485aa9b70d",
-      "response": "{\"themeId\": \"fusion-weather-blue\", \"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/current/condition\", \"/current/temperatureC\"], \"GetCalendarEvents\": [\"/events/0/dtStart\", \"/events/0/eventLocation\"]}, \"action\": [\"event.open.weather\"]}"
-    }
-  ]
-}

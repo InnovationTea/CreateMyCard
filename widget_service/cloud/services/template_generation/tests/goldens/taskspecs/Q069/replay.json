@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "54a6648665c5b350608471c0d04428337e3a544b4d07b373bc3d427d477e661b",
-      "response": "{\"themeId\": \"fusion-sleep-violet\", \"requiredOutputFieldsByCapability\": {\"GetHealthAndSportSummary\": [\"/sleepScore\", \"/sleepStatus\", \"/deepSleepDurationText\", \"/totalNapDurationText\", \"/nightSleepDurationText\"]}, \"action\": []}"
-    }
-  ]
-}

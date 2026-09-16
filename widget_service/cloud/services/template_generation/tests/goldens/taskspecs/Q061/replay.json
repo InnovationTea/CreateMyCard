@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "f9516232d9ce53b1a9828c8fbf0ec7bb89dcb838d65532631006dc73eb7e5189",
-      "response": "{\"themeId\": \"fusion-weather-blue\", \"requiredOutputFieldsByCapability\": {\"GetHealthAndSportSummary\": [\"/totalNapDurationText\", \"/dailySteps\"], \"ViewWeather\": [\"/current/feelsLikeC\", \"/current/alertLevel\"]}, \"action\": [\"event.open.weather\", \"event.open.health.sport\"]}"
-    }
-  ]
-}

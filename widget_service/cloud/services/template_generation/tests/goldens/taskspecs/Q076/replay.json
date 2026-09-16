@@ -1,8 +1,0 @@
-{
-  "recordings": [
-    {
-      "key": "35240c166283e1ed961c15492ae403c692ac3d8b7407704c6ed46440a01ba79b",
-      "response": "{\"themeId\":\"fusion-weather-blue\",\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/temperatureText\",\"/current/humidityPercent\",\"/current/windDirection\",\"/current/windLevel\",\"/current/alertLevel\"],\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\"]},\"action\":[\"event.open.weather\"]}"
-    }
-  ]
-}
