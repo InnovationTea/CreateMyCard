@@ -1,0 +1,101 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个耳机卡片，看看耳机连上没、叫什么名字，能直接打开收藏歌单。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName"
+        ]
+      }
+    ],
+    "title": "耳机听歌入口",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.favorite",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          }
+        }
+      }
+    ],
+    "description": "耳机连接+收藏歌单",
+    "candidateAssetIds": [
+      "asset.icon_earphone",
+      "asset.music_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "031",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个耳机卡片，看看耳机连上没、叫什么名字，能直接打开收藏歌单。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个耳机卡片，看看耳机连上没、叫什么名字，能直接打开收藏歌单。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName"
+      ]
+    }
+  ],
+  "title": "耳机听歌入口",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.favorite",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      }
+    }
+  ],
+  "description": "耳机连接+收藏歌单",
+  "candidateAssetIds": [
+    "asset.icon_earphone",
+    "asset.music_fill"
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFF0E6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1",
+              "template_root_0_0_2"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0",
+            "itemMargin": 8,
+            "styles": {
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0_0"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "top",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "心率监测",
+            "id": "template_root_0_0_0_0",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_1_0"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0_1",
+            "styles": {
+              "alignItems": "bottom",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '' + ${/data/healthSport/exerciseHeartRateMin} + '/' + ${/data/healthSport/exerciseHeartRateMax} }}",
+            "id": "template_root_0_0_1_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF99521F",
+              "fontSize": 34,
+              "fontWeight": 700,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "每分钟心率区间",
+            "id": "template_root_0_0_2",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1",
+            "itemMargin": 4,
+            "styles": {
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/updatedAt} }}",
+            "id": "template_root_0_1_0_0",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "更新",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "healthSport": {
+              "exerciseHeartRateMax": 168,
+              "exerciseHeartRateMin": 112,
+              "updatedAt": "今天 09:00"
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "HeartRateOverview",
+    "capabilityId": "GetHealthAndSportSummary",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.health-sport.cli",
+    "size": "2x2"
+  },
+  "templateId": "HeartRateOverviewMinMaxFull@1"
+}

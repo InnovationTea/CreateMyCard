@@ -1,0 +1,727 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ],
+      "description": "手机电量+耳机仓左右耳+歌单",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "耳机续航歌单"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.battery_leaf_fill",
+        "asset.icon_earphone",
+        "asset.earphone_case_16644",
+        "asset.music_fill"
+      ],
+      "data": [
+        "GetPhoneBatteryInfo",
+        "GetEarphoneInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开音乐应用的“每日30首”歌单。",
+          "id": "event.open.music.daily"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.battery_leaf_fill",
+        "asset.icon_earphone",
+        "asset.earphone_case_16644",
+        "asset.music_fill"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batterySOCText"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/isConnected",
+            "/batteryLevel",
+            "/leftBatteryLevel",
+            "/rightBatteryLevel"
+          ],
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "",
+              "bundleName": "",
+              "intentName": "Music",
+              "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.music.daily"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Column",
+              "id": "root",
+              "itemMargin": 8,
+              "styles": {
+                "backgroundColor": "#FF17734C",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF17734C",
+                      0
+                    ],
+                    [
+                      "#FF26BFA6",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0",
+                "template_root_1"
+              ],
+              "component": "Column",
+              "id": "template_root",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0"
+              ],
+              "component": "Column",
+              "id": "template_root_0",
+              "styles": {
+                "height": 64,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_0",
+                "template_root_0_0_1",
+                "template_root_0_0_2"
+              ],
+              "component": "Row",
+              "id": "template_root_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_0_0",
+                "template_root_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "template_root_0_0_0",
+              "itemMargin": 12,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": 8
+              }
+            },
+            {
+              "component": "Image",
+              "id": "template_root_0_0_0_0",
+              "src": "resources/base/media/earphone_case_16644.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_0_1_0",
+                "template_root_0_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/earphone/batteryLevel} + '%' }}",
+              "id": "template_root_0_0_0_1_0",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "耳机仓",
+              "id": "template_root_0_0_0_1_1",
+              "styles": {
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_1_0",
+                "template_root_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "template_root_0_0_1",
+              "itemMargin": 12,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": 8
+              }
+            },
+            {
+              "component": "Image",
+              "id": "template_root_0_0_1_0",
+              "src": "resources/base/media/icon_earphone.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_1_1_0",
+                "template_root_0_0_1_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_0_1_1",
+              "itemMargin": 2,
+              "styles": {
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/earphone/leftBatteryLevel} + '%' }}",
+              "id": "template_root_0_0_1_1_0",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "左耳机",
+              "id": "template_root_0_0_1_1_1",
+              "styles": {
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_2_0",
+                "template_root_0_0_2_1"
+              ],
+              "component": "Row",
+              "id": "template_root_0_0_2",
+              "itemMargin": 12,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": 8
+              }
+            },
+            {
+              "component": "Image",
+              "id": "template_root_0_0_2_0",
+              "src": "resources/base/media/icon_earphone.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_2_1_0",
+                "template_root_0_0_2_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_0_2_1",
+              "itemMargin": 2,
+              "styles": {
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/earphone/rightBatteryLevel} + '%' }}",
+              "id": "template_root_0_0_2_1_0",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "右耳机",
+              "id": "template_root_0_0_2_1_1",
+              "styles": {
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_0",
+                "template_root_1_1"
+              ],
+              "component": "Row",
+              "id": "template_root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": 64,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "template_root_1_0",
+              "styles": {
+                "height": 64,
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "template_root_1_0_0_0",
+                "template_root_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "template_root_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 16,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_0_0_0_0",
+                "template_root_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "template_root_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batterySOCText} }}",
+              "id": "template_root_1_0_0_0_0",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "height": 27,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "手机",
+              "id": "template_root_1_0_0_0_1",
+              "styles": {
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_0_0_1_0",
+                "template_root_1_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_1_0_0_1",
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#FFCCFFF6",
+                "borderRadius": 3,
+                "flexShrink": 0,
+                "height": 28,
+                "justifyContent": "spaceBetween",
+                "padding": 2,
+                "width": 18
+              }
+            },
+            {
+              "component": "Text",
+              "content": " ",
+              "id": "template_root_1_0_0_1_0",
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 1,
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 8,
+                "height": 19,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": " ",
+              "id": "template_root_1_0_0_1_1",
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 1,
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 8,
+                "height": 2,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": 6
+              }
+            },
+            {
+              "children": [
+                "template_root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "template_root_1_1",
+              "styles": {
+                "height": 64,
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "template_root_1_1_0_0"
+              ],
+              "component": "Stack",
+              "id": "template_root_1_1_0",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "",
+                    "bundleName": "",
+                    "intentName": "Music",
+                    "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_1_0_0_0",
+                "template_root_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "template_root_1_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "padding": 8,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_1_1_0_0_0_0",
+                "template_root_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "template_root_1_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "30 首",
+              "id": "template_root_1_1_0_0_0_0",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "height": 22,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "每日推荐",
+              "id": "template_root_1_1_0_0_0_1",
+              "styles": {
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "template_root_1_1_0_0_1",
+              "src": "resources/base/media/music_fill.svg",
+              "styles": {
+                "fillColor": "#FFCCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "earphone": {
+                "batteryLevel": 80,
+                "isConnected": true,
+                "leftBatteryLevel": 76,
+                "rightBatteryLevel": 78
+              },
+              "phoneBattery": {
+                "batterySOCText": "68%"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色左右分体式开放耳机，局部通过镂空表现高光与分隔，支持通过 fillColor 与卡片配色统一；适用：无线耳机本体、耳机连接、左右耳设备状态。",
+          "id": "asset.icon_earphone",
+          "src": "resources/base/media/icon_earphone.svg"
+        },
+        {
+          "description": "样式：耳机收纳盒实心图标，默认黑色，图形为无线耳机充电盒造型；适用：蓝牙耳机设备连接、音频设备管理。",
+          "id": "asset.earphone_case_16644",
+          "src": "resources/base/media/earphone_case_16644.svg"
+        },
+        {
+          "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。",
+          "id": "asset.music_fill",
+          "src": "resources/base/media/music_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "earphone": {
+            "batteryLevel": {
+              "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 80,
+              "type": "integer"
+            },
+            "isConnected": {
+              "description": "当前是否有蓝牙耳机处于连接活跃状态。",
+              "sampleValue": true,
+              "type": "boolean"
+            },
+            "leftBatteryLevel": {
+              "description": "左耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 76,
+              "type": "integer"
+            },
+            "rightBatteryLevel": {
+              "description": "右耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 78,
+              "type": "integer"
+            }
+          },
+          "phoneBattery": {
+            "batterySOCText": {
+              "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+              "sampleValue": "68%",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开音乐应用的“每日30首”歌单。",
+          "id": "event.open.music.daily"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，看手机剩余电量、耳机连接状态、耳机仓电量和左右耳机电量，点一下打开每日30首歌单。"
+    }
+  },
+  "caseId": "Q079",
+  "status": "success",
+  "suggestSize": "2x4"
+}

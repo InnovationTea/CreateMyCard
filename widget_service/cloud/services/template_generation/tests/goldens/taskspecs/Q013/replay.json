@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "09e9a87d9b3aef884bf3369c9d132ae348a9c2e05dac146c2243126cc02593aa",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/dtEnd\",\"/events/0/eventLocation\"]}}"
+    },
+    {
+      "key": "35a1f3af4688626749157970c8af26e032b9cab21ce7509ab310d0cbaf851f84",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewNextEventLocationFull@1\", {\"headerLabel\": \"线上评审\", \"calendarIcon\": \"resources/base/media/icon_meeting.svg\"}));"
+    }
+  ]
+}

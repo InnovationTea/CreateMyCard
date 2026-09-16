@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1097a7ad71d6ac87cf88604e058d5e6e6c38792d65c31cde3585f1d8ea4a0444",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/chargingStatusDesc\",\"/batteryLevel\"]},\"action\":[\"event.open.music.daily\",\"event.open.clock.alarm\"]}"
+    },
+    {
+      "key": "4f4be80c0c11ee397a6fae3c39de4935bb6363491773d4edd675df11e817a29f",
+      "response": "Template(\"CompactTwoActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarphoneCaseCompact@1\", {\"caseIcon\": \"resources/base/media/earphone_case_16644.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.daily\", \"label\": \"每日推荐\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    }
+  ]
+}

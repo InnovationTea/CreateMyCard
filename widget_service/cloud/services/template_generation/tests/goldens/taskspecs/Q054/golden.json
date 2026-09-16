@@ -1,0 +1,564 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "description": "电量电流和电压",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "电池检测"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.battery_leaf_fill",
+        "asset.bolt_fill",
+        "asset.icon_phone"
+      ],
+      "data": [
+        "GetPhoneBatteryInfo"
+      ],
+      "event": []
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.battery_leaf_fill",
+        "asset.bolt_fill",
+        "asset.icon_phone"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batterySOC",
+            "/nowCurrentText",
+            "/voltageText",
+            "/isBatteryPresentText"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "candidateEventCandidates": []
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Column",
+              "id": "root",
+              "itemMargin": 8,
+              "styles": {
+                "backgroundColor": "#FF17734C",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF17734C",
+                      0
+                    ],
+                    [
+                      "#FF26BFA6",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "alignContent": "topStart",
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0",
+                "template_root_0_1",
+                "template_root_0_2"
+              ],
+              "component": "Column",
+              "id": "template_root_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_0_0",
+                "template_root_0_0_1"
+              ],
+              "component": "Row",
+              "id": "template_root_0_0",
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "电池诊断",
+              "id": "template_root_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCFFF6",
+                "fontSize": 12,
+                "fontWeight": 600,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "template_root_0_0_1",
+              "src": "resources/base/media/bolt_fill.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
+              "children": [
+                "template_root_0_1_0",
+                "template_root_0_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_1_0_0",
+                "template_root_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "template_root_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "bottom",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "template_root_0_1_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "height": 24,
+                "maxLines": 1,
+                "minFontSize": 16,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "剩余电量",
+              "id": "template_root_0_1_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "padding": {
+                  "bottom": 2
+                },
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Progress",
+              "id": "template_root_0_1_1",
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 4,
+                "color": "#FFCCFFF6",
+                "height": 8,
+                "strokeWidth": 8,
+                "type": "linear",
+                "width": "matchParent"
+              },
+              "total": 100,
+              "value": "{{ ${/data/phoneBattery/batterySOC} }}"
+            },
+            {
+              "children": [
+                "template_root_0_2_0",
+                "template_root_0_2_1",
+                "template_root_0_2_2"
+              ],
+              "component": "Row",
+              "id": "template_root_0_2",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_2_0_0",
+                "template_root_0_2_0_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_2_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 12,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 47,
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 6,
+                  "left": 10,
+                  "right": 10,
+                  "top": 6
+                },
+                "width": 0
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/nowCurrentText} }}",
+              "id": "template_root_0_2_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "充电电流",
+              "id": "template_root_0_2_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_2_1_0",
+                "template_root_0_2_1_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_2_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 12,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 47,
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 6,
+                  "left": 10,
+                  "right": 10,
+                  "top": 6
+                },
+                "width": 0
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/voltageText} }}",
+              "id": "template_root_0_2_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "充电电压",
+              "id": "template_root_0_2_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "template_root_0_2_2_0",
+                "template_root_0_2_2_1"
+              ],
+              "component": "Column",
+              "id": "template_root_0_2_2",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 12,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 47,
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 6,
+                  "left": 10,
+                  "right": 10,
+                  "top": 6
+                },
+                "width": 0
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/isBatteryPresentText} }}",
+              "id": "template_root_0_2_2_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCFFF6",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "电池状态",
+              "id": "template_root_0_2_2_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCFFF6",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "phoneBattery": {
+                "batterySOC": 68,
+                "isBatteryPresentText": "在位",
+                "nowCurrentText": "-151 mA",
+                "voltageText": "4 V"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心竖向闪电图标；适用：正在充电、快充、电能或闪电状态。",
+          "id": "asset.bolt_fill",
+          "src": "resources/base/media/bolt_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框竖向智能手机，内部有屏幕轮廓；适用：手机设备、手机状态、专注模式中的手机对象。",
+          "id": "asset.icon_phone",
+          "src": "resources/base/media/icon_phone.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batterySOC": {
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68,
+              "type": "integer"
+            },
+            "isBatteryPresentText": {
+              "description": "当前设备物理电池是否在位或受支持的状态描述。",
+              "sampleValue": "在位",
+              "type": "string"
+            },
+            "nowCurrentText": {
+              "description": "可直接显示的当前设备电池实时电流文本，已包含“mA”单位；展示时不得再次追加电流单位。",
+              "sampleValue": "-151 mA",
+              "type": "string"
+            },
+            "voltageText": {
+              "description": "可直接显示的当前设备电池实时电压文本，已包含“V”单位；展示时不得再次追加电压单位。",
+              "sampleValue": "4 V",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "帮我做个电池诊断卡片，看手机剩余电量、充电电流、充电电压和电池是否被系统识别。"
+    }
+  },
+  "caseId": "Q054",
+  "status": "success",
+  "suggestSize": "2x4"
+}

@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "2799395bf78ee04955f2b1de97b2568c63d9315d5bdec9ef6cf681ec00a9626c",
+      "response": "{\"themeId\":\"fusion-schedule-cool\",\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/0/senderName\"]},\"action\":[\"event.open.settings.dnd\",\"event.enter.meeting\"]}"
+    }
+  ]
+}

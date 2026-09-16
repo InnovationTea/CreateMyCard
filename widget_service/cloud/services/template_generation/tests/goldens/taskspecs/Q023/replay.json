@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "64488b9900cb79d11aad3e9a9c6a342d56a3e7b4e1b768195c5851946e2564da",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTimezoneDateEndFull@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"headerLabel\": \"全球周会\"}));"
+    },
+    {
+      "key": "dfe60c23498fa75bd35008ba3a8b33c3e394bf9750c3b13f92d96a449fdec685",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/dtEnd\",\"/events/0/timeZone\"]}}"
+    }
+  ]
+}

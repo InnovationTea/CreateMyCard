@@ -1,0 +1,281 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFF0FFE6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/earphone/earphoneName} }}",
+            "id": "template_root_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9952991F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "height": 18,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}",
+            "id": "template_root_0_0_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF52991F",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "height": 26,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0",
+              "template_root_0_1_1",
+              "template_root_0_1_2"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "center",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 40,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "height": 40,
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_1_0_0",
+            "src": "resources/base/media/l_circle_fill.svg",
+            "styles": {
+              "fillColor": "#9952991F",
+              "height": 20,
+              "width": 20
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 18
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_1_0",
+              "template_root_0_1_1_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_1",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "height": 40,
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_1_1_0",
+            "src": "resources/base/media/r_circle_fill.svg",
+            "styles": {
+              "fillColor": "#9952991F",
+              "height": 20,
+              "width": 20
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
+            "id": "template_root_0_1_1_1",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 18
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_2_0",
+              "template_root_0_1_2_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1_2",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "height": 40,
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "充电盒",
+            "id": "template_root_0_1_2_0",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 14,
+              "fontWeight": 400,
+              "height": 20
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
+            "id": "template_root_0_1_2_1",
+            "styles": {
+              "fontColor": "#9952991F",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 18
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "earphone": {
+              "batteryLevel": 68,
+              "earphoneName": "FreeBuds Pro",
+              "isConnected": true,
+              "leftBatteryLevel": 76,
+              "rightBatteryLevel": 78
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "BluetoothDeviceOverview",
+    "capabilityId": "GetEarphoneInfo",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.earphone.cli",
+    "size": "2x2"
+  },
+  "templateId": "BluetoothDeviceOverviewEarbudPairFull@1"
+}

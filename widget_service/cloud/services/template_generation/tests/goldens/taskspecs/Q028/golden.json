@@ -1,0 +1,511 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-11-15"
+          },
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        }
+      ],
+      "description": "比赛倒计时和闹钟",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x2",
+      "title": "马拉松倒计时"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.stopwatch_fill",
+        "asset.alarm_fill_1"
+      ],
+      "data": [
+        "GetCountdownDays"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.stopwatch_fill",
+        "asset.alarm_fill_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-11-15"
+          },
+          "candidateOutputFields": [
+            "/countdownDays"
+          ],
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.clock.phone",
+              "bundleName": "com.huawei.hmos.clock",
+              "intentName": "Clock",
+              "uri": ""
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "fusionBallBackground",
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#00000000",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer"
+              ],
+              "component": "Stack",
+              "id": "fusionBallBackground",
+              "styles": {
+                "alignContent": "topStart",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLarge"
+              ],
+              "component": "Stack",
+              "id": "fusionBallLargeSlot",
+              "styles": {
+                "alignContent": "center",
+                "height": "27.5%",
+                "width": "112.5%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallLarge",
+              "styles": {
+                "backgroundColor": "#FFB33024",
+                "borderRadius": 105,
+                "clip": true,
+                "color": "#00000000",
+                "height": "477.272727%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "116.666667%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallMedium"
+              ],
+              "component": "Stack",
+              "id": "fusionBallMediumSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "137.5%",
+                "width": "50%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallMedium",
+              "styles": {
+                "backgroundColor": "#FFFF8833",
+                "borderRadius": 80,
+                "clip": true,
+                "color": "#00000000",
+                "height": "72.727273%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "200%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallSmall"
+              ],
+              "component": "Stack",
+              "id": "fusionBallSmallSlot",
+              "styles": {
+                "alignContent": "bottomEnd",
+                "height": "118.75%",
+                "width": "121.875%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallSmall",
+              "styles": {
+                "backgroundColor": "#FFE68073",
+                "borderRadius": 50,
+                "clip": true,
+                "color": "#00000000",
+                "height": "52.631579%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "51.282051%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallGlassLayer",
+              "styles": {
+                "backdropBlur": {
+                  "radius": 120
+                },
+                "backgroundColor": "#0DFFFFFF",
+                "color": "#00000000",
+                "height": "matchParent",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__template_root"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1"
+              ],
+              "component": "Stack",
+              "id": "__genui_render_component__template_root",
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "center",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "马拉松倒计时",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99FFFFFF",
+                "fontSize": 16,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "minFontSize": 12,
+                "textAlign": "center",
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 48,
+                "justifyContent": "center",
+                "margin": {
+                  "top": 4
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/countdown/countdownDays} }}",
+              "id": "root_1_0_0_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFFFFFFF",
+                "fontSize": 40,
+                "fontWeight": 800,
+                "height": 48,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "天",
+              "id": "root_1_0_0_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99FFFFFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 16,
+                "margin": {
+                  "bottom": 8
+                },
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_1_0",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "intentName": "Clock",
+                    "uri": ""
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignContent": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "styles": {
+                "alignItems": "center",
+                "justifyContent": "center"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_0",
+              "src": "resources/base/media/alarm_fill_1.svg",
+              "styles": {
+                "fillColor": "#FFFFFFFF",
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
+              "component": "Text",
+              "content": "设置闹钟",
+              "id": "root_1_1_0_0_1",
+              "styles": {
+                "fontColor": "#FFFFFFFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "countdown": {
+                "countdownDays": 30
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。",
+          "id": "asset.stopwatch_fill",
+          "src": "resources/base/media/stopwatch_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。",
+          "id": "asset.alarm_fill_1",
+          "src": "resources/base/media/alarm_fill_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "countdown": {
+            "countdownDays": {
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30,
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ],
+      "size": "2x2",
+      "userQuery": "2026年11月15日参加广州马拉松，帮我做个卡片，看还有几天，点一下打开闹钟应用。"
+    }
+  },
+  "caseId": "Q028",
+  "status": "success",
+  "suggestSize": "2x2"
+}

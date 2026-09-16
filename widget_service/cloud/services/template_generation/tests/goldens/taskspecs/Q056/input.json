@@ -1,0 +1,137 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "今天上午要去北京朝阳区客户现场，帮我做个卡片，看当地当前天气、气温和今天第一件日程的开始时间、地点，点一下查看北京天气详情。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "北京市",
+          "districtName": "朝阳区",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/cityCode",
+          "/current/condition",
+          "/current/temperatureC"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ]
+      }
+    ],
+    "title": "客户现场",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "天气日程和详情",
+    "candidateAssetIds": [
+      "asset.icon_weather_temperature1",
+      "asset.calendar_fill",
+      "asset.local_fill",
+      "asset.clock_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "056",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "今天上午要去北京朝阳区客户现场，帮我做个卡片，看当地当前天气、气温和今天第一件日程的开始时间、地点，点一下查看北京天气详情。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "今天上午要去北京朝阳区客户现场，帮我做个卡片，看当地当前天气、气温和今天第一件日程的开始时间、地点，点一下查看北京天气详情。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "北京市",
+        "districtName": "朝阳区",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/cityCode",
+        "/current/condition",
+        "/current/temperatureC"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/dtStart",
+        "/events/0/eventLocation"
+      ]
+    }
+  ],
+  "title": "客户现场",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "天气日程和详情",
+  "candidateAssetIds": [
+    "asset.icon_weather_temperature1",
+    "asset.calendar_fill",
+    "asset.local_fill",
+    "asset.clock_fill"
+  ]
+}

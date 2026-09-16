@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "f0217199d51f9079caf660290315a82105abf6c76d8dcc1545491a8c143b4bba",
+      "response": "{\"themeId\": \"fusion-schedule-cool\", \"requiredOutputFieldsByCapability\": {\"GetCalendarEvents\": [\"/events/0/title\", \"/events/0/dtStart\", \"/events/0/eventLocation\", \"/events/1/title\", \"/events/1/dtStart\", \"/events/1/eventLocation\", \"/events/2/title\", \"/events/2/dtStart\", \"/events/2/eventLocation\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\", \"/chargingStatusDesc\"]}, \"action\": [\"event.open.clock.alarm\"]}"
+    }
+  ]
+}

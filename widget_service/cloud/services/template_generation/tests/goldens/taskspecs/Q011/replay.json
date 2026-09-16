@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "27a150f933774b76e98586fe3e0661dd3eca76438813a92d75e9ff9b225f5a60",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewTemperatureFull@1\", {\"temperatureIcon\": \"resources/base/media/heat_generation.svg\"}));"
+    },
+    {
+      "key": "3cffc5f6a30c2f676d1b0585627154ce61086424d736523b4d8d7dab8bda8b1b",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\",\"/pluggedTypeDesc\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batteryTemperatureText\"},\"action\":[]}"
+    }
+  ]
+}

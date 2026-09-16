@@ -1,0 +1,91 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "2026年9月1日要带孩子去哈尔滨太阳岛，帮我做个健康指数卡片，确认预报地区，看当天空气质量、紫外线和感冒指数。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "哈尔滨市",
+          "districtName": "松北区",
+          "forecastDays": 5
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/districtName",
+          "/daily/4/airQuality",
+          "/daily/4/uvIndex",
+          "/daily/4/coldLevel"
+        ]
+      }
+    ],
+    "title": "太阳岛天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "地区和健康指数",
+    "candidateAssetIds": [
+      "asset.cold",
+      "asset.sun_max",
+      "asset.icon_allergy",
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "051",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "2026年9月1日要带孩子去哈尔滨太阳岛，帮我做个健康指数卡片，确认预报地区，看当天空气质量、紫外线和感冒指数。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "2026年9月1日要带孩子去哈尔滨太阳岛，帮我做个健康指数卡片，确认预报地区，看当天空气质量、紫外线和感冒指数。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "哈尔滨市",
+        "districtName": "松北区",
+        "forecastDays": 5
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/districtName",
+        "/daily/4/airQuality",
+        "/daily/4/uvIndex",
+        "/daily/4/coldLevel"
+      ]
+    }
+  ],
+  "title": "太阳岛天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "地区和健康指数",
+  "candidateAssetIds": [
+    "asset.cold",
+    "asset.sun_max",
+    "asset.icon_allergy",
+    "asset.calendar_fill"
+  ]
+}

@@ -38,6 +38,11 @@ _NAMES = ("first", "second", "third")
             "data.first && data.second",
             ('IfAllBind(["first","second"],', 'IfAnyMissingBind(["first","second"],'),
         ),
+        (
+            "data.first || data.second || data.third",
+            ('IfAnyBind(["first","second","third"],',
+             'IfAllMissingBind(["first","second","third"],'),
+        ),
     ),
 )
 def test_directive_components_preserve_pair_type_and_order(
@@ -56,7 +61,6 @@ def test_directive_components_preserve_pair_type_and_order(
     (
         "data.first && data.first",
         "data.first && props.flag",
-        "data.first || data.second",
         "!!data.first",
         "data.first.value",
     ),
@@ -272,7 +276,6 @@ def test_elseif_cannot_borrow_other_branch_guards(body: str) -> None:
         "#if data.first\n#elseif data.second",
         "#if data.first\n#elseif\n#end",
         "#if data.first\n#elseif data.second.value\n#end",
-        "#if data.first\n#elseif data.second || data.third\n#end",
         "#if data.first\n#elseif data.second && props.label\n#end",
         "#if data.first\n#elseif data.first && data.second && data.third\n#end",
         "#if data.first\n#elseif data.second && data.second\n#end",

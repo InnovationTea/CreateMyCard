@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个天气预警卡片，重点看长沙当前天气预警和信息更新时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "长沙市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/alertLevel",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "天气预警",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "预警和更新时间",
+    "candidateAssetIds": [
+      "asset.bell_fill",
+      "asset.clock"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "004",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个天气预警卡片，重点看长沙当前天气预警和信息更新时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个天气预警卡片，重点看长沙当前天气预警和信息更新时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "长沙市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/alertLevel",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "天气预警",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "预警和更新时间",
+  "candidateAssetIds": [
+    "asset.bell_fill",
+    "asset.clock"
+  ]
+}

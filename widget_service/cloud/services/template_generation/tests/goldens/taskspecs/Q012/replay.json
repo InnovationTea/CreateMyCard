@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "b305e837f1b2c2d052fe56df37d48e7179613b19e909c0c1e7323eabaf9a0437",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\",\"/sleepTypeDesc\",\"/deepSleepDurationText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[]}"
+    },
+    {
+      "key": "fe3424c08674cb5738939d6d22bb300a957767aefc061cbb8349df102e9ff260",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
+    }
+  ]
+}

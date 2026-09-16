@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "3d401b9f498f7e7a5e42704137a516763fa47ee531aa0839edb63bef635134d4",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/4/condition\",\"/daily/4/temperatureRangeText\",\"/daily/4/rainProbabilityPercent\"]},\"action\":[\"event.open.clock.alarm\"]}"
+    }
+  ]
+}

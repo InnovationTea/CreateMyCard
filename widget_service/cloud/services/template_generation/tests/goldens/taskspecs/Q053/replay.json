@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "563b6202342914feadcc1b198ff3b5624b96429d0d039383d0ec46811b0ff2c6",
+      "response": "{\"themeId\":\"fusion-battery-teal\",\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/leftBatteryLevel\",\"/leftChargingStatusDesc\",\"/rightBatteryLevel\",\"/rightChargingStatusDesc\"]},\"action\":[\"event.open.music.favorite\"]}"
+    },
+    {
+      "key": "df3455fe2f65c479d8d0492338318dcd4eaf7c17d9e2a4adde83878e05d3d25e",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarbudChargingWideFull@1\", {\"actionId\": \"event.open.music.favorite\", \"leftEarIcon\": \"resources/base/media/icon_left.svg\", \"rightEarIcon\": \"resources/base/media/icon_right.svg\"}));"
+    }
+  ]
+}

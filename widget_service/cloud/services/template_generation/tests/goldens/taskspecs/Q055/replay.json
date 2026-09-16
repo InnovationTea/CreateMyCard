@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "0215c6a1fc0b16deaed34d4c00a07b28cdc2a3a48df8a468d1d9bd429f3ec681",
+      "response": "{\n  \"themeId\": \"fusion-sport-orange\",\n  \"requiredOutputFieldsByCapability\": {\n    \"GetHealthAndSportSummary\": [\n      \"/dailySteps\",\n      \"/dailyDistanceText\",\n      \"/dailyTotalCaloriesText\",\n      \"/updatedAt\"\n    ]\n  },\n  \"action\": []\n}"
+    }
+  ]
+}

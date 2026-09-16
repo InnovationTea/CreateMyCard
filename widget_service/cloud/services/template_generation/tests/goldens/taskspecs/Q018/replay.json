@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "016de59df9213453a71d618704397b0d0b3a243a089ad5cc1e7844aa9eebc954",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"action\":[\"event.startNavigate\"]}"
+    },
+    {
+      "key": "d1bc0b8aeffd0332777e48d045dd7eeaf7b910d5adb305fddb02b1fe6fcf0c37",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewLocationHero@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\", \"icon\": \"resources/base/media/location_north_up_right_fill.svg\"}));"
+    }
+  ]
+}

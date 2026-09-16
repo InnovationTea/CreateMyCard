@@ -1,0 +1,79 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个电池温度卡片，重点看现在的电池温度，再看充电器类型和信息更新时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/pluggedTypeDesc",
+          "/batteryTemperatureText",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "电池温度",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "温度类型和更新",
+    "candidateAssetIds": [
+      "asset.heat_generation",
+      "asset.bolt_fill",
+      "asset.clock"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "011",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个电池温度卡片，重点看现在的电池温度，再看充电器类型和信息更新时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个电池温度卡片，重点看现在的电池温度，再看充电器类型和信息更新时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/pluggedTypeDesc",
+        "/batteryTemperatureText",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "电池温度",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "温度类型和更新",
+  "candidateAssetIds": [
+    "asset.heat_generation",
+    "asset.bolt_fill",
+    "asset.clock"
+  ]
+}

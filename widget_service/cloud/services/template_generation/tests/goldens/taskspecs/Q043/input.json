@@ -1,0 +1,113 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，看看长沙老家天气预警、紫外线和空气，怕妈妈着凉，卡片要能直接给妈妈打电话。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "长沙市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/prefectureName",
+          "/current/alertLevel",
+          "/current/uvIndex",
+          "/current/airQuality"
+        ]
+      }
+    ],
+    "title": "长沙关怀",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "relationship": "母亲",
+              "phoneNumber": ""
+            }
+          }
+        }
+      }
+    ],
+    "description": "天气预警+电话入口",
+    "candidateAssetIds": [
+      "asset.sun_max",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "043",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，看看长沙老家天气预警、紫外线和空气，怕妈妈着凉，卡片要能直接给妈妈打电话。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，看看长沙老家天气预警、紫外线和空气，怕妈妈着凉，卡片要能直接给妈妈打电话。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "长沙市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/prefectureName",
+        "/current/alertLevel",
+        "/current/uvIndex",
+        "/current/airQuality"
+      ]
+    }
+  ],
+  "title": "长沙关怀",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "relationship": "母亲",
+            "phoneNumber": ""
+          }
+        }
+      }
+    }
+  ],
+  "description": "天气预警+电话入口",
+  "candidateAssetIds": [
+    "asset.sun_max",
+    "asset.phone_fill"
+  ]
+}

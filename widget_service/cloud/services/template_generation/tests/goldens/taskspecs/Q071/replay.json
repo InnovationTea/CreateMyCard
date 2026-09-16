@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "3e6d101f9994f4ad76294888f5ca6725b7a92dc2027a8b8013defcf756a05987",
+      "response": "{\"themeId\":\"fusion-sport-orange\",\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/targetDateText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseStartTimeText\",\"/exerciseEndTimeText\",\"/exerciseHeartRateAvg\",\"/exerciseHeartRateMax\"]},\"action\":[\"event.open.health.sport\"]}"
+    }
+  ]
+}

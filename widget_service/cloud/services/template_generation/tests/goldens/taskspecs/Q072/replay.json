@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "78f7bfb088ac1355002347e1721cc102405f59faaadc710605216b8e1f57dcbc",
+      "response": "{\"themeId\":\"fusion-weather-blue\",\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/0/date\",\"/daily/0/weekday\",\"/daily/0/condition\",\"/daily/0/temperatureRangeText\",\"/daily/0/rainProbabilityPercent\",\"/daily/1/date\",\"/daily/1/weekday\",\"/daily/1/condition\",\"/daily/1/temperatureRangeText\",\"/daily/1/rainProbabilityPercent\",\"/daily/2/date\",\"/daily/2/weekday\",\"/daily/2/condition\",\"/daily/2/temperatureRangeText\",\"/daily/2/rainProbabilityPercent\"]},\"action\":[\"event.open.weather\"]}"
+    }
+  ]
+}

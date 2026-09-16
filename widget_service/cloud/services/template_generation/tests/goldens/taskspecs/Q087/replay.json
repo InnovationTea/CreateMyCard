@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "00a295ead392f898ee8f755319c8e3d1bd8f9ec1c4d8cf812dd150d3babc8369",
+      "response": "{\"themeId\":\"fusion-schedule-cool\",\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"],\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/sleepScore\"]},\"action\":[\"event.open.music.favorite\"]}"
+    }
+  ]
+}
