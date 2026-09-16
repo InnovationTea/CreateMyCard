@@ -42,6 +42,7 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
   `fusion-ball-sport-orange`，不允许时使用倒计时对应的黄色纯色。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
+_TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
 _SIZE_LAYOUT_ROUTE_LOCKS = {
@@ -72,18 +73,45 @@ class PromptBuilder:
 
     @staticmethod
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
-        if task_spec.size != "2x4" or len(PromptBuilder._data_roots(task_spec)) != 2:
+        data_root_count = len(PromptBuilder._data_roots(task_spec))
+        few_shot_id: str | None = None
+        if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
+            few_shot_id = "2x2-V01"
+        elif data_root_count == 2:
+            few_shot_id = {
+                "2x2": _TWO_BY_TWO_DUAL_FEW_SHOT_ID,
+                "2x4": _TWO_BY_FOUR_DUAL_FEW_SHOT_ID,
+            }.get(task_spec.size)
+        if few_shot_id is None and task_spec.size != "2x2":
             return few_shot
 
         lines = few_shot.splitlines()
         headings = [
             index for index, line in enumerate(lines) if line.startswith("## ")
         ]
+        if few_shot_id is None:
+            selected_headings = [
+                index
+                for index in headings
+                if _TWO_BY_TWO_DUAL_FEW_SHOT_ID not in lines[index]
+            ]
+            if len(selected_headings) == len(headings):
+                return few_shot
+            preamble_end = headings[0] if headings else 0
+            selected_lines = list(lines[:preamble_end])
+            for index in selected_headings:
+                end = next(
+                    (heading for heading in headings if heading > index),
+                    len(lines),
+                )
+                selected_lines.extend(lines[index:end])
+            return "\n".join(selected_lines).strip()
+
         start = next(
             (
                 index
                 for index in headings
-                if _TWO_BY_FOUR_DUAL_FEW_SHOT_ID in lines[index]
+                if few_shot_id in lines[index]
             ),
             None,
         )
