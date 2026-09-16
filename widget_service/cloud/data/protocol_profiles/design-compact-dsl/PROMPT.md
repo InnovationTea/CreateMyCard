@@ -239,8 +239,8 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 ### 4.2.1 动态数值的展示单位
 
 - 对每个绑定到可见 Text 的 number/integer 字段，必须阅读其 `description` 并判断返回值是否已经包含展示单位。描述明确“纯数值”“不包含单位”或“展示时必须追加某单位”时，最终可见组件必须准确展示一次该单位；描述明确“已包含单位”时必须完整绑定原字段，不得再次追加、拆出或改写单位。
-- 原始数值与单位使用完整 Expression 时，后置静态字符串只要包含声明单位即可，例如 `"{{ ${/data/countdown/countdownDays} + '天后开始' }}"`；也可以把单位作为独立字符串项拼接。不得省略单位，也不得用近似字符或同义词代替声明单位。
-- 原始数值与单位使用多个 Text 做视觉分层时，数值 Text 与承载单位的静态 Text 必须是同一 Row 中按顺序相邻的节点；紧邻数值后的静态 Text 只要包含声明单位即可，可以直接使用 `"天后开始"`、`"% 已使用"` 等自然完整文案，不强制把单位与补充说明拆成两个 Text。
+- 原始数值与单位使用完整 Expression 时，后置静态字符串只能追加声明单位，例如 `"{{ ${/data/countdown/countdownDays} + '天' }}"`；也可以把单位作为独立字符串项拼接。不得省略单位，也不得追加“后开始”“已使用”等说明文字，不得用近似字符或同义词代替声明单位。2x2 V01 单目标倒计时按专属纵向结构执行。
+- 原始数值与单位使用多个 Text 做视觉分层时，除 2x2 V01 单目标倒计时外，数值 Text 与承载单位的静态 Text 必须是同一 Row 中按顺序相邻的节点；紧邻大数字的 Text 只能写声明单位本身。说明文字必须放在主值下一行。2x2 V01 固定使用 Column，单位“天”位于数字正下方。
 - 主数值需要大字号、后置单位文案需要小字号时优先使用“数值 Text + 后置单位文案 Text”，保持同一 Row 底对齐并分别完成宽度预算；不需要视觉分层时可以使用单个完整 Expression。应优先选择阅读自然、组件更少的结构，不得为了通过单位规则增加重复单位、空 Text 或生硬拆分。
 - 输出前逐项检查所有可见动态数值：声明单位的可见次数必须恰好为一次，并且单位、数值及其前后说明共同构成的完整文案自然、准确、无歧义。
 
@@ -648,7 +648,7 @@ ActionUnit——卡级 CTA：
 ### `S2-info-pair-action`（两信息 + 单按钮）——最大簇
 
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
-- region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。2x2 单倒计时带一个动作时使用 `title_area 20vp + value_group(layoutWeight:1) + action_area 36vp`，标题顶部居中，`value_group` 在中部用 Row 将大数字与单位同行居中，顺序不得颠倒；`action_area` 必须是 root 最后一项，按钮固定 `x:12vp、y:112vp、width:136vp、height:36vp`，距卡片底部正好 `12vp`。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
+- region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。2x2 单倒计时带一个动作时使用 `title_area 20vp + value_group(layoutWeight:1) + action_area 36vp`，标题顶部居中，`value_group` 在中部用 Column 将大数字与单位纵向居中，单位固定在数字正下方；`action_area` 必须是 root 最后一项，按钮固定 `x:12vp、y:112vp、width:136vp、height:36vp`，距卡片底部正好 `12vp`。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 与环形 Progress 均固定 `52×52vp`、`strokeWidth:6`，中心放图标或读数，左下展示状态视觉；使用环内图标时，右下动作预先采用纯文字入口并预算文字宽度，标题不配图标；icon-round 仅在满足 2.5 节区域互斥及用户指定例外时选用）。
 - 会议时间线亚型：先确认整卡只有 calendar 这 1 个业务且最终只展示一个 `calendar.events[0]`；在此前提下，只要 userQuery 明确包含会议、入会或下一场会语义，存在 `intentName:"EnterMeeting"` 候选，或 TaskSpec 的事件标题/描述/sampleValue 明确表示会议、例会、评审会等会议事项，就强制参考 FEWSHOT_2x2 V06。sampleValue 仅用于识别路由，最终标题优先动态绑定真实字段；无真实标题字段且用户未给出会议名称时固定使用“日程”，不得省略标题。使用黄色纯色时间线布局，不得改选普通 S2 信息列或会议融球；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议标题必须为第一行 `14fp/700`，时间和地点固定 `12fp/400` 且前后禁止任何 Image；禁止使用 `eventCount` 作为标题。若还展示任一非 calendar 业务，即使存在 EnterMeeting，也必须改走 S4，禁止 V06、TimelineUnit 和独立 action_area。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变单业务路由。多条会议或日程列表不适用本亚型。
 - 槽位：标题、两行信息、至多一个显式动作。
@@ -805,8 +805,9 @@ ActionUnit——卡级 CTA：
 数字与单位拆分：
 
 - 同一动态字段或同一语义事实在一张卡片中最多由一个可见 Text 展示一次，禁止同时放入主值、`value_unit`、辅助行或其它 Text；Progress 与紧邻数值 Text 共用数值路径、事件参数引用该路径不算重复展示。
-- 原始数值需要补充静态单位且存在字号层级时，优先在同一 Row 中拆成 `value_row -> [value_num, value_suffix]` 并底对齐；`value_suffix.content` 必须包含声明单位，可以同时包含“后开始”“已使用”等与主值直接相关的简短说明。只有单位与说明确实需要不同视觉样式时，才进一步拆成 `value_unit` 和 `value_hint`。
-- `value_suffix`、`value_unit` 只能承载主值自身的真实单位或直接后缀，不得绑定睡眠类型、状态、名称等独立辅助字段；格式化动态字符串已经包含单位时只生成一个主值 Text，辅助字段另放在主值下一行且不得重复主值。
+- 原始数值需要补充静态单位且存在字号层级时，优先在同一 Row 中拆成 `value_row -> [value_num, value_unit]` 并底对齐；`value_unit.content` 只能写声明单位本身。“后开始”“已使用”等说明文字必须另起一行。
+- `value_unit` 只能承载主值自身的真实单位，不得承载直接后缀，也不得绑定睡眠类型、状态、名称等独立辅助字段；格式化动态字符串已经包含单位时只生成一个主值 Text，辅助字段另放在主值下一行且不得重复主值。
+- 大字号数值同行的小字号 Text 只允许写真实单位，例如 `%`、`°C`、`天`、`小时`、`分钟`、`秒`、`步`、`次`、`件`、`个`、`km`、`mA`、`V`、`kcal`，或该数值字段 description 明确声明的其它单位；“最近安排”“当前状态”“后开始”等说明文字不是单位，必须移到主值下一行。只有 number/integer 字段或纯数字静态值可以使用大于 `18fp` 的字号，名称、日期、时间、状态和格式化字符串即使放入名为 `value_num` 的组件也不能放大。
 - `value_row` 只在 Row 上写总宽度；`value_num`、`value_unit` 不写 `width:"matchParent"`，两者按内容自然宽度并写 `flexShrink:0`，避免右侧单位被挤出卡面。
 - 内容区同一 Row 内两个及以上 Text 统一 `alignItems:"bottom"`；`value_suffix` 或 `value_unit` 字号 12-16，单位不能用 30 号字；补充说明使用相同或更弱的字号、字重和颜色，不得争夺主数值焦点。
 - 合并多个独立文本字段成一行时，中间固定使用 ASCII `" | "`；数值与自身单位、日期范围、时间范围不算独立字段。
