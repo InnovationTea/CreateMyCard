@@ -53,12 +53,14 @@ data = {
 Column({
   "width": "matchParent",
   "height": "matchParent",
-  "justifyContent": "spaceBetween",
+  "justifyContent": "start",
   "alignItems": "center",
+  "itemMargin": 0,
 },
   Column({
     "width": "matchParent",
-    "layoutWeight": 1
+    "layoutWeight": 1,
+    "itemMargin": 0,
   }, children[0]),
   Column({
     "width": "matchParent",
@@ -143,20 +145,11 @@ Column({
 data = {
 }
 
-Column({
+Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "itemMargin": 8
-},
-  Column({
-    "width": "matchParent",
-    "layoutWeight": 1
-  }, children[0]),
-  Column({
-    "width": "matchParent",
-    "height": 36
-  }, children[1])
-)
+  "alignContent": "topStart"
+}, children)
 #End
 
 #Template WideFullOnlyLayout@1(props: {}, ...children)
@@ -176,30 +169,30 @@ data = {
 
 Row({
   "width": "matchParent",
-  "height": "matchParent",
+  "height": 136,
   "itemMargin": 8
 },
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": 16
   },
     Column({
       "width": "matchParent",
-      "height": "matchParent",
+      "height": 136,
       "padding": 12
     }, children[0])
   ),
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": 16
   },
     Column({
       "width": "matchParent",
-      "height": "matchParent",
+      "height": 136,
       "padding": 12
     }, children[1])
   )
@@ -424,19 +417,19 @@ data = {
 
 Row({
   "width": "matchParent",
-  "height": "matchParent",
+  "height": 136,
   "itemMargin": 8
 },
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": $theme("supportContentStyle.borderRadius")
   }, children[0]),
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": $theme("supportContentStyle.borderRadius")
@@ -451,12 +444,12 @@ data = {
 
 Row({
   "width": "matchParent",
-  "height": "matchParent",
+  "height": 136,
   "itemMargin": 8
 },
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 4, "right": 12, "bottom": 4},
     "itemMargin": 4,
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
@@ -466,8 +459,8 @@ Row({
     Column({"width": "matchParent", "height": 36}, children[2])
   ),
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": $theme("supportContentStyle.borderRadius")
@@ -482,12 +475,12 @@ data = {
 
 Row({
   "width": "matchParent",
-  "height": "matchParent",
+  "height": 136,
   "itemMargin": 8
 },
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
     "itemMargin": 0,
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
@@ -497,8 +490,8 @@ Row({
     Column({"width": "matchParent", "height": 36}, children[2])
   ),
   Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
+    "width": 144,
+    "height": 136,
     "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
     "itemMargin": 0,
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),

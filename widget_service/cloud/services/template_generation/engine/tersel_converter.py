@@ -233,7 +233,8 @@ def _parse_tersel_document(
         )
     state = {"components": 0}
     root = _parse_component(module.body[0].value, 1, state, theme_values or {})
-    if root.component_type not in {"Column", "Stack"}:
+    if root.component_type not in {"Column", "Stack", "Row"}:
+        # Row 根：2x4 双数据根 W9 结构（根即双 144x136 背板 Row）。
         raise TerselConversionError("The root component must be Column or Stack.")
     data_model = None
     if len(module.body) == 2:
@@ -807,7 +808,7 @@ def _container_props(
             "2x2": {"width": 160, "height": 160},
             "2x4": {"width": 300, "height": 150},
         }.get(size)
-        if node.component_type not in {"Column", "Stack"} or dimensions is None:
+        if node.component_type not in {"Column", "Stack", "Row"} or dimensions is None:
             raise TerselConversionError(
                 "Tersel root must be Column or Stack with a supported size."
             )
@@ -824,6 +825,10 @@ def _container_props(
         if node.component_type == "Column":
             locked["itemMargin"] = 8
             locked["backgroundColor"] = "background_primary"
+        if node.component_type == "Row":
+            # W9 双数据根 2x4：根即双 144x136 背板 Row，无整卡公共衬垫与背景。
+            locked.pop("padding")
+            locked.pop("borderRadius")
         root_design_props = {
             key: value
             for key, value in design_props.items()

@@ -738,7 +738,7 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
         ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
         ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewConditionHero@1", (1, 0), 20, 28),
+        ("WeatherOverviewConditionHero@1", (1, 0), 18, 28),
         ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
     ],
 )

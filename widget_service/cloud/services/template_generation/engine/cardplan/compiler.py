@@ -488,6 +488,7 @@ def compile_ux_layout_card(
         content,
         contract,
         registry,
+        size=task_spec.size,
     )
     root = _apply_theme_content_color(root, contract, registry)
     root = _strip_advanced_component_markers(root)
@@ -5521,7 +5522,19 @@ def _compile_ux_layout_shell(
     content: Nested2Node,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    size: str = "2x2",
 ) -> Nested2Node:
+    if size == "2x4" and content.component_type == "Row" and len(content.children) == 2:
+        # W9：双数据根 2x4 的根即双 144x136 背板 Row，不再叠加整卡外层容器。
+        values = list(content.values)
+        values = [
+            {key: value for key, value in value.items() if key not in {"width", "height"}}
+            if isinstance(value, dict)
+            else value
+            for value in values
+        ]
+        content = Nested2Node(content.component_type, tuple(values), content.children)
+        return _merge_node_options(content, {"_id": "root"})
     theme = registry.require_theme(contract.theme_profile_id)
     root_options = _normalize_theme_styles(theme.root_style)
     root_options.setdefault("padding", registry.ux_tokens["safeInset"])

@@ -1722,7 +1722,7 @@ Column(
       data.condition,
       {
         "width": "matchParent",
-        "fontSize": 20,
+        "fontSize": 18,
         "height": 28,
         "fontWeight": 700,
         "fontColor": $theme('primaryColor'),
