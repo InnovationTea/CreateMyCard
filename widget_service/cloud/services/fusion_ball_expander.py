@@ -31,11 +31,11 @@ _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
 _FUSION_LARGE_BRIGHTNESS = 60
 _FUSION_GLASS_BLUR_RADIUS = 100
 _DESIGN_TOKEN_FIXED_PALETTES = {
-    "fusion-ball-battery-teal": ("#FF1F9965", "#FF26BFA6", "#FF60BF98"),
+    "fusion-ball-battery-teal": ("#FF17734C", "#FF26BFA6", "#FF60BF98"),
     "fusion-ball-schedule-cool": ("#FF1F3499", "#FF2BA2D9", "#FF52CCCC"),
-    "fusion-ball-schedule-warm": ("#FF992735", "#FFFF5533", "#FFE68A2E"),
-    "fusion-ball-sleep-violet": ("#FF4A3E99", "#FF572BD9", "#FFB398D9"),
-    "fusion-ball-sport-orange": ("#FF99331F", "#FFFF8833", "#FFFAA89E"),
+    "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
+    "fusion-ball-sleep-violet": ("#FF493D99", "#FF572BD9", "#FFB398D9"),
+    "fusion-ball-sport-orange": ("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
 }
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"

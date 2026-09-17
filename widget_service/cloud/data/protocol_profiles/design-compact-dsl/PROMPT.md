@@ -657,7 +657,7 @@ ActionUnit——卡级 CTA：
 - region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。2x2 单倒计时带一个动作时使用 `title_area 20vp + value_group(layoutWeight:1) + action_area 36vp`，标题顶部居中，`value_group` 在中部固定为两行视觉内容：第一行是大数字，第二行无明确时间时只显示单位“天”，有明确时间时使用同一 `meta_row` 显示“天 · 时间”；禁止第三行辅助文字或重复目标名称。`action_area` 必须是 root 最后一项，按钮固定 `x:12vp、y:112vp、width:136vp、height:36vp`，距卡片底部正好 `12vp`。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
 - 单业务有多个同级指标时，`content_area` 必须是全宽 Column，指标按阅读优先级上下排列；禁止创建 `main_area Row -> [metric_1, metric_2]`、左右等分指标列或并排指标背板。即使两个指标语义对称、字数相同或都需要突出，也不得左右分栏。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 与环形 Progress 均固定 `52×52vp`、`strokeWidth:6`，中心放图标或读数，左下展示状态视觉；使用环内图标时，右下动作预先采用纯文字入口并预算文字宽度，标题不配图标；icon-round 仅在满足 2.5 节区域互斥及用户指定例外时选用）。
-- 会议时间线亚型：先确认整卡只有 calendar 这 1 个业务且最终只展示一个 `calendar.events[0]`；在此前提下，只要 userQuery 明确包含会议、入会或下一场会语义，存在 `intentName:"EnterMeeting"` 候选，或 TaskSpec 的事件标题/描述/sampleValue 明确表示会议、例会、评审会等会议事项，就强制参考 FEWSHOT_2x2 V06。sampleValue 仅用于识别路由，最终标题优先动态绑定真实字段；无真实标题字段且用户未给出会议名称时固定使用“日程”，不得省略标题。使用黄色纯色时间线布局，不得改选普通 S2 信息列或会议融球；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议标题必须为第一行 `14fp/700`，时间和地点固定 `12fp/400` 且前后禁止任何 Image；禁止使用 `eventCount` 作为标题。若还展示任一非 calendar 业务，即使存在 EnterMeeting，也必须改走 S4，禁止 V06、TimelineUnit 和独立 action_area。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变单业务路由。多条会议或日程列表不适用本亚型。
+- 会议时间线亚型：先确认整卡只有 calendar 这 1 个业务且最终只展示一个 `calendar.events[0]`；在此前提下，只要 userQuery 明确包含会议、入会或下一场会语义，存在 `intentName:"EnterMeeting"` 候选，或 TaskSpec 的事件标题/描述/sampleValue 明确表示会议、例会、评审会等会议事项，就强制参考 FEWSHOT_2x2 V06。sampleValue 仅用于识别路由，最终标题优先动态绑定真实字段；无真实标题字段且用户未给出会议名称时固定使用“日程”，不得省略标题。V06 只锁定时间线结构，不锁定背景：单会议、最终独立语义信息不超过 3 项、只有一个内容组、显式动作不超过 1 个且运行时允许融球时，必须使用 `fusion-ball-schedule-cool`；任一条件不满足时才使用黄色纯色。两种背景都不得改选普通 S2 信息列；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议标题必须为第一行 `14fp/700`，时间和地点固定 `12fp/400` 且前后禁止任何 Image；禁止使用 `eventCount` 作为标题。若还展示任一非 calendar 业务，即使存在 EnterMeeting，也必须改走 S4，禁止 V06、TimelineUnit 和独立 action_area。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变单业务路由。多条会议或日程列表不适用本亚型。
 - 槽位：标题、两行信息、至多一个显式动作。
 - 禁止：两个按钮、三个数据域。允许 content_area 通过 `layoutWeight:1` 占用剩余高度，内容区只允许环中心图标，图标默认固定 `width:20、height:20、flexShrink:0`（用户明确指定尺寸除外），不得随容器拉伸；内部间距使用显式 `itemMargin`，不得扩大间距填满容器。
 
@@ -879,7 +879,7 @@ ActionUnit——卡级 CTA：
 ## 背景选择与业务映射
 
 1. 先检查用户明确的颜色或背景要求；没有指定时，再按下列融球条件选择，不能仅因示例使用融球就照搬。
-2. 除 S2 会议时间线亚型固定使用黄色纯色外，融球必须同时满足：`2x2`、单一业务、最终实际展示的独立语义信息不超过 3 项、只有一个内容组、显式动作不超过 1 个。本次请求若未在提示词末尾追加“本次请求未启用融球能力”的运行时限制，即视为运行时允许融球；满足上述全部条件且业务有对应融球效果时必须使用融球。任一条件不满足都使用浅色纯色，不能先选融球再通过删减用户必须信息凑条件。列表、网格、双分区、多组独立指标、多条日程或重复事项均不是简单内容，不使用融球。
+2. 融球必须同时满足：`2x2`、单一业务、最终实际展示的独立语义信息不超过 3 项、只有一个内容组、显式动作不超过 1 个。S2 会议时间线亚型和 FEWSHOT_2x2 V06 不是融球例外，与其他单业务使用完全相同的判断条件。本次请求若未在提示词末尾追加“本次请求未启用融球能力”的运行时限制，即视为运行时允许融球；满足上述全部条件且业务有对应融球效果时必须使用融球。任一条件不满足都使用浅色纯色，不能先选融球再通过删减用户必须信息凑条件。列表、网格、双分区、多组独立指标、多条日程或重复事项均不是简单内容，不使用融球。
 3. 信息项按独立事实计数：每个不同的动态字段或用户要求展示的独立静态事实计 1 项；同一事实的标签、单位、数值与图表重复表达只计 1 项；一个 Text/Expression 拼接多个不同事实仍分别计数。纯卡级标题不计入，CTA 不计入信息项但受显式动作数量限制；`mustKeep` 和最终保留的 `shouldKeep` 都计入，不能仅按 `dataModelSchema` 叶子总数判断。
 4. 不满足融球条件时，按主要业务选择下表纯色。耳机、电量优先于通用设备映射；多业务跟随主要业务，无法区分主次或业务未覆盖时默认蓝色。
 
@@ -893,7 +893,7 @@ ActionUnit——卡级 CTA：
 
 | 融球效果 | 业务 | root design |
 |---|---|---|
-| 日程冷色 | 用户明确要求融球的单个会议 | `fusion-ball-schedule-cool` |
+| 日程冷色 | 满足融球条件的单个会议（含会议时间线和 V06） | `fusion-ball-schedule-cool` |
 | 日程暖色 | 其他单个日程、提醒 | `fusion-ball-schedule-warm` |
 | 睡眠紫色 | 睡眠、专注 | `fusion-ball-sleep-violet` |
 | 倒计时橙色 | 倒计时、纪念日、运动 | `fusion-ball-sport-orange` |

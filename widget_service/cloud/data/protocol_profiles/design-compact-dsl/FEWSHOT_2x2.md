@@ -131,25 +131,25 @@ S3 的两个按钮固定占用 `80vp`，按钮区与信息区间隔 `8vp`，因�
 ["/data/earphone/chargingStatusDesc","充电中"]
 ```
 
-## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·黄色纯色）
-2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery、事件候选或 TaskSpec 的标题/描述/sampleValue 明确表达会议语义时，强制使用本例；sampleValue 只用于路由判断，不得代替动态绑定。会议标题必须作为内容区第一行 `14fp/700`：优先绑定 `events[0].title`，无真实标题字段且用户未给出名称时固定写“日程”，不得省略或用 `eventCount`、日期、时间替代。时间、地点固定 `12fp/400`。出现任一其他业务时改走 S4，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
+## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·融球优先）
+2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery、事件候选或 TaskSpec 的标题/描述/sampleValue 明确表达会议语义时，强制使用本例；sampleValue 只用于路由判断，不得代替动态绑定。会议标题必须作为内容区第一行 `14fp/700`：优先绑定 `events[0].title`，无真实标题字段且用户未给出名称时固定写“日程”，不得省略或用 `eventCount`、日期、时间替代。时间、地点固定 `12fp/400`。本例只固定 TimelineUnit 和文字的排版，背景仍按 PROMPT.md 第十二节判断：单会议、信息不超过 3 项、单内容组、动作不超过 1 个且运行时允许时使用 `fusion-ball-schedule-cool`，否则回退黄色纯色及其配套前景色。出现任一其他业务时改走 S4，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列。
 ### user
 ```json
 {"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/example"}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FFFFF3E6","justifyContent":"start","alignItems":"center","itemMargin":4},["day_area","content_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-schedule-cool","justifyContent":"start","alignItems":"center","itemMargin":4},["day_area","content_area","action_area"]]
 ["day_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
-["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FF99661F","maxLines":1,"textOverflow":"clip"}]
+["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["content_area","Row",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":8,"alignItems":"start","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
-["timeline","TimelineUnit",{"color":"#FF99661F","lineColor":"#1A99661F"}]
+["timeline","TimelineUnit",{"color":"#FFFFFFFF","lineColor":"#33FFFFFF"}]
 ["meeting_texts","Column",{"width":"matchParent","height":48,"layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
-["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":14,"fontWeight":700,"width":"matchParent","fontColor":"#FF99661F","maxLines":1,"textOverflow":"clip"}]
-["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"clip"}]
-["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#9999661F","maxLines":1,"textOverflow":"ellipsis"}]
+["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":14,"fontWeight":700,"width":"matchParent","fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
+["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99FFFFFF","maxLines":1,"textOverflow":"clip"}]
+["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99FFFFFF","maxLines":1,"textOverflow":"ellipsis"}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#3399661F","actionInk":"#FF99661F","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"flexShrink":0}]
 ["/data/calendar/events/0/title","UI需求评审会"]
 ["/data/calendar/events/0/dtStart","14:00 - 15:30"]
 ["/data/calendar/events/0/eventLocation","深圳市龙岗区五和大..."]

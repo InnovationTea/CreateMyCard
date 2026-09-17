@@ -15,6 +15,29 @@ _NORMAL_ROOT_ID = "root_0"
 _FUSION_BACKGROUND_ID = "fusionBallBackground"
 _OPAQUE_ALPHA = 1.0
 
+_APPROVED_PLAIN_PALETTES = {
+    "#FFE5EDFE": {
+        "foregrounds": frozenset({"#FF1F4799", "#991F4799"}),
+        "surfaces": frozenset({"#FFE5EDFE", "#331F4799", "#1A1F4799"}),
+    },
+    "#FFEDE6FF": {
+        "foregrounds": frozenset({"#FF401F99", "#99401F99"}),
+        "surfaces": frozenset({"#FFEDE6FF", "#33401F99", "#1A401F99"}),
+    },
+    "#FFF0FFE6": {
+        "foregrounds": frozenset({"#FF52991F", "#9952991F"}),
+        "surfaces": frozenset({"#FFF0FFE6", "#3352991F", "#1A52991F"}),
+    },
+    "#FFFFF3E6": {
+        "foregrounds": frozenset({"#FF99661F", "#9999661F"}),
+        "surfaces": frozenset({"#FFFFF3E6", "#3399661F", "#1A99661F"}),
+    },
+    "#FFE6FDFF": {
+        "foregrounds": frozenset({"#FF1F8F99", "#991F8F99"}),
+        "surfaces": frozenset({"#FFE6FDFF", "#331F8F99", "#1A1F8F99"}),
+    },
+}
+
 RgbColor = tuple[float, float, float]
 RgbaColor = tuple[float, float, float, float]
 
@@ -34,6 +57,13 @@ def _rgba(value: Any) -> RgbaColor:
     alpha = int(raw[:2], 16) / 255
     red, green, blue = (int(raw[index:index + 2], 16) / 255 for index in (2, 4, 6))
     return (red, green, blue, alpha)
+
+
+def _normalized_hex(value: Any) -> str | None:
+    if not isinstance(value, str) or _HEX_COLOR.fullmatch(value.strip()) is None:
+        return None
+    raw = value.strip().upper()
+    return f"#FF{raw[1:]}" if len(raw) == 7 else raw
 
 
 def _composite(
@@ -141,6 +171,11 @@ class ContrastValidator(BaseValidator):
         root_child_ids = root_children if isinstance(root_children, list) else []
         is_fusion_scene = _FUSION_BACKGROUND_ID in root_child_ids
         is_normal_scene = _NORMAL_ROOT_ID in root_child_ids
+        root_styles = root.get("styles")
+        root_styles = root_styles if isinstance(root_styles, dict) else {}
+        palette = _APPROVED_PLAIN_PALETTES.get(
+            _normalized_hex(root_styles.get("backgroundColor"))
+        )
         self._walk(
             context,
             reporter,
@@ -148,6 +183,8 @@ class ContrastValidator(BaseValidator):
             [(1.0, 1.0, 1.0)],
             is_gradient=False,
             is_fusion_scene=is_fusion_scene and not is_normal_scene,
+            approved_palette=palette,
+            approved_surface_path=palette is not None,
         )
 
     def _walk(
@@ -159,10 +196,18 @@ class ContrastValidator(BaseValidator):
         *,
         is_gradient: bool,
         is_fusion_scene: bool,
+        approved_palette: dict[str, frozenset[str]] | None,
+        approved_surface_path: bool,
     ) -> None:
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
         effective_backgrounds = list(backgrounds)
+        background_color = _normalized_hex(styles.get("backgroundColor"))
+        if background_color is not None and approved_palette is not None:
+            approved_surface_path = (
+                approved_surface_path
+                and background_color in approved_palette["surfaces"]
+            )
         try:
             background = _rgba(styles.get("backgroundColor"))
             effective_backgrounds = _composite_candidates(
@@ -181,6 +226,7 @@ class ContrastValidator(BaseValidator):
                 gradient_samples,
             )
             is_gradient = True
+            approved_surface_path = False
 
         if component.get("component") == "Text" and self._has_text(component.get("content")):
             color_key = "fontColor" if "fontColor" in styles else "textColor"
@@ -213,9 +259,21 @@ class ContrastValidator(BaseValidator):
             if ratios:
                 ratio = _reported_contrast_ratio(ratios, is_gradient)
                 if ratio < 4.5:
+                    foreground_color = _normalized_hex(foreground)
+                    uses_approved_palette = (
+                        approved_palette is not None
+                        and approved_surface_path
+                        and foreground_color in approved_palette["foregrounds"]
+                    )
                     # 渐变 stop 只代表背景采样点，无法证明文本矩形整体不可读。
-                    # 渐变场景统一进入渲染复核；纯色背景继续按最低阈值阻塞。
-                    severity = "warning" if is_gradient else ("error" if ratio < 3 else "warning")
+                    # 固定色板是受控设计输入，与渐变一样进入渲染复核；
+                    # 其他纯色背景继续按最低阈值阻塞。
+                    requires_render_review = is_gradient or uses_approved_palette
+                    severity = (
+                        "warning"
+                        if requires_render_review
+                        else ("error" if ratio < 3 else "warning")
+                    )
                     component_id = component.get("id")
                     pointer = (
                         f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
@@ -259,6 +317,8 @@ class ContrastValidator(BaseValidator):
                     effective_backgrounds,
                     is_gradient=is_gradient,
                     is_fusion_scene=is_fusion_scene,
+                    approved_palette=approved_palette,
+                    approved_surface_path=approved_surface_path,
                 )
 
     @staticmethod
