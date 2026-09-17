@@ -1103,5 +1103,203 @@
       "world-clock"
     ],
     "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_earphone",
+    "type": "asset",
+    "src": "resources/base/media/emoji_earphone.png",
+    "description": "样式：香槟金与米白配色的写实 3D 头戴式耳机，带金属头梁、柔软耳罩与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：耳机设备、音乐播放、音频输出、蓝牙连接与设备电量卡片。",
+    "sceneTags": [
+      "audio",
+      "headphones"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_calendar",
+    "type": "asset",
+    "src": "resources/base/media/emoji_calendar.png",
+    "description": "样式：红色页眉与浅灰日期圆点组成的扁平日历图形，当前日期以红色圆点突出，白色不透明背景，原始尺寸为 1024×1024，PNG 位图需保留原色；适用：日历应用入口、日期概览、日程安排、会议与事项提醒。",
+    "sceneTags": [
+      "calendar",
+      "schedule"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_Fitness_Health",
+    "type": "asset",
+    "src": "resources/base/media/emoji_Fitness_Health.png",
+    "description": "样式：橙色方形底上的白色运动健康心形标识，采用简洁扁平风格与不透明背景，原始尺寸为 1024×1024，PNG 位图需保留原色；适用：运动健康应用入口、健康数据总览、健身记录、活动目标与训练计划。",
+    "sceneTags": [
+      "health",
+      "app-icon"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_music1",
+    "type": "asset",
+    "src": "resources/base/media/emoji_music1.png",
+    "description": "样式：白色圆角方形底上的蓝色立体音乐图标，叠加青蓝与粉紫光晕，原始尺寸为 120×120，PNG 位图需保留原色；适用：音乐应用入口、歌曲播放、歌单、专辑与音频内容卡片。",
+    "sceneTags": [
+      "music",
+      "app-icon"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_phone1",
+    "type": "asset",
+    "src": "resources/base/media/emoji_phone1.png",
+    "description": "样式：绿色圆角方形底上的白色立体电话听筒图标，带柔和高光与阴影，原始尺寸为 120×120，PNG 位图需保留原色；适用：电话应用入口、拨号、联系人快捷呼叫、通话记录与来电提醒。",
+    "sceneTags": [
+      "phone",
+      "app-icon"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_calendar2",
+    "type": "asset",
+    "src": "resources/base/media/emoji_calendar2.png",
+    "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：日期概览、日历事项、会议日程、计划安排与纪念日卡片。",
+    "sceneTags": [
+      "calendar",
+      "schedule"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_clean",
+    "type": "asset",
+    "src": "resources/base/media/emoji_clean.png",
+    "description": "样式：木质手柄与米白棉线组成的写实 3D 拖把，斜向摆放并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：家居清洁、清扫任务、卫生计划、系统清理与维护提醒。",
+    "sceneTags": [
+      "clean",
+      "maintenance"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_clock",
+    "type": "asset",
+    "src": "resources/base/media/emoji_clock.png",
+    "description": "样式：红色金属外壳的写实 3D 双铃闹钟，白色表盘配黑色指针与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：闹钟、起床提醒、定时任务、日程提醒与倒计时。",
+    "sceneTags": [
+      "time",
+      "alarm"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_courier_box",
+    "type": "asset",
+    "src": "resources/base/media/emoji_courier_box.png",
+    "description": "样式：棕色瓦楞纸箱的写实 3D 快递包裹，带封箱胶带、物流标签和搬运标识，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：快递查询、包裹配送、物流进度、收件提醒与仓储信息。",
+    "sceneTags": [
+      "delivery",
+      "logistics"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_health",
+    "type": "asset",
+    "src": "resources/base/media/emoji_health.png",
+    "description": "样式：红色渐变的写实 3D 爱心，表面圆润并带柔和高光，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：健康概览、心率与心脏健康、关爱提醒、收藏和喜爱状态。",
+    "sceneTags": [
+      "health",
+      "heart"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_light",
+    "type": "asset",
+    "src": "resources/base/media/emoji_light.png",
+    "description": "样式：暖黄色发光灯泡的写实 3D 图形，带银灰螺口和透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：智能照明、灯光开启、亮度调节、灵感提示与家居设备控制。",
+    "sceneTags": [
+      "home",
+      "light"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_music",
+    "type": "asset",
+    "src": "resources/base/media/emoji_music.png",
+    "description": "样式：黑色高光材质的写实 3D 双八分音符，造型圆润并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐播放、歌曲信息、歌单、音频内容与音乐状态展示。",
+    "sceneTags": [
+      "music",
+      "media"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_music_2",
+    "type": "asset",
+    "src": "resources/base/media/emoji_music_2.png",
+    "description": "样式：一大一小两枚黑色高光八分音符组成的写实 3D 图形，错位排列并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐推荐、歌曲列表、正在播放、音频内容与娱乐卡片。",
+    "sceneTags": [
+      "music",
+      "media"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_notepad",
+    "type": "asset",
+    "src": "resources/base/media/emoji_notepad.png",
+    "description": "样式：蓝色横线与红色竖线组成的写实 3D 线圈记事本，带金属装订环和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：备忘录、笔记、待办清单、文字记录与便签卡片。",
+    "sceneTags": [
+      "notes",
+      "record"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_run",
+    "type": "asset",
+    "src": "resources/base/media/emoji_run.png",
+    "description": "样式：灰色运动上衣与深色短裤装扮的写实 3D 跑步人物，呈向前奔跑姿态并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：跑步记录、步数、配速、训练计划、运动目标与健身卡片。",
+    "sceneTags": [
+      "health",
+      "sport"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_study",
+    "type": "asset",
+    "src": "resources/base/media/emoji_study.png",
+    "description": "样式：白色横线纸张与绿红配色铅笔组成的写实 3D 学习图形，带透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：学习计划、课程任务、作业、笔记编辑、考试复习与专注学习卡片。",
+    "sceneTags": [
+      "study",
+      "notes"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_time",
+    "type": "asset",
+    "src": "resources/base/media/emoji_time.png",
+    "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、时钟、计时、时长统计、世界时间与时间管理卡片。",
+    "sceneTags": [
+      "time",
+      "clock"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_z",
+    "type": "asset",
+    "src": "resources/base/media/emoji_z.png",
+    "description": "样式：三枚由小到大排列的蓝紫渐变立体 Z 字符，带高光与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：睡眠状态、就寝提醒、午休、勿扰模式、睡眠时长与晚安卡片。",
+    "sceneTags": [
+      "sleep",
+      "night"
+    ],
+    "minXiaoyiVersion": "1.0.0"
   }
 ]
