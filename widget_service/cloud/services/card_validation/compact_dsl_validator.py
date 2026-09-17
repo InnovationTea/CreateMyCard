@@ -26,6 +26,18 @@ _REFERENCE_CANVAS_HEIGHT = {
     "4x2": 160.0,
 }
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
+_COUNTDOWN_V01_CALENDAR_DETAIL_FIELDS = frozenset(
+    {
+        "title",
+        "startDate",
+        "dtEnd",
+        "eventLocation",
+        "description",
+        "timeZone",
+        "senderName",
+        "importantEventType",
+    }
+)
 _COMMON_DISPLAY_UNITS = frozenset(
     {
         "%",
@@ -164,6 +176,13 @@ def _collect_hero_value_errors(
     if not isinstance(data_model_schema, dict):
         return
 
+    _collect_adjacent_display_unit_errors(
+        components,
+        components_by_id,
+        data_model_schema,
+        errors,
+    )
+
     numeric_paths: dict[str, str | None] = {}
     for component in components:
         if component.component_type != "Text":
@@ -213,24 +232,67 @@ def _pure_numeric_binding_path(
     content: Any,
     data_model_schema: dict[str, Any],
 ) -> str | None:
-    path: str | None = None
-    if isinstance(content, dict) and set(content) == {"path"}:
-        candidate = content.get("path")
-        path = candidate if isinstance(candidate, str) else None
-    elif isinstance(content, str):
-        match = _EXPRESSION_PATTERN.fullmatch(content.strip())
-        if match is not None:
-            reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
-            if reference is not None:
-                path = reference.group("path").strip()
-        elif re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
-            return ""
+    path = _pure_binding_path(content)
     if path is None:
         return None
+    if path == "":
+        return path
     schema_node = _schema_node_at_path(data_model_schema, path)
     if _schema_type(schema_node) not in _NUMERIC_SCHEMA_TYPES:
         return None
     return path
+
+
+def _pure_binding_path(content: Any) -> str | None:
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        return candidate if isinstance(candidate, str) else None
+    if not isinstance(content, str):
+        return None
+    match = _EXPRESSION_PATTERN.fullmatch(content.strip())
+    if match is not None:
+        reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
+        return reference.group("path").strip() if reference is not None else None
+    if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
+        return ""
+    return None
+
+
+def _collect_adjacent_display_unit_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    data_model_schema: dict[str, Any],
+    errors: list[str],
+) -> None:
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        for index, child_id in enumerate(component.children[:-1]):
+            value = components_by_id.get(child_id)
+            suffix = components_by_id.get(component.children[index + 1])
+            if value is None or value.component_type != "Text":
+                continue
+            if suffix is None or suffix.component_type != "Text":
+                continue
+            suffix_content = suffix.props.get("content")
+            if not isinstance(suffix_content, str):
+                continue
+            unit = suffix_content.strip()
+            if unit not in _COMMON_DISPLAY_UNITS:
+                continue
+            value_path = _pure_binding_path(value.props.get("content"))
+            if not value_path:
+                continue
+            schema_type = _schema_type(
+                _schema_node_at_path(data_model_schema, value_path)
+            )
+            if schema_type in _NUMERIC_SCHEMA_TYPES:
+                continue
+            errors.append(
+                f"component {component.component_id}: display unit {unit!r} cannot "
+                f"follow non-numeric binding {value_path}. Remove the unit or bind "
+                "a number/integer value."
+            )
 
 
 def _is_allowed_display_unit(
@@ -302,6 +364,7 @@ def _collect_layout_route_errors(
             components,
             components_by_id,
             visible_binding_paths,
+            task_spec,
             errors,
         )
         return
@@ -498,12 +561,28 @@ def _collect_2x2_countdown_group_errors(
     components: list[ComponentRow],
     components_by_id: dict[str, ComponentRow],
     visible_binding_paths: list[str],
+    task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
     has_countdown = any(
         path.endswith("/countdownDays") for path in visible_binding_paths
     )
     if not has_countdown:
+        return
+
+    day_units = [
+        component
+        for component in components
+        if component.component_type == "Text"
+        and isinstance(component.props.get("content"), str)
+        and component.props["content"].strip() == "天"
+    ]
+    if len(day_units) > 1:
+        errors.append(
+            "2x2 countdown must display the day unit exactly once; do not place "
+            "'天' beside the value and repeat it again in a second metadata row."
+        )
+    if not _uses_2x2_v01_countdown_layout(task_spec):
         return
 
     parent_by_child = {
@@ -544,6 +623,37 @@ def _collect_2x2_countdown_group_errors(
                 "2x2 V01 countdown meta_row may contain only the unit and the "
                 "optional time on the same line."
             )
+
+
+def _uses_2x2_v01_countdown_layout(task_spec: dict[str, Any]) -> bool:
+    if task_spec.get("size") != "2x2":
+        return False
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return False
+    data_schema = data_model_schema.get("data")
+    if not isinstance(data_schema, dict) or len(data_schema) != 1:
+        return False
+    if set(data_schema) - {"countdown", "calendar"}:
+        return False
+    if not _schema_contains_field(data_schema, "countdownDays"):
+        return False
+    if "calendar" not in data_schema:
+        return True
+    return not any(
+        _schema_contains_field(data_schema, field_name)
+        for field_name in _COUNTDOWN_V01_CALENDAR_DETAIL_FIELDS
+    )
+
+
+def _schema_contains_field(value: Any, field_name: str) -> bool:
+    if isinstance(value, dict):
+        return field_name in value or any(
+            _schema_contains_field(child, field_name) for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(_schema_contains_field(child, field_name) for child in value)
+    return False
 
 
 def _collect_component_contract_errors(

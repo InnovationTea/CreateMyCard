@@ -43,6 +43,20 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
   `fusion-ball-sport-orange`，不允许时使用倒计时对应的黄色纯色。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
+_COUNTDOWN_V01_CALENDAR_DETAIL_FIELDS = frozenset(
+    {
+        "title",
+        "startDate",
+        "dtEnd",
+        "eventLocation",
+        "description",
+        "timeZone",
+        "senderName",
+        "importantEventType",
+    }
+)
+_MEETING_QUERY_MARKERS = ("会议", "例会", "评审会", "入会", "下一场会")
+_MEETING_LIST_QUERY_MARKERS = ("会议列表", "日程列表", "多场会议", "所有会议")
 _TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
@@ -91,6 +105,19 @@ _TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最�
 - 两个动作必须分别映射到底部两张 ActionUnit，不得把动作绑定到 root、header_area
   或业务数据行。"""
 
+_MEETING_V06_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 已由程序识别为 2x2 单会议业务，必须锁定 FEWSHOT_2x2 的 V06
+会议时间线骨架，不得改用 V01 倒计时或普通大数字布局。
+
+- `day_area` 优先展示会议日期或日期标签；`meeting_texts` 固定为会议标题加最多
+  两行辅助信息。会议标题固定 `14fp/700`，辅助信息固定 `12fp/400`。
+- 同时提供 `title`、`startDate`、`dtStart`、`countdownDays` 时，依次展示会议日期、
+  会议标题、开始时间和倒计时；倒计时写成普通辅助文字“还有 N 天”，不得使用
+  30fp/38fp hero，也不得把“天”同时放在数字右侧和下一行。
+- 用户明确要求的日期、时间、倒计时不得互相替代或遗漏。只有一个动作时保留底部
+  胶囊 ActionUnit。最终独立语义信息超过 3 项时使用黄色纯色背景，不使用融球。"""
+
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
 
@@ -136,6 +163,8 @@ class PromptBuilder:
             }.get(task_spec.size)
         elif PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
             few_shot_id = _TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID
+        elif PromptBuilder._uses_meeting_v06(task_spec):
+            few_shot_id = "2x2-V06"
         elif task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
             few_shot_id = "2x2-V01"
         if few_shot_id is None and task_spec.size != "2x2":
@@ -188,6 +217,11 @@ class PromptBuilder:
             return False
         if not PromptBuilder._contains_schema_field(data_schema, "countdownDays"):
             return False
+        if "calendar" in data_schema and any(
+            PromptBuilder._contains_schema_field(data_schema, field_name)
+            for field_name in _COUNTDOWN_V01_CALENDAR_DETAIL_FIELDS
+        ):
+            return False
 
         query = task_spec.userQuery.casefold()
         if any(marker in query for marker in _COUNTDOWN_QUERY_MARKERS):
@@ -195,6 +229,17 @@ class PromptBuilder:
         return "天" in query and any(
             marker in query for marker in ("还有", "剩余", "距离", "多久")
         )
+
+    @staticmethod
+    def _uses_meeting_v06(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x2" or PromptBuilder._data_roots(task_spec) != (
+            "calendar",
+        ):
+            return False
+        query = task_spec.userQuery.casefold()
+        if any(marker in query for marker in _MEETING_LIST_QUERY_MARKERS):
+            return False
+        return any(marker in query for marker in _MEETING_QUERY_MARKERS)
 
     @staticmethod
     def _uses_2x2_single_business_dual_action(task_spec: TaskSpec) -> bool:
@@ -231,6 +276,11 @@ class PromptBuilder:
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
         if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
+        if PromptBuilder._uses_meeting_v06(task_spec):
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_MEETING_V06_ROUTE_LOCK}"
+            )
         if PromptBuilder._uses_countdown_v01(task_spec):
             return (
                 f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"

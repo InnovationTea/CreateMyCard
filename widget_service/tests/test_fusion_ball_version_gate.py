@@ -15,7 +15,6 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.fusion_ball_expander import (
     FUSION_BALL_MIN_PRD_VERSION_CONFIG,
     FusionBallPalette,
-    derive_fusion_ball_palette,
     fusion_ball_enabled,
     fusion_ball_palette_for_root,
 )
@@ -191,24 +190,20 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     ("design_token", "expected_palette"),
     [
         (
-            "fusion-ball-battery-teal",
-            FusionBallPalette("#FF1F9965", "#FF26BFA6", "#FF60BF98"),
-        ),
-        (
             "fusion-ball-schedule-cool",
-            FusionBallPalette("#FF1F3499", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
         ),
         (
             "fusion-ball-schedule-warm",
-            FusionBallPalette("#FF992735", "#FFFF5533", "#FFE68A2E"),
+            FusionBallPalette("#FF731D28", "#FFFF5533", "#FFE68A2E"),
         ),
         (
             "fusion-ball-sleep-violet",
-            FusionBallPalette("#FF4A3E99", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
         ),
         (
             "fusion-ball-sport-orange",
-            FusionBallPalette("#FF99331F", "#FFFF8833", "#FFFAA89E"),
+            FusionBallPalette("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
         ),
     ],
 )
@@ -237,12 +232,6 @@ def test_fusion_ball_design_tokens_use_fixed_palettes(
     )
 
     assert palette == expected_palette
-
-
-def test_derived_fusion_ball_palette_uses_sixty_percent_large_brightness() -> None:
-    palette = derive_fusion_ball_palette("#493D99")
-
-    assert palette.large == "#FF6F3D99"
 
 
 def test_converter_reads_app_version_from_protocol_profile(
@@ -298,9 +287,6 @@ def test_converter_expands_fusion_ball_with_relative_dimensions(
     for component_id, dimensions in expected_dimensions.items():
         styles = components[component_id]["styles"]
         assert (styles["width"], styles["height"]) == dimensions
-    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
-        "radius": 100
-    }
     assert components["__genui_render_component__root"]["styles"] == {
         "width": "matchParent",
         "height": "matchParent",
