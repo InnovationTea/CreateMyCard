@@ -24,9 +24,8 @@ _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
-本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，必须锁定 FEWSHOT_2x2 的 V01，
-不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown` 与 `/data/calendar`
-拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
+本次 TaskSpec 已由程序识别为 2x2 单业务倒计时，并且 `/data` 下恰好只有一个
+业务根，必须锁定 FEWSHOT_2x2 的 V01，不得重新套用普通 S1/S2/S3/S4。
 
 - 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，依次纵向
   放置居中的 38fp 倒计时数字和其正下方的 12fp 单位“天”；
@@ -45,6 +44,21 @@ _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "count
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
+_TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 的 `/data` 下恰好有两个一级业务根，必须锁定 FEWSHOT_2x2 的 V05
+和 S4 上下双业务骨架。忽略所有 S1/S2/S3 单业务规则、V01 倒计时规则、hero 数字
+规则和单业务标题/动作区规则，不得把任一业务降为另一业务的辅助内容。
+
+- root 直接且只能包含上下两个 `136×64vp` 内容背板，间距固定 `8vp`；不得生成
+  公共标题、公共内容区、底部 action_area、Button、ActionUnit 或 root.onClick。
+- 每个背板最多两行文字，第一行主数据固定 `14fp/700`，第二行辅助数据固定
+  `12fp/400`。所有文字排布都按 S4 小内容背板规则执行，不得引用单业务字号和布局。
+- 若其中一个业务是倒计时，倒计时值只作为所属背板第一行普通加粗主数据，例如
+  `4天`；禁止使用 30fp/38fp 大数字、800 字重、居中 hero、独立 value_group、
+  countdown_group、标题加大数字或将数字与“天”拆成单业务 value_row。
+- 每个动作只绑定语义所属背板；没有所属业务的动作删除。"""
+
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
 
@@ -52,7 +66,15 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 只能是上下两个 `136×64vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
-降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。""",
+降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。
+双业务中即使一个对象是倒计时，也必须继续使用 S4；倒计时数字只是所属蒙版第一行
+`14fp/700` 的普通主数据，禁止使用 V01、38fp hero、独立倒计时组或公共标题/动作区。
+每个蒙版最多两行文字，但文字字符数、是否单行或双行不得决定图标是否存在或图标位置；
+1-2 项数据且有合法素材时保留一个 `20×20vp` 右侧图标，图标右边缘距蒙版右边固定
+`12vp`，结构固定为 `Row -> [text_column, icon]`。
+2x2 单业务中的多个同级指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、
+左右两个指标组或左右两张内容背板。Row 只可用于同一个指标内部的“数值 + 合法单位”，
+不得把两个不同字段、两个 value_row 或两个指标 Column 并排。""",
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
 2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
@@ -75,13 +97,13 @@ class PromptBuilder:
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
         data_root_count = len(PromptBuilder._data_roots(task_spec))
         few_shot_id: str | None = None
-        if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
-            few_shot_id = "2x2-V01"
-        elif data_root_count == 2:
+        if data_root_count == 2:
             few_shot_id = {
                 "2x2": _TWO_BY_TWO_DUAL_FEW_SHOT_ID,
                 "2x4": _TWO_BY_FOUR_DUAL_FEW_SHOT_ID,
             }.get(task_spec.size)
+        elif task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
+            few_shot_id = "2x2-V01"
         if few_shot_id is None and task_spec.size != "2x2":
             return few_shot
 
@@ -126,7 +148,7 @@ class PromptBuilder:
         if task_spec.size != "2x2":
             return False
         data_schema = task_spec.dataModelSchema.get("data")
-        if not isinstance(data_schema, dict) or not data_schema:
+        if not isinstance(data_schema, dict) or len(data_schema) != 1:
             return False
         if set(data_schema) - {"countdown", "calendar"}:
             return False
@@ -163,6 +185,8 @@ class PromptBuilder:
             f"{system_prompt}\n\n{few_shot}\n\n"
             f"{_SIZE_LAYOUT_ROUTE_LOCKS[task_spec.size]}"
         )
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
+            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
         if PromptBuilder._uses_countdown_v01(task_spec):
             return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
         return prompt

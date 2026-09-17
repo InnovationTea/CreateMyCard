@@ -258,13 +258,24 @@ def _collect_layout_route_errors(
     visible_binding_paths: list[str],
     errors: list[str],
 ) -> None:
-    if task_spec.get("size") != "2x4":
+    size = task_spec.get("size")
+    if size not in {"2x2", "2x4"}:
         return
-    data_roots = {
+    visible_data_roots = {
         parts[1]
         for path in visible_binding_paths
         if len(parts := path.strip("/").split("/")) >= 2 and parts[0] == "data"
     }
+    data_roots = visible_data_roots
+    if size == "2x2":
+        data_model_schema = task_spec.get("dataModelSchema")
+        schema_data = (
+            data_model_schema.get("data")
+            if isinstance(data_model_schema, dict)
+            else None
+        )
+        if isinstance(schema_data, dict):
+            data_roots = set(schema_data)
     if len(data_roots) != 2:
         return
 
@@ -272,6 +283,29 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if size == "2x2":
+        if root is not None and root.component_type == "Column":
+            zones = [components_by_id.get(child_id) for child_id in root.children]
+            has_s4_zones = len(zones) == 2 and all(
+                zone is not None
+                and zone.component_type in {"Row", "Column"}
+                and zone.props.get("width") == 136
+                and zone.props.get("height") == 64
+                for zone in zones
+            )
+            if has_s4_zones and root.props.get("itemMargin") == 8:
+                return
+
+        roots = ", ".join(sorted(data_roots))
+        errors.append(
+            f"2x2 card displays two data roots ({roots}) and must use S4: root "
+            "must be a Column with exactly two direct 136x64 Row/Column "
+            "backboards and itemMargin 8. Apply S4 text layout inside both "
+            "backboards; countdown is only a 14fp/700 primary value, never a "
+            "30fp/38fp hero or a standalone countdown group."
+        )
+        return
+
     if root is not None and root.component_type == "Row" and len(root.children) == 2:
         backboards = [components_by_id.get(child_id) for child_id in root.children]
         if all(

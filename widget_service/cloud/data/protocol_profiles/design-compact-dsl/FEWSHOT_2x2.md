@@ -1,8 +1,10 @@
 # 2x2 Few-shot
 
-示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `136×64vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有合法素材时每个天气区各放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
+示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `136×64vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。倒计时与任一其他一级业务节点共同出现时也必须使用 S4，倒计时数字只是所属分区第一行 `14fp/700` 的普通主数据，不得套用 V01 的 38fp 居中大数字。有合法素材时每区各放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。每区最多两行文字，但图标是否保留与文字字符数、是否单行或双行无关；不得因文字超过 6 个字而删除或移动图标，图标固定在右侧且距分区右边 12vp。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧色值或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色纯色及配套内容色。
+
+2x2 单业务中的多个同级指标必须按全宽纵向信息流排列，不得仿照 2x4 指标骨架拆成左右列。示例中的 Row 只能用于单个指标的数值与合法单位、按钮内部或协议明确要求的局部组合，不能用来并排两个不同指标。
 
 ## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·融球暖橙）
 倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部，数字与单位纵向排列，单位固定在数字下方，不得把大数字移到目标名称上方。若实际 TaskSpec 提供一个动作，在 root 末尾追加 `action_area` 和胶囊 `ActionUnit`；`value_group` 使用 `layoutWeight:1` 占满中间剩余高度，使 36vp 按钮固定距卡片底部 12vp。
@@ -109,7 +111,7 @@ S3 的两个按钮固定占用 `80vp`，按钮区与信息区间隔 `8vp`，因�
 
 
 ## 示例五（2x2-V05）：手机+耳机电量（S4 上下双背板·青色纯色）
-本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 S4；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。
+本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 S4；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。其他双业务组合也必须完整复用本例骨架和文字层级，包括 `countdown + calendar`、`countdown + weather`。进入 S4 后不再提取任何 V01 或单业务 hero 规则；倒计时写成所属分区第一行普通 `14fp/700` 主数据，例如 `4天`，禁止 30fp/38fp 大数字、800 字重、独立倒计时组或数字与单位的单业务 value_row。
 ### user
 ```json
 {"userQuery":"使用2*2规格，同时展示手机电量和耳机盒电量及各自充电状态，点击对应区域进入电池或蓝牙设置。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":47},"chargingStatusDesc":{"type":"string","description":"耳机盒当前充电状态","sampleValue":"充电中"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
