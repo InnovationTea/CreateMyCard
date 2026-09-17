@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import (
     build_compact_data_model,
     parse_compact_dsl_rows,
     validate_card_header_layout,
+    validate_timeline_unit_layout,
 )
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
@@ -663,6 +664,10 @@ def _collect_component_contract_errors(
 ) -> None:
     try:
         validate_card_header_layout(components, size=task_spec.get("size"))
+    except CompactDslConversionError as exc:
+        errors.append(str(exc))
+    try:
+        validate_timeline_unit_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
