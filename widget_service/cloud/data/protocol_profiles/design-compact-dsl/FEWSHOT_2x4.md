@@ -228,7 +228,7 @@ W8 四数据布局自身固定无卡级标题，不依赖用户额外提出“�
 ```
 
 ## 示例十六（2x4-V09）：天气与手机电量双业务（W9-dual-backboards·蓝色纯色）
-W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。两个业务只能左右排列，禁止改成上下两个全宽背板。
+W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 W10；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。两个业务只能左右排列，禁止改成上下两个全宽背板。W9 逐日天气标题固定使用“城市名 + 天气”，不写“未来 N 天”；同时提供 `date` 与 `weekday` 时只保留 `weekday`，每一天固定用一个 120vp 单行 Text，默认按“星期 · 天气 · 温度范围”显示；不得再拆出右侧温度 Text，未明确要求降雨概率时不显示该字段。
 ### user
 ```json
 {"userQuery":"同时显示上海天气和手机电量，并分别提供查看天气和打开电池设置按钮。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"weather":{"location":{"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"condition":{"type":"string","description":"天气状况","sampleValue":"多云"},"temperatureC":{"type":"integer","description":"当前温度","sampleValue":29}}},"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
