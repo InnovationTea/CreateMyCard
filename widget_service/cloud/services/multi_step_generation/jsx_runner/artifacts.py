@@ -115,7 +115,12 @@ def write_card(
         "jsx": jsx_path.relative_to(run_dir).as_posix(),
         "a2ui": a2ui_path.relative_to(run_dir).as_posix(),
     }
-    if compile_context and (compile_context.get("data") or compile_context.get("actions")):
+    if compile_context and (
+        compile_context.get("data")
+        or compile_context.get("actions")
+        or compile_context.get("assets")
+        or compile_context.get("renderedLayout")
+    ):
         context_path = run_dir / "context" / f"{name}.context.json"
         context_path.write_text(
             json.dumps(compile_context, ensure_ascii=False, indent=2) + "\n",

@@ -1,4 +1,4 @@
-"""Model-authored display requirements shared by planning and repair.
+"""Frozen, query-grounded display requirements shared by planning and repair.
 
 This verifies explicit references and evidence, not arbitrary natural-language
 entailment. Passing it must not be reported as a semantic completeness proof.
@@ -29,15 +29,14 @@ def required_facts_schema(context: CompileContext | None = None) -> dict[str, An
         "minItems": 1,
         "description": (
             "逐对象、逐属性列出必需事实，每项选择 dataId、actionId、text 中恰好一种。"
-            "sourceQuote 必须摘自 userQuery；不得把背景自动当成另一对象的事实。"
-            "动态事实使用真实 dataId，不用 text 静态化。用户明确覆盖样例时，"
+            "不得把背景自动当成另一对象的事实。动态事实使用真实 dataId，不用 text 静态化。"
+            "用户明确覆盖样例时，"
             "在该 dataId 项填写 initialValue 和包含该值的 valueSourceQuote。"
         ),
         "items": {
             "type": "object",
             "properties": {
                 "requirement": {"type": "string"},
-                "sourceQuote": {"type": "string"},
                 "dataId": {"type": "string", "description": "动态信息选此字段，值为输入 data 的真实 ID。不要同时填写 text/actionId。"},
                 "actionId": {"type": "string", "description": "操作选此字段，值为输入 actions 的真实 ID。不要同时填写 text/dataId。"},
                 "text": {"type": "string", "description": "仅用户原文明确出现的静态正文；禁止填写样例值、字段说明或设计说明。动态信息必须选 dataId。"},
@@ -73,7 +72,7 @@ def input_availability_warnings(context: CompileContext) -> list[dict[str, Any]]
         warnings.append({
             'severity': 'warning', 'code': 'input-value-unavailable', 'dataId': key,
             'message': (
-                'Input value is empty; retain user-requested display bindings for future updates. '
+                'Input value is empty; retain any planned display binding for future updates. '
                 'Do not invent a value or retry JSX to supply it. '
                 'Action-only parameters do not require a display binding.'
             ),
@@ -214,6 +213,9 @@ def validate_required_facts(
                 errors.append(f"{where} must be a fact object")
                 continue
         fact = copy.deepcopy(raw)
+        # Legacy plans may contain sourceQuote. It is no longer part of the
+        # model-facing plan contract and must not be copied into later context.
+        fact.pop("sourceQuote", None)
         for key in set(fact) - allowed:
             fact.pop(key)
             warn("plan-metadata-normalized", f"{where}.{key} is unsupported metadata and was ignored")
@@ -223,12 +225,6 @@ def validate_required_facts(
         if not _nonempty(fact.get("requirement")):
             fact["requirement"] = str(fact.get("text") or fact.get("dataId") or fact.get("actionId") or where)
             warn("plan-metadata-normalized", f"{where}.requirement was derived from its target")
-        quote = fact.get("sourceQuote")
-        if not _nonempty(quote) or quote not in query:
-            warn(
-                "plan-evidence-unverified",
-                f"{where}.sourceQuote is not a verbatim quote; it is not evidence of coverage",
-            )
         targets = [key for key in ("dataId", "actionId", "text") if key in fact]
         invalid_targets = [key for key in targets if not _nonempty(fact[key])]
         if invalid_targets:
@@ -317,15 +313,14 @@ def validate_required_facts(
     return normalized
 
 
-def checkable_facts(facts: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
-    """Targets we can compare with JSX, not proof of user-required coverage."""
-    checkable = []
+def enforceable_facts(facts: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
+    enforceable = []
     for fact in facts:
         if "dataId" in fact or "actionId" in fact:
-            checkable.append(fact)
+            enforceable.append(fact)
         elif "text" in fact and is_verbatim_requirement(fact["text"], query):
-            checkable.append(fact)
-    return checkable
+            enforceable.append(fact)
+    return enforceable
 
 
 def context_with_initial_values(

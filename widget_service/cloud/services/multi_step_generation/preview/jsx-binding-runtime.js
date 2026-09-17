@@ -34,6 +34,12 @@
     return unit && numeric ? `${String(value).trim()}${unit}` : value;
   }
 
+  function applyValueTemplate(target, source, prop) {
+    const template = source && source[`${prop}Template`];
+    if (typeof template !== "string" || template.split("{value}").length !== 2) return;
+    target[prop] = template.replace("{value}", String(target[prop]));
+  }
+
   const emphasizedUnitPattern = new RegExp(
     String.raw`\s*([+-]?\d+(?:\.\d+)?)\s*`
       + String.raw`(次[/／]分钟|次[/／]分|bpm|公里/小时|千米/小时|毫秒|分钟|小时|千卡|公里|千米|`
@@ -107,6 +113,7 @@
         } else {
           target[prop] = value;
         }
+        applyValueTemplate(target, target, prop);
       } else {
         unresolved.add(id);
       }

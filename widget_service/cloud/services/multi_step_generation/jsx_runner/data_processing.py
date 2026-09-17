@@ -13,7 +13,9 @@ The converter intentionally avoids business-specific field mappings:
   display-unit metadata controls text formatting without changing calculations;
 * ``assetCandidates`` keeps the ordered ``id``/``src``/``description`` records
   that the model may reference, shortening direct ``resources/base/media``
-  children to filenames for model-facing prompts;
+  children to filenames and replacing remote URLs with stable ID-derived
+  aliases for model-facing prompts; the private compile context retains the
+  original remote sources;
 * the top-level semantic ``size`` field is preserved unchanged for layout routing;
 * every data field named ``updatedAt`` and the specific
   ``healthSport.targetDateText`` field are omitted;
@@ -36,6 +38,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -336,6 +339,8 @@ def convert_actions(value: Any, task_label: Any) -> list[dict[str, Any]]:
 
 
 DEFAULT_ASSET_ROOT = "resources/base/media/"
+_REMOTE_ASSET_SOURCE = re.compile(r"^https?://", re.IGNORECASE)
+_SAFE_ASSET_EXTENSION = re.compile(r"^\.[A-Za-z0-9]{1,8}$")
 
 
 def model_asset_src(source: str) -> str:
@@ -351,6 +356,56 @@ def model_asset_src(source: str) -> str:
         if relative and "/" not in relative:
             return relative
     return normalized
+
+
+def _remote_asset_alias(asset_id: str, source: str) -> str:
+    """Return a compact filename derived from a remote candidate's stable ID."""
+    name = asset_id[6:] if asset_id.startswith("asset.") else asset_id
+    name = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("._-") or "remote_asset"
+    extension = Path(urlsplit(source).path).suffix
+    if not _SAFE_ASSET_EXTENSION.fullmatch(extension):
+        extension = ".svg"
+    if name.lower().endswith(extension.lower()):
+        return name
+    return f"{name}{extension.lower()}"
+
+
+def _model_asset_candidates(
+    candidates: list[dict[str, str]],
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Build model aliases and the private alias-to-remote-source mapping."""
+    used_sources = {
+        model_asset_src(item["src"])
+        for item in candidates
+        if not _REMOTE_ASSET_SOURCE.match(item["src"])
+    }
+    prompt_assets: list[dict[str, str]] = []
+    remote_assets: list[dict[str, str]] = []
+    for item in candidates:
+        source = item["src"]
+        if _REMOTE_ASSET_SOURCE.match(source):
+            alias = _remote_asset_alias(item["id"], source)
+            if alias in used_sources:
+                stem = Path(alias).stem
+                suffix = Path(alias).suffix
+                digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+                length = 8
+                alias = f"{stem}.{digest[:length]}{suffix}"
+                while alias in used_sources:
+                    length += 2
+                    alias = f"{stem}.{digest[:length]}{suffix}"
+            used_sources.add(alias)
+            prompt_assets.append({**item, "src": alias})
+            remote_assets.append(
+                {
+                    "id": item["id"],
+                    "modelSrc": alias,
+                    "src": source,
+                }
+            )
+        else:
+            prompt_assets.append({**item, "src": model_asset_src(source)})
+    return prompt_assets, remote_assets
 
 
 def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]]:
@@ -518,20 +573,19 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
 
     if "icons" in processed and "assetCandidates" not in processed:
         raise ValueError(f"任务 {task_label!r} 使用了旧版 icons 字段；请从 raw 数据重新生成 processed 数据。")
-    prompt_assets = convert_asset_candidates(
+    compile_assets = convert_asset_candidates(
         processed.get("assetCandidates", []),
         task_label,
     )
-    prompt_assets = [
-        {**item, "src": model_asset_src(item["src"])}
-        for item in prompt_assets
-    ]
+    prompt_assets, remote_assets = _model_asset_candidates(compile_assets)
 
     prompt_task = copy.deepcopy(processed)
     prompt_task["data"] = prompt_data
     prompt_task["actions"] = prompt_actions
     prompt_task["assetCandidates"] = prompt_assets
     compile_context = {"data": compile_data, "actions": compile_actions}
+    if remote_assets:
+        compile_context["assets"] = remote_assets
     return PreparedTask(
         prompt_task=prompt_task,
         compile_context=compile_context,
@@ -587,6 +641,21 @@ def prepare_tasks_from_views(
         merged = copy.deepcopy(prompt_task)
         merged["data"] = copy.deepcopy(context_record.get("data", []))
         merged["actions"] = copy.deepcopy(context_record.get("actions", []))
+        remote_sources = {
+            item.get("modelSrc"): item.get("src")
+            for item in context_record.get("assets", [])
+            if isinstance(item, dict)
+            and isinstance(item.get("modelSrc"), str)
+            and isinstance(item.get("src"), str)
+        }
+        if remote_sources:
+            merged["assetCandidates"] = [
+                {
+                    **item,
+                    "src": remote_sources.get(item.get("src"), item.get("src")),
+                }
+                for item in merged.get("assetCandidates", [])
+            ]
         prepared = prepare_task(merged, source_index)
         if prepared.prompt_task != prompt_task:
             raise ValueError(f"模型输入与私有上下文第 {source_index} 项内容不一致。")

@@ -29,7 +29,6 @@ FEW_SHOT_2X4_PATH = SKILL_DIR / "references" / "fewshots" / "end_to_end_2x4.md"
 # but are intentionally absent from the generated JSX contract.
 GENERATION_CARD_APPEARANCES_SOLID = frozenset(
     {
-        "solid-white",
         "solid-blue",
         "solid-orange",
         "solid-green",

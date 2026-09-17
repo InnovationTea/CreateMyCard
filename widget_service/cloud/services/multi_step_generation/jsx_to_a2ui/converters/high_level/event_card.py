@@ -272,14 +272,15 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx,
         "event_card",
         events,
-        # The protocol has no content-measurement conditional. Use the safe
-        # fallback tier instead of spaceBetween, which can create arbitrary gaps.
+        # Keep the two schedules as one natural-height component. The parent
+        # slot owns vertical alignment; filling that slot here would make a
+        # parent's justifyContent="end" ineffective.
         gap=4,
         styles={
             "width": "matchParent",
-            "height": "matchParent",
-            "layoutWeight": 1,
-            "justifyContent": "start",
+            "height": "wrapContent",
+            "layoutWeight": 0,
+            "flexShrink": 1,
             "constraintSize": constraint_size,
         },
     )

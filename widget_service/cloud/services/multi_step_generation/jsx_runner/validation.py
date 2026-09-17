@@ -74,7 +74,9 @@ async def validate_generated_card(
     source: str,
     task: dict[str, Any],
     component_name: str,
+    decision: dict[str, Any] | None = None,
     browser: bool = True,
+    browser_only: bool = False,
     validator_path: Path = JSX_VALIDATOR_PATH,
     timeout_seconds: float = 90.0,
     infrastructure_retries: int = 2,
@@ -83,16 +85,21 @@ async def validate_generated_card(
         raise ValidatorInfrastructureError(f"缺少 JSX 校验器：{validator_path}")
     if infrastructure_retries < 0:
         raise ValueError("infrastructure_retries must be non-negative")
+    if browser_only and not browser:
+        raise ValueError("browser_only requires browser=True")
     payload = json.dumps(
         {
             "source": source,
             "task": task,
             "componentName": component_name,
+            "decision": decision or {},
         },
         ensure_ascii=False,
     ).encode("utf-8")
     command = ["node", str(validator_path), "--stdin"]
-    if not browser:
+    if browser_only:
+        command.append("--browser-only")
+    elif not browser:
         command.append("--no-browser")
 
     for attempt in range(infrastructure_retries + 1):
@@ -121,8 +128,20 @@ _BROWSER_LAYOUT_CODES = frozenset(
         "browser-semantic-overlap",
         "browser-semantic-content-overflow",
         "browser-button-clipping",
+        "browser-pillbutton-gap",
     }
 )
+
+
+def browser_has_pillbutton_gap_error(report: dict[str, Any]) -> bool:
+    """Return whether Chromium measured an undersized PillButton gap."""
+
+    return any(
+        isinstance(item, dict)
+        and item.get("severity") == "error"
+        and item.get("code") == "browser-pillbutton-gap"
+        for item in report.get("findings", [])
+    )
 
 
 def _error_findings(report: dict[str, Any]) -> list[dict[str, Any]]:

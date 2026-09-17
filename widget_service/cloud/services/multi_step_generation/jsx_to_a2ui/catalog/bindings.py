@@ -727,11 +727,38 @@ class ActionBinding:
         return result
 
 
+@dataclass(frozen=True, slots=True)
+class AssetBinding:
+    id: str
+    model_src: str
+    src: str
+
+    @classmethod
+    def from_payload(cls, value: Any, index: int) -> "AssetBinding":
+        if not isinstance(value, dict):
+            raise ValidationError(f"compile context assets[{index}] must be an object")
+        asset_id = value.get("id")
+        model_src = value.get("modelSrc")
+        src = value.get("src")
+        if not isinstance(asset_id, str) or not asset_id.strip():
+            raise ValidationError(f"compile context assets[{index}].id must be a non-empty string")
+        if not isinstance(model_src, str) or not model_src.strip():
+            raise ValidationError(f"compile context assets[{index}].modelSrc must be a non-empty string")
+        if not isinstance(src, str) or not re.match(r"^https?://", src, re.I):
+            raise ValidationError(f"compile context assets[{index}].src must be an HTTP(S) URL")
+        return cls(id=asset_id.strip(), model_src=model_src.strip(), src=src)
+
+    def payload(self) -> dict[str, str]:
+        return {"id": self.id, "modelSrc": self.model_src, "src": self.src}
+
+
 @dataclass(slots=True)
 class CompileContext:
     data: dict[str, DataBinding] = field(default_factory=dict)
     actions: dict[str, ActionBinding] = field(default_factory=dict)
+    assets: dict[str, AssetBinding] = field(default_factory=dict)
     data_model: dict[str, Any] = field(default_factory=dict)
+    rendered_layout: Any = None
 
     @classmethod
     def from_payload(cls, value: Any) -> "CompileContext":
@@ -741,15 +768,18 @@ class CompileContext:
             return value
         if not isinstance(value, dict):
             raise ValidationError("compile context must be an object")
-        unknown = set(value) - {"data", "actions"}
+        unknown = set(value) - {"data", "actions", "assets", "renderedLayout"}
         if unknown:
             raise ValidationError(f"compile context has unsupported fields {sorted(unknown)}")
         raw_data = value.get("data", [])
         raw_actions = value.get("actions", [])
+        raw_assets = value.get("assets", [])
         if not isinstance(raw_data, list):
             raise ValidationError("compile context data must be an array")
         if not isinstance(raw_actions, list):
             raise ValidationError("compile context actions must be an array")
+        if not isinstance(raw_assets, list):
+            raise ValidationError("compile context assets must be an array")
 
         data: dict[str, DataBinding] = {}
         paths: dict[str, str] = {}
@@ -772,13 +802,29 @@ class CompileContext:
             if action.id in actions:
                 raise ValidationError(f"duplicate action id {action.id!r}")
             actions[action.id] = action
-        return cls(data=data, actions=actions, data_model=data_model)
+        assets: dict[str, AssetBinding] = {}
+        asset_ids: set[str] = set()
+        for index, item in enumerate(raw_assets):
+            asset = AssetBinding.from_payload(item, index)
+            if asset.id in asset_ids:
+                raise ValidationError(f"duplicate asset binding id {asset.id!r}")
+            if asset.model_src in assets:
+                raise ValidationError(f"duplicate asset modelSrc {asset.model_src!r}")
+            asset_ids.add(asset.id)
+            assets[asset.model_src] = asset
+        return cls(data=data, actions=actions, assets=assets, data_model=data_model,
+                   rendered_layout=copy.deepcopy(value.get("renderedLayout")))
 
     def payload(self) -> dict[str, Any]:
-        return {
+        result = {
             "data": [item.payload() for item in self.data.values()],
             "actions": [item.payload() for item in self.actions.values()],
         }
+        if self.assets:
+            result["assets"] = [item.payload() for item in self.assets.values()]
+        if self.rendered_layout is not None:
+            result["renderedLayout"] = copy.deepcopy(self.rendered_layout)
+        return result
 
     def data_binding(self, binding_id: str) -> DataBinding:
         try:
@@ -827,6 +873,35 @@ def _override_query_grounded_binding(
         )
     query_overrides[binding.id] = copy.deepcopy(value)
     return compile_context.override_data_binding_value(binding.id, value)
+
+
+def _value_template_parts(owner: dict[str, Any], prop: str) -> tuple[str, str] | None:
+    template = owner.get(f"{prop}Template")
+    if not isinstance(template, str) or template.count("{value}") != 1:
+        return None
+    prefix, suffix = template.split("{value}")
+    return prefix, suffix
+
+
+def _template_source_value(owner: dict[str, Any], prop: str) -> Any:
+    """Extract the raw bound value from a complete template preview literal."""
+    literal = owner.get(prop)
+    parts = _value_template_parts(owner, prop)
+    if parts is None or not isinstance(literal, str):
+        return literal
+    prefix, suffix = parts
+    if not literal.startswith(prefix) or (suffix and not literal.endswith(suffix)):
+        return literal
+    end = len(literal) - len(suffix) if suffix else len(literal)
+    return literal[len(prefix):end]
+
+
+def _materialized_template_value(owner: dict[str, Any], prop: str, value: Any) -> Any:
+    parts = _value_template_parts(owner, prop)
+    if parts is None:
+        return copy.deepcopy(value)
+    prefix, suffix = parts
+    return f"{prefix}{value}{suffix}"
 
 
 def normalize_unit_slots(element: JSXElement, compile_context: CompileContext) -> None:
@@ -893,12 +968,15 @@ def _can_override_query_literal(
     binding: DataBinding,
     locked_initial_ids: frozenset[str],
     user_query: str | None,
+    *,
+    template: bool = False,
 ) -> bool:
     if prop not in owner or binding.id in locked_initial_ids:
         return False
+    source_value = _template_source_value(owner, prop) if template else owner[prop]
     return (
-        _literal_matches_binding_storage_type(owner[prop], binding)
-        and _literal_is_explicit_in_query(owner[prop], user_query)
+        _literal_matches_binding_storage_type(source_value, binding)
+        and _literal_is_explicit_in_query(source_value, user_query)
     )
 
 
@@ -955,20 +1033,29 @@ def materialize_binding_literals(
             except ValidationError:
                 continue
             value_map = boolean_text_map_for(element.props, prop)
+            source_value = _template_source_value(element.props, prop)
             if value_map is not None and isinstance(binding.value, bool):
                 element.props[prop] = value_map[binding.value]
             elif _can_override_query_literal(
-                element.props, prop, binding, locked_initial_ids, user_query,
+                element.props, prop, binding, locked_initial_ids, user_query, template=True,
             ):
                 binding = _override_query_grounded_binding(
                     compile_context,
                     query_overrides,
                     binding,
-                    element.props[prop],
+                    source_value,
                 )
-                element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
+                element.props[prop] = _materialized_template_value(
+                    element.props,
+                    prop,
+                    binding.value_for_prop(element.tag, prop),
+                )
             else:
-                element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
+                element.props[prop] = _materialized_template_value(
+                    element.props,
+                    prop,
+                    binding.value_for_prop(element.tag, prop),
+                )
 
     item_props = {name.removeprefix("items[].") for name in allowed if name.startswith("items[].")}
     items = element.props.get("items")
@@ -1080,6 +1167,8 @@ def remove_data_binding_metadata(element: JSXElement) -> None:
 
     element.props.pop("dataIds", None)
     element.props.pop("dataValueMaps", None)
+    element.props.pop("titleTemplate", None)
+    element.props.pop("secondaryInfoTemplate", None)
     items = element.props.get("items")
     if isinstance(items, list):
         for item in items:

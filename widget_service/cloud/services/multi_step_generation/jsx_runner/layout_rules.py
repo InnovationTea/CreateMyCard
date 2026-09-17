@@ -143,6 +143,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
         return []
     descendants = _descendants(root.child_elements())
     errors: list[str] = []
+    allowed_horizontal_business_rows: set[int] = set()
     title_count = sum(
         node.tag in {"SingleLineTitle", "DoubleLineTitle"}
         for node in descendants
@@ -267,6 +268,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             errors.append('2x2 layout "双列内容单按钮" requires one adaptive two-column content region')
         else:
             content = structural_slots[0]
+            allowed_horizontal_business_rows.add(id(content))
             columns = content.child_elements()
             valid_content = (
                 content.tag == "Stack"
@@ -327,6 +329,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 )
             else:
                 hero, bottom = content_children
+                allowed_horizontal_business_rows.add(id(bottom))
                 bottom_children = bottom.child_elements() if bottom.tag == "Stack" else []
                 valid_hero = (
                     hero.tag == "Stack"
@@ -366,6 +369,53 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                             '2x2 layout "标题锚点内容" requires an 88vp secondary region, '
                             'an 8vp gap and one centered CircleButton in a 40 × 40vp slot'
                         )
+    for node in descendants:
+        if (
+            node.tag != "Stack"
+            or node.props.get("direction", "column") != "row"
+            or id(node) in allowed_horizontal_business_rows
+        ):
+            continue
+        row_business_components = [
+            descendant
+            for descendant in _descendants(node.child_elements())
+            if descendant.tag not in {"Card", "Stack", "Grid"}
+        ]
+        # A title row is not a content region. Badge is explicitly documented
+        # as a title companion, so the generic horizontal-content prohibition
+        # must not reject SingleLineTitle/DoubleLineTitle + Badge groups.
+        title_components = [
+            descendant
+            for descendant in row_business_components
+            if descendant.tag in {"SingleLineTitle", "DoubleLineTitle"}
+        ]
+        badges = [
+            descendant for descendant in row_business_components if descendant.tag == "Badge"
+        ]
+        if (
+            len(title_components) == 1
+            and len(badges) <= 1
+            and len(row_business_components) == len(title_components) + len(badges)
+        ):
+            continue
+        business_by_branch = [
+            [
+                descendant
+                for descendant in _descendants([child])
+                if descendant.tag not in {"Card", "Stack", "Grid"}
+            ]
+            for child in node.child_elements()
+        ]
+        if (
+            sum(bool(branch) for branch in business_by_branch) >= 2
+            and sum(len(branch) for branch in business_by_branch) >= 2
+        ):
+            errors.append(
+                "a 2x2 content region cannot place two business components side by side "
+                'in a direction="row" Stack; use a documented vertical layout. Only '
+                'the two ProgressCircle columns in "双列内容单按钮" and the 88 + 8 + '
+                '40vp secondary/CircleButton row in "标题锚点内容" are allowed'
+            )
     return list(dict.fromkeys(errors))
 
 

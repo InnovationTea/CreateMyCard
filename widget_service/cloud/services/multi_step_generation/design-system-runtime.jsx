@@ -74,13 +74,11 @@
   --white:#fff;
 
   /* ── 1.3.1 背景模板：v15 单色纯色 + 融球 ── */
-  --card-bg-solid-white:#FFFFFF;
   --card-bg-solid-blue:#E5EDFE;
   --card-bg-solid-orange:#FFF3E6;
   --card-bg-solid-green:#F0FFE6;
   --card-bg-solid-cyan:#E6FDFF;
   --card-bg-solid-purple:#EDE6FF;
-  --card-bg-solid-white-content:#000000;
   --card-bg-solid-blue-content:#1f4799;
   --card-bg-solid-orange-content:#99661f;
   --card-bg-solid-green-content:#52991f;
@@ -1156,6 +1154,10 @@
   font-family:"HarmonyHeiTi","HarmonyOS Sans SC","HarmonyOS Sans",sans-serif;}
 .table-text[data-spacing="adaptive"]{
   justify-content:space-between;}
+.table-text[data-spacing="parent"]{
+  height:max-content;
+  flex:0 0 auto;
+  justify-content:flex-start;}
 .table-text-item{
   display:flex;
   flex:0 0 auto;
@@ -1376,8 +1378,7 @@
   flex-direction:column;
   justify-content:flex-start;
   gap:var(--event-card-items-gap,8px);
-  align-items:stretch;
-  height:100%;}
+  align-items:stretch;}
 .ec[data-multiple="true"] .ec-item{
   flex:0 0 auto;
   display:grid;
@@ -2848,6 +2849,10 @@ a{text-decoration:none}
   font-family:"HarmonyHeiTi","HarmonyOS Sans SC","HarmonyOS Sans",sans-serif;}
 .table-text[data-spacing="adaptive"]{
   justify-content:space-between;}
+.table-text[data-spacing="parent"]{
+  height:max-content;
+  flex:0 0 auto;
+  justify-content:flex-start;}
 .table-text-item{
   display:flex;
   flex:0 0 auto;
@@ -3222,8 +3227,7 @@ a{text-decoration:none}
   flex-direction:column;
   justify-content:flex-start;
   gap:var(--event-card-items-gap,8px);
-  align-items:stretch;
-  height:100%;}
+  align-items:stretch;}
 .ec[data-multiple="true"] .ec-item{
   flex:0 0 auto;
   display:grid;
@@ -3844,7 +3848,6 @@ a{text-decoration:none}
     };
   }
 
-  const solidWhite = monochromeAppearance("#FFFFFF", "#000000");
   const solidBlue = monochromeAppearance("#E5EDFE", "#1f4799");
   const solidOrange = monochromeAppearance("#FFF3E6", "#99661f");
   const solidGreen = monochromeAppearance("#F0FFE6", "#52991f");
@@ -3857,7 +3860,6 @@ a{text-decoration:none}
   const orbGreen = darkAppearance("rgb(23,115,76)");
 
   const CARD_APPEARANCES = Object.freeze({
-    "solid-white": solidWhite,
     "solid-blue": solidBlue,
     "solid-orange": solidOrange,
     "solid-green": solidGreen,
@@ -3869,7 +3871,7 @@ a{text-decoration:none}
     "orb-green": orbGreen,
 
     /* 旧示例兼容别名：统一降落到 v15 的正式背景模板。 */
-    "neutral-soft": solidWhite,
+    "neutral-soft": solidBlue,
     "blue-soft": solidBlue,
     "pink-soft": solidOrange,
     "yellow-soft": solidOrange,
@@ -4180,7 +4182,7 @@ a{text-decoration:none}
     return <Icon name={name} src={src} alt={alt} decorative={!alt} className={cx("weather-icon-demo-glyph", className)} {...rest} />;
   }
 
-  function SingleLineTitle({ title, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
+  function SingleLineTitle({ title, titleTemplate: _titleTemplate, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
     return (
       <div className={cx("title-demo-row", "single-line-title-row", className)} {...rest}>
         <div className="single-line-title-layout"><p className="single-line-title">{title}</p></div>
@@ -4188,7 +4190,7 @@ a{text-decoration:none}
     );
   }
 
-  function DoubleLineTitle({ title, secondaryInfo, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
+  function DoubleLineTitle({ title, secondaryInfo, titleTemplate: _titleTemplate, secondaryInfoTemplate: _secondaryInfoTemplate, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
     return (
       <div className={cx("title-demo-row", className)} {...rest}>
         <div className="double-line-title">
@@ -4552,7 +4554,7 @@ a{text-decoration:none}
       <div
         className={cx("table-text", className)}
         {...rest}
-        data-spacing={items.length >= 3 ? "adaptive" : "default"}
+        data-spacing={items.length >= 3 ? "adaptive" : items.length === 2 ? "parent" : "default"}
       >
         {items.map(({ key, label, parameter, dataIds, dataValueMaps }, index) => (
           <div className="table-text-item" key={key ?? index}>
@@ -4894,14 +4896,19 @@ a{text-decoration:none}
 
       const updateGap = () => {
         const itemNodes = Array.from(element.querySelectorAll(":scope > .ec-item"));
-        if (itemNodes.length !== 2 || element.clientHeight <= 0) return;
+        if (itemNodes.length !== 2) return;
         const contentHeight = itemNodes.reduce(
           // clientHeight/offsetHeight stay in layout pixels when a preview
           // applies CSS transform scaling; DOMRect values do not.
           (total, itemNode) => total + itemNode.offsetHeight,
           0,
         );
-        const gap = element.clientHeight >= contentHeight + 8 ? 8 : 4;
+        // EventCard keeps its intrinsic content height so the parent Stack's
+        // justify rule controls whether the whole schedule group sits at the
+        // top, center or bottom. The parent slot, rather than a forced 100%
+        // EventCard height, determines whether the preferred 8vp gap fits.
+        const availableHeight = element.parentElement?.clientHeight || element.clientHeight;
+        const gap = availableHeight >= contentHeight + 8 ? 8 : 4;
         element.style.setProperty("--event-card-items-gap", `${gap}px`);
       };
       updateGap();
@@ -4910,6 +4917,7 @@ a{text-decoration:none}
         ? new global.ResizeObserver(updateGap)
         : null;
       resizeObserver?.observe(element);
+      if (element.parentElement) resizeObserver?.observe(element.parentElement);
       Array.from(element.children).forEach((child) => resizeObserver?.observe(child));
       const mutationObserver = typeof global.MutationObserver === "function"
         ? new global.MutationObserver(updateGap)
@@ -4980,8 +4988,8 @@ a{text-decoration:none}
     Stack: { optional: ["children", "direction", "gap", "align", "justify", "wrap", "flex", "basis", "width", "minWidth", "height", "minHeight", "mt", "mb", "ml", "mr", "position", "top", "right", "bottom", "left", "alignSelf", "surface"], surface: ["backplate"] },
     Grid: { optional: ["children", "columns", "rows", "gap", "rowGap", "columnGap", "flex", "basis", "width", "minWidth", "height", "minHeight", "align", "justify", "mt", "mb"] },
     Icon: { optional: ["name", "src", "size", "alt", "decorative"] },
-    SingleLineTitle: { required: ["title"], optional: ["dataIds"] },
-    DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["dataIds"] },
+    SingleLineTitle: { required: ["title"], optional: ["titleTemplate", "dataIds"] },
+    DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["titleTemplate", "secondaryInfoTemplate", "dataIds"] },
     Badge: { required: ["value"], optional: ["dataIds"], color: ["blue", "orange", "green", "red", "purple", "cyan", "pink"] },
     EmphasizedData: { requiredOneOf: ["value", "items"], optional: ["unit", "dataIds"] },
     EmphasisText: { required: ["mainText"], optional: ["secondaryText", "dataIds"] },

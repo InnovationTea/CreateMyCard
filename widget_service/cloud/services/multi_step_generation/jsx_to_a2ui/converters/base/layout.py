@@ -52,9 +52,31 @@ def adapt_flex_children(
     fill_table_height: bool = False,
 ) -> None:
     """Preserve child sizing semantics along the parent's actual main axis."""
+    flow_count = sum(
+        child.props.get("position") != "absolute" for child in source_children
+    )
     for source, converted in zip(source_children, converted_children, strict=True):
         if source.tag == "TableText" and fill_table_height:
-            converted.styles["height"] = "100%"
+            items = source.props.get("items")
+            if not isinstance(items, list) or len(items) >= 3:
+                if is_row or flow_count == 1:
+                    converted.styles["height"] = "100%"
+                else:
+                    # A native Column does not reproduce CSS flex-shrink for
+                    # a 100%-height table beside other content. Allocate only
+                    # the remaining height, preserving the rows' minimum.
+                    converted.styles.update({
+                        "height": "wrapContent", "layoutWeight": 1,
+                    })
+                    row_height = sum(
+                        child.styles.get("height", 0) for child in converted.children
+                    )
+                    gaps = converted.props.get("itemMargin", 0) * max(
+                        0, len(converted.children) - 1
+                    )
+                    converted.styles.setdefault("constraintSize", {}).update({
+                        "minHeight": row_height + gaps,
+                    })
         if not is_row:
             # JSX wrapping paragraphs retain their content-based minimum height.
             # An explicit one-line A2UI minimum must not let their layout box

@@ -289,6 +289,7 @@ class ConversionContext:
     used_data_ids: set[str] = field(default_factory=set)
     used_action_ids: set[str] = field(default_factory=set)
     derived_data_model: dict[str, Any] = field(default_factory=dict)
+    secondary_body_layouts: dict[int, dict[str, Any]] = field(default_factory=dict)
 
     def make(
         self,
@@ -344,7 +345,18 @@ class ConversionContext:
                 if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
                     value = boolean_text_expression(binding.path, value_map)
                 else:
-                    value = self.binding_reference(binding, element.tag, name)
+                    template = element.props.get(f"{name}Template")
+                    if isinstance(template, str) and template.count("{value}") == 1:
+                        prefix, suffix = template.split("{value}")
+                        parts = []
+                        if prefix:
+                            parts.append(expression_string_literal(prefix))
+                        parts.append(self.binding_expression(binding, element.tag, name))
+                        if suffix:
+                            parts.append(expression_string_literal(suffix))
+                        value = a2ui_expression(parts)
+                    else:
+                        value = self.binding_reference(binding, element.tag, name)
         return value
 
     def binding_expression(self, binding: DataBinding, tag: str, name: str) -> str:

@@ -14,6 +14,7 @@
 - 布尔值使用表达式，例如 `disabled={true}`，不能写成字符串 `disabled="true"`。
 - Boolean 可直接用于 `disabled`、`done` 等 boolean Prop。文本 Prop 不接受裸 Boolean；只有同时通过同名 `dataIds` 和完整 `dataValueMaps={{ prop: { true: "…", false: "…" } }}` 声明双状态文案时，才允许把 Boolean 响应式显示为文本。
 - 所有来自输入 `data` 的可见业务值都必须绑定；通常一个显示 Prop 只绑定一个数据 ID。只有组件属性表明确声明数组形式时，才能让同一显示 Prop 绑定多个 ID。`Card`、`Stack`、`Grid`、Icon、appearance、尺寸、位置和颜色等视觉属性不得绑定。
+- 每个原子业务事实在整张卡片中必须只有一个可见 owner，标题也计入 owner。一个 ID 已绑定到可见文本 Prop 或作为有序 ID 数组成员进入某段文本后，不得再绑定到另一段可见文本；也不得通过静态标题、标签或同义改写重复表达同一事实。同一数值可以同时驱动进度图形和该图形配套的唯一数值文本。若 `SecondaryBody`、`TableText` 等组件的最少条目数会迫使事实重复，应改选合同匹配的组件，不能复制数据凑数。
 - 多个输入字段不得在 JSX 中手工拼成一个动态字符串。应使用组件的多 item 模式、拆成多个组件，或使用合同明确允许的有序 ID 数组；`EventCard.items[].time` 用 ` – ` 组合开始／结束时间，`EmphasisText.mainText`、`EmphasisText.secondaryText` 、`InfoBlock.secondaryText` 和 `TableText.items[].parameter` 用 ` ｜ ` 组合多个短字段。添加或删除绑定不得改变其余 Props、组件树和槽位尺寸。
 - 静态 `label`、`unit` 和 `separator` 可以说明动态值，但必须遵守对应组件合同，不得改变数值和业务语义。有单位槽的组件可为独立数字或纯数字字符串声明静态单位，保留原值及精度；完整带单位字符串必须保留完整，不得自行拆分或补写单位。
 - 格式化字符串只能绑定到接受字符串的显示 Prop；`EmphasizedData` 会自动拆分完整字符串，生成代码仍原样填写 `value="25 分钟"`。`ProgressCircle` 只绑定 `externalText`，由组件内部解析其中的数字驱动圆环；其他进度组件仍按各自属性表绑定实际进度值。`ProgressCircleSingle.value` 在没有独立数值字段时允许绑定完整的格式化百分比字符串。
@@ -39,17 +40,26 @@
 
 单行标题，用于卡片内容区左上角。
 
-标题通常是根据 `userQuery` 概括的静态 UI 文案，此时只传 `title`。当地点名、设备名、事件名等输入业务字段直接承担标题角色时，才通过 `dataIds.title` 绑定其真实 ID。
+标题通常是根据 `userQuery` 概括的静态 UI 文案，此时只传 `title`。当地点名、设备名、事件名等输入业务字段直接承担标题角色时，才通过 `dataIds.title` 绑定其真实 ID。动态字段需要与固定标题文案组合时，使用 `titleTemplate`，其中必须且只能包含一个 `{value}`；`title` 仍填写当前完整预览文案。这样动态字段本身只在标题展示一次，不得为了补充后缀而在正文重复。
+
+若地点名、设备名、事件名等动态事实已经由正文组件展示，静态标题必须改用不包含该动态值的类别概括，例如正文展示“厦门”时标题使用“天气定位”，不能再写“厦门天气”。反之，标题使用 `titleTemplate="{value}天气"` 并绑定地点字段时，正文不得再次展示该地点。
 
 #### 组件属性
 
 | 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
 |---|---|---|---|---|
 | `title` | `string` | 必选 | 无默认值 | 单行标题，超出可用宽度时省略 |
+| `titleTemplate` | `string` | 仅当 `dataIds.title` 存在时可选；必须且只能包含一个 `{value}` | 不传时直接显示绑定值 | 把绑定值嵌入固定标题文案，例如 `{value}天气`；不能与 `dataValueMaps.title` 同时使用 |
 | `dataIds` | `{ title?: string }` | `title` 来自输入数据时必选 | 不传时无绑定 | 仅允许绑定 `title` |
 
 ```jsx
 <SingleLineTitle title="手机使用时长" />
+
+<SingleLineTitle
+  title="长沙天气"
+  titleTemplate="{value}天气"
+  dataIds={{ title: "weather.location.prefectureName" }}
+/>
 ```
 
 #### 空间占位
@@ -63,7 +73,7 @@
 
 标题和次要信息组成的双层标题。
 
-`title` 与 `secondaryInfo` 分别按内容来源判断是否绑定，不能因为使用双行标题就默认两项都是动态数据。任一项来自 `userQuery` 的静态概括时不绑定；来自当前输入 `data[]` 的业务值时绑定该项的真实 ID。
+`title` 与 `secondaryInfo` 分别按内容来源判断是否绑定，不能因为使用双行标题就默认两项都是动态数据。任一项来自 `userQuery` 的静态概括时不绑定；来自当前输入 `data[]` 的业务值时绑定该项的真实 ID。动态值需要固定前缀或后缀时，可分别使用 `titleTemplate`、`secondaryInfoTemplate`；模板必须且只能包含一个 `{value}`，对应的完整预览文案仍填写在原显示 Prop 中。
 
 #### 组件属性
 
@@ -71,6 +81,8 @@
 |---|---|---|---|---|
 | `title` | `string` | 必选 | 无默认值 | 主标题，最多一行 |
 | `secondaryInfo` | `string` | 必选 | 无默认值 | 连接状态、地点等第二层信息，最多两行 |
+| `titleTemplate` | `string` | 仅当 `dataIds.title` 存在时可选；必须且只能包含一个 `{value}` | 不传时直接显示绑定值 | 给动态主标题添加固定前缀或后缀；不能与 `dataValueMaps.title` 同时使用 |
+| `secondaryInfoTemplate` | `string` | 仅当 `dataIds.secondaryInfo` 存在时可选；必须且只能包含一个 `{value}` | 不传时直接显示绑定值 | 给动态次信息添加固定前缀或后缀；不能与 `dataValueMaps.secondaryInfo` 同时使用 |
 | `dataIds` | `{ title?: string, secondaryInfo?: string }` | 对应显示字段来自输入数据时必选 | 不传时无绑定 | `title` 与 `secondaryInfo` 分别绑定各自的数据 ID |
 | `dataValueMaps` | `{ title?: { true: string, false: string }, secondaryInfo?: { true: string, false: string } }` | 对应绑定源为 Boolean 且需要显示文案时必选 | 不传时不转换 | 必须与同名 `dataIds` 配对；优先使用输入已有的描述性字符串字段 |
 
@@ -174,6 +186,15 @@
 | `width` | `max-content`，最大 100% | 宽度随数值自适应 |
 
 ## 3. 文本组件
+
+### 3.0 核心信息与同级属性的选择顺序
+
+选择文本组件前，必须先按用户意图在每个语义分区内将展示事实分为“唯一核心”“补充说明”或“同级属性”，再选择组件：
+
+- 如果存在一个与用户意图相关性明显最高的字段，该字段必须由 `EmphasisText`、`EmphasizedData`、`InfoBlock` 或其他能够表达核心信息的业务组件承载；不得为了结构简单或节省高度，把它降级为 `TableText.items[].parameter`。核心字段是纯文本时使用 `EmphasisText`，是数值与单位或完整格式化数值文本时使用 `EmphasizedData`；若只有一个补充字段且不满足 `SecondaryBody` 至少两项的合同，可选择语义匹配的 `InfoBlock` 或核心组件自身允许的解释槽。
+- 核心信息之外的多个补充字段使用同分区内的 `SecondaryBody`，并保留此前规定的自适应换行规则。空间不足时应更换可闭合的 Layout Pattern、使用规范允许的紧凑规格或选择能够无损承载相同事实的核心组件；不得仅为通过布局校验取消核心层级并把全部事实压成 `TableText`。
+- 只有两个及以上字段在用户意图中确实是同级并列属性，或者该分区的核心信息已经由标题或其他核心业务组件唯一表达时，才能使用 `TableText` 展示这些属性。用户按顺序列举多个字段本身不自动证明第一个字段是核心；必须依据问题焦点、对象关系和语义主次判断，不得虚构核心层级。
+- 同一语义分区最多只能有一个强调核心：`EmphasisText` 和 `EmphasizedData` 合并计数，任意组合总数超过一个均为错误。普通包装 `Stack` 不会建立新的语义分区；只有当前 Layout Pattern 明确划分的独立业务分区才分别计算。
 
 ### 3.1 EmphasizedData
 
@@ -611,7 +632,7 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 | 占位属性 | 值 | 说明 |
 |---|---|---|
 | `width` | `100%` | 每组及整个组件占满父容器分配的宽度 |
-| `height` | 填满父槽；内容自然高度为 `16 × N + 2 × (N − 1)vp` | `N` 为 items 数量；每项固定 16vp。两项时顶部排列、间距 2vp；三项及以上时均分父槽剩余高度，相邻项间距最小 2vp。父槽不足时报告溢出，不压缩行高 |
+| `height` | 两项时自然高度 34vp；三项及以上填满父槽 | 每项固定 16vp。恰好两项时组件不填满父槽，两行以固定 2vp 间距紧邻排列，由外层布局的 `justify` 决定整个组件顶部、居中或底部对齐；三项及以上均分父槽剩余高度，相邻项间距最小 2vp。父槽不足时报告溢出，不压缩行高 |
 | `row-overflow` | 单行省略 | 每项不换行，不增加单项高度 |
 
 #### 布局约束
@@ -1142,7 +1163,7 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 | `width` | `100%` | 占满父布局为它分配的槽位宽度 |
 | `max-width` | 2×2 为 116vp；2×4 为 `none` | 2×4 使用父槽完整可用宽度，避免右侧有空间时标题仍提前换行 |
 | `min-width` | `0` | 允许缩小到父槽位宽度，例如 2×2“标题锚点内容”的 88vp 左下区域 |
-| `height` | 一条为内容高度；两条为父槽高度 | 单条普通模式 34–68vp、紧凑模式 32vp；两条日程作为一个组件占满父槽，条目间距优先为 8vp，空间不足时为 4vp |
+| `height` | 按内容自然撑高 | 单条普通模式 34–68vp、紧凑模式 32vp；两条日程作为一个整体按内容自然撑高，不占满父槽，由外层布局的 `justify` 决定整组的顶部、居中或底部对齐；条目间距优先为 8vp，父槽空间不足时为 4vp |
 | `title-lines` | 1–2 行 | 标题换行会增加 18vp 高度；时间和地点各固定占 16vp |
 
 ## 5. 按钮组件
