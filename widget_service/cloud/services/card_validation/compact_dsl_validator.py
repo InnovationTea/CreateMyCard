@@ -282,6 +282,14 @@ def _collect_layout_route_errors(
     }
     root = components_by_id.get("root")
     if size == "2x2" and len(data_roots) == 1:
+        event_candidates = task_spec.get("eventCandidates")
+        if isinstance(event_candidates, list) and len(event_candidates) == 2:
+            _collect_2x2_dual_action_layout_errors(
+                components_by_id,
+                root,
+                errors,
+            )
+            return
         if root is not None and len(root.children) == 1:
             only_child = components_by_id.get(root.children[0])
             if _is_2x2_small_backboard(only_child):
@@ -368,6 +376,107 @@ def _collect_layout_route_errors(
         f"2x4 card displays two data roots ({roots}) and must use W9: root must "
         "be a Row with exactly two direct 144x136 Column backboards. Do not use "
         "a shared title, a shared action area, or stacked full-width business rows."
+    )
+
+
+def _collect_2x2_dual_action_layout_errors(
+    components_by_id: dict[str, ComponentRow],
+    root: ComponentRow | None,
+    errors: list[str],
+) -> None:
+    if root is None or root.component_type != "Column" or len(root.children) != 2:
+        errors.append(
+            "2x2 single-business card with two actions must use S3: root must be "
+            "a Column containing only header_area and action_area."
+        )
+        return
+
+    header = components_by_id.get(root.children[0])
+    action_area = components_by_id.get(root.children[1])
+    header_valid = header is not None and all(
+        (
+            header.component_type == "Column",
+            header.props.get("width") == 136,
+            header.props.get("height") == 48,
+            len(header.children) == 2,
+        )
+    )
+    actions_valid = action_area is not None and all(
+        (
+            action_area.component_type == "Column",
+            action_area.props.get("width") == 136,
+            action_area.props.get("itemMargin") == 8,
+            len(action_area.children) == 2,
+        )
+    )
+    if root.props.get("itemMargin") != 8 or not header_valid or not actions_valid:
+        errors.append(
+            "2x2 S3 must use a 136x48 header_area, an 8vp root gap, and an "
+            "action_area containing two 136x36 ActionUnit capsules with 8vp gap."
+        )
+        return
+
+    assert header is not None
+    assert action_area is not None
+    title = components_by_id.get(header.children[0])
+    summary = components_by_id.get(header.children[1])
+    text_styles_valid = _matches_single_line_text_style(
+        title,
+        font_size=14,
+        font_weight=700,
+    ) and _matches_single_line_text_style(
+        summary,
+        font_size=12,
+        font_weight=400,
+    )
+    if not text_styles_valid:
+        errors.append(
+            "2x2 S3 header_area must contain exactly two single-line Text rows: "
+            "a 14fp/700 business title and one 12fp/400 merged data summary. "
+            "Do not use a hero number, value_row, or a third information row."
+        )
+
+    action_components = [
+        components_by_id.get(child_id) for child_id in action_area.children
+    ]
+    if any(
+        component is None or component.component_type != "ActionUnit"
+        for component in action_components
+    ):
+        errors.append(
+            "2x2 S3 action_area must contain exactly two ActionUnit capsules."
+        )
+
+    if summary is None or summary.component_type != "Text":
+        return
+    summary_paths: list[str] = []
+    _collect_binding_context(
+        summary.props.get("content"),
+        f"component {summary.component_id}.props.content",
+        summary_paths,
+        [],
+    )
+    if len(set(summary_paths)) > 1 and " | " not in str(summary.props.get("content")):
+        errors.append(
+            "2x2 S3 must merge multiple data fields into its second line with "
+            'the ASCII separator " | ".'
+        )
+
+
+def _matches_single_line_text_style(
+    component: ComponentRow | None,
+    *,
+    font_size: int,
+    font_weight: int,
+) -> bool:
+    if component is None or component.component_type != "Text":
+        return False
+    return all(
+        (
+            component.props.get("fontSize") == font_size,
+            component.props.get("fontWeight") == font_weight,
+            component.props.get("maxLines") == 1,
+        )
     )
 
 

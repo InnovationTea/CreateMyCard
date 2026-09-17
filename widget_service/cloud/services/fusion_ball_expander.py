@@ -28,12 +28,14 @@ FUSION_BALL_DESIGN_TOKENS = (
 _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
+_FUSION_LARGE_BRIGHTNESS = 60
+_FUSION_GLASS_BLUR_RADIUS = 100
 _DESIGN_TOKEN_FIXED_PALETTES = {
-    "fusion-ball-battery-teal": ("#FF17734C", "#FF26BFA6", "#FF60BF98"),
-    "fusion-ball-schedule-cool": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
-    "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
-    "fusion-ball-sleep-violet": ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
-    "fusion-ball-sport-orange": ("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+    "fusion-ball-battery-teal": ("#FF1F9965", "#FF26BFA6", "#FF60BF98"),
+    "fusion-ball-schedule-cool": ("#FF1F3499", "#FF2BA2D9", "#FF52CCCC"),
+    "fusion-ball-schedule-warm": ("#FF992735", "#FFFF5533", "#FFE68A2E"),
+    "fusion-ball-sleep-violet": ("#FF4A3E99", "#FF572BD9", "#FFB398D9"),
+    "fusion-ball-sport-orange": ("#FF99331F", "#FFFF8833", "#FFFAA89E"),
 }
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"
@@ -133,7 +135,11 @@ def derive_fusion_ball_palette(base_color: str) -> FusionBallPalette:
     )
     hue_degrees = hue * 360
     return FusionBallPalette(
-        large=_hsb_color(hue_degrees + 25, saturation * 100, brightness * 100 - 40),
+        large=_hsb_color(
+            hue_degrees + 25,
+            saturation * 100,
+            _FUSION_LARGE_BRIGHTNESS,
+        ),
         medium=_rgb_color(red, green, blue),
         small=_hsb_color(hue_degrees - 25, saturation * 100 + 25, brightness * 100),
     )
@@ -387,7 +393,7 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
                 "strokeWidth": 0,
                 "color": "#00000000",
                 "backgroundColor": "#1AFFFFFF",
-                "backdropBlur": {"radius": 120},
+                "backdropBlur": {"radius": _FUSION_GLASS_BLUR_RADIUS},
             },
         },
     ]

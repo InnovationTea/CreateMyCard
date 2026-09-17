@@ -57,7 +57,7 @@
 ```
 
 ## 示例三（2x2-V03）：Free Clip 2 歌单（S3 单信息+双按钮·青色纯色）
-S3 的两个按钮固定占用 `80vp`，按钮区与信息区间隔 `8vp`，因此顶部信息区固定为 `48vp` 且最多两行。纯数字主值不得超过 `24fp/700`，带单位的未拆分数值字符串不得超过 `18fp/700`，辅助文字固定 `12fp/400`；禁止使用 `30fp/38fp` 大数字。
+S3 的两个按钮固定占用 `80vp`，按钮区与信息区间隔 `8vp`，因此顶部信息区固定为 `48vp` 且只能两行。第一行是业务或对象名称，固定 `14fp/700`；第二行把所有保留数据合并成一行，固定 `12fp/400`，多个数据使用 ASCII ` | ` 分隔。S3 不使用 hero 数字，任何数据都不得超过 `12fp/400`，不得拆成大小字号组合。
 ### user
 ```json
 {"userQuery":"展示耳机名称与左右耳电量，同时提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"Free Clip 2"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
@@ -65,17 +65,9 @@ S3 的两个按钮固定占用 `80vp`，按钮区与信息区间隔 `8vp`，因�
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":8,"backgroundColor":"#FFE6FDFF"},["header_area","action_area"]]
-["header_area","Column",{"width":136,"height":48,"justifyContent":"start","alignItems":"start","itemMargin":6,"padding":{"bottom":10},"flexShrink":1},["device_name","battery_row"]]
-["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1}]
-["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":0},["left_item","right_item"]]
-["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
-["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#1A1F8F99","fontSize":10,"fontWeight":500,"fontColor":"#991F8F99","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1}]
+["header_area","Column",{"width":136,"height":48,"justifyContent":"start","alignItems":"start","itemMargin":4,"padding":{"bottom":10},"flexShrink":1},["device_name","battery_summary"]]
+["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F8F99","maxLines":1,"textOverflow":"clip"}]
+["battery_summary","Text",{"content":"{{ 'L ' + ${/data/earphone/leftBatteryLevel} + '% | R ' + ${/data/earphone/rightBatteryLevel} + '%' }}","width":136,"fontSize":12,"fontWeight":400,"fontColor":"#991F8F99","maxLines":1,"textOverflow":"clip"}]
 ["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0},["cta_play","cta_fav"]]
 ["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#331F8F99","actionInk":"#FF1F8F99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
 ["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#331F8F99","actionInk":"#FF1F8F99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]

@@ -43,6 +43,7 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
   `fusion-ball-sport-orange`，不允许时使用倒计时对应的黄色纯色。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
+_TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
@@ -73,6 +74,22 @@ _TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先
   `4天`，固定 `14fp/700`；禁止使用 30fp/38fp 大数字、800 字重、居中 hero、独立 value_group、
   countdown_group、标题加大数字或将数字与“天”拆成单业务 value_row。
 - 每个动作只绑定语义所属背板；没有所属业务的动作删除。"""
+
+_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 是 2x2 单业务且恰好提供两个动作，必须锁定 FEWSHOT_2x2 的 V03
+和 S3 单信息双按钮骨架。两个动作不增加业务对象数量，也不得改走 S2 或 S4。
+
+- root 直接且只能包含 `header_area` 和 `action_area`，两者间距固定 `8vp`；
+  `header_area` 固定 `136×48vp`，`action_area` 纵排两个 `136×36vp` ActionUnit，
+  间距固定 `8vp`。禁止额外生成 title_area、content_area、value_group 或 value_row。
+- 信息区固定两行：第一行是稳定的业务或对象名称，固定 `14fp/700`；第二行把
+  所有保留数据合并成一行，固定 `12fp/400`。多个数据使用 ASCII ` | ` 分隔，
+  `maxLines` 固定为 1，禁止生成第三行。
+- S3 不使用 hero 数字。数字、百分比、温度、时长等数据均按第二行普通文字展示，
+  禁止使用 18fp、20fp、24fp、30fp 或 38fp，也不得把数值与单位拆成大小字号组合。
+- 两个动作必须分别映射到底部两张 ActionUnit，不得把动作绑定到 root、header_area
+  或业务数据行。"""
 
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
@@ -117,6 +134,8 @@ class PromptBuilder:
                 "2x2": _TWO_BY_TWO_DUAL_FEW_SHOT_ID,
                 "2x4": _TWO_BY_FOUR_DUAL_FEW_SHOT_ID,
             }.get(task_spec.size)
+        elif PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
+            few_shot_id = _TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID
         elif task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
             few_shot_id = "2x2-V01"
         if few_shot_id is None and task_spec.size != "2x2":
@@ -178,6 +197,14 @@ class PromptBuilder:
         )
 
     @staticmethod
+    def _uses_2x2_single_business_dual_action(task_spec: TaskSpec) -> bool:
+        return (
+            task_spec.size == "2x2"
+            and len(PromptBuilder._data_roots(task_spec)) == 1
+            and len(task_spec.eventCandidates) == 2
+        )
+
+    @staticmethod
     def _contains_schema_field(value: Any, field_name: str) -> bool:
         if isinstance(value, dict):
             return field_name in value or any(
@@ -202,6 +229,8 @@ class PromptBuilder:
         )
         if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
+        if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
+            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
         if PromptBuilder._uses_countdown_v01(task_spec):
             return (
                 f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"

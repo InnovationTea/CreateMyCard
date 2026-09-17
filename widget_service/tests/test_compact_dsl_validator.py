@@ -109,3 +109,68 @@ def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
     assert "64 + 40 + 36 + 8 × 2 = 156 > 136" in prompt
     assert "itemMargin 不生效" not in prompt
     assert "两者可以同时设置" in prompt
+
+
+def _dual_action_task_spec() -> dict:
+    return {
+        "userQuery": "查看电量，并提供省电和回家两个入口",
+        "size": "2x2",
+        "eventCandidates": [
+            {"call": "clickToIntent", "args": {"intentName": "PowerSaving"}},
+            {"call": "clickToIntent", "args": {"intentName": "NavigateHome"}},
+        ],
+        "dataModelSchema": {
+            "data": {
+                "phoneBattery": {
+                    "batterySOC": {"type": "integer"},
+                    "chargingStatusDesc": {"type": "string"},
+                }
+            }
+        },
+        "assetCandidates": [],
+    }
+
+
+def _dual_action_s3_source(*, summary_font_size: int = 12) -> str:
+    return "\n".join(
+        [
+            '["root","Column",{"width":160,"height":160,"padding":12,'
+            '"itemMargin":8},["header_area","action_area"]]',
+            '["header_area","Column",{"width":136,"height":48},'
+            '["business_title","data_summary"]]',
+            '["business_title","Text",{"content":"剩余电量","fontSize":14,'
+            '"fontWeight":700,"maxLines":1}]',
+            '["data_summary","Text",{"content":"68% | 未充电","fontSize":'
+            f'{summary_font_size},"fontWeight":400,"maxLines":1}}]',
+            '["action_area","Column",{"width":136,"itemMargin":8},'
+            '["cta_save","cta_home"]]',
+            '["cta_save","ActionUnit",{"state":"capsule","label":"省电模式",'
+            '"onClick":[{"call":"clickToIntent","args":'
+            '{"intentName":"PowerSaving"}}]}]',
+            '["cta_home","ActionUnit",{"state":"capsule","label":"导航回家",'
+            '"onClick":[{"call":"clickToIntent","args":'
+            '{"intentName":"NavigateHome"}}]}]',
+        ]
+    )
+
+
+def test_accepts_compact_s3_single_business_dual_action_layout() -> None:
+    result = validate_compact_dsl(
+        _dual_action_s3_source(),
+        task_spec=_dual_action_task_spec(),
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    assert result.warnings == ()
+
+
+def test_rejects_large_data_text_in_s3_dual_action_layout() -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match="one 12fp/400 merged data summary",
+    ):
+        validate_compact_dsl(
+            _dual_action_s3_source(summary_font_size=38),
+            task_spec=_dual_action_task_spec(),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
