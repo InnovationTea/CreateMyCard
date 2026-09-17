@@ -75,8 +75,8 @@ Column(
         },
         Text(
             data.workoutCalories,
-            {
-                "fontSize": 20,
+            { "height": 24,
+                "fontSize": 18,
                 "fontWeight": 800,
                 "fontColor": $theme('primaryColor'),
                 "maxLines": 1,
@@ -140,7 +140,7 @@ Column(
             },
             Text(
                 data.workoutCalories,
-                {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+                { "height": 24,"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
             ),
             #if data.workoutType
                 Text(
@@ -221,12 +221,12 @@ Column(
     #if data.workoutCalories
         Text(
             data.workoutCalories,
-            {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+            { "height": 24,"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
         ),
     #else
         Text(
             data.duration,
-            {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+            { "width": "matchParent", "height": 34,"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
         ),
     #endif
     Row(
