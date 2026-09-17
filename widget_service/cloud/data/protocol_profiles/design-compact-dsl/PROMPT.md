@@ -8,6 +8,8 @@
 
 **2x2 双业务生成前置约束**：最终展示恰好两个业务对象时立即锁定 S4，root 的直接子组件只能是上下两个 `136×64vp` 内容背板且间距 `8vp`，禁止标题区、底部 `action_area`、Button、ActionUnit 和 TimelineUnit；每个保留动作只能绑定所属内容背板，即使其中一个业务是带 `EnterMeeting` 的会议也不得生成独立“加入会议”按钮。进入 S4 后全部文字只执行小内容背板规则，禁止继续提取 S1/S2/S3、V01 或 hero 规则。倒计时只作为所属背板第一行 `14fp/700` 的普通加粗主数据，例如 `4天`；禁止 30fp/38fp 大数字、800 字重、居中 hero、独立倒计时组，以及将数字和“天”拆成单业务 value_row。每个背板最多两行文字，但文字字符数、是否单行或双行不得决定图标是否存在或位置；1-2 项数据且有合法素材时保留一个右侧图标，固定 `20×20vp` 且距背板右边 `12vp`。
 
+**2x2 单业务多字段生成前置约束**：`/data` 下只有一个一级业务根时始终是单业务；同一根内的名称、状态及多个指标不得按字段数拆成 S4。禁止生成单个或残缺的 `136×64vp` S4 内容背板，使用全宽单业务信息流。用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留并各显示一次；“重点、优先、主要”只调整字段顺序和视觉主次，不得删除其余明确字段。重点字段放在前面，两个辅助字段空间不足时合并到后一行并以 ` | ` 分隔。普通单业务内容区不生成 Image，不得为使用候选素材套用 S4 小背板。
+
 **2x2 单业务指标生成前置约束**：同一业务对象内存在最高/最低、当前/目标、已用/剩余等多个同级指标时，所有指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、左右两个指标组或左右两张内容背板。Row 只允许表达同一个指标内部的“数值 + 合法单位”，不得并排两个不同字段、两个 `value_row` 或两个指标 Column。
 
 **2x4 双业务生成前置约束**：必须先按业务对象实例合并字段，再统计数据块；同一耳机对象的名称、连接状态、耳机仓电量和充电状态固定算一个数据块，禁止拆成“耳机连接”和“耳机仓电量”两个数据块。最终展示恰好两个业务数据块时立即锁定 W9，root 必须是 Row，直接且只能包含左右两个 `144×136vp` 大内容背板，间距 `8vp`；禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止两个 `296×64vp` 背板上下排列，禁止任何其它上下双业务布局。禁止卡级公共标题、跨业务公共内容行、卡级 `actions/action_area` 和背板外按钮。每个业务的标题、数据和至多一个按钮必须全部放在自己的背板内，action 数量不增加、拆分或重排业务数据块，也不得为了容纳 action 改走 W10。
@@ -650,7 +652,7 @@ ActionUnit——卡级 CTA：
 ### `S2-info-pair-action`（两信息 + 单按钮）——最大簇
 
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
-- region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。2x2 单倒计时带一个动作时使用 `title_area 20vp + value_group(layoutWeight:1) + action_area 36vp`，标题顶部居中，`value_group` 在中部用 Column 将大数字与单位纵向居中，单位固定在数字正下方；`action_area` 必须是 root 最后一项，按钮固定 `x:12vp、y:112vp、width:136vp、height:36vp`，距卡片底部正好 `12vp`。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
+- region：默认使用 `CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。2x2 单倒计时带一个动作时使用 `title_area 20vp + value_group(layoutWeight:1) + action_area 36vp`，标题顶部居中，`value_group` 在中部固定为两行视觉内容：第一行是大数字，第二行无明确时间时只显示单位“天”，有明确时间时使用同一 `meta_row` 显示“天 · 时间”；禁止第三行辅助文字或重复目标名称。`action_area` 必须是 root 最后一项，按钮固定 `x:12vp、y:112vp、width:136vp、height:36vp`，距卡片底部正好 `12vp`。会议时间线亚型改用 `day_area 16vp + content_area + action_area`，`day_area` 是正文日期上下文，不是 CardHeader。
 - 单业务有多个同级指标时，`content_area` 必须是全宽 Column，指标按阅读优先级上下排列；禁止创建 `main_area Row -> [metric_1, metric_2]`、左右等分指标列或并排指标背板。即使两个指标语义对称、字数相同或都需要突出，也不得左右分栏。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 与环形 Progress 均固定 `52×52vp`、`strokeWidth:6`，中心放图标或读数，左下展示状态视觉；使用环内图标时，右下动作预先采用纯文字入口并预算文字宽度，标题不配图标；icon-round 仅在满足 2.5 节区域互斥及用户指定例外时选用）。
 - 会议时间线亚型：先确认整卡只有 calendar 这 1 个业务且最终只展示一个 `calendar.events[0]`；在此前提下，只要 userQuery 明确包含会议、入会或下一场会语义，存在 `intentName:"EnterMeeting"` 候选，或 TaskSpec 的事件标题/描述/sampleValue 明确表示会议、例会、评审会等会议事项，就强制参考 FEWSHOT_2x2 V06。sampleValue 仅用于识别路由，最终标题优先动态绑定真实字段；无真实标题字段且用户未给出会议名称时固定使用“日程”，不得省略标题。使用黄色纯色时间线布局，不得改选普通 S2 信息列或会议融球；结构必须是一个 TimelineUnit 紧邻纯文字 `meeting_texts`，会议标题必须为第一行 `14fp/700`，时间和地点固定 `12fp/400` 且前后禁止任何 Image；禁止使用 `eventCount` 作为标题。若还展示任一非 calendar 业务，即使存在 EnterMeeting，也必须改走 S4，禁止 V06、TimelineUnit 和独立 action_area。是否有入会/查看动作以及是否展示地点只替换对应槽位，不改变单业务路由。多条会议或日程列表不适用本亚型。

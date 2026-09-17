@@ -7,7 +7,7 @@
 2x2 单业务中的多个同级指标必须按全宽纵向信息流排列，不得仿照 2x4 指标骨架拆成左右列。示例中的 Row 只能用于单个指标的数值与合法单位、按钮内部或协议明确要求的局部组合，不能用来并排两个不同指标。
 
 ## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·融球暖橙）
-倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部，数字与单位纵向排列，单位固定在数字下方，不得把大数字移到目标名称上方。若实际 TaskSpec 提供一个动作，在 root 末尾追加 `action_area` 和胶囊 `ActionUnit`；`value_group` 使用 `layoutWeight:1` 占满中间剩余高度，使 36vp 按钮固定距卡片底部 12vp。
+倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部。`value_group` 最多两行视觉内容：第一行是数字，第二行无明确时间时只放单位“天”；有明确时间时第二行使用 `meta_row`，在同一行放“天 · 时间”。禁止第三行辅助文字，也禁止在中部重复目标名称。若实际 TaskSpec 提供一个动作，在 root 末尾追加 `action_area` 和胶囊 `ActionUnit`；`value_group` 使用 `layoutWeight:1` 占满中间剩余高度，使 36vp 按钮固定距卡片底部 12vp。
 ### user
 ```json
 {"userQuery":"使用2*2规格，做个运动会倒数日卡片。展示距离运动会的倒计时天数","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数","sampleValue":32}}}},"assetCandidates":[]}

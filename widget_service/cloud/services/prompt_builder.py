@@ -27,13 +27,15 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
 本次 TaskSpec 已由程序识别为 2x2 单业务倒计时，并且 `/data` 下恰好只有一个
 业务根，必须锁定 FEWSHOT_2x2 的 V01，不得重新套用普通 S1/S2/S3/S4。
 
-- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，依次纵向
-  放置居中的 38fp 倒计时数字和其正下方的 12fp 单位“天”；
-  存在用户明确要求的时间时，只在数字下方增加一行 12fp/400 辅助文字。
+- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，并且只能
+  包含两行视觉内容。第一行是居中的 38fp 倒计时数字；第二行固定为 12fp/400：
+  无明确时间时只显示“天”，有明确时间时使用一个 `meta_row` 在同一行显示
+  “天 · 10:00”。禁止增加第三行 `aux_text`、目标名称或其它辅助说明。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
   无法提取目标名称时固定使用“倒计时”。
 - 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
-  “天后开始”“天后参加”等长后缀。
+  “天后开始”“天后参加”等长后缀。有时间时，“天”和时间是第二行中的两个
+  相邻 Text，中间用静态分隔符“ · ”连接，不得把时间放到第三行。
 - 当前 TaskSpec 提供一个 `eventCandidates` 项时必须映射为底部胶囊 ActionUnit，不得省略；
   action_area 必须是 root 最后一项并固定沉底。未提供事件候选时才不生成动作。
   不得把标题、时间和数字重组为 countdown_group 或其它自由布局。
@@ -44,18 +46,31 @@ _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "count
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
+_TWO_BY_TWO_SINGLE_ROUTE_LOCK = """# 本次请求单业务边界（高优先级）
+
+本次 TaskSpec 的 `/data` 下只有一个一级业务根。该根内的多个字段仍属于同一个
+业务对象，绝对不能使用 S4，也不能生成孤立的 `136×64vp` S4 内容背板。
+
+- 用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留，每个事实只展示
+  一次；“重点、优先、主要”只决定主次顺序，不得作为删除其余明确字段的理由。
+- 多字段使用全宽单业务信息流：重点字段在前，其余字段放在后续辅助行；空间紧张时可将
+  两个辅助字段合并为一行并用 ` | ` 分隔，不得把字段拆成左右业务或多个 S4 分区。
+- 普通单业务内容区不生成 Image。不得为了使用候选素材，把主内容包装成 S4 小背板。"""
+
 _TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
 本次 TaskSpec 的 `/data` 下恰好有两个一级业务根，必须锁定 FEWSHOT_2x2 的 V05
 和 S4 上下双业务骨架。忽略所有 S1/S2/S3 单业务规则、V01 倒计时规则、hero 数字
 规则和单业务标题/动作区规则，不得把任一业务降为另一业务的辅助内容。
 
+- 业务根计数优先于语义关联：`countdown + calendar`、`countdown + weather` 即使描述
+  同一场活动或同一趟出行，也仍是两个业务，禁止合并为单业务倒计时。
 - root 直接且只能包含上下两个 `136×64vp` 内容背板，间距固定 `8vp`；不得生成
   公共标题、公共内容区、底部 action_area、Button、ActionUnit 或 root.onClick。
 - 每个背板最多两行文字，第一行主数据固定 `14fp/700`，第二行辅助数据固定
   `12fp/400`。所有文字排布都按 S4 小内容背板规则执行，不得引用单业务字号和布局。
 - 若其中一个业务是倒计时，倒计时值只作为所属背板第一行普通加粗主数据，例如
-  `4天`；禁止使用 30fp/38fp 大数字、800 字重、居中 hero、独立 value_group、
+  `4天`，固定 `14fp/700`；禁止使用 30fp/38fp 大数字、800 字重、居中 hero、独立 value_group、
   countdown_group、标题加大数字或将数字与“天”拆成单业务 value_row。
 - 每个动作只绑定语义所属背板；没有所属业务的动作删除。"""
 
@@ -188,7 +203,12 @@ class PromptBuilder:
         if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
         if PromptBuilder._uses_countdown_v01(task_spec):
-            return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            )
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 1:
+            return f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
         return prompt
 
     def build_design_compact(

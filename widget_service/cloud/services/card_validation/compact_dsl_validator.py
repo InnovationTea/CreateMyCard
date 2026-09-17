@@ -276,13 +276,30 @@ def _collect_layout_route_errors(
         )
         if isinstance(schema_data, dict):
             data_roots = set(schema_data)
-    if len(data_roots) != 2:
-        return
 
     components_by_id = {
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if size == "2x2" and len(data_roots) == 1:
+        if root is not None and len(root.children) == 1:
+            only_child = components_by_id.get(root.children[0])
+            if _is_2x2_small_backboard(only_child):
+                errors.append(
+                    "2x2 card has one data root and must use a full-width "
+                    "single-business layout; do not generate an isolated "
+                    "136x64 S4 backboard or add an Image to ordinary content."
+                )
+        _collect_2x2_countdown_group_errors(
+            components,
+            components_by_id,
+            visible_binding_paths,
+            errors,
+        )
+        return
+    if len(data_roots) != 2:
+        return
+
     if size == "2x2":
         if root is not None and root.component_type == "Column":
             zones = [components_by_id.get(child_id) for child_id in root.children]
@@ -294,6 +311,35 @@ def _collect_layout_route_errors(
                 for zone in zones
             )
             if has_s4_zones and root.props.get("itemMargin") == 8:
+                if "countdown" in data_roots:
+                    countdown_texts = []
+                    for component in components:
+                        if component.component_type != "Text":
+                            continue
+                        component_paths: list[str] = []
+                        _collect_binding_context(
+                            component.props.get("content"),
+                            f"component {component.component_id}.props.content",
+                            component_paths,
+                            [],
+                        )
+                        if any(
+                            path.startswith("/data/countdown/")
+                            for path in component_paths
+                        ):
+                            countdown_texts.append(component)
+                    countdown_style_valid = countdown_texts and all(
+                        _non_negative_number(component.props.get("fontSize")) == 14
+                        and component.props.get("fontWeight") == 700
+                        for component in countdown_texts
+                    )
+                    if not countdown_style_valid:
+                        errors.append(
+                            "2x2 S4 countdown must be displayed as ordinary "
+                            "14fp/700 primary text inside its backboard; do not "
+                            "reuse the V01 30fp/38fp hero or 800 font weight."
+                        )
+                        return
                 return
 
         roots = ", ".join(sorted(data_roots))
@@ -323,6 +369,72 @@ def _collect_layout_route_errors(
         "be a Row with exactly two direct 144x136 Column backboards. Do not use "
         "a shared title, a shared action area, or stacked full-width business rows."
     )
+
+
+def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
+    if component is None:
+        return False
+    if component.component_type not in {"Row", "Column"}:
+        return False
+    if component.props.get("width") != 136:
+        return False
+    if component.props.get("height") != 64:
+        return False
+    if "backgroundColor" not in component.props:
+        return False
+    return component.props.get("borderRadius") in {12, 16}
+
+
+def _collect_2x2_countdown_group_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    visible_binding_paths: list[str],
+    errors: list[str],
+) -> None:
+    has_countdown = any(
+        path.endswith("/countdownDays") for path in visible_binding_paths
+    )
+    if not has_countdown:
+        return
+
+    parent_by_child = {
+        child_id: component
+        for component in components
+        for child_id in component.children
+    }
+    countdown_values = []
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        component_paths: list[str] = []
+        _collect_binding_context(
+            component.props.get("content"),
+            f"component {component.component_id}.props.content",
+            component_paths,
+            [],
+        )
+        if any(path.endswith("/countdownDays") for path in component_paths):
+            countdown_values.append(component)
+
+    for countdown_value in countdown_values:
+        value_group = parent_by_child.get(countdown_value.component_id)
+        if value_group is None or value_group.component_type != "Column":
+            continue
+        if len(value_group.children) != 2:
+            errors.append(
+                "2x2 V01 countdown value_group must contain exactly two visual "
+                "rows: the countdown number and a second-line unit/meta row. "
+                "Do not add a third aux_text or repeat the target name."
+            )
+            continue
+        second_line = components_by_id.get(value_group.children[1])
+        if second_line is None:
+            continue
+        if second_line.component_type == "Row" and len(second_line.children) > 2:
+            errors.append(
+                "2x2 V01 countdown meta_row may contain only the unit and the "
+                "optional time on the same line."
+            )
 
 
 def _collect_component_contract_errors(
