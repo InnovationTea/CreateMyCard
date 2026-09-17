@@ -2421,16 +2421,12 @@ def test_weather_battery_2x4_composes_two_focus_panels(
     by_id = {component.get("id"): component for component in components}
     root = by_id.get("root")
     assert isinstance(root, dict)
-    if root.get("component") == "Row" and len(root.get("children", [])) == 2:
-        # W9：双数据根 2x4 的根即双背板 Row。
-        row = root
-    else:
-        row = next(
-            by_id[child_id]
-            for child_id in root.get("children", [])
-            if by_id.get(child_id, {}).get("component") == "Row"
-            and len(by_id.get(child_id, {}).get("children", [])) == 2
-        )
+    row = next(
+        by_id[child_id]
+        for child_id in root.get("children", [])
+        if by_id.get(child_id, {}).get("component") == "Row"
+        and len(by_id.get(child_id, {}).get("children", [])) == 2
+    )
     row_children = row["children"]
     assert isinstance(row_children, list) and len(row_children) == 2
 
@@ -2655,8 +2651,6 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         if "/data/phoneBattery/pluggedTypeDesc" in str(component.get("content", ""))
     }
     assert earphone_status_ids and battery_percent_ids
-    # 集成后电池面板选用 ChargeStatusHero，充电器类型随查询需求一并展示。
-    assert battery_plugged_ids
+    assert not battery_plugged_ids
     assert earphone_status_ids <= descendant_ids(row_children[0])
     assert battery_percent_ids <= descendant_ids(row_children[1])
-    assert battery_plugged_ids <= descendant_ids(row_children[1])

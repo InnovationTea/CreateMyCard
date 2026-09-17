@@ -80,7 +80,7 @@ def test_wide_layout_fixed_slots_fit_content_budget(template_id, compact_rows):
     )
     budget = _ux_layout_body_budget(registry, "2x4")
     assert budget == 126
-    assert _estimate_height(root) <= budget
+    assert _estimate_height(root) == budget
 
 
 def test_production_prompt_uses_current_wide_canvas():

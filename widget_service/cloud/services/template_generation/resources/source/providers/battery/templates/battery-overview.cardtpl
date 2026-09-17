@@ -1102,7 +1102,7 @@ Column(
       Expr(data.percent + "%"),
       {
         "width": "matchParent",
-        "fontSize": 18,
+        "fontSize": 20,
         "fontWeight": 700,
         "fontColor": $theme('primaryColor'),
         "maxLines": 1,

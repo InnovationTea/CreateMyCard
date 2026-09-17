@@ -116,14 +116,11 @@ def parse_runtime_expression(source: str) -> TemplateValue:
     symbolic: list[str] = []
     for part in parts:
         if part.kind == "binding":
-            if not isinstance(part.name, str):
-                raise ValueError("Provider Template Expr binding name must be a string")
+            assert isinstance(part.name, str)
             symbolic.append("${data." + part.name + "}")
         else:
-            if not isinstance(part.value, str):
-                raise ValueError("Provider Template Expr literal value must be a string")
+            assert isinstance(part.value, str)
             symbolic.append(part.value)
-
     try:
         normalize_tersel_expression("".join(symbolic))
     except RecursionError as exc:

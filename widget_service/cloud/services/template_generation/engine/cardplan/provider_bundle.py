@@ -1350,48 +1350,37 @@ def _template_line_quote(line: str, quote: str | None) -> str | None:
 
 
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
-    components: tuple[str, str]
     single = re.fullmatch(
-        r"#(?:if|elseif)[ \t]+(![ \t]*)?(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        r"#(?:if|elseif)[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if single is not None:
-        negated, namespace, name = single.groups()
-        kind = "Param" if namespace == "props" else "Bind"
-        present = f'If{kind}("{name}",'
-        missing = f'IfMissing{kind}("{name}",'
-        if negated is not None:
-            components = (missing, present)
-        else:
-            components = (present, missing)
-    else:
-        or_group = re.fullmatch(
-            r"#(?:if|elseif)[ \t]+data\.[A-Za-z_][A-Za-z0-9_]*"
-            r"(?:[ \t]*\|\|[ \t]*data\.[A-Za-z_][A-Za-z0-9_]*)+",
-            content,
-        )
-        binding_names = (
-            re.findall(r"data\.([A-Za-z_][A-Za-z0-9_]*)", content)
-            if or_group is not None
-            else []
-        )
-        grouped = re.fullmatch(
-            r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
-            r"data\.([A-Za-z_][A-Za-z0-9_]*)",
-            content,
-        )
-        if or_group is not None and len(set(binding_names)) == len(binding_names):
+        namespace, name = single.groups()
+        if namespace == "props":
+            return f'IfParam("{name}",', f'IfMissingParam("{name}",'
+        return f'IfBind("{name}",', f'IfMissingBind("{name}",'
+    keyword = content.split(maxsplit=1)[0]
+    or_group = re.fullmatch(
+        r"#(?:if|elseif)[ \t]+data\.[A-Za-z_][A-Za-z0-9_]*"
+        r"(?:[ \t]*\|\|[ \t]*data\.[A-Za-z_][A-Za-z0-9_]*)+",
+        content,
+    )
+    if or_group is not None:
+        binding_names = re.findall(r"data\.([A-Za-z_][A-Za-z0-9_]*)", content)
+        if len(set(binding_names)) == len(binding_names):
             encoded = json.dumps(binding_names, separators=(",", ":"))
-            components = (f"IfAnyBind({encoded},", f"IfAllMissingBind({encoded},")
-        elif grouped is None or grouped.group(1) == grouped.group(2):
-            keyword = content.split(maxsplit=1)[0]
-            raise ValueError(
-                f"Provider Template {keyword} target is invalid at line {line_number}"
-            )
-        else:
-            encoded = json.dumps(list(grouped.groups()), separators=(",", ":"))
-            components = (f"IfAllBind({encoded},", f"IfAnyMissingBind({encoded},")
-    return components
+            return f"IfAnyBind({encoded},", f"IfAllMissingBind({encoded},"
+    grouped = re.fullmatch(
+        r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
+        r"data\.([A-Za-z_][A-Za-z0-9_]*)",
+        content,
+    )
+    if grouped is None or grouped.group(1) == grouped.group(2):
+        raise ValueError(
+            f"Provider Template {keyword} target is invalid at line {line_number}"
+        )
+    binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
+    return f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},"
 
 
 def _remove_empty_template_conditionals(body: str) -> str:
@@ -2777,27 +2766,21 @@ def _provider_data_roots(
 ) -> tuple[str, ...] | ProviderTemplateAdmission:
     if card_spec is None:
         return ProviderTemplateAdmission(False, "card-spec-unavailable")
-
     raw_bindings = card_spec.get("dataBindings")
     if not isinstance(raw_bindings, list):
         return ProviderTemplateAdmission(False, "data-bindings-unavailable")
-
-    roots: list[str] = []
-    for item in raw_bindings:
-        if not isinstance(item, dict):
-            continue
-        if item.get("capabilityId") != capability_id:
-            continue
-        root = item.get("writeResultTo")
-        if not _valid_runtime_data_root(root):
-            continue
-        roots.append(root)
-
+    roots = tuple(
+        item.get("writeResultTo")
+        for item in raw_bindings
+        if isinstance(item, dict)
+        and item.get("capabilityId") == capability_id
+        and _valid_runtime_data_root(item.get("writeResultTo"))
+    )
     if not roots:
         return ProviderTemplateAdmission(False, "capability-binding-unavailable")
     if len(roots) != binding_count or len(set(roots)) != len(roots):
         return ProviderTemplateAdmission(False, "capability-binding-ambiguous")
-    return tuple(roots)
+    return roots
 
 
 def _valid_runtime_data_root(value: Any) -> bool:

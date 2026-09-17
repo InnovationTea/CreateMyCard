@@ -14,7 +14,7 @@
     "Progress": ["type", "color", "strokeWidth"],
     "Button": ["fontSize", "fontWeight", "fontColor", "backgroundColor", "borderRadius"],
     "Checkbox": ["selectedColor", "shape"],
-    "Row": ["justifyContent", "alignItems", "wrap"],
+    "Row": ["justifyContent", "alignItems"],
     "Column": ["justifyContent", "alignItems"],
     "List": ["listDirection", "scrollBar"],
     "Stack": ["alignContent"]
@@ -22,7 +22,6 @@
   "enumValues": {
     "justifyContent": ["start", "center", "end", "spaceAround", "spaceBetween", "spaceEvenly"],
     "Row.alignItems": ["top", "center", "bottom"],
-    "Row.wrap": ["noWrap", "wrap"],
     "Column.alignItems": ["start", "center", "end"],
     "Stack.alignContent": ["topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd"],
     "textAlign": ["start", "center", "end", "justify"],

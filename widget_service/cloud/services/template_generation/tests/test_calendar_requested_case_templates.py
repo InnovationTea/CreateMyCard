@@ -317,6 +317,18 @@ def _components(a2ui: str) -> list[dict[str, Any]]:
     raise AssertionError("A2UI 缺少 updateComponents")
 
 
+_EXPECTED_COMPLETE: dict[str, set[str]] = {
+    "Q018": {
+        "ScheduleOverviewLocationHero@1",
+        "ScheduleOverviewMeetingEntryHero@1",
+    },
+    "Q035": {
+        "ScheduleOverviewEventCountDetailsHero@1",
+        "ScheduleOverviewEventCountDetailsFull@1",
+    },
+}
+
+
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
 def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) -> None:
     task = _task(case)
@@ -331,9 +343,7 @@ def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) ->
     complete_template_ids = set(candidate.available_template_ids)
     for group in selection.required_template_groups:
         complete_template_ids.intersection_update(group)
-    expected_complete = {"ScheduleOverviewLocationHero@1", "ScheduleOverviewMeetingEntryHero@1"} \
-        if case.case_id == "Q018" else {case.template_id}
-    assert complete_template_ids == expected_complete
+    assert complete_template_ids == _EXPECTED_COMPLETE.get(case.case_id, {case.template_id})
 
     capabilities = {_CAPABILITY_ID}
     selected = apply_content_selectors(task, capabilities)
@@ -370,8 +380,7 @@ _CONTRACTS = {
         "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
     ),
     "EventCountDetailsFull": (
-        "/eventCount /events/0/title|/events/0/dtStart /events/0/isAllDay|"
-        "/events/0/description"
+        "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
     ),
     "DatedAllDayHero": "/events/0/startDate /events/0/title|/events/0/isAllDay|",
 }
@@ -421,13 +430,8 @@ def test_title_and_location_are_mutually_exclusive_for_new_hero_templates() -> N
         "/events/0/title /events/0/eventLocation /events/0/dtStart",
         "event.open.clock.alarm",
     )
-    # NextEventLocationFull 将结束时间改为可选后，标题+地点+开始时间的组合
-    # 由该模板覆盖，检索回退到组合模板而不再拒绝。
-    selection = _selection(case)
-    complete = set(selection.component_candidates[0].available_template_ids)
-    for group in selection.required_template_groups:
-        complete.intersection_update(group)
-    assert complete == {"ScheduleOverviewNextEventLocationFull@1"}
+    with pytest.raises(TemplateRetrievalMiss):
+        _selection(case)
 
 
 def test_q006_keeps_two_event_indices_distinct_and_rejects_short_array() -> None:

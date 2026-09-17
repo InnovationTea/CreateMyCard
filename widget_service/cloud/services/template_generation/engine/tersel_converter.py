@@ -12,7 +12,6 @@ import tokenize
 from dataclasses import dataclass
 from typing import Any
 
-from services.fusion_ball_expander import FUSION_BALL_CONTENT_ID_PREFIX
 from services.template_generation.engine.a2ui_expression import (
     A2UIExpressionError,
     normalize_tersel_expression,
@@ -233,8 +232,7 @@ def _parse_tersel_document(
         )
     state = {"components": 0}
     root = _parse_component(module.body[0].value, 1, state, theme_values or {})
-    if root.component_type not in {"Column", "Stack", "Row"}:
-        # Row 根：2x4 双数据根 W9 结构（根即双 144x136 背板 Row）。
+    if root.component_type not in {"Column", "Stack"}:
         raise TerselConversionError("The root component must be Column or Stack.")
     data_model = None
     if len(module.body) == 2:
@@ -485,10 +483,8 @@ def _append_compact_rows(
     allowed_binding_paths: frozenset[str],
     allowed_expression_paths: frozenset[str],
 ) -> None:
-    # 防溢出前缀只标记当前节点，不传播到自动编号的后代组件。
-    child_id_base = component_id.removeprefix(FUSION_BALL_CONTENT_ID_PREFIX)
     child_ids = [
-        _explicit_component_id(child) or f"{child_id_base}_{index}"
+        _explicit_component_id(child) or f"{component_id}_{index}"
         for index, child in enumerate(node.children)
     ]
     props = _convert_data_placeholders(
@@ -808,7 +804,7 @@ def _container_props(
             "2x2": {"width": 160, "height": 160},
             "2x4": {"width": 300, "height": 150},
         }.get(size)
-        if node.component_type not in {"Column", "Stack", "Row"} or dimensions is None:
+        if node.component_type not in {"Column", "Stack"} or dimensions is None:
             raise TerselConversionError(
                 "Tersel root must be Column or Stack with a supported size."
             )
@@ -825,10 +821,6 @@ def _container_props(
         if node.component_type == "Column":
             locked["itemMargin"] = 8
             locked["backgroundColor"] = "background_primary"
-        if node.component_type == "Row":
-            # W9 双数据根 2x4：根即双 144x136 背板 Row，无整卡公共衬垫与背景。
-            locked.pop("padding")
-            locked.pop("borderRadius")
         root_design_props = {
             key: value
             for key, value in design_props.items()

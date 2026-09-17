@@ -32,7 +32,7 @@ class ValidationContext:
     quality_score: int | None = None
 
     def has_fusion_template_root(self) -> bool:
-        """兼容既有调用名，仅按模板根标记判断整卡质量豁免。"""
+        """判断是否满足模板融球整卡质量豁免的结构条件。"""
         if self.root_id != "root" or self.duplicate_component_ids:
             return False
         root = self.root_component
@@ -42,7 +42,10 @@ class ValidationContext:
         children = root.get("children")
         if not isinstance(children, list):
             return False
-        return "template_root" in children
+        background = self.components_by_id.get("fusionBallBackground")
+        if background is None:
+            return False
+        return "template_root" in children and "fusionBallBackground" in children
 
     def line_for_genui_pointer(self, pointer: str) -> int | None:
         if pointer.startswith("/createSurface"):

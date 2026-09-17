@@ -128,24 +128,31 @@ def apply_content_safe_inset(
     *,
     size: str,
 ) -> Nested2Node:
-    """Move the safe inset off a non-fusion 2x2 skeleton and mark it for overflow."""
+    """Move a 2x2 card's safe inset onto a dedicated foreground layer."""
     if size != "2x2":
         return card
     _validate_root_card(card)
     if len(card.children) != 1:
         return card
-    if card.children[0].component_type not in _SKELETON_LAYOUT_TYPES:
-        return card
-    skeleton = _content_skeleton(
-        card, component_id=build_fusion_ball_content_id(_CONTENT_ROOT_ID)
-    )
+    skeleton = _content_skeleton(card)
     root_options = dict(card.values[1])
     safe_inset = root_options.pop("padding", 12)
     root_options.pop("itemMargin", None)
     root_options.pop("alignItems", None)
-    root_options.pop("justifyContent", None)
     root_options["padding"] = 0
     root_options.setdefault("alignContent", "topStart")
+    overflow_content = Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": build_fusion_ball_content_id(_TEMPLATE_ROOT_ID),
+                "width": "matchParent",
+                "height": "matchParent",
+            },
+        ),
+        (skeleton,),
+    )
     foreground = Nested2Node(
         "Stack",
         (
@@ -155,7 +162,7 @@ def apply_content_safe_inset(
                 "padding": safe_inset,
             },
         ),
-        (skeleton,),
+        (overflow_content,),
     )
     return Nested2Node("Stack", ("card", root_options), (foreground,))
 
@@ -219,9 +226,7 @@ def _validate_root_card(card: Nested2Node) -> None:
         raise ValueError('Fusion-ball wrapping requires Column("card", options, ...).')
 
 
-def _content_skeleton(
-    card: Nested2Node, *, component_id: str = _CONTENT_ROOT_ID
-) -> Nested2Node:
+def _content_skeleton(card: Nested2Node) -> Nested2Node:
     if len(card.children) != 1:
         raise ValueError("Fusion-ball template root must contain one content skeleton.")
     skeleton = card.children[0]
@@ -230,10 +235,10 @@ def _content_skeleton(
     values = list(skeleton.values)
     if values and isinstance(values[-1], dict):
         options = dict(values[-1])
-        options["_id"] = component_id
+        options["_id"] = _CONTENT_ROOT_ID
         values[-1] = options
     else:
-        values.append({"_id": component_id})
+        values.append({"_id": _CONTENT_ROOT_ID})
     return Nested2Node(
         skeleton.component_type,
         tuple(values),

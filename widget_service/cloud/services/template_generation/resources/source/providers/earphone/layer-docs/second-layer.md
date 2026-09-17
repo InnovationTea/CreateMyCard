@@ -50,8 +50,6 @@
   - `deviceIcon`：EarbudsSupport 与 ConnectionSupport 只接受整副或成对耳机本体，
     ChargeSupport 与 StatusHero 只接受耳机收纳盒或充电盒；同名参数必须按具体模板语义匹配，不得使用
     单侧耳塞或通用音乐图标。
-  - `musicIcon`：EarbudsChargingWideFull 的每日歌单入口图标，只接受音乐语义素材（音符、歌单），
-    与耳机硬件语义素材互斥；输入无音乐素材时省略。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。
 - `BluetoothDeviceOverviewTripleBatteryWideHalf@1`：横向三块耳机仓、左耳、右耳电量，适用于 WideHalf 槽位；只覆盖三项电量，不覆盖连接状态，不含动作。deviceIcon 为耳机仓，左右耳图标按语义选择，输入无对应素材时省略，不能自行增加素材候选。
 - `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段，内置每日歌单 actionId。左侧三列各显示图标、电量、充电状态，不加进度环；deviceIcon 为充电盒，左右耳图标不可互换。两侧面板使用主题底色，外侧安全边距由骨架提供。

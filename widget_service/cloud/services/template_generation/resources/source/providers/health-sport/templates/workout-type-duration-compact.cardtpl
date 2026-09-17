@@ -16,7 +16,7 @@ Row({"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": 
   ),
   #if props.sourceIcon
     Image(props.sourceIcon, {"width": 24, "height": 24, "flexShrink": 0,
-      "objectFit": "contain", "fillColor": $theme('supportContentColor')})
+      "objectFit": "contain", "fillColor": $theme('primaryColor')})
   #endif
 )
 #End
