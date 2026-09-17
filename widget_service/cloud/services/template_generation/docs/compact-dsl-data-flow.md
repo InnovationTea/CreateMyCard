@@ -145,6 +145,11 @@ Template 命中融球 Theme 时，进入 A2UI-Compact 前已经是标准 `Stack`
 `__genui_render_component__` 前缀。公共 Processor 只负责常规 Compact 转换；`FusionBall` 不是
 A2UI-Compact 组件，输入包含该类型时直接按不支持组件拒绝。
 
+公共转换器确认组件 ID 无重复、`root` 直接引用真实存在的 `template_root` 后，仅对该模板子树绕过
+2x2 环形 Progress 及其直接容器的尺寸重写，保留模板声明的 `width`、`height`、`strokeWidth`。
+例如 `BatteryOverviewCompact@1` 的 36×36vp 环形进度回转后仍为 36×36vp。模板子树外以及未命中有效
+标记的卡片沿用 44/52vp 规则；图标层级排序、绑定、事件、其它样式处理和校验不因该绕过而改变。
+
 转换成功后，`ArtifactValidator` 校验完整 artifact 候选。转换或校验 error 会进入
 `RetryController`；是否修复及最大次数由公共配置控制。修复模型必须重新输出完整 Design Compact DSL。
 
