@@ -51,10 +51,23 @@ Action 背板。天气非融球主题使用 `#FFE5EDFE` 纯色背景，不配置
 辅助内容和睡眠进度为 `#991F4799`，Action 背板为 `#33564AF7`。
 运动非融球主题使用 `#FFFFF0E6` 纯色背景；主内容及进度为 `#FF99521F`，辅助内容为 `#9999521F`，
 Action 内容为 `#FF99521F`，进度轨道和 Action 背板为 `#3399521F`。运动融球主题使用
-`#FFB33024`、`#FFFF8833`、`#FFE68073` 三球配色，主内容及 Action 内容为白色，辅助内容为 `#99FFFFFF`。
+`#FFF24131`、`#FFFF8833`、`#FFE68073` 三球配色，主内容及 Action 内容为白色，辅助内容为 `#99FFFFFF`。
 耳机音乐非融球主题使用 `#FFF0FFE6` 纯色背景，不配置渐变；主内容、Action 文本和图标
 为 `#FF52991F`，辅助内容和耳机电量环进度为 `#9952991F`，Action 背板为
 `#3364BB5C`。当前耳机 Provider 不提供曲目、播放状态或播放进度数据。
+
+五套融球主题当前使用以下 `#AARRGGBB` 配色，玻璃层统一使用 `backdropBlur.radius = 210`：
+
+| 主题 | 大球 | 中球 | 小球 |
+| --- | --- | --- | --- |
+| `fusion-weather-blue` | `#FF1F1F99` | `#FF2B65D9` | `#FF57AED9` |
+| `fusion-sleep-violet` | `#FF493D99` | `#FF5536B3` | `#FF7D6B99` |
+| `fusion-sport-orange` | `#FFF24131` | `#FFFF8833` | `#FFE68073` |
+| `fusion-battery-teal` | `#FF1F9985` | `#FF24B3B3` | `#FF5AB38E` |
+| `fusion-schedule-cool` | `#FF1F3399` | `#FF2385B3` | `#FF24B3B3` |
+
+这些值仅用于融球背景。非融球背景、主辅内容和 Action 配色保持各自原有配置，融球适用范围及球体尺寸、
+定位不因配色和模糊半径调整而改变。
 日历信息与日程非融球主题使用 `#FFE5EDFE` 纯色背景，不配置渐变；主内容、Action 文本和图标为
 `#FF1F4799`，辅助内容及进度颜色为 `#991F4799`，Action 背板为 `#331F4799`。当前 Calendar Provider
 没有进度组件，`progressColor` 作为主题协议能力预留给后续显式引用。

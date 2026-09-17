@@ -26,8 +26,8 @@
   "fusionBallStyle": {
     "scene": "sleep",
     "businessIds": ["SleepOverview"],
-    "largeColor": "#FF2B2459",
-    "mediumColor": "#FF572BD9",
-    "smallColor": "#FFB398D9"
+    "largeColor": "#FF493D99",
+    "mediumColor": "#FF5536B3",
+    "smallColor": "#FF7D6B99"
   }
 }

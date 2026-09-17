@@ -24,8 +24,8 @@
   "fusionBallStyle": {
     "scene": "schedule-cool",
     "businessIds": ["CalendarOverview"],
-    "largeColor": "#FF121E59",
-    "mediumColor": "#FF2BA2D9",
-    "smallColor": "#FF52CCCC"
+    "largeColor": "#FF1F3399",
+    "mediumColor": "#FF2385B3",
+    "smallColor": "#FF24B3B3"
   }
 }
