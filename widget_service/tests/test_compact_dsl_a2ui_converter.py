@@ -190,7 +190,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["action"][2]["fontWeight"], 500)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
-            "#190A59F7",
+            "#331F4799",
         )
 
     def test_expands_action_icon_round_design(self) -> None:
@@ -1025,7 +1025,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         message = str(raised.exception)
         self.assertIn(
-            "vertical layout requires at least 156vp within 136vp",
+            "vertical layout requires at least 156vp within 126vp",
             message,
         )
 

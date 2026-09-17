@@ -33,9 +33,9 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 
 模板路线允许受控的 `2x2` 双业务单动作组合：两个业务必须分别具备完整覆盖显式字段的 `HeroTitle`
 与 `HeroContent` 模板，服务端按 `HeroTitle`、`HeroContent`、`PillAction` 的固定顺序组合，根布局为
-`HeroTitleContentActionLayout`。第二层模型只能消费确定性 Search 返回的候选，不得交换、重复或嵌套位置。
+`HeroTitleContentActionLayout`。第二层模型只能消费确定性 Planner 的完整计划，不得交换、重复或嵌套位置。
 
-`HeroContent` 是全局主题所属的主业务。Search 确定两个位置后，按该业务重新过滤主题候选；保留兼容的
+`HeroContent` 是全局主题所属的主业务。Planner 确定两个位置后，按该业务重新过滤主题候选；保留兼容的
 已选主题，否则确定性选择该业务的可用主题，沿用版本门禁及融球候选优先规则。第二层使用同一主题契约，
 `HeroTitle`、`HeroContent` 和 `PillAction` 统一应用其根样式、主辅内容色和动作色。主业务支持融球且
 版本门禁开启时，可信编译器为整卡只包装一次主业务融球背景；不得改用标题业务的融球，也不放开其它多业务布局。
@@ -50,15 +50,6 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 仍保留动态引用，不读取样例值选分支；单字段和无字段分支不保留分隔符。配置将四个路径统一列为可选，首层不得强补
 温度要求；Search 仍须完整覆盖用户显式字段。该调整不放开单业务天气卡的必需字段门禁，整卡主题仍归 HeroContent。
 
-出行组合补充两个受控形态：无动作的“倒计时 + 后日天气”使用
-`CountdownOverviewSupport@1 + WeatherOverviewDaily2TravelSupport@1`；带一个动作的出行请求使用
-`CountdownOverviewTravelSupport@1 + WeatherOverviewTravelSupport@1`。天气内容沿用
-`WeatherOverviewConditionHero@1` 的天气现象主视觉和无内层底板结构，并在辅助行展示温度及降雨概率；
-布局将出行倒计时与天气分别放入两个等高、独立底色和圆角的 Support 胶囊槽，胶囊间距及左右内边距均为
-8vp。出行闹钟动作只绑定出行倒计时胶囊，天气详情动作只绑定天气胶囊，不生成底部根动作。逐日字段只登记
-`daily[2]` 与 `daily[4]` 的明确用例，不扩展为任意数组索引匹配。上述出行双业务 Support 统一采用
-14vp 主标题和 10vp 副标题。
-
 ## 4. 编译期条件
 
 Provider `.cardtpl` 的结构按 `#if data.xxx` / `#if props.xxx`、可选的多个 `#elseif`、可选 `#else`
@@ -67,10 +58,6 @@ Provider `.cardtpl` 的结构按 `#if data.xxx` / `#if props.xxx`、可选的多
 `#elseif` 沿用 `#if` 的绑定/参数可用性条件，也支持两个直接数据绑定的 `&&`；按声明顺序只选择第一个
 条件成立的分支。没有命中时选择 `#else`，没有 `#else` 时不生成该条件块的内容。空的已命中分支仍阻止
 后续分支；`#elseif` 不得出现在 `#else` 之后，各分支必须通过引用边界校验。
-
-`#if` / `#elseif` 支持 `!data.xxx` 和 `!props.xxx`，以同一可用性判定取反；
-`false`、`0`、空字符串参数仍视为已提供，不属于否定分支。否定分支不能直接引用缺失字段，
-对应 `#else` 可以引用。数据与参数的混合条件使用嵌套指令，不支持单个 `&`；具体语法见模板契约。
 
 条件块支持嵌套，只判断 binding 或参数是否可用，不读取数据值。属性值通过
 `#Expr(condition ? present : absent)` 按 binding 或参数是否可用确定性选择。
@@ -118,24 +105,25 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 
 ## 7. 模板内容根与对比度边界
 
-公共 A2UI 校验根保持 `root`，非融球 `2x2` 固定布局模板为
-`root → template_root → __genui_render_component__root_1`，防溢出前缀直接标记原布局骨架，
-不再增加专用防溢出 Stack。单业务、双业务及各主题使用同一规则；根背景保持不变，安全边距从根节点
-移到 `template_root`，骨架属性和内容不变。独立模板预览仍为 `root → template_root`；
-不含单一布局骨架的旧 CardPlan shell 和非 `2x2` 产物保持原结构。融球模板仍为
+合入 PR186 的内容根标识：公共 A2UI 校验根保持 `root`，非融球模板及预览产物为
+`root → template_root`；融球模板为
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 
-公共调度器确认根 `root` 的 `children` 数组直接引用实际存在且 ID 精确等于 `template_root` 的组件，
+公共调度器确认根 `root` 同时直接引用实际存在的 `template_root` 和 `fusionBallBackground`，
 且组件 ID 无重复后，跳过整卡
 `quality` 阶段，包括并列的背景、标题和动作。不按文本或前缀匹配；每次修复后重新识别标记。
-不依赖 `fusionBallBackground`，非融球、融球及独立模板预览使用相同规则。
-缺少模板标记、孤立标记、非直接子节点、重复 ID、普通生成及模板回退产物不自动豁免。
-标记是工程约定，不是不可伪造的来源凭证；解析失败与组件引用合法性仍按原规则检查。
-跳过记录 `quality_validation_skipped reason=template_root`，不视为实际质量通过或伪造分数，
-也不因被跳过的检查触发质量修复。
+缺少任意标记、普通生成及模板回退产物不自动豁免。跳过记录原因，不视为实际质量通过。
 该规则不改变 hard、semantic 和转换前校验，也不恢复运行时 IF 支持。
-独立调用对比度校验器使用同一模板根判断，符合条件整卡跳过，否则所有内容正常检查。
-`has_fusion_template_root()` 保留既有方法名以兼容调用，但不再检查融球背景。
+取消对比度校验器的单标记局部豁免；独立调用同样使用公共双标记判断，符合条件整卡跳过，
+否则普通模板、预览及其它内容均正常检查。
+完整规则以方案总文档为准。
 
 回归覆盖普通模板、融球模板、预览模板、精确标识、非模板并列节点及其它校验继续生效。
+
+## 横版规划与字段填充
+
+2x4 的默认链路与 2x2 共用第一层意图、Search、Planner 和第二层填充契约。Search 报告数据可用性与
+字段覆盖，Planner 枚举完整布局、固定业务实例和按钮归属；第二层不再自行决定宽卡片组合。
+通用健康指标的每个路径参数随 Plan 固定，并在编译前校验。完整规则和兼容入口边界见
+[Search 与 Planner 交互契约](template-search-planner-contract.md#7-横版组合规则)。

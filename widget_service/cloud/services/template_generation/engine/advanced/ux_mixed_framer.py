@@ -17,8 +17,15 @@ from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
 )
 
-_UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
-_UX_ACTION_TEMPLATE_IDS = frozenset({"PillAction@1", "IconAction@1"})
+_UX_ACTION_COMPONENTS = frozenset(
+    {"PillAction", "IconAction", "LargeIconAction", "ActionTile"}
+)
+_UX_ACTION_TEMPLATE_IDS = frozenset(
+    {
+        "PillAction@1", "CompactAction@1", "PlaylistCompactAction@1",
+        "IconAction@1", "LargeIconAction@1",
+    }
+)
 _UNQUOTED_TEMPLATE_CALL = re.compile(
     r"Template(\s*\(\s*)([A-Za-z][A-Za-z0-9_.-]*@[A-Za-z0-9_.-]+)(\s*,)"
 )
@@ -62,6 +69,15 @@ def frame_ux_layout_root_children(
         root = parse_ux_layout_card(normalized)
         framing_repaired = True
     layout_id = _layout_id(root)
+    root, visual_order_repaired = _place_larger_text_business_on_left(
+        root,
+        registry,
+        allowed_layout_ids,
+    )
+    if visual_order_repaired:
+        normalized = _serialize_call(root) + ";"
+        framing_repaired = True
+        layout_id = _layout_id(root)
     layout = registry.require_ux_layout_component(layout_id)
     if size not in layout.supported_card_sizes:
         raise TerselConversionError("UX Layout does not support the target card size.")
@@ -105,6 +121,74 @@ def frame_ux_layout_root_children(
         span=root.span,
     )
     return _serialize_call(framed_root) + ";", True
+
+
+def _place_larger_text_business_on_left(
+    root: ParsedCall,
+    registry: CardPlanRegistry,
+    allowed_layout_ids: tuple[str, ...] | None,
+) -> tuple[ParsedCall, bool]:
+    """Mirror the Full/Hero layout so the visually stronger business stays left."""
+    layout_pair = {
+        "WideFullHeroActionLayout": "WideHeroActionFullLayout",
+        "WideHeroActionFullLayout": "WideFullHeroActionLayout",
+    }
+    layout_id = _layout_id(root)
+    if layout_id not in layout_pair:
+        return root, False
+    business = tuple(
+        child
+        for child in root.children
+        if not _is_ux_action_call(child) and _is_ux_business_call(child, registry)
+    )
+    if len(business) != 2:
+        return root, False
+    full_font_size = _template_maximum_font_size(business[0], registry)
+    hero_font_size = _template_maximum_font_size(business[1], registry)
+    preferred_layout_id = (
+        "WideHeroActionFullLayout"
+        if hero_font_size > full_font_size
+        else "WideFullHeroActionLayout"
+    )
+    if preferred_layout_id == layout_id:
+        return root, False
+    if allowed_layout_ids is not None and preferred_layout_id not in allowed_layout_ids:
+        return root, False
+    preferred_name = (
+        f"{preferred_layout_id}@1" if root.kind == "template" else preferred_layout_id
+    )
+    return ParsedCall(
+        kind=root.kind,
+        name=preferred_name,
+        values=root.values,
+        children=root.children,
+        span=root.span,
+    ), True
+
+
+def _template_maximum_font_size(call: ParsedCall, registry: CardPlanRegistry) -> float:
+    if call.kind != "template" or call.name not in registry.provider_template_ids:
+        return 0.0
+    definition = registry.require_template(call.name)
+    if not definition.variants:
+        return 0.0
+    maximum = 0.0
+    pending = [definition.variants[0].root]
+    while pending:
+        node = pending.pop()
+        if node.component == "Text":
+            for value in node.values:
+                if value.kind != "object":
+                    continue
+                font_size = value.properties.get("fontSize")
+                if (
+                    font_size is not None
+                    and font_size.kind == "literal"
+                    and isinstance(font_size.value, (int, float))
+                ):
+                    maximum = max(maximum, float(font_size.value))
+        pending.extend(node.children)
+    return maximum
 
 
 def _quote_unquoted_template_ids(source: str) -> tuple[str, bool]:

@@ -1,0 +1,22 @@
+#Template WorkoutOverviewTypeDurationCompact@1(props: { sourceIcon?: asset })
+data = {
+  duration: $path("/exerciseDurationText"),
+  workoutType: $path("/exerciseTypeName")
+}
+Row({"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent", "padding": 8,
+  "itemMargin": 8, "alignItems": "center", "borderRadius": 16,
+  "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+  Column({"layoutWeight": 1, "itemMargin": 4},
+    Text(data.duration, {"width": "matchParent", "height": 22, "fontSize": 16,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'),
+      "maxLines": 1, "textOverflow": "ellipsis"}),
+    Text(data.workoutType, {"width": "matchParent", "height": 14, "fontSize": 10,
+      "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+      "maxLines": 1, "textOverflow": "ellipsis"})
+  ),
+  #if props.sourceIcon
+    Image(props.sourceIcon, {"width": 24, "height": 24, "flexShrink": 0,
+      "objectFit": "contain", "fillColor": $theme('primaryColor')})
+  #endif
+)
+#End

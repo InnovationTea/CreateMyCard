@@ -124,6 +124,10 @@ class DisplayUnitValidator(BaseValidator):
                 if not isinstance(child_id, str):
                     break
                 sibling_content = components_by_id.get(child_id, {}).get("content")
+                # 单位扫描只统计锚点 Text 之后的连续静态文案；遇到无 content 的
+                # 兄弟组件（Row/Image 等非 Text 节点）即结束扫描。
+                if not isinstance(sibling_content, str):
+                    break
                 if expression_references(sibling_content):
                     break
                 if not static_text_contains_rule(sibling_content, rule):

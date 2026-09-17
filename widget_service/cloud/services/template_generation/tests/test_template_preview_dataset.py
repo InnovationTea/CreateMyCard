@@ -16,20 +16,21 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 110
+    assert manifest["templateCount"] == 143
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 22,
-        "Compact": 13,
-        "Hero": 31,
-        "Full": 31,
-        "WideHero": 2,
-        "WideFull": 9,
+        "Support": 20,
+        "Compact": 18,
+        "Hero": 39,
+        "Full": 43,
+        "WideHero": 4,
+        "WideFull": 14,
+        "WideHalf": 3,
     }
-    assert manifest["countsBySize"] == {"2x2": 99, "2x4": 11}
-    assert len(cases) == 110
-    assert len({case["templateId"] for case in cases}) == 110
+    assert manifest["countsBySize"] == {"2x2": 122, "2x4": 21}
+    assert len(cases) == 143
+    assert len({case["templateId"] for case in cases}) == 143
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -55,6 +56,30 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert slot["styles"]["height"] == case.content_height_vp
 
 
+def test_weather_wide_previews_use_the_weather_theme_background():
+    weather_wide_ids = {
+        "WeatherOverviewWideHero@1",
+        "WeatherOverviewWideFull@1",
+        "WeatherOverviewWideHalf@1",
+    }
+
+    cases = {
+        case.template_id: case
+        for case in build_template_preview_cases()
+        if case.template_id in weather_wide_ids
+    }
+
+    assert set(cases) == weather_wide_ids
+    for case in cases.values():
+        components = case.messages[1]["updateComponents"]["components"]
+        root = next(component for component in components if component["id"] == "root")
+        assert root["styles"]["backgroundColor"] == "#FF121259"
+        assert root["styles"]["linearGradient"]["colors"] == [
+            ["#FF121259", 0],
+            ["#FF2B65D9", 1],
+        ]
+
+
 def test_template_preview_assets_are_bundled_by_genui_evaluation():
     cases = build_template_preview_cases()
     paths = validate_preview_asset_paths(cases)
@@ -73,8 +98,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "icon_earphone.svg",
         "icon_phone.svg",
         "icon_tiktok.png",
-        "icon_timing.svg",
-        "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
@@ -94,16 +117,6 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
             assert case.optional_data == (
                 "/location/prefectureName", "/location/districtName",
                 "/current/temperatureText", "/current/condition",
-            )
-        elif case.template_id == "WeatherOverviewTravelSupport@1":
-            assert case.primary_data == ()
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/daily/4/condition",
-                "/daily/4/temperatureRangeText",
-                "/daily/4/rainProbabilityPercent",
-                "/current/temperatureC",
-                "/current/condition",
             )
         elif case.template_id == "HeartRateOverviewMinMaxFull@1":
             assert case.primary_data == (
@@ -138,6 +151,18 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/feelsLikeC",
                 "/location/prefectureName", "/location/districtName",
             )
+        elif case.business_id == "GenericMetricOverview":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            model = case.messages[2].get("updateDataModel")
+            assert isinstance(model, dict)
+            value = model.get("value")
+            assert isinstance(value, dict)
+            data = value.get("data")
+            assert isinstance(data, dict)
+            health = data.get("healthSport")
+            assert isinstance(health, dict)
+            assert health.get("dailySteps") == 6200
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)

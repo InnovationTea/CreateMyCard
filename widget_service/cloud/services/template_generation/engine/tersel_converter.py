@@ -12,7 +12,6 @@ import tokenize
 from dataclasses import dataclass
 from typing import Any
 
-from services.fusion_ball_expander import FUSION_BALL_CONTENT_ID_PREFIX
 from services.template_generation.engine.a2ui_expression import (
     A2UIExpressionError,
     normalize_tersel_expression,
@@ -484,10 +483,8 @@ def _append_compact_rows(
     allowed_binding_paths: frozenset[str],
     allowed_expression_paths: frozenset[str],
 ) -> None:
-    # 防溢出前缀只标记当前节点，不传播到自动编号的后代组件。
-    child_id_base = component_id.removeprefix(FUSION_BALL_CONTENT_ID_PREFIX)
     child_ids = [
-        _explicit_component_id(child) or f"{child_id_base}_{index}"
+        _explicit_component_id(child) or f"{component_id}_{index}"
         for index, child in enumerate(node.children)
     ]
     props = _convert_data_placeholders(
@@ -805,7 +802,7 @@ def _container_props(
     if component_id == "root":
         dimensions = {
             "2x2": {"width": 160, "height": 160},
-            "2x4": {"width": 320, "height": 160},
+            "2x4": {"width": 300, "height": 150},
         }.get(size)
         if node.component_type not in {"Column", "Stack"} or dimensions is None:
             raise TerselConversionError(

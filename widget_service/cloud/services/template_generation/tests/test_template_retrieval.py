@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
+from services.card_validation.compact_dsl_validator import validate_compact_dsl
 from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
@@ -33,6 +34,9 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     build_template_retrieval_prompt,
     restrict_query_to_preferred_templates,
     retrieve_template_variants,
+)
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
+    convert_a2ui_to_compact_dsl,
 )
 
 _WEATHER_FIELDS = (
@@ -869,21 +873,29 @@ def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
     assert "event.enter.meeting" in calendar_rule
 
 
-def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
+def test_search_supports_2x4_prompt_and_composition_slot_retrieval() -> None:
     task = _task().model_copy(update={"size": "2x4"})
     card_spec = _card_spec() | {"suggestSize": "2x4"}
-    inaccessible_registry = cast(CardPlanRegistry, object())
+    registry = get_cardplan_registry()
 
-    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-        build_template_retrieval_prompt(task, inaccessible_registry, (_binding(),))
-    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-        retrieve_template_variants(
-            _query("/current/condition"),
-            task,
-            inaccessible_registry,
-            (_binding(),),
-            card_spec,
-        )
+    messages = build_template_retrieval_prompt(task, registry, (_binding(),))
+    selection = retrieve_template_variants(
+        _query("/current/condition"),
+        task,
+        registry,
+        (_binding(),),
+        card_spec,
+    )
+
+    assert messages[1]["content"]
+    assert selection.component_candidates
+    layout_kinds = {
+        retrieval_module.provider_template_layout_kind(template_id)
+        for candidate in selection.component_candidates
+        for template_id in candidate.available_template_ids
+    }
+    assert {"Full", "Hero", "Compact"}.intersection(layout_kinds)
+    assert {"WideHero", "WideFull", "WideHalf"}.intersection(layout_kinds)
 
 
 def test_search_rejects_two_data_businesses() -> None:
@@ -1875,7 +1887,11 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     )
 
     template_ids = set(result.component_candidates[0].available_template_ids)
-    assert template_ids == {"WeatherOverviewFull@1"}
+    # AlertInfoFull shares Full@1's primary/secondary contract, so the
+    # condition-only query matches both.
+    assert template_ids == {
+        "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
+    }
 
 
 def test_search_index_reports_per_field_matches_before_route_intersection() -> None:
@@ -2236,3 +2252,405 @@ def test_search_rejects_countdown_and_weather_businesses() -> None:
                 ],
             },
         )
+
+
+def _weather_battery_task(with_actions: bool) -> TaskSpec:
+    events: list[EventAction] = []
+    if with_actions:
+        events = [
+            EventAction(
+                id="event.open.weather",
+                description="查看天气详情",
+                call="clickToDeeplink",
+                args={"uri": "example://weather"},
+            ),
+            EventAction(
+                id="event.open.settings.battery",
+                description="打开系统设置的电池页。",
+                call="clickToDeeplink",
+                args={"uri": "battery"},
+            ),
+        ]
+    return TaskSpec(
+        userQuery="看当前天气和手机电量、充电状态",
+        size="2x4",
+        eventCandidates=events,
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {
+                        "districtName": _field("西湖区"),
+                        "prefectureName": _field("杭州市"),
+                    },
+                    "current": {"condition": _field("多云")},
+                },
+                "phoneBattery": {
+                    "batterySOC": _field(68, "integer"),
+                    "chargingStatusDesc": _field("未充电"),
+                },
+            }
+        },
+    )
+
+
+_WEATHER_BATTERY_BINDINGS = (
+    CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/districtName",
+            "/location/prefectureName",
+            "/current/condition",
+        ],
+    ),
+    CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOC", "/chargingStatusDesc"],
+    ),
+)
+
+
+def _weather_battery_card_spec() -> dict[str, Any]:
+    return {
+        "title": "天气和电量",
+        "description": "当前天气和手机电量充电状态",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {"capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery"},
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    ("with_actions", "expected_layout_id"),
+    [
+        (False, "WideTwoFocusLayout@1"),
+        (True, "WideTwoFocusTwoActionLayout@1"),
+    ],
+)
+def test_weather_battery_2x4_composes_two_focus_panels(
+    with_actions: bool,
+    expected_layout_id: str,
+) -> None:
+    task = _weather_battery_task(with_actions)
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/condition", "/location/districtName"),
+            "GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc"),
+        },
+        action=("event.open.weather", "event.open.settings.battery") if with_actions else (),
+    )
+    registry = get_cardplan_registry()
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        registry,
+        _WEATHER_BATTERY_BINDINGS,
+        _weather_battery_card_spec(),
+    )
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=_weather_battery_card_spec(),
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+
+    assert projection.allowed_layout_ids == (expected_layout_id.removesuffix("@1"),)
+    candidate_groups_text = next(
+        message.get("content", "")
+        for message in projection.messages
+        if isinstance(message, dict) and "candidateGroups=" in message.get("content", "")
+    )
+    groups_line = next(
+        line
+        for line in candidate_groups_text.splitlines()
+        if line.startswith("candidateGroups=")
+    )
+    candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
+    assert [item["componentId"] for item in candidate_groups] == [
+        "WeatherOverview",
+        "BatteryOverview",
+    ]
+    assert {item["layoutKind"] for item in candidate_groups} == {"Hero"}
+    assert "BatteryOverviewStatusHero@1" in candidate_groups[1]["availableTemplateIds"]
+
+    action_payloads = "".join(
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "),"
+        for action in projection.contract.action_bindings
+    )
+    source = (
+        f'Template("{expected_layout_id}",{{}},'
+        'Template("WeatherOverviewConditionHero@1",{}),'
+        'Template("BatteryOverviewStatusHero@1",{}),'
+        f"{action_payloads});"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=_weather_battery_card_spec(),
+        business_title="天气和电量",
+        enable_data_bindings=True,
+    )
+    compact_dsl = convert_a2ui_to_compact_dsl(compilation.a2ui, size=task.size)
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec=task.model_dump(mode="json"),
+        card_spec=_weather_battery_card_spec(),
+    )
+
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    root = by_id.get("root")
+    assert isinstance(root, dict)
+    row = next(
+        by_id[child_id]
+        for child_id in root.get("children", [])
+        if by_id.get(child_id, {}).get("component") == "Row"
+        and len(by_id.get(child_id, {}).get("children", [])) == 2
+    )
+    row_children = row["children"]
+    assert isinstance(row_children, list) and len(row_children) == 2
+
+    def descendant_ids(node_id: str) -> set[str]:
+        pending = [node_id]
+        seen: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            pending.extend(by_id.get(current, {}).get("children", []))
+        return seen
+
+    weather_condition_ids = {
+        component.get("id")
+        for component in components
+        if "/data/weather/current/condition" in str(component.get("content", ""))
+    }
+    battery_percent_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/batterySOC" in str(component.get("content", ""))
+    }
+    assert weather_condition_ids and battery_percent_ids
+    assert weather_condition_ids <= descendant_ids(row_children[0])
+    assert battery_percent_ids <= descendant_ids(row_children[1])
+
+
+def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> None:
+    task = TaskSpec(
+        userQuery=(
+            "出门前想检查耳机仓和手机充电，看耳机仓充电状态、手机剩余电量、"
+            "手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。"
+        ),
+        size="2x4",
+        eventCandidates=[
+            EventAction(
+                id="event.open.settings.bluetooth",
+                description="打开系统设置的蓝牙设置页。",
+                call="clickToDeeplink",
+                args={"uri": "bluetooth_entry"},
+            ),
+            EventAction(
+                id="event.open.settings.battery",
+                description="打开系统设置的电池页。",
+                call="clickToDeeplink",
+                args={"uri": "battery"},
+            ),
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {"chargingStatusDesc": _field("未充电")},
+                "phoneBattery": {
+                    "batterySOC": _field(68, "integer"),
+                    "chargingStatusDesc": _field("未充电"),
+                    "pluggedTypeDesc": _field("未连接充电器"),
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="GetEarphoneInfo",
+            writeResultTo="/data/earphone",
+            candidateOutputFields=["/chargingStatusDesc"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=[
+                "/batterySOC",
+                "/chargingStatusDesc",
+                "/pluggedTypeDesc",
+            ],
+        ),
+    )
+    card_spec = {
+        "title": "设备充电",
+        "description": "耳机手机充电状态",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"},
+            {
+                "capabilityId": "GetPhoneBatteryInfo",
+                "writeResultTo": "/data/phoneBattery",
+            },
+        ],
+    }
+    query = TemplateRetrievalQuery(
+        themeId="fusion-battery-teal",
+        requiredOutputFieldsByCapability={
+            "GetEarphoneInfo": ("/chargingStatusDesc",),
+            "GetPhoneBatteryInfo": (
+                "/batterySOC",
+                "/chargingStatusDesc",
+                "/pluggedTypeDesc",
+            ),
+        },
+        action=("event.open.settings.bluetooth", "event.open.settings.battery"),
+    )
+    registry = get_cardplan_registry(True)
+
+    result = retrieve_template_variants(query, task, registry, bindings, card_spec)
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=card_spec,
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+
+    assert projection.allowed_layout_ids == ("WideTwoFocusTwoActionLayout",)
+    candidate_groups_text = next(
+        message.get("content", "")
+        for message in projection.messages
+        if isinstance(message, dict) and "candidateGroups=" in message.get("content", "")
+    )
+    groups_line = next(
+        line
+        for line in candidate_groups_text.splitlines()
+        if line.startswith("candidateGroups=")
+    )
+    candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
+    assert [item["componentId"] for item in candidate_groups] == [
+        "BluetoothDeviceOverview",
+        "BatteryOverview",
+    ]
+    assert candidate_groups[0]["availableTemplateIds"] == [
+        "BluetoothDeviceOverviewCaseSettingsHero@1"
+    ]
+    assert candidate_groups[1]["availableTemplateIds"] == [
+        "BatteryOverviewChargeStatusHero@1"
+    ]
+
+    action_payloads = "".join(
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "),"
+        for action in projection.contract.action_bindings
+    )
+    source = (
+        'Template("WideTwoFocusTwoActionLayout@1",{},'
+        'Template("BluetoothDeviceOverviewCaseSettingsHero@1",{}),'
+        'Template("BatteryOverviewChargeStatusHero@1",{}),'
+        f"{action_payloads});"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=card_spec,
+        business_title="设备充电",
+        enable_data_bindings=True,
+    )
+    compact_dsl = convert_a2ui_to_compact_dsl(compilation.a2ui, size=task.size)
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec=task.model_dump(mode="json"),
+        card_spec=card_spec,
+    )
+    visible_texts = tuple(
+        row[2]["content"]
+        for row in (json.loads(line) for line in compact_dsl.splitlines() if line.strip())
+        if isinstance(row, list)
+        and len(row) > 2
+        and row[1] == "Text"
+        and isinstance(row[2], dict)
+        and isinstance(row[2].get("content"), str)
+    )
+    assert "设备电量" not in visible_texts
+    assert "设备充电" not in visible_texts
+
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    rows_with_two_panels = [
+        component
+        for component in components
+        if component.get("component") == "Row"
+        and len(component.get("children", [])) == 2
+    ]
+    assert rows_with_two_panels
+    row = rows_with_two_panels[0]
+    row_children = row["children"]
+    assert isinstance(row_children, list) and len(row_children) == 2
+
+    def descendant_ids(node_id: str) -> set[str]:
+        pending = [node_id]
+        seen: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            pending.extend(by_id.get(current, {}).get("children", []))
+        return seen
+
+    earphone_status_ids = {
+        component.get("id")
+        for component in components
+        if "/data/earphone/chargingStatusDesc" in str(component.get("content", ""))
+    }
+    battery_percent_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/batterySOC" in str(component.get("content", ""))
+    }
+    battery_plugged_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/pluggedTypeDesc" in str(component.get("content", ""))
+    }
+    assert earphone_status_ids and battery_percent_ids
+    assert not battery_plugged_ids
+    assert earphone_status_ids <= descendant_ids(row_children[0])
+    assert battery_percent_ids <= descendant_ids(row_children[1])

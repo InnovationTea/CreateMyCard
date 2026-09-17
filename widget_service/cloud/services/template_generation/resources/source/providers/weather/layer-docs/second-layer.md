@@ -9,8 +9,7 @@
   - `WeatherOverviewUvCompact@1`：城市、温度、天气现象和紫外线等级；可选 `conditionIcon`。
   - `WeatherOverviewTemperatureSupport@1`：城市、温度和天气现象，兼容格式化温度或纯数值摄氏温度；
     体感温度可选并与天气现象合并到 12vp 辅助行。可选 `conditionIcon` 与内部事件 `actionId`，
-    只有未提供体感温度且收到 `conditionIcon` 时才显示右侧 24vp 图标，与 `actionId` 是否存在无关；
-    有体感温度时保留辅助行文字并省略图标。内部事件仍只允许天气业务关联入口。
+    图标只在该 Support 收到 `actionId` 时显示。
   - `WeatherOverviewTemperatureUvSupport@1`：城市、温度、天气现象和紫外线等级；纯文本，
     不接收图标；可选内部事件 `actionId`。
   - `WeatherOverviewTemperaturecoldLevelSupport@1`：城市、温度、天气现象和感冒风险；纯文本，
@@ -18,33 +17,45 @@
     基础 Support 以天气现象为必需数据，温度、体感、城市和区县可选；另两种 Support 仍以温度为主数据，
     天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
-  - `WeatherOverviewHero@1`：温度天气 Hero；可选空气质量、感冒指数与 `conditionIcon`。
-    空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
+  - `WeatherOverviewHero@1`：温度天气 Hero；可选 `conditionIcon`。
   - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
-  - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。
+  - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero。
+  - `WeatherOverviewWideFull@1`：左右分区的完整天气摘要，可展示体感、湿度、空气、风况和当日预报。
+  - `WeatherOverviewWideHero@1`：以当前温度和天气现象为焦点，辅助展示体感与当日预报。
+  - `WeatherOverviewWideHalf@1`：适用于 2x4 组合布局的横向半高天气摘要。
   - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
-  - `WeatherOverviewCareAlertFull@1`：上下两组的关怀型 Full，上组展示城市、天气预警及说明，下组展示紫外线和空气质量；可选紫外线图标，不保留电话动作专用留白。
-  - `WeatherOverviewWindHero@1`：展示城市、当前风向和风力等级的 Hero；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
+  - `WeatherOverviewCareAlertFull@1`：展示城市、天气预警、紫外线和空气质量的三段式关怀型 Full；可选紫外线图标，底部为右下角电话动作预留空间。
+  - `WeatherOverviewWindHero@1`：展示城市、当前风向、风力等级和更新时间的 Hero；可选风向、时间和位置图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
-  - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
-    只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。
-  - `WeatherOverviewTravelSupport@1`：出行天气 Support；参考 `WeatherOverviewConditionHero@1`
-    以天气现象为主视觉，辅助展示 `daily[4]` 的温度范围和降雨概率，或当前温度；只用于
-    `TwoSupportLayout@1`，可选 `conditionIcon`，可在分配天气详情事件时通过 `actionId` 绑定胶囊点击；
-    主标题为 14vp，副标题为 10vp。
   - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full，突出天气现象，并展示日期和星期。
-  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
+  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
   - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
+  - `WeatherOverviewAlertInfoFull@1`：完整温度天气摘要，空气质量行下追加预警信息行；无预警时显示“无预警信息”。可选 `conditionIcon`。
+  - `WeatherOverviewFeelsLikeAlertFull@1`：完整温度天气摘要，倒数第二行展示体感温度，最后一行展示预警信息；无预警时显示“无预警信息”。可选 `conditionIcon`。
+  - `WeatherOverviewHumidityWindFull@1`：完整温度天气摘要，倒数第二行展示湿度，最后一行展示风向。可选 `conditionIcon`。
+  - `WeatherOverviewUvColdFull@1`：完整温度天气摘要，展示紫外线强度行，并保留感冒风险行。可选 `conditionIcon`。
+  - `WeatherOverviewFeelsLikeWindSupport@1`：左侧两行展示体感温度和风力等级，右侧固定 24vp 温度计图标（`temperatureIcon`）。
+  - `WeatherOverviewDailySummaryFull@1`：日期天气摘要 Full，展示城市、日期、星期、温度范围、降雨概率和空气质量。
+  - `WeatherOverviewThreeDayForecastFull@1`：三日天气 Full，按顺序完整展示 `daily[0..2]` 每天的
+    日期、星期、天气现象、降雨概率和温度范围；每天固定两行，上行是完整日期与星期，下行是天气、
+    降雨概率和完整温度范围，不得裁掉低温；可传入可信 `location` 作为标题前缀。
+  - `WeatherOverviewDestinationDayFull@1`：目的地出发日天气 Full，展示 `daily[3]` 的温度范围、
+    降雨概率和空气质量；可传入可信 `location` 和 `targetDate`。
 - 所有天气模板的 `location` 仅作城市显示兜底：只能使用本轮 `trustedStringLiterals` 下发的
   真实城市或区县名（来自请求参数，如 `深圳市`）；标题、描述等其他可信文案不是城市，
   不得当作 `location` 传入。可信文案中没有城市名时不传 `location`，保留模板默认文案。
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。
+- 2x4 中，`WeatherOverviewThreeDayForecastFull@1` 与一个倒计时 Hero 组合时使用
+  `WideHeroActionFullLayout@1`，天气 Full 放在右侧支撑背板内；已批准的 `event.open.weather` 必须由
+  布局中的 `PillAction@1` 消费，按钮文案使用可信的“查看详情”，不得给天气 Full 增加内部点击事件。
+- `WeatherOverviewDestinationDayFull@1` 同样作为 `WideHeroActionFullLayout@1` 的右侧 Full；操作由
+  布局中的独立 Action 承载，天气模板自身不接收 `actionId`。
 - HeroTitle 只用于双业务单 Action 的 `HeroTitleContentActionLayout@1`，并且必须位于
   HeroContent 之前的第一个业务位置；布局最后一个 child 必须是 `PillAction@1`。
 - 天气 HeroTitle 的城市、区县、温度及天气现象均为可选绑定；不得因缺少温度拒绝该模板或要求补造温度。
@@ -54,9 +65,14 @@
   分支由编译器按绑定存在性裁剪，不读取空样例值；城市兜底仍遵循下方 location 规则。
 - Support 只用于 `TwoSupportLayout@1`。Planner 可在数据 Search 后选择该布局；该业务有已批准事件时
   传入 `actionId`，没有对应事件时省略，模板根节点不生成 `onClick`。
+- WideHero 用于 `WideSingleFocusLayout@1` 并搭配一个 `PillAction@1`；WideFull 用于
+  `WideFullOnlyLayout@1` 或对应组合布局；WideHalf 用于对应的半高组合布局。
 - Props 只能使用本轮 Prompt 下发的可信素材或批准事件 ID，不得输出数据路径。
 - 候选模板声明 `location?: string` 时，该 Prop 只作为可选兜底文案。模板优先使用可用的城市或区县
   数据绑定；只有两个位置数据路径都不可用时才使用该 Prop，Prop 也缺失时显示“当前城市”。
+- 三日天气和目的地出发日天气没有位置数据绑定，`location` 只能使用本轮可信请求参数或用户原文中的
+  真实城市名；不得使用卡片标题或描述代替城市。目的地出发日天气的 `targetDate` 只能原样使用本轮
+  `GetCountdownDays.arguments.targetDate` 的可信 `YYYY-MM-DD` 字符串；不可用时省略，模板显示“出发当天”。
 - 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `windIcon`、`timeIcon`、`locationIcon` 必须分别匹配风况、时间和地点语义；风力等级直接绑定
   `/current/windLevel`，模板单独追加“级”，不得把单位写入数据路径或伪造静态风力。
@@ -66,10 +82,9 @@
   `/current/alertLevel`，更新时间必须绑定 `/updatedAt`。
 - 单业务模板的 `conditionIcon` 只允许与本轮 `/current/condition`
   一致的天气状态图标，不允许温度计；状态未知或缺少匹配的状态资源时省略图标，保留天气文本。
-- 双业务 `TwoSupportLayout@1` 中，基础温度 Support 和两个出行天气 Support（`Daily2Travel`、
-  `Travel`）的 `conditionIcon` 可以选择表达气温的温度计，也可以选择与当前天气一致的状态图标。
-  状态未知或缺少对应状态资源时仍可使用气温温度计；两类素材均不可用时省略。其余双业务天气
-  模板没有图标槽位，不得额外添加。
+- 双业务 `TwoSupportLayout@1` 中，基础温度 Support 的 `conditionIcon` 可以选择表达气温的温度计，
+  也可以选择与当前天气一致的状态图标。状态未知或缺少对应状态资源时仍可使用气温温度计；
+  两类素材均不可用时省略。其它双业务天气模板没有图标槽位，不得额外添加。
 - 两类场景的图标都必须属于该参数的 `allowedSources`，不能借双业务规则放宽单业务槽位。
 - 图标着色遵循模板 Image 的显式声明，不依据文件名或天气语义猜测颜色。当前带图标模板已声明
   `fillColor`，温度计和天气状态图标均保留该主题色；模型不得追加原色保护或指定黄色、白色覆盖模板。

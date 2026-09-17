@@ -71,7 +71,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-body"
@@ -90,7 +92,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机连接 Support：主行加粗展示连接状态，可选次行展示仓电量，右侧 40vp 电量环及 16vp 耳机图标，无电量时为 24vp 耳机图标；必需耳机本体图标，根节点可绑定事件。",
@@ -110,7 +114,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机充电 Support：左侧两行文本展示耳机盒或整体电量、充电状态，右侧 40vp 电量环及 16vp 充电盒图标；必需充电盒图标，根节点可绑定事件。",
@@ -265,6 +271,136 @@
         "/batteryLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "Q053 完整横版：左侧音乐面板底部内置收藏歌单按钮，右侧双耳电量环和充电状态。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "secondaryData": [
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
+      ],
+      "optionalData": [],
+      "supportedEventIds": [
+        "event.open.music.favorite"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewMusicFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "Q059 耳机音乐 Full：名称、电量环、电量、连接状态与更新时间，可独立组合。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/earphoneName",
+        "/batteryLevel"
+      ],
+      "secondaryData": [
+        "/isConnected",
+        "/updatedAt"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewCaseConnectionHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机仓电量和连接状态 Hero：电量环、百分比与连接状态，适配 Q058 耳机字段。",
+      "entry": "templates/earphone-case-connection.cardtpl",
+      "primaryData": [
+        "/isConnected",
+        "/batteryLevel"
+      ],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone-case"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewCaseSettingsHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机仓充电状态 Hero：标题与充电状态；动作通过 HeroActionLayout 组合。",
+      "entry": "templates/earphone-case-settings.cardtpl",
+      "primaryData": [
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "Q073 左侧连接状态与名称、左右耳44vp电量环及充电状态；右侧上块耳机仓电量和状态，下块每日歌单入口。",
+      "entry": "templates/earbuds-charging-wide.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": ["earphone-case"],
+        "musicIcon": ["music"]
+      },
+      "primaryData": [
+        "/earphoneName",
+        "/isConnected"
+      ],
+      "secondaryData": [
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ],
+      "optionalData": [],
+      "supportedEventIds": [
+        "event.open.music.daily"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewTripleBatteryWideHalf@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机三组电量横向半区，输入包含连接状态时同时展示连接状态。",
+      "entry": "templates/triple-battery-wide-half.cardtpl",
+      "primaryData": [
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/isConnected"
+      ],
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone-case"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewStatusHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机仓充电状态 Hero，展示耳机仓充电状态大字和副标签，可选充电盒图标；用于左右双焦点拼接布局。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone-case"
+        ]
+      }
     }
   ],
   "compatibility": {

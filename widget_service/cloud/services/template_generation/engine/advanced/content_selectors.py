@@ -1527,6 +1527,9 @@ def project_content_component_facts(
     task_spec: TaskSpec,
     capability_ids: set[str],
     component_ids: tuple[str, ...],
+    *,
+    required_output_fields_by_capability: dict[str, tuple[str, ...]] | None = None,
+    generic_output_fields: tuple[str, ...] | None = None,
 ) -> TaskSpec:
     """Narrow the second-layer contract to selected component display facts.
 
@@ -1576,6 +1579,40 @@ def project_content_component_facts(
             sleep_facts = extract_sleep_overview_facts(schema)
             if sleep_facts is not None:
                 selected = sleep_facts.as_selector()
+        elif component_id == "GenericMetricOverview":
+            # Generic compact supplements the primary business component. It
+            # is intentionally data-agnostic: every requested scalar leaf from
+            # the candidate capability is eligible, and the second layer
+            # chooses one or two exact paths. Keep only fields not already
+            # owned by a specialized component in this composition.
+            requested_field_names = tuple(
+                dict.fromkeys(
+                    path.rsplit("/", 1)[-1]
+                    for paths in (required_output_fields_by_capability or {}).values()
+                    for path in paths
+                )
+            )
+            specialized_field_names = {
+                field_name
+                for selected_component_id in component_ids
+                if selected_component_id != "GenericMetricOverview"
+                for field_name in _PROVIDER_COMPONENT_FIELDS.get(
+                    selected_component_id, ()
+                )
+            }
+            field_names = tuple(
+                name
+                for name in requested_field_names
+                if name not in specialized_field_names
+            )
+            if generic_output_fields is not None:
+                field_names = tuple(path.rsplit("/", 1)[-1] for path in generic_output_fields)
+            source = _best_source_object(schema, field_names)
+            selected = {
+                field_name: deepcopy(field)
+                for field_name in field_names
+                if (field := _first_field(source, field_name)) is not None
+            }
         elif component_id == "BatteryOverview":
             battery_facts = extract_battery_overview_facts(schema)
             if battery_facts is not None:
@@ -2591,21 +2628,31 @@ def _bluetooth_facts_from_candidate(
     has_connection_and_case_battery = (
         is_connected is not None and case_battery_level is not None
     )
-    if not has_name_and_case_battery and not has_connection_and_case_battery and (
-        is_connected is None
-    ) != (
-        earphone_name is None
+    left_battery_level = _trusted_percentage_number(
+        _first_field(candidate, "leftBatteryLevel")
+    )
+    right_battery_level = _trusted_percentage_number(
+        _first_field(candidate, "rightBatteryLevel")
+    )
+    # Pair-ear templates (e.g. EarbudPairCompact) render the name and both ear
+    # batteries without any connection state, so a complete ear battery pair
+    # identifies the entity even when only one of isConnected/earphoneName is
+    # present.
+    has_complete_ear_battery = (
+        left_battery_level is not None and right_battery_level is not None
+    )
+    if (
+        not has_complete_ear_battery
+        and not has_name_and_case_battery
+        and not has_connection_and_case_battery
+        and (is_connected is None) != (earphone_name is None)
     ):
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
         earphone_name=earphone_name,
-        left_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "leftBatteryLevel")
-        ),
-        right_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "rightBatteryLevel")
-        ),
+        left_battery_level=left_battery_level,
+        right_battery_level=right_battery_level,
         left_charging_status=_trusted_string(
             _first_field(candidate, "leftChargingStatusDesc")
         ),

@@ -60,12 +60,29 @@ _LAYOUT_COMPONENTS = frozenset(
         "HeroTitleContentActionLayout",
         "TwoSupportLayout",
         "WideSingleFocusLayout",
+        "WideFullOnlyLayout",
+        "WideTwoFullLayout",
+        "WideHeroCompactLayout",
+        "WideFullHeroActionLayout",
+        "WideHeroActionFullLayout",
+        "WideFullTwoCompactLayout",
+        "WideFourCompactLayout",
+        "WideFullHeroTwoActionLayout",
+        "WideTwoHeroActionLayout",
+        "WideFullFourActionLayout",
+        "WideTwoHalfLayout",
+        "WideHalfTwoCompactLayout",
+        "WideHalfCompactTwoLargeActionLayout",
+        "WideHalfFourLargeActionLayout",
+        "WideTwoFocusLayout",
+        "WideTwoFocusActionLayout",
+        "WideTwoFocusTwoActionLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
 _SINGLE_CONDITIONAL_BINDING_COMPONENTS = frozenset({"IfBind", "IfMissingBind"})
 _GROUPED_CONDITIONAL_BINDING_COMPONENTS = frozenset(
-    {"IfAllBind", "IfAnyMissingBind"}
+    {"IfAllBind", "IfAnyMissingBind", "IfAnyBind", "IfAllMissingBind"}
 )
 _CONDITIONAL_BINDING_COMPONENTS = (
     _SINGLE_CONDITIONAL_BINDING_COMPONENTS
@@ -106,6 +123,7 @@ _MAX_PRESENCE_MATCH_ITEMS = 4
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
+    "WideHalf",
     "HeroTitle",
     "HeroContent",
     "Support",
@@ -125,6 +143,7 @@ _PROVIDER_TEMPLATE_FAMILIES = (
     "BatteryOverview",
     "WorkoutOverview",
     "SleepOverview",
+    "GenericMetricOverview",
     "DateOverview",
 )
 
@@ -233,7 +252,11 @@ class ProviderTemplateEntry(StrictModel):
         if self.capability_id is None:
             return ()
         layout_kind = _provider_template_layout_kind(self.template_id)
-        return ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+        return (
+            ("2x4",)
+            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            else ("2x2",)
+        )
 
     @property
     def requires_layout_action(self) -> bool:
@@ -718,6 +741,7 @@ def _ui_template_signature(
     type_map = {
         "string": "string",
         "asset": "string",
+        "path": "string",
         "number": "number",
         "integer": "integer",
         "boolean": "boolean",
@@ -726,7 +750,7 @@ def _ui_template_signature(
         if not raw_prop:
             continue
         prop_match = re.fullmatch(
-            r"([A-Za-z_][A-Za-z0-9_]*)(\?)?\s*:\s*(string|asset|number|integer|boolean)",
+            r"([A-Za-z_][A-Za-z0-9_]*)(\?)?\s*:\s*(string|asset|path|number|integer|boolean)",
             raw_prop,
         )
         if prop_match is None:
@@ -1326,34 +1350,37 @@ def _template_line_quote(line: str, quote: str | None) -> str | None:
 
 
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
-    components: tuple[str, str]
     single = re.fullmatch(
-        r"#(?:if|elseif)[ \t]+(![ \t]*)?(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        r"#(?:if|elseif)[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if single is not None:
-        negated, namespace, name = single.groups()
-        kind = "Param" if namespace == "props" else "Bind"
-        present = f'If{kind}("{name}",'
-        missing = f'IfMissing{kind}("{name}",'
-        if negated is not None:
-            components = (missing, present)
-        else:
-            components = (present, missing)
-    else:
-        grouped = re.fullmatch(
-            r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
-            r"data\.([A-Za-z_][A-Za-z0-9_]*)",
-            content,
+        namespace, name = single.groups()
+        if namespace == "props":
+            return f'IfParam("{name}",', f'IfMissingParam("{name}",'
+        return f'IfBind("{name}",', f'IfMissingBind("{name}",'
+    keyword = content.split(maxsplit=1)[0]
+    or_group = re.fullmatch(
+        r"#(?:if|elseif)[ \t]+data\.[A-Za-z_][A-Za-z0-9_]*"
+        r"(?:[ \t]*\|\|[ \t]*data\.[A-Za-z_][A-Za-z0-9_]*)+",
+        content,
+    )
+    if or_group is not None:
+        binding_names = re.findall(r"data\.([A-Za-z_][A-Za-z0-9_]*)", content)
+        if len(set(binding_names)) == len(binding_names):
+            encoded = json.dumps(binding_names, separators=(",", ":"))
+            return f"IfAnyBind({encoded},", f"IfAllMissingBind({encoded},"
+    grouped = re.fullmatch(
+        r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
+        r"data\.([A-Za-z_][A-Za-z0-9_]*)",
+        content,
+    )
+    if grouped is None or grouped.group(1) == grouped.group(2):
+        raise ValueError(
+            f"Provider Template {keyword} target is invalid at line {line_number}"
         )
-        if grouped is None or grouped.group(1) == grouped.group(2):
-            keyword = content.split(maxsplit=1)[0]
-            raise ValueError(
-                f"Provider Template {keyword} target is invalid at line {line_number}"
-            )
-        binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
-        components = (f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},")
-    return components
+    binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
+    return f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},"
 
 
 def _remove_empty_template_conditionals(body: str) -> str:
@@ -1362,8 +1389,8 @@ def _remove_empty_template_conditionals(body: str) -> str:
         r'"[A-Za-z_][A-Za-z0-9_]*",\s*\),\s*'
     )
     grouped = (
-        r'(?:IfAllBind|IfAnyMissingBind)\(\["[A-Za-z_][A-Za-z0-9_]*",'
-        r'"[A-Za-z_][A-Za-z0-9_]*"\],\s*\),\s*'
+        r'(?:IfAllBind|IfAnyMissingBind|IfAnyBind|IfAllMissingBind)\('
+        r'\["[A-Za-z_][A-Za-z0-9_]*"(?:,"[A-Za-z_][A-Za-z0-9_]*")+\],\s*\),\s*'
     )
     result = body
     while True:
@@ -1524,7 +1551,7 @@ def _component_node(node: ast.AST) -> TemplateNode:
     if component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
         if len(values) != 1 or not children:
             raise ValueError(
-                f"Provider Template {component} requires two binding names and children"
+                f"Provider Template {component} requires at least two binding names and children"
             )
         _grouped_conditional_binding_names(values[0])
     elif component in _CONDITIONAL_COMPONENTS:
@@ -1543,10 +1570,10 @@ def _component_node(node: ast.AST) -> TemplateNode:
     )
 
 
-def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:
-    if value.kind != "array" or len(value.items) != 2:
+def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, ...]:
+    if value.kind != "array" or len(value.items) < 2:
         raise ValueError(
-            "Provider Template grouped conditional requires two binding names"
+            "Provider Template grouped conditional requires at least two binding names"
         )
     binding_names: list[str] = []
     for item in value.items:
@@ -1555,12 +1582,11 @@ def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:
                 "Provider Template grouped conditional binding must be a string"
             )
         binding_names.append(item.value)
-    first_name, second_name = binding_names
-    if first_name == second_name:
+    if len(set(binding_names)) != len(binding_names):
         raise ValueError(
             "Provider Template grouped conditional bindings must be different"
         )
-    return first_name, second_name
+    return tuple(binding_names)
 
 
 def _indexed_template_child(node: ast.AST) -> int | None:
@@ -2628,7 +2654,11 @@ def provider_template_context_admission(
     task_spec: TaskSpec,
 ) -> ProviderTemplateAdmission:
     """Apply Provider-owned constraints that depend on the selected generation context."""
-    if definition.requires_layout_action and not task_spec.eventCandidates:
+    if (
+        definition.requires_layout_action
+        and task_spec.size == "2x2"
+        and not task_spec.eventCandidates
+    ):
         return ProviderTemplateAdmission(False, "layout-action-required")
     return ProviderTemplateAdmission(True)
 
@@ -2674,6 +2704,8 @@ def _provider_variant_binding_admission(
     values_by_field = _provider_sample_values_by_field(task_spec.dataModelSchema)
     properties = variant.parameters_schema.get("properties", {})
     for name in variant.parameters_schema.get("required", ()):
+        if name.casefold().endswith("path"):
+            continue
         if name in definition.asset_parameter_semantic_tags:
             continue
         candidates = list(dict.fromkeys(values_by_field.get(name, ())))
@@ -2734,27 +2766,21 @@ def _provider_data_roots(
 ) -> tuple[str, ...] | ProviderTemplateAdmission:
     if card_spec is None:
         return ProviderTemplateAdmission(False, "card-spec-unavailable")
-
     raw_bindings = card_spec.get("dataBindings")
     if not isinstance(raw_bindings, list):
         return ProviderTemplateAdmission(False, "data-bindings-unavailable")
-
-    roots: list[str] = []
-    for item in raw_bindings:
-        if not isinstance(item, dict):
-            continue
-        if item.get("capabilityId") != capability_id:
-            continue
-        root = item.get("writeResultTo")
-        if not _valid_runtime_data_root(root):
-            continue
-        roots.append(root)
-
+    roots = tuple(
+        item.get("writeResultTo")
+        for item in raw_bindings
+        if isinstance(item, dict)
+        and item.get("capabilityId") == capability_id
+        and _valid_runtime_data_root(item.get("writeResultTo"))
+    )
     if not roots:
         return ProviderTemplateAdmission(False, "capability-binding-unavailable")
     if len(roots) != binding_count or len(set(roots)) != len(roots):
         return ProviderTemplateAdmission(False, "capability-binding-ambiguous")
-    return tuple(roots)
+    return roots
 
 
 def _valid_runtime_data_root(value: Any) -> bool:

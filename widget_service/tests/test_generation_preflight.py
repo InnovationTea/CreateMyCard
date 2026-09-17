@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from api.schemas import GenerateWidgetCardRequest
+from config.config import get_settings
 from core.errors import ErrorCode
 from custom.a2ui_model_client import A2UIModelClient
 from models.preflight import GenerationPreflightError
@@ -39,6 +40,13 @@ def _run(request: GenerateWidgetCardRequest):
     normalized = EditRequestNormalizer.normalize_create(request)
     registry = CapabilityRegistry(version=REGISTRY_VERSION)
     return GenerationPreflight(registry).run(normalized)
+
+
+@pytest.mark.parametrize("version", [None, "11.7.5.208"])
+def test_preflight_uses_configured_version_only_when_missing(version):
+    result = _run(_request(prdVer=version))
+    assert result.task_spec is not None
+    assert result.task_spec.appVersion == (version or get_settings().default_prd_version)
 
 
 def test_generation_tool_schema_matches_source_direct_result_contract():

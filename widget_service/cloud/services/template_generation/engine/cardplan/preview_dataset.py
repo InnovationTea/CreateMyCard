@@ -16,11 +16,12 @@ from services.template_generation.engine.tersel_converter import (
 )
 
 from .compiler import (
+    _expand_health_metric_generic_template,
     _instantiate_blueprint,
     _serialize_effective_document,
     _strip_advanced_component_markers,
 )
-from .models import TemplateBinding, TemplateDefinition
+from .models import TemplateBinding, TemplateDefinition, ThemeDefinition
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 
@@ -33,6 +34,7 @@ TemplateLayoutKind = Literal[
     "Full",
     "WideHero",
     "WideFull",
+    "WideHalf",
 ]
 
 _LAYOUT_ORDER = {
@@ -44,6 +46,7 @@ _LAYOUT_ORDER = {
     "Full": 5,
     "WideHero": 6,
     "WideFull": 7,
+    "WideHalf": 8,
 }
 _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "HeroTitle": "2x2",
@@ -54,6 +57,7 @@ _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "Full": "2x2",
     "WideHero": "2x4",
     "WideFull": "2x4",
+    "WideHalf": "2x4",
 }
 _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
     "HeroTitle": 24,
@@ -64,6 +68,7 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
     "Full": 136,
     "WideHero": 124,
     "WideFull": 136,
+    "WideHalf": 68,
 }
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",
@@ -85,11 +90,22 @@ _SOURCE_ICON_BY_BUSINESS = {
     "AppUsageOverview": "resources/base/media/icon_tiktok.png",
     "BluetoothDeviceOverview": "resources/base/media/icon_earphone.svg",
     "HeartRateOverview": "resources/base/media/heart_fill.svg",
+    "GenericMetricOverview": "resources/base/media/figure_run.svg",
     "CalendarOverview": "resources/base/media/calendar_fill.svg",
     "SleepOverview": "resources/base/media/moon_z_fill_1.svg",
     "WorkoutOverview": "resources/base/media/figure_run.svg",
 }
+_GENERIC_PREVIEW_VALUES = {
+    "/dailySteps": {"type": "integer", "description": "步数", "sampleValue": 6200},
+    "/exerciseHeartRateAvg": {"type": "integer", "description": "平均心率", "sampleValue": 88},
+}
 _TEXT_BY_TEMPLATE_PARAMETER = {
+    ("GenericMetricOverviewCompact@1", "title"): "步数",
+    ("GenericMetricOverviewCompact@1", "valuePath"): "/dailySteps",
+    ("GenericMetricOverviewDualCompact@1", "firstTitle"): "步数",
+    ("GenericMetricOverviewDualCompact@1", "firstValuePath"): "/dailySteps",
+    ("GenericMetricOverviewDualCompact@1", "secondTitle"): "平均心率",
+    ("GenericMetricOverviewDualCompact@1", "secondValuePath"): "/exerciseHeartRateAvg",
     ("BluetoothDeviceOverviewHero@1", "title"): "耳机听歌入口",
     ("WeatherOverviewAirQualityHero@1", "location"): "青浦区",
     ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
@@ -105,14 +121,6 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
         "resources/base/media/icon_phone.svg",
     ("WeatherOverviewTemperatureSupport@1", "conditionIcon"):
         "resources/base/media/icon_weather_thermometer.svg",
-    ("WeatherOverviewDaily2TravelSupport@1", "conditionIcon"):
-        "resources/base/media/icon_weather_thermometer.svg",
-    ("WeatherOverviewTravelSupport@1", "conditionIcon"):
-        "resources/base/media/icon_weather_thermometer.svg",
-    ("CountdownOverviewSupport@1", "timerIcon"):
-        "resources/base/media/icon_timing.svg",
-    ("CountdownOverviewTravelSupport@1", "timerIcon"):
-        "resources/base/media/icon_timing.svg",
 }
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",
@@ -135,6 +143,7 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("CalendarOverview", "date"): "8月19日",
     ("CalendarOverview", "eventCount"): 1,
     ("CalendarOverview", "location"): "深圳市龙岗区五和大道",
+    ("CalendarOverview", "reminder"): "15",
     ("CalendarOverview", "start"): "14:00",
     ("CalendarOverview", "startDate"): "8月19日",
     ("CalendarOverview", "title"): "UI需求评审会",
@@ -209,7 +218,11 @@ class TemplatePreviewCase:
 
 def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
     """Expand every business Provider Template into a local A2UI preview case."""
-    registry = CardPlanRegistry(disabled_provider_ids=(), disabled_template_ids=())
+    registry = CardPlanRegistry(
+        disabled_provider_ids=(),
+        disabled_template_ids=(),
+        enable_fusion_ball=True,
+    )
     definitions = [
         registry.require_template(template_id)
         for template_id in registry.provider_template_ids
@@ -271,14 +284,27 @@ def _build_case(
         name: _binding_placeholder(definition, binding)
         for name, binding in definition.bindings.items()
     }
-    content = _instantiate_blueprint(
-        variant.root,
-        _template_parameters(definition),
-        bindings,
-        _preview_theme_values(definition, registry),
-    )
+    theme = _preview_theme(definition, registry)
+    parameters = _template_parameters(definition)
+    if definition.business_id == "GenericMetricOverview":
+        if definition.data_domain is None:
+            raise ValueError("Generic preview requires a provider data domain")
+        content = _expand_health_metric_generic_template(
+            definition.wire_id,
+            parameters,
+            task_spec=task_spec,
+            provider_binding_roots={"GetHealthAndSportSummary": (definition.data_domain,)},
+            theme_values=theme.reference_values,
+        )
+    else:
+        content = _instantiate_blueprint(
+            variant.root,
+            parameters,
+            bindings,
+            theme.reference_values,
+        )
     content = _strip_advanced_component_markers(content)
-    root = _preview_root(content, content_height)
+    root = _preview_root(content, content_height, theme.root_style)
     effective = _serialize_effective_document(root, task_spec, True)
     a2ui = convert_tersel_to_a2ui(
         effective,
@@ -305,10 +331,13 @@ def _build_case(
     )
 
 
-def _preview_theme_values(
+def _preview_theme(
     definition: TemplateDefinition,
     registry: CardPlanRegistry,
-) -> dict[str, str]:
+) -> ThemeDefinition:
+    if definition.capability_id == "ViewWeather":
+        return registry.require_theme("fusion-weather-blue")
+
     compatible_themes = tuple(
         item
         for item in registry.themes.values()
@@ -318,15 +347,20 @@ def _preview_theme_values(
         (
             item
             for item in compatible_themes
-            if item.fusion_ball_style is None
+            if item.fusion_ball_style is None and not item.supported_layout_ids
         ),
         None,
     )
     if theme is None:
+        theme = next(
+            (item for item in compatible_themes if item.fusion_ball_style is None),
+            None,
+        )
+    if theme is None:
         theme = next(iter(compatible_themes), None)
     if theme is None:
         theme = registry.require_theme("digital-wellbeing-neutral-dark")
-    return registry.theme_reference_values(theme.theme_profile_id)
+    return theme
 
 
 def _definition_sort_key(definition: TemplateDefinition) -> tuple[str, str, int, str]:
@@ -368,6 +402,14 @@ def _template_parameters(definition: TemplateDefinition) -> dict[str, str]:
 
 def _build_data_schema(definition: TemplateDefinition) -> dict[str, Any]:
     schema: dict[str, Any] = {"data": {}}
+    if definition.business_id == "GenericMetricOverview":
+        for parameter, path in _template_parameters(definition).items():
+            if not parameter.endswith("Path"):
+                continue
+            sample = _GENERIC_PREVIEW_VALUES.get(path)
+            if sample is None:
+                raise ValueError(f"Generic preview sample is missing: {path}")
+            _set_path(schema, definition.data_domain.rstrip("/") + path, dict(sample))
     for name, binding in definition.bindings.items():
         full_path = f"{definition.data_domain.rstrip('/')}{binding.path}"
         leaf = {
@@ -453,7 +495,11 @@ def _binding_placeholder(definition: TemplateDefinition, binding: TemplateBindin
     return "${" + dotted + "}"
 
 
-def _preview_root(content: Nested2Node, content_height: int) -> Nested2Node:
+def _preview_root(
+    content: Nested2Node,
+    content_height: int,
+    theme_root_style: dict[str, Any],
+) -> Nested2Node:
     slot_options = {
         "width": "matchParent",
         "height": content_height,
@@ -462,14 +508,19 @@ def _preview_root(content: Nested2Node, content_height: int) -> Nested2Node:
         "clip": True,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
     }
+    # Theme roots may carry container-specific positioning (for example
+    # Stack.alignContent).  The gallery wrapper is always a Column, so only copy
+    # the visual root properties here and let the wrapper own its layout.
+    visual_root_style = {
+        key: value
+        for key, value in theme_root_style.items()
+        if key != "alignContent"
+    }
     root_options = {
         "_id": "root",
-        "padding": 12,
-        "borderRadius": 20,
-        "backgroundColor": "#FFFFFFFF",
+        **visual_root_style,
         "justifyContent": "start",
         "alignItems": "start",
-        "clip": True,
     }
     slot_options["_id"] = "template_root"
     slot = Nested2Node("Column", ("section", slot_options), (content,))

@@ -9,6 +9,7 @@ from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 from api.schemas import CandidateEventCandidate, GenerateWidgetCardRequest
 from app.logger import json_for_log, logger
+from config.config import get_settings
 from core.errors import ErrorCode
 from core.json_pointer import parse_json_pointer
 from models.capability import AssetCapability, DataCapability, RemovedCapability
@@ -84,7 +85,7 @@ class GenerationPreflight:
                 data_capabilities,
                 effective_events,
                 effective_assets,
-                request.prdVer,
+                request.prdVer or get_settings().default_prd_version,
             )
 
         result = GenerationPreflightResult(

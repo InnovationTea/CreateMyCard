@@ -65,6 +65,7 @@ from .fusion_ball_background import (
     apply_content_safe_inset,
     apply_fusion_ball_background,
 )
+from .generic_metrics import GENERIC_HEALTH_LABELS
 from .models import (
     CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -86,12 +87,19 @@ _CONTAINERS = _STANDARD_CONTAINERS | UX_LAYOUT_COMPONENT_IDS
 _SINGLE_TEMPLATE_CONDITIONS = frozenset(
     {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}
 )
-_GROUPED_TEMPLATE_CONDITIONS = frozenset({"IfAllBind", "IfAnyMissingBind"})
+_GROUPED_TEMPLATE_CONDITIONS = frozenset(
+    {"IfAllBind", "IfAnyMissingBind", "IfAnyBind", "IfAllMissingBind"}
+)
 _TEMPLATE_CONDITIONS = _SINGLE_TEMPLATE_CONDITIONS | _GROUPED_TEMPLATE_CONDITIONS
-_UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
+_UX_ACTION_COMPONENTS = frozenset(
+    {"PillAction", "CompactAction", "IconAction", "LargeIconAction", "ActionTile"}
+)
 _ACTION_TEMPLATE_COMPONENTS = {
     "PillAction@1": "PillAction",
+    "CompactAction@1": "CompactAction",
+    "PlaylistCompactAction@1": "CompactAction",
     "IconAction@1": "IconAction",
+    "LargeIconAction@1": "LargeIconAction",
 }
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
@@ -266,6 +274,7 @@ def compile_hybrid_card(
         content,
         contract,
         registry,
+        task_spec.size,
     )
     fusion_palette = _template_fusion_ball_palette(
         task_spec.size,
@@ -294,13 +303,17 @@ def compile_hybrid_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    body_budget = _body_budget(card_params, contract, registry)
+    body_budget = _body_budget(card_params, contract, registry, task_spec.size)
     space_constrained = content_height > body_budget
     if space_constrained:
         content = _constrain_content_height(content, body_budget)
         root = _compile_card_shell(card_params, content, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
-    if fusion_palette is None:
+    if (
+        fusion_palette is None
+        and contract.theme_profile_id
+        in {"family-weather-care-blue", "fusion-weather-blue"}
+    ):
         root = apply_content_safe_inset(root, size=task_spec.size)
     else:
         root = apply_fusion_ball_background(
@@ -375,7 +388,9 @@ def compile_ux_layout_card(
         registry=registry,
         embedded_actions=True,
     )
-    matched_plan_id = _validate_allowed_template_plan(composition, contract, registry)
+    matched_plan_id = _validate_allowed_template_plan(
+        composition, contract, registry, card_size=task_spec.size,
+    )
     raw_count = _count_calls(composition)
     if raw_count > contract.limits.max_raw_components:
         raise TerselConversionError("Hybrid raw component budget exceeded.")
@@ -416,7 +431,18 @@ def compile_ux_layout_card(
     embedded_action_count = sum(
         _parsed_ux_action_component(child) is not None for child in composition.children
     )
-    if layout_id != "TwoSupportLayout" and len(state.action_occurrences) != embedded_action_count:
+    if matched_plan_id is not None:
+        for plan in contract.allowed_template_plans:
+            if plan.plan_id != matched_plan_id:
+                continue
+            embedded_action_count += sum(
+                item.consumer == "business-template" for item in plan.action_assignments
+            )
+    business_action_layouts = {"TwoSupportLayout", "WideTwoFullLayout"}
+    if (
+        layout_id not in business_action_layouts
+        and len(state.action_occurrences) != embedded_action_count
+    ):
         raise TerselConversionError(
             "UX Layout Actions must use the dedicated Action nodes."
         )
@@ -453,7 +479,7 @@ def compile_ux_layout_card(
     content = _lower_capsule_progress(content)
     content = _deduplicate_visible_text(content, task_spec)
     content_height = _estimate_height(content)
-    body_budget = _ux_layout_body_budget(registry)
+    body_budget = _ux_layout_body_budget(registry, task_spec.size)
     if content_height > body_budget:
         content = _constrain_content_height(content, body_budget)
     fusion_palette = _template_fusion_ball_palette(
@@ -475,7 +501,11 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    if fusion_palette is None:
+    if (
+        fusion_palette is None
+        and contract.theme_profile_id
+        in {"family-weather-care-blue", "fusion-weather-blue"}
+    ):
         root = apply_content_safe_inset(root, size=task_spec.size)
     else:
         root = apply_fusion_ball_background(
@@ -893,10 +923,44 @@ def _expand_call(
             str(item) for item in variant.parameters_schema.get("required", ())
         ),
     )
-    _validate_template_params(params, definition.asset_parameter_semantic_tags, contract)
+    _validate_template_params(
+        params,
+        definition.asset_parameter_semantic_tags,
+        contract,
+        variant.parameters_schema,
+    )
+    params = _normalize_charging_settings_button(
+        wire_id, params, provider_binding_roots, task_spec.size
+    )
     _validate_business_template_action(definition, params, contract, task_spec.size)
     _validate_template_parameter_relations(params, variant.parameter_relations)
-    if variant.supported_card_sizes and task_spec.size not in variant.supported_card_sizes:
+    standard_template_in_wide_composition = (
+        ux_layout_id
+        in {
+            "WideTwoFullLayout",
+            "WideHeroCompactLayout",
+            "WideFullHeroActionLayout",
+            "WideHeroActionFullLayout",
+            "WideFullTwoCompactLayout",
+            "WideFourCompactLayout",
+            "WideFullHeroTwoActionLayout",
+            "WideTwoHeroActionLayout",
+            "WideFullFourActionLayout",
+            "WideHalfTwoCompactLayout",
+            "WideHalfCompactTwoLargeActionLayout",
+            "WideHalfFourLargeActionLayout",
+            "WideTwoFocusLayout",
+            "WideTwoFocusActionLayout",
+            "WideTwoFocusTwoActionLayout",
+        }
+        and task_spec.size == "2x4"
+        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact"}
+    )
+    if (
+        variant.supported_card_sizes
+        and task_spec.size not in variant.supported_card_sizes
+        and not standard_template_in_wide_composition
+    ):
         raise TerselConversionError(
             f"Provider Template does not support the card size: {wire_id}/{task_spec.size}"
         )
@@ -955,6 +1019,14 @@ def _expand_call(
             (dict(params),) if params else (),
             expanded_children,
         )
+    elif wire_id in {"GenericMetricOverviewCompact@1", "GenericMetricOverviewDualCompact@1"}:
+        root = _expand_health_metric_generic_template(
+            wire_id,
+            params,
+            task_spec=task_spec,
+            provider_binding_roots=provider_binding_roots,
+            theme_values=registry.theme_reference_values(contract.theme_profile_id),
+        )
     else:
         root = _instantiate_blueprint(
             variant.root,
@@ -994,6 +1066,28 @@ def _expand_call(
     return root
 
 
+def _normalize_charging_settings_button(
+    wire_id: str,
+    params: dict[str, Any],
+    provider_binding_roots: dict[str, tuple[str, ...]],
+    size: str,
+) -> dict[str, Any]:
+    if wire_id != "PillAction@1" or size != "2x4":
+        return params
+    charging_pair = {"GetEarphoneInfo", "GetPhoneBatteryInfo"}.issubset(
+        provider_binding_roots
+    )
+    settings_button = params.get("actionId") in {
+        "event.open.settings.bluetooth",
+        "event.open.settings.battery",
+    }
+    if not charging_pair or not settings_button:
+        return params
+    normalized = dict(params)
+    normalized.pop("icon", None)
+    return normalized
+
+
 def _wrap_action_template(
     root: Nested2Node,
     *,
@@ -1009,6 +1103,8 @@ def _wrap_action_template(
             f"Action Provider Template root must be Stack: {wire_id}"
         )
     action_id = params.get("actionId")
+    if wire_id == "PlaylistCompactAction@1" and action_id != "event.open.music.daily":
+        raise TerselConversionError("Playlist template requires the approved daily music action.")
     if not isinstance(action_id, str):
         raise TerselConversionError(
             f"Action Provider Template actionId is invalid: {wire_id}"
@@ -1019,15 +1115,33 @@ def _wrap_action_template(
     )
     if binding is None or action_id not in contract.content_action_ids:
         raise TerselConversionError(f"Action Provider Template is not approved: {wire_id}")
-    if action_component == "PillAction" and params.get("label") != binding.display_label:
-        raise TerselConversionError("PillAction label/actionId pair is not approved.")
+    if action_component in {"PillAction", "CompactAction"} and (
+        params.get("label") != binding.display_label
+    ):
+        raise TerselConversionError(
+            f"{action_component} label/actionId pair is not approved."
+        )
     icon = params.get("icon")
     if icon is not None and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
         raise TerselConversionError(f"{action_component} icon is not approved.")
-    if action_component == "IconAction" and not isinstance(icon, str):
-        raise TerselConversionError("IconAction requires an approved icon.")
+    if action_component in {
+        "CompactAction",
+        "IconAction",
+        "LargeIconAction",
+    } and not isinstance(icon, str):
+        raise TerselConversionError(f"{action_component} requires an approved icon.")
+    if wire_id == "CompactAction@1":
+        expected_subtitle = binding.display_subtitle
+        actual_subtitle = params.get("subtitle")
+        if expected_subtitle:
+            if actual_subtitle != expected_subtitle:
+                raise TerselConversionError(
+                    "CompactAction subtitle/actionId pair is not approved."
+                )
+        elif actual_subtitle is not None:
+            raise TerselConversionError("CompactAction subtitle is not approved.")
     bound_root, action_ids = _bind_template_actions(root, contract)
     if action_ids != (action_id,):
         raise TerselConversionError(
@@ -1050,6 +1164,7 @@ def _validate_provider_template_state(
         state_independent_variants = {
             "compact",
             "chargingDiagnosticsHero",
+            "chargingDiagnosticsWideFull",
             "chargingProgressFull",
             "chargingProgressHero",
             "chargingRingHero",
@@ -1057,11 +1172,14 @@ def _validate_provider_template_state(
             "hero",
             "healthLevelHero",
             "percentRingHero",
+            "phoneTextCompact",
             "progressCompact",
             "progressSupport",
             "statusIconCompact",
             "statusIconSupport",
             "statusSupport",
+            "statusHero",
+            "chargeStatusHero",
             "support",
             "temperatureIconCompact",
             "temperatureIconSupport",
@@ -1093,6 +1211,12 @@ def _validate_provider_template_state(
             )
         if variant_name == "chargeSupport":
             # /batteryLevel 已改为可选数据：仅要求可信充电状态，电量缺失时按条件分支省略。
+            if facts.case_charging_status is None:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted case status."
+                )
+            return
+        if variant_name in {"statusHero", "caseSettingsHero"}:
             if facts.case_charging_status is None:
                 raise TerselConversionError(
                     "Bluetooth Provider Template variant does not match the trusted case status."
@@ -1133,6 +1257,14 @@ def _validate_provider_template_state(
         has_left = facts.left_battery_level is not None
         has_right = facts.right_battery_level is not None
         has_case = facts.case_battery_level is not None
+        if variant_name == "caseConnectionHero":
+            if facts.is_connected is None or not has_case:
+                raise TerselConversionError("Case connection Hero requires connection and battery.")
+            return
+        if variant_name == "tripleBatteryWideHalf":
+            if not has_case or not has_left or not has_right:
+                raise TerselConversionError("Triple battery WideHalf requires all three batteries.")
+            return
         if variant_name == "connectionSupport":
             # /batteryLevel 为可选数据：仅要求可信连接状态，电量缺失时按条件分支省略。
             if facts.is_connected is None:
@@ -1153,17 +1285,44 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
+        if variant_name == "earbudChargingWideFull":
+            has_batteries = has_left and has_right
+            has_statuses = (
+                facts.left_charging_status is not None
+                and facts.right_charging_status is not None
+            )
+            if not has_batteries or not has_statuses:
+                raise TerselConversionError(
+                    "Earbud charging Template requires both batteries and charging states."
+                )
+            return
+        if variant_name == "earbudPairCompact":
+            # 与 earbudsSupport/earbudsFull 一致：成对耳机电量即为可信数据形态，
+            # 连接状态与设备名并非该变体的渲染前提。
+            if not has_left or not has_right:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
         if facts.is_connected is None or facts.earphone_name is None:
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone identity."
             )
         if variant_name == "hero":
             return
-        if variant_name == "earbudPairCompact":
-            if not has_left or not has_right:
+        if variant_name == "earbudsChargingWideFull":
+            required_values = (
+                facts.case_battery_level, facts.left_battery_level, facts.right_battery_level,
+                facts.case_charging_status, facts.left_charging_status, facts.right_charging_status,
+            )
+            if any(value is None for value in required_values):
                 raise TerselConversionError(
-                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                    "Earbuds charging WideFull requires all three batteries and charging states."
                 )
+            return
+        if variant_name == "musicFull":
+            if not has_case:
+                raise TerselConversionError("Earphone music Full requires a case battery level.")
             return
         if variant_name == "earbudPairFull":
             if not has_case or not has_left or not has_right:
@@ -1203,7 +1362,7 @@ def _expand_ux_action_call(
     contract: HybridBodyContract,
     state: _ExpansionState,
 ) -> Nested2Node:
-    if call.name not in {"PillAction", "IconAction"}:
+    if call.name not in {"PillAction", "IconAction", "LargeIconAction"}:
         raise TerselConversionError("UX template route Action type is not supported.")
     if len(call.values) != 1 or not isinstance(call.values[0], dict):
         raise TerselConversionError(f"{call.name} requires one object argument.")
@@ -1221,10 +1380,10 @@ def _expand_ux_action_call(
     if binding is None or action_id not in contract.content_action_ids:
         raise TerselConversionError(f"{call.name} Action is not approved.")
     icon = params.get("icon")
-    if call.name == "IconAction" and (
+    if call.name in {"IconAction", "LargeIconAction"} and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerselConversionError("IconAction icon is not approved.")
+        raise TerselConversionError(f"{call.name} icon is not approved.")
     if action_id not in state.action_ids:
         state.action_ids.append(action_id)
     state.action_occurrences.append(action_id)
@@ -4296,8 +4455,14 @@ def _validate_template_params(
     params: dict[str, Any],
     asset_tags: dict[str, tuple[str, ...]],
     contract: HybridBodyContract,
+    parameter_schema: dict[str, Any] | None = None,
 ) -> None:
     for key, value in params.items():
+        if (
+            parameter_schema
+            and key.casefold().endswith("path")
+        ):
+            continue
         values = _primitive_values(value)
         is_asset_parameter = key in asset_tags or any(
             token in key.casefold() for token in ("icon", "image", "asset", "source", "src")
@@ -4528,8 +4693,15 @@ def _template_condition_should_render(
 ) -> bool:
     if node.component in _GROUPED_TEMPLATE_CONDITIONS:
         binding_names = _template_condition_binding_names(node)
+        any_present = any(name in bindings for name in binding_names)
         all_present = all(name in bindings for name in binding_names)
-        return all_present if node.component == "IfAllBind" else not all_present
+        if node.component == "IfAllBind":
+            return all_present
+        if node.component == "IfAnyBind":
+            return any_present
+        if node.component == "IfAnyMissingBind":
+            return not all_present
+        return not any_present
     guard_name = node.values[0].value
     if not isinstance(guard_name, str):
         raise TerselConversionError("Template conditional guard must be a string.")
@@ -4540,15 +4712,15 @@ def _template_condition_should_render(
     return present if node.component in {"IfParam", "IfBind"} else not present
 
 
-def _template_condition_binding_names(node: TemplateNode) -> tuple[str, str]:
+def _template_condition_binding_names(node: TemplateNode) -> tuple[str, ...]:
     if len(node.values) != 1 or node.values[0].kind != "array":
         raise TerselConversionError(
-            "Template grouped conditional requires two binding names."
+            "Template grouped conditional requires a binding name array."
         )
     items = node.values[0].items
-    if len(items) != 2:
+    if len(items) < 2:
         raise TerselConversionError(
-            "Template grouped conditional requires two binding names."
+            "Template grouped conditional requires at least two binding names."
         )
     binding_names: list[str] = []
     for item in items:
@@ -4557,7 +4729,7 @@ def _template_condition_binding_names(node: TemplateNode) -> tuple[str, str]:
                 "Template grouped conditional binding must be a string."
             )
         binding_names.append(item.value)
-    return binding_names[0], binding_names[1]
+    return tuple(binding_names)
 
 
 def _template_child_slot_index(node: TemplateNode) -> int | None:
@@ -4597,6 +4769,215 @@ def _template_spread_parent(root: TemplateNode) -> str | None:
     if len(matches) > 1:
         raise TerselConversionError("Template may contain only one children slot.")
     return matches[0] if matches else None
+
+
+def _expand_health_metric_generic_template(
+    wire_id: str,
+    params: dict[str, Any],
+    *,
+    task_spec: TaskSpec,
+    provider_binding_roots: dict[str, tuple[str, ...]],
+    theme_values: dict[str, object],
+) -> Nested2Node:
+    roots = provider_binding_roots.get("GetHealthAndSportSummary", ())
+    if len(roots) != 1:
+        raise TerselConversionError("Generic health metric requires exactly one data binding root.")
+    root = roots[0]
+    path_names = (
+        ("valuePath",)
+        if wire_id == "GenericMetricOverviewCompact@1"
+        else ("firstValuePath", "secondValuePath")
+    )
+    selected: list[tuple[str, str]] = []
+    seen_paths: set[str] = set()
+    for name in path_names:
+        relative = params.get(name)
+        if not isinstance(relative, str) or not relative.startswith("/"):
+            raise TerselConversionError(f"Generic health metric path is invalid: {name}")
+        # Invocation paths are provider-relative (for example
+        # ``/dailySteps``); the compiler is the only place that qualifies
+        # them with the capability binding root.
+        if relative == root or relative.startswith(root.rstrip("/") + "/"):
+            raise TerselConversionError(
+                f"Generic health metric path must not include data root: {name}"
+            )
+        absolute = f"{root.rstrip('/')}{relative}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, absolute)
+        placeholder = _runtime_binding_placeholder(absolute)
+        if leaf is None or placeholder is None:
+            raise TerselConversionError(
+                f"Generic health metric path is not in TaskSpec: {relative}"
+            )
+        if leaf.get("type") not in {"string", "integer", "number", "boolean"}:
+            raise TerselConversionError("Generic health metric requires a scalar field.")
+        if relative in seen_paths:
+            raise TerselConversionError("Generic health metric fields must be distinct.")
+        seen_paths.add(relative)
+        title_name = {
+            "valuePath": "title",
+            "firstValuePath": "firstTitle",
+            "secondValuePath": "secondTitle",
+        }[name]
+        title = params.get(title_name)
+        if not isinstance(title, str) or not title.strip():
+            raise TerselConversionError(f"Generic metric title is invalid: {title_name}")
+        display_title = GENERIC_HEALTH_LABELS.get(relative, title.strip())
+        display_value = placeholder
+        sample = leaf.get("sampleValue") if isinstance(leaf, dict) else None
+        description = leaf.get("description", "") if isinstance(leaf, dict) else ""
+        if isinstance(sample, (int, float)) and not isinstance(sample, bool):
+            unit_match = re.search(r"单位(?:为|是)[:：]?([^，。；,\s]+)", description)
+            if unit_match is not None:
+                unit = unit_match.group(1).strip("‘’'\"“”")
+                if unit:
+                    display_value = normalize_tersel_expression(
+                        f"${{{absolute}}} + {_a2ui_expression_string(unit)}"
+                    ).value
+        selected.append((display_title, display_value))
+    if not selected:
+        raise TerselConversionError("Generic health metric requires at least one data path.")
+    icon = params.get("sourceIcon")
+    support_background = theme_values["supportContentStyle.backgroundColor"]
+    support_radius = theme_values["supportContentStyle.borderRadius"]
+    primary_color = theme_values["primaryColor"]
+    support_color = theme_values["supportContentColor"]
+    if wire_id == "GenericMetricOverviewCompact@1":
+        label, placeholder = selected[0]
+        rows = (
+            Nested2Node(
+                "Text",
+                (
+                    placeholder,
+                    {
+                        "fontSize": 14,
+                        "fontWeight": 700,
+                        "height": 19,
+                        "fontColor": primary_color,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "width": "matchParent",
+                        "textAlign": "start",
+                    },
+                ),
+                (),
+            ),
+            Nested2Node(
+                "Text",
+                (
+                    label,
+                    {
+                        "fontSize": 10,
+                        "fontWeight": 400,
+                        "height": 13,
+                        "fontColor": support_color,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis",
+                        "width": "matchParent",
+                        "textAlign": "start",
+                    },
+                ),
+                (),
+            ),
+        )
+        return Nested2Node(
+            "Row",
+            (
+                {
+                    "width": "matchParent",
+                    "height": "matchParent",
+                    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
+                    "backgroundColor": support_background,
+                    "borderRadius": support_radius,
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0},
+                },
+            ),
+            (
+                Nested2Node(
+                    "Column",
+                    (
+                        {
+                            "layoutWeight": 1,
+                            "itemMargin": 2,
+                            "justifyContent": "center",
+                            "alignItems": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0},
+                        },
+                    ),
+                    rows,
+                ),
+                Nested2Node(
+                    "Image",
+                    (icon, {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}),
+                    (),
+                ),
+            ),
+        )
+    rows = tuple(
+        Nested2Node(
+            "Row",
+            (
+                {
+                    "width": "matchParent",
+                    "height": 19,
+                    "itemMargin": 6,
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                },
+            ),
+            (
+                Nested2Node(
+                    "Text",
+                    (
+                        label,
+                        {
+                            "fontSize": 12,
+                            "fontWeight": 400,
+                            "fontColor": support_color,
+                            "maxLines": 1,
+                            "textAlign": "start",
+                        },
+                    ),
+                    (),
+                ),
+                Nested2Node(
+                    "Text",
+                    (
+                        placeholder,
+                        {
+                            "layoutWeight": 1,
+                            "fontSize": 12,
+                            "fontWeight": 400,
+                            "fontColor": primary_color,
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "textAlign": "end",
+                        },
+                    ),
+                    (),
+                ),
+            ),
+        )
+        for label, placeholder in selected[:2]
+    )
+    return Nested2Node(
+        "Column",
+        (
+            {
+                "width": "matchParent",
+                "height": "matchParent",
+                "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+                "backgroundColor": support_background,
+                "borderRadius": support_radius,
+                "itemMargin": 2,
+                "justifyContent": "center",
+                "alignItems": "start",
+                "constraintSize": {"minWidth": 0, "minHeight": 0},
+            },
+        ),
+        rows,
+    )
 
 
 def _template_value(
@@ -5434,6 +5815,7 @@ def _reclaim_optional_chrome_for_content(
     content: Nested2Node,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    size: str = "2x2",
 ) -> dict[str, Any]:
     """Drop only a non-required subtitle when it is stealing body space."""
     content_height = _estimate_height(content)
@@ -5451,7 +5833,7 @@ def _reclaim_optional_chrome_for_content(
     # for deterministic reclamation; the model may omit an optional title at
     # generation time, but trusted compilation never silently removes one.
     for key in ("subtitle",):
-        if content_height <= _body_budget(normalized, contract, registry):
+        if content_height <= _body_budget(normalized, contract, registry, size):
             break
         value = normalized.get(key)
         if not isinstance(value, str):
@@ -5825,7 +6207,7 @@ def _validate_optional_semantic_assets(
 
 
 def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> None:
-    if node.name not in {"PillAction", "IconAction"}:
+    if node.name not in {"PillAction", "IconAction", "LargeIconAction"}:
         raise TerselConversionError("UX template route Action type is not supported.")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
         raise TerselConversionError(f"{node.name} must be one leaf object call.")
@@ -5838,10 +6220,10 @@ def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> N
     if not isinstance(action_id, str) or action_id not in approved_ids:
         raise TerselConversionError(f"{node.name} Action is not approved.")
     icon = params.get("icon")
-    if node.name == "IconAction" and (
+    if node.name in {"IconAction", "LargeIconAction"} and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerselConversionError("IconAction icon is not approved.")
+        raise TerselConversionError(f"{node.name} icon is not approved.")
 
 
 def _ux_business_component_name(
@@ -5923,6 +6305,7 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "chargingWeatherCompact": "charging",
         "lowWeatherCompact": "low",
         "chargingDiagnosticsHero": "chargingDiagnostics",
+        "chargingDiagnosticsWideFull": "chargingDiagnostics",
         "chargingProgressHero": "chargingProgress",
         "healthLevelHero": "healthLevel",
         "percentRingHero": "percentRing",
@@ -6137,21 +6520,78 @@ def _validate_provider_template_layout_action_requirements(
     layout_kinds = tuple(layout_kind_items)
     if not layout_kinds:
         return
-    layout_is_wide = layout_id.startswith("Wide")
-    if layout_is_wide != (size == "2x4"):
-        raise TerselConversionError(
-            "UX Layout Wide marker does not match the target card size."
-        )
-    wide = any(kind.startswith("Wide") for kind in layout_kinds)
-    if wide != (size == "2x4"):
-        raise TerselConversionError(
-            "Provider Template layout suffix mismatches card size."
-        )
     action_names = tuple(
         action_name
         for child in action_children
         if (action_name := _parsed_ux_action_component(child)) is not None
     )
+    layout_is_wide = layout_id.startswith("Wide")
+    if layout_is_wide != (size == "2x4"):
+        raise TerselConversionError(
+            "UX Layout Wide marker does not match the target card size."
+        )
+    wide_composition_contracts = {
+        "WideTwoFullLayout": (("Full", "Full"), ()),
+        "WideHeroCompactLayout": (("Hero", "Compact"), ()),
+        "WideFullHeroActionLayout": (("Full", "Hero"), ("PillAction",)),
+        "WideHeroActionFullLayout": (("Full", "Hero"), ("PillAction",)),
+        "WideFullTwoCompactLayout": (("Full", "Compact", "Compact"), ()),
+        "WideFourCompactLayout": (("Compact",) * 4, ()),
+        "WideFullHeroTwoActionLayout": (
+            ("Full", "Hero"),
+            ("PillAction", "PillAction"),
+        ),
+        "WideFullFourActionLayout": (
+            ("Full",),
+            ("LargeIconAction",) * 4,
+        ),
+        "WideTwoHeroActionLayout": (("Hero", "Hero"), ("PillAction", "PillAction")),
+        "WideTwoHalfLayout": (("WideHalf", "WideHalf"), ()),
+        "WideHalfTwoCompactLayout": (("WideHalf", "Compact", "Compact"), ()),
+        "WideHalfCompactTwoLargeActionLayout": (
+            ("WideHalf", "Compact"),
+            ("LargeIconAction", "LargeIconAction"),
+        ),
+        "WideHalfFourLargeActionLayout": (
+            ("WideHalf",),
+            ("LargeIconAction",) * 4,
+        ),
+        "WideTwoFocusLayout": (("Hero", "Hero"), ()),
+        "WideTwoFocusActionLayout": (("Hero", "Hero"), ("PillAction",)),
+        "WideTwoFocusTwoActionLayout": (
+            ("Hero", "Hero"),
+            ("PillAction", "PillAction"),
+        ),
+    }
+    wide_composition = wide_composition_contracts.get(layout_id)
+    if layout_id == "WideFullTwoCompactLayout" and action_names == ("CompactAction",) * 2:
+        if layout_kinds != ("Full",):
+            raise TerselConversionError(
+                f"{layout_id} two Actions require exactly one Full data Template."
+            )
+        return
+    if layout_id == "WideFullTwoCompactLayout" and action_names == ("CompactAction",):
+        if layout_kinds not in {("Full", "Compact"), ("Hero", "Compact")}:
+            raise TerselConversionError(
+                f"{layout_id} Provider Template slot combination is invalid."
+            )
+        return
+    if layout_id == "WideHalfTwoCompactLayout" and action_names == ("CompactAction",):
+        if layout_kinds != ("WideHalf", "Compact"):
+            raise TerselConversionError(f"{layout_id} requires WideHalf, Compact and one Action.")
+        return
+    if wide_composition is not None:
+        expected_kinds, expected_action_names = wide_composition
+        if layout_kinds != expected_kinds or action_names != expected_action_names:
+            raise TerselConversionError(
+                f"{layout_id} Provider Template slot combination is invalid."
+            )
+        return
+    wide = any(kind.startswith("Wide") for kind in layout_kinds)
+    if wide != (size == "2x4"):
+        raise TerselConversionError(
+            "Provider Template layout suffix mismatches card size."
+        )
     hero_title_content_kinds = ("HeroTitle", "HeroContent")
     if layout_kinds == hero_title_content_kinds:
         valid_combination = layout_id == "HeroTitleContentActionLayout"
@@ -6190,6 +6630,7 @@ def _validate_provider_template_layout_action_requirements(
         "Hero": ("PillAction",),
         "WideHero": ("PillAction",),
         "WideFull": (),
+        "WideHalf": (),
     }[layout_kind]
     if action_names != expected_actions:
         raise TerselConversionError(
@@ -6199,7 +6640,8 @@ def _validate_provider_template_layout_action_requirements(
         "Compact": "CompactTwoActionLayout",
         "Hero": "HeroActionLayout",
         "WideHero": "WideSingleFocusLayout",
-        "WideFull": "WideSingleFocusLayout",
+        "WideFull": "WideFullOnlyLayout",
+        "WideHalf": "WideTwoHalfLayout",
     }[layout_kind]
     if layout_id != expected_layout_id:
         raise TerselConversionError(
@@ -6250,6 +6692,8 @@ def _validate_allowed_template_plan(
     composition: ParsedCall,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    *,
+    card_size: str = "2x2",
 ) -> str | None:
     """Require the model output to match one complete Planner result atomically."""
     if not contract.allowed_template_plans:
@@ -6268,7 +6712,7 @@ def _validate_allowed_template_plan(
             continue
         definition = registry.require_template(child.name)
         params = child.values[0] if child.values and isinstance(child.values[0], dict) else {}
-        _validate_business_template_action(definition, params, contract, "2x2")
+        _validate_business_template_action(definition, params, contract, card_size)
     return matched_plan_ids[0]
 
 
@@ -6296,6 +6740,9 @@ def _composition_matches_template_plan(
         if child.kind != "template" or child.name != slot.template_id:
             return False
         params = child.values[0] if child.values and isinstance(child.values[0], dict) else {}
+        for parameter, path in slot.field_bindings.items():
+            if params.get(parameter) != path:
+                return False
         expected_action_id = embedded_actions.get(slot.position)
         if expected_action_id is None and "actionId" in params:
             return False
@@ -6659,7 +7106,7 @@ def _validate_weather_overview_placement(
             f"WeatherOverview role does not match {layout_id}: expected {expected_role}."
         )
     expected_variants = (
-        {"Full", "Hero", "WideFull", "WideHero"}
+        {"Full", "Hero", "WideFull", "WideHero", "WideHalf"}
         if expected_role == "hero"
         else {"Compact"}
     )
@@ -7209,6 +7656,12 @@ def _inject_phone_earphone_title(
         return node
     if "TwoSupportLayout@1" in template_ids:
         # 双业务 Support 行各自占满半卡片高度，不再挤入一行“设备电量”标题。
+        return node
+    if "WideHalfTwoCompactLayout@1" in template_ids:
+        # 三个槽位已有业务标签，并已占满 136vp 安全区。
+        return node
+    if any(template_id.startswith("WideTwoFocus") for template_id in template_ids):
+        # 双焦点拼接布局的左右面板自带业务标签行，不再注入整卡“设备电量”标题。
         return node
     title = _bluetooth_text("设备电量", "subtitle", 12, 400, align="start")
     body = _with_flex_weight(node, 1, axis="vertical")
@@ -8613,9 +9066,11 @@ def _lower_ux_action(
         default=background,
     )
     icon = params.get("icon")
-    if node.component_type == "IconAction":
+    if node.component_type in {"IconAction", "LargeIconAction"}:
         if not isinstance(icon, str):
-            raise TerselConversionError("IconAction requires an approved icon.")
+            raise TerselConversionError(
+                f"{node.component_type} requires an approved icon."
+            )
         if re.search(r"(?:^|[_-])white(?:[_.-]|$)", icon.casefold()):
             background, foreground = foreground, "#FFFFFFFF"
         return _lower_action_template_tree(
@@ -8649,9 +9104,6 @@ def _provider_layout_action_background(
     default: str,
 ) -> str:
     """Resolve a single-business Provider Template Action background override."""
-    theme = registry.require_theme(contract.theme_profile_id)
-    if not theme.allow_template_action_background_override:
-        return default
     if len(_contract_ux_business_component_names(contract, registry)) != 1:
         return default
     opacities: set[float] = set()
@@ -8690,6 +9142,8 @@ def _lower_action_template_tree(
         children = tuple(apply_foreground(child, preserve_here) for child in current.children)
         styled = Nested2Node(current.component_type, current.values, children)
         if current.component_type == "Text":
+            if preserve_here:
+                return styled
             return _merge_node_options(styled, {"fontColor": foreground})
         if current.component_type == "Image":
             _validate_image_color_options(options, preserve_original=preserve_here)
@@ -9121,6 +9575,7 @@ def _body_budget(
     params: dict[str, Any],
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    size: str = "2x2",
 ) -> int:
     theme = registry.require_theme(contract.theme_profile_id)
     padding = (
@@ -9151,11 +9606,13 @@ def _body_budget(
     )
     chrome_count = int(header > 0) + int(action > 0)
     root_gap = 8 * chrome_count
-    return max(24, 160 - vertical_padding - header - action - root_gap)
+    canvas_height = 150 if size == "2x4" else 160
+    return max(24, canvas_height - vertical_padding - header - action - root_gap)
 
 
-def _ux_layout_body_budget(registry: CardPlanRegistry) -> int:
-    return 160 - registry.ux_tokens["safeInset"] * 2
+def _ux_layout_body_budget(registry: CardPlanRegistry, size: str = "2x2") -> int:
+    canvas_height = 150 if size == "2x4" else 160
+    return canvas_height - registry.ux_tokens["safeInset"] * 2
 
 
 def _estimate_height(node: Nested2Node) -> int:
