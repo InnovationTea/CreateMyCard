@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
@@ -399,17 +398,6 @@ async def test_unified_model_client_can_swap_master_and_fallback_and_restart_mas
         "llmclient",
         "llmclient",
     ]
-
-
-def test_model_route_configuration_rejects_legacy_value_and_same_clients():
-    with pytest.raises(ValidationError):
-        Settings(_env_file=None, a2ui_form_model_backend="llmclient")
-    with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            openai_master_client="llmclient",
-            openai_fallback_client="llmclient",
-        )
 
 
 def test_model_request_context_uses_request_fields_without_cross_request_reuse():

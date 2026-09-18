@@ -3187,7 +3187,23 @@ def _schedule_template_variant_projection(
         if shape_fields:
             selected.update(shape_fields)
             variant_names.add(variant_name)
+    if not selected:
+        selected = _schedule_date_location_fields(provider)
+        if selected:
+            variant_names.add("dateLocation")
     return selected, frozenset(variant_names)
+
+
+def _schedule_date_location_fields(provider: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Only fill the previously unsupported date/location projection branch."""
+    selected: dict[str, dict[str, Any]] = {}
+    for name in ("title", "startDate", "eventLocation"):
+        field = _calendar_variant_schema_leaf(provider, f"/events/0/{name}")
+        if not _trusted_schedule_variant_field(field, data_type="string", allow_empty=False):
+            return {}
+        assert field is not None
+        selected[name] = deepcopy(field)
+    return selected
 
 
 def _calendar_variant_schema_leaf(
