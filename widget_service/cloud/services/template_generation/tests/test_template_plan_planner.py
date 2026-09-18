@@ -151,6 +151,53 @@ def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
     assert "WeatherOverviewWindHero@1" in candidate_ids
 
 
+def test_wind_full_template_supports_no_action_weather_card() -> None:
+    task = TaskSpec(
+        userQuery="显示风向、风力等级和城市名称的天气卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _field("上海市")},
+                    "current": {
+                        "windDirection": _field("东南风"),
+                        "windLevel": _field(2, "integer"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+        ],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/windDirection",
+                "/current/windLevel",
+            )
+        }
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "WeatherOverviewWindFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),
