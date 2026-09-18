@@ -16,7 +16,7 @@ from services.template_generation.engine.cardplan.registry import CardPlanRegist
 
 @pytest.mark.parametrize(
     ("size", "layout"),
-    [("2x2", "SingleFocusLayout"), ("2x4", "WideSingleFocusLayout")],
+    [("2x2", "SingleFocusLayout"), ("2x4", "WideFullOnlyLayout")],
 )
 @pytest.mark.parametrize("explicit_title", [False, True])
 def test_ux_layout_only_renders_explicit_titles(

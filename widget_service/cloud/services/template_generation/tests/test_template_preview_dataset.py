@@ -16,20 +16,21 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 108
+    assert manifest["templateCount"] == 149
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 21,
-        "Compact": 12,
-        "Hero": 31,
-        "Full": 33,
-        "WideHero": 1,
-        "WideFull": 8,
+        "Support": 22,
+        "Compact": 19,
+        "Hero": 39,
+        "Full": 47,
+        "WideHero": 4,
+        "WideFull": 13,
+        "WideHalf": 3,
     }
-    assert manifest["countsBySize"] == {"2x2": 99, "2x4": 9}
-    assert len(cases) == 108
-    assert len({case["templateId"] for case in cases}) == 108
+    assert manifest["countsBySize"] == {"2x2": 129, "2x4": 20}
+    assert len(cases) == 149
+    assert len({case["templateId"] for case in cases}) == 149
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -53,6 +54,30 @@ def test_template_preview_a2ui_has_surface_components_and_data():
             if component["id"] == "template_root"
         )
         assert slot["styles"]["height"] == case.content_height_vp
+
+
+def test_weather_wide_previews_use_the_weather_theme_background():
+    weather_wide_ids = {
+        "WeatherOverviewWideHero@1",
+        "WeatherOverviewWideFull@1",
+        "WeatherOverviewWideHalf@1",
+    }
+
+    cases = {
+        case.template_id: case
+        for case in build_template_preview_cases()
+        if case.template_id in weather_wide_ids
+    }
+
+    assert set(cases) == weather_wide_ids
+    for case in cases.values():
+        components = case.messages[1]["updateComponents"]["components"]
+        root = next(component for component in components if component["id"] == "root")
+        assert root["styles"]["backgroundColor"] == "#FF121259"
+        assert root["styles"]["linearGradient"]["colors"] == [
+            ["#FF121259", 0],
+            ["#FF2B65D9", 1],
+        ]
 
 
 def test_template_preview_assets_are_bundled_by_genui_evaluation():
@@ -137,6 +162,18 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/feelsLikeC",
                 "/location/prefectureName", "/location/districtName",
             )
+        elif case.business_id == "GenericMetricOverview":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            model = case.messages[2].get("updateDataModel")
+            assert isinstance(model, dict)
+            value = model.get("value")
+            assert isinstance(value, dict)
+            data = value.get("data")
+            assert isinstance(data, dict)
+            health = data.get("healthSport")
+            assert isinstance(health, dict)
+            assert health.get("dailySteps") == 6200
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)

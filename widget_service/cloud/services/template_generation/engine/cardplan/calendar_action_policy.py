@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from models.generation import TaskSpec
 
-from .business_actions import _matches_business_data
+from .business_actions import matches_business_data
 from .models import TemplateDefinition
 from .prompt import action_bindings
 from .provider_bundle import provider_template_layout_kind
@@ -50,6 +50,6 @@ def resolve_calendar_view_fallback(
     if len(view_actions) != 1:
         return intent
     action = view_actions[0]
-    if not all(_matches_business_data(definition, action) for definition in heroes):
+    if not all(matches_business_data(definition, action) for definition in heroes):
         return intent
     return intent.model_copy(update={"action_ids": (_VIEW_EVENT,)})

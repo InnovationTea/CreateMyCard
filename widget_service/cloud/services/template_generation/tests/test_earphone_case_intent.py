@@ -131,10 +131,6 @@ def test_case_prompt_self_check_is_only_for_small_single_earphone_business(
                 candidateOutputFields=["/current/condition"],
             ),
         )
-    if size == "2x4":
-        with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-            build_template_retrieval_prompt(task, get_cardplan_registry(), bindings)
-        return
     messages = build_template_retrieval_prompt(task, get_cardplan_registry(), bindings)
     system = messages[0].get("content")
     assert isinstance(system, str)

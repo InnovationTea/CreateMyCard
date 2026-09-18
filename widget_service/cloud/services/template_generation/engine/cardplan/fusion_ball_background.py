@@ -1,4 +1,4 @@
-"""Build Theme-owned deterministic 2x2 fusion-ball backgrounds."""
+"""Build template content wrappers and Theme-owned 2x2 fusion-ball backgrounds."""
 
 from __future__ import annotations
 
@@ -128,8 +128,8 @@ def apply_content_safe_inset(
     *,
     size: str,
 ) -> Nested2Node:
-    """Move the safe inset off a non-fusion 2x2 skeleton and mark it for overflow."""
-    if size != "2x2":
+    """Move the safe inset off a supported template skeleton and mark it for overflow."""
+    if size not in {"2x2", "2x4"}:
         return card
     _validate_root_card(card)
     if len(card.children) != 1:

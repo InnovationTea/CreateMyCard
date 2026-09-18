@@ -317,6 +317,18 @@ def _components(a2ui: str) -> list[dict[str, Any]]:
     raise AssertionError("A2UI 缺少 updateComponents")
 
 
+_EXPECTED_COMPLETE: dict[str, set[str]] = {
+    # ScheduleOverviewMeetingEntryHero@1 不再参与 2x2：wideOnly 模板只能进入 2x4 组合。
+    "Q018": {
+        "ScheduleOverviewLocationHero@1",
+    },
+    "Q035": {
+        "ScheduleOverviewEventCountDetailsHero@1",
+        "ScheduleOverviewEventCountDetailsFull@1",
+    },
+}
+
+
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
 def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) -> None:
     task = _task(case)
@@ -331,7 +343,7 @@ def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) ->
     complete_template_ids = set(candidate.available_template_ids)
     for group in selection.required_template_groups:
         complete_template_ids.intersection_update(group)
-    expected_ids = {case.template_id}
+    expected_ids = set(_EXPECTED_COMPLETE.get(case.case_id, {case.template_id}))
     if case.case_id == "Q024":
         expected_ids.add("ScheduleOverviewReminderDetailsFull@1")
     assert complete_template_ids == expected_ids
@@ -368,6 +380,9 @@ _CONTRACTS = {
         "/events/0/timeZone /events/0/title|/events/0/isAllDay /events/0/eventLocation|"
     ),
     "EventCountDetailsHero": (
+        "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
+    ),
+    "EventCountDetailsFull": (
         "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
     ),
     "DatedAllDayHero": "/events/0/startDate /events/0/title|/events/0/isAllDay|",
