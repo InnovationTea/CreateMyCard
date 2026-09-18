@@ -163,6 +163,10 @@ async def generate_template_a2ui(
                 trusted_template_action_ids,
                 selected_task_spec,
             )
+            logger.info(
+                f"{_MODULE} template_retrieval_intent "
+                f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
+            )
             search_result = search_template_variants(
                 intent,
                 selected_task_spec,

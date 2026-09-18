@@ -23,6 +23,7 @@ from services.template_generation.engine.advanced.models import (
     TemplateRouteSelection,
 )
 
+from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
@@ -178,7 +179,35 @@ def build_template_retrieval_prompt(
         ],
         "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
     }
+    earphone_only = set(capability_ids) == {"GetEarphoneInfo"} and task_spec.size == "2x2"
+    if earphone_only:
+        payload["earphoneTemplateReference"] = _earphone_template_reference(
+            registry, coverage_bindings,
+        )
     schema = TemplateSearchIntent.model_json_schema(by_alias=True)
+    action_rule = (
+        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
+        "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
+    )
+    layout_rule = (
+        "不得判断业务是否能组成布局，也不得决定业务位置或 Action 消费者；"
+        "这些组合约束由服务端 Planner 在数据 Search 之后处理。"
+    )
+    if earphone_only:
+        action_rule = (
+            "必须输出action字段。用户禁止按钮/跳转时action=[]；明确要求动作时选合法候选。"
+            "用户未请求动作时根据earphoneTemplateReference检查：存在missingInputFields=[]且displayFields"
+            "包含全部筛选后需求的Full时action=[]；无这种Full但有这种Hero且候选含"
+            "event.open.settings.bluetooth时，必须action=[\"event.open.settings.bluetooth\"]；"
+            "Full/Hero不可用时再检查Compact；字段覆盖且必需输入齐全则保留已有合法动作，"
+            "仅从actionCandidates补齐到两个不同动作：优先未选中的event.open.settings.bluetooth；"
+            "蓝牙设置已选或不在候选中时，按query及耳机场景相关性选择剩余候选，"
+            "相关性相同按候选顺序，不选用户明确排除的动作，不固定第二个动作。缺一个补一个，缺两个补两个。"
+            "缺任一候选则保持补齐前的action，不部分补齐、不重复、不删用户要求的动作。"
+            "已有一个动作先考虑Hero，已有两个动作使用Compact，不追加。"
+            "这是耳机专用入口授权，不要求query另外请求这些候选入口。"
+        )
+        layout_rule = "按耳机专用规则内部比较Full/Hero/Compact，最终布局仍由服务端Planner校验。"
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
@@ -189,21 +218,103 @@ def build_template_retrieval_prompt(
         "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
         "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
-        "不得判断业务是否能组成布局，也不得决定业务位置或 Action 消费者；"
-        "这些组合约束由服务端 Planner 在数据 Search 之后处理。"
+        + layout_rule
+        +
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "primaryOutputFieldByCapability 是稀疏映射：仅当用户对某个 capability 明确表达"
         "唯一主焦点字段时输出，值必须同时出现在该 capability 的显式字段数组中；"
         "无法判断时省略该 capability，不能按模板或领域常识猜测。"
-        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
-        "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
+        + action_rule
+        +
         "不得输出主题、schemaVersion、组件、模板、Variant、尺寸、布局、Props 或理由。\n"
         + json.dumps(schema, ensure_ascii=False)
     )
+    if "GetEarphoneInfo" in capability_ids:
+        system += (
+            "\n【蓝牙耳机意图优先】仅 GetEarphoneInfo 按 providerFirstLayerRules 中的"
+            "耳机核心与辅助字段规则筛选；允许省略对 userQuery 主要问题不必要的辅助字段，"
+            "该局部规则优先于上述按 title、description 或 taskSpec 收集展示字段、"
+            "不得参考模板筛选字段的规则。允许参考耳机规则中的模板覆盖选择最小核心字段，"
+            "普通并列项可按耳机规则降为辅助并省略；明确强调必须保留的字段不能省略。"
+            "其它业务规则不变，不为匹配模板补字段。"
+            "仅2x2耳机单业务允许按耳机专用动作回退规则选择输入中的候选动作："
+            "未请求动作时先检查Full的核心覆盖和全部必需输入，Full可用则action为空；"
+            "Full不可用而Hero覆盖核心且必需输入齐全时，才补候选中的蓝牙设置动作。"
+            "Full/Hero不可用时允许按耳机规则回退Compact并补齐两个候选动作，"
+            "优先未选中的蓝牙设置，再按相关性选择剩余候选，不固定其它动作；"
+            "候选不足以补齐时保持原动作集合。"
+            "用户明确不要按钮或跳转时禁止所有自动补动作。"
+            "此例外优先于通用的仅明确请求才选动作及不得判断布局规则；"
+            "只在内部核对Full/Hero/Compact可用性，仍不得输出模板或布局；其它业务及混合业务不适用。"
+            "必须逐项核对耳机规则中Full的必需输入清单；覆盖用户字段但缺模板依赖不算可用。"
+            "当上述Hero回退条件满足时必须输出action=[\"event.open.settings.bluetooth\"]，"
+            "不能再以用户未明确请求动作为由输出空数组。"
+            "earphoneTemplateReference是当前启用模板的真实字段参考；"
+            "用户未请求动作且missingInputFields为空、displayFields覆盖筛选后需求的Full存在时，"
+            "必须action=[]；用户已选动作不能为优先Full而删除。"
+            "优先依据此参考核对，不得因Full附带其它展示字段就认定Full不可用。"
+        )
+    if earphone_only:
+        system += (
+            "\n【输出前最后自检：耳机仓电量与充电状态】"
+            "仓电量是/batteryLevel，仓充电状态是/chargingStatusDesc，"
+            "与左右耳字段不同。query明确要求这两项时同时保留，"
+            "不能因候选还有左右耳数据就改成左右耳概览。"
+            "EarbudsFull不覆盖仓字段，EarbudPairFull不覆盖仓充电状态；"
+            "不能把任何一个当成该需求的可用Full。以本轮启用模板参考为准。"
+            "仅当用户未明确要求动作也未禁止按钮/跳转、没有完整可用Full、"
+            "参考中存在missingInputFields为空且displayFields覆盖这两项的Hero、"
+            "actionCandidates含event.open.settings.bluetooth时："
+            "必须输出一个蓝牙设置动作，action=[]为遗漏。"
+            "正确输出示例："
+            '{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":'
+            '["/batteryLevel","/chargingStatusDesc"]},'
+            '"action":["event.open.settings.bluetooth"]}。'
+            "同一需求明确说不要按钮或不要跳转时，字段不变，action=[]，"
+            "允许后续报告未命中；缺候选或模板不可用时不能照抄正例。"
+            "已有明确动作时保留合法动作并执行前述规则，不强行替换。"
+            "\n【不要把仓场景规则套到普通耳机概览】"
+            "没有必须/全部保留等硬要求时，"
+            "'创建蓝牙耳机卡片，查看耳机名称、左右耳机电量和充电状态'"
+            "属于三类普通概览，按耳机规则收敛为左右耳电量；"
+            "EarbudsFull输入齐全且可覆盖时，正确输出为"
+            '{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":'
+            '["/leftBatteryLevel","/rightBatteryLevel"]},"action":[]}。'
+            "不要保留无关名称和充电字段后再补蓝牙设置。"
+            "但'名称和左右耳电量'是简短独立目标，必须保留名称与左右电量。"
+            "用户强调全部、必须或不能省略时保留所有硬要求，即使无法匹配模板。"
+        )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
+
+
+def _earphone_template_reference(
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> list[dict[str, Any]]:
+    """Supply current earphone template facts to the prompt, without choosing actions."""
+    candidate_paths = _candidate_paths(coverage_bindings, "GetEarphoneInfo")
+    references: list[dict[str, Any]] = []
+    for record in registry.template_variant_search_records:
+        if record.capability_id != "GetEarphoneInfo":
+            continue
+        if "2x2" not in record.supported_card_sizes:
+            continue
+        if not registry.template_is_enabled(record.template_id):
+            continue
+        role = provider_template_layout_kind(record.template_id)
+        if role not in {"Full", "Hero", "Compact"}:
+            continue
+        references.append({
+            "templateId": record.template_id,
+            "roles": [role],
+            "displayFields": sorted(record.available_paths),
+            "requiredInputFields": sorted(record.required_paths),
+            "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
+        })
+    return references
 
 
 def search_template_variants(

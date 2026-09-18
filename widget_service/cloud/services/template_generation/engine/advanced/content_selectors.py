@@ -2591,21 +2591,26 @@ def _bluetooth_facts_from_candidate(
     has_connection_and_case_battery = (
         is_connected is not None and case_battery_level is not None
     )
-    if not has_name_and_case_battery and not has_connection_and_case_battery and (
-        is_connected is None
-    ) != (
-        earphone_name is None
-    ):
+    left_battery_level = _trusted_percentage_number(_first_field(candidate, "leftBatteryLevel"))
+    right_battery_level = _trusted_percentage_number(_first_field(candidate, "rightBatteryLevel"))
+    has_name_and_ear_battery = (
+        earphone_name is not None
+        and left_battery_level is not None
+        and right_battery_level is not None
+    )
+    has_independent_battery_facts = (
+        has_name_and_case_battery
+        or has_connection_and_case_battery
+        or has_name_and_ear_battery
+    )
+    has_partial_identity = (is_connected is None) != (earphone_name is None)
+    if has_partial_identity and not has_independent_battery_facts:
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
         earphone_name=earphone_name,
-        left_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "leftBatteryLevel")
-        ),
-        right_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "rightBatteryLevel")
-        ),
+        left_battery_level=left_battery_level,
+        right_battery_level=right_battery_level,
         left_charging_status=_trusted_string(
             _first_field(candidate, "leftChargingStatusDesc")
         ),
