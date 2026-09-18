@@ -318,9 +318,9 @@ def _components(a2ui: str) -> list[dict[str, Any]]:
 
 
 _EXPECTED_COMPLETE: dict[str, set[str]] = {
+    # ScheduleOverviewMeetingEntryHero@1 不再参与 2x2：wideOnly 模板只能进入 2x4 组合。
     "Q018": {
         "ScheduleOverviewLocationHero@1",
-        "ScheduleOverviewMeetingEntryHero@1",
     },
     "Q035": {
         "ScheduleOverviewEventCountDetailsHero@1",

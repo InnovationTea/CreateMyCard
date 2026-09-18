@@ -21,6 +21,7 @@
   "templates": [
     {
       "templateId": "BatteryOverviewPhoneTextCompact@1",
+      "wideOnly": true,
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量 Compact：电量文本和固定手机副标题，可作为横版下方半宽槽位。",
@@ -166,6 +167,7 @@
     },
     {
       "templateId": "BatteryOverviewChargingDiagnosticsWideFull@1",
+      "wideOnly": true,
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "充电诊断 WideFull；2x4 横向诊断卡片，安全边距 12vp；标题“电池诊断”10vp，标题区右侧 20vp 图标；中部 20vp 主数值展示 /batterySOC 加百分号和“剩余电量”辅标签；下方通栏线性进度条；底部横向均匀排布三个胶囊，分别展示充电电流、充电电压和电池识别状态。无需动作。组件形态：chargingDiagnosticsWideFull。",
@@ -266,6 +268,7 @@
     },
     {
       "templateId": "BatteryOverviewStatusHero@1",
+      "wideOnly": true,
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量状态 Hero，展示手机剩余电量百分比和充电状态，可选电量图标；用于左右双焦点拼接布局。",
@@ -285,6 +288,7 @@
     },
     {
       "templateId": "BatteryOverviewChargeStatusHero@1",
+      "wideOnly": true,
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机充电 Hero：顶部充电器类型，中间44vp电量环及手机图标，右侧14vp百分比和10vp手机充电状态；设置按钮由布局组合。",

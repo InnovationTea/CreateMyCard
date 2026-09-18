@@ -40,86 +40,103 @@
     },
     {
       "templateId": "WideFullOnlyLayout@1",
+      "wideOnly": true,
       "description": "2x4 单一焦点布局，仅承载一个无 Action 的 WideFull 业务模板。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoFullLayout@1",
+      "wideOnly": true,
       "description": "2x4 左右双业务布局，左右各承载一个 Full 业务模板并由布局统一提供支撑背板；不接受独立 Action child，允许其中一个 Full 通过 actionId 内嵌自身可信业务动作。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideHeroCompactLayout@1",
+      "wideOnly": true,
       "description": "2x4 左侧 Hero、右侧垂直居中的 Compact 组合布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideFullHeroActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左 Full、右上 Hero、右下单 Action 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideHeroActionFullLayout@1",
+      "wideOnly": true,
       "description": "2x4 左上 Hero、左下单 Action、右 Full 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideFullTwoCompactLayout@1",
+      "wideOnly": true,
       "description": "2x4 左 Full、右侧上下两个 Compact 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideFourCompactLayout@1",
+      "wideOnly": true,
       "description": "2x4 四个 Compact 业务模板按两行两列排列的布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideFullHeroTwoActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左 Full、右上 Hero、右下左右两个 Action 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideFullFourActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左 Full、右侧四个 Action 的两行两列布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoHalfLayout@1",
+      "wideOnly": true,
       "description": "2x4 上下双业务布局，纵向承载两个全宽半高的 WideHalf 业务模板。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideHalfTwoCompactLayout@1",
+      "wideOnly": true,
       "description": "2x4 上方 WideHalf、下方左右两个 Compact 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideHalfCompactTwoLargeActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 上方 WideHalf、下方左 Compact、右侧两个 LargeIconAction 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideHalfFourLargeActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 上方 WideHalf、下方横向四个 LargeIconAction 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoHeroActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左 Full、右上 Hero、右下左右两个 Action 布局。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoFocusLayout@1",
+      "wideOnly": true,
       "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个无 Action 的 Hero 业务模板。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoFocusActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个 Hero 业务模板，左面板底部承载一个 PillAction。",
       "entry": "templates/layout.cardtpl"
     },
     {
       "templateId": "WideTwoFocusTwoActionLayout@1",
+      "wideOnly": true,
       "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个 Hero 业务模板和一个底部 PillAction。",
       "entry": "templates/layout.cardtpl"
     }

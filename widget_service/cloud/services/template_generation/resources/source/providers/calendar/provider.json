@@ -52,6 +52,7 @@
     },
     {
       "templateId": "ScheduleOverviewReminderCompact@1",
+      "wideOnly": true,
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程提醒 Compact：展示首项日程的提前提醒分钟数，可选通知铃铛图标。组件形态：compact。",
@@ -309,6 +310,7 @@
     },
     {
       "templateId": "ScheduleOverviewEventCountTwoEventsFull@1",
+      "wideOnly": true,
       "supportedEventIds": ["event.viewCalendarEvent"],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
@@ -327,6 +329,7 @@
     },
     {
       "templateId": "ScheduleOverviewEventCountDetailsFull@1",
+      "wideOnly": true,
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "近期日程清点 Full，并列展示日程总数、首项日程标题/开始时间/全天状态，备注为可选；可选日历图标与标题文案。",
@@ -458,6 +461,7 @@
     },
     {
       "templateId": "ScheduleOverviewMeetingEntryHero@1",
+      "wideOnly": true,
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "Q058 日程 Hero：今日日程、开始时间及地点，会议标题可从可信输入提供；入会按钮由骨架组合。",
