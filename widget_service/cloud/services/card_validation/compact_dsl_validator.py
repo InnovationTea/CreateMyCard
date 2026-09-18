@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import (
     build_compact_data_model,
     parse_compact_dsl_rows,
     validate_card_header_layout,
+    validate_timeline_unit_layout,
 )
 
 from .compact_dual_action_validator import collect_dual_action_errors
@@ -354,7 +355,20 @@ def _collect_layout_route_errors(
     visible_binding_paths: list[str],
     errors: list[str],
 ) -> None:
-    if task_spec.get("size") != "2x4":
+    size = task_spec.get("size")
+    if size == "2x2":
+        components_by_id = {
+            component.component_id: component for component in components
+        }
+        _collect_2x2_countdown_group_errors(
+            components,
+            components_by_id,
+            visible_binding_paths,
+            task_spec,
+            errors,
+        )
+        return
+    if size != "2x4":
         return
     data_roots = {
         parts[1]
@@ -387,6 +401,110 @@ def _collect_layout_route_errors(
     )
 
 
+def _collect_2x2_countdown_group_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    visible_binding_paths: list[str],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    has_countdown = any(
+        path.endswith("/countdownDays") for path in visible_binding_paths
+    )
+    if not has_countdown:
+        return
+
+    day_units = [
+        component
+        for component in components
+        if component.component_type == "Text"
+        and isinstance(component.props.get("content"), str)
+        and component.props["content"].strip() == "天"
+    ]
+    if len(day_units) > 1:
+        errors.append(
+            "2x2 countdown must display the day unit exactly once; do not place "
+            "'天' beside the value and repeat it again in a second metadata row."
+        )
+    if not _uses_2x2_v01_countdown_layout(task_spec):
+        return
+
+    parent_by_child = {
+        child_id: component
+        for component in components
+        for child_id in component.children
+    }
+    countdown_values = []
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        component_paths: list[str] = []
+        _collect_binding_context(
+            component.props.get("content"),
+            f"component {component.component_id}.props.content",
+            component_paths,
+            [],
+        )
+        if any(path.endswith("/countdownDays") for path in component_paths):
+            countdown_values.append(component)
+
+    for countdown_value in countdown_values:
+        value_group = parent_by_child.get(countdown_value.component_id)
+        if value_group is None or value_group.component_type != "Column":
+            continue
+        if len(value_group.children) != 2:
+            errors.append(
+                "2x2 V01 countdown value_group must contain exactly two visual "
+                "rows: the countdown number and a second-line unit/meta row. "
+                "Do not add a third aux_text or repeat the target name."
+            )
+            continue
+        second_line = components_by_id.get(value_group.children[1])
+        if second_line is None:
+            continue
+        if second_line.component_type == "Row" and len(second_line.children) > 2:
+            errors.append(
+                "2x2 V01 countdown meta_row may contain only the unit and the "
+                "optional time on the same line."
+            )
+
+
+def _uses_2x2_v01_countdown_layout(task_spec: dict[str, Any]) -> bool:
+    if task_spec.get("size") != "2x2":
+        return False
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return False
+    data_schema = data_model_schema.get("data")
+    if not isinstance(data_schema, dict) or not data_schema:
+        return False
+    if set(data_schema) - {"countdown", "calendar"}:
+        return False
+    if not _schema_contains_field(data_schema, "countdownDays"):
+        return False
+
+    query_value = task_spec.get("userQuery")
+    query = query_value.casefold() if isinstance(query_value, str) else ""
+    if any(
+        marker in query
+        for marker in ("倒计时", "倒数", "倒计日", "天后", "countdown")
+    ):
+        return True
+    return "天" in query and any(
+        marker in query for marker in ("还有", "剩余", "距离", "多久")
+    )
+
+
+def _schema_contains_field(value: Any, field_name: str) -> bool:
+    if isinstance(value, dict):
+        return field_name in value or any(
+            _schema_contains_field(child, field_name) for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(_schema_contains_field(child, field_name) for child in value)
+    return False
+
+
 def _collect_component_contract_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -394,6 +512,10 @@ def _collect_component_contract_errors(
 ) -> None:
     try:
         validate_card_header_layout(components, size=task_spec.get("size"))
+    except CompactDslConversionError as exc:
+        errors.append(str(exc))
+    try:
+        validate_timeline_unit_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
