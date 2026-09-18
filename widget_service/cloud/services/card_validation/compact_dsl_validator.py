@@ -565,6 +565,55 @@ def _collect_two_by_four_action_row_errors(
     )
 
 
+def _collect_two_by_four_full_width_action_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    parent_by_child: dict[str, ComponentRow] = {}
+    for component in components:
+        for child_id in component.children:
+            parent_by_child[child_id] = component
+
+    for action in components:
+        if not _is_two_by_four_direct_action(action):
+            continue
+        if action.props.get("width") != 296 or action.props.get("height") != 36:
+            continue
+
+        parent = parent_by_child.get(action.component_id)
+        is_full_height_foreground = (
+            parent is not None
+            and parent.component_type == "Column"
+            and parent.props.get("width") == "matchParent"
+            and parent.props.get("height") == "matchParent"
+        )
+        if not is_full_height_foreground:
+            errors.append(
+                f"2x4 full-width action {action.component_id} must be a direct "
+                "child of the matchParent foreground Column; do not nest it "
+                "inside a fixed-height main/body container where content can overlap."
+            )
+            continue
+
+        assert parent is not None
+        if not parent.children or parent.children[-1] != action.component_id:
+            errors.append(
+                f"2x4 full-width action {action.component_id} must be the final "
+                "direct child of foreground Column {parent.component_id}."
+            )
+            continue
+        if len(parent.children) < 2:
+            continue
+        content = components_by_id.get(parent.children[-2])
+        if content is None or content.props.get("layoutWeight") != 1:
+            errors.append(
+                f"2x4 content immediately above full-width action "
+                f"{action.component_id} must use layoutWeight 1 so the 296x36 "
+                "action remains fixed at the bottom without overlapping content."
+            )
+
+
 def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type not in {"Row", "Column"}:
         return False
@@ -592,6 +641,229 @@ def _has_two_by_two_s4_zones(
         if zone.props.get("width") != 136 or zone.props.get("height") != 64:
             return False
     return True
+
+
+def _descendant_components(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> list[ComponentRow]:
+    descendants: list[ComponentRow] = []
+    pending = list(component.children)
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop()
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        descendants.append(child)
+        pending.extend(child.children)
+    return descendants
+
+
+def _component_content_paths(component: ComponentRow) -> list[str]:
+    paths: list[str] = []
+    _collect_binding_context(
+        component.props.get("content"),
+        f"component {component.component_id}.props.content",
+        paths,
+        [],
+    )
+    return paths
+
+
+def _binding_roots(value: Any, location: str) -> set[str]:
+    paths: list[str] = []
+    _collect_binding_context(value, location, paths, [])
+    roots: set[str] = set()
+    for path in paths:
+        parts = path.strip("/").split("/")
+        if len(parts) >= 2 and parts[0] == "data":
+            roots.add(parts[1])
+    return roots
+
+
+def _collect_two_by_four_w9_content_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    for zone_id in root.children:
+        zone = components_by_id.get(zone_id)
+        if zone is None:
+            continue
+
+        content_components: list[ComponentRow] = []
+        actions: list[ComponentRow] = []
+        for child_id in zone.children:
+            child = components_by_id.get(child_id)
+            if child is None:
+                continue
+            if _is_two_by_four_direct_action(child):
+                actions.append(child)
+                continue
+            content_components.append(child)
+            content_components.extend(_descendant_components(child, components_by_id))
+
+        text_components = [
+            component
+            for component in content_components
+            if component.component_type == "Text"
+        ]
+        if len(text_components) > 4:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} may contain at most four "
+                "content Text rows. Merge same-object fields instead of stacking "
+                "additional rows."
+            )
+
+        content_roots: set[str] = set()
+        paths_by_text: dict[str, list[str]] = {}
+        for component in text_components:
+            paths = _component_content_paths(component)
+            paths_by_text[component.component_id] = paths
+            for path in paths:
+                parts = path.strip("/").split("/")
+                if len(parts) >= 2 and parts[0] == "data":
+                    content_roots.add(parts[1])
+
+        for action in actions:
+            action_roots = _binding_roots(
+                action.props.get("onClick"),
+                f"component {action.component_id}.props.onClick",
+            )
+            if (
+                action_roots
+                and content_roots
+                and content_roots.isdisjoint(action_roots)
+            ):
+                errors.append(
+                    f"2x4 W9 action {action.component_id} binds data root(s) "
+                    f"{sorted(action_roots)} but is placed in backboard "
+                    f"{zone.component_id}, which displays {sorted(content_roots)}. "
+                    "Move the action to its owning business backboard."
+                )
+
+        has_countdown = False
+        for component in text_components:
+            paths = paths_by_text[component.component_id]
+            if not any(path.endswith("/countdownDays") for path in paths):
+                continue
+            has_countdown = True
+            font_size = _non_negative_number(component.props.get("fontSize"))
+            if font_size != 14 or component.props.get("fontWeight") != 700:
+                errors.append(
+                    f"2x4 W9 countdown {component.component_id} must use ordinary "
+                    "14fp/700 primary text; do not reuse the single-business hero."
+                )
+        if has_countdown:
+            for component in text_components:
+                content = component.props.get("content")
+                if isinstance(content, str) and content.strip() == "天":
+                    errors.append(
+                        f"2x4 W9 countdown backboard {zone.component_id} must "
+                        "combine the value and unit in one Text (for example, "
+                        "`30天`); do not place `天` on a separate row."
+                    )
+
+        daily_texts: dict[str, set[str]] = {}
+        for component in text_components:
+            for path in paths_by_text[component.component_id]:
+                match = re.match(r"^/data/weather/daily/(\d+)/", path)
+                if match is None:
+                    continue
+                daily_texts.setdefault(match.group(1), set()).add(
+                    component.component_id
+                )
+        if len(daily_texts) >= 2:
+            for day_index, component_ids in daily_texts.items():
+                if len(component_ids) == 1:
+                    component_id = next(iter(component_ids))
+                    component = components_by_id.get(component_id)
+                    if component is None:
+                        continue
+                    font_size = _non_negative_number(
+                        component.props.get("fontSize")
+                    )
+                    if font_size == 12 and component.props.get("fontWeight") == 400:
+                        continue
+                    errors.append(
+                        f"2x4 W9 compact weather day {component_id} must use "
+                        "12fp/400 auxiliary text."
+                    )
+                    continue
+                errors.append(
+                    f"2x4 W9 weather day {day_index} in backboard "
+                    f"{zone.component_id} is split across multiple Text rows "
+                    f"{sorted(component_ids)}. Merge each day into one 12fp/400 row."
+                )
+            if any(
+                component.component_type == "Divider"
+                for component in content_components
+            ):
+                errors.append(
+                    f"2x4 W9 multi-day weather backboard {zone.component_id} "
+                    "must not insert Divider components between compact day rows."
+                )
+
+
+def _collect_two_by_two_s4_text_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    action_hint_prefixes = ("点击", "点此", "一键")
+    for zone_id in root.children:
+        zone = components_by_id.get(zone_id)
+        if zone is None:
+            continue
+        text_components = []
+        for descendant in _descendant_components(zone, components_by_id):
+            if descendant.component_type == "Text":
+                text_components.append(descendant)
+
+        if "onClick" in zone.props:
+            for text_component in text_components:
+                content = text_component.props.get("content")
+                if not isinstance(content, str) or "{{" in content:
+                    continue
+                if content.strip().startswith(action_hint_prefixes):
+                    errors.append(
+                        f"2x2 S4 clickable backboard {zone.component_id} must not "
+                        f"show action hint Text {text_component.component_id}; "
+                        "bind the action only to the backboard."
+                    )
+
+        has_calendar_content = False
+        has_meeting_title = False
+        for text_component in text_components:
+            paths = _component_content_paths(text_component)
+            if any(path.startswith("/data/calendar/") for path in paths):
+                has_calendar_content = True
+            has_start_time = any(path.endswith("/dtStart") for path in paths)
+            if has_start_time:
+                if (
+                    text_component.props.get("fontSize") != 12
+                    or text_component.props.get("fontWeight") != 400
+                ):
+                    errors.append(
+                        f"2x2 S4 meeting time {text_component.component_id} must "
+                        "use its own 12fp/400 auxiliary row; do not combine it "
+                        "with the 14fp/700 meeting title."
+                    )
+                continue
+            if (
+                text_component.props.get("fontSize") == 14
+                and text_component.props.get("fontWeight") == 700
+            ):
+                has_meeting_title = True
+        if has_calendar_content and not has_meeting_title:
+            errors.append(
+                f"2x2 S4 calendar backboard {zone.component_id} must keep a "
+                "separate 14fp/700 meeting title above its 12fp/400 time row."
+            )
 
 
 def _collect_two_by_two_s4_palette_errors(
@@ -694,6 +966,11 @@ def _collect_layout_route_errors(
             data_roots = set(schema_data)
 
     if size == "2x4":
+        _collect_two_by_four_full_width_action_errors(
+            components,
+            components_by_id,
+            errors,
+        )
         if _has_stacked_two_by_four_backboards(components, components_by_id):
             errors.append(
                 "2x4 cards must not stack two or more full-width 296x48-64 "
@@ -742,6 +1019,11 @@ def _collect_layout_route_errors(
     if size == "2x2":
         if _has_two_by_two_s4_zones(root, components_by_id):
             assert root is not None
+            _collect_two_by_two_s4_text_errors(
+                root,
+                components_by_id,
+                errors,
+            )
             _collect_two_by_two_s4_palette_errors(
                 root,
                 components_by_id,
@@ -788,6 +1070,12 @@ def _collect_layout_route_errors(
         return
 
     if _has_two_by_four_w9_backboards(root, components_by_id):
+        assert root is not None
+        _collect_two_by_four_w9_content_errors(
+            root,
+            components_by_id,
+            errors,
+        )
         return
 
     roots = ", ".join(sorted(data_roots))
