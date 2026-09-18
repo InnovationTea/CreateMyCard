@@ -155,6 +155,10 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
 需要区分的状态写在后缀前，例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用
 通用名称，例如 `BatteryOverviewCompact@1`。布局 Provider 不受此后缀约束。
+
+模板条目可声明 `"wideOnly": true`（缺省 `false`）：该 Template 只允许进入 `2x4` 生成选择与 Planner
+（含宽版组合布局中的标准 `Full`/`Hero`/`Compact` 槽位），永不进入 `2x2` 候选。声明后 Registry 将其
+`supportedCardSizes` 固定为 `2x4`，不再按后缀推导；Search、编译准入与动作消费校验均按该尺寸过滤。
 同一 UI 形态的 `Support` 与 `Compact` 在业务族状态校验中使用相同状态判定规则，但形态标识和布局身份
 仍分别保持 `Support` 与 `Compact`，不得把双业务 Support 放入单业务 Compact 布局。
 

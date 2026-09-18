@@ -116,12 +116,12 @@ def validate_compact_dsl(
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
-    _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     if is_template:
         _LOGGER.info(
             "compact_validation_skipped reason=template_root rules=hero_value,layout_route"
         )
     else:
+        _collect_two_by_two_weather_date_errors(components, task_spec, errors)
         _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
     for component in components:

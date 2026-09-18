@@ -180,6 +180,7 @@ class ProviderCapabilityEntry(StrictModel):
 
 class ProviderTemplateEntry(StrictModel):
     template_id: str = Field(alias="templateId", min_length=1)
+    wide_card_only: bool = Field(default=False, alias="wideOnly")
     business_id: str | None = Field(
         default=None,
         alias="businessId",
@@ -249,6 +250,9 @@ class ProviderTemplateEntry(StrictModel):
 
     @property
     def supported_card_sizes(self) -> tuple[Literal["2x2", "2x4"], ...]:
+        if self.wide_card_only:
+            # wideOnly: true 只允许 Template 参与 2x4 组合，永不进入 2x2 选择。
+            return ("2x4",)
         if self.capability_id is None:
             return ()
         layout_kind = _provider_template_layout_kind(self.template_id)

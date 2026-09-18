@@ -33,6 +33,7 @@
     },
     {
       "templateId": "CountdownOverviewTargetDetailFull@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "透明自适应的目标日倒计时 Full，展示剩余天数，并可补充可信标题和目标日期；适合 2x2 单焦点或 2x4 双 Full 半宽槽，2x4 支撑背板由父布局提供。",
@@ -57,6 +58,7 @@
     },
     {
       "templateId": "CountdownOverviewEventHero@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "左对齐的节日或重要事件倒计时 Hero，可显示可信标题，天数后固定展示“天”；适合半宽 Hero 与独立操作组合。",
@@ -69,6 +71,7 @@
     },
     {
       "templateId": "CountdownOverviewDepartureHero@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "左对齐的出发日期倒计时 Hero，可显示可信标题，天数后固定展示“天后出发”；仅用于旅行、返乡或其它明确出发语义。",
@@ -81,6 +84,7 @@
     },
     {
       "templateId": "CountdownOverviewTargetCompact@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。",
@@ -114,6 +118,7 @@
     },
     {
       "templateId": "CountdownOverviewWideFull@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 WideFull 摘要，左右分区展示可信标题和倒计时天数。",
@@ -126,6 +131,7 @@
     },
     {
       "templateId": "CountdownOverviewWideHero@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 WideHero 摘要，突出可信标题和倒计时天数。",
@@ -138,6 +144,7 @@
     },
     {
       "templateId": "CountdownOverviewWideHalf@1",
+      "wideOnly": true,
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 WideHalf 摘要，用于 2x4 半高组合布局。",

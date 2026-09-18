@@ -408,6 +408,12 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         "WideFull",
         "WideHalf",
     }
+    wide_only_ids = {
+        entry.template_id
+        for bundle in registry.provider_bundles.values()
+        for entry in bundle.manifest.templates
+        if entry.wide_card_only
+    }
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
@@ -417,6 +423,7 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         expected_sizes = (
             ("2x4",)
             if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            or template_id in wide_only_ids
             else ("2x2",)
         )
         serialized = definition.model_dump(mode="json", by_alias=True)
