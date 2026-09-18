@@ -406,7 +406,7 @@ def test_second_layer_receives_only_bounded_atomic_plans() -> None:
 def _support_plans() -> tuple[TemplatePlan, ...]:
     action_id = "event.open.weather"
     task_spec = TaskSpec(
-        userQuery="同时显示天气和应用时长，点击查看天气",
+        userQuery="同时显示天气和手机电量，点击查看天气",
         size="2x2",
         dataModelSchema={},
         eventCandidates=[
@@ -429,7 +429,7 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/temperatureText",),
-            "GetAppUsageDuration": ("/appUsage/durationText",),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
         },
         action=(action_id,),
     )
@@ -448,13 +448,13 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
                 ),
             ),
             TemplateBusinessCandidates(
-                capabilityId="GetAppUsageDuration",
-                businessId="AppUsageOverview",
-                explicitFields=("/appUsage/durationText",),
+                capabilityId="GetPhoneBatteryInfo",
+                businessId="BatteryOverview",
+                explicitFields=("/batterySOC",),
                 candidates=(
                     TemplateSearchCandidate(
-                        templateId="AppUsageOverviewSupport@1",
-                        coveredExplicitFields=("/appUsage/durationText",),
+                        templateId="BatteryOverviewSupport@1",
+                        coveredExplicitFields=("/batterySOC",),
                     ),
                 ),
             ),
@@ -609,7 +609,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",{}));'
+        'Template("BatteryOverviewSupport@1",{}));'
     )
     matched_plan_id = _validate_allowed_template_plan(
         parse_ux_layout_card(valid_source),
@@ -622,7 +622,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",'
+        'Template("BatteryOverviewSupport@1",'
         f'{{"actionId":"{action_id}"}}));'
     )
 

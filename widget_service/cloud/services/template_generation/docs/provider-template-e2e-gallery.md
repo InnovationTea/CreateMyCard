@@ -195,8 +195,9 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-当前应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 135 个用例；
-其中 56 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，121 个状态为 `not_generated`。
+当前应生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 141 个用例；
+其中 61 个 Support 配对用例。无模型 dry-run 中 8 个状态为 `missing`，133 个状态为 `not_generated`。
+应用使用时长能力已下线，其单业务和配对场景不再生成；系统内存等其它缺失场景仍独立记录。
 Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
 与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
 Provider 或模板调整后数量可以变化，应以重新生成的
