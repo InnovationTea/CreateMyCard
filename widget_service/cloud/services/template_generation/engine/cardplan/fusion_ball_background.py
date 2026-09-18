@@ -65,7 +65,7 @@ def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
                         "strokeWidth": 0,
                         "color": "#00000000",
                         "backgroundColor": "#0DFFFFFF",
-                        "backdropBlur": {"radius": 210},
+                        "backdropBlur": {"radius": 120},
                     },
                 ),
                 (),

@@ -28,7 +28,7 @@
   "fusionBallStyle": {
     "scene": "weather",
     "businessIds": ["WeatherOverview"],
-    "largeColor": "#FF1F1F99",
+    "largeColor": "#FF121259",
     "mediumColor": "#FF2B65D9",
     "smallColor": "#FF57AED9"
   }

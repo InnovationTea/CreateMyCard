@@ -24,8 +24,8 @@
   "fusionBallStyle": {
     "scene": "battery",
     "businessIds": ["BatteryOverview", "BluetoothDeviceOverview"],
-    "largeColor": "#FF1F9985",
-    "mediumColor": "#FF24B3B3",
-    "smallColor": "#FF5AB38E"
+    "largeColor": "#FF17734C",
+    "mediumColor": "#FF26BFA6",
+    "smallColor": "#FF60BF98"
   }
 }
