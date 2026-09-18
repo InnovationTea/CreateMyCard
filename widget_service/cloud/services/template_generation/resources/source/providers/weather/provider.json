@@ -248,6 +248,24 @@
       }
     },
     {
+      "templateId": "WeatherOverviewUpdatedAtFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "基础天气 Full，展示城市、当前温度、天气现象和天气数据更新时间。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/updatedAt"
+      ]
+    },
+    {
       "templateId": "WeatherOverviewHumidityFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
@@ -340,6 +358,21 @@
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "风况天气 Hero，展示城市、20vp 当前风向与风力等级；天气数据更新时间可选，存在对应字段时在底部以 10vp 文本展示，缺失时不生成时间行；可选位置图标。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/windDirection",
+        "/current/windLevel"
+      ],
+      "secondaryData": [
+        "/location/prefectureName"
+      ],
+      "optionalData": ["/updatedAt"]
+    },
+    {
+      "templateId": "WeatherOverviewWindFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "风况天气 Full，展示城市、20vp 当前风向与风力等级；天气数据更新时间可选，存在对应字段时在底部以 10vp 文本展示，缺失时不生成时间行；可选位置图标。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/windDirection",
