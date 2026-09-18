@@ -514,6 +514,50 @@ def _has_two_by_two_s4_zones(
     return True
 
 
+def _collect_two_by_two_s4_palette_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    color_keys = {
+        "Text": ("fontColor",),
+        "Image": ("fillColor",),
+        "Progress": ("color", "backgroundColor"),
+        "Divider": ("color",),
+    }
+    colors: dict[str, list[str]] = {}
+    pending = list(root.children)
+    visited: set[str] = set()
+    while pending:
+        component_id = pending.pop()
+        if component_id in visited:
+            continue
+        visited.add(component_id)
+        component = components_by_id.get(component_id)
+        if component is None:
+            continue
+        pending.extend(component.children)
+        for key in color_keys.get(component.component_type, ()):
+            value = component.props.get(key)
+            if not isinstance(value, str):
+                continue
+            if re.fullmatch(r"#[0-9A-Fa-f]{8}", value) is None:
+                continue
+            rgb = value[3:].upper()
+            colors.setdefault(rgb, []).append(f"{component_id}.{key}")
+    if len(colors) <= 1:
+        return
+    details = ", ".join(
+        f"#{rgb}: {', '.join(locations)}"
+        for rgb, locations in sorted(colors.items())
+    )
+    errors.append(
+        "2x2 S4 must use one card palette across both business zones. Text, "
+        "tintable Image, Progress, and Divider colors must share one RGB and "
+        f"may differ only in alpha. Found mixed palette colors: {details}."
+    )
+
+
 def _has_two_by_four_w9_backboards(
     root: ComponentRow | None,
     components_by_id: dict[str, ComponentRow],
@@ -613,6 +657,12 @@ def _collect_layout_route_errors(
 
     if size == "2x2":
         if _has_two_by_two_s4_zones(root, components_by_id):
+            assert root is not None
+            _collect_two_by_two_s4_palette_errors(
+                root,
+                components_by_id,
+                errors,
+            )
             if "countdown" not in data_roots:
                 return
             countdown_texts = []
