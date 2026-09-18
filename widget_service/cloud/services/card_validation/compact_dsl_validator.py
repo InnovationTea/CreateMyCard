@@ -189,7 +189,7 @@ def _collect_hero_value_errors(
         if component.component_type != "Text":
             continue
         font_size = _non_negative_number(component.props.get("fontSize"))
-        if font_size is None or font_size <= 18:
+        if font_size is None or font_size <= 20:
             continue
         path = _pure_numeric_binding_path(
             component.props.get("content"),
@@ -201,7 +201,7 @@ def _collect_hero_value_errors(
         errors.append(
             f"component {component.component_id}: fontSize {_format_vp(font_size)} "
             "is reserved for a pure number/integer value. Text, formatted values, "
-            "names, dates, times, and statuses must use at most 18fp on their own line."
+            "names, dates, times, and statuses must use at most 20fp on their own line."
         )
 
     for component in components:
@@ -315,6 +315,97 @@ def _is_allowed_display_unit(
     return isinstance(description, str) and unit in description
 
 
+def _two_by_four_data_block_count(
+    task_spec: dict[str, Any],
+    data_roots: set[str],
+) -> int:
+    block_count = len(data_roots)
+    if "healthSport" not in data_roots:
+        return block_count
+
+    data_model_schema = task_spec.get("dataModelSchema")
+    schema_data = (
+        data_model_schema.get("data")
+        if isinstance(data_model_schema, dict)
+        else None
+    )
+    if not isinstance(schema_data, dict):
+        return block_count
+    health_sport = schema_data.get("healthSport")
+    if not isinstance(health_sport, dict):
+        return block_count
+
+    has_daily_summary = False
+    has_exercise_record = False
+    for field_name in health_sport:
+        has_daily_summary = has_daily_summary or field_name.startswith("daily")
+        has_exercise_record = has_exercise_record or field_name.startswith("exercise")
+    if has_daily_summary and has_exercise_record:
+        block_count += 1
+    return block_count
+
+
+def _has_stacked_two_by_four_backboards(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    for component in components:
+        if component.component_type != "Column":
+            continue
+        full_width_backboard_count = 0
+        for child_id in component.children:
+            child = components_by_id.get(child_id)
+            if child is None or child.component_type not in {"Row", "Column"}:
+                continue
+            height = _non_negative_number(child.props.get("height"))
+            border_radius = _non_negative_number(child.props.get("borderRadius"))
+            if (
+                child.props.get("width") == 296
+                and height is not None
+                and 48 <= height <= 64
+                and border_radius is not None
+                and border_radius >= 12
+            ):
+                full_width_backboard_count += 1
+        if full_width_backboard_count >= 2:
+            return True
+    return False
+
+
+def _is_two_by_four_large_backboard(component: ComponentRow) -> bool:
+    return all(
+        (
+            component.component_type == "Column",
+            component.props.get("width") == 144,
+            component.props.get("height") == 136,
+            component.props.get("padding") == 12,
+            component.props.get("borderRadius") == 16,
+            isinstance(component.props.get("backgroundColor"), str),
+        )
+    )
+
+
+def _descendant_on_click_count(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> int:
+    count = 0
+    pending = list(component.children)
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop()
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        if "onClick" in child.props:
+            count += 1
+        pending.extend(child.children)
+    return count
+
+
 def _collect_layout_route_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -344,6 +435,26 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if size == "2x4" and _has_stacked_two_by_four_backboards(
+        components,
+        components_by_id,
+    ):
+        errors.append(
+            "2x4 cards must not stack two or more full-width 296x48-64 "
+            "content backboards vertically. Select the matching W skeleton; "
+            "two semantic data blocks must use W9 left/right backboards."
+        )
+    if size == "2x4":
+        for component in components:
+            if not _is_two_by_four_large_backboard(component):
+                continue
+            if _descendant_on_click_count(component, components_by_id) <= 1:
+                continue
+            errors.append(
+                f"2x4 large backboard {component.component_id} may contain at "
+                "most one action control. Do not stack two buttons inside a "
+                "144x136 backboard; remove duplicate or lower-priority actions."
+            )
     if size == "2x2" and len(data_roots) == 1:
         event_candidates = task_spec.get("eventCandidates")
         if isinstance(event_candidates, list) and len(event_candidates) == 2:
@@ -369,7 +480,10 @@ def _collect_layout_route_errors(
             errors,
         )
         return
-    if len(data_roots) != 2:
+    data_block_count = len(data_roots)
+    if size == "2x4":
+        data_block_count = _two_by_four_data_block_count(task_spec, data_roots)
+    if data_block_count != 2:
         return
 
     if size == "2x2":
@@ -437,7 +551,8 @@ def _collect_layout_route_errors(
 
     roots = ", ".join(sorted(data_roots))
     errors.append(
-        f"2x4 card displays two data roots ({roots}) and must use W9: root must "
+        f"2x4 card displays two semantic data blocks ({roots}) and must use "
+        "W9: root must "
         "be a Row with exactly two direct 144x136 Column backboards. Do not use "
         "a shared title, a shared action area, or stacked full-width business rows."
     )
@@ -676,6 +791,37 @@ def _collect_component_contract_errors(
         if component.component_type == "ActionUnit":
             _collect_action_unit_errors(component, errors)
         _collect_on_click_errors(component, allowed_handlers, errors)
+    _collect_duplicate_on_click_errors(components, errors)
+
+
+def _collect_duplicate_on_click_errors(
+    components: list[ComponentRow],
+    errors: list[str],
+) -> None:
+    seen_handlers: list[tuple[str, dict[str, Any]]] = []
+    for component in components:
+        handlers = component.props.get("onClick")
+        if not isinstance(handlers, list) or len(handlers) != 1:
+            continue
+        handler = handlers[0]
+        if not isinstance(handler, dict):
+            continue
+        duplicate_id = next(
+            (
+                component_id
+                for component_id, seen_handler in seen_handlers
+                if handler == seen_handler
+            ),
+            None,
+        )
+        if duplicate_id is not None:
+            errors.append(
+                f"components {duplicate_id} and {component.component_id} bind "
+                "the same onClick handler. Render that action only once and "
+                "keep the label that matches the handler semantics."
+            )
+            continue
+        seen_handlers.append((component.component_id, handler))
 
 
 def _collect_container_errors(

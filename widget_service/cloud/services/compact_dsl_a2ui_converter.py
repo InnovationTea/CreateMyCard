@@ -667,6 +667,10 @@ def convert_compact_dsl_to_a2ui(
         size=size,
     )
     normalized_components = _normalize_timeline_unit_spacing(normalized_components)
+    normalized_components = _normalize_two_by_two_dual_zone_surfaces(
+        normalized_components,
+        size=size,
+    )
     normalized_components = _normalize_small_backboard_icon_alignment(
         normalized_components,
         size=size,
@@ -1179,6 +1183,37 @@ def _two_by_two_dual_zone_ids(
     ):
         return set()
     return set(root.children)
+
+
+def _normalize_two_by_two_dual_zone_surfaces(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    if size != "2x2":
+        return components
+
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    zone_ids = _two_by_two_dual_zone_ids(components_by_id)
+    normalized = []
+    for component in components:
+        props = copy.deepcopy(component.props)
+        background_color = props.get("backgroundColor")
+        if component.component_id in zone_ids and isinstance(background_color, str):
+            if re.fullmatch(r"#[0-9A-Fa-f]{8}", background_color):
+                props["backgroundColor"] = f"#1A{background_color[3:]}"
+        normalized.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                props,
+                component.children,
+            )
+        )
+    return normalized
 
 
 def _normalize_small_backboard_icon_alignment(
