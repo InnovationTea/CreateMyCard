@@ -650,6 +650,7 @@ def convert_compact_dsl_to_a2ui(
     components, data_rows = _split_component_rows(rows)
     validate_card_header_layout(components, size=size)
     validate_timeline_unit_scope(components)
+    validate_timeline_unit_layout(components, size=size)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -823,6 +824,55 @@ def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
     if any(_has_non_calendar_data_binding(item.props) for item in components):
         raise CompactDslConversionError(
             "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
+        )
+
+
+def validate_timeline_unit_layout(
+    components: list[ComponentRow], *, size: str
+) -> None:
+    if not any(item.component_type == "TimelineUnit" for item in components):
+        return
+    if size != "2x2":
+        raise CompactDslConversionError("TimelineUnit requires a 2x2 card.")
+
+    components_by_id = {item.component_id: item for item in components}
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column" or not root.children:
+        raise CompactDslConversionError(
+            "TimelineUnit requires a root Column with a left-aligned date row."
+        )
+
+    day_area = components_by_id.get(root.children[0])
+    expected_layout = {
+        "width": 136,
+        "height": 16,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+    }
+    has_expected_layout = day_area is not None and all(
+        day_area.props.get(name) == value
+        for name, value in expected_layout.items()
+    )
+    if (
+        day_area is None
+        or day_area.component_type != "Row"
+        or not has_expected_layout
+        or len(day_area.children) != 1
+    ):
+        raise CompactDslConversionError(
+            "TimelineUnit date context must be the first root child and use a "
+            "left-aligned 136x16 Row with exactly one Text child."
+        )
+
+    day_text = components_by_id.get(day_area.children[0])
+    if day_text is None or day_text.component_type != "Text":
+        raise CompactDslConversionError(
+            "TimelineUnit date context Row must contain exactly one Text child."
+        )
+    if day_text.props.get("textAlign", "start") != "start":
+        raise CompactDslConversionError(
+            "TimelineUnit date context Text must be left-aligned."
         )
 
 

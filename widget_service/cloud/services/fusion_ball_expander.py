@@ -29,11 +29,11 @@ _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
 _DESIGN_TOKEN_FIXED_PALETTES = {
-    "fusion-ball-battery-teal": ("#FF17734C", "#FF26BFA6", "#FF60BF98"),
-    "fusion-ball-schedule-cool": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+    "fusion-ball-battery-teal": ("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
+    "fusion-ball-schedule-cool": ("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
     "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
-    "fusion-ball-sleep-violet": ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
-    "fusion-ball-sport-orange": ("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+    "fusion-ball-sleep-violet": ("#FF493D99", "#FF5536B3", "#FF7D6B99"),
+    "fusion-ball-sport-orange": ("#FFF24131", "#FFFF8833", "#FFE68073"),
 }
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"
@@ -386,8 +386,8 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
                 "height": fusion_ball_relative_size(160),
                 "strokeWidth": 0,
                 "color": "#00000000",
-                "backgroundColor": "#1AFFFFFF",
-                "backdropBlur": {"radius": 120},
+                "backgroundColor": "#0DFFFFFF",
+                "backdropBlur": {"radius": 210},
             },
         },
     ]
