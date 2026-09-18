@@ -6928,6 +6928,11 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert model.body_called is True
     assert model.first_layer_prompt is not None
     assert model.second_layer_prompt is not None
+    first_layer_system = model.first_layer_prompt[0]["content"]
+    assert "天气卡片的默认基础展示字段" in first_layer_system
+    assert "/location/prefectureName、/current/temperatureText 和/current/condition" in (
+        first_layer_system
+    )
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user
     candidate_line = next(

@@ -22,6 +22,7 @@
     空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
   - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
+  - `WeatherOverviewUpdatedAtFull@1`：基础天气摘要并显示天气数据更新时间；包含城市、当前温度和天气现象。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。

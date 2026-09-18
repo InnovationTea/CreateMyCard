@@ -1555,6 +1555,101 @@ Column(
 )
 #End
 
+#Template WeatherOverviewUpdatedAtFull@1(props: { location?: string })
+data = {
+    city: $optionalPath("/location/prefectureName"),
+    district: $optionalPath("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    updatedAt: $optionalPath("/updatedAt")
+}
+
+Column(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
+  },
+  Column(
+    {
+      "width": "matchParent",
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      #Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
+      {
+        "fontSize": 16,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    ),
+    Row(
+      {
+        "width": "matchParent",
+        "height": 44,
+        "itemMargin": 8,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Text(
+        data.temperature,
+        { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+      )
+    )
+  ),
+  Column(
+    {
+      "width": "matchParent",
+      "itemMargin": 2,
+      "justifyContent": "end",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      data.condition,
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis"
+      }
+    ),
+    #if data.updatedAt
+      Text(
+        `更新时间 ${data.updatedAt}`,
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        }
+      )
+    #endif
+  )
+)
+#End
+
 #Template WeatherOverviewHumidityFull@1(props: { location?: string })
 data = {
     temperature: $path("/current/temperatureText"),
