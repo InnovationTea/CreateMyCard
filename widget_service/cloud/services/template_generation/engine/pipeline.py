@@ -54,6 +54,7 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
+    TemplateRetrievalQuery,
     TemplateSearchIntent,
     build_template_retrieval_prompt,
     normalize_calendar_reminder_intent,
@@ -103,9 +104,6 @@ async def generate_template_a2ui(
         f"{_MODULE} task_spec_received "
         f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
-    if task_spec.size == "2x4":
-        logger.info(f"{_MODULE} template_search_disabled_for_card_size size=2x4")
-        raise TemplateRouteNotApplicable("template Search does not support 2x4 cards")
     try:
         selected_task_spec = _with_trusted_sample_overrides(
             task_spec,
@@ -201,6 +199,7 @@ async def generate_template_a2ui(
                 componentCandidates=planner_component_candidates(template_plans),
                 actionIds=intent.action_ids,
                 requiredTemplateGroups=planner_required_template_groups(template_plans),
+                requiredOutputFieldsByCapability=intent.required_output_fields_by_capability,
             )
             logger.info(
                 f"{_MODULE} template_retrieval matched=True "
@@ -230,6 +229,9 @@ async def generate_template_a2ui(
             scope=scope,
             component_candidates=selection.component_candidates,
             required_template_groups=selection.required_template_groups,
+            required_output_fields_by_capability=(
+                selection.required_output_fields_by_capability
+            ),
             template_plans=template_plans,
             registry=registry,
             model_client=model_client,
@@ -282,11 +284,13 @@ def _with_trusted_sample_overrides(
     return task_spec.model_copy(update={"dataModelSchema": schema})
 
 
-def _restrict_template_intent_actions(
-    intent: TemplateSearchIntent,
+def _restrict_template_intent_actions[
+    TemplateIntent: (TemplateSearchIntent, TemplateRetrievalQuery)
+](
+    intent: TemplateIntent,
     trusted_template_action_ids: tuple[str, ...],
     task_spec: TaskSpec,
-) -> TemplateSearchIntent:
+) -> TemplateIntent:
     """Apply trusted gallery Action overrides before deterministic planning."""
     if not trusted_template_action_ids:
         return intent
@@ -336,14 +340,23 @@ async def _generate_selected_templates(
     scope: AdvancedScopeBrief,
     component_candidates: tuple[TemplateComponentCandidate, ...],
     required_template_groups: tuple[tuple[str, ...], ...],
+    required_output_fields_by_capability: dict[str, tuple[str, ...]],
     registry: CardPlanRegistry,
     model_client: Any,
     template_plans: tuple[TemplatePlan, ...] = (),
 ) -> TemplateEngineOutput:
+    generic_paths: list[str] = []
+    for plan in template_plans:
+        for slot in plan.business_slots:
+            for path in slot.field_bindings.values():
+                if path not in generic_paths:
+                    generic_paths.append(path)
     projected_task_spec = project_content_component_facts(
         source_task_spec,
         effective_capability_ids,
         scope.advanced_component_ids,
+        required_output_fields_by_capability=required_output_fields_by_capability,
+        generic_output_fields=tuple(generic_paths) if template_plans else None,
     )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
@@ -352,6 +365,7 @@ async def _generate_selected_templates(
         scope.advanced_component_ids,
         component_candidates,
         registry,
+        generic_output_fields=tuple(generic_paths) if template_plans else None,
     )
     projection = build_ux_mixed_prompt(
         task_spec=projected_task_spec,
@@ -461,6 +475,8 @@ def _with_provider_template_runtime_data(
     component_ids: tuple[str, ...],
     component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
+    *,
+    generic_output_fields: tuple[str, ...] | None = None,
 ) -> TaskSpec:
     schema = deepcopy(projected.dataModelSchema)
     template_ids_by_component = {
@@ -491,15 +507,29 @@ def _with_provider_template_runtime_data(
                     if isinstance(validation, dict):
                         validation[component_id] = component_projection
                 changed = True
-            provider_paths = tuple(
-                dict.fromkeys(
-                    (
-                        *definition.required_data,
-                        *definition.optional_data,
-                        *(binding.path for binding in definition.bindings.values()),
+            if component_id == "GenericMetricOverview" and isinstance(
+                component_projection, dict
+            ):
+                # Generic templates are intentionally not tied to a provider
+                # field list. Copy the selected scalar leaves back to their
+                # provider root so the generated path bindings remain valid.
+                provider_paths = tuple(
+                    f"/{field_name}"
+                    for field_name in component_projection
+                    if isinstance(field_name, str) and field_name
+                )
+            else:
+                provider_paths = tuple(
+                    dict.fromkeys(
+                        (
+                            *definition.required_data,
+                            *definition.optional_data,
+                            *(binding.path for binding in definition.bindings.values()),
+                        )
                     )
                 )
-            )
+            if component_id == "GenericMetricOverview" and generic_output_fields is not None:
+                provider_paths = generic_output_fields
             for root in roots:
                 for relative_path in provider_paths:
                     path = f"{root.rstrip('/')}{relative_path}"

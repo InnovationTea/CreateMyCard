@@ -1,0 +1,133 @@
+#Template GenericMetricOverviewCompact@1(props: { title: string, valuePath: path, sourceIcon: asset })
+data = {}
+
+Row(
+  {
+    "_advancedComponent": "GenericMetricOverview",
+    "_title": props.title,
+    "_valuePath": props.valuePath,
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
+    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+    "borderRadius": $theme("supportContentStyle.borderRadius"),
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Column(
+    {
+      "layoutWeight": 1,
+      "itemMargin": 2,
+      "justifyContent": "center",
+      "alignItems": "start",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+      "",
+      {
+        "fontSize": 14,
+        "fontWeight": 700,
+        "height": 19,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "width": "matchParent",
+        "textAlign": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    ),
+    Text(
+      "",
+      {
+        "fontSize": 10,
+        "fontWeight": 400,
+        "height": 13,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "width": "matchParent",
+        "textAlign": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    )
+  ),
+  Image(
+    props.sourceIcon,
+    {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+  )
+)
+#End
+
+#Template GenericMetricOverviewDualCompact@1(props: { firstTitle: string, firstValuePath: path, secondTitle: string, secondValuePath: path })
+data = {}
+
+Column(
+  {
+    "_advancedComponent": "GenericMetricOverview",
+    "_firstTitle": props.firstTitle,
+    "_firstValuePath": props.firstValuePath,
+    "_secondTitle": props.secondTitle,
+    "_secondValuePath": props.secondValuePath,
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+    "borderRadius": $theme("supportContentStyle.borderRadius"),
+    "itemMargin": 2,
+    "justifyContent": "center",
+    "alignItems": "start",
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 19,
+      "itemMargin": 6,
+      "justifyContent": "spaceBetween",
+      "alignItems": "center"
+    },
+    Text("深睡", {
+      "fontSize": 12,
+      "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'),
+      "maxLines": 1,
+      "textAlign": "start"
+    }),
+    Text("", {
+      "layoutWeight": 1,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "fontColor": $theme('primaryColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis",
+      "textAlign": "end"
+    })
+  ),
+  Row(
+    {
+      "width": "matchParent",
+      "height": 19,
+      "itemMargin": 6,
+      "justifyContent": "spaceBetween",
+      "alignItems": "center"
+    },
+    Text("最低心率", {
+      "fontSize": 12,
+      "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'),
+      "maxLines": 1,
+      "textAlign": "start"
+    }),
+    Text("", {
+      "layoutWeight": 1,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "fontColor": $theme('primaryColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis",
+      "textAlign": "end"
+    })
+  )
+)
+#End

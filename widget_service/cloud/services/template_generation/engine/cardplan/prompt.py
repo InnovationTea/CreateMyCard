@@ -41,7 +41,13 @@ _PLAIN_DESIGNS = (
     "icon",
 )
 _PLAIN_LAYOUTS = ("card", "section", "compact", "between", "actions", "list", "dense", "overlay")
-_ACTION_TEMPLATE_IDS = ("PillAction@1", "IconAction@1")
+_ACTION_TEMPLATE_IDS = (
+    "PillAction@1",
+    "CompactAction@1",
+    "PlaylistCompactAction@1",
+    "IconAction@1",
+    "LargeIconAction@1",
+)
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _ACTION_LABELS = {
     "event.call.phone": "联系家人",
@@ -62,6 +68,10 @@ _ACTION_LABELS = {
     "event.viewCalendarEvent": "查看日程",
     "event.startNavigate": "开始导航",
     "event.setPowerSavingMode": "省电模式",
+}
+_ACTION_SUBTITLES = {
+    "event.viewCalendarEvent": "日程详情",
+    "event.open.clock.alarm": "闹钟应用",
 }
 _ASSET_SEMANTIC_TERMS = {
     "calendar": ("calendar", "schedule", "日程", "日历"),
@@ -85,6 +95,9 @@ _ASSET_SEMANTIC_TERMS = {
     "call": ("call", "phone", "电话", "拨打"),
     "weather": ("weather", "天气"),
     "weather-condition": ("晴天", "天气降雨", "台风", "大风提醒"),
+    "weather-temperature-indicator": (
+        "weather_thermometer", "天气温度", "当前气温", "温度计", "温度指标", "温差变化", "冷热趋势",
+    ),
     "weather-indicator": (
         "晴天", "天气降雨", "台风", "大风提醒", "体感温度", "天气温度", "当前气温",
     ),
@@ -192,6 +205,7 @@ def build_hybrid_prompt(
             *binding_argument_literals,
             *(str(fact.value) for fact in facts if isinstance(fact.value, str)),
             *(_action_label(event) for event in task_spec.eventCandidates),
+            *(_action_subtitle(event) for event in task_spec.eventCandidates),
         ]
     )
     trusted_numbers = tuple(
@@ -211,9 +225,15 @@ def build_hybrid_prompt(
         actions = ()
     selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     if ux_layout_root_ids:
-        # Layout contracts select the exact cardinality. The compact two-action
-        # layout is the only family that consumes both approved controls.
-        content_action_ids = tuple(action.action_id for action in actions[:2])
+        maximum_actions = 2 if task_spec.size == "2x2" else max(
+            registry.require_ux_layout_component(layout_id).max_action_children_by_size[
+                task_spec.size
+            ]
+            for layout_id in ux_layout_root_ids
+        )
+        content_action_ids = tuple(
+            action.action_id for action in actions[:maximum_actions]
+        )
     else:
         content_action_ids = _resolve_content_action_ids(
             ui_brief=ui_brief,
@@ -603,6 +623,44 @@ def build_template_prompt_contracts(
             for name, schema in properties.items():
                 value_kind = _parameter_value_kind(name, schema)
                 source_contract: dict[str, Any] = {"valueKind": value_kind}
+                if value_kind == "data-path":
+                    source_contract["format"] = (
+                        "copy one value from allowedPaths exactly as written; "
+                        "do not normalize, expand, shorten, or otherwise rewrite it"
+                    )
+                    allowed_paths = tuple(
+                        dict.fromkeys(
+                            (
+                                *definition.primary_data,
+                                *definition.secondary_data,
+                                *definition.optional_data,
+                            )
+                        )
+                    )
+                    if wire_id.startswith("GenericMetricOverview"):
+                        data = task_spec.dataModelSchema.get("data", {})
+                        selectors = (
+                            data.get("_advancedSelectors", {})
+                            if isinstance(data, dict)
+                            else {}
+                        )
+                        validation = (
+                            selectors.get("templateValidation", {})
+                            if isinstance(selectors, dict)
+                            else {}
+                        )
+                        generic_fields = (
+                            validation.get("GenericMetricOverview", {})
+                            if isinstance(validation, dict)
+                            else {}
+                        )
+                        if isinstance(generic_fields, dict) and generic_fields:
+                            allowed_paths = tuple(
+                                f"/{field_name}"
+                                for field_name in generic_fields
+                                if isinstance(field_name, str) and field_name
+                            )
+                    source_contract["allowedPaths"] = list(allowed_paths)
                 if value_kind == "asset-source":
                     source_contract["allowedSources"] = _parameter_allowed_asset_sources(
                         name,
@@ -647,7 +705,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "只能把 Contract 声明的一个闭合配置对象"
             "放在第一个 child 前。布局的 businessChildren 数量不含 Action；"
             "除 TwoSupportLayout 外，所有 Action 必须是布局根的连续末尾直接 children，"
-            "禁止放进 Column/Row/Stack/List/业务 Template；整卡最多两个 Action。"
+            "禁止放进 Column/Row/Stack/List/业务 Template；Action 数量必须符合所选布局 Contract。"
             "TwoSupportLayout 禁止 Action child，批准事件只能各一次写入 Support 业务"
             "Template 的可选 actionId Prop。HeroTitleContentActionLayout 必须恰好按位置放置 "
             "HeroTitle、HeroContent、PillAction 三个直接 children，不得交换、重复或嵌套。",
@@ -657,12 +715,15 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "禁止从 request 截取标题。",
             "Action 类型由业务模板后缀和布局共同决定：Compact/Hero/WideHero 使用 "
             'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
-            'Template("IconAction@1", props)，WideFull 不允许 Action；Support 仅使用内部 '
+            'Template("IconAction@1", props)，需要大型图标操作槽的 2x4 布局使用 '
+            'Template("LargeIconAction@1", props)，WideFull 仅可在对应组合布局中使用 Action；'
+            "Support 仅使用内部 "
             "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"
             "actionId 只能来自该模板 parameterSources.actionId.allowedActionIds，"
             "空列表必须省略；事件还须与所展示城市或日程项一致。"
             "HeroTitle/HeroContent 仅允许按位置组合到 HeroTitleContentActionLayout；"
-            "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
+            "禁止直接调用 PillAction/IconAction/LargeIconAction/ActionTile、"
+            "标准 Button 和事件对象。",
         )
     return (
         'Card 外壳必须是 Template("card@1", cardParams, content)。',
@@ -686,7 +747,8 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
         "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
-        "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
+        "actionIconCandidates 选择；IconAction@1 和 LargeIconAction@1 "
+        "必须填写批准的 actionId/icon。"
     )
     two_support_allowed = "TwoSupportLayout" in contract.allowed_layout_component_ids
     if two_support_allowed:
@@ -874,6 +936,8 @@ def _is_action_or_asset_parameter(name: str) -> bool:
 
 
 def _parameter_value_kind(name: str, schema: dict[str, Any]) -> str:
+    if name.casefold().endswith("path"):
+        return "data-path"
     semantic_text = f"{name} {schema.get('description', '')}".casefold()
     if any(
         token in semantic_text
@@ -1045,6 +1109,7 @@ def _provider_variant_matches_trusted_state(
         state_independent_variants = {
             "compact",
             "chargingDiagnosticsHero",
+            "chargingDiagnosticsWideFull",
             "chargingProgressFull",
             "chargingProgressHero",
             "chargingRingHero",
@@ -1097,6 +1162,8 @@ def _provider_variant_matches_trusted_state(
             return False
         if variant_name == "hero":
             return True
+        if variant_name == "musicFull":
+            return has_case
         if variant_name == "earbudPairCompact":
             return has_left and has_right
         if variant_name == "earbudPairFull":
@@ -1207,6 +1274,10 @@ def _action_label(event: Any) -> str:
     return _ACTION_LABELS.get(getattr(event, "id", "") or "", "打开详情")
 
 
+def _action_subtitle(event: Any) -> str:
+    return _ACTION_SUBTITLES.get(getattr(event, "id", "") or "", "")
+
+
 def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
     event_counts: dict[str, int] = {}
     for event in task_spec.eventCandidates:
@@ -1236,6 +1307,7 @@ def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
                 action_id=action_id,
                 event_id=event_id,
                 display_label=_action_label(event),
+                display_subtitle=_action_subtitle(event),
                 call=event.call,
                 args=event.args,
             )

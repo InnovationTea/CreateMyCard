@@ -528,6 +528,7 @@ async def plan_advanced_scope_with_llm(
         raise ValueError(f"invalid AdvancedScopeBrief: {exc}") from exc
     scope = _normalize_redundant_2x2_support(scope, task_spec)
     scope = _normalize_2x2_two_support_theme(scope, task_spec, registry)
+    scope = _normalize_redundant_2x4_health_scope(scope, task_spec, registry)
     try:
         validate_advanced_scope(
             scope,
@@ -694,6 +695,49 @@ def _normalize_2x2_two_support_theme(
     )
     theme_id = registry.require_layout_theme("TwoSupportLayout", capability_ids)
     return scope.model_copy(update={"theme_id": theme_id})
+
+
+def _normalize_redundant_2x4_health_scope(
+    scope: AdvancedScopeBrief,
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+) -> AdvancedScopeBrief:
+    """Collapse several overlapping health choices into the generic health slot.
+
+    The first-layer model can reasonably select ActivityOverview, WorkoutOverview
+    and HeartRateOverview for the same GetHealthAndSportSummary payload.  On a
+    2x4 card these are alternative views of one right-hand slot, not three
+    independent columns.  Keep the non-health business (for example countdown)
+    and let GenericMetricOverview's generic compact variants choose the fields.
+    """
+    if task_spec.size != "2x4":
+        return scope
+    selected = list(scope.advanced_component_ids)
+    health_ids = {
+        "ActivityOverview",
+        "WorkoutOverview",
+        "HeartRateOverview",
+        "SleepOverview",
+        "GenericMetricOverview",
+    }
+    health_selected = [item for item in selected if item in health_ids]
+    if len(health_selected) < 2 or "GenericMetricOverview" not in {
+        item.name for item in registry.ux_business_components.values()
+    }:
+        return scope
+    primary_health = "SleepOverview" if "SleepOverview" in health_selected else None
+    collapsed: list[str] = []
+    for item in selected:
+        if item in health_ids:
+            if item == primary_health and item not in collapsed:
+                collapsed.append(item)
+            if "GenericMetricOverview" not in collapsed:
+                collapsed.append("GenericMetricOverview")
+        else:
+            collapsed.append(item)
+    return scope if tuple(collapsed) == scope.advanced_component_ids else scope.model_copy(
+        update={"advanced_component_ids": tuple(collapsed)}
+    )
 
 
 def validate_advanced_scope(
@@ -977,6 +1021,7 @@ def _template_has_satisfiable_variant(
             _required_parameter_is_satisfiable(
                 name,
                 properties.get(name, {}),
+                template_id=template_id,
                 field_names=field_names,
                 has_assets=has_assets,
                 has_actions=has_actions,
@@ -992,11 +1037,25 @@ def _required_parameter_is_satisfiable(
     name: str,
     schema: dict[str, Any],
     *,
+    template_id: str,
     field_names: set[str],
     has_assets: bool,
     has_actions: bool,
     has_numbers: bool,
 ) -> bool:
+    template_name = template_id.rpartition("@")[0]
+    if (
+        template_name
+        in {"GenericMetricOverviewCompact", "GenericMetricOverviewDualCompact"}
+        and name in {"title", "firstTitle", "secondTitle"}
+    ):
+        # These labels are display metadata derived from the selected field's
+        # TaskSpec description. They do not need a same-named data field.
+        return bool(field_names)
+    if name.casefold().endswith("path"):
+        # Generic templates receive a runtime data path selected from the
+        # current TaskSpec; it is not a fixed schema field name.
+        return bool(field_names)
     semantic = _normalize(f"{name} {schema.get('description', '')}")
     if any(
         token in semantic
@@ -1283,17 +1342,32 @@ def _theme_ids_for_scope(
 
 def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, str]:
     preferred: dict[tuple[int, int], tuple[str, ...]] = {
-        (1, 0): ("SingleFocusLayout", "WideSingleFocusLayout"),
+        (1, 0): ("SingleFocusLayout", "WideFullOnlyLayout", "WideSingleFocusLayout"),
         (1, 1): (
             "HeroActionLayout",
             "FullIconActionLayout",
             "SingleFocusLayout",
             "WideSingleFocusLayout",
+            "WideFullHeroActionLayout",
+            "WideHeroActionFullLayout",
         ),
         (1, 2): ("CompactTwoActionLayout",),
-        (2, 0): ("TwoSupportLayout",),
-        (2, 1): ("HeroTitleContentActionLayout", "TwoSupportLayout"),
-        (2, 2): ("TwoSupportLayout",),
+        (2, 0): ("TwoSupportLayout", "WideTwoFocusLayout"),
+        (2, 1): (
+            "HeroTitleContentActionLayout",
+            "TwoSupportLayout",
+            "WideFullHeroActionLayout",
+            "WideHeroActionFullLayout",
+            "WideTwoFocusActionLayout",
+        ),
+        (2, 2): (
+            "TwoSupportLayout",
+            "WideFullHeroTwoActionLayout",
+            "WideTwoHeroActionLayout",
+            "WideHalfCompactTwoLargeActionLayout",
+            "WideTwoFocusTwoActionLayout",
+        ),
+        (4, 0): ("WideFourCompactLayout",),
     }
     order = preferred.get((count, action_count), ())
     return (order.index(layout_id) if layout_id in order else len(order), layout_id)

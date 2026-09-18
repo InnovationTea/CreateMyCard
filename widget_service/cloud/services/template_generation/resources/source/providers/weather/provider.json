@@ -124,7 +124,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "assetParameterSemanticTags": {
         "conditionIcon": [
           "weather-indicator"
@@ -148,7 +150,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureUvSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "紫外线天气 Support：主行展示城市和温度，辅助行展示天气现象及紫外线等级；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",
@@ -167,7 +171,9 @@
     },
     {
       "templateId": "WeatherOverviewTemperaturecoldLevelSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "感冒风险天气 Support：主行展示城市和温度，辅助行展示天气现象及感冒风险；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",
@@ -405,7 +411,9 @@
       "capabilityId": "ViewWeather",
       "description": "明日天气 Full，12vp 地点标题下突出 20vp 天气现象，并以 12vp 展示日期和星期。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/condition"],
+      "primaryData": [
+        "/daily/1/condition"
+      ],
       "secondaryData": [
         "/daily/1/date",
         "/daily/1/weekday"
@@ -420,8 +428,12 @@
       "capabilityId": "ViewWeather",
       "description": "明日降雨 Full，上组展示 32vp 降雨概率及 12vp 说明，主值不锁定行高，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/rainProbabilityPercent"],
-      "secondaryData": ["/daily/1/temperatureRangeText"],
+      "primaryData": [
+        "/daily/1/rainProbabilityPercent"
+      ],
+      "secondaryData": [
+        "/daily/1/temperatureRangeText"
+      ],
       "optionalData": []
     },
     {
@@ -446,12 +458,251 @@
       "capabilityId": "ViewWeather",
       "description": "明日健康指数 Full，上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": ["/daily/1/uvIndex"],
+      "primaryData": [
+        "/daily/1/uvIndex"
+      ],
       "secondaryData": [
         "/daily/1/airQuality",
         "/daily/1/coldLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "WeatherOverviewThreeDayForecastFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "三日天气预报 Full，按三个双行条目展示 daily[0..2] 每天的完整日期、星期、天气现象、降雨概率和完整温度范围。适合与倒计时 Hero 及天气详情操作组成 2x4 卡片。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/0/condition",
+        "/daily/1/condition",
+        "/daily/2/condition"
+      ],
+      "secondaryData": [
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/1/date",
+        "/daily/1/weekday",
+        "/daily/1/temperatureRangeText",
+        "/daily/1/rainProbabilityPercent",
+        "/daily/2/date",
+        "/daily/2/weekday",
+        "/daily/2/temperatureRangeText",
+        "/daily/2/rainProbabilityPercent"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "WeatherOverviewDestinationDayFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "目的地出发日天气 Full，展示 daily[3] 的温度范围、降雨概率和空气质量，可补充可信目的地与目标日期；适合与出发倒计时 Hero 及操作组成 2x4 卡片。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/3/temperatureRangeText"
+      ],
+      "secondaryData": [
+        "/daily/3/rainProbabilityPercent",
+        "/daily/3/airQuality"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "WeatherOverviewWideFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气 WideFull，左右分区展示当前天气、体感、湿度、空气质量、风况和当日预报。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/feelsLikeC",
+        "/current/humidityPercent",
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewWideHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气 WideHero，突出当前温度和天气现象，辅助展示体感、温度范围和降雨概率。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/feelsLikeC",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewWideHalf@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气 WideHalf，横向紧凑展示位置、当前温度、天气现象、空气质量和降雨概率。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/airQuality",
+        "/daily/0/rainProbabilityPercent"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewAlertInfoFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "温度天气预警 Full，沿用完整温度天气摘要布局，展示城市、温度、天气现象、空气质量和预警信息；没有预警时显示无预警信息。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/airQuality",
+        "/current/alertLevel"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewFeelsLikeAlertFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "体感温度天气 Full，沿用完整温度天气摘要布局，倒数第二行展示体感温度，最后一行展示预警信息；没有预警时显示无预警信息。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/feelsLikeC"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/alertLevel"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewHumidityWindFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "湿度风向天气 Full，沿用完整温度天气摘要布局，倒数第二行展示湿度，最后一行展示风向。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/humidityPercent",
+        "/current/windDirection"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewUvColdFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "紫外线天气 Full，沿用完整温度天气摘要布局，倒数第二行展示紫外线强度，并保留感冒风险行。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/uvIndex"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/coldLevel"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewFeelsLikeWindSupport@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "体感温度与风力 Support：左侧两行展示体感温度和风力，右侧固定使用 24vp 温度计图标。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/feelsLikeC"
+      ],
+      "secondaryData": [
+        "/current/windLevel"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "temperatureIcon": [
+          "weather-temperature-indicator"
+        ]
+      }
+    },
+    {
+      "templateId": "WeatherOverviewDailySummaryFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "日期天气摘要 Full，展示城市、日期、温度范围、降雨概率和空气质量。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/1/temperatureRangeText"
+      ],
+      "secondaryData": [
+        "/daily/1/date",
+        "/daily/1/weekday",
+        "/daily/1/rainProbabilityPercent",
+        "/daily/1/airQuality"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
     }
   ],
   "compatibility": {
