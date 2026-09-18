@@ -50,6 +50,30 @@ _TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
+_TWO_BY_TWO_SINGLE_ROUTE_LOCK = """# 本次请求单业务边界（高优先级）
+
+本次 TaskSpec 的 `/data` 下只有一个一级业务根。该根内的多个字段仍属于同一个
+业务对象，绝对不能使用 S4，也不能生成孤立的 `136×64vp` S4 内容背板。
+
+- 用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留，每个事实只展示
+  一次；“重点、优先、主要”只决定主次顺序，不得作为删除其余明确字段的理由。
+- 大数字 `value_row` 只能包含纯数字和紧邻的真实单位，禁止加入标签、方向、状态、
+  名称、说明或其它字段；这些信息必须另起一行。
+- 同一对象存在两个及以上最高/最低、当前/目标、已用/剩余等同级量化指标时，必须在
+  全宽 Column 内纵向排列，并将每个指标压成一个完整的 `12fp/400` 单行 Text，按
+  “短标签 + 数值 + 单位”展示；禁止 30fp/38fp hero、混合字号 Row 和多个大数字
+  `value_row`。V01、V06、S3、S4 和 2x4 不执行此规则。
+- S2 状态亚型同时包含一个主状态、两个同级辅助状态和一个底部按钮时，两个辅助状态
+  必须合并为一个 `12fp/400`、`maxLines:1` Text，用短文字标签区分并以 ` | ` 分隔；
+  禁止分别创建左右窄 Row、固定窄宽度槽或 Image。L/R 方向用文字表达，不用左右图标。
+- 多字段使用全宽单业务信息流：重点字段在前，其余字段放在后续辅助行。仅当 S2 数值
+  亚型不含 Progress，并且同时使用大数字 `value_row` 主值、两个辅助字段和一个底部
+  按钮时，内容区固定为主值行加一个 `12fp/400` 辅助摘要 Text；两个辅助字段必须在该
+  Text 中用 ` | ` 分隔，`maxLines:1`，禁止拆成两行、独立 Row/Column 或 Image。
+  任何 Progress、视觉亚型、V01、V06、S3、S4 都不执行此规则。单个环形 Progress 与
+  一个底部按钮组合时，`content_area`、环和状态文字必须水平居中，禁止 `alignItems:"start"`。
+- 普通单业务内容区不生成 Image。不得为了使用候选素材，把主内容包装成 S4 小背板。"""
+
 _TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
 本次 2x2 TaskSpec 展示两个独立业务对象，必须锁定 S4 上下双业务骨架。
@@ -58,6 +82,9 @@ _TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先
   标题、公共内容区、底部 action_area 和 root.onClick。
 - 每个背板最多两行文字，第一行主数据使用 `14fp/700`，第二行辅助数据使用
   `12fp/400`；动作只绑定语义所属背板，内部子组件不绑定动作。
+- 文字字符数、是否超过 6 个字、占一行还是两行，都不得决定图标是否存在或位置。
+  1-2 项数据且有语义准确、状态安全的候选素材时保留一个 `20×20vp` 右侧图标，
+  图标右边缘距背板右边固定 `12vp`，结构固定为 `Row -> [text_column, visual]`。
 - 不得把任一业务降为另一业务的辅助信息，也不得复用单业务 hero、标题或动作区。
 - 本锁不适用于已经识别为V01的 `countdown + calendar` 单目标倒计时。"""
 
@@ -93,8 +120,10 @@ _MEETING_V06_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级�
 - `day_area` 必须是 root 的第一个直接子节点，固定为左对齐的 `136×16vp Row`，
   且内部只有一个 Text；禁止把日期 Text 直接挂在 root 下或改成居中标题。
 - `content_area` 固定使用 `Row -> [TimelineUnit, meeting_texts]`，间距 `8vp`。
-  `meeting_texts` 第一行是 `14fp/700` 会议标题，下面最多两行 `12fp/400`
-  辅助信息；时间和地点前后不增加 Image。
+  `meeting_texts` 第一行是 `14fp/700` 会议标题，第二行时间、第三行地点均使用
+  `12fp/400`；只有 TaskSpec 没有地点且用户也未要求地点时才省略第三行。
+- 同时提供 `title`、`startDate`、`dtStart`、`countdownDays` 时，依次展示会议日期、
+  会议标题、开始时间和普通辅助文字“还有 N 天”；倒计时不得使用 V01 hero。
 - 无真实会议标题字段且用户未提供会议名称时固定显示“日程”。出现其他业务时
   禁止使用 V06 和 TimelineUnit，必须按双业务骨架处理。"""
 
@@ -105,7 +134,15 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 只能是上下两个 `136×64vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
-降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。""",
+降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。
+双业务中即使一个对象是倒计时，也必须继续使用 S4；倒计时数字只是所属蒙版第一行
+`14fp/700` 的普通主数据，禁止使用 V01、38fp hero、独立倒计时组或公共标题/动作区。
+每个蒙版最多两行文字，但文字字符数、是否单行或双行不得决定图标是否存在或图标位置；
+1-2 项数据且有合法素材时保留一个 `20×20vp` 右侧图标，图标右边缘距蒙版右边固定
+`12vp`，结构固定为 `Row -> [text_column, visual]`。
+2x2 单业务中的多个同级指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、
+左右两个指标组或左右两张内容背板。Row 只可用于同一个指标内部的“数值 + 合法单位”，
+不得把两个不同字段、两个 value_row 或两个指标 Column 并排。""",
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
 2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
@@ -243,7 +280,10 @@ class PromptBuilder:
             f"{_SIZE_LAYOUT_ROUTE_LOCKS[task_spec.size]}"
         )
         if PromptBuilder._uses_countdown_v01(task_spec):
-            return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            )
         if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
         if (
@@ -254,7 +294,12 @@ class PromptBuilder:
         if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
         if PromptBuilder._uses_meeting_v06(task_spec):
-            return f"{prompt}\n\n{_MEETING_V06_ROUTE_LOCK}"
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_MEETING_V06_ROUTE_LOCK}"
+            )
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 1:
+            return f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
         return prompt
 
     def build_design_compact(
