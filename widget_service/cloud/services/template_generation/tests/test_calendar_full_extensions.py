@@ -27,6 +27,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 )
 from services.template_generation.tests.test_calendar_requested_case_templates import (
     _expanded,
+    _options,
     _schema,
     _walk,
 )
@@ -115,6 +116,39 @@ def test_date_location_projection_only_runs_when_existing_shapes_miss() -> None:
     old_shape = _schema((*fields, "/events/0/dtStart"))
     existing = content_selectors.extract_schedule_template_variant_fields(old_shape)
     assert set(existing) == {"eventLocation", "dtStart"}
+
+
+@pytest.mark.parametrize("suffix", ("TimezoneTimeFull", "DateLocationFull", "ReminderDetailsFull"))
+@pytest.mark.parametrize("header_label", [None, "我的日程详情"])
+@pytest.mark.parametrize("with_icon", [False, True])
+def test_new_full_headers_reserve_space_for_optional_icon(
+    suffix: str, header_label: str | None, with_icon: bool,
+) -> None:
+    props: dict[str, Any] = {}
+    if header_label is not None:
+        props["headerLabel"] = header_label
+    if with_icon:
+        props["calendarIcon"] = "calendar"
+    root = _expanded(f"ScheduleOverview{suffix}@1", props=props)
+    header = root.children[0]
+    assert header.component_type == "Row"
+    assert _options(header).get("width") == "matchParent"
+    title = header.children[0]
+    assert title.component_type == "Text"
+    assert title.values[0] == (header_label or "日程详情")
+    # 150vp 卡片内宽只有 126vp；标题必须让出可选图标和间距所占的空间。
+    title_options = _options(title)
+    assert title_options.get("layoutWeight") == 1
+    assert "width" not in title_options
+    assert title_options.get("maxLines") == 1
+    assert title_options.get("textOverflow") == "ellipsis"
+    assert len(header.children) == (2 if with_icon else 1)
+    if with_icon:
+        icon = header.children[1]
+        assert icon.component_type == "Image"
+        assert _options(icon).get("width") == _options(icon).get("height") == 20
+        assert _options(icon).get("flexShrink") == 0
+        assert _options(header).get("itemMargin") == 4
 
 
 @pytest.mark.parametrize("suffix", tuple(_CASES))
