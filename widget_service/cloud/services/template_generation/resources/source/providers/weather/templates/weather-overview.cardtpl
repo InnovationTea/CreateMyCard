@@ -1635,6 +1635,7 @@ data = {
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName"),
     temperature: $path("/current/temperatureText"),
+    temperatureC: $optionalPath("/current/temperatureC"),
     condition: $path("/current/condition"),
     updatedAt: $optionalPath("/updatedAt")
 }
@@ -1680,10 +1681,17 @@ Column(
         "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
       },
-      Text(
-        data.temperature,
-        { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-      )
+      #if data.temperatureC
+        Text(
+          Expr(data.temperatureC + "°"),
+          { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        )
+      #else
+        Text(
+          data.temperature,
+          { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        )
+      #endif
     )
   ),
   Column(
