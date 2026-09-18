@@ -1153,6 +1153,12 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
+        if variant_name == "earbudPairHero":
+            if facts.earphone_name is None or not has_left or not has_right:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
         if facts.is_connected is None or facts.earphone_name is None:
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone identity."
