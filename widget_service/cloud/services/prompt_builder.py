@@ -50,6 +50,29 @@ _TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 
+_TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 2x2 TaskSpec 展示两个独立业务对象，必须锁定 S4 上下双业务骨架。
+
+- root 直接且只能包含上下两个 `136×64vp` 内容背板，间距固定 `8vp`；禁止公共
+  标题、公共内容区、底部 action_area 和 root.onClick。
+- 每个背板最多两行文字，第一行主数据使用 `14fp/700`，第二行辅助数据使用
+  `12fp/400`；动作只绑定语义所属背板，内部子组件不绑定动作。
+- 不得把任一业务降为另一业务的辅助信息，也不得复用单业务 hero、标题或动作区。
+- 本锁不适用于已经识别为V01的 `countdown + calendar` 单目标倒计时。"""
+
+_TWO_BY_FOUR_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 2x4 TaskSpec 最终展示两个语义数据块，必须锁定 FEWSHOT_2x4 的 V09
+和 W9 左右双大内容背板。数据块按业务对象划分，不按 action 数量划分；同一
+`healthSport` 根内的 `daily*` 日汇总与 `exercise*` 单次运动记录算两个数据块。
+
+- root 必须是 Row，直接且只能包含左右两个 `144×136vp` Column 背板，间距
+  固定 `8vp`；禁止卡级公共标题、公共内容区和公共动作区。
+- 禁止两个或更多 `296×48-64vp` 全宽内容背板上下堆叠，不得复用 2x2 S4。
+- 每个数据块的标题、数据和至多一个所属动作只能放在自己的背板内；action 不增加
+  数据块，也不得改变 W9 骨架。"""
+
 _TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
 本次 TaskSpec 是 2x2 单业务且恰好提供两个动作，必须锁定 FEWSHOT_2x2 的 V03
@@ -102,13 +125,34 @@ class PromptBuilder:
         return tuple(data_schema)
 
     @staticmethod
+    def _two_by_four_data_block_count(task_spec: TaskSpec) -> int:
+        data_roots = PromptBuilder._data_roots(task_spec)
+        block_count = len(data_roots)
+        if task_spec.size != "2x4":
+            return block_count
+
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return block_count
+        health_sport = data_schema.get("healthSport")
+        if not isinstance(health_sport, dict):
+            return block_count
+
+        field_names = tuple(health_sport)
+        has_daily_summary = any(name.startswith("daily") for name in field_names)
+        has_exercise_record = any(name.startswith("exercise") for name in field_names)
+        if has_daily_summary and has_exercise_record:
+            block_count += 1
+        return block_count
+
+    @staticmethod
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
-        data_root_count = len(PromptBuilder._data_roots(task_spec))
+        data_block_count = PromptBuilder._two_by_four_data_block_count(task_spec)
         selected_ids: tuple[str, ...] = ()
         dual_ids = (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
         if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
             selected_ids = ("2x2-V01",)
-        elif data_root_count == 2:
+        elif data_block_count == 2:
             if task_spec.size == "2x2":
                 selected_ids = dual_ids
             else:
@@ -200,6 +244,13 @@ class PromptBuilder:
         )
         if PromptBuilder._uses_countdown_v01(task_spec):
             return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
+            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
+        if (
+            task_spec.size == "2x4"
+            and PromptBuilder._two_by_four_data_block_count(task_spec) == 2
+        ):
+            return f"{prompt}\n\n{_TWO_BY_FOUR_DUAL_ROUTE_LOCK}"
         if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
             return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
         if PromptBuilder._uses_meeting_v06(task_spec):
