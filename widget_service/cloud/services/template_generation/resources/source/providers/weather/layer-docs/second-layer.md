@@ -29,6 +29,7 @@
   - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
   - `WeatherOverviewCareAlertFull@1`：上下两组的关怀型 Full，上组展示城市、天气预警及说明，下组展示紫外线和空气质量；可选紫外线图标，不保留电话动作专用留白。
   - `WeatherOverviewWindHero@1`：展示城市、当前风向和风力等级的 Hero；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
+  - `WeatherOverviewWindFull@1`：展示城市、当前风向和风力等级的 Full；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
   - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
     只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。

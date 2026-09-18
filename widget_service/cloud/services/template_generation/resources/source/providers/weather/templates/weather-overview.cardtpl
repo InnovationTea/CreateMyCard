@@ -1344,6 +1344,81 @@ Column(
 
 #End
 
+#Template WeatherOverviewWindFull@1(props: { locationIcon?: asset })
+data = {
+    city: $path("/location/prefectureName"),
+    windDirection: $path("/current/windDirection"),
+    windLevel: $path("/current/windLevel"),
+    updatedAt: $optionalPath("/updatedAt")
+}
+
+Column(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 0,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 20,
+      "justifyContent": "spaceBetween",
+      "alignItems": "top"
+    },
+    Text(
+      data.city,
+      {
+        "width": "matchParent",
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    ),
+    #if props.locationIcon
+      Image(
+        props.locationIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "objectFit": "contain",
+          "flexShrink": 0,
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+    #endif
+  ),
+  Column(
+    {"width": "matchParent", "height": 48, "layoutWeight": 1, "itemMargin": 0, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+      {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(data.windLevel, {"fontSize": 20, "height": 28, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text("级", {"fontSize": 18, "height": 28, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1})
+    ),
+    Row(
+      {"width": "matchParent", "height": 20, "justifyContent": "start", "alignItems": "center", "itemMargin": 0},
+      Text("当前风向 ", {"height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "clip"}),
+      Text(data.windDirection, {"height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+    )
+  ),
+  #if data.updatedAt
+  Column(
+    {"width": "matchParent", "height": 12, "layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(`${data.updatedAt}`,
+    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+  )
+  #endif
+)
+
+#End
+
 #Template WeatherOverviewConditionHero@1(props: { location?: string, conditionIcon?: asset })
 data = {
     city: $optionalPath("/location/prefectureName"),
