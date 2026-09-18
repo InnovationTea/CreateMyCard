@@ -307,7 +307,10 @@
     },
     {
       "templateId": "ScheduleOverviewTimeSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程时间 Support：有标题时主行展示标题、辅助行展示开始时间或时间段；无标题时主行展示开始时间、辅助行展示地点或查看提示。仅在绑定事件时显示可选 24vp 日历或会议图标。",
@@ -332,7 +335,10 @@
     },
     {
       "templateId": "ScheduleOverviewLocationSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 地点 Support：主行展示首项日程标题，辅助行展示地点；可选 24vp 日历图标，根节点可绑定事件。",
@@ -352,7 +358,10 @@
     },
     {
       "templateId": "ScheduleOverviewStartTimeSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 开始时间 Support：主行展示首项日程标题，辅助行展示开始时间；可选 24vp 日历图标，根节点可绑定事件。",
@@ -372,7 +381,10 @@
     },
     {
       "templateId": "ScheduleOverviewDateSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 日期 Support：主行展示首项日程标题，辅助行展示日期；可选 24vp 日历图标，根节点可绑定事件。",
@@ -389,6 +401,186 @@
           "calendar"
         ]
       }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralTextFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralTextHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralTextCompact@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralTextSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      },
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ]
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralNumberFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralNumberHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralNumberCompact@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralNumberSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      },
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ]
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralPairFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralPairHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralPairCompact@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewGeneralPairSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "CalendarOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      },
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ]
     }
   ],
   "compatibility": {

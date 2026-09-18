@@ -431,6 +431,9 @@ def _load_business_definitions(provider_root: Path) -> list[BusinessDefinition]:
         }
         grouped: dict[str, list[dict[str, Any]]] = {}
         for template in payload.get("templates", []):
+            # 这里从固定路径生成专用模板回放；通用模板没有固定路径，单独维护场景输入。
+            if template.get("fallbackOnly"):
+                continue
             business_id = template.get("businessId")
             if isinstance(business_id, str) and business_id:
                 grouped.setdefault(business_id, []).append(template)

@@ -183,7 +183,11 @@
     },
     {
       "templateId": "BatteryOverviewSupport@1",
-      "supportedEventIds": ["event.open.settings.battery","event.open.settings.batteryHealth","event.setPowerSavingMode"],
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量 Support：左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内可选 16vp 手机设备图标，标识电量所属设备；数值电量必需，带单位电量文本、充电状态与电池温度可选，可在根节点绑定事件。",
@@ -205,7 +209,11 @@
     },
     {
       "templateId": "BatteryOverviewStatusSupport@1",
-      "supportedEventIds": ["event.open.settings.battery","event.open.settings.batteryHealth","event.setPowerSavingMode"],
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机充电状态 Support：展示当前充电状态和连接的充电器类型；两个文本字段必需，可在根节点绑定事件。",
@@ -222,6 +230,189 @@
           "battery"
         ]
       }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralTextFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralTextHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralTextCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralTextSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewGeneralNumberFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralNumberHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralNumberCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralNumberSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewGeneralPairFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralPairHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralPairCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
+    },
+    {
+      "templateId": "BatteryOverviewGeneralPairSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BatteryOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ]
     }
   ],
   "compatibility": {

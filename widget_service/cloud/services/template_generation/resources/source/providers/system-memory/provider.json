@@ -51,8 +51,14 @@
     },
     {
       "templateId": "ResourceUsageOverviewSupport@1",
-      "supportedEventIds": ["event.clean.memory"],
-      "assetParameterSemanticTags": { "icon": ["memory"] },
+      "supportedEventIds": [
+        "event.clean.memory"
+      ],
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      },
       "businessId": "ResourceUsageOverview",
       "capabilityId": "GetSystemMemInfo",
       "description": "系统内存占用摘要，展示占用率、可用内存和总内存。组件形态：memoryPeer。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -64,6 +70,183 @@
       "secondaryData": [
         "/availableMemText",
         "/totalMemText"
+      ]
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralTextFull@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralTextHero@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralTextCompact@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralTextSupport@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      },
+      "supportedEventIds": [
+        "event.clean.memory"
+      ]
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralNumberFull@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralNumberHero@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralNumberCompact@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralNumberSupport@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      },
+      "supportedEventIds": [
+        "event.clean.memory"
+      ]
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralPairFull@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralPairHero@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralPairCompact@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "templateId": "ResourceUsageOverviewGeneralPairSupport@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "ResourceUsageOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "icon": [
+          "memory"
+        ]
+      },
+      "supportedEventIds": [
+        "event.clean.memory"
       ]
     }
   ],

@@ -322,7 +322,9 @@
     },
     {
       "templateId": "ActivityOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ],
       "assetParameterSemanticTags": {
         "stepsIcon": [
           "steps"
@@ -340,7 +342,9 @@
     },
     {
       "templateId": "WorkoutOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "workout"
@@ -362,7 +366,9 @@
     },
     {
       "templateId": "HeartRateOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ],
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "心率 Support：主行展示运动平均心率及单位，辅助行展示指标说明；可选 24vp 心脏图标，根节点可绑定事件。",
@@ -380,7 +386,9 @@
     },
     {
       "templateId": "SleepOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sleep"],
+      "supportedEventIds": [
+        "event.open.health.sleep"
+      ],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "sleep"
@@ -395,6 +403,1206 @@
         "/nightSleepDurationText"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "ActivityOverviewGeneralTextFull@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralTextHero@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralTextCompact@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralTextSupport@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralNumberFull@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralNumberHero@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralNumberCompact@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralNumberSupport@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralPairFull@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralPairHero@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralPairCompact@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewGeneralPairSupport@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "ActivityOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "stepsIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralTextFull@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralTextHero@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralTextCompact@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralTextSupport@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralNumberFull@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralNumberHero@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralNumberCompact@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralNumberSupport@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralPairFull@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralPairHero@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralPairCompact@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewGeneralPairSupport@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "WorkoutOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sport"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralTextFull@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralTextHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralTextCompact@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralTextSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralNumberFull@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralNumberHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralNumberCompact@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralNumberSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralPairFull@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralPairHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralPairCompact@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewGeneralPairSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "HeartRateOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "heartIcon": [
+          "heart"
+        ]
+      },
+      "generalDataPaths": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sport"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralTextFull@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralTextHero@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralTextCompact@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralTextSupport@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sleep"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralNumberFull@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralNumberHero@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralNumberCompact@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralNumberSupport@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sleep"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralPairFull@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralPairHero@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralPairCompact@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewGeneralPairSupport@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "SleepOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "sourceIcon": [
+          "sleep"
+        ]
+      },
+      "generalDataPaths": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/targetDateText",
+        "/updatedAt"
+      ],
+      "supportedEventIds": [
+        "event.open.health.sleep"
+      ]
     }
   ],
   "compatibility": {

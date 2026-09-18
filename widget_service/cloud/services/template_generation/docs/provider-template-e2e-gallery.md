@@ -89,6 +89,39 @@ Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还�
 
 ## 生成
 
+### 通用模板独立页签
+
+`--include-general-templates` 追加 `gallery.general-templates`（“通用模板”）分组，
+枚举当前注册的 Number/Text/Pair × Full/Hero/Compact/Support。输入由
+`test_support/general_gallery.py` 从所属业务的真实字段派生；每张卡片明确主字段、辅助字段和单位，
+Support 配对一个独立数据根的通用段落。各业务图标来自已注册素材，样例只注入真实字段。
+
+该批跑仍调用正式服务和真实两层模型，不禁用专用模板，也不绕过 Search/Planner。构造输入时选择
+没有专用模板完整覆盖的字段组合；无法触发兜底、能力未启用或模板禁用时保留不可用记录。
+当前清单共 128 项，96 项可进入真实批跑；应用时长和内存能力未启用/未注册，倒计时字段被专用
+模板覆盖，合计 32 项不可用。此计数不代表生成或真机成功，需以当次输出和端侧检查为准。
+
+画廊目标模板约束按通用模板的字段范围保留模型意图；第二层数据投影只恢复 Plan 中选定且已批准
+的字段，不能仅因通用模板没有固定路径就将其裁掉。模型必须直接输出 `$path(...)` 或
+`Expr(...)` 调用，不能把调用转成带引号的字符串。数组字段支持批准范围内的常量下标，
+例如 `Expr(data.events[0].remindTime[0] + "分钟")`；越界、动态下标或未批准路径仍拒绝。
+数值 Hero 需同时验证标签、进度条、辅助信息和操作区的高度预算；通用模板使用端侧接受的
+`textAlign: start/center`。端侧 `schemaWarning` 必须逐项保留，不能因卡片可显示就计为无告警通过。
+
+只生成这一页签并使用独立输出目录：
+
+```bash
+widget_service/.venv312/bin/python \
+  widget_service/cloud/services/template_generation/tools/generate_provider_template_gallery.py \
+  --refresh-inputs --include-general-templates --provider gallery.general-templates \
+  --input-root output/general-template-gallery/inputs \
+  --output-root output/general-template-gallery/generated --concurrency 4 --strict
+```
+
+先追加 `--dry-run` 可检查清单；真实批跑必须使用可用的真实模型配置。端侧同步使用
+`sync_provider_scenario_gallery.py --source <独立输出目录> --merge-provider gallery.general-templates`，
+只替换此页签并重新汇总状态，保留其他分组及其 A2UI。失败和不可用项也保留，不用旧成功产物掩盖。
+
 ### 模版场景示例页签
 
 加上 `--include-template-examples` 可追加“模版场景示例”分组，配置源为

@@ -267,12 +267,25 @@ def _build_case(
         dataModelSchema=data_schema,
     )
     variant = definition.variants[0]
+    preview_root = variant.root
+    if definition.data_parameters_schema:
+        from .data_parameters import materialize_data_root, resolve_data_arguments, select_data_size
+
+        # 独立版式预览使用显式演示文案；真实动态绑定由通用模板端到端用例验证。
+        from .general_semantics import general_preview_data
+
+        arguments = general_preview_data(definition)
+        values = resolve_data_arguments(
+            definition.data_parameters_schema, arguments, {}, definition.data_domain or "",
+        )
+        preview_root = select_data_size(preview_root, definition.data_parameters_schema, 2)
+        preview_root = materialize_data_root(preview_root, values)
     bindings = {
         name: _binding_placeholder(definition, binding)
         for name, binding in definition.bindings.items()
     }
     content = _instantiate_blueprint(
-        variant.root,
+        preview_root,
         _template_parameters(definition),
         bindings,
         _preview_theme_values(definition, registry),

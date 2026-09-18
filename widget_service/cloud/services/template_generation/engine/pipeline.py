@@ -321,10 +321,9 @@ async def _generate_selected_templates(
     model_client: Any,
     template_plans: tuple[TemplatePlan, ...] = (),
 ) -> TemplateEngineOutput:
-    projected_task_spec = project_content_component_facts(
-        source_task_spec,
-        effective_capability_ids,
-        scope.advanced_component_ids,
+    projected_task_spec = _project_selected_template_facts(
+        source_task_spec, effective_capability_ids, scope.advanced_component_ids,
+        component_candidates, registry,
     )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
@@ -333,6 +332,7 @@ async def _generate_selected_templates(
         scope.advanced_component_ids,
         component_candidates,
         registry,
+        template_plans=template_plans,
     )
     projection = build_ux_mixed_prompt(
         task_spec=projected_task_spec,
@@ -435,6 +435,30 @@ async def _generate_hybrid_body(
     return result
 
 
+def _project_selected_template_facts(
+    source: TaskSpec,
+    capability_ids: set[str],
+    component_ids: tuple[str, ...],
+    candidates: tuple[TemplateComponentCandidate, ...],
+    registry: CardPlanRegistry,
+) -> TaskSpec:
+    """通用模板按已批准路径投影，不要求固定模板的整套业务字段。"""
+    parameterized: set[str] = set()
+    for candidate in candidates:
+        template_ids = registry.enabled_template_ids(candidate.available_template_ids)
+        if template_ids and all(
+            registry.require_template(template_id).data_parameters_schema
+            for template_id in template_ids
+        ):
+            parameterized.add(candidate.component_id)
+    fixed_ids = tuple(item for item in component_ids if item not in parameterized)
+    if fixed_ids:
+        projected = project_content_component_facts(source, capability_ids, fixed_ids)
+    else:
+        projected = source.model_copy(update={"dataModelSchema": {"data": {}}})
+    return projected
+
+
 def _with_provider_template_runtime_data(
     source: TaskSpec,
     projected: TaskSpec,
@@ -442,6 +466,8 @@ def _with_provider_template_runtime_data(
     component_ids: tuple[str, ...],
     component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
+    *,
+    template_plans: tuple[TemplatePlan, ...] = (),
 ) -> TaskSpec:
     schema = deepcopy(projected.dataModelSchema)
     template_ids_by_component = {
@@ -481,6 +507,16 @@ def _with_provider_template_runtime_data(
                     )
                 )
             )
+            if definition.data_parameters_schema:
+                from .cardplan.general_templates import parameter_data_paths
+
+                planned_paths: set[str] = set()
+                for plan in template_plans:
+                    for slot in plan.business_slots:
+                        if slot.template_id == definition.wire_id:
+                            planned_paths.update(slot.covered_explicit_fields)
+                approved = parameter_data_paths(definition, source)
+                provider_paths = tuple(path for path in approved if path in planned_paths)
             for root in roots:
                 for relative_path in provider_paths:
                     path = f"{root.rstrip('/')}{relative_path}"

@@ -261,6 +261,17 @@ def search_template_variants(
             preferred_template_ids,
             candidate_output_fields=candidate_paths,
         )
+        general_matches = _general_templates_for_capability(
+            registry, capability_id, explicit_fields, task_spec, card_spec,
+            primary=intent.primary_output_field_by_capability.get(capability_id),
+        )
+        for business_id, matches in general_matches.items():
+            specialized = matches_by_business.get(business_id, {})
+            has_complete_specialized = any(
+                set(explicit_fields).issubset(paths) for paths in specialized.values()
+            )
+            if not has_complete_specialized:
+                matches_by_business[business_id] = matches
         for business_id, matches in matches_by_business.items():
             candidates: list[TemplateSearchCandidate] = []
             for template_id, covered_paths in matches.items():
@@ -300,6 +311,46 @@ def search_template_variants(
         cardSize=task_spec.size,
         businessCandidates=tuple(result_groups),
     )
+
+
+def _general_templates_for_capability(
+    registry: CardPlanRegistry,
+    capability_id: str,
+    explicit_fields: tuple[str, ...],
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    *,
+    primary: str | None = None,
+) -> dict[str, dict[str, frozenset[str]]]:
+    from .general_semantics import general_family_is_eligible, general_family_preference
+    from .general_templates import parameter_data_paths
+
+    roots = _capability_data_roots(card_spec, capability_id)
+    matches: dict[str, dict[str, frozenset[str]]] = {}
+    if len(roots) != 1 or not explicit_fields:
+        return matches
+    ordered = sorted(
+        registry.templates.values(),
+        key=lambda definition: general_family_preference(definition, explicit_fields, primary),
+    )
+    for definition in ordered:
+        if not definition.fallback_only or definition.capability_id != capability_id:
+            continue
+        if not registry.template_is_enabled(definition.wire_id):
+            continue
+        if definition.data_domain != roots[0] or definition.business_id is None:
+            continue
+        variant = definition.variants[0]
+        if task_spec.size not in variant.supported_card_sizes:
+            continue
+        paths = parameter_data_paths(definition, task_spec)
+        if not set(explicit_fields).issubset(paths):
+            continue
+        if not general_family_is_eligible(definition, explicit_fields, primary):
+            continue
+        business_matches = matches.setdefault(definition.business_id, {})
+        business_matches[definition.wire_id] = frozenset(explicit_fields)
+    return matches
 
 
 def restrict_search_intent_to_preferred_templates(
@@ -466,9 +517,16 @@ def restrict_query_to_preferred_templates(
         if record.template_id not in preferred_ids:
             continue
         matched_ids.add(record.template_id)
-        available_paths_by_capability.setdefault(record.capability_id, set()).update(
-            record.available_paths
-        )
+        available = available_paths_by_capability.setdefault(record.capability_id, set())
+        if record.fallback_only:
+            from .general_semantics import general_field_is_allowed
+
+            definition = registry.require_template(record.template_id)
+            for path in query.required_output_fields_by_capability.get(record.capability_id, ()):
+                if general_field_is_allowed(definition, path):
+                    available.add(path)
+        else:
+            available.update(record.available_paths)
     if matched_ids != preferred_ids:
         raise TemplateRetrievalMiss("trusted template candidate is outside Search records")
     required_fields = {
@@ -770,6 +828,8 @@ def _component_templates_for_capability(
         evaluations: list[dict[str, Any]] = []
         for record in registry.template_variant_search_records:
             if record.capability_id != capability_id or record.business_id != business_id:
+                continue
+            if record.fallback_only:
                 continue
             evaluations.append(
                 _template_record_evaluation(

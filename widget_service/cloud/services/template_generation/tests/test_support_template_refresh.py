@@ -56,6 +56,18 @@ _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
     "BluetoothDeviceOverviewConnectionSupport@1",
 }
 
+_GENERAL_FAMILIES = (
+    "ActivityOverview", "AppUsageOverview", "BatteryOverview", "BluetoothDeviceOverview",
+    "ScheduleOverview", "CountdownOverview", "HeartRateOverview", "ResourceUsageOverview",
+    "SleepOverview", "WeatherOverview", "WorkoutOverview",
+)
+for _family in _GENERAL_FAMILIES:
+    for _kind in ("Number", "Text", "Pair"):
+        if _family == "CountdownOverview" and _kind == "Pair":
+            continue
+        _indexes = (0, 2, 4) if _kind == "Pair" else (0, 1)
+        _SUPPORT_PRIMARY_TEXT_INDEXES[f"{_family}General{_kind}Support@1"] = _indexes
+
 # 温度文本改为可选绑定的温度 Support：无可选数据时主行仅剩城市文本。
 _SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES = {
     "WeatherOverviewTemperatureSupport@1",
@@ -74,8 +86,24 @@ def _instantiate(
 ) -> Nested2Node:
     registry = get_cardplan_registry()
     definition = registry.require_template(template_id)
+    root = definition.variants[0].root
+    if definition.data_parameters_schema:
+        from services.template_generation.engine.cardplan.data_parameters import (
+            materialize_data_root,
+            resolve_data_arguments,
+            select_data_size,
+        )
+        from services.template_generation.engine.cardplan.general_semantics import (
+            general_preview_data,
+        )
+
+        arguments = general_preview_data(definition)
+        arguments["supportValues"] = ["辅助信息"]
+        values = resolve_data_arguments(definition.data_parameters_schema, arguments, {}, "")
+        root = select_data_size(root, definition.data_parameters_schema, 1)
+        root = materialize_data_root(root, values)
     return _instantiate_blueprint(
-        definition.variants[0].root, params or {}, bindings,
+        root, params or {}, bindings,
         registry.theme_reference_values("2x2-two-support"),
     )
 
@@ -255,7 +283,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 22
+    assert len(supports) == 54
     assert not supports.intersection({
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",

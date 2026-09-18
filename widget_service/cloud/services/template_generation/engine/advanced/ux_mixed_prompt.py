@@ -119,7 +119,8 @@ def build_ux_mixed_validation_retry_prompt(
                 "若原动态契约包含 planCandidates，必须完整选择其中一个原子 Plan，"
                 "不得跨 Plan 混用布局、业务模板或 Action 消费位置；"
                 "每个 requiredLocalTemplateGroups 恰好选择一个业务 Template；"
-                "不得新增基础组件、业务文本、Action 或候选外 Template。"
+                "不得新增基础组件、Action 或候选外 Template；"
+                "仅声明 dataSchema 的通用模板可填写 data 内的展示文本和批准路径。"
                 "只输出类 Tersel 调用树，不要解释。"
             ),
         },
@@ -251,6 +252,12 @@ def build_ux_mixed_prompt(
     has_weather = any(component.name == "WeatherOverview" for component in components)
     weather_builtin_assets = _weather_builtin_assets_for_components(components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
+    heart_rate_ids = candidate_ids_by_component.get("HeartRateOverview", ())
+    has_fixed_heart_rate = any(
+        registry.require_template(template_id).business_id == "HeartRateOverview"
+        and not registry.require_template(template_id).data_parameters_schema
+        for template_id in heart_rate_ids
+    )
     effective_required_template_groups = tuple(
         _required_template_group(group, base.requested_template_ids)
         for group in effective_required_template_groups
@@ -295,7 +302,7 @@ def build_ux_mixed_prompt(
             protected_literals = tuple(
                 item for item in protected_literals if item not in server_owned_weather_literals
             )
-    if has_heart_rate:
+    if has_heart_rate and (has_fixed_heart_rate or "HeartRateOverview" in direct_components):
         heart_rate_facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
         if heart_rate_facts is None:
             raise ValueError("HeartRateOverview has no trusted exercise heart-rate facts")
@@ -411,7 +418,7 @@ def build_ux_mixed_prompt(
     )
     business_template_contracts = build_template_prompt_contracts(
         selected_template_ids,
-        contract,
+        contract.model_copy(update={"allowed_template_plans": template_plans}),
         registry,
         task_spec=task_spec,
         card_spec=card_spec,
@@ -568,7 +575,8 @@ def build_ux_mixed_prompt(
             (
                 "Planner 已给出最多三个完整原子 Plan。必须完整选择其中一个 Plan，"
                 "严格保持 layoutTemplateId、业务 Template 顺序以及 Action 消费位置；"
-                "不得跨 Plan 混用。仅补全所选 Template 的开放 Props 与可信素材。"
+                "不得跨 Plan 混用。补全所选 Template 的开放 Props 与可信素材；"
+                "仅声明 dataSchema 的通用模板还需填写 data，严格遵循 dataSources 与 dataRules。"
                 if template_plans
                 else (
                     "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"

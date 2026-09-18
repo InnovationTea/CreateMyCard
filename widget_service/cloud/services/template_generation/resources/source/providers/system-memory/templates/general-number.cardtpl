@@ -1,0 +1,110 @@
+#Template ResourceUsageOverviewGeneralNumberFull@1(data: { title: string, mainNumberValue: string, mainLabel?: string, progressValue?: number, ...supportValues: string[] }, props: { icon?: asset })
+Column({"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if props.icon
+Image(props.icon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+#endif
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+)
+),
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "center", "clip": true, "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if data.mainLabel
+Text(data.mainLabel, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+#if data.progressValue
+Stack({"width": "matchParent", "height": 52, "alignContent": "center"},
+Progress({"value": data.progressValue, "total": 100, "type": "ring", "width": 52, "height": 52, "strokeWidth": 4, "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
+Text(data.mainNumberValue, {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}))
+#else
+Text(data.mainNumberValue, {"width": "matchParent", "height": 32, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+),
+#if data.supportValues.size == 1
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#elseif data.supportValues.size == 2
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
+Text(data.supportValues[1], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+)
+#End
+
+#Template ResourceUsageOverviewGeneralNumberHero@1(data: { title: string, mainNumberValue: string, mainLabel?: string, progressValue?: number, ...supportValues: string[] }, props: { icon?: asset })
+Column({"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if props.icon
+Image(props.icon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+#endif
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+)
+),
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "center", "clip": true, "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if data.mainLabel
+Text(data.mainLabel, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+#if data.progressValue
+Stack({"width": "matchParent", "height": 32, "alignContent": "center"},
+Progress({"value": data.progressValue, "total": 100, "type": "ring", "width": 32, "height": 32, "strokeWidth": 4, "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
+Text(data.mainNumberValue, {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}))
+#else
+Text(data.mainNumberValue, {"width": "matchParent", "height": 32, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+),
+#if data.supportValues.size == 1
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#elseif data.supportValues.size == 2
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+)
+#End
+
+#Template ResourceUsageOverviewGeneralNumberCompact@1(data: { title: string, mainNumberValue: string, mainLabel?: string, ...supportValues: string[] }, props: { icon?: asset })
+Column({"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if data.mainLabel
+Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#else
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+),
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Text(data.mainNumberValue, {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+),
+#if props.icon
+Image(props.icon, {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+#endif
+),
+#if data.supportValues.size == 1
+Text(data.supportValues[0], {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#elseif data.supportValues.size == 2
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 12, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+)
+#End
+
+#Template ResourceUsageOverviewGeneralNumberSupport@1(data: { title: string, mainNumberValue: string, mainLabel?: string, ...supportValues: string[] }, props: { icon?: asset, actionId?: string })
+Column({"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}, "padding": {"left": 8, "right": 8}, "onClick": EventAction(props?.actionId)},
+Row({"width": "matchParent", "itemMargin": 4, "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+#if data.mainLabel
+Text(`${data.title} ${data.mainLabel}`, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#else
+Text(data.title, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+),
+Column({"itemMargin": 0, "justifyContent": "center", "alignItems": "start", "clip": true, "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+Text(data.mainNumberValue, {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+),
+#if props.icon
+Image(props.icon, {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+#endif
+),
+#if data.supportValues.size == 1
+Text(data.supportValues[0], {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#elseif data.supportValues.size == 2
+Text(`${data.supportValues[0]} | ${data.supportValues[1]}`, {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+#endif
+)
+#End

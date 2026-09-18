@@ -71,7 +71,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-body"
@@ -90,7 +92,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机连接 Support：主行加粗展示连接状态，可选次行展示仓电量，右侧 40vp 电量环及 16vp 耳机图标，无电量时为 24vp 耳机图标；必需耳机本体图标，根节点可绑定事件。",
@@ -110,7 +114,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机充电 Support：左侧两行文本展示耳机盒或整体电量、充电状态，右侧 40vp 电量环及 16vp 充电盒图标；必需充电盒图标，根节点可绑定事件。",
@@ -265,6 +271,183 @@
         "/batteryLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralTextFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Text Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralTextHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Text Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralTextCompact@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Text Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralTextSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Text Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "text",
+      "entry": "templates/general-text.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralNumberFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Number Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralNumberHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Number Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralNumberCompact@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Number Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralNumberSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Number Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "number",
+      "entry": "templates/general-number.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralPairFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Pair Full；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralPairHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Pair Hero；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralPairCompact@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Pair Compact；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewGeneralPairSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "BluetoothDeviceOverview 通用 Pair Support；仅无专用候选时使用；按本业务的数值、文字或并列指标样式展示。",
+      "fallbackOnly": true,
+      "generalContentKind": "pair",
+      "entry": "templates/general-pair.cardtpl",
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ]
     }
   ],
   "compatibility": {

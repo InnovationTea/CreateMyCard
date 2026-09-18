@@ -264,6 +264,13 @@ class TemplateDefinition(StrictModel):
     business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
+    fallback_only: bool = Field(default=False, alias="fallbackOnly")
+    general_content_kind: str | None = Field(default=None, alias="generalContentKind")
+    general_data_paths: tuple[str, ...] = Field(default=(), alias="generalDataPaths")
+    data_parameters_schema: dict[str, Any] = Field(
+        default_factory=dict, alias="dataParametersSchema",
+    )
+    data_source_schema: dict[str, Any] = Field(default_factory=dict, alias="dataSourceSchema")
     binding_count: int = Field(default=1, alias="bindingCount", ge=1, le=2)
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     primary_data_fields: tuple[TemplateBinding, ...] = Field(
