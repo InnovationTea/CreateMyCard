@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 106 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 107 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -32,7 +32,6 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 25 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
@@ -45,18 +44,7 @@
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
 双业务布局与 Action 消费位置统一由 Planner 决定。
 
-## AppUsageOverview
-
-- Provider：`com.huawei.app-usage.cli`；运行状态：启用。
-- 数据能力：`GetAppUsageDuration`；模板数：6。
-
-| 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
-| --- | --- | --- | --- | --- | --- |
-| ✅ | `AppUsageOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | 无 |
-| ✅ | `AppUsageOverviewWideFull@1` | 完整 4x2；单 WideFull | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewWideHero@1` | 约 4x1.7；2x4 WideHero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
+应用使用时长能力已下线，其 6 个模板和专属主题已移出运行目录；历史设计见 Git 历史。
 
 ## BatteryOverview
 
