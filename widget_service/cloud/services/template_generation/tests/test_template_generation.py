@@ -160,8 +160,8 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
-_WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
+_WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
+_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -1514,7 +1514,7 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-sleep-violet",
             "sleep",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-sport-orange",
@@ -1524,12 +1524,12 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-battery-teal",
             "battery",
-            FusionBallPalette("#FF17734C", "#FF26BFA6", "#FF60BF98"),
+            FusionBallPalette("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
         ),
         (
             "fusion-schedule-cool",
             "schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
         ("digital-wellbeing-neutral-dark", None, None),
     ],
@@ -1740,6 +1740,9 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
         "fusionBallSmallSlot",
         "fusionBallGlassLayer",
     ]
+    glass_style = background.children[-1].values[-1]
+    assert isinstance(glass_style, dict)
+    assert glass_style.get("backdropBlur") == {"radius": 210}
     ball_colors = tuple(
         child.children[0].values[-1]["backgroundColor"]
         for child in background.children[:3]
@@ -5854,9 +5857,9 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
         "fusionBallBackground",
         "template_root",
     ]
-    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
-    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF1F9985"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF24B3B3"
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF5AB38E"
     assert components["template_root"]["children"] == [
         "__genui_render_component__template_root"
     ]
@@ -6156,7 +6159,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFB33024",
+        "fusionBallLarge": "#FFF24131",
         "fusionBallMedium": "#FFFF8833",
         "fusionBallSmall": "#FFE68073",
     }
@@ -7133,7 +7136,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     )
 
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
-        "radius": 120
+        "radius": 210
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert "linearGradient" not in components[content_id]["styles"]
