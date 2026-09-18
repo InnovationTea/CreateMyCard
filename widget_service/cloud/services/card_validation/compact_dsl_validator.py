@@ -452,6 +452,119 @@ def _descendant_on_click_count(
     return count
 
 
+def _descendant_type_count(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    component_type: str,
+) -> int:
+    count = 0
+    pending = list(component.children)
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop()
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        if child.component_type == component_type:
+            count += 1
+        pending.extend(child.children)
+    return count
+
+
+def _is_two_by_four_direct_action(component: ComponentRow | None) -> bool:
+    if component is None:
+        return False
+    if component.component_type == "Button":
+        return True
+    return component.component_type == "Row" and "onClick" in component.props
+
+
+def _horizontal_padding_at_least(props: dict[str, Any], minimum: float) -> bool:
+    padding = props.get("padding")
+    if isinstance(padding, (int, float)):
+        return padding >= minimum
+    if not isinstance(padding, dict):
+        return False
+    left = _non_negative_number(padding.get("left"))
+    right = _non_negative_number(padding.get("right"))
+    return left is not None and left >= minimum and right is not None and right >= minimum
+
+
+def _collect_two_by_four_action_backboard_errors(
+    backboard: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    actions: list[ComponentRow] = []
+    for child_id in backboard.children:
+        child = components_by_id.get(child_id)
+        if _is_two_by_four_direct_action(child):
+            actions.append(child)
+    if len(actions) != 1:
+        return
+
+    action = actions[0]
+    if not backboard.children or backboard.children[-1] != action.component_id:
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} must place its action "
+            "as the final direct child."
+        )
+    if action.props.get("width") != 120 or action.props.get("height") != 36:
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} action must be 120x36."
+        )
+    if action.component_type == "Row":
+        _collect_two_by_four_action_row_errors(action, errors)
+
+    content_ids = backboard.children[:-1]
+    if len(content_ids) != 1:
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} with a Button must "
+            "have exactly [content, Button] as direct children."
+        )
+        return
+    content = components_by_id.get(content_ids[0])
+    if content is None or content.component_type != "Column":
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} content must be a Column."
+        )
+        return
+    if content.props.get("layoutWeight") != 1:
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} content must use "
+            "layoutWeight 1 so the Button stays at the bottom."
+        )
+    if _descendant_type_count(content, components_by_id, "Text") > 4:
+        errors.append(
+            f"2x4 large backboard {backboard.component_id} with a Button may "
+            "contain at most four Text rows: title, primary value, and up to "
+            "two auxiliary rows. Merge or remove lower-priority fields."
+        )
+
+
+def _collect_two_by_four_action_row_errors(
+    action: ComponentRow,
+    errors: list[str],
+) -> None:
+    props = action.props
+    valid_layout = (
+        props.get("itemMargin") == 8
+        and props.get("justifyContent") == "center"
+        and props.get("alignItems") == "center"
+        and _horizontal_padding_at_least(props, 8)
+    )
+    if valid_layout:
+        return
+    errors.append(
+        f"2x4 graphical action Row {action.component_id} must use itemMargin 8, "
+        "at least 8vp left/right padding, justifyContent center, and alignItems "
+        "center so its icon and label stay centered."
+    )
+
+
 def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type not in {"Row", "Column"}:
         return False
@@ -590,13 +703,17 @@ def _collect_layout_route_errors(
         for component in components:
             if not _is_two_by_four_large_backboard(component):
                 continue
-            if _descendant_on_click_count(component, components_by_id) <= 1:
-                continue
-            errors.append(
-                f"2x4 large backboard {component.component_id} may contain at "
-                "most one action control. Do not stack two buttons inside a "
-                "144x136 backboard; remove duplicate or lower-priority actions."
+            _collect_two_by_four_action_backboard_errors(
+                component,
+                components_by_id,
+                errors,
             )
+            if _descendant_on_click_count(component, components_by_id) > 1:
+                errors.append(
+                    f"2x4 large backboard {component.component_id} may contain at "
+                    "most one action control. Do not stack two buttons inside a "
+                    "144x136 backboard; remove duplicate or lower-priority actions."
+                )
 
     if size == "2x2" and len(data_roots) == 1:
         if root is not None and len(root.children) == 1:
@@ -791,6 +908,7 @@ def _collect_component_contract_errors(
     task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
+    _collect_component_parent_errors(components, errors)
     try:
         validate_card_header_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
@@ -805,6 +923,34 @@ def _collect_component_contract_errors(
         if component.component_type == "ActionUnit":
             _collect_action_unit_errors(component, errors)
         _collect_on_click_errors(component, allowed_handlers, errors)
+
+
+def _collect_component_parent_errors(
+    components: list[ComponentRow],
+    errors: list[str],
+) -> None:
+    parent_by_child: dict[str, str] = {}
+    for component in components:
+        children_seen: set[str] = set()
+        for child_id in component.children:
+            if child_id in children_seen:
+                errors.append(
+                    f"component {component.component_id}.children references "
+                    f"{child_id} more than once."
+                )
+                continue
+            children_seen.add(child_id)
+            existing_parent = parent_by_child.get(child_id)
+            if existing_parent is None:
+                parent_by_child[child_id] = component.component_id
+                continue
+            if existing_parent == component.component_id:
+                continue
+            errors.append(
+                f"component {child_id} has multiple parents: {existing_parent} "
+                f"and {component.component_id}. Each component may appear in "
+                "exactly one parent children list."
+            )
 
 
 def _collect_container_errors(
