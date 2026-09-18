@@ -680,7 +680,7 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
 @pytest.mark.parametrize(
     ("template_id", "text_path", "font_size", "height"),
     [
-        ("WeatherOverviewDailyDateFull@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyDateFull@1", (1, 0), 18, 28),
         ("WeatherOverviewDailyDateFull@1", (1, 1), 12, 20),
         ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 32, None),
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
@@ -762,14 +762,14 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
 
 
 @pytest.mark.parametrize(
-    ("template_id", "value_binding"),
+    ("template_id", "value_binding", "expected_font_size"),
     [
-        ("WeatherOverviewUvFull@1", "uvIndex"),
-        ("WeatherOverviewAirQualityHero@1", "airQuality"),
+        ("WeatherOverviewUvFull@1", "uvIndex", 18),
+        ("WeatherOverviewAirQualityHero@1", "airQuality", 20),
     ],
 )
-def test_weather_index_templates_use_20vp_primary_values(
-    template_id: str, value_binding: str,
+def test_weather_index_templates_use_allowed_primary_value_sizes(
+    template_id: str, value_binding: str, expected_font_size: int,
 ) -> None:
     registry = get_cardplan_registry()
     variant = registry.require_template(template_id).variants[0]
@@ -786,7 +786,7 @@ def test_weather_index_templates_use_20vp_primary_values(
     assert value.values[0] == bindings.get(value_binding)
     value_options = value.values[-1]
     assert isinstance(value_options, dict)
-    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontSize") == expected_font_size
     assert value_options.get("fontWeight") == 700
     if value_binding == "uvIndex":
         options = value_column.values[-1]

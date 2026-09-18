@@ -854,7 +854,7 @@ Column(
   ),
   Column(
     {"width": "matchParent", "itemMargin": 0, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Text(data.condition, {"width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+    Text(data.condition, {"width": "matchParent", "height": 28, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
     Text(`${data.weekday} ${data.date}`, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
   )
 )
@@ -1731,7 +1731,7 @@ Column(
     ),
     Column(
       {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(data.uvIndex, {"width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+      Text(data.uvIndex, {"width": "matchParent", "height": 28, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
       Text("紫外线", {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1})
     ),
   ),
