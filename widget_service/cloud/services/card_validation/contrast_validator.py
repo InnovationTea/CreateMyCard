@@ -215,7 +215,7 @@ class ContrastValidator(BaseValidator):
                 if ratio < 4.5:
                     # 渐变 stop 只代表背景采样点，无法证明文本矩形整体不可读。
                     # 渐变场景统一进入渲染复核；纯色背景继续按最低阈值阻塞。
-                    severity = "warning" if is_gradient else ("error" if ratio < 3 else "warning")
+                    severity = "warning" if is_gradient else ("error" if ratio < 1.8 else "warning")
                     component_id = component.get("id")
                     pointer = (
                         f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
