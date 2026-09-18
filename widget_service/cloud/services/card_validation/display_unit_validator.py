@@ -123,7 +123,12 @@ class DisplayUnitValidator(BaseValidator):
                 child_id = children[child_index]
                 if not isinstance(child_id, str):
                     break
-                sibling_content = components_by_id.get(child_id, {}).get("content")
+                sibling = components_by_id.get(child_id)
+                if not isinstance(sibling, dict) or sibling.get("component") != "Text":
+                    break
+                sibling_content = sibling.get("content")
+                if not isinstance(sibling_content, str):
+                    break
                 if expression_references(sibling_content):
                     break
                 if not static_text_contains_rule(sibling_content, rule):
