@@ -35,11 +35,12 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
   无法提取目标名称时固定使用“倒计时”。
 - 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
   “天后开始”“天后参加”等长后缀。
-- 当前 TaskSpec 提供一个 `eventCandidates` 项时必须映射为底部胶囊 ActionUnit，不得省略；
-  action_area 必须是 root 最后一项并固定沉底。未提供事件候选时才不生成动作。
+- 先按主提示词判定事件意图和对象归属；只有用户明确要求、且候选实际目标匹配的动作，
+  才映射为底部胶囊 ActionUnit。action_area 必须是 root 最后一项并固定沉底。
+  候选恰好一个也不代表必须使用；无关或未被要求的动作不生成按钮，合法隐式入口按主规则处理。
   不得把标题、时间和数字重组为 countdown_group 或其它自由布局。
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
-  `fusion-ball-sport-orange`，不允许时使用倒计时对应的黄色纯色。"""
+  `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
@@ -74,52 +75,34 @@ class PromptBuilder:
     @staticmethod
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
         data_root_count = len(PromptBuilder._data_roots(task_spec))
-        few_shot_id: str | None = None
+        selected_ids: tuple[str, ...] = ()
+        dual_ids = (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
         if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
-            few_shot_id = "2x2-V01"
+            selected_ids = ("2x2-V01",)
         elif data_root_count == 2:
-            few_shot_id = {
-                "2x2": _TWO_BY_TWO_DUAL_FEW_SHOT_ID,
-                "2x4": _TWO_BY_FOUR_DUAL_FEW_SHOT_ID,
-            }.get(task_spec.size)
-        if few_shot_id is None and task_spec.size != "2x2":
+            if task_spec.size == "2x2":
+                selected_ids = dual_ids
+            else:
+                selected_ids = (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
+        if not selected_ids and task_spec.size != "2x2":
             return few_shot
 
         lines = few_shot.splitlines()
-        headings = [
-            index for index, line in enumerate(lines) if line.startswith("## ")
-        ]
-        if few_shot_id is None:
-            selected_headings = [
-                index
-                for index in headings
-                if _TWO_BY_TWO_DUAL_FEW_SHOT_ID not in lines[index]
-            ]
-            if len(selected_headings) == len(headings):
-                return few_shot
-            preamble_end = headings[0] if headings else 0
-            selected_lines = list(lines[:preamble_end])
-            for index in selected_headings:
-                end = next(
-                    (heading for heading in headings if heading > index),
-                    len(lines),
-                )
-                selected_lines.extend(lines[index:end])
-            return "\n".join(selected_lines).strip()
-
-        start = next(
-            (
-                index
-                for index in headings
-                if few_shot_id in lines[index]
-            ),
-            None,
-        )
-        if start is None:
-            return few_shot
-        end = next((index for index in headings if index > start), len(lines))
+        headings = [index for index, line in enumerate(lines) if line.startswith("## ")]
         preamble_end = headings[0] if headings else 0
-        return "\n".join([*lines[:preamble_end], *lines[start:end]]).strip()
+        selected_lines = list(lines[:preamble_end])
+        matched = False
+        for position, start in enumerate(headings):
+            heading = lines[start]
+            include = not any(identifier in heading for identifier in dual_ids)
+            if selected_ids:
+                include = any(identifier in heading for identifier in selected_ids)
+            if not include:
+                continue
+            matched = True
+            end = headings[position + 1] if position + 1 < len(headings) else len(lines)
+            selected_lines.extend(lines[start:end])
+        return "\n".join(selected_lines).strip() if matched else few_shot
 
     @staticmethod
     def _uses_countdown_v01(task_spec: TaskSpec) -> bool:
@@ -327,7 +310,7 @@ class PromptBuilder:
                 "dslFormat": dsl_format,
                 "instruction": (
                     "以 invalidSourceDsl 为直接修复对象，逐项处理 qualityErrors，"
-                    "只输出修复后的完整源格式 DSL，不输出解释、补丁、Markdown 或其它内容。"
+                    "只输出修复后的完整源格式 DSL，封装形式遵循原始系统提示词，禁止解释或补丁。"
                 ),
             },
             ensure_ascii=False,
