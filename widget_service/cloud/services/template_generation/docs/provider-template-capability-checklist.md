@@ -34,7 +34,7 @@
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 22 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 25 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 15 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
@@ -82,7 +82,7 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：22。
+- 数据能力：`GetCalendarEvents`；模板数：25。
 - 当前没有 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
@@ -94,7 +94,10 @@
 | ✅ | `ScheduleOverviewDateFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewHeroContent@1` | 双业务单 Action 的位置 1 | `/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
-| ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/eventLocation` | `/events/0/dtEnd` |
+| ✅ | `ScheduleOverviewTimezoneTimeFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/timeZone`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd` | 无 |
+| ✅ | `ScheduleOverviewDateLocationFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/startDate`<br>`/events/0/title` | `/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewReminderDetailsFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/senderName` | `/events/0/importantEventType`<br>`/events/0/remindTime/0`<br>`/updatedAt` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/dtStart` | 无 | `/events/0/title`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` |

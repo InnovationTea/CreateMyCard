@@ -121,17 +121,18 @@
       "templateId": "ScheduleOverviewNextEventLocationFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "下一个日程 Full，展示标题、时间范围和地点，可选日历图标与标题文案。",
+      "description": "下一个日程 Full，展示标题、开始时间和地点；结束时间可选，存在时沿用时间范围分支；可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title",
         "/events/0/dtStart"
       ],
       "secondaryData": [
-        "/events/0/dtEnd",
         "/events/0/eventLocation"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/events/0/dtEnd"
+      ]
     },
     {
       "templateId": "ScheduleOverviewMeetingWideFull@1",
@@ -389,6 +390,53 @@
           "calendar"
         ]
       }
+    },
+    {
+      "templateId": "ScheduleOverviewTimezoneTimeFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "沿用时区日期日程的标题和时间轴版式，展示标题、时区与起止时间；不要求日期或地点。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/timeZone",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/dtEnd"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewDateLocationFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "沿用时区日期日程的标题和时间轴版式，展示标题、日期与地点；不要求时区或起止时间。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/startDate",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewReminderDetailsFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "沿用时区日期日程的标题和时间轴版式，展示发起人、重要程度、提醒分钟数与更新时间；不要求日程标题或动作。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/senderName"
+      ],
+      "secondaryData": [
+        "/events/0/importantEventType",
+        "/events/0/remindTime/0",
+        "/updatedAt"
+      ],
+      "optionalData": []
     }
   ],
   "compatibility": {

@@ -23,6 +23,11 @@ from services.template_generation.engine.advanced.models import (
     TemplateRouteSelection,
 )
 
+from .calendar_field_paths import (
+    CALENDAR_CAPABILITY_ID,
+    calendar_reminder_aliases,
+    normalize_calendar_reminder_bindings,
+)
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
@@ -49,6 +54,9 @@ class TemplateSearchIntent(BaseModel):
         alias="primaryOutputFieldByCapability",
     )
     action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+    allow_calendar_view_fallback: bool = Field(
+        default=False, alias="allowCalendarViewFallback", strict=True,
+    )
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
@@ -149,6 +157,7 @@ def build_template_retrieval_prompt(
 ) -> list[dict[str, str]]:
     """Build the first-layer marker prompt without exposing final UI choices."""
     _require_supported_search_size(task_spec)
+    coverage_bindings = normalize_calendar_reminder_bindings(task_spec, coverage_bindings)
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
@@ -197,6 +206,13 @@ def build_template_retrieval_prompt(
         "无法判断时省略该 capability，不能按模板或领域常识猜测。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
+        "allowCalendarViewFallback 仅标记单日历日程用户是否允许默认查看入口："
+        "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
+        "只展示不交互等时为 false；其他业务或多个业务也为 false。"
+        "没有提到按钮不等于禁止按钮。不要把允许兜底当成已选动作，action 仍只含显式需求。"
+        "服务端在 Search 后优先使用匹配的 Full；只有没有 Full 而有可用 Hero，"
+        "且候选存在唯一、指向当前日程的查看动作时，才补选查看日程。"
+        "不得自行判断上述模板条件，也不得为兜底补充展示字段或编造事件。"
         "不得输出主题、schemaVersion、组件、模板、Variant、尺寸、布局、Props 或理由。\n"
         + json.dumps(schema, ensure_ascii=False)
     )
@@ -204,6 +220,35 @@ def build_template_retrieval_prompt(
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
+
+
+def normalize_calendar_reminder_intent(
+    intent: TemplateSearchIntent,
+    task_spec: TaskSpec,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> TemplateSearchIntent:
+    """Keep first-layer explicit fields and focus consistent with approved aliases."""
+    aliases = calendar_reminder_aliases(task_spec, coverage_bindings)
+    requested = intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID)
+    if not aliases or requested is None:
+        return intent
+    fields: list[str] = []
+    for path in requested:
+        canonical = aliases.get(path, path)
+        if canonical not in fields:
+            fields.append(canonical)
+    primary = dict(intent.primary_output_field_by_capability)
+    focus = primary.get(CALENDAR_CAPABILITY_ID)
+    if focus in aliases:
+        primary[CALENDAR_CAPABILITY_ID] = aliases[focus]
+    if tuple(fields) == requested and primary == intent.primary_output_field_by_capability:
+        return intent
+    required = dict(intent.required_output_fields_by_capability)
+    required[CALENDAR_CAPABILITY_ID] = tuple(fields)
+    return intent.model_copy(update={
+        "required_output_fields_by_capability": required,
+        "primary_output_field_by_capability": primary,
+    })
 
 
 def search_template_variants(
@@ -223,6 +268,8 @@ def search_template_variants(
     coverage and are never treated as a hard admission requirement.
     """
     _require_supported_search_size(task_spec)
+    intent = normalize_calendar_reminder_intent(intent, task_spec, coverage_bindings)
+    coverage_bindings = normalize_calendar_reminder_bindings(task_spec, coverage_bindings)
     if not intent.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template Search has no requested capability")
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}

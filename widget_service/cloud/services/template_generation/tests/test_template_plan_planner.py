@@ -172,6 +172,7 @@ def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
         "requiredOutputFieldsByCapability",
         "primaryOutputFieldByCapability",
         "action",
+        "allowCalendarViewFallback",
     }
 
 
