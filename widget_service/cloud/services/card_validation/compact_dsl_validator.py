@@ -61,6 +61,8 @@ def validate_compact_dsl(
     binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
+    _collect_two_by_two_weather_date_errors(components, task_spec, errors)
+    _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
     for component in components:
         location = f"component {component.component_id}.props"
@@ -154,6 +156,42 @@ def _collect_hero_value_errors(
                 f"after the large numeric value must contain only a real unit for "
                 f"{value_source}. Move labels or descriptions to a separate line."
             )
+
+
+def _collect_two_by_two_weather_date_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if task_spec.get("size") != "2x2":
+        return
+    data_model_schema = task_spec.get("dataModelSchema")
+    schema_data = (
+        data_model_schema.get("data")
+        if isinstance(data_model_schema, dict)
+        else None
+    )
+    if not isinstance(schema_data, dict) or set(schema_data) != {"weather"}:
+        return
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        paths: list[str] = []
+        _collect_binding_context(
+            component.props.get("content"),
+            f"component {component.component_id}.props.content",
+            paths,
+            [],
+        )
+        has_date = any(path.endswith("/date") for path in paths)
+        has_weekday = any(path.endswith("/weekday") for path in paths)
+        if not has_date or not has_weekday:
+            continue
+        errors.append(
+            f"component {component.component_id}: 2x2 single-day weather must not "
+            "concatenate date and weekday in one Text. Keep weekday by default, "
+            "or keep date alone when the user explicitly requests the exact date."
+        )
 
 
 def _is_readable_formatted_hero(

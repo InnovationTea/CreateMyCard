@@ -74,6 +74,13 @@ _TWO_BY_TWO_SINGLE_ROUTE_LOCK = """# 本次请求单业务边界（高优先级�
   一个底部按钮组合时，`content_area`、环和状态文字必须水平居中，禁止 `alignItems:"start"`。
 - 普通单业务内容区不生成 Image。不得为了使用候选素材，把主内容包装成 S4 小背板。"""
 
+_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK = """# 2x2 单日天气日期显示约束
+
+2x2 单日天气同时提供 `date` 和 `weekday` 时，二者属于同一组日期信息，禁止在同一个
+Text 中拼接显示。默认只保留 `weekday`；只有用户明确要求具体年月日时才只显示 `date`。
+标题已经包含“今天”或“明日”时，内容区不得再次重复同一日期信息。禁止通过缩小字号、
+增加到两行或裁切文本来容纳 `date + weekday`。"""
+
 _TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
 本次 2x2 TaskSpec 展示两个独立业务对象，必须锁定 S4 上下双业务骨架。
@@ -305,7 +312,10 @@ class PromptBuilder:
                 f"\n\n{_MEETING_V06_ROUTE_LOCK}"
             )
         if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 1:
-            return f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+            prompt = f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+            if PromptBuilder._data_roots(task_spec) == ("weather",):
+                prompt = f"{prompt}\n\n{_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK}"
+            return prompt
         return prompt
 
     def build_design_compact(
