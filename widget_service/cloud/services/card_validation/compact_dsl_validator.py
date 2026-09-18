@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import (
     build_compact_data_model,
     parse_compact_dsl_rows,
     validate_card_header_layout,
+    validate_timeline_unit_layout,
 )
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
@@ -85,6 +86,354 @@ def validate_compact_dsl(
     return CompactDslValidationResult(warnings=tuple(warnings))
 
 
+def _collect_hero_value_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return
+
+    numeric_paths: dict[str, str | None] = {}
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is None or font_size <= 18:
+            continue
+        path = _pure_numeric_binding_path(
+            component.props.get("content"),
+            data_model_schema,
+        )
+        numeric_paths[component.component_id] = path
+        if path is not None:
+            continue
+        if _is_readable_formatted_hero(component, components, task_spec, font_size):
+            numeric_paths.pop(component.component_id)
+            continue
+        errors.append(
+            f"component {component.component_id}: fontSize {_format_vp(font_size)} "
+            "is reserved for a pure number/integer value. Text, formatted values, "
+            "names, dates, times, and statuses must use at most 18fp on their own line; "
+            "a directly bound temperature, duration, or percentage may use 20/24fp "
+            "only in a single-business full-width column with a sufficient text budget."
+        )
+
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        for index, child_id in enumerate(component.children[:-1]):
+            if child_id not in numeric_paths:
+                continue
+            numeric_path = numeric_paths[child_id]
+            suffix = components_by_id.get(component.children[index + 1])
+            if suffix is None or suffix.component_type != "Text":
+                continue
+            content = suffix.props.get("content")
+            if _is_allowed_display_unit(
+                content,
+                numeric_path or "",
+                data_model_schema,
+            ):
+                continue
+            value_source = numeric_path or "the preceding value"
+            errors.append(
+                f"component {component.component_id}: Text {suffix.component_id} "
+                f"after the large numeric value must contain only a real unit for "
+                f"{value_source}. Move labels or descriptions to a separate line."
+            )
+
+
+def _is_readable_formatted_hero(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    font_size: float,
+) -> bool:
+    """仅放行全宽、单行且通过保守压力预算的格式化主读数。"""
+    if font_size not in (20.0, 24.0):
+        return False
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return False
+    data = schema.get("data")
+    if not isinstance(data, dict) or len(data) != 1:
+        return False
+    content = component.props.get("content")
+    if not isinstance(content, dict) or set(content) != {"path"}:
+        return False
+    path = content.get("path")
+    if not isinstance(path, str):
+        return False
+    node = _schema_node_at_path(schema, path)
+    if not isinstance(node, dict) or node.get("type") != "string":
+        return False
+    sample = node.get("sampleValue")
+    description = node.get("description")
+    if not isinstance(sample, str) or not isinstance(description, str):
+        return False
+    pressure = _formatted_hero_pressure(sample, description)
+    if pressure is None:
+        return False
+    if task_spec.get("size") not in ("2x2", "2x4"):
+        return False
+    expected_width = 136.0 if task_spec.get("size") == "2x2" else 296.0
+    props = component.props
+    if props.get("width") != expected_width or props.get("maxLines") != 1:
+        return False
+    height = _non_negative_number(props.get("height"))
+    if height is None or height < font_size * 1.4:
+        return False
+    if props.get("padding", 0) != 0 or props.get("margin", 0) != 0:
+        return False
+    parents = []
+    for parent in components:
+        if component.component_id in parent.children:
+            parents.append(parent)
+    if len(parents) != 1:
+        return False
+    parent = parents[0]
+    if parent.component_type != "Column" or parent.props.get("width") != expected_width:
+        return False
+    if parent.props.get("padding", 0) != 0:
+        return False
+    estimated = 0.0
+    for character in pressure:
+        estimated += font_size * (0.6 if character.isascii() else 1.0)
+    return estimated * 1.2 <= expected_width
+
+
+def _formatted_hero_pressure(sample: str, description: str) -> str | None:
+    """保留单位，不求值任意表达式，不把名称或日期误当作主读数。"""
+    temperature = "温度" in description
+    temperature = temperature and re.fullmatch(
+        r"[+-]?\d+(?:\.\d+)?\s*(?:°C|℃|°F)", sample
+    ) is not None
+    duration = any(word in description for word in ("时长", "持续时间"))
+    duration = duration and re.fullmatch(
+        r"\d+小时(?:\d+分)?|\d+(?:分钟|分|秒)", sample
+    ) is not None
+    percentage = any(word in description for word in ("百分比", "百分率"))
+    percentage = percentage and re.fullmatch(r"\d+(?:\.\d+)?%", sample) is not None
+    pressure: str | None = None
+    if temperature or duration or percentage:
+        pressure = re.sub(r"\d+", lambda match: "9" * max(2, len(match.group())), sample)
+        if temperature:
+            pressure = re.sub(
+                r"(?<![\d.])\d+", lambda match: "9" * max(2, len(match.group())), sample
+            )
+            pressure = "-" + pressure.lstrip("+-")
+        elif percentage:
+            pressure = "100%"
+            if "." in sample:
+                decimals = sample.split(".", 1)[1].removesuffix("%")
+                pressure = "100." + "9" * len(decimals) + "%"
+    return pressure
+
+
+def _pure_numeric_binding_path(
+    content: Any,
+    data_model_schema: dict[str, Any],
+) -> str | None:
+    path: str | None = None
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        path = candidate if isinstance(candidate, str) else None
+    elif isinstance(content, str):
+        match = _EXPRESSION_PATTERN.fullmatch(content.strip())
+        if match is not None:
+            reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
+            if reference is not None:
+                path = reference.group("path").strip()
+        elif re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
+            return ""
+    if path is None:
+        return None
+    schema_node = _schema_node_at_path(data_model_schema, path)
+    if _schema_type(schema_node) not in _NUMERIC_SCHEMA_TYPES:
+        return None
+    return path
+
+
+def _is_allowed_display_unit(
+    content: Any,
+    numeric_path: str,
+    data_model_schema: dict[str, Any],
+) -> bool:
+    if not isinstance(content, str):
+        return False
+    unit = content.strip()
+    if not unit:
+        return False
+    if unit in _COMMON_DISPLAY_UNITS:
+        return True
+    schema_node = _schema_node_at_path(data_model_schema, numeric_path)
+    if not isinstance(schema_node, dict):
+        return False
+    description = schema_node.get("description")
+    return isinstance(description, str) and unit in description
+
+
+def _collect_layout_route_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    visible_binding_paths: list[str],
+    errors: list[str],
+) -> None:
+    size = task_spec.get("size")
+    if size == "2x2":
+        components_by_id = {
+            component.component_id: component for component in components
+        }
+        _collect_2x2_countdown_group_errors(
+            components,
+            components_by_id,
+            visible_binding_paths,
+            task_spec,
+            errors,
+        )
+        return
+    if size != "2x4":
+        return
+    data_roots = {
+        parts[1]
+        for path in visible_binding_paths
+        if len(parts := path.strip("/").split("/")) >= 2 and parts[0] == "data"
+    }
+    if len(data_roots) != 2:
+        return
+
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    root = components_by_id.get("root")
+    if root is not None and root.component_type == "Row" and len(root.children) == 2:
+        backboards = [components_by_id.get(child_id) for child_id in root.children]
+        if all(
+            backboard is not None
+            and backboard.component_type == "Column"
+            and backboard.props.get("width") == 144
+            and backboard.props.get("height") == 136
+            for backboard in backboards
+        ):
+            return
+
+    roots = ", ".join(sorted(data_roots))
+    errors.append(
+        f"2x4 card displays two data roots ({roots}) and must use W9: root must "
+        "be a Row with exactly two direct 144x136 Column backboards. Do not use "
+        "a shared title, a shared action area, or stacked full-width business rows."
+    )
+
+
+def _collect_2x2_countdown_group_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    visible_binding_paths: list[str],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    has_countdown = any(
+        path.endswith("/countdownDays") for path in visible_binding_paths
+    )
+    if not has_countdown:
+        return
+
+    day_units = [
+        component
+        for component in components
+        if component.component_type == "Text"
+        and isinstance(component.props.get("content"), str)
+        and component.props["content"].strip() == "天"
+    ]
+    if len(day_units) > 1:
+        errors.append(
+            "2x2 countdown must display the day unit exactly once; do not place "
+            "'天' beside the value and repeat it again in a second metadata row."
+        )
+    if not _uses_2x2_v01_countdown_layout(task_spec):
+        return
+
+    parent_by_child = {
+        child_id: component
+        for component in components
+        for child_id in component.children
+    }
+    countdown_values = []
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        component_paths: list[str] = []
+        _collect_binding_context(
+            component.props.get("content"),
+            f"component {component.component_id}.props.content",
+            component_paths,
+            [],
+        )
+        if any(path.endswith("/countdownDays") for path in component_paths):
+            countdown_values.append(component)
+
+    for countdown_value in countdown_values:
+        value_group = parent_by_child.get(countdown_value.component_id)
+        if value_group is None or value_group.component_type != "Column":
+            continue
+        if len(value_group.children) != 2:
+            errors.append(
+                "2x2 V01 countdown value_group must contain exactly two visual "
+                "rows: the countdown number and a second-line unit/meta row. "
+                "Do not add a third aux_text or repeat the target name."
+            )
+            continue
+        second_line = components_by_id.get(value_group.children[1])
+        if second_line is None:
+            continue
+        if second_line.component_type == "Row" and len(second_line.children) > 2:
+            errors.append(
+                "2x2 V01 countdown meta_row may contain only the unit and the "
+                "optional time on the same line."
+            )
+
+
+def _uses_2x2_v01_countdown_layout(task_spec: dict[str, Any]) -> bool:
+    if task_spec.get("size") != "2x2":
+        return False
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return False
+    data_schema = data_model_schema.get("data")
+    if not isinstance(data_schema, dict) or not data_schema:
+        return False
+    if set(data_schema) - {"countdown", "calendar"}:
+        return False
+    if not _schema_contains_field(data_schema, "countdownDays"):
+        return False
+
+    query_value = task_spec.get("userQuery")
+    query = query_value.casefold() if isinstance(query_value, str) else ""
+    if any(
+        marker in query
+        for marker in ("倒计时", "倒数", "倒计日", "天后", "countdown")
+    ):
+        return True
+    return "天" in query and any(
+        marker in query for marker in ("还有", "剩余", "距离", "多久")
+    )
+
+
+def _schema_contains_field(value: Any, field_name: str) -> bool:
+    if isinstance(value, dict):
+        return field_name in value or any(
+            _schema_contains_field(child, field_name) for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(_schema_contains_field(child, field_name) for child in value)
+    return False
+
+
 def _collect_component_contract_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -92,6 +441,10 @@ def _collect_component_contract_errors(
 ) -> None:
     try:
         validate_card_header_layout(components, size=task_spec.get("size"))
+    except CompactDslConversionError as exc:
+        errors.append(str(exc))
+    try:
+        validate_timeline_unit_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
