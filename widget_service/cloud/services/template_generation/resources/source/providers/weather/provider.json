@@ -248,6 +248,24 @@
       }
     },
     {
+      "templateId": "WeatherOverviewUpdatedAtFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "基础天气 Full，展示城市、当前温度、天气现象和天气数据更新时间。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/updatedAt"
+      ]
+    },
+    {
       "templateId": "WeatherOverviewHumidityFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
