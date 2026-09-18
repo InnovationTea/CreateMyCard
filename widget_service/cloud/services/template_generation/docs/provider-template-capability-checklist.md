@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 108 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 149 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -27,18 +27,19 @@
 | Full | 完整 2x2；无 Action，或 Full + 1 个 IconAction | 2x2 |
 | WideHero | 约 4x1.7；WideHero + 1 个 PillAction | 2x4 |
 | WideFull | 完整 4x2；单 WideFull | 2x4 |
+| WideHalf | 约 4x1；用于 2x4 半高组合布局 | 2x4 |
 
 ## 业务与运行状态
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 25 | 启用 |
-| countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 29 | 启用 |
+| countdown | `GetCountdownDays` | `/data/countdown` | 6 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 15 | 启用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 27 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
-| weather | `ViewWeather` | `/data/weather` | 11 | 启用 |
+| weather | `ViewWeather` | `/data/weather` | 23 | 启用 |
 
 下方列出主要形态及本轮调整的 Support；非 Support 条目保留原有摘要，
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
@@ -49,7 +50,7 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：13。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：14。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -64,6 +65,7 @@
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingDiagnosticsHero@1` | 约 2x1.7；充电诊断 Hero + 1 个 PillAction | `/nowCurrentText`<br>`/voltageText` | `/batteryCapacityLevelDesc`<br>`/isBatteryPresentText` | 无 |
+| ✅ | `BatteryOverviewChargingDiagnosticsWideFull@1` | 完整 4x2；充电诊断 WideFull，标题+图标+电量进度条+三胶囊，无 Action | `/batterySOC` | `/nowCurrentText`<br>`/voltageText`<br>`/isBatteryPresentText` | 无 |
 | ✅ | `BatteryOverviewChargingRingHero@1` | 约 2x1.7；充电状态环 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc` | 无 |
 | ✅ | `BatteryOverviewTemperatureFull@1` | 完整 2x2；电池温度单 Full | `/batteryTemperatureText` | `/pluggedTypeDesc`<br>`/updatedAt` | 无 |
 
@@ -96,11 +98,14 @@
 ## CountdownOverview
 
 - Provider：`com.huawei.countdown.cli`；运行状态：启用。
-- 数据能力：`GetCountdownDays`；模板数：3；当前没有 Compact。
+- 数据能力：`GetCountdownDays`；模板数：6；当前没有 Compact。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `CountdownOverviewFull@1` | 完整 2x2；无 Action，或加一个 IconAction | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewWideFull@1` | 完整 4x2；单 WideFull 或 Full 组合布局 | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewWideHalf@1` | 约 4x1；用于 2x4 半高组合布局 | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewTravelSupport@1` | 双 Support；出行倒计时，可选计时图标，可内嵌闹钟跳转 | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewSupport@1` | 约 2x1；双 Support，可选计时图标，事件在模板内部 | `/countdownDays` | 无 | 无 |
@@ -194,7 +199,7 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：22。
+- 数据能力：`ViewWeather`；模板数：33。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -210,6 +215,9 @@
 | ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewWideFull@1` | 完整 4x2；单 WideFull 或 Full 组合布局 | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/feelsLikeC`<br>`/current/humidityPercent`<br>`/current/airQuality`<br>`/current/windDirection`<br>`/current/windLevel`<br>`/daily/0/temperatureRangeText`<br>`/daily/0/rainProbabilityPercent` |
+| ✅ | `WeatherOverviewWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/feelsLikeC`<br>`/daily/0/temperatureRangeText`<br>`/daily/0/rainProbabilityPercent` |
+| ✅ | `WeatherOverviewWideHalf@1` | 约 4x1；用于 2x4 半高组合布局 | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/daily/0/rainProbabilityPercent` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
 HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度”，缺少其中之一时只显示另一项；两者都缺失时

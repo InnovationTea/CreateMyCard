@@ -25,6 +25,7 @@ _CALENDAR_SUPPORTS = (
 
 # 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
+    "WeatherOverviewFeelsLikeWindSupport@1": (0,),
     "ActivityOverviewSupport@1": (0,),
     "BatteryOverviewSupport@1": (0,),
     "BatteryOverviewStatusSupport@1": (0,),

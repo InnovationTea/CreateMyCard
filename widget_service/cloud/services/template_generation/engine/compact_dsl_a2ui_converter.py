@@ -411,8 +411,8 @@ _COMPONENT_DESIGNS = {
 }
 _COMPACT_ROOT_DIMENSIONS = {
     "2x2": {"width": 160, "height": 160},
-    "2x4": {"width": 320, "height": 160},
-    "4x2": {"width": 320, "height": 160},
+    "2x4": {"width": 300, "height": 150},
+    "4x2": {"width": 300, "height": 150},
 }
 _BUTTON_LABEL_FALLBACKS = (
     (("navigate", "startnavigate", "location", "map"), "导航"),

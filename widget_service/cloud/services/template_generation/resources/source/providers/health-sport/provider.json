@@ -60,6 +60,25 @@
       ]
     },
     {
+      "templateId": "ActivityOverviewExerciseWideHero@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "今日活动摘要，大号展示步数，存在运动类型时以类型名替代“今日活动”标题，可补充运动时长、消耗热量、运动距离和平均心率紧凑指标行，并以纯文本补充最低心率，数据缺失时隐藏对应指标，可使用对应图标。 组件形态：wideHero。",
+      "optionalData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/dailyDistanceText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMin"
+      ],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": []
+    },
+    {
       "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
@@ -72,6 +91,21 @@
       "secondaryData": [
         "/dailyTotalCaloriesText",
         "/dailyDistanceText"
+      ]
+    },
+    {
+      "templateId": "ActivityOverviewTrainingSummaryFull@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "备赛或训练综合 Full 摘要，以每日步数为主视觉，并展示最近一次运动时长和运动平均心率；适合与目标日倒计时 Compact、锻炼页 Compact Action 组成 2x4 卡片。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": [
+        "/exerciseDurationText",
+        "/exerciseHeartRateAvg"
       ]
     },
     {
@@ -106,6 +140,17 @@
         "/exerciseCalorieText",
         "/exerciseEndTimeText"
       ]
+    },
+    {
+      "templateId": "WorkoutOverviewTypeDurationCompact@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "最近运动类型和时长 Compact：时长大字、类型小字，右侧可选运动图标；不要求热量。",
+      "entry": "templates/workout-type-duration-compact.cardtpl",
+      "primaryData": ["/exerciseDurationText", "/exerciseTypeName"],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {"sourceIcon": ["workout", "sport", "run"]}
     },
     {
       "templateId": "WorkoutOverviewCompact@1",
@@ -242,6 +287,28 @@
       ]
     },
     {
+      "templateId": "GenericMetricOverviewCompact@1",
+      "businessId": "GenericMetricOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "主指标突出、辅助指标弱化的紧凑组件，右侧展示语义图标；适合突出一个核心数据。组件形态：compact。",
+      "optionalData": [
+      ],
+      "entry": "templates/generic-metric-overview.cardtpl",
+      "primaryData": [],
+      "secondaryData": []
+    },
+    {
+      "templateId": "GenericMetricOverviewDualCompact@1",
+      "businessId": "GenericMetricOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "通用双指标紧凑组件；上下两行分别以“数据类型 + 数据值”并列展示两个同等重要的指标。组件形态：compact。",
+      "optionalData": [
+      ],
+      "entry": "templates/generic-metric-overview.cardtpl",
+      "primaryData": [],
+      "secondaryData": []
+    },
+    {
       "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
@@ -317,6 +384,18 @@
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "SleepOverviewScoreCompact@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。",
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
+        "/sleepScore"
       ],
       "secondaryData": []
     },

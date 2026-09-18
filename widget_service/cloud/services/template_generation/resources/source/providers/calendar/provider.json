@@ -51,6 +51,23 @@
       "optionalData": []
     },
     {
+      "templateId": "ScheduleOverviewReminderCompact@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程提醒 Compact：展示首项日程的提前提醒分钟数，可选通知铃铛图标。组件形态：compact。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/remindTime/0"
+      ],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "bellIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
       "templateId": "ScheduleOverviewTimezoneFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
@@ -291,6 +308,42 @@
       "optionalData": []
     },
     {
+      "templateId": "ScheduleOverviewEventCountTwoEventsFull@1",
+      "supportedEventIds": ["event.viewCalendarEvent"],
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "双日程清点 Full，展示日程总数及前两项日程各自的标题和开始时间；可使用可信标题文案，并将查看首项日程详情动作绑定到第一条日程。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/1/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/1/dtStart"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewEventCountDetailsFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "近期日程清点 Full，并列展示日程总数、首项日程标题/开始时间/全天状态，备注为可选；可选日历图标与标题文案。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/isAllDay"
+      ],
+      "optionalData": [
+        "/events/0/description"
+      ]
+    },
+    {
       "templateId": "ScheduleOverviewTimezoneAllDayFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
@@ -308,7 +361,10 @@
     },
     {
       "templateId": "ScheduleOverviewTimeSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程时间 Support：有标题时主行展示标题、辅助行展示开始时间或时间段；无标题时主行展示开始时间、辅助行展示地点或查看提示。仅在绑定事件时显示可选 24vp 日历或会议图标。",
@@ -333,7 +389,10 @@
     },
     {
       "templateId": "ScheduleOverviewLocationSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 地点 Support：主行展示首项日程标题，辅助行展示地点；可选 24vp 日历图标，根节点可绑定事件。",
@@ -353,7 +412,10 @@
     },
     {
       "templateId": "ScheduleOverviewStartTimeSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 开始时间 Support：主行展示首项日程标题，辅助行展示开始时间；可选 24vp 日历图标，根节点可绑定事件。",
@@ -373,7 +435,10 @@
     },
     {
       "templateId": "ScheduleOverviewDateSupport@1",
-      "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
+      "supportedEventIds": [
+        "event.viewCalendarEvent",
+        "event.enter.meeting"
+      ],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
       "description": "日程 日期 Support：主行展示首项日程标题，辅助行展示日期；可选 24vp 日历图标，根节点可绑定事件。",
@@ -390,6 +455,19 @@
           "calendar"
         ]
       }
+    },
+    {
+      "templateId": "ScheduleOverviewMeetingEntryHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "Q058 日程 Hero：今日日程、开始时间及地点，会议标题可从可信输入提供；入会按钮由骨架组合。",
+      "entry": "templates/meeting-entry.cardtpl",
+      "primaryData": [
+        "/events/0/dtStart",
+        "/events/0/eventLocation"
+      ],
+      "secondaryData": [],
+      "optionalData": []
     },
     {
       "templateId": "ScheduleOverviewTimezoneTimeFull@1",

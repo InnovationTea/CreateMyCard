@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -18,15 +19,16 @@ from services.compact_dsl_a2ui_converter import (
     validate_timeline_unit_layout,
 )
 
-from .compact_dual_action_validator import collect_dual_action_errors
+from .context import ValidationContext
 
+_LOGGER = logging.getLogger(__name__)
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _REFERENCE_CANVAS_HEIGHT = {
     "2x2": 160.0,
-    "2x4": 160.0,
-    "4x2": 160.0,
+    "2x4": 150.0,
+    "4x2": 150.0,
 }
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
 _COMMON_DISPLAY_UNITS = frozenset(
@@ -108,16 +110,20 @@ def validate_compact_dsl(
         raise CompactDslValidationError([str(exc)]) from exc
 
     components = [row for row in rows if isinstance(row, ComponentRow)]
+    is_template = _has_template_root(components)
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
-    _collect_hero_value_errors(components, task_spec, errors)
+    if is_template:
+        _LOGGER.info(
+            "compact_validation_skipped reason=template_root rules=hero_value,layout_route"
+        )
+    else:
+        _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
-    size = card_spec.get("suggestSize") or task_spec.get("size")
-    collect_dual_action_errors(components, size, errors)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -136,12 +142,13 @@ def validate_compact_dsl(
             [],
         )
 
-    _collect_layout_route_errors(
-        components,
-        task_spec,
-        visible_binding_paths,
-        errors,
-    )
+    if not is_template:
+        _collect_layout_route_errors(
+            components,
+            task_spec,
+            visible_binding_paths,
+            errors,
+        )
 
     data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(
@@ -156,6 +163,21 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _has_template_root(components: list[ComponentRow]) -> bool:
+    """将 Compact 的 ID/子节点投影到现有对比度豁免判定。"""
+    context = ValidationContext(root_id="root")
+    for component in components:
+        component_id = component.component_id
+        if component_id in context.components_by_id:
+            context.duplicate_component_ids.add(component_id)
+        context.components_by_id[component_id] = {
+            "id": component_id,
+            "children": list(component.children),
+        }
+    context.root_component = context.components_by_id.get("root")
+    return context.has_fusion_template_root()
 
 
 def _collect_hero_value_errors(
@@ -192,15 +214,10 @@ def _collect_hero_value_errors(
         numeric_paths[component.component_id] = path
         if path is not None:
             continue
-        if _is_readable_formatted_hero(component, components, task_spec, font_size):
-            numeric_paths.pop(component.component_id)
-            continue
         errors.append(
             f"component {component.component_id}: fontSize {_format_vp(font_size)} "
             "is reserved for a pure number/integer value. Text, formatted values, "
-            "names, dates, times, and statuses must use at most 18fp on their own line; "
-            "a directly bound temperature, duration, or percentage may use 20/24fp "
-            "only in a single-business full-width column with a sufficient text budget."
+            "names, dates, times, and statuses must use at most 18fp on their own line."
         )
 
     for component in components:
