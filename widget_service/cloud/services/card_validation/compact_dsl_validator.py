@@ -98,6 +98,14 @@ def _collect_hero_value_errors(
     if not isinstance(data_model_schema, dict):
         return
 
+    if task_spec.get("size") == "2x2":
+        _collect_adjacent_display_unit_errors(
+            components,
+            components_by_id,
+            data_model_schema,
+            errors,
+        )
+
     numeric_paths: dict[str, str | None] = {}
     for component in components:
         if component.component_type != "Text":
@@ -239,24 +247,67 @@ def _pure_numeric_binding_path(
     content: Any,
     data_model_schema: dict[str, Any],
 ) -> str | None:
-    path: str | None = None
-    if isinstance(content, dict) and set(content) == {"path"}:
-        candidate = content.get("path")
-        path = candidate if isinstance(candidate, str) else None
-    elif isinstance(content, str):
-        match = _EXPRESSION_PATTERN.fullmatch(content.strip())
-        if match is not None:
-            reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
-            if reference is not None:
-                path = reference.group("path").strip()
-        elif re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
-            return ""
+    path = _pure_binding_path(content)
     if path is None:
         return None
+    if path == "":
+        return path
     schema_node = _schema_node_at_path(data_model_schema, path)
     if _schema_type(schema_node) not in _NUMERIC_SCHEMA_TYPES:
         return None
     return path
+
+
+def _pure_binding_path(content: Any) -> str | None:
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        return candidate if isinstance(candidate, str) else None
+    if not isinstance(content, str):
+        return None
+    match = _EXPRESSION_PATTERN.fullmatch(content.strip())
+    if match is not None:
+        reference = _REFERENCE_PATTERN.fullmatch(match.group("body").strip())
+        return reference.group("path").strip() if reference is not None else None
+    if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", content.strip()):
+        return ""
+    return None
+
+
+def _collect_adjacent_display_unit_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    data_model_schema: dict[str, Any],
+    errors: list[str],
+) -> None:
+    for component in components:
+        if component.component_type != "Row":
+            continue
+        for index, child_id in enumerate(component.children[:-1]):
+            value = components_by_id.get(child_id)
+            suffix = components_by_id.get(component.children[index + 1])
+            if value is None or value.component_type != "Text":
+                continue
+            if suffix is None or suffix.component_type != "Text":
+                continue
+            suffix_content = suffix.props.get("content")
+            if not isinstance(suffix_content, str):
+                continue
+            unit = suffix_content.strip()
+            if unit not in _COMMON_DISPLAY_UNITS:
+                continue
+            value_path = _pure_binding_path(value.props.get("content"))
+            if not value_path:
+                continue
+            schema_type = _schema_type(
+                _schema_node_at_path(data_model_schema, value_path)
+            )
+            if schema_type in _NUMERIC_SCHEMA_TYPES:
+                continue
+            errors.append(
+                f"component {component.component_id}: display unit {unit!r} cannot "
+                f"follow non-numeric binding {value_path}. Remove the unit or bind "
+                "a number/integer value."
+            )
 
 
 def _is_allowed_display_unit(
