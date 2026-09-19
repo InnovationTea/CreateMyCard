@@ -12,6 +12,7 @@ ids_access_key: "23232323232"
 sts_serverDomain: ""
 obs.use.edge: false
 obs.expire.time: 3600
+# 模型使用原始 src；转换成标准 A2UI 后按本映射替换，未命中保留原路径。
 asset.src.url.mapping: ""
 
 enable_artifact_validation: true
@@ -27,6 +28,10 @@ enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false
 compact_dsl_argument_repair_reminder_count: 1
 compact_dsl_argument_repair_max_attempts: 2
+# 参数兜底、归一化及请求校验完成后，仅对 Compact DSL 生成流程进行接口级重试。
+enable_compact_dsl_interface_retry: false
+# 首次生成之外的额外重试次数；0 不重试，1 表示最多执行两次生成。必须为非负整数。
+compact_dsl_interface_retry_count: 1
 enable_openai_fallback: true
 enable_sensitive_log_fields: true
 enable_card_template: false

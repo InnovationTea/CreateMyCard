@@ -30,6 +30,8 @@ def test_missing_spec_uses_default_config(
     assert helper.get("enable_compact_dsl_argument_repair_fallback") == "false"
     assert helper.get("compact_dsl_argument_repair_reminder_count") == 1
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
+    assert helper.get("enable_compact_dsl_interface_retry") == "false"
+    assert helper.get("compact_dsl_interface_retry_count") == 1
 
 
 def test_existing_spec_is_used_without_default_merge(
@@ -45,6 +47,8 @@ def test_existing_spec_is_used_without_default_merge(
     assert helper.config_file == spec_file.resolve()
     assert helper.get("only_spec") == "true"
     assert "obs.expire.time" not in helper
+    assert helper.get("enable_compact_dsl_interface_retry", "false") == "false"
+    assert helper.get("compact_dsl_interface_retry_count", 1) == 1
 
 
 def test_cloud_properties_file_keeps_json_compatibility(

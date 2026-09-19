@@ -26,6 +26,7 @@ def attach_effective_capabilities(
     effective: dict[str, Any],
     artifact: dict[str, Any],
     capabilities_dir: Path | None,
+    asset_src_url_mapping: dict[str, str] | None = None,
 ) -> None:
     if not effective:
         return
@@ -46,6 +47,11 @@ def attach_effective_capabilities(
         capabilities_dir,
     )
     context.effective_asset_sources = asset_sources
+    # 原始路径用于未映射素材及动态绑定；额外认可本次有效素材的交付 URL。
+    for src in tuple(asset_sources):
+        mapped = (asset_src_url_mapping or {}).get(src)
+        if isinstance(mapped, str) and mapped:
+            context.effective_asset_sources.add(mapped)
     context.unresolved_effective_asset_ids = unresolved
 
 
@@ -91,7 +97,7 @@ def _resolve_effective_asset_sources(
             item_id = item.get("id") or item.get("capabilityId")
             src = item.get("src")
             if isinstance(src, str):
-                sources.add(_map_asset_src(src))
+                sources.add(src)
             if isinstance(item_id, str):
                 if isinstance(src, str):
                     resolved_ids.add(item_id)
@@ -99,7 +105,7 @@ def _resolve_effective_asset_sources(
                     ids.add(item_id)
         elif isinstance(item, str):
             if item.startswith("resources/"):
-                sources.add(_map_asset_src(item))
+                sources.add(item)
             else:
                 ids.add(item)
 
@@ -108,7 +114,7 @@ def _resolve_effective_asset_sources(
         item_id = item.get("id")
         src = item.get("src")
         if isinstance(item_id, str) and isinstance(src, str):
-            source_by_id[item_id] = _map_asset_src(src)
+            source_by_id[item_id] = src
 
     if capabilities_dir is not None:
         source_by_id.update(_load_asset_capability_map(capabilities_dir))
@@ -116,27 +122,10 @@ def _resolve_effective_asset_sources(
     for item_id in ids:
         src = source_by_id.get(item_id)
         if src:
-            sources.add(_map_asset_src(src))
+            sources.add(src)
             resolved_ids.add(item_id)
 
     return sources, ids - resolved_ids
-
-
-def _map_asset_src(src: str) -> str:
-    """按 IAC 注入的 src→url 映射把端侧资源路径替换为云侧 url。
-
-    未命中（无配置或素材未映射）回退原 src。区别于 task_spec_builder 的替换，
-    此处保证 effective asset sources 与 DSL 中替换后的 url 一致，校验才能通过。
-    """
-    if not src:
-        return src
-    try:
-        from config.config import get_settings
-
-        mapping = get_settings().asset_src_url_mapping
-        return mapping.get(src, src) if mapping else src
-    except Exception:
-        return src
 
 
 def _task_asset_candidates(artifact: dict[str, Any]) -> list[dict[str, Any]]:

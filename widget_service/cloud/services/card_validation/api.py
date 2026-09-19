@@ -20,7 +20,7 @@ Two entry points are exposed:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +46,7 @@ class ValidationOptions:
     stop_on_stage_error: bool = False
     rules_dir: Path | None = None
     capabilities_dir: Path | None = None
+    asset_src_url_mapping: dict[str, str] = field(default_factory=dict)
 
 
 def validate_card(
@@ -75,6 +76,7 @@ def validate_card(
         effective_value,
         artifact_value,
         opts.capabilities_dir,
+        opts.asset_src_url_mapping,
     )
     if not reporter.has_code(*PIPELINE_BLOCKING_CODES):
         run_pipeline(

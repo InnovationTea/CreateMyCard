@@ -13,9 +13,14 @@ _MODULE = "[Validator]"
 
 
 class ArtifactValidator:
-    def __init__(self) -> None:
+    def __init__(self, asset_src_url_mapping: dict[str, str] | None = None) -> None:
         self.error_categories: list[str] = []
         self.error_prompt_contexts: list[dict[str, Any]] = []
+        mapping = (
+            get_settings().asset_src_url_mapping
+            if asset_src_url_mapping is None else asset_src_url_mapping
+        )
+        self.asset_src_url_mapping = dict(mapping)
 
     def validate(
         self,
@@ -42,6 +47,7 @@ class ArtifactValidator:
             reporter = validate_card(
                 artifact=artifact.model_dump(mode="json", exclude_none=True),
                 options=ValidationOptions(
+                    asset_src_url_mapping=self.asset_src_url_mapping,
                     capabilities_dir=(
                         settings.data_root
                         / "capabilities"
