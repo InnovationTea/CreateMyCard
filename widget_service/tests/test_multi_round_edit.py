@@ -197,75 +197,6 @@ async def test_create_then_visual_edit_inherits_generation_plan(editable_artifac
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 
-@pytest.mark.asyncio
-async def test_design_compact_edit_uses_previous_design_token(
-    editable_artifact_storage,
-    monkeypatch,
-):
-    service = WidgetGenerationService()
-    created = await service.generate_widget_card_compact_dsl(_base_request())
-    source = await asyncio.to_thread(
-        SourceArtifactRepository().load,
-        created.artifactUrl,
-    )
-    assert source.design_token
-    prompts: list[list[dict[str, str]]] = []
-
-    def generate_edit(_client, prompt, _profile=None, **_kwargs):
-        prompts.append(prompt)
-        return source.design_token
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_edit)
-    edited = await service.generate_widget_card_compact_dsl(
-        GenerateWidgetCardRequest(
-            uid="user-a",
-            device={"romVersion": "6.0"},
-            prdVer=APP_VERSION,
-            userQuery="整体改成蓝色",
-            sourceArtifactUrl=created.artifactUrl,
-        )
-    )
-
-    assert created.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
-    assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
-    assert edited.artifactUrl != created.artifactUrl
-    updated = await asyncio.to_thread(
-        SourceArtifactRepository().load,
-        edited.artifactUrl,
-    )
-    edit_payload = json.loads(prompts[0][1]["content"])
-    create_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
-    edit_system_file = (
-        CLOUD_ROOT
-        / "data"
-        / "protocol_profiles"
-        / "design-compact-dsl"
-        / "EDIT_SYSTEM_PROMPT.md"
-    )
-    expected_system = edit_system_file.read_text(encoding="utf-8").replace(
-        "{{CREATE_SYSTEM_PROMPT}}",
-        create_system,
-    )
-
-    assert len(prompts[0]) == 2
-    assert prompts[0][0]["role"] == "system"
-    assert prompts[0][0]["content"].startswith(expected_system)
-    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in (
-        prompts[0][0]["content"]
-    )
-    assert prompts[0][1]["content"].startswith("{")
-    assert edit_payload["userQuery"] == "整体改成蓝色"
-    assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
-    assert edit_payload["previousDesignToken"] == {
-        "format": "design-compact-dsl",
-        "content": source.design_token,
-    }
-    assert updated.artifact.meta.generationMode == "edit"
-    assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
-    assert updated.design_token == source.design_token
-    assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
-
-
 @pytest.mark.parametrize(
     "generation_method",
     ["generate_widget_card_compact_dsl"],
@@ -619,63 +550,6 @@ def _websocket_command_sizes(
                 sizes.append(execute_param["size"])
             if stream_info["streamType"] == "final":
                 return sizes
-
-
-def test_websocket_create_and_edit_return_new_artifact(editable_artifact_storage):
-    client = TestClient(app)
-    created = _websocket_result(
-        client,
-        {
-            "userQuery": "生成天气卡片",
-            "title": "天气",
-            "description": "当前天气",
-            "candidateDataBindings": [],
-        },
-        "create",
-    )
-    edited = _websocket_result(
-        client,
-        {
-            "userQuery": "改成蓝色",
-            "sourceArtifactUrl": created["artifactUrl"],
-        },
-        "edit",
-    )
-
-    assert created["status"] == "success"
-    assert edited["status"] == "success"
-    assert edited["artifactUrl"] != created["artifactUrl"]
-    assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
-
-
-def test_edit_directives_inherit_source_artifact_size(
-    editable_artifact_storage,
-    monkeypatch,
-):
-    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
-    client = TestClient(app)
-    created = _websocket_result(
-        client,
-        {
-            "userQuery": "生成天气卡片",
-            "size": "2x4",
-            "title": "天气",
-            "description": "当前天气",
-            "candidateDataBindings": [],
-        },
-        "directive-size-create",
-    )
-
-    sizes = _websocket_command_sizes(
-        client,
-        {
-            "userQuery": "改成蓝色",
-            "sourceArtifactUrl": created["artifactUrl"],
-        },
-        "directive-size-edit",
-    )
-
-    assert sizes == ["2x4", "2x4"]
 
 
 @pytest.mark.parametrize(

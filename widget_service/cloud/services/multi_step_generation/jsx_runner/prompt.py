@@ -14,11 +14,9 @@ LAYOUT_FALLBACK_PROMPTS = {
 
 必须保留：
 - 所有用户要求的业务事实；
-- 用户要求的动态展示字段及其 dataIds；
+- 所有已使用的 dataIds；
 - 所有 actionId；
 - 动态数据绑定关系。
-
-此前模型规划或 JSX 使用过的字段不自动成为用户必需。允许纠正误加的内部标识或无关字段；绑定差异仅为覆盖 warning，不单独要求重试。
 
 允许：
 - 更换更为尺寸更小的其他组件或文本组件；
@@ -29,11 +27,27 @@ LAYOUT_FALLBACK_PROMPTS = {
 - 重新分配 Stack 的显式 direction、width、height、flex 和 gap。
 
 禁止：
-- 为通过布局校验而删除用户要求的信息或 Action；
+- 删除信息或 Action；
 - 把动态数据改成静态文本；
 - 将纯数值单位、进度关系或按业务规则应使用 `EventCard` 的日程事件，仅为消除重叠而从 `EmphasizedData` 替换成 `EmphasisText`；
 - 使用省略号、裁剪或 overflow 隐藏问题。
 
+完成后调用 submit_card_jsx 提交完整 JSX。""",
+    "drop_optional_component": """紧凑组件替换后仍未通过浏览器校验，现在允许删除一个最低优先级的业务显示组件。
+
+删除顺序：
+1. 与 userQuery 无直接关系的信息；
+2. 辅助说明、更新时间、来源等次要信息；
+3. 对主要任务影响最小的补充属性。
+
+必须满足：
+- 最多删除一个业务显示组件；
+- 不得删除标题所表达的核心对象或用户明确点名的信息；
+- 不得删除任何 Action；
+- 不得把被删除的动态数据改成无绑定的静态文本；
+- 将省略事实在 Plan 中对应的 requirement 原文逐项写入 unmetRequirements。
+
+后续重试只能重新分配剩余内容的空间，不得再删除第二个业务显示组件。
 完成后调用 submit_card_jsx 提交完整 JSX。""",
 }
 
@@ -48,7 +62,7 @@ def build_layout_fallback_prompt(strategy: str) -> str:
 def build_plan_prompt() -> str:
     return (
         "本轮不要生成 JSX，只调用 submit_card_plan。按照已读取的 info_process 规则，"
-        "info_required 必须是原子事实数组：逐对象、逐属性列出 requirement 和 userQuery 原文 sourceQuote，"
+        "info_required 必须是原子事实数组：逐对象、逐属性列出 requirement，"
         "并选择真实 dataId、actionId 或静态 text 中恰好一个目标。动态信息必须用 dataId；"
         "三场会议的标题、时间、地点应拆为九项，不能只写一句全部展示。"
         "提交前逐句核对原始需求，检查对象、数量、日期范围和操作是否遗漏；不要把背景升级为另一对象的事实。"
@@ -58,19 +72,24 @@ def build_plan_prompt() -> str:
         "valueSourceQuote='产品发布会'；开始时间 ID 应填写 initialValue='10:00'、valueSourceQuote='上午十点'。"
         "用户没有给具体值（只说‘显示电量’）时，直接引用电量 dataId，省略 initialValue 和 valueSourceQuote。"
         "样例值不是静态需求，‘动态展示’‘标题作为核心展示’不是正文，不得填入 text。"
-        "按用户要求选择展示字段，不要求展示或逐项解释全部输入。仅操作参数、内部标识、背景或无关字段不应为了清点而加入 info_required；data_exclusions 可选。"
+        "按用户要求选择展示字段，不要求展示或逐项解释全部输入。仅操作参数、内部标识、背景或无关字段不应为了清点而加入 info_required。"
         '展示绑定写在事实项中，例如 {"requirement":"当前天气","dataId":"输入中实际存在的天气字段ID"}，不能只在布局 content 中提到绑定。'
         "字段未清点仅表示覆盖情况尚未确认，不应为消除 warning 展示无关字段，也不能因布局拥挤删除用户要求。"
         "输入值为空不是模型可修复的问题，不能编造值；操作参数绑定与卡面显示是两回事。"
-        "用户要求的动态展示字段即使初始值为空，也应保留绑定以接收后续更新；仅操作参数不应列为展示事实。"
+        "已列入 info_required.dataId 的展示字段即使初始值为空，也必须保留绑定以接收后续更新；仅操作参数不应列为展示事实。"
         "初始值覆盖只在计划的 dataId+initialValue+valueSourceQuote 中明确声明；不会从 JSX 中任意出现的需求原词猜测字段值。"
         "每项只填写一种目标；未使用字段直接省略，不要填写空字符串或 null。"
         "输入 actions 中的每个动作都来自 userQuery 明确要求，必须在方案中分配合法按钮槽位；"
         "2x4 任务只要 actions 非空，layout_optionA 和 layout_optionB 都禁止选择“上下双区”；"
+        "选择内容组件前，先在每个语义分区内把展示字段判断为唯一核心、补充说明或同级属性。"
+        "存在唯一核心时必须用强调文本、强调数值、InfoBlock 或其他核心业务组件承载，"
+        "不得为了紧凑或易闭合把核心降级到 TableText；只有字段确实同级，或核心已由标题／其他核心组件唯一表达时才使用 TableText。"
         "不要加入与用户意图无关的信息。每个布局 option 按 content、layoutPattern、subPattern 的顺序输出："
         "先在 content 中按父区域列出最终业务组件，明确每区是单内容还是双内容、是否有标题和按钮，"
         "并参照 layouts 文档简要写明各内容区的水平、垂直对齐方式和弹性策略，尤其不要遗漏"
         "所选子布局规定的底端对齐；"
+        "每个方案还必须为地点名、设备名、事件名等动态身份事实选择唯一 owner：若正文展示该值，"
+        "静态标题不得包含该值；若标题使用 `*Template` 绑定并展示该值，正文不得重复；"
         "再依据已读取的 layouts 文档充分权衡组件数量、内容块关系、对齐方式和弹性空间，"
         "填写与上述结论一致的 layoutPattern 和 subPattern；将首选方案写入 layout_optionA；"
         "只有存在同样可行的替代布局时才填写 layout_optionB。"
@@ -81,15 +100,48 @@ def build_plan_prompt() -> str:
 
 def build_plan_context(plan: dict[str, Any]) -> str:
     payload = json.dumps(plan, ensure_ascii=False, separators=(",", ":"))
+    ownership: list[dict[str, Any]] = []
+    for index, fact in enumerate(plan.get("info_required", []), start=1):
+        if not isinstance(fact, dict):
+            continue
+        target = next(
+            (
+                (key, fact[key])
+                for key in ("dataId", "actionId", "text")
+                if key in fact and fact[key] not in (None, "")
+            ),
+            None,
+        )
+        if target is None:
+            continue
+        target_kind, target_value = target
+        ownership.append({
+            "fact": index,
+            "requirement": fact.get("requirement", ""),
+            target_kind: target_value,
+        })
+    ownership_payload = json.dumps(ownership, ensure_ascii=False, separators=(",", ":"))
     return (
-        "以下是模型生成的参考计划，不是已验证的用户需求清单。请按原始需求生成，描述性文字不是必须逐字展示的正文。"
-        "重规划可以补充遗漏、修正描述和误选字段；不要仅因计划曾选中过某个内部标识就强制展示它。"
-        "计划与 JSX 的覆盖差异仅为 warning，不单独要求重试；仍应尽量完整满足用户需求，不能把生成通过当作语义完整证明。"
+        "以下是生成前计划。普通提交和紧凑组件兜底必须保留已选事实与绑定；"
+        "只有 Runner 明确进入 drop_optional_component 阶段时才执行该阶段的专用省略规则。"
+        "描述性文字不是必须逐字展示的正文。"
+        "重规划可以补充遗漏事实、修正描述；不得删除真实 ID 和用户明确要求的正文。"
+        "非 drop_optional_component 阶段不得通过修改 coverage 或 unmetRequirements 解除必需事实。"
         "initialValue 已作为对应 ID 的统一初始值。"
-        "最终 JSX 参考采用方案 content 中的业务组件清单，"
-        "并参考 content 中按区域记录的对齐与弹性策略，使 submit_card_jsx.decision "
-        "与采用方案的 layoutPattern/subPattern 一致；如最终结构变化，检查是否仍符合所选布局的槽位约束。"
-        "不要仅因组件数量变化强制换布局。若计划与已读取规范冲突，以规范为准。\n"
+        "计划中的 layout_optionA 和 layout_optionB 是本轮普通 JSX 提交允许执行的布局方案，不是可忽略的建议。"
+        "最终 decision 必须与其中一套方案的 layoutPattern 和 subPattern 完全一致，并按该方案的 content 实现完整 JSX；"
+        "不得在 JSX 阶段自行发明第三套布局。只有 Runner 明确进入 compact_component 或 "
+        "drop_optional_component 阶段后，才允许根据对应兜底要求更换布局。"
+        "下方事实归属表只规定必须展示的原子事实，不规定放在哪个组件。"
+        "生成 JSX 前，在内部为每项事实选择恰好一个可见 Prop 作为 owner；标题也是可见 owner。"
+        "同时按已读取组件规则保留信息层级：存在唯一核心时不得把它降级到 TableText；"
+        "同一语义分区内 EmphasisText 与 EmphasizedData 合计最多一个，普通 Stack 包装不产生新分区。"
+        "同一 dataId 不得为了凑足 SecondaryBody、TableText 等组件的最少条目数而再次展示；"
+        "静态标题已经表达某项 text 事实时，也不要在正文重复。"
+        "若正文 owner 展示地点名、设备名或事件名，静态标题必须使用不包含该值的类别概括；"
+        "地点名、设备名、事件名等动态字段需要与静态标题后缀合并时，优先使用标题组件的 `*Template`，"
+        "不要再增加一行正文重复该字段。若计划与已读取规范冲突，以规范为准。\n"
+        f"<required_fact_ownership>\n{ownership_payload}\n</required_fact_ownership>\n"
         f"<plan>\n{payload}\n</plan>"
     )
 
@@ -176,10 +228,11 @@ def build_system_prompt(
         "`userQuery` 未提供对应具体值时，才使用 `data[].value`。"
         "一个 Prop 绑定多个 `dataId` 时不得猜测如何把查询文本反向拆分到多个动态字段；不得虚构数据。"
         "交互信息只能通过输入 `actions` 中已有的 `actionId` 表达，不添加其他交互属性。",
-        "- 同一个输入数据 ID 在整张卡片中原则上只展示一次。"
-        "某个 ID 已绑定到一个可见 Prop，或已作为 `dataIds` 数组成员组合进某个文本后，"
-        "不得再将该 ID 绑定到其他组件重复展示；"
-        "提交前展平检查所有 `dataIds`，删除重复事实，但不得因去重删除未展示的必需信息。",
+        "- 每个原子业务事实在整张卡片中必须只有一个可见 owner，标题也计入可见 owner。"
+        "某个 ID 已绑定到一个可见文本 Prop，或已作为 `dataIds` 数组成员组合进某个文本后，"
+        "不得再将该 ID 绑定到其他可见文本重复展示；同一数值允许同时驱动进度图形和与该图形配套的唯一数值文本。"
+        "不得用静态标题、标签或同义改写再次表达已经展示的动态事实，也不得为满足组件最少条目数复制事实；"
+        "此时应改选条目数合同匹配的组件。提交前按事实语义检查 owner，但不得因去重删除未展示的必需信息。",
         "只有“正常、健康、已连接”等状态描述时应使用文本组件，不得编造进度值。",
         "- `actions` 是 userQuery 明确要求且已映射到输入的动作列表；每个动作都必须生成一个操作控件。"
         "2x4 输入只要 `actions` 非空，就不得选择不支持 Action 的“上下双区”，也不得以布局空间不足为由"

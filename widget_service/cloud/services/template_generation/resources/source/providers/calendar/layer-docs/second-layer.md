@@ -27,7 +27,8 @@
   - `ScheduleOverviewDateSupport@1`：首项标题及真实日期，两者必需。
     四种 Support 均只用于 `TwoSupportLayout@1`，支持可选 24vp 业务图标和 Planner 分配的
     `actionId`；必须独立覆盖日历业务的全部显式字段，不得混拼四种模板的覆盖结果。
-  - `ScheduleOverviewNextEventLocationFull@1`：下一个日程 Full；展示标题、起止时间和地点；可选
+  - `ScheduleOverviewNextEventLocationFull@1`：下一个日程 Full；标题、开始时间和地点必需，结束时间可选；
+    有结束时间时保持原时间段分支，缺少时只显示开始时间、不输出分隔符；可选
     `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewMeetingWideFull@1`：宽版会议摘要；展示标题、起止时间和地点；可选
     `timeIcon` 与 `locationIcon`。
@@ -43,6 +44,13 @@
     `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewTimezoneDateEndFull@1`：时区日期日程 Full；展示标题、日期、时区和结束时间；可选
     `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewTimezoneTimeFull@1`：沿用时区日期日程的标题和时间轴版式；标题、时区、开始和结束时间
+    全部必需，不要求日期或地点；可选 `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewDateLocationFull@1`：同版式的日期地点 Full；标题、真实开始日期、地点全部必需，
+    不要求时区或起止时间；可选 `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewReminderDetailsFull@1`：同版式的提醒详情 Full；发起人、重要程度、提醒分钟数和更新时间
+    全部必需，不补造日程标题或事件；可选 `calendarIcon` 与 `headerLabel`。重要程度保持原数值类型，
+    不猜测枚举含义，不把整数插入仅接受字符串的模板插值。
   - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
     提醒分钟数，不接收展示 Prop。
   - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选
@@ -69,4 +77,8 @@
   - `timeIcon`：时钟、时间或日程时刻语义；
   - `locationIcon`：地点、位置、会议室或地图标记语义。
 - 同一模板的多个素材槽位必须分别匹配语义，不得复用同一素材填充来源、时间和地点。
+- `TwoEventsFull` 的底板宽度跟随父容器、高度等分剩余空间，内部时间轴旁的文本使用剩余宽度。
+  `LocationDescriptionEndFull`、`LocationHero`、`TitleHero`、`TimezoneDateEndFull`、`TimezoneAllDayFull`
+  的标题文字占图标以外的剩余宽度，保留 20vp 图标，兼容 150×150vp 与 160×160vp 容器；
+  尺寸适配只涉及模板布局，不改变字段、可选项、模板选择或事件消费。
 - Action 图标必须与动作语义一致；`PillAction@1` 没有匹配素材时省略 `icon`，不得复用业务内容素材。

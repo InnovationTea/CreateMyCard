@@ -46,8 +46,9 @@ def _palette(name: str, background: str, content: str, stops: tuple[str, ...] = 
 
 # A2UI-only orb fallback: retain the source palette as a linear approximation.
 # JSX uses the authored ellipse layers and backdrop blur, not these gradients.
+_PLAIN_SURFACE = _palette("__plain-surface", "FFFFFF", "000000")
+
 APPEARANCES: dict[str, Appearance] = {
-    "solid-white": _palette("solid-white", "FFFFFF", "000000"),
     "solid-blue": _palette("solid-blue", "E5EDFE", "1F4799"),
     "solid-orange": _palette("solid-orange", "FFF3E6", "99661F"),
     "solid-green": _palette("solid-green", "F0FFE6", "52991F"),
@@ -60,7 +61,7 @@ APPEARANCES: dict[str, Appearance] = {
 }
 
 APPEARANCE_ALIASES = {
-    "neutral-soft": "solid-white",
+    "neutral-soft": "solid-blue",
     "blue-soft": "solid-blue",
     "pink-soft": "solid-orange",
     "yellow-soft": "solid-orange",
@@ -80,6 +81,8 @@ APPEARANCES.update({
 
 
 def get_appearance(name: str | None) -> Appearance:
+    if name in {None, _PLAIN_SURFACE.name}:
+        return _PLAIN_SURFACE
     key = name or "blue-soft"
     try:
         return APPEARANCES[key]
@@ -88,7 +91,9 @@ def get_appearance(name: str | None) -> Appearance:
 
 
 def resolve_appearance_name(name: str | None, size: str | None = None) -> str:
-    canonical = APPEARANCE_ALIASES.get(name, name) or "solid-white"
+    if name is None:
+        return _PLAIN_SURFACE.name
+    canonical = APPEARANCE_ALIASES.get(name, name)
     get_appearance(canonical)
     if size == "2x4" and canonical.startswith("orb-"):
         return canonical.replace("orb-", "solid-", 1)

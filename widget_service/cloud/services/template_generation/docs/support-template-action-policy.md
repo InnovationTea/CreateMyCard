@@ -41,7 +41,6 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WorkoutOverviewSupport@1 | event.open.health.sport |
 | HeartRateOverviewSupport@1 | event.open.health.sport |
 | SleepOverviewSupport@1 | event.open.health.sleep |
-| AppUsageOverviewSupport@1 | event.open.settings.parentControl |
 | ResourceUsageOverviewSupport@1 | event.clean.memory |
 
 事件含义及参数以请求版本的 event_capabilities.json 为准。步数、训练及运动心率允许锻炼页作为关联入口，

@@ -42,22 +42,18 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "本周工作室总用电量。",
-      "sourceQuote": "展示本周工作室总用电量，以及照明、空调和设备用电分别是多少。",
       "dataId": "studioPower.week.totalText"
     },
     {
       "requirement": "本周照明用电量。",
-      "sourceQuote": "展示本周工作室总用电量，以及照明、空调和设备用电分别是多少。",
       "dataId": "studioPower.week.lightingText"
     },
     {
       "requirement": "本周空调用电量。",
-      "sourceQuote": "展示本周工作室总用电量，以及照明、空调和设备用电分别是多少。",
       "dataId": "studioPower.week.coolingText"
     },
     {
       "requirement": "本周设备用电量。",
-      "sourceQuote": "展示本周工作室总用电量，以及照明、空调和设备用电分别是多少。",
       "dataId": "studioPower.week.equipmentText"
     }
   ],
@@ -140,42 +136,34 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "温室当前温度。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.greenhouse.temperatureText"
     },
     {
       "requirement": "带标签的温室当前湿度文案。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.greenhouse.humidityText"
     },
     {
       "requirement": "温室当前通风模式。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.greenhouse.ventilationMode"
     },
     {
       "requirement": "冷藏区当前温度。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.coldRoom.temperatureText"
     },
     {
       "requirement": "冷藏区当前门状态。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.coldRoom.doorStatusText"
     },
     {
       "requirement": "冷藏区当前告警状态。",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "dataId": "facility.coldRoom.alertStatusText"
     },
     {
       "requirement": "调节通风",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "actionId": "facility.greenhouse.adjustVentilation"
     },
     {
       "requirement": "查看告警",
-      "sourceQuote": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
       "actionId": "facility.coldRoom.viewAlerts"
     }
   ],
@@ -288,42 +276,34 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "展会布置任务名称。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.setup.taskName"
     },
     {
       "requirement": "任务开始时间。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.setup.startTime"
     },
     {
       "requirement": "任务结束时间。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.setup.endTime"
     },
     {
       "requirement": "任务所在场馆与入口。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.setup.locationText"
     },
     {
       "requirement": "现场设备数量。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.device.countText"
     },
     {
       "requirement": "现场设备故障情况。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.device.faultText"
     },
     {
       "requirement": "现场设备巡检状态。",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "dataId": "exhibition.device.inspectionStatus"
     },
     {
       "requirement": "联系负责人",
-      "sourceQuote": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
       "actionId": "exhibition.manager.contact"
     }
   ],
@@ -425,42 +405,34 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "店内当前顾客数。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.customer.currentText"
     },
     {
       "requirement": "当前排队情况。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.customer.queueText"
     },
     {
       "requirement": "当前空位情况。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.customer.seatText"
     },
     {
       "requirement": "当前待取订单数量。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.order.pendingText"
     },
     {
       "requirement": "当前低库存情况。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.stock.lowText"
     },
     {
       "requirement": "下一批物料到货时间。",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "dataId": "cafe.stock.nextArrivalText"
     },
     {
       "requirement": "打开收银",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "actionId": "cafe.cashier.open"
     },
     {
       "requirement": "查看补货",
-      "sourceQuote": "做张咖啡店运营卡片，看当前顾客数、排队情况和空位，也看待取订单、低库存情况和下批到货时间，并能打开收银和查看补货。",
       "actionId": "cafe.stock.viewRestock"
     }
   ],

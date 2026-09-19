@@ -3,25 +3,24 @@ from __future__ import annotations
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from dataclasses import dataclass
 
-from ..jsx_runner.agent import PLAN_MAX_TOKENS
+from ..jsx_runner.agent import DEFAULT_MAX_TOKENS, DEFAULT_PLAN_MAX_TOKENS, PLAN_MAX_TOKENS
 
 
 @dataclass(frozen=True, slots=True)
 class BridgeOptions:
     """JSX 生成、校验和修复参数的统一入口。"""
 
-    max_turns: int = 20
-    max_tokens: int = 8192
+    max_turns: int = 30
+    max_tokens: int = DEFAULT_MAX_TOKENS
     request_timeout: float = 120.0
     browser_fallback_after: int = 3
     browser_validation: bool = True
     validation_enabled: bool = True
     layout_budget_validation: bool = False
     validate_dynamic_values: bool = True
-    validate_non_empty_data_ids: bool = True
     enable_dynamic_data_binding: bool = True
-    include_few_shot: bool = False
-    plan_max_tokens: int = PLAN_MAX_TOKENS
+    include_few_shot: bool = True
+    plan_max_tokens: int = DEFAULT_PLAN_MAX_TOKENS
     submit_mode: str = "direct"
     thinking_mode: str = "disable"
     verbose: bool = True

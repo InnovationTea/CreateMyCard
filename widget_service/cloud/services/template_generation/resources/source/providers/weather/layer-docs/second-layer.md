@@ -22,12 +22,14 @@
     空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
   - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
+  - `WeatherOverviewUpdatedAtFull@1`：基础天气摘要并显示天气数据更新时间；包含城市、当前温度和天气现象。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。
   - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
   - `WeatherOverviewCareAlertFull@1`：上下两组的关怀型 Full，上组展示城市、天气预警及说明，下组展示紫外线和空气质量；可选紫外线图标，不保留电话动作专用留白。
   - `WeatherOverviewWindHero@1`：展示城市、当前风向和风力等级的 Hero；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
+  - `WeatherOverviewWindFull@1`：展示城市、当前风向和风力等级的 Full；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
   - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
     只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。

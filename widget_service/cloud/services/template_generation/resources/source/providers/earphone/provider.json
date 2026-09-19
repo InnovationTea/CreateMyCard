@@ -20,6 +20,16 @@
   ],
   "templates": [
     {
+      "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称与左右电量 Hero：主行展示名称，下方左右耳图标与电量百分比并排；无需连接状态或仓电量，搭配一个操作按钮。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": ["/earphoneName"],
+      "secondaryData": ["/leftBatteryLevel", "/rightBatteryLevel"],
+      "optionalData": []
+    },
+    {
       "templateId": "BluetoothDeviceOverviewHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",

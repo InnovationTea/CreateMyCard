@@ -123,7 +123,14 @@ def _resolve_event_group_gaps(
     node: A2UINode, offered_height: float | None, offered_width: float | None = None,
 ) -> None:
     """Use 8vp only with a conservative capacity proof; otherwise keep 4vp."""
-    outer_height = _resolved_outer_height(node, offered_height)
+    # A natural-height event group receives the containing slot's capacity as
+    # `offered_height`. Use that capacity only to select the 8vp/4vp gap; the
+    # emitted group itself remains wrapContent and can still be parent-aligned.
+    outer_height = (
+        offered_height
+        if _is_event_group(node) and offered_height is not None
+        else _resolved_outer_height(node, offered_height)
+    )
     content_height = max(0, outer_height - _vertical_edges(node.styles.get("padding")))
     width = _number(node.styles.get("width"))
     if width is None:
@@ -159,6 +166,12 @@ def _resolve_event_group_gaps(
             allocated = max(_minimum_node_height(child), flexible_height * weight / total_weight)
         else:
             allocated = _resolved_outer_height(child, None)
+            # A natural-height EventCard does not consume the parent's free
+            # space, but that space is still relevant when choosing its 8vp
+            # or 4vp internal gap. Only lend it unclaimed slack: weighted
+            # siblings retain ownership of flexible space.
+            if _is_event_group(child) and total_weight == 0:
+                allocated += flexible_height
         _resolve_event_group_gaps(child, allocated, content_width)
 
 
@@ -184,7 +197,12 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if not children:
         raise ValidationError("<Card> must contain at least one component child")
     background = node.props.get("background")
-    adapt_flex_children(source_children, children, is_row=is_row, fill_table_height=True)
+    adapt_flex_children(
+        source_children,
+        children,
+        is_row=is_row,
+        fill_table_height=True,
+    )
     if stretch:
         for child in children:
             child.styles.setdefault("height" if is_row else "width", "matchParent")

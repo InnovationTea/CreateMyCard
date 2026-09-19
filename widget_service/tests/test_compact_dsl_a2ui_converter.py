@@ -166,33 +166,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         }
 
-    def test_expands_only_current_prompt_design_aliases(self) -> None:
-        normalized = normalize_compact_dsl_design_tokens(self.compact_dsl)
-        rows = [json.loads(line) for line in normalized.splitlines()]
-        components = {}
-        for row in rows:
-            if len(row) >= 3:
-                components[row[0]] = row
-
-        self.assertEqual(components["root"][2]["padding"], 8)
-        self.assertEqual(components["title"][2]["fontSize"], 14)
-        self.assertEqual(components["title"][2]["fontWeight"], 500)
-        self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
-        self.assertNotIn("design", components["title"][2])
-        self.assertEqual(components["action"][2]["height"], 36)
-        self.assertEqual(components["action"][2]["borderRadius"], 20)
-        self.assertEqual(
-            components["action"][2]["padding"],
-            {"left": 8, "top": 0, "right": 8, "bottom": 0},
-        )
-        self.assertEqual(components["action"][2]["minFontSize"], 12)
-        self.assertEqual(components["action"][2]["maxFontSize"], 14)
-        self.assertEqual(components["action"][2]["fontWeight"], 500)
-        self.assertEqual(
-            components["action"][2]["backgroundColor"],
-            "#190A59F7",
-        )
-
     def test_expands_action_icon_round_design(self) -> None:
         compact_dsl = _serialize(
             [

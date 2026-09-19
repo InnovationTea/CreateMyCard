@@ -2006,12 +2006,12 @@ def test_optional_data_is_available_but_not_required_for_second_containment() ->
     record = next(
         item
         for item in get_cardplan_registry().template_variant_search_records
-        if item.template_id == "AppUsageOverviewFull@1"
+        if item.template_id == "WeatherOverviewFull@1"
     )
 
-    assert "/updatedAt" in record.available_paths
-    assert "/updatedAt" not in record.required_paths
-    assert any(token.path == "/updatedAt" for token in record.field_tokens)
+    assert "/current/airQuality" in record.available_paths
+    assert "/current/airQuality" not in record.required_paths
+    assert any(token.path == "/current/airQuality" for token in record.field_tokens)
 
 
 def test_search_rejects_weather_and_battery_businesses() -> None:

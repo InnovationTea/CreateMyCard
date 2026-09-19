@@ -81,9 +81,9 @@ class JsxA2UIBridge:
             max_validation_repairs=resolved.browser_fallback_after,
             browser_validation=resolved.browser_validation,
             validation_enabled=resolved.validation_enabled,
-            layout_budget_validation=resolved.layout_budget_validation,
+            # 与 phone 入口一致：几何检查交给浏览器，不启用 Python 尺寸估算。
+            layout_budget_validation=False,
             validate_dynamic_values=resolved.validate_dynamic_values,
-            validate_non_empty_data_ids=resolved.validate_non_empty_data_ids,
             enable_dynamic_data_binding=resolved.enable_dynamic_data_binding,
             plan_max_tokens=resolved.plan_max_tokens,
             resources=GenerationResources(include_few_shot=resolved.include_few_shot),
@@ -267,8 +267,12 @@ class JsxA2UIBridge:
                 rejected_path.write_text(rejected_jsx, encoding="utf-8")
                 rejected_count += 1
 
-            # context.json：编译上下文（数据绑定 + 动作绑定）
-            if compile_context and (compile_context.get("data") or compile_context.get("actions")):
+            # 纯静态卡片也要保存实测排版，供同一 JSX 再次转换时复用。
+            context_fields = ("data", "actions", "assets", "renderedLayout")
+            has_context = compile_context and any(
+                compile_context.get(key) for key in context_fields
+            )
+            if has_context:
                 context_path = dump_directory / f"raw_context_{component_name}.json"
                 context_path.write_text(
                     json.dumps(compile_context, ensure_ascii=False, indent=2),

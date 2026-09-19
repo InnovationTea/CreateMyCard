@@ -9,4 +9,4 @@ qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描�
 完整 artifact 校验错误还可能包含 category、validatorStage、fileKind、line、jsonPointer、actual、expected 和
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 执行最小修改；不得忽略具体 code 和 fixHint 后仅凭通用 category 猜测修复方式。
-最终只输出修复后的完整 DSL。不要输出解释、分析、补丁、Markdown 代码块、TaskSpec、CardSpec 或其它内容。
+最终沿用首次生成的源格式：只输出一个 genui Markdown 代码块，包含修复后的完整极简协议组件行和数据行。不要输出解释、分析、补丁、TaskSpec、CardSpec 或其它内容。

@@ -30,6 +30,8 @@ from services.multi_step_generation.jsx_runner.run_summary import (  # noqa: E40
     terminal_summary_lines,
 )
 from services.multi_step_generation.jsx_runner.agent import (  # noqa: E402
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_PLAN_MAX_TOKENS,
     PLAN_MAX_TOKENS,
     SUBMIT_MODES,
     JsxA2UIAgent,
@@ -135,8 +137,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=8192,
-        help="模型单轮最大输出 Token（默认：8192）。",
+        default=DEFAULT_MAX_TOKENS,
+        help=f"模型单轮最大输出 Token（默认：{DEFAULT_MAX_TOKENS}）。",
     )
     parser.add_argument(
         "--request-timeout",
@@ -191,21 +193,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--with-layout-budget-validation",
         dest="no_layout_budget_validation",
         action="store_false",
-        help="启用 Python 横向/纵向尺寸预算校验；不影响其他静态校验或浏览器校验。",
+        help="保留参数；Python 尺寸预算校验已停用，实际几何由浏览器校验。",
     )
     parser.set_defaults(no_layout_budget_validation=True)
     parser.add_argument("--thinking-mode", choices=THINKING_MODES, default=MODEL_THINKING_MODE)
     parser.add_argument(
         "--plan-max-tokens",
         type=int,
-        default=PLAN_MAX_TOKENS,
-        help=f"规划阶段最大输出 Token（1～{PLAN_MAX_TOKENS}，默认：{PLAN_MAX_TOKENS}）。",
+        default=DEFAULT_PLAN_MAX_TOKENS,
+        help=f"规划阶段最大输出 Token（1～{PLAN_MAX_TOKENS}，默认：{DEFAULT_PLAN_MAX_TOKENS}）。",
     )
-    parser.add_argument(
+    few_shot_group = parser.add_mutually_exclusive_group()
+    few_shot_group.add_argument(
         "--few-shot",
         action="store_true",
-        help="在 2x4 的 layout_patterns 中加载 few-shot 示例；默认关闭，2x2 不受影响。",
+        help="在 2x4 的 layout_patterns 中加载 few-shot 示例；默认开启，2x2 不受影响。",
     )
+    few_shot_group.add_argument(
+        "--no-few-shot", dest="few_shot", action="store_false",
+        help="不加载 2x4 端到端 few-shot 示例。",
+    )
+    parser.set_defaults(few_shot=True)
     failure_group = parser.add_mutually_exclusive_group()
     failure_group.add_argument(
         "--continue-on-error",
@@ -227,11 +235,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "跳过未绑定动态样例值的静态化校验；未知 dataId、绑定类型、"
             "组件合同、布局、资源、交互、浏览器和 A2UI 编译校验仍然执行。"
         ),
-    )
-    parser.add_argument(
-        "--skip-empty-data-id-validation",
-        action="store_true",
-        help="跳过 dataIds 空值校验；不关闭其他绑定、布局和协议校验。",
     )
     binding_group = parser.add_mutually_exclusive_group()
     binding_group.add_argument(
@@ -282,7 +285,8 @@ def preflight(
 async def async_main(args: argparse.Namespace) -> int:
     validation_enabled = not args.no_validation
     browser_validation = validation_enabled and args.with_browser_validation
-    layout_budget_validation = validation_enabled and not args.no_layout_budget_validation
+    # 与 phone 相同：保留旧参数解析，但不启用 Python 几何估算。
+    layout_budget_validation = False
     bridge_options = BridgeOptions(
         max_turns=args.max_turns,
         max_tokens=args.max_tokens,
@@ -293,7 +297,6 @@ async def async_main(args: argparse.Namespace) -> int:
         validation_enabled=validation_enabled,
         layout_budget_validation=layout_budget_validation,
         validate_dynamic_values=not args.skip_dynamic_value_validation,
-        validate_non_empty_data_ids=not args.skip_empty_data_id_validation,
         enable_dynamic_data_binding=args.enable_dynamic_data_binding,
         include_few_shot=args.few_shot,
         plan_max_tokens=args.plan_max_tokens,
@@ -390,7 +393,6 @@ async def async_main(args: argparse.Namespace) -> int:
         ),
         "planMaxTokens": bridge_options.plan_max_tokens,
         "fewShotEnabled": bridge_options.include_few_shot,
-        "nonEmptyDataIdValidationEnabled": bridge_options.validate_non_empty_data_ids,
         "dynamicDataBindingEnabled": bridge_options.enable_dynamic_data_binding,
         "browserValidationEnabled": browser_validation,
         "layoutBudgetValidationEnabled": layout_budget_validation,

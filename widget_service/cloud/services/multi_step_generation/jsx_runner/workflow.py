@@ -70,7 +70,7 @@ from .layout_rules import (
 )
 from .required_facts import (
     context_with_initial_values,
-    checkable_facts,
+    enforceable_facts,
     missing_required_facts,
     required_facts_schema,
     validate_required_facts,
@@ -118,12 +118,16 @@ def browser_repair_preservation_findings(
     baseline: CompiledSubmission,
     candidate: CompiledSubmission,
     compile_context: dict[str, Any] | None,
+    *,
+    require_all_data_ids: bool = False,
+    require_unmet_for_omissions: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-    """Compare layout repairs with earlier bindings without freezing model choices.
+    """Detect deterministic semantic regressions introduced by layout repair.
 
     Removing an action is a definite regression. Text/number similarity alone
     does not prove staticization. Completely omitting a data binding is
-    advisory in every repair stage: prior use does not prove user necessity.
+    advisory during ordinary repair, forbidden during compact fallback, and
+    allowed during drop fallback only when unmetRequirements records the loss.
     """
 
     baseline_data, baseline_actions = submission_reference_ids(baseline)
@@ -191,33 +195,63 @@ def browser_repair_preservation_findings(
                 staticized[binding_id] = sorted(set(matches))
 
     if staticized:
-        warnings.append(
+        strict_preservation = require_all_data_ids or require_unmet_for_omissions
+        (errors if strict_preservation else warnings).append(
             {
-                "severity": "warning",
+                "severity": "error" if strict_preservation else "warning",
                 "code": "browser-repair-staticized-binding",
                 "message": (
                     "浏览器布局修复删除了动态绑定，静态文本与其样例值相似，需核对是否为同一事实："
                     + "; ".join(
                         f"{binding_id!r} -> {', '.join(locations)}" for binding_id, locations in staticized.items()
                     )
-                    + "。仅凭文字或数值相似不能确认静态化；请对照用户需求核对，不单独触发重试。"
+                    + "。仅凭文字或数值相似不能确认静态化；必需 ID 的遗漏另行校验。"
                 ),
                 "details": {"staticizedDataIds": staticized},
             }
         )
 
-    warnings.append(
-        {
-            "severity": "warning",
-            "code": "browser-repair-dropped-binding",
-            "message": (
-                "布局修复省略了此前使用的数据绑定："
-                + ", ".join(repr(value) for value in removed_data)
-                + "。此前使用不代表用户必需；请核对原始需求，覆盖情况未验证，不因该差异单独重试。"
-            ),
-            "details": {"removedDataIds": removed_data},
-        }
-    )
+    omitted = [value for value in removed_data if value not in staticized]
+    if omitted:
+        omitted_text = ", ".join(repr(value) for value in omitted)
+        if require_all_data_ids:
+            errors.append(
+                {
+                    "severity": "error",
+                    "code": "browser-fallback-compact-dropped-binding",
+                    "message": (
+                        "紧凑组件替换阶段不得删除信息，但本次提交省略了数据绑定："
+                        + omitted_text
+                        + "。请通过更换组件或重组布局保留这些 dataIds。"
+                    ),
+                    "details": {"removedDataIds": omitted},
+                }
+            )
+        elif require_unmet_for_omissions and not candidate.unmet_requirements:
+            errors.append(
+                {
+                    "severity": "error",
+                    "code": "browser-fallback-drop-missing-unmet-requirement",
+                    "message": (
+                        "删除最低优先级组件后省略了数据绑定："
+                        + omitted_text
+                        + "，但没有在 unmetRequirements 中记录省略的需求。"
+                    ),
+                    "details": {"removedDataIds": omitted},
+                }
+            )
+        else:
+            warnings.append(
+                {
+                    "severity": "warning",
+                    "code": "browser-repair-dropped-binding",
+                    "message": (
+                        "浏览器布局修复省略了此前展示的数据绑定："
+                        + omitted_text
+                        + "。仅当这些信息确实可舍弃时才应接受该结果。"
+                    ),
+                }
+            )
     return errors, warnings
 
 
@@ -229,6 +263,10 @@ class LayoutBudgetError(ValidationError):
 
 class LayoutStructureError(ValidationError):
     """A declared layout violates an explicit structural contract."""
+
+
+class RequiredInformationError(ValidationError):
+    """A submission omitted a frozen, query-grounded display requirement."""
 
 
 def _validate_structure(validate) -> None:
@@ -285,10 +323,79 @@ def _serialize_jsx(node: JSXElement, depth: int = 0) -> str:
     return "\n".join(lines)
 
 
+def _remove_empty_scalar_data_ids(root: JSXElement) -> list[dict[str, str]]:
+    """Treat an explicitly empty scalar binding as an absent optional binding."""
+    warnings: list[dict[str, str]] = []
+    for node in _walk(root):
+        owners: list[tuple[dict[str, Any], str]] = [(node.props, "")]
+        items = node.props.get("items")
+        if isinstance(items, list):
+            owners.extend(
+                (item, f"items[{index}].")
+                for index, item in enumerate(items)
+                if isinstance(item, dict)
+            )
+        for owner, prefix in owners:
+            data_ids = owner.get("dataIds")
+            if not isinstance(data_ids, dict):
+                continue
+            empty_props = [
+                prop for prop, binding_id in data_ids.items()
+                if isinstance(binding_id, str) and not binding_id.strip()
+            ]
+            if not empty_props:
+                continue
+            value_maps = owner.get("dataValueMaps")
+            for prop in empty_props:
+                data_ids.pop(prop, None)
+                if isinstance(value_maps, dict):
+                    value_maps.pop(prop, None)
+                location = f"{prefix}dataIds.{prop}"
+                warnings.append({
+                    "severity": "warning",
+                    "code": "empty-data-id-removed",
+                    "message": (
+                        f"<{node.tag}> {location} was empty and was removed; "
+                        "the corresponding display value remains static"
+                    ),
+                })
+            if not data_ids:
+                owner.pop("dataIds", None)
+            if isinstance(value_maps, dict) and not value_maps:
+                owner.pop("dataValueMaps", None)
+    return warnings
+
+
 def _walk(node: JSXElement):
     yield node
     for child in node.child_elements():
         yield from _walk(child)
+
+
+def _restore_remote_asset_sources(root: JSXElement, context: CompileContext | None) -> bool:
+    """Replace model-facing asset aliases with their original remote URLs."""
+    if context is None or not context.assets:
+        return False
+    sources = {alias: asset.src for alias, asset in context.assets.items()}
+    changed = False
+
+    def restore(value: Any, *, key: str | None = None) -> Any:
+        nonlocal changed
+        if isinstance(value, dict):
+            return {
+                nested_key: restore(nested, key=str(nested_key))
+                for nested_key, nested in value.items()
+            }
+        if isinstance(value, list):
+            return [restore(item, key=key) for item in value]
+        if key in {"icon", "src", "checkIcon"} and isinstance(value, str) and value in sources:
+            changed = True
+            return sources[value]
+        return value
+
+    for node in _walk(root):
+        node.props = restore(node.props)
+    return changed
 
 
 def _validate_generation_subset(root: JSXElement, expected_size: str | None = None) -> None:
@@ -680,8 +787,6 @@ def _validate_action_slot_compatibility(
                 + rendered
             )
     info_blocks = [node for node in _walk(root) if node.tag == "InfoBlock"]
-    if size == "2x2" and info_blocks and len(info_blocks) != 2:
-        issues.append("a 2x2 card using InfoBlock must contain exactly two InfoBlock components")
     if size == "2x2" and info_blocks:
         extra_business_components = [
             node.tag for node in _walk(root) if node.tag not in {"Card", "Stack", "Grid", "InfoBlock"}
@@ -1048,7 +1153,7 @@ def _flex_vertical_risk_message(path: str, required: float, available: float) ->
     return (
         f"{path} needs at least {_vp(required)}vp vertically while its computed flex "
         f"share is {_vp(available)}vp; the parent has enough total vertical budget, "
-        "so this local flex-allocation risk is advisory only"
+        "but this local allocation may not fit without shrinking or overlap"
     )
 
 
@@ -1209,7 +1314,7 @@ def _estimated_flow_height_risk_message(
     return (
         f"{path} may need about {_vp(required)}vp vertically after text wrapping "
         f"while only {_vp(available)}vp is available; text height is font-dependent, "
-        "so this estimate is advisory only"
+        "and the estimated content does not fit"
     )
 
 
@@ -1239,7 +1344,7 @@ def _validate_estimated_absolute_overlaps(
             )
             advisory_issues.append(
                 message
-                + "; text height is font-dependent, so the estimate is advisory only"
+                + "; text height is font-dependent, but the estimated regions overlap"
             )
 
 
@@ -1682,6 +1787,14 @@ def _validate_layout_budget(
             raise LayoutBudgetError("; ".join(dict.fromkeys(issues)))
 
 
+def _raise_estimated_layout_risks(estimated_issues: list[str]) -> None:
+    """Promote estimated vertical closure/overlap risks to blocking errors."""
+    unique = list(dict.fromkeys(estimated_issues))
+    estimated_issues.clear()
+    if unique:
+        raise LayoutBudgetError("; ".join(unique))
+
+
 def _horizontal_padding(node: JSXElement) -> float:
     if node.tag == "Stack" and node.props.get("surface") == "backplate":
         return 12
@@ -1911,7 +2024,7 @@ def _estimated_text_component_height(
 
 
 def _estimated_auto_height(node: JSXElement, available_width: float) -> float:
-    """Estimate font-dependent auto height for advisory overlap findings only."""
+    """Estimate font-dependent auto height for conservative layout rejection."""
     explicit = _explicit_height(node)
     if explicit is not None:
         return _height_lower_bound(node, explicit)
@@ -1984,7 +2097,7 @@ def _horizontal_text_risk_message(path: str, required: float, available: float) 
     return (
         f"{path} EmphasizedData main value may need about {_vp(required)}vp while "
         f"the slot provides {_vp(available)}vp; this is a font-dependent estimate, "
-        "so verify the rendered result instead of treating it as a proven overflow"
+        "so verify the rendered result instead of treating it as proven overflow"
     )
 
 
@@ -1996,8 +2109,8 @@ def _progress_circle_single_width_risk_message(
     return (
         f"{path} ProgressCircleSingle may need about {_vp(required)}vp while "
         f"the slot provides {_vp(available)}vp; the text group does not shrink, "
-        "but this width is font-dependent, so verify it in the browser instead "
-        "of treating the estimate as a proven overflow"
+        "but this width is font-dependent, so verify it in the browser instead of "
+        "treating it as proven overflow"
     )
 
 
@@ -2436,13 +2549,18 @@ def _validate_text_region_usage(
                 "choose a core component without inventing or deleting facts"
             )
         emphasized = [node for node in business if node.tag in {"EmphasisText", "EmphasizedData"}]
-        if len(emphasized) > 1:
-            advisory_issues.append((
-                "core-region-review",
-                f"region[{index}] has multiple emphasized components; verify documented independent "
-                "subregions or select one core and preserve the other facts as supporting information. "
-                "Wrapper Stacks alone do not establish semantic subregions.",
-            ))
+        # Production submit_card_jsx calls always include a documented decision,
+        # which establishes the semantic region boundary. Keep legacy/internal
+        # decision-less geometry probes outside this semantic hard gate because
+        # arbitrary wrapper Stacks do not provide enough evidence to identify a
+        # region reliably.
+        if len(emphasized) > 1 and pattern is not None:
+            component_names = ", ".join(node.tag for node in emphasized)
+            raise ValidationError(
+                f"region[{index}] contains {len(emphasized)} emphasized core components "
+                f"({component_names}); one semantic region allows at most one EmphasisText or "
+                "EmphasizedData in total. Wrapper Stacks do not establish independent semantic regions"
+            )
 
 
 def _validate_metric_semantics(
@@ -2453,51 +2571,32 @@ def _validate_metric_semantics(
     for node in _walk(root):
         if node.tag != "SecondaryBody":
             continue
-        prop = "body"
         items = node.props.get("items")
-        if items is not None:
-            if prop in node.props:
-                semantic_issues.append(f"{node.tag}.{prop} and {node.tag}.items are mutually exclusive")
-            if not isinstance(items, list) or not items:
-                semantic_issues.append(f"{node.tag}.items must be a non-empty array")
+        if not isinstance(items, list) or not items:
+            semantic_issues.append(f"{node.tag}.items must be a non-empty array")
+            continue
+        ambiguous_items: list[str] = []
+        for index, item in enumerate(items):
+            where = f"{node.tag}.items[{index}]"
+            if not isinstance(item, dict):
+                semantic_issues.append(f"{where} must be an object")
                 continue
-            if root.props.get("size") in CARD_SIZE_DIMENSIONS and len(items) < 2:
-                semantic_issues.append("generated SecondaryBody.items requires at least two supplemental fields")
-            ambiguous_items: list[str] = []
-            for index, item in enumerate(items):
-                where = f"{node.tag}.items[{index}]"
-                if not isinstance(item, dict):
-                    semantic_issues.append(f"{where} must be an object")
-                    continue
-                label = item.get("label")
-                if label is not None and (not isinstance(label, str) or not label.strip()):
-                    semantic_issues.append(f"{where}.label must be omitted or a non-empty string")
-                if "value" not in item:
-                    semantic_issues.append(f"{where}.value is required")
-                    continue
-                if isinstance(item["value"], (dict, list, bool)) or item["value"] is None:
-                    semantic_issues.append(f"{where}.value must be a string or number")
-                    continue
-                if label is None and metric_requires_label(item["value"]):
-                    ambiguous_items.append(f"{where}.value={item['value']!r}")
-            if ambiguous_items:
-                advisory_issues.append(
-                    (
-                        "metric-context-risk",
-                        ", ".join(ambiguous_items) + " may be ambiguous without static semantic labels",
-                    )
-                )
-            continue
-        data_ids = node.props.get("dataIds")
-        if not isinstance(data_ids, dict) or prop not in data_ids:
-            continue
-        value = node.props.get(prop)
-        if metric_requires_label(value):
+            label = item.get("label")
+            if label is not None and (not isinstance(label, str) or not label.strip()):
+                semantic_issues.append(f"{where}.label must be omitted or a non-empty string")
+            if "value" not in item:
+                semantic_issues.append(f"{where}.value is required")
+                continue
+            if isinstance(item["value"], (dict, list, bool)) or item["value"] is None:
+                semantic_issues.append(f"{where}.value must be a string or number")
+                continue
+            if label is None and metric_requires_label(item["value"]):
+                ambiguous_items.append(f"{where}.value={item['value']!r}")
+        if ambiguous_items:
             advisory_issues.append(
                 (
                     "metric-context-risk",
-                    f"{node.tag}.{prop}={value!r} is an isolated dynamic metric that may need "
-                    "a component whose structure identifies its meaning",
+                    ", ".join(ambiguous_items) + " may be ambiguous without static semantic labels",
                 )
             )
     if semantic_issues:
@@ -2812,6 +2911,64 @@ def _collect_static_dynamic_value_warnings(
             )
 
 
+def _validate_static_title_dynamic_fact_ownership(root: JSXElement) -> None:
+    """Reject a static title that repeats a separately bound visible text fact."""
+    static_titles: list[tuple[str, str, str]] = []
+    for node in _walk(root):
+        if node.tag not in {"SingleLineTitle", "DoubleLineTitle"}:
+            continue
+        data_ids = node.props.get("dataIds")
+        bound = set(data_ids) if isinstance(data_ids, dict) else set()
+        for prop in ("title", "secondaryInfo"):
+            value = node.props.get(prop)
+            if prop in bound or not isinstance(value, str) or not value.strip():
+                continue
+            static_titles.append((node.tag, prop, value.strip().casefold()))
+
+    if not static_titles:
+        return
+
+    conflicts: list[str] = []
+    for node in _walk(root):
+        if node.tag in {"SingleLineTitle", "DoubleLineTitle"}:
+            continue
+        owners: list[tuple[dict[str, Any], str]] = [(node.props, "")]
+        items = node.props.get("items")
+        if isinstance(items, list):
+            owners.extend(
+                (item, f"items[{index}].")
+                for index, item in enumerate(items)
+                if isinstance(item, dict)
+            )
+        allowed = BINDABLE_PROPS.get(node.tag, frozenset())
+        for owner, prefix in owners:
+            data_ids = owner.get("dataIds")
+            if not isinstance(data_ids, dict):
+                continue
+            for prop, binding_id in data_ids.items():
+                if prefix + prop not in allowed or prop not in owner:
+                    continue
+                value = owner[prop]
+                if not isinstance(value, str):
+                    continue
+                token = value.strip().casefold()
+                if len(token) < 2:
+                    continue
+                for title_tag, title_prop, title in static_titles:
+                    if token not in title:
+                        continue
+                    ids = binding_id if isinstance(binding_id, list) else [binding_id]
+                    rendered_ids = [item for item in ids if isinstance(item, str) and item]
+                    conflicts.append(
+                        f"{title_tag}.{title_prop} contains bound {node.tag}.{prefix}{prop}={value!r} "
+                        f"({', '.join(rendered_ids) or 'dynamic binding'}); the same visible fact has two owners. "
+                        "Use a generic static title that omits the value, or bind the title with *Template "
+                        "and remove the duplicate body display"
+                    )
+    if conflicts:
+        raise ValidationError("; ".join(dict.fromkeys(conflicts)))
+
+
 def _data_ids(value: Any) -> set[str]:
     if not isinstance(value, dict):
         return set()
@@ -3040,6 +3197,13 @@ def _layout_warning(message: str) -> dict[str, str]:
     }
 
 
+_LAYOUT_BUDGET_REPAIR_HINT = (
+    "若当前布局空间不足且存在符合文档、按钮数量和图标资源约束的图标按钮布局，"
+    "请优先重新评估 CircleButton Layout Pattern；这只是布局重选建议，不能直接把 "
+    "PillButton 机械替换成 CircleButton，也不能删除必需信息、dataIds 或 actionId。"
+)
+
+
 def _semantic_warning(code: str, message: str) -> dict[str, str]:
     return {
         "code": code,
@@ -3180,6 +3344,8 @@ def _error_phase(exc: ConversionError) -> str:
         return "layout_budget"
     if isinstance(exc, LayoutStructureError):
         return "layout_structure"
+    if isinstance(exc, RequiredInformationError):
+        return "required_information"
     if isinstance(exc, ValidationError):
         return "contract_or_protocol"
     return "conversion"
@@ -3195,7 +3361,7 @@ def _validation_finding(exc: ConversionError) -> dict[str, str]:
         layout_markers = (
             "items must contain one or two schedules", "a Card may contain at most one EventCard",
             "cannot use SecondaryBody as its only business information",
-            "generated SecondaryBody.items requires at least two supplemental fields",
+            "one semantic region allows at most one EmphasisText or EmphasizedData",
         )
         for marker in layout_markers:
             if marker in str(exc):
@@ -3210,14 +3376,6 @@ def _validation_finding(exc: ConversionError) -> dict[str, str]:
     }
 
 
-def _is_empty_data_id_finding(message: str) -> bool:
-    """Return whether a binding finding only rejects an empty/invalid dataIds value."""
-    return " dataIds." in message and (
-        "must be a non-empty string" in message
-        or "contains an empty data ID" in message
-    )
-
-
 class OrderedWorkflowState:
     def __init__(
         self,
@@ -3230,7 +3388,6 @@ class OrderedWorkflowState:
         validate_layout_budget: bool = True,
         validation_enabled: bool = True,
         validate_dynamic_values: bool = True,
-        validate_non_empty_data_ids: bool = True,
         enable_dynamic_data_binding: bool = True,
     ) -> None:
         if not re.fullmatch(r"Card[A-Za-z0-9_$]+", component_name):
@@ -3252,9 +3409,6 @@ class OrderedWorkflowState:
         self.defer_browser_validation = defer_browser_validation and validation_enabled
         self.validate_layout_budget = validate_layout_budget and validation_enabled
         self.validate_dynamic_values = validate_dynamic_values
-        self.validate_non_empty_data_ids = (
-            validate_non_empty_data_ids and validation_enabled
-        )
         self.enable_dynamic_data_binding = enable_dynamic_data_binding
         self.active_layout_fallback: str | None = None
         self.required_facts: list[dict[str, Any]] | None = None
@@ -3277,27 +3431,11 @@ class OrderedWorkflowState:
                 warnings.append(warning)
         if self.required_facts is not None:
             query = str((self.prompt_task or {}).get("userQuery") or "")
-            previous = checkable_facts(self.required_facts, query)
-            identities = set()
-            for fact in facts:
-                for key in ("dataId", "actionId", "text"):
-                    if key in fact:
-                        identities.add((key, fact[key]))
-            removed = []
-            for fact in previous:
-                for key in ("dataId", "actionId", "text"):
-                    if key in fact and (key, fact[key]) not in identities:
-                        removed.append(fact)
-                        break
-            if removed:
-                warnings.append({"severity": "warning", "phase": "plan_contract", "code": "plan-facts-changed",
-                                 "message": (
-                                     "Replanning removed model-selected targets; "
-                                     "recheck the user request. The previous plan is not an "
-                                     "authoritative requirement list, "
-                                     "so this does not trigger a retry."
-                                 ),
-                                 "details": {"removedFacts": removed}})
+            previous = enforceable_facts(self.required_facts, query)
+            identities = {(key, fact[key]) for fact in facts for key in ("dataId", "actionId", "text") if key in fact}
+            if any((key, fact[key]) not in identities for fact in previous
+                   for key in ("dataId", "actionId", "text") if key in fact):
+                raise ValidationError("replanning must preserve the frozen required IDs and explicitly requested copy; additions and descriptive corrections are allowed")
             # A layout-only replan must not erase an already resolved initial value.
             # An explicitly evidenced correction is validated normally above.
             initial = {fact["dataId"]: fact for fact in previous if "initialValue" in fact}
@@ -3392,12 +3530,17 @@ class OrderedWorkflowState:
         parsed_compile_context: CompileContext | None = None
         compile_context_error: ConversionError | None = None
         initial_value_warnings: list[dict[str, Any]] = []
+        binding_normalization_warnings: list[dict[str, str]] = []
         user_query = str((self.prompt_task or {}).get("userQuery") or "")
         # Planned generation resolves overrides by ID in the plan, not by
         # treating any JSX literal found in the query as that field's value.
         locked_initial_ids = frozenset()
         try:
             parsed_compile_context = CompileContext.from_payload(self.compile_context)
+            # A new candidate must be measured anew. Saved snapshots are only
+            # for recompiling their exact source, never for model repairs.
+            parsed_compile_context.rendered_layout = None
+            binding_normalization_warnings = _remove_empty_scalar_data_ids(root)
             if self.required_facts is not None:
                 initial_value_warnings = _unplanned_query_values(
                     root, parsed_compile_context, self.prompt_task,
@@ -3411,6 +3554,7 @@ class OrderedWorkflowState:
                     user_query=user_query,
                     locked_initial_ids=locked_initial_ids,
                 )
+            if self.enable_dynamic_data_binding or binding_normalization_warnings:
                 expression = _serialize_jsx(root)
                 source = wrap_card_source(self.component_name, expression)
         except ConversionError as exc:
@@ -3459,6 +3603,7 @@ class OrderedWorkflowState:
                             root,
                             layout_warning_messages,
                         ),
+                        lambda: _raise_estimated_layout_risks(layout_warning_messages),
                         lambda: _validate_horizontal_budget(
                             root,
                             layout_warning_messages,
@@ -3467,6 +3612,7 @@ class OrderedWorkflowState:
                 )
             validators.append(lambda: _validate_metric_semantics(root, semantic_warning_messages))
             validators.append(lambda: _validate_text_region_usage(root, decision, semantic_warning_messages))
+            validators.append(lambda: _validate_static_title_dynamic_fact_ownership(root))
             if self.validate_dynamic_values:
                 validators.append(
                     lambda: _collect_static_dynamic_value_warnings(
@@ -3506,17 +3652,12 @@ class OrderedWorkflowState:
                         node,
                         parsed_compile_context,
                     ):
-                        if (
-                            not self.validate_non_empty_data_ids
-                            and _is_empty_data_id_finding(message)
-                        ):
-                            continue
                         add_finding(ValidationError(message))
 
         if compile_context_error is not None:
             add_finding(compile_context_error)
 
-        plan_coverage_warnings = []
+        dropped_required_facts: list[dict[str, Any]] = []
         if self.required_facts is not None:
             used_data, used_actions = _effective_binding_ids(root)
             literals = []
@@ -3526,21 +3667,28 @@ class OrderedWorkflowState:
             # Input actions are checked independently (including their slots).
             # Do not report the same missing action again as a fact failure.
             unavailable = unavailable_data_ids(parsed_compile_context) if parsed_compile_context is not None else set()
-            # Compare even empty bindings (which may update later), but a
-            # mismatch with model-authored plans is advisory, not a user fact.
-            selected = [fact for fact in checkable_facts(self.required_facts, user_query)
+            # An empty initial value does not remove a planned display binding:
+            # the value may arrive later. Availability is advisory, not coverage.
+            selected = [fact for fact in enforceable_facts(self.required_facts, user_query)
                         if fact.get("actionId") not in _prompt_action_ids(self.prompt_task)]
             missing = missing_required_facts(selected, used_data, used_actions, literals)
+            if missing and self.active_layout_fallback == "drop_optional_component":
+                declared_unmet = {
+                    value.strip() for value in (unmet_requirements or [])
+                    if isinstance(value, str) and value.strip()
+                }
+                dropped_required_facts = [
+                    fact for fact in missing
+                    if fact.get("actionId") is None
+                    and str(fact.get("requirement") or "").strip() in declared_unmet
+                ]
+                missing = [fact for fact in missing if fact not in dropped_required_facts]
             if missing:
-                plan_coverage_warnings.append({
-                    "severity": "warning", "phase": "semantic_coverage", "code": "plan-coverage-unverified",
-                    "message": (
-                        "JSX does not match some model-planned display targets. "
-                        "This does not prove missing user-required information; "
-                        "review coverage without retrying solely for this warning."
-                    ),
-                    "details": {"missingFacts": missing},
-                })
+                add_finding(RequiredInformationError(
+                    "missing required facts: " + json.dumps(missing, ensure_ascii=False)
+                    + "; restore these facts and bindings in every repair/fallback stage"
+                ))
+                findings[-1]["details"] = {"missingFacts": missing}
 
         (
             normalized_coverage,
@@ -3553,29 +3701,32 @@ class OrderedWorkflowState:
             unmet_requirements,
             required=self.prompt_task is not None,
         )
+        if dropped_required_facts:
+            semantic_status = "partial"
         layout_warnings = [_layout_warning(message) for message in dict.fromkeys(layout_warning_messages)]
         semantic_warnings = [
             _semantic_warning(code, message) for code, message in dict.fromkeys(semantic_warning_messages)
         ]
-        warnings = [*self.plan_warnings, *initial_value_warnings, *(self.prompt_task or {}).get("inputWarnings", []),
-                    *layout_warnings, *semantic_warnings, *metadata_warnings, *plan_coverage_warnings]
-        if plan_coverage_warnings and semantic_status == "completed":
-            semantic_status = "unverified"
+        warnings = [*self.plan_warnings, *initial_value_warnings, *binding_normalization_warnings,
+                    *(self.prompt_task or {}).get("inputWarnings", []),
+                    *layout_warnings, *semantic_warnings, *metadata_warnings]
 
         if findings:
             first = findings[0]
+            instruction = (
+                "fix the JSX by resolving every ERROR and call submit_card_jsx again; "
+                "WARNING entries are advisory only and must not be resolved by deleting "
+                "required information or changing business semantics"
+            )
+            if first["phase"] == "layout_budget":
+                instruction += "; " + _LAYOUT_BUDGET_REPAIR_HINT
             result = {
                 "ok": False,
                 "phase": first["phase"],
                 "retryable": True,
                 "error": first["message"],
                 "findings": findings,
-                "instruction": (
-                    "fix the JSX by resolving every ERROR and call submit_card_jsx again; "
-                    "WARNING entries are "
-                    "advisory only and must not be resolved by deleting required information "
-                    "or changing business semantics"
-                ),
+                "instruction": instruction,
             }
             if compile_context_error is not None and parsed_compile_context is None:
                 result.update(phase="input_context", retryable=False,
@@ -3583,6 +3734,10 @@ class OrderedWorkflowState:
             if warnings:
                 result["warnings"] = warnings
             return result
+
+        if _restore_remote_asset_sources(root, parsed_compile_context):
+            expression = _serialize_jsx(root)
+            source = wrap_card_source(self.component_name, expression)
 
         try:
             messages = compile_source(
@@ -3632,15 +3787,31 @@ class OrderedWorkflowState:
             "pendingBrowserValidation": self.defer_browser_validation,
         }
         if self.required_facts is not None:
-            checked = checkable_facts(self.required_facts, user_query)
-            result["requiredFactsUnavailable"] = sum(fact.get('dataId') in unavailable for fact in checked)
-            result["requiredFactsChecked"] = len(checked)
-            # Checked refers to comparison, not hard enforcement. All plan
-            # requirements remain advisory regardless of whether they map IDs.
-            result["requiredFactsAdvisory"] = len(self.required_facts)
+            enforceable = enforceable_facts(self.required_facts, user_query)
+            result["requiredFactsUnavailable"] = sum(fact.get('dataId') in unavailable for fact in enforceable)
+            result["requiredFactsChecked"] = len(enforceable)
+            result["requiredFactsAdvisory"] = len(self.required_facts) - len(enforceable)
         if warnings:
             result["warnings"] = warnings
         return result
+
+    def apply_rendered_layout(self, snapshot: dict | None) -> None:
+        """Use the accepted candidate's existing browser pass; never re-render."""
+        if snapshot is None:
+            return
+        pending = self.pending_submission
+        if pending is None:
+            raise RuntimeError("no pending JSX submission to apply layout")
+        if not snapshot.get("secondaryBodies") and not re.search(r"<SecondaryBody(?:\s|/?>)", pending.source):
+            return
+        context = {**pending.compile_context, "renderedLayout": snapshot}
+        messages = compile_source(
+            pending.source, card=self.component_name,
+            compile_contexts={self.component_name: context},
+            enable_dynamic_data_binding=self.enable_dynamic_data_binding,
+        )[self.component_name]
+        pending.messages = messages
+        pending.compile_context = context
 
     def accept_pending_submission(self) -> None:
         if self.pending_submission is None:
@@ -3752,16 +3923,6 @@ def build_plan_tool(card_size: str | None = None, compile_context: dict[str, Any
                 "type": "object",
                 "properties": {
                     "info_required": required_facts_schema(CompileContext.from_payload(compile_context)),
-                    "data_exclusions": {
-                        "type": "object",
-                        "description": (
-                            "可选的非展示字段说明：真实 dataId → 原因"
-                            "（如仅操作参数、内部标识、背景或用户不需要）。"
-                            "无需逐项填写全部输入；不要为消除清点 warning 展示无关字段。"
-                            "不能与 info_required.dataId 重复，也不能因布局拥挤排除用户要求。"
-                        ),
-                        "additionalProperties": {"type": "string"},
-                    },
                     "layout_optionA": option_schema,
                     "layout_optionB": option_schema,
                 },
@@ -3867,7 +4028,7 @@ def validate_plan_arguments(
                 "只修正计划，不生成 JSX。动态信息填写真实 dataId，动作填写 actionId；"
                 "text 只用于用户原文中的静态正文，不能填写样例值、字段说明或设计说明。"
                 "未覆盖样例时省略 initialValue/valueSourceQuote，未选中的目标字段直接省略。"
-                "data_exclusions 为可选说明；字段未清点 warning 不要求重试，不要为消除它而展示内部标识或无关信息。"
+                "字段未清点 warning 不要求重试，不要为消除它而展示内部标识或无关信息。"
                 "保留原始用户需求，不得靠删除需求通过检查。"
             ),
         })

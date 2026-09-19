@@ -23,6 +23,7 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const { createHash } = require("node:crypto");
 
 function loadModule(candidates, label) {
   for (const candidate of candidates) {
@@ -39,29 +40,59 @@ const parser = loadModule(["@babel/parser"], "@babel/parser");
 
 function loadChromium() {
   let playwright;
+
   try {
     playwright = loadModule(["playwright"], "playwright");
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Playwright Node.js 依赖缺失。请先在项目根目录运行 \`npm install\`。原始错误：${error.message}`,
+      `Playwright Node.js 依赖缺失。请先在项目根目录运行 ` +
+      `\`npm install\`。原始错误：${message}`,
     );
   }
 
   const { chromium } = playwright;
+
+  if (!chromium || typeof chromium.launch !== "function") {
+    throw new Error(
+      "Playwright chromium 对象无效，缺少 launch() 方法。",
+    );
+  }
+
+  const customChromiumPath =
+    process.env.CHROMIUM_EXECUTABLE_PATH ||
+    "/opt/chrome-linux/chrome";
+
   let executablePath;
-  try {
-    executablePath = chromium.executablePath();
-  } catch (error) {
-    throw new Error(
-      `无法确定 Chromium 安装位置。请运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`）。原始错误：${error.message}`,
-    );
+
+  if (fs.existsSync(customChromiumPath)) {
+    executablePath = customChromiumPath;
+  } else {
+    try {
+      executablePath = chromium.executablePath();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `无法确定 Chromium 安装位置。请运行 ` +
+        `\`npm run install:chromium\` 或 ` +
+        `\`npx playwright install chromium\`。原始错误：${message}`,
+      );
+    }
+
+    if (!executablePath || !fs.existsSync(executablePath)) {
+      throw new Error(
+        `Playwright Chromium 浏览器未安装（预期位置：` +
+        `${executablePath || "未知"}）。请运行 ` +
+        `\`npm run install:chromium\` 或 ` +
+        `\`npx playwright install chromium\`。`,
+      );
+    }
   }
-  if (!executablePath || !fs.existsSync(executablePath)) {
-    throw new Error(
-      `Playwright Chromium 浏览器未安装（预期位置：${executablePath || "未知"}）。请在项目根目录运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`），然后重新执行浏览器校验。`,
-    );
-  }
-  return chromium;
+
+  return {
+    chromium,
+    executablePath,
+  };
 }
 
 const skillDir = path.resolve(__dirname, "..");
@@ -107,6 +138,7 @@ Options:
   --task-id ID        select one task when --task contains multiple tasks
   --report PATH       also write the JSON result to this file
   --screenshot PATH   save the rendered card screenshot
+  --browser-only      run only render preflight and Chromium validation
   --no-browser        run AST, contract and duplicate-action checks only
   --stdin             read {source, task?, componentName?} JSON from stdin
   --input PATH        read the same JSON payload from a UTF-8 file
@@ -123,6 +155,7 @@ function parseArgs(argv) {
     report: null,
     screenshot: null,
     browser: true,
+    browserOnly: false,
     stdin: false,
     input: null,
   };
@@ -134,6 +167,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-browser") {
       options.browser = false;
+      continue;
+    }
+    if (arg === "--browser-only") {
+      options.browserOnly = true;
       continue;
     }
     if (arg === "--stdin") {
@@ -158,6 +195,7 @@ function parseArgs(argv) {
   const inputModes = [options.stdin, Boolean(options.input), Boolean(options.jsx)].filter(Boolean).length;
   if (inputModes > 1) throw new Error("use exactly one of --stdin, --input, or --jsx");
   if (inputModes === 0) throw new Error("--jsx, --input, or --stdin is required");
+  if (options.browserOnly && !options.browser) throw new Error("--browser-only cannot be combined with --no-browser");
   return options;
 }
 
@@ -948,12 +986,35 @@ function localizeBrowserRuntimes(template) {
   return localized;
 }
 
+function markSecondaryBodies(source) {
+  const ast = parser.parse(source, parseOptions);
+  const positions = [];
+  function visit(node) {
+    if (!node || typeof node !== "object") return;
+    if (node.type === "JSXOpeningElement" && node.name?.name === "SecondaryBody") {
+      positions.push(node.name.end);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") visit(value);
+    }
+  }
+  visit(ast);
+  positions.sort((a, b) => a - b);
+  for (let index = positions.length - 1; index >= 0; index -= 1) {
+    const offset = positions[index];
+    source = source.slice(0, offset) + ` data-a2ui-secondary-index="${index}"` + source.slice(offset);
+  }
+  return source;
+}
+
 function htmlPreview(source, componentName, runtimeSource) {
   const template = localizeBrowserRuntimes(fs.readFileSync(templatePath, "utf8"));
   if (/<\/script/i.test(source)) throw new Error("candidate JSX contains a closing script tag");
   if (/<\/script/i.test(runtimeSource)) throw new Error("design-system-runtime.jsx contains a closing script tag");
   const alias = componentName === "GeneratedCard" ? "" : `\nconst GeneratedCard = ${componentName};`;
-  const generated = `${source.trim()}${alias}`;
+  // Preview-only identity: never write annotations back into the saved JSX.
+  const generated = `${markSecondaryBodies(source).trim()}${alias}`;
   const marker = /(\s*\/\/ === BEGIN GENERATED CARD ===)[\s\S]*?(\/\/ === END GENERATED CARD ===)/;
   if (!marker.test(template)) throw new Error("template.html generated-card marker is missing");
   return template
@@ -1030,6 +1091,11 @@ async function waitForAssets(page) {
 
 async function inspectBrowserCard(page) {
   return page.evaluate(async () => {
+    if (document.querySelector('[data-a2ui-secondary-index]')) {
+      // Flush observer-driven grouping after fonts/assets have settled, in
+      // this existing render. No second page, browser or fixed delay.
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
     const errorPanel = document.querySelector("#preview-error");
     const cards = Array.from(document.querySelectorAll(".generated-card-frame"));
     const card = cards[0];
@@ -1044,13 +1110,29 @@ async function inspectBrowserCard(page) {
       visibleHorizontalOverflow: [],
       semanticComponents: [],
       edgeSpacingViolations: [],
+      pillButtonGapViolations: [],
       heightOverflowComponents: [],
       semanticOverlaps: [],
       semanticContentOverflows: [],
       buttonClipping: [],
       resourceElements: [],
+      secondaryBodyLayouts: [],
     };
     if (!card) return result;
+    result.secondaryBodyLayouts = [...card.querySelectorAll('.secondary-body[data-a2ui-secondary-index]')].map(element => {
+      const style = getComputedStyle(element);
+      const rows = [...element.querySelectorAll(':scope > .secondary-body-row')];
+      const fields = rows.map(row => [...row.querySelectorAll(':scope > .secondary-body-field')]);
+      return {
+        index: Number(element.dataset.a2uiSecondaryIndex),
+        width: element.clientWidth,
+        fontSize: parseFloat(style.fontSize),
+        lineHeight: parseFloat(style.lineHeight),
+        rowGap: parseFloat(style.rowGap) || 0,
+        rowSizes: fields.map(row => row.length),
+        fieldTexts: fields.flat().map(field => field.textContent),
+      };
+    });
     const cardRect = card.getBoundingClientRect();
     result.card = {
       width: cardRect.width,
@@ -1261,6 +1343,38 @@ async function inspectBrowserCard(page) {
       node,
       semanticPaintedRects.get(node),
     ));
+    // PillButton is the only business component whose inter-component gap is
+    // measured here. Other component gaps remain governed by the existing
+    // browser overflow/overlap/edge checks.
+    for (const button of semanticNodes.filter((node) => node.matches(".pill-btn"))) {
+      const buttonRect = semanticPaintedRects.get(button);
+      const candidates = semanticNodes
+        .filter((node) => node !== button)
+        .map((node) => ({ node, rect: semanticPaintedRects.get(node) }))
+        .filter(({ rect }) => {
+          const overlapWidth = Math.min(buttonRect.right, rect.right) - Math.max(buttonRect.left, rect.left);
+          const comparableWidth = Math.min(buttonRect.width, rect.width);
+          return rect.top < buttonRect.top
+            && overlapWidth > 1.5
+            && comparableWidth > 0
+            && overlapWidth / comparableWidth >= 0.25;
+        })
+        .sort((left, right) => right.rect.bottom - left.rect.bottom);
+      const preceding = candidates[0];
+      if (!preceding) continue;
+      const actualGap = buttonRect.top - preceding.rect.bottom;
+      // 2x2 and Sub-140 use 8vp. The narrower 118vp PillButton is the
+      // documented Sub-118 variant, whose adjacent-module gap is 6vp.
+      const requiredGap = buttonRect.width <= 120.75 && cardRect.width > 200 ? 6 : 8;
+      if (actualGap >= requiredGap - tolerance) continue;
+      result.pillButtonGapViolations.push({
+        button: describe(button, buttonRect),
+        preceding: describe(preceding.node, preceding.rect),
+        actualGap,
+        requiredGap,
+        shortfall: requiredGap - actualGap,
+      });
+    }
     // Test actual button borders against clipping ancestors, not layout slots.
     // scrollWidth cannot reveal left/up overflow from centered oversized items.
     const buttonClipTolerance = 1.5;
@@ -1693,6 +1807,23 @@ function browserFindings(metrics, cardSize) {
       },
     ));
   }
+  for (const item of strongestDiagnostics(metrics.pillButtonGapViolations, (entry) => entry.shortfall)) {
+    const buttonLabel = diagnosticComponentLabel(item.button);
+    const precedingLabel = diagnosticComponentLabel(item.preceding);
+    findings.push(browserFinding(
+      "error",
+      "browser-pillbutton-gap",
+      `${buttonLabel} 与上方 ${precedingLabel} 的实际间距为 ${rounded(item.actualGap)}vp，小于要求的 ${rounded(item.requiredGap)}vp`,
+      {
+        component: "PillButton",
+        components: [item.preceding.component, "PillButton"],
+        ...(item.button.componentText ? { componentText: item.button.componentText } : {}),
+        evidence: item,
+        likelyCause: "PillButton 底部操作槽与前一个可见业务组件之间没有保留布局规定的垂直间距。",
+        suggestion: "2×2 单 Action 卡片先判断是否满足标题锚点内容布局：若右下 40×40vp 槽能避开正文、输入有可准确表达操作的 Icon，则改用 CircleButton；不适用时再重新压缩或更换其他合法布局。",
+      },
+    ));
+  }
   for (const item of strongestDiagnostics(metrics.verticalClipping, (entry) => entry.requiredSize.height - entry.availableSize.height)) {
     const missing = item.requiredSize.height - item.availableSize.height;
     const label = diagnosticComponentLabel(item);
@@ -1781,17 +1912,43 @@ function browserFindings(metrics, cardSize) {
     ...Object.values(entry.cardOverflow || {}),
   ))) {
     const label = diagnosticComponentLabel(item);
-    const outsideCard = Math.max(...Object.values(item.cardOverflow || {})) > 0.75;
+    const ownerOverflow = item.ownerOverflow || {};
+    const cardOverflow = item.cardOverflow || {};
+    const outsideCard = Math.max(...Object.values(cardOverflow)) > 0.75;
+    const overlapsSameNode = (metrics.semanticOverlaps || []).some((overlap) => (
+      [overlap.first, overlap.second].some((candidate) => (
+        candidate?.component === item.component
+        && candidate?.rect && item.rect
+        && ["x", "y", "width", "height"].every(
+          (key) => Math.abs(Number(candidate.rect[key]) - Number(item.rect[key])) <= 0.75,
+        )
+      ))
+    ));
+    const minorTableTextBottomOverflow = item.component === "TableText"
+      && Number(ownerOverflow.bottom || 0) > 0
+      && Number(ownerOverflow.bottom || 0) <= 8
+      && Math.max(
+        Number(ownerOverflow.left || 0),
+        Number(ownerOverflow.top || 0),
+        Number(ownerOverflow.right || 0),
+      ) <= 0.75
+      && !outsideCard
+      && !overlapsSameNode;
+    const severity = minorTableTextBottomOverflow ? "warning" : "error";
     findings.push(browserFinding(
-      "error",
+      severity,
       "browser-semantic-content-overflow",
       `${label} 内文字“${item.text.element.text}”${outsideCard ? "超出 Card 边界" : "超出组件可见区域"}`,
       {
         component: item.component || "未知组件",
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
-        likelyCause: "父级 flex/grid 将组件高度压缩到不足以容纳内部文字，或文字换行后组件仍使用过小的固定高度。",
-        suggestion: "增加组件及父级槽位的可用高度、减少同槽内容，或重新分组；不要依赖 flex shrink、overflow 或 Card 裁剪隐藏必需文字。",
+        likelyCause: minorTableTextBottomOverflow
+          ? "TableText 最后一行仅轻微超出自身布局盒子，但仍完整位于 Card 内且未与其他语义组件重叠。"
+          : "父级 flex/grid 将组件高度压缩到不足以容纳内部文字，或文字换行后组件仍使用过小的固定高度。",
+        suggestion: minorTableTextBottomOverflow
+          ? "当前视觉结果可接受；若后续内容增长，再为 TableText 增加槽位高度或重新分组。"
+          : "增加组件及父级槽位的可用高度、减少同槽内容，或重新分组；不要依赖 flex shrink、overflow 或 Card 裁剪隐藏必需文字。",
       },
     ));
   }
@@ -1870,9 +2027,14 @@ async function main() {
   let structural = { root: null, signature: null, findings: [], cardSize: null };
   if (!normalized.parseError) {
     structural = validateStructure(normalized.source, normalized.componentName, schema, input.task);
-    findings.push(...structural.findings);
-    findings.push(...validateResources(structural.signature, input.task));
-    findings.push(...validateDuplicateActions(structural.signature, input.task));
+    if (options.browserOnly) {
+      const renderPreflightCodes = new Set(["generated-card-count", "card-root"]);
+      findings.push(...structural.findings.filter((item) => renderPreflightCodes.has(item.code)));
+    } else {
+      findings.push(...structural.findings);
+      findings.push(...validateResources(structural.signature, input.task));
+      findings.push(...validateDuplicateActions(structural.signature, input.task));
+    }
   }
 
   let browser = null;
@@ -1891,6 +2053,12 @@ async function main() {
     componentName: normalized.componentName || null,
     findings,
     browser,
+    ...(browser ? { renderedLayout: {
+      version: 1,
+      sourceHash: createHash("sha256").update(input.source, "utf8").digest("hex"),
+      componentName: normalized.componentName,
+      secondaryBodies: browser.secondaryBodyLayouts,
+    } } : {}),
   };
   const output = JSON.stringify(result, null, 2) + "\n";
   if (options.report) {

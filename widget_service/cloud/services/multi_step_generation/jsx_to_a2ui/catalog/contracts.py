@@ -93,9 +93,10 @@ CONTRACTS = {
     "Icon": contract(optional=("name", "src", "size", "alt", "decorative")),
     "AppIcon": contract(optional=("name", "src", "alt")),
     "WeatherIcon": contract(optional=("name", "src", "alt")),
-    "SingleLineTitle": contract(required=("title",), optional=("dataIds",)),
+    "SingleLineTitle": contract(required=("title",), optional=("titleTemplate", "dataIds")),
     "DoubleLineTitle": contract(
-        required=("title", "secondaryInfo"), optional=("dataIds",)
+        required=("title", "secondaryInfo"),
+        optional=("titleTemplate", "secondaryInfoTemplate", "dataIds"),
     ),
     "Badge": contract(
         required=("value",),
@@ -237,6 +238,31 @@ def collect_jsx_component_errors(
     for name, allowed in (item.enums or {}).items():
         if name in node.props and node.props[name] not in allowed:
             errors.append(f"<{node.tag}> prop {name} has invalid value {node.props[name]!r}")
+    template_props = {
+        "SingleLineTitle": {"titleTemplate": "title"},
+        "DoubleLineTitle": {
+            "titleTemplate": "title",
+            "secondaryInfoTemplate": "secondaryInfo",
+        },
+    }.get(node.tag, {})
+    for template_prop, value_prop in template_props.items():
+        if template_prop not in node.props:
+            continue
+        template = node.props[template_prop]
+        if not isinstance(template, str) or template.count("{value}") != 1:
+            errors.append(
+                f"<{node.tag}> prop {template_prop} must be a string containing exactly one {{value}} placeholder"
+            )
+        data_ids = node.props.get("dataIds")
+        if not isinstance(data_ids, dict) or not isinstance(data_ids.get(value_prop), str) or not data_ids[value_prop]:
+            errors.append(
+                f"<{node.tag}> prop {template_prop} requires dataIds.{value_prop} to bind one non-empty data ID"
+            )
+        data_value_maps = node.props.get("dataValueMaps")
+        if isinstance(data_value_maps, dict) and value_prop in data_value_maps:
+            errors.append(
+                f"<{node.tag}> prop {template_prop} cannot be combined with dataValueMaps.{value_prop}"
+            )
     errors.extend(collect_display_prop_type_errors(node))
     return list(dict.fromkeys(errors))
 
