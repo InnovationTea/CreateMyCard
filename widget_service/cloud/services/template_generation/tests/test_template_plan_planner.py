@@ -151,6 +151,53 @@ def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
     assert "WeatherOverviewWindHero@1" in candidate_ids
 
 
+def test_wind_full_template_supports_no_action_weather_card() -> None:
+    task = TaskSpec(
+        userQuery="显示风向、风力等级和城市名称的天气卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _field("上海市")},
+                    "current": {
+                        "windDirection": _field("东南风"),
+                        "windLevel": _field(2, "integer"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+        ],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/windDirection",
+                "/current/windLevel",
+            )
+        }
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "WeatherOverviewWindFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),
@@ -359,7 +406,7 @@ def test_second_layer_receives_only_bounded_atomic_plans() -> None:
 def _support_plans() -> tuple[TemplatePlan, ...]:
     action_id = "event.open.weather"
     task_spec = TaskSpec(
-        userQuery="同时显示天气和应用时长，点击查看天气",
+        userQuery="同时显示天气和手机电量，点击查看天气",
         size="2x2",
         dataModelSchema={},
         eventCandidates=[
@@ -382,7 +429,7 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/temperatureText",),
-            "GetAppUsageDuration": ("/appUsage/durationText",),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
         },
         action=(action_id,),
     )
@@ -401,13 +448,13 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
                 ),
             ),
             TemplateBusinessCandidates(
-                capabilityId="GetAppUsageDuration",
-                businessId="AppUsageOverview",
-                explicitFields=("/appUsage/durationText",),
+                capabilityId="GetPhoneBatteryInfo",
+                businessId="BatteryOverview",
+                explicitFields=("/batterySOC",),
                 candidates=(
                     TemplateSearchCandidate(
-                        templateId="AppUsageOverviewSupport@1",
-                        coveredExplicitFields=("/appUsage/durationText",),
+                        templateId="BatteryOverviewSupport@1",
+                        coveredExplicitFields=("/batterySOC",),
                     ),
                 ),
             ),
@@ -562,7 +609,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",{}));'
+        'Template("BatteryOverviewSupport@1",{}));'
     )
     matched_plan_id = _validate_allowed_template_plan(
         parse_ux_layout_card(valid_source),
@@ -575,7 +622,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",'
+        'Template("BatteryOverviewSupport@1",'
         f'{{"actionId":"{action_id}"}}));'
     )
 

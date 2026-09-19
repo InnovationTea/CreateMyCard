@@ -4,7 +4,6 @@
   "description": "2x2 双业务统一蓝",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": [
-    "GetAppUsageDuration",
     "GetCalendarEvents",
     "GetCountdownDays",
     "GetEarphoneInfo",

@@ -46,7 +46,6 @@ from services.template_generation.binding_dependencies import enrich_template_bi
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine import pipeline as template_pipeline_module
 from services.template_generation.engine.advanced.content_selectors import (
-    app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     bluetooth_device_overview_is_eligible,
@@ -258,10 +257,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 122
+    assert len(registry.provider_template_ids) == 117
     assert {
         "ActivityOverviewFull@1",
-        "AppUsageOverviewFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewChargingProgressHero@1",
@@ -322,7 +320,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     }.issubset(registry.provider_template_ids)
     assert provider_directories == {
         "action",
-        "app-usage",
         "battery",
         "calendar",
         "countdown",
@@ -380,17 +377,6 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         assert set(definition.primary_data).isdisjoint(definition.optional_data)
         assert set(definition.secondary_data).isdisjoint(definition.optional_data)
         assert definition.required_data == (*definition.primary_data, *definition.secondary_data)
-
-
-def test_app_usage_compact_data_contract_matches_visible_content() -> None:
-    definition = get_cardplan_registry().require_template("AppUsageOverviewCompact@1")
-
-    assert definition.primary_data == (
-        "/appUsage/appName",
-        "/appUsage/durationText",
-    )
-    assert definition.secondary_data == ()
-    assert definition.optional_data == ()
 
 
 def test_weather_location_compile_time_conditional_has_optional_sources() -> None:
@@ -1083,7 +1069,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
     source_root = tmp_path / "source"
     bundled_source_root = get_cardplan_registry().source_root
     shutil.copytree(bundled_source_root, source_root)
-    rule_path = source_root / "themes/digital-wellbeing-neutral-dark/first-layer.md"
+    rule_path = source_root / "themes/device-clean-blue-teal/first-layer.md"
     rule_path.write_text(
         rule_path.read_text(encoding="utf-8") + "\n<!-- local update -->\n",
         encoding="utf-8",
@@ -1091,7 +1077,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
 
     registry = CardPlanRegistry(source_root=source_root)
 
-    assert registry.require_theme("digital-wellbeing-neutral-dark") is not None
+    assert registry.require_theme("device-clean-blue-teal") is not None
     assert "files" not in registry.manifest
     assert "promptSha256" not in registry.manifest
 
@@ -1117,7 +1103,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert "layoutComponents" not in theme_base
     assert provider_business_groups == set(registry.ux_business_components)
     assert provider_layout_components == set(registry.ux_layout_components)
-    assert len(registry.ux_business_component_provider_ids) == 11
+    assert len(registry.ux_business_component_provider_ids) == 10
     calendar = registry.require_ux_business_component("CalendarOverview")
     assert len(calendar.local_template_ids) == 25
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
@@ -1155,7 +1141,6 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
         "battery-device-green",
         "2x2-two-support",
         "device-clean-blue-teal",
-        "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
         "fusion-battery-teal",
         "fusion-schedule-cool",
@@ -1188,7 +1173,7 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
     assert set(theme.supported_capability_ids) == support_capabilities
     assert registry.layout_theme_ids(
         "TwoSupportLayout",
-        ("ViewWeather", "GetAppUsageDuration"),
+        ("ViewWeather", "GetPhoneBatteryInfo"),
     ) == ("2x2-two-support",)
     assert registry.require_layout_theme(
         "TwoSupportLayout",
@@ -1299,7 +1284,7 @@ def test_search_layout_action_rule_omits_legacy_two_support_instruction() -> Non
 def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     registry = get_cardplan_registry()
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="digital-wellbeing-neutral-dark",
+        theme_profile_id="device-clean-blue-teal",
         allowed_layout_component_ids=("SingleFocusLayout",),
     )
     action = Nested2Node(
@@ -1360,7 +1345,7 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     assert button.values[-1]["fontColor"] == "#E6000000"
     assert "fontColor" not in styled_action.children[0].values[-1]
 
-    action_style = registry.require_theme("digital-wellbeing-neutral-dark").action_style
+    action_style = registry.require_theme("device-clean-blue-teal").action_style
     assert action_style is not None
     action_template = Nested2Node("PillAction", (), (action,))
     lowered_action = _lower_action_template_tree(
@@ -1531,7 +1516,7 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
             "schedule-cool",
             FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
         ),
-        ("digital-wellbeing-neutral-dark", None, None),
+        ("device-clean-blue-teal", None, None),
     ],
 )
 def test_fusion_ball_palette_is_gated_by_selected_theme(
@@ -1579,20 +1564,6 @@ def test_fusion_theme_content_and_action_colors_are_exact(
         "#33CCEEFF" if theme_id == "fusion-schedule-cool" else "#33FFFFFF"
     )
     assert theme.action_style.background_color == expected_action_background
-
-
-def test_app_usage_theme_uses_the_reviewed_content_and_action_colors() -> None:
-    theme = get_cardplan_registry().require_theme("digital-wellbeing-neutral-dark")
-
-    assert theme.primary_color == "#E6000000"
-    assert theme.support_content_color == "#99000000"
-    assert theme.root_style["backgroundColor"] == "#FFFFFFFF"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#1A000000", 0],
-        ["#00FFFFFF", 1],
-    ]
-    assert theme.action_style.content_color == "#FF0A59F7"
-    assert theme.action_style.background_color == "#1A0A59F7"
 
 
 def test_non_fusion_weather_theme_uses_the_reviewed_solid_palette() -> None:
@@ -1711,7 +1682,6 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
         "audio-product-neutral-violet",
         "battery-device-green",
         "device-clean-blue-teal",
-        "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
         "meeting-paper-neutral",
         "race-night-violet",
@@ -1922,7 +1892,7 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         (Nested2Node("Text", ("会议", "body"), ()),),
     )
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="digital-wellbeing-neutral-dark"
+        theme_profile_id="device-clean-blue-teal"
     )
 
     decorated = _apply_template_background(
@@ -2080,15 +2050,15 @@ def test_form_validator_rejects_empty_children_for_stack_and_column():
     assert len(column_children_errors) == 1
 
 
-def test_app_usage_template_sizes_separate_compact_and_wide_variants():
+def test_activity_template_sizes_separate_compact_and_wide_variants():
     registry = get_cardplan_registry()
     compact_ids = (
-        "AppUsageOverviewFull@1",
-        "AppUsageOverviewHero@1",
+        "ActivityOverviewFull@1",
+        "ActivityOverviewHero@1",
     )
     wide_ids = (
-        "AppUsageOverviewWideFull@1",
-        "AppUsageOverviewWideHero@1",
+        "ActivityOverviewWideFull@1",
+        "ActivityOverviewWideHero@1",
     )
 
     for template_id in compact_ids:
@@ -2099,46 +2069,6 @@ def test_app_usage_template_sizes_separate_compact_and_wide_variants():
         assert registry.require_template(template_id).variants[0].supported_card_sizes == (
             "2x4",
         )
-
-
-def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
-    registry = get_cardplan_registry()
-    expected_typography = {
-        "AppUsageOverviewFull@1": (24, 10),
-        "AppUsageOverviewHero@1": (24, 10),
-        "AppUsageOverviewWideFull@1": (30, 12),
-        "AppUsageOverviewWideHero@1": (30, 12),
-    }
-
-    for template_id, (duration_size, update_size) in expected_typography.items():
-        root = registry.require_variant(template_id, "default").root
-        text_nodes = _template_nodes(root, "Text")
-        duration = None
-        update_time = None
-        for node in text_nodes:
-            value = node.values[0]
-            if value.kind == "binding" and value.name == "duration":
-                duration = node
-            if value.kind != "interpolation":
-                continue
-            has_updated_at = any(item.name == "updatedAt" for item in value.items)
-            if has_updated_at:
-                update_time = node
-        assert duration is not None
-        duration_options = _template_node_options(duration)
-        assert duration_options["fontSize"] == duration_size
-        assert "minFontSize" not in duration_options
-
-        assert update_time is not None
-        assert tuple(
-            (item.kind, item.value, item.name) for item in update_time.values[0].items
-        ) == (
-            ("literal", "更新于 ", None),
-            ("binding", None, "updatedAt"),
-        )
-        update_options = _template_node_options(update_time)
-        assert update_options["fontSize"] == update_size
-        assert "minFontSize" not in update_options
 
 
 def test_activity_daily_summary_stacks_supporting_metrics():
@@ -2854,7 +2784,6 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
     registry = get_cardplan_registry()
     original_color_props = {
-        "AppUsageOverview": {"appIcon"},
         "BluetoothDeviceOverview": {
             "sourceIcon",
             "leftEarIcon",
@@ -2871,6 +2800,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     expected_themed_assets = {
         ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"),
@@ -2946,7 +2877,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 18
+    assert len(preserved_assets) == 12
     assert themed_assets == expected_themed_assets
     assert inherited_assets == expected_inherited_assets
 
@@ -3083,14 +3014,6 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     visible_unit_color = visible_unit.values[-1].properties["fontColor"]
     assert visible_unit_color.kind == "theme"
     assert visible_unit_color.name == "supportContentColor"
-
-    app_usage = registry.require_variant("AppUsageOverviewFull@1", "default").root
-    assert _template_node_options(app_usage)["justifyContent"] == "start"
-    updated_at_branch = app_usage.children[1]
-    assert updated_at_branch.component == "IfBind"
-    updated_at_region = updated_at_branch.children[0]
-    assert _template_node_options(updated_at_region)["justifyContent"] == "end"
-    assert _template_node_options(updated_at_region)["itemMargin"] == 4
 
     battery = registry.require_variant("BatteryOverviewFull@1", "default").root
     battery_support_color = battery.children[1].values[-1].properties["fontColor"]
@@ -3238,7 +3161,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
     registry = get_cardplan_registry()
     expected_supports = {
         "ActivityOverview": "ActivityOverviewSupport@1",
-        "AppUsageOverview": "AppUsageOverviewSupport@1",
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
@@ -3982,138 +3904,13 @@ def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
 
 
 @pytest.mark.asyncio
-async def test_derived_parameter_source_field_is_counted_as_template_coverage():
-    def field(value: str) -> dict[str, Any]:
-        return {
-            "type": "string",
-            "description": "trusted app usage field",
-            "sampleValue": value,
-        }
-
-    registry = get_cardplan_registry()
-    task_spec = TaskSpec(
-        userQuery="帮我做个应用时长卡片，可以查看抖音应用用了多久",
-        size="2x2",
-        eventCandidates=[],
-        assetCandidates=[],
-        dataModelSchema={
-            "data": {
-                "appUsageStats": {
-                    "appUsage": {
-                        "appName": field("示例应用"),
-                        "durationText": field("1小时20分钟"),
-                    }
-                }
-            }
-        },
-    )
-    task_spec = apply_content_selectors(task_spec, {"GetAppUsageDuration"})
-    assert app_usage_overview_is_eligible(task_spec, {"GetAppUsageDuration"})
-    for query in (
-        "帮我做个防沉迷卡片，看看抖音应用今天用了多久",
-        "帮我做个应用时长卡片，可以查看抖音应用用了多久",
-        "帮我做个应用时长卡片，可以查看抖音今天用了多久",
-    ):
-        assert app_usage_overview_is_eligible(
-            task_spec.model_copy(update={"userQuery": query}),
-            {"GetAppUsageDuration"},
-        )
-    binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
-        candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
-        ],
-    )
-    scope = AdvancedScopeBrief(
-        themeId="digital-wellbeing-neutral-dark",
-        advancedComponentIds=["AppUsageOverview"],
-    )
-    card_spec = {
-        "title": "应用时长",
-        "description": "今日使用情况",
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetAppUsageDuration",
-                "arguments": {},
-                "writeResultTo": "/data/appUsageStats",
-            }
-        ],
-    }
-
-    validate_template_request_coverage(
-        scope,
-        task_spec,
-        registry,
-        (binding,),
-        card_spec,
-    )
-
-    class AppUsageTemplateModel:
-        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
-                    ]
-                },
-                "action": None,
-            }
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{}));'
-            )
-
-    output = await generate_template_a2ui(
-        task_spec,
-        card_spec,
-        (binding,),
-        AppUsageTemplateModel(),
-    )
-    projected_data = output.projected_task_spec.dataModelSchema["data"]
-    assert "AppUsageOverview" not in projected_data
-    assert "_templateProjection" not in output.tersel
-    assert "_advancedSelectors" not in output.tersel
-    assert projected_data["appUsageStats"]["appUsage"]["durationText"]["sampleValue"] == (
-        "1小时20分钟"
-    )
-    assert "data = " in output.tersel
-    messages = [json.loads(line) for line in output.a2ui.splitlines()]
-    components = messages[1]["updateComponents"]["components"]
-    component_source = json.dumps(components, ensure_ascii=False)
-    duration_path = "/data/appUsageStats/appUsage/durationText"
-    assert f"${{{duration_path}}}" in component_source
-    assert "_templateProjection" not in component_source
-    runtime_data = {
-        "data": {
-            "appUsageStats": {
-                "appUsage": {
-                    "appName": "示例应用",
-                    "durationText": "2小时5分钟",
-                }
-            }
-        }
-    }
-    runtime_value: Any = runtime_data
-    for part in duration_path.removeprefix("/").split("/"):
-        runtime_value = runtime_value[part]
-    assert runtime_value == "2小时5分钟"
-    assert "/updatedAt" not in output.a2ui
-
-
-@pytest.mark.asyncio
 async def test_optional_empty_template_asset_is_omitted_before_expansion():
     binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
         candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
+            "/current/temperatureText",
+            "/current/condition",
         ],
     )
 
@@ -4121,9 +3918,9 @@ async def test_optional_empty_template_asset_is_omitted_before_expansion():
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
                 "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
+                    "ViewWeather": [
+                        "/current/temperatureText",
+                        "/current/condition",
                     ]
                 },
                 "action": None,
@@ -4132,17 +3929,30 @@ async def test_optional_empty_template_asset_is_omitted_before_expansion():
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{"appIcon":""}));'
+                'Template("WeatherOverviewFull@1",{"conditionIcon":""}));'
             )
 
     output = await generate_template_a2ui(
-        _app_usage_task_spec(),
-        _app_usage_card_spec(),
+        _weather_task_spec(),
+        _weather_card_spec(),
         (binding,),
         EmptyOptionalAssetModel(),
     )
 
     assert '"src":""' not in output.a2ui.replace(" ", "")
+    # 可选素材省略后仍保留真实动态路径，不把样例值固化到组件。
+    assert "${/data/weather/current/temperatureText}" in output.a2ui
+    assert "_templateProjection" not in output.tersel
+    assert "_advancedSelectors" not in output.tersel
+    data = output.projected_task_spec.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    weather = data.get("weather")
+    assert isinstance(weather, dict)
+    current = weather.get("current")
+    assert isinstance(current, dict)
+    temperature = current.get("temperatureText")
+    assert isinstance(temperature, dict)
+    assert temperature.get("sampleValue") == "29°C"
 
 
 def test_placeholder_app_name_still_rejects_an_obvious_multi_app_query():
@@ -6273,11 +6083,11 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             if selector == "llm":
                 assert phase == "template-route-decision"
                 return {
-                    "theme": "digital-wellbeing-neutral-dark",
+                    "theme": "family-weather-care-blue",
                     "componentCandidates": [
                         {
-                            "componentId": "AppUsageOverview",
-                            "availableTemplateIds": ["AppUsageOverviewFull@1"],
+                            "componentId": "WeatherOverview",
+                            "availableTemplateIds": ["WeatherOverviewFull@1"],
                         }
                     ],
                     "action": [],
@@ -6285,9 +6095,9 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             assert phase == "template-retrieval-query"
             return {
                 "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
+                    "ViewWeather": [
+                        "/current/temperatureText",
+                        "/current/condition",
                     ]
                 },
                 "action": [],
@@ -6302,7 +6112,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             self.second_layer_prompt = prompt
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{}));'
+                'Template("WeatherOverviewFull@1",{}));'
             )
 
     controls = TemplateControls(
@@ -6311,18 +6121,18 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
     )
     monkeypatch.setattr(template_pipeline_module, "load_template_controls", lambda: controls)
     binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
         candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
+            "/current/temperatureText",
+            "/current/condition",
         ],
     )
     model = FusionDisabledModel()
 
     output = await generate_template_a2ui(
-        _app_usage_task_spec(),
-        _app_usage_card_spec(),
+        _weather_task_spec(),
+        _weather_card_spec(),
         (binding,),
         model,
         enable_fusion_ball=False,
@@ -6635,47 +6445,6 @@ def _weather_task_spec() -> TaskSpec:
     )
 
 
-def _app_usage_task_spec() -> TaskSpec:
-    def field(value: str) -> dict[str, Any]:
-        return {
-            "type": "string",
-            "description": "trusted app usage field",
-            "sampleValue": value,
-        }
-
-    return TaskSpec(
-        userQuery="查看应用今日使用时长",
-        size="2x2",
-        eventCandidates=[],
-        assetCandidates=[],
-        dataModelSchema={
-            "data": {
-                "appUsageStats": {
-                    "appUsage": {
-                        "appName": field("示例应用"),
-                        "durationText": field("1小时20分钟"),
-                    }
-                }
-            }
-        },
-    )
-
-
-def _app_usage_card_spec() -> dict[str, Any]:
-    return {
-        "title": "应用时长",
-        "description": "今日使用情况",
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetAppUsageDuration",
-                "arguments": {},
-                "writeResultTo": "/data/appUsageStats",
-            }
-        ],
-    }
-
-
 def _weather_card_spec() -> dict[str, Any]:
     return {
         "title": "今日天气",
@@ -6931,6 +6700,11 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert model.body_called is True
     assert model.first_layer_prompt is not None
     assert model.second_layer_prompt is not None
+    first_layer_system = model.first_layer_prompt[0]["content"]
+    assert "天气卡片的默认基础展示字段" in first_layer_system
+    assert "/location/prefectureName、/current/temperatureText 和/current/condition" in (
+        first_layer_system
+    )
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user
     candidate_line = next(
