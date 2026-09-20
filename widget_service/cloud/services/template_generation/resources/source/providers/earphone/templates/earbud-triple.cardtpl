@@ -1,0 +1,198 @@
+#Template BluetoothDeviceOverviewEarbudTripleFull@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+data = {
+    name: $path("/earphoneName"),
+    case: $path("/batteryLevel"),
+    left: $path("/leftBatteryLevel"),
+    right: $path("/rightBatteryLevel")
+}
+
+Column(
+  {
+    "_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {
+      "minWidth": 0,
+      "minHeight": 0
+    }
+  },
+  Column(
+    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    Text(
+      "蓝牙耳机",
+      { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    ),
+    Text(
+      data.name,
+      { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    )
+  ),
+  Row(
+    { "width": "matchParent", "height": 40, "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    Column(
+      {
+          "height": 40,
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "alignItems": "center",
+      },
+      #if props.leftEarIcon
+        Image(
+          props.leftEarIcon,
+          { "width": 20, "height": 20, "fillColor": $theme('supportContentColor') }
+        )
+      #else
+        Text('左',
+          { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
+        )
+      #endif
+      Text(Expr('' + data.left + '%'),
+          { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
+        )
+    ),
+    Column(
+      {
+          "height": 40,
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "alignItems": "center",
+      },
+      #if props.rightEarIcon
+        Image(
+          props.rightEarIcon,
+          { "width": 20, "height": 20, "fillColor": $theme('supportContentColor') }
+        )
+      #else
+        Text('右',
+          { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
+        )
+      #endif
+      Text(Expr('' + data.right + '%'),
+          { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
+        )
+    ),
+    Column(
+      {
+          "height": 40,
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "alignItems": "center",
+      },
+      #if props.caseIcon
+        Image(
+          props.caseIcon,
+          { "width": 20, "height": 20, "fillColor": $theme('supportContentColor') }
+        )
+      #else
+        Text('充电盒',
+          { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
+        )
+      #endif
+      Text(Expr('' + data.case + '%'),
+          { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
+        )
+    ),
+  )
+)
+#End
+
+#Template BluetoothDeviceOverviewEarbudTripleHero@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+data = {
+    name: $path("/earphoneName"),
+    left: $path("/leftBatteryLevel"),
+    right: $path("/rightBatteryLevel"),
+    case: $path("/batteryLevel"),
+    leftCharge: $path("/leftChargingStatusDesc"),
+    rightCharge: $path("/rightChargingStatusDesc"),
+    caseCharge: $path("/chargingStatusDesc")
+}
+
+Column(
+    {
+        "_advancedComponent": "BluetoothDeviceOverview",
+        "_layoutActionBackgroundOpacity": 0.1,
+        "width": "matchParent", "height": "matchParent", "itemMargin": 4,
+        "justifyContent": "start", "alignItems": "start", "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(data.name, {
+        "width": "matchParent", "fontSize": 18, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 },
+        "margin": { "top": 0, "bottom": 4, "left": 0, "right": 0 }
+    }),
+    Row({ "width": "matchParent", "height": 26, "itemMargin": 0,
+        "justifyContent": "spaceBetween", "alignItems": "start" },
+        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
+            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+                #if props.leftEarIcon
+                    Image(props.leftEarIcon, {
+                        "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+                    }),
+                #else
+                    Text("左", {
+                        "width": 12, "height": 12, "fontSize": 10,
+                        "fontColor": $theme('supportContentColor'), "maxLines": 1
+                    }),
+                #endif
+                Text(Expr('' + data.left + '%'), {
+                    "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'), "maxLines": 1
+                })
+            ),
+            Text(data.leftCharge, {
+                "width": 44, "height": 12, "fontSize": 10, "textAlign": "center",
+                "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
+            })
+        ),
+        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
+            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+                #if props.rightEarIcon
+                    Image(props.rightEarIcon, {
+                        "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+                    }),
+                #else
+                    Text("右", {
+                        "width": 12, "height": 12, "fontSize": 10,
+                        "fontColor": $theme('supportContentColor'), "maxLines": 1
+                    }),
+                #endif
+                Text(Expr('' + data.right + '%'), {
+                    "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'), "maxLines": 1
+                })
+            ),
+            Text(data.rightCharge, {
+                "width": 44, "height": 12, "fontSize": 10, "textAlign": "center",
+                "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
+            })
+        ),
+        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
+            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+                #if props.caseIcon
+                    Image(props.caseIcon, {
+                        "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+                    }),
+                #else
+                    Text("盒", {
+                        "width": 12, "height": 12, "fontSize": 10,
+                        "fontColor": $theme('supportContentColor'), "maxLines": 1
+                    }),
+                #endif
+                Text(Expr('' + data.case + '%'), {
+                    "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'), "maxLines": 1
+                })
+            ),
+            Text(data.caseCharge, {
+                "width": 44, "height": 12, "fontSize": 10, "textAlign": "center",
+                "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
+            })
+        )
+    )
+)
+#End
