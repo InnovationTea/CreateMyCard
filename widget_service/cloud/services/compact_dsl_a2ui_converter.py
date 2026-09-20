@@ -318,6 +318,8 @@ _COLOR_TOKENS = {
     "mask_sixth": "#0C000000",
 }
 _DEFAULT_ROOT_BACKGROUND = "#FFE5EDFE"
+_TWO_BY_TWO_SINGLE_RING_SIZE = 48
+_TWO_BY_TWO_DUAL_RING_SIZE = 44
 _PLAIN_BACKGROUND_INKS = {
     "#FFE5EDFE": "#FF1F4799",
     "#FFEDE6FF": "#FF401F99",
@@ -1136,7 +1138,9 @@ def _normalize_ring_stack_children(
         is_ring = component.component_type == "Progress" and props.get("type") == "ring"
         if size == "2x2" and (is_ring or ring_progress_ids):
             ring_size = (
-                44 if component.component_id in dual_zone_descendants else 52
+                _TWO_BY_TWO_DUAL_RING_SIZE
+                if component.component_id in dual_zone_descendants
+                else _TWO_BY_TWO_SINGLE_RING_SIZE
             )
             props = {**props, "width": ring_size, "height": ring_size}
             if is_ring:
@@ -1213,7 +1217,7 @@ def _normalize_small_backboard_icon_alignment(
         backboard = components_by_id[candidate_id]
         if (
             backboard.component_type not in {"Row", "Column"}
-            or len(backboard.children) != 2
+            or not 1 <= len(backboard.children) <= 2
         ):
             continue
         children = [components_by_id.get(child_id) for child_id in backboard.children]
@@ -1229,6 +1233,21 @@ def _normalize_small_backboard_icon_alignment(
             (child for child in children if child and child.component_type == "Image"),
             None,
         )
+        if icon is None and backboard.component_type == "Column":
+            replacements[backboard.component_id] = ComponentRow(
+                backboard.component_id,
+                backboard.component_type,
+                {
+                    **backboard.props,
+                    "width": backboard_width,
+                    "height": backboard_height,
+                    "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
+                    "justifyContent": "center",
+                    "alignItems": "start",
+                },
+                backboard.children,
+            )
+            continue
         if text is None or icon is None:
             continue
 
@@ -1247,10 +1266,14 @@ def _normalize_small_backboard_icon_alignment(
             backboard_props,
             (text.component_id, icon.component_id),
         )
+        text_props = {**text.props, "width": text_width}
+        if text.component_type == "Column":
+            text_props["justifyContent"] = "center"
+            text_props["alignItems"] = "start"
         replacements[text.component_id] = ComponentRow(
             text.component_id,
             text.component_type,
-            {**text.props, "width": text_width},
+            text_props,
             text.children,
         )
         replacements[icon.component_id] = ComponentRow(

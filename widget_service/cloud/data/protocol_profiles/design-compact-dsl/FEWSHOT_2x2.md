@@ -100,9 +100,8 @@
 ["value_row","Row",{"width":126,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["value_unit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":5},"maxLines":1,"flexShrink":0}]
-["bottom_area","Column",{"width":126,"height":40,"itemMargin":4,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["weather_status","temp_range"]]
-["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":20,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["weather_summary"]]
+["weather_summary","Text",{"content":"{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/daily/0/temperatureRangeText} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["/data/weather/current/temperatureC",38]
 ["/data/weather/current/condition","晴"]
 ["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
@@ -225,7 +224,7 @@
 ```
 
 ## 示例十一（2x2-V11）：单业务稀疏居中（S1 centered-focus·无动作）
-本例只用于一个业务对象、一个唯一主信息、恰好一个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部 `primary_area` 单独承载主信息，底部固定一行辅助文字。辅助字段不是一个时不得使用本例。纯 number/integer 主信息固定 38fp，字符串或带单位格式化主信息固定 20fp/700。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时仍使用 V01，不得套用本例。
+本例只在 PromptBuilder 明确路由到 `centered-focus / 2x2-V11` 时使用；其它路由不得参考本例的结构或居中对齐。它用于一个业务对象、一个唯一主信息、恰好一个辅助字段且没有 action 的纯展示卡。顶部稳定标题固定 20fp/400，中部 `primary_area` 单独承载主信息，底部固定一行辅助文字。辅助字段不是一个时不得使用本例。纯 number/integer 主信息固定 38fp，字符串或带单位格式化主信息固定 24fp/700。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时仍使用 V01，不得套用本例。
 ### user
 ```json
 {"userQuery":"展示今天的步数和运动状态。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"今日累计步数，单位为步","sampleValue":6200},"activityStatus":{"type":"string","description":"今日运动状态摘要","sampleValue":"状态良好"}}}},"assetCandidates":[]}
@@ -233,8 +232,8 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFFDD",0],["#FFF2FFF6",1]]}},["title_area","focus_group"]]
-["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"今日步数","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
+["title_area","Row",{"width":126,"height":28,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"今日步数","width":126,"fontSize":20,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
 ["focus_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","alignItems":"center","itemMargin":4,"flexShrink":1},["primary_area","supporting_text"]]
 ["primary_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","flexShrink":1},["primary_row"]]
 ["primary_row","Row",{"width":126,"justifyContent":"center","alignItems":"bottom","itemMargin":2},["primary_value","primary_unit"]]

@@ -256,15 +256,8 @@ def _schema_leaf_count(value: Any, limit: int = 4) -> int:
     return count
 
 
-def _is_centered_focus_text(
-    component: ComponentRow,
-    components: list[ComponentRow],
-    task_spec: dict[str, Any],
-    font_size: float,
-) -> bool:
-    if task_spec.get("size") != "2x2" or font_size != 20.0:
-        return False
-    if task_spec.get("eventCandidates"):
+def _centered_focus_task_eligible(task_spec: dict[str, Any]) -> bool:
+    if task_spec.get("size") != "2x2" or task_spec.get("eventCandidates"):
         return False
     schema = task_spec.get("dataModelSchema")
     schema_data = schema.get("data") if isinstance(schema, dict) else None
@@ -273,7 +266,18 @@ def _is_centered_focus_text(
     business_name, business_schema = next(iter(schema_data.items()))
     if business_name.casefold() in {"calendar", "countdown"}:
         return False
-    if _schema_leaf_count(business_schema) != 2:
+    return _schema_leaf_count(business_schema) == 2
+
+
+def _is_centered_focus_text(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    font_size: float,
+) -> bool:
+    if task_spec.get("size") != "2x2" or font_size not in {20.0, 24.0}:
+        return False
+    if not _centered_focus_task_eligible(task_spec):
         return False
     parts = _centered_focus_layout_parts(components)
     if parts is None:
@@ -282,6 +286,7 @@ def _is_centered_focus_text(
     for candidate in components:
         if candidate.component_type in forbidden_types:
             return False
+    title_area = parts[1]
     primary_area = parts[3]
     components_by_id = {
         candidate.component_id: candidate for candidate in components
@@ -290,15 +295,18 @@ def _is_centered_focus_text(
         primary_area,
         components_by_id,
     )
-    primary_ids = {candidate.component_id for candidate in primary_descendants}
-    if component.component_id not in primary_ids:
-        return False
     props = component.props
-    return (
+    common_style_valid = (
         props.get("width") == 126
         and props.get("textAlign") == "center"
         and props.get("maxLines") == 1
     )
+    if not common_style_valid:
+        return False
+    if font_size == 20.0:
+        return component.component_id in title_area.children
+    primary_ids = {candidate.component_id for candidate in primary_descendants}
+    return component.component_id in primary_ids
 
 
 def _centered_focus_candidate_parts(
@@ -362,18 +370,14 @@ def _collect_centered_focus_layout_errors(
     errors: list[str],
 ) -> None:
     candidate_parts = _centered_focus_candidate_parts(components)
-    if task_spec.get("size") != "2x2" or candidate_parts is None:
+    if not _centered_focus_task_eligible(task_spec) or candidate_parts is None:
         return
     schema = task_spec.get("dataModelSchema")
     schema_data = schema.get("data") if isinstance(schema, dict) else None
-    if not isinstance(schema_data, dict) or len(schema_data) != 1:
+    if not isinstance(schema_data, dict):
         return
     business_name, business_schema = next(iter(schema_data.items()))
     leaf_count = _schema_leaf_count(business_schema)
-    if business_name.casefold() in {"calendar", "countdown"}:
-        return
-    if leaf_count != 2 or task_spec.get("eventCandidates"):
-        return
 
     parts = _centered_focus_layout_parts(components)
     if parts is None:
@@ -391,7 +395,7 @@ def _collect_centered_focus_layout_errors(
         and root.props.get("alignItems") == "center"
         and title_area.component_type == "Row"
         and title_area.props.get("width") == 126
-        and title_area.props.get("height") == 20
+        and title_area.props.get("height") == 28
         and focus_group.props.get("justifyContent") == "start"
         and focus_group.props.get("alignItems") == "center"
         and focus_group.props.get("itemMargin") == 4
@@ -402,7 +406,7 @@ def _collect_centered_focus_layout_errors(
     )
     if not layout_valid:
         errors.append(
-            "2x2 centered-focus must keep a 20vp centered title, a weighted "
+            "2x2 centered-focus must keep a 28vp centered title area, a weighted "
             "primary_area centered in the remaining space, and one fixed bottom row."
         )
     forbidden_types = {"ActionUnit", "Button", "CardHeader", "Image", "Progress"}
@@ -433,6 +437,27 @@ def _collect_centered_focus_layout_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
+    title_texts = []
+    for child_id in title_area.children:
+        child = components_by_id.get(child_id)
+        if child is not None and child.component_type == "Text":
+            title_texts.append(child)
+    title_style_valid = len(title_texts) == 1
+    if title_style_valid:
+        title_text = title_texts[0]
+        title_style_valid = (
+            title_text.props.get("width") == 126
+            and title_text.props.get("fontSize") == 20
+            and title_text.props.get("fontWeight") == 400
+            and title_text.props.get("textAlign") == "center"
+            and title_text.props.get("maxLines") == 1
+        )
+    if not title_style_valid:
+        errors.append(
+            "2x2 centered-focus title_area must contain exactly one centered "
+            "single-line 20fp/400 Text with width 126."
+        )
+
     primary_texts = []
     for descendant in _descendant_components(primary_area, components_by_id):
         if descendant.component_type != "Text":
@@ -454,7 +479,7 @@ def _collect_centered_focus_layout_errors(
 
     primary_text = primary_texts[0]
     primary_paths = _component_content_paths(primary_text)
-    expected_font_size = 20
+    expected_font_size = 24
     if len(primary_paths) == 1 and isinstance(schema, dict):
         schema_node = _schema_node_at_path(schema, primary_paths[0])
         if _schema_type(schema_node) in _NUMERIC_SCHEMA_TYPES:
@@ -464,7 +489,7 @@ def _collect_centered_focus_layout_errors(
         and primary_text.props.get("textAlign") == "center"
         and primary_text.props.get("maxLines") == 1
     )
-    if expected_font_size == 20:
+    if expected_font_size == 24:
         primary_style_valid = (
             primary_style_valid and primary_text.props.get("width") == 126
         )
@@ -488,6 +513,77 @@ def _collect_centered_focus_layout_errors(
         errors.append(
             "2x2 centered-focus must display every selected primary and auxiliary "
             "field exactly once; do not drop an explicitly requested field."
+        )
+
+
+def _collect_non_v11_centered_text_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if task_spec.get("size") != "2x2":
+        return
+    if _centered_focus_task_eligible(task_spec):
+        return
+    if _uses_2x2_v01_countdown_layout(task_spec):
+        return
+
+    schema = task_spec.get("dataModelSchema")
+    schema_data = schema.get("data") if isinstance(schema, dict) else None
+    if not isinstance(schema_data, dict) or len(schema_data) != 1:
+        return
+    business_schema = next(iter(schema_data.values()))
+    if _schema_leaf_count(business_schema) < 2:
+        return
+
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column":
+        return
+
+    centered_text_layout = False
+    for component in components:
+        if component.component_type == "Text":
+            is_root_text = component.component_id in root.children
+            if is_root_text and component.props.get("textAlign") == "center":
+                centered_text_layout = True
+                break
+            continue
+        if component.component_type not in {"Row", "Column"}:
+            continue
+        if component.props.get("width") != 126:
+            continue
+        horizontal_centered = (
+            component.props.get("alignItems") == "center"
+            if component.component_type == "Column"
+            else component.props.get("justifyContent") == "center"
+        )
+        if not horizontal_centered:
+            continue
+        descendants = _descendant_components(component, components_by_id)
+        if not descendants:
+            continue
+        if any(
+            descendant.component_type not in {"Row", "Column", "Text"}
+            for descendant in descendants
+        ):
+            continue
+        text_count = sum(
+            1 for descendant in descendants if descendant.component_type == "Text"
+        )
+        if text_count >= 2:
+            centered_text_layout = True
+            break
+
+    if centered_text_layout:
+        errors.append(
+            "2x2 whole-card centered text layout is exclusive to the routed "
+            "centered-focus/V11 skeleton. This task does not qualify for V11; "
+            "use its selected few-shot and keep ordinary title and text groups "
+            "horizontally start-aligned. Vertical centering may not change "
+            "horizontal text alignment."
         )
 
 
@@ -1128,6 +1224,105 @@ def _binding_roots(value: Any, location: str) -> set[str]:
     return roots
 
 
+def _first_text_component(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    visiting: set[str],
+) -> ComponentRow | None:
+    if component.component_type == "Text":
+        return component
+    if component.component_id in visiting:
+        return None
+    visiting.add(component.component_id)
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        result = _first_text_component(child, components_by_id, visiting)
+        if result is not None:
+            visiting.remove(component.component_id)
+            return result
+    visiting.remove(component.component_id)
+    return None
+
+
+def _collect_two_by_four_w9_density_errors(
+    zone: ComponentRow,
+    content_regions: list[ComponentRow],
+    content_components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    if any(
+        component.component_type == "Progress"
+        for component in content_components
+    ):
+        return
+
+    line_profile: list[bool] = []
+    for region in content_regions:
+        line_profile.extend(
+            _visual_text_line_profile(region, components_by_id, set())
+        )
+    if not line_profile:
+        return
+
+    first_text = None
+    for region in content_regions:
+        first_text = _first_text_component(region, components_by_id, set())
+        if first_text is not None:
+            break
+    if first_text is not None:
+        font_size = _non_negative_number(first_text.props.get("fontSize"))
+        font_weight = _non_negative_number(first_text.props.get("fontWeight"))
+        identifier = first_text.component_id.casefold()
+        looks_like_title = "title" in identifier or "label" in identifier
+        has_later_emphasis = any(line_profile[1:])
+        if (
+            font_size == 12
+            and font_weight == 400
+            and (looks_like_title or has_later_emphasis)
+        ):
+            line_profile = line_profile[1:]
+
+    large_number_count = 0
+    for component in content_components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is not None and font_size >= 30:
+            large_number_count += 1
+
+    if large_number_count:
+        if large_number_count > 1:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} contains multiple "
+                "30fp/38fp values. Keep peer metrics as ordinary complete text "
+                "lines instead of manufacturing multiple hero values."
+            )
+        if len(line_profile) > 2:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} with a 30fp/38fp numeric "
+                "hero may contain only the value/unit line and one 12fp/400 "
+                "auxiliary line after its business title. Merge auxiliary fields "
+                "with ' | '."
+            )
+        return
+
+    if len(line_profile) > 3:
+        errors.append(
+            f"2x4 W9 backboard {zone.component_id} may contain at most one "
+            "emphasized information line and two 12fp/400 auxiliary lines after "
+            "its business title."
+        )
+    emphasized_line_count = sum(1 for emphasized in line_profile if emphasized)
+    if emphasized_line_count > 1:
+        errors.append(
+            f"2x4 W9 backboard {zone.component_id} may emphasize at most one "
+            "information line; keep peer data at ordinary text size."
+        )
+
+
 def _collect_two_by_four_w9_content_errors(
     root: ComponentRow,
     components_by_id: dict[str, ComponentRow],
@@ -1138,6 +1333,7 @@ def _collect_two_by_four_w9_content_errors(
         if zone is None:
             continue
 
+        content_regions: list[ComponentRow] = []
         content_components: list[ComponentRow] = []
         actions: list[ComponentRow] = []
         for child_id in zone.children:
@@ -1147,8 +1343,17 @@ def _collect_two_by_four_w9_content_errors(
             if _is_two_by_four_direct_action(child):
                 actions.append(child)
                 continue
+            content_regions.append(child)
             content_components.append(child)
             content_components.extend(_descendant_components(child, components_by_id))
+
+        _collect_two_by_four_w9_density_errors(
+            zone,
+            content_regions,
+            content_components,
+            components_by_id,
+            errors,
+        )
 
         text_components = [
             component
@@ -1366,6 +1571,55 @@ def _collect_two_by_two_s4_text_errors(
             )
 
 
+def _collect_two_by_two_s4_vertical_alignment_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    for zone_id in root.children:
+        zone = components_by_id.get(zone_id)
+        if zone is None:
+            continue
+        direct_children: list[ComponentRow] = []
+        for child_id in zone.children:
+            child = components_by_id.get(child_id)
+            if child is not None:
+                direct_children.append(child)
+
+        has_visual = False
+        for child in direct_children:
+            if child.component_type in {"Image", "Progress", "Stack"}:
+                has_visual = True
+                break
+        if not has_visual:
+            if (
+                zone.component_type == "Column"
+                and zone.props.get("justifyContent") != "center"
+            ):
+                errors.append(
+                    f"2x2 S4 backboard {zone.component_id} without a visual must "
+                    "vertically center its one or two text lines with "
+                    "justifyContent center; do not reserve an empty third line."
+                )
+            continue
+
+        text_group = None
+        for child in direct_children:
+            if child.component_type in {"Column", "Text"}:
+                text_group = child
+                break
+        if (
+            text_group is not None
+            and text_group.component_type == "Column"
+            and text_group.props.get("justifyContent") != "center"
+        ):
+            errors.append(
+                f"2x2 S4 text group {text_group.component_id} must use "
+                "justifyContent center so its one or two lines remain vertically "
+                "centered beside the visual."
+            )
+
+
 def _collect_two_by_two_s4_palette_errors(
     root: ComponentRow,
     components_by_id: dict[str, ComponentRow],
@@ -1509,6 +1763,164 @@ def _has_two_by_four_w10_backboards(
     )
 
 
+def _visual_text_line_profile(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    visiting: set[str],
+) -> list[bool]:
+    """Return visual text lines, marking lines that use emphasized text."""
+    if component.component_type == "Text":
+        font_size = _non_negative_number(component.props.get("fontSize")) or 0.0
+        font_weight = _non_negative_number(component.props.get("fontWeight")) or 0.0
+        return [font_size > 12 or font_weight >= 500]
+    if component.component_id in visiting:
+        return []
+
+    visiting.add(component.component_id)
+    child_profiles: list[list[bool]] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        child_profiles.append(
+            _visual_text_line_profile(child, components_by_id, visiting)
+        )
+    visiting.remove(component.component_id)
+
+    if component.component_type in {"Column", "List"}:
+        result: list[bool] = []
+        for profile in child_profiles:
+            result.extend(profile)
+        return result
+    if component.component_type not in {"Row", "Stack"}:
+        return []
+
+    line_count = max((len(profile) for profile in child_profiles), default=0)
+    result = []
+    for line_index in range(line_count):
+        emphasized = False
+        for profile in child_profiles:
+            if line_index < len(profile) and profile[line_index]:
+                emphasized = True
+                break
+        result.append(emphasized)
+    return result
+
+
+def _contains_action_control(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if component.component_type in {"ActionUnit", "Button"}:
+        return True
+    descendants = _descendant_components(component, components_by_id)
+    for descendant in descendants:
+        if descendant.component_type in {"ActionUnit", "Button"}:
+            return True
+    return False
+
+
+def _is_two_by_two_title_region(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if component.component_type == "CardHeader":
+        return True
+    height = _non_negative_number(component.props.get("height"))
+    if height not in {20.0, 28.0}:
+        return False
+    profile = _visual_text_line_profile(component, components_by_id, set())
+    return len(profile) == 1
+
+
+def _collect_two_by_two_content_density_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    """Enforce the text-line budget introduced for the 150vp 2x2 canvas."""
+    if task_spec.get("size") != "2x2":
+        return
+    if _uses_2x2_v01_countdown_layout(task_spec):
+        return
+    if (
+        _centered_focus_task_eligible(task_spec)
+        and _centered_focus_layout_parts(components) is not None
+    ):
+        return
+    if any(component.component_type == "TimelineUnit" for component in components):
+        return
+
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column":
+        return
+
+    information_regions: list[ComponentRow] = []
+    for index, child_id in enumerate(root.children):
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        if index == 0 and _is_two_by_two_title_region(child, components_by_id):
+            continue
+        if _contains_action_control(child, components_by_id):
+            continue
+        information_regions.append(child)
+    if not information_regions:
+        return
+
+    information_components: list[ComponentRow] = []
+    line_profile: list[bool] = []
+    for region in information_regions:
+        information_components.append(region)
+        information_components.extend(
+            _descendant_components(region, components_by_id)
+        )
+        line_profile.extend(
+            _visual_text_line_profile(region, components_by_id, set())
+        )
+    if any(
+        component.component_type == "Progress"
+        for component in information_components
+    ):
+        return
+
+    large_number_count = 0
+    for component in information_components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is not None and font_size >= 30:
+            large_number_count += 1
+
+    if large_number_count:
+        if large_number_count > 1:
+            errors.append(
+                "2x2 150vp single-business content contains multiple 30fp/38fp "
+                "values. Treat peer metrics as ordinary complete text lines instead "
+                "of manufacturing multiple hero values."
+            )
+        if len(line_profile) > 2:
+            errors.append(
+                "2x2 150vp single-business content with a 30fp/38fp numeric hero "
+                "may contain only the value/unit line and one 12fp/400 auxiliary "
+                "line. Merge auxiliary fields into that line with ' | '."
+            )
+        return
+
+    if len(line_profile) > 3:
+        errors.append(
+            "2x2 150vp text-only single-business content may contain at most one "
+            "emphasized information line and two 12fp/400 auxiliary lines."
+        )
+    emphasized_line_count = sum(1 for emphasized in line_profile if emphasized)
+    if emphasized_line_count > 1:
+        errors.append(
+            "2x2 150vp text-only single-business content may emphasize at most one "
+            "information line; keep peer data at ordinary text size."
+        )
+
+
 def _collect_layout_route_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -1523,6 +1935,16 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if (
+        size == "2x2"
+        and root is not None
+        and _has_two_by_two_s4_zones(root, components_by_id)
+    ):
+        _collect_two_by_two_s4_vertical_alignment_errors(
+            root,
+            components_by_id,
+            errors,
+        )
     if size == "2x2" and _uses_2x2_v01_countdown_layout(task_spec):
         _collect_2x2_countdown_group_errors(
             components,
@@ -1577,10 +1999,21 @@ def _collect_layout_route_errors(
                 )
 
     if size == "2x2" and len(data_roots) == 1:
+        _collect_non_v11_centered_text_errors(
+            components,
+            task_spec,
+            errors,
+        )
         _collect_centered_focus_layout_errors(
             components,
             task_spec,
             visible_binding_paths,
+            errors,
+        )
+        _collect_two_by_two_content_density_errors(
+            components,
+            task_spec,
+            components_by_id,
             errors,
         )
         if root is not None and len(root.children) == 1:
