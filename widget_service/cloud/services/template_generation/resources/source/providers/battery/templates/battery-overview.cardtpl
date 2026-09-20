@@ -522,7 +522,7 @@ Column(
       {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
   #endif
-  Column(
+  Row(
       {
         "width": "matchParent",
         "itemMargin": 2,
@@ -534,7 +534,7 @@ Column(
       },
       Text(
           data.percentText,
-          { "width": "matchParent", "height": 34, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          { "height": 40, "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
   #if data.charging

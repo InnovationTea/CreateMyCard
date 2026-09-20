@@ -53,7 +53,7 @@ Column(
                 )
             #endif
         ),
-        Column(
+        Row(
             { "width": "matchParent", "justifyContent": "start", "alignItems": "bottom" },
             Text(
                 data.duration,
@@ -182,7 +182,7 @@ Column(
           )
         #endif
     ),
-    Column(
+    Row(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
         Text(
             data.duration,
@@ -359,8 +359,8 @@ Column(
                 )
             #endif
         ),
-        Column(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "margin": {"top": 4} },
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
             Text(
                 data.duration,
                 { "width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
@@ -417,7 +417,7 @@ Column(
             ),
         #endif
     ),
-    Column(
+    Row(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
         Text(
             data.duration,

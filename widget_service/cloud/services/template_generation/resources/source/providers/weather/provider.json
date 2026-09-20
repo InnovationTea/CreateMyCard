@@ -418,7 +418,7 @@
       "templateId": "WeatherOverviewDailyRainFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日降雨 Full，上组展示 18fp 降雨概率及 12fp 说明，主值高度为 24vp，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
+      "description": "明日降雨 Full，上组展示 30fp 降雨概率及 12fp 说明，主值高度为 40vp，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/daily/1/rainProbabilityPercent"],
       "secondaryData": ["/daily/1/temperatureRangeText"],

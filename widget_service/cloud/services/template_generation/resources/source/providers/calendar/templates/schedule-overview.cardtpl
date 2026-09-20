@@ -1588,8 +1588,8 @@ Column(
     data.date,
     {
       "width": "matchParent",
-      "height": 24,
-      "fontSize": 18,
+      "height": 40,
+      "fontSize": 30,
       "fontWeight": 700,
       "fontColor": $theme('primaryColor'),
       "maxLines": 1,
