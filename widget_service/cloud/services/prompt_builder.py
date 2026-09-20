@@ -120,8 +120,8 @@ _TWO_BY_FOUR_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优�
 - 带动作的 W9 大背板直接子节点固定为 `[content, action]`；content 必须写
   `layoutWeight:1`，action 必须是最后一项并固定 `120×36vp`。纯文字 action 使用
   Button；图文 action 使用 `Row -> [Image, Text]`，Row 必须写 `itemMargin:8`、
-  左右 `padding:8`、`justifyContent:"center"`、`alignItems:"center"`，Image 固定 `20×20vp`。content 最多四行
-  Text：标题、主值和最多两行辅助信息；辅助字段过多时先以 ` | ` 合并，
+  左右 `padding:8`、`justifyContent:"center"`、`alignItems:"center"`，Image 固定
+  `20×20vp`。content 最多四行 Text：标题、主值和最多两行辅助信息；辅助字段过多时先以 ` | ` 合并，
   仍超出则删除低优先级可选字段，禁止生成第五行。每个组件 id 只能有一个父容器，
   禁止将同一标题或数值同时挂到 content 和大背板 children 中。
 - W9 中倒计时必须合并成一个 `14fp/700` 普通主数据 Text（如 `30天`），禁止使用
