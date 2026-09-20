@@ -34,6 +34,9 @@ from services.template_generation.engine.advanced.ux_mixed_prompt import (
     build_ux_mixed_prompt,
     build_ux_mixed_validation_retry_prompt,
 )
+from services.template_generation.engine.cardplan.battery_action_policy import (
+    resolve_battery_settings_fallback,
+)
 from services.template_generation.engine.cardplan.calendar_action_policy import (
     resolve_calendar_view_fallback,
 )
@@ -53,6 +56,7 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
     planner_scope,
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
+    BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
     TemplateRetrievalMiss,
     TemplateSearchIntent,
     build_template_retrieval_prompt,
@@ -140,6 +144,14 @@ async def generate_template_a2ui(
     try:
         template_plans: tuple[TemplatePlan, ...] = ()
         if controls.first_layer_component_selector == "llm":
+            registry = CardPlanRegistry(
+                source_root=registry.source_root,
+                disabled_provider_ids=tuple(registry.disabled_provider_ids),
+                disabled_template_ids=(
+                    *sorted(registry.disabled_template_ids), BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
+                ),
+                enable_fusion_ball=enable_fusion_ball,
+            )
             selection = await plan_template_route_with_llm(
                 selected_task_spec,
                 data_shape,
@@ -188,6 +200,14 @@ async def generate_template_a2ui(
             if resolved_intent.action_ids != intent.action_ids:
                 logger.info(
                     f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
+                )
+            intent = resolved_intent
+            resolved_intent = resolve_battery_settings_fallback(
+                intent, search_result, selected_task_spec,
+            )
+            if resolved_intent.action_ids != intent.action_ids:
+                logger.info(
+                    f"{_MODULE} battery_settings_fallback selected=True reason=hero_without_full"
                 )
             intent = resolved_intent
             template_plans = plan_template_candidates(
