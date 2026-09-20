@@ -137,12 +137,43 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     assert prompt[0] == {"role": "system", "content": "other design rules"}
 
 
+def test_enabled_simple_design_compact_prompt_appends_fusion_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.205"},
+    )
+    task_spec = TaskSpec(
+        userQuery="做张耳机连接状态卡片",
+        size="2x2",
+        appVersion=_DEFAULT_APP_VERSION,
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "isConnected": {
+                        "type": "boolean",
+                        "description": "耳机是否连接",
+                        "sampleValue": True,
+                    }
+                }
+            }
+        },
+    )
+
+    prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
+
+    assert "本次融球推荐" in prompt[0]["content"]
+    assert "本次请求未启用融球能力" not in prompt[0]["content"]
+
+
 @pytest.mark.parametrize(
     ("design_token", "expected_palette"),
     [
         (
             "fusion-ball-schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
         (
             "fusion-ball-schedule-warm",
@@ -150,11 +181,11 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
         ),
         (
             "fusion-ball-sleep-violet",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-ball-sport-orange",
-            FusionBallPalette("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+            FusionBallPalette("#FFF24131", "#FFFF8833", "#FFE68073"),
         ),
     ],
 )

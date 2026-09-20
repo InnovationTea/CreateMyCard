@@ -176,9 +176,6 @@ UX_GRADIENTS = (
     ("#FFCBDDFE", "#FFF1F6FE", "1F4799"),
     ("#FFDBCCFF", "#FFF6F2FF", "563D99"),
     ("#FFFFE0CC", "#FFFFF7F2", "8C4B1C"),
-    ("#FFCCFCFF", "#FFF2FEFF", "1C838C"),
-    ("#FFCCFFDD", "#FFF2FFF6", "1C8C41"),
-    ("#FFFFCCD5", "#FFFFF2F4", "991F33"),
 )
 
 
@@ -187,6 +184,24 @@ def test_palette_matches_exact_ux_specification() -> None:
     for start, end, ink in UX_GRADIENTS:
         expected.append([start, end, "#FF" + ink, "#99" + ink, "#33" + ink, "#FF" + ink])
     assert _palette_rows() == expected
+
+
+def test_default_palette_is_limited_to_blue_purple_and_warm() -> None:
+    """默认 root 背景收敛为三套，避免分区卡继续放大高饱和青绿粉。"""
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    deprecated_background_starts = ("#FFCCFCFF", "#FFCCFFDD", "#FFFFCCD5")
+    for color in deprecated_background_starts:
+        assert color not in prompt
+
+    allowed_starts = {start for start, _, _ in UX_GRADIENTS}
+    for _, _, source in EXAMPLES:
+        root = json.loads(source.splitlines()[0])
+        gradient = root[2].get("linearGradient")
+        if gradient is None:
+            continue
+        colors = gradient.get("colors")
+        assert isinstance(colors, list) and colors
+        assert colors[0][0] in allowed_starts
 
 
 @pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
@@ -313,6 +328,46 @@ def test_visual_route_instruction_requires_single_focus() -> None:
     assert "禁止复制示例业务值" in instruction
 
 
+def test_multi_business_instruction_prefers_icons_only_when_candidates_match() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x4-V09" in item[0])
+    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
+    assert "稀疏分区放大主值或核心状态" in instruction
+    assert "语义精确且状态安全" in instruction
+    assert "不留空槽" in instruction
+
+
+def test_simple_supported_2x2_route_recommends_fusion_ball() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V02" in item[0])
+    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
+    assert "本次融球推荐" in recommendation
+    assert "不得为融球删除用户必需内容" in recommendation
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    ("2x2-V05", "2x2-V03", "2x4-V02"),
+)
+def test_dense_or_multi_object_routes_do_not_recommend_fusion_ball(identifier: str) -> None:
+    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
+    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
+    assert recommendation == ""
+
+
+@pytest.mark.parametrize("query", ("用青色做耳机卡片", "展示三个耳机指标"))
+def test_custom_color_or_dense_query_does_not_recommend_fusion_ball(query: str) -> None:
+    _, source_task, _ = next(item for item in EXAMPLES if "2x2-V02" in item[0])
+    task = {**source_task, "userQuery": query}
+    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
+    assert recommendation == ""
+
+
+def test_s4_example_uses_available_business_icons() -> None:
+    _, _, source = next(item for item in EXAMPLES if "2x2-V05" in item[0])
+    rows = [json.loads(line) for line in source.splitlines()]
+    icons = [row for row in rows if len(row) >= 3 and row[1] == "Image"]
+    assert [row[0] for row in icons] == ["phone_icon", "ear_icon"]
+
+
 def test_calendar_route_does_not_promote_candidate_actions_without_user_intent() -> None:
     """候选事件存在但用户未要求操作时，不能注入双按钮示例。"""
     _, task, _ = next(item for item in EXAMPLES if "2x4-V01" in item[0])
@@ -395,4 +450,4 @@ def test_unknown_multi_business_uses_neutral_size_fallback() -> None:
     )
     route, selected = PromptBuilder._visual_route(task)
     assert route == "multi-business"
-    assert selected == ("2x4-V00",)
+    assert selected == ("2x4-V13",)
