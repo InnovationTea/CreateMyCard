@@ -10,7 +10,7 @@ from config.config import get_settings
 from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.cardplan.preview_dataset import (
     _build_data_schema,
-    _preview_theme_values,
+    _preview_theme,
 )
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
 from services.template_generation.engine.cardplan.template_retrieval import (
@@ -75,4 +75,4 @@ def test_preview_without_compatible_theme_reports_the_template(monkeypatch) -> N
     monkeypatch.setattr(registry, "themes", {})
 
     with pytest.raises(ValueError, match="No compatible preview theme: WeatherOverviewFull@1"):
-        _preview_theme_values(definition, registry)
+        _preview_theme(definition, registry)

@@ -222,6 +222,50 @@ def test_validator_reports_duplicate_unit_for_formatted_text():
     assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
 
 
+@pytest.mark.parametrize("unit_included", (False, True))
+@pytest.mark.parametrize("fusion", (False, True))
+@pytest.mark.parametrize(
+    "marker", ("template_root", "regular", "template_root_0", "detached", "duplicate")
+)
+def test_template_unit_exemption_uses_contrast_marker_guards(unit_included, fusion, marker, caplog):
+    content = (
+        "{{ ${/data/battery/level} + '%' }}" if unit_included else "{{ ${/data/battery/level} }}"
+    )
+    messages = [json.loads(line) for line in _dsl(content).splitlines()]
+    update = messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    root = components[0]
+    assert isinstance(root, dict)
+    marker_id = "template_root" if marker in {"detached", "duplicate"} else marker
+    root["children"] = ["value"] if marker == "detached" else [marker_id]
+    wrapper = {"id": marker_id, "component": "Row", "children": ["value"]}
+    components.append(wrapper)
+    if marker == "duplicate":
+        components.append(dict(wrapper))
+    if fusion:
+        root["children"].append("fusionBallBackground")
+        components.append({"id": "fusionBallBackground", "component": "Divider"})
+    with caplog.at_level("INFO"):
+        reporter = validate_card(
+            artifact={
+                "genui": "\n".join(json.dumps(row) for row in messages),
+                "cardSpec": _card_spec(),
+                "effectiveCapabilities": {
+                    "data": [_capability(unit_included).model_dump(mode="json")],
+                },
+            }
+        )
+    code = "DISPLAY_UNIT_DUPLICATED" if unit_included else "DISPLAY_UNIT_MISSING"
+    if marker == "template_root":
+        assert not reporter.has_code(code)
+        skip_log = "semantic_validation_skipped reason=template_root validator=display_unit"
+        assert skip_log in caplog.text
+    else:
+        assert reporter.has_code(code)
+
+
 def test_validator_accepts_raw_number_with_separate_unit_text():
     reporter = validate_card(
         artifact={

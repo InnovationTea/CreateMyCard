@@ -925,7 +925,7 @@ def _is_non_calendar_data_path(value: Any) -> bool:
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
-    row_width = 136 if size == "2x2" else 296
+    row_width = 136 if size == "2x2" else 276
     title_width = row_width - 28 if icon else row_width
     title_id = f"{component.component_id}_title"
     icon_id = f"{component.component_id}_icon"
@@ -1008,7 +1008,7 @@ def _normalize_special_action_units(
     if size == "2x4":
         for component_id in action_ids:
             parent = parents.get(component_id)
-            if parent is None or parent.props.get("width") != 296:
+            if parent is None or parent.props.get("width") != 276:
                 continue
             if parent.children != (component_id,):
                 continue
@@ -1039,7 +1039,7 @@ def _normalize_special_action_units(
                 props["fillColor"] = action_ink
 
         if component_id in full_width_action_ids:
-            props["width"] = 296
+            props["width"] = 276
         if component_id in bottom_layout_ids:
             props["padding"] = 12
             props["justifyContent"] = "spaceBetween"
@@ -1191,16 +1191,18 @@ def _normalize_small_backboard_icon_alignment(
     if size == "2x2":
         candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
         backboard_width = 136
+        backboard_height = 64
         text_width = 84
     elif size == "2x4":
         candidate_ids = set()
         for component in components:
-            if component.props.get("width") != 144:
+            if component.props.get("width") != 134:
                 continue
-            if component.props.get("height") == 64:
+            if component.props.get("height") == 59:
                 candidate_ids.add(component.component_id)
-        backboard_width = 144
-        text_width = 92
+        backboard_width = 134
+        backboard_height = 59
+        text_width = 82
     else:
         return components
 
@@ -1228,7 +1230,7 @@ def _normalize_small_backboard_icon_alignment(
         backboard_props = {
             **backboard.props,
             "width": backboard_width,
-            "height": 64,
+            "height": backboard_height,
             "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
             "itemMargin": 8,
             "justifyContent": "start",

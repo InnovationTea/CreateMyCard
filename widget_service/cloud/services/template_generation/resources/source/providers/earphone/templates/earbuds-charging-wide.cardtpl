@@ -1,0 +1,104 @@
+#Template BluetoothDeviceOverviewEarbudsChargingWideFull@1(props: { actionId?: string, leftEarIcon?: asset, rightEarIcon?: asset, deviceIcon?: asset, musicIcon?: asset })
+data = {
+  name: $path("/earphoneName"), connected: $path("/isConnected"),
+  battery: $path("/batteryLevel"), chargingStatus: $path("/chargingStatusDesc"),
+  left: $path("/leftBatteryLevel"), leftChargingStatus: $path("/leftChargingStatusDesc"),
+  right: $path("/rightBatteryLevel"), rightChargingStatus: $path("/rightChargingStatusDesc")
+}
+Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 12},
+  Column({"layoutWeight": 1, "height": "matchParent",
+    "padding": {"left": 8, "right": 8, "top": 8, "bottom": 12}, "borderRadius": 16,
+    "justifyContent": "spaceBetween", "itemMargin": 2,
+    "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    Text(Expr((data.connected ? '已连接 ' : '未连接 ') + data.name),
+      {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+    Row({"width": "matchParent", "itemMargin": 12, "justifyContent": "spaceBetween"},
+      Column({"layoutWeight": 1, "justifyContent": "start",
+        "alignItems": "center", "itemMargin": 2},
+        Column({"width": 44, "height": 48, "padding": {"top": 4},
+          "justifyContent": "start", "alignItems": "center"},
+          Stack({"width": 44, "height": 44, "alignContent": "center"},
+          Progress({"value": data.left, "total": 100, "type": "ring",
+            "width": 44, "height": 44, "strokeWidth": 6,
+            "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
+          #if props.leftEarIcon
+            Image(props.leftEarIcon, {"width": 20, "height": 20, "objectFit": "contain",
+              "fillColor": $theme('supportContentColor')})
+          #else
+            Text("L", {"fontSize": 12, "fontColor": $theme('primaryColor')})
+          #endif
+          )
+        ),
+        Text(Expr(data.left + '%'), {"width": "matchParent", "height": 22, "fontSize": 16,
+          "padding": {"top": 6},
+          "fontWeight": 700, "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1}),
+        Text(data.leftChargingStatus, {"width": "matchParent", "height": 14, "fontSize": 10,
+          "padding": {"top": 4},
+          "textAlign": "center", "fontColor": $theme('supportContentColor'), "maxLines": 1})
+      ),
+      Column({"layoutWeight": 1, "justifyContent": "start",
+        "alignItems": "center", "itemMargin": 2},
+        Column({"width": 44, "height": 48, "padding": {"top": 4},
+          "justifyContent": "start", "alignItems": "center"},
+          Stack({"width": 44, "height": 44, "alignContent": "center"},
+          Progress({"value": data.right, "total": 100, "type": "ring",
+            "width": 44, "height": 44, "strokeWidth": 6,
+            "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
+          #if props.rightEarIcon
+            Image(props.rightEarIcon, {"width": 20, "height": 20, "objectFit": "contain",
+              "fillColor": $theme('supportContentColor')})
+          #else
+            Text("R", {"fontSize": 12, "fontColor": $theme('primaryColor')})
+          #endif
+          )
+        ),
+        Text(Expr(data.right + '%'), {"width": "matchParent", "height": 22, "fontSize": 16,
+          "padding": {"top": 6},
+          "fontWeight": 700, "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1}),
+        Text(data.rightChargingStatus, {"width": "matchParent", "height": 14, "fontSize": 10,
+          "padding": {"top": 4},
+          "textAlign": "center", "fontColor": $theme('supportContentColor'), "maxLines": 1})
+      )
+    )
+  ),
+  Column({"layoutWeight": 1, "height": "matchParent", "itemMargin": 12},
+    Row({"width": "matchParent", "layoutWeight": 1, "padding": 8, "itemMargin": 8,
+      "alignItems": "center", "borderRadius": 16,
+      "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+      Column({"layoutWeight": 1, "itemMargin": 2},
+        Text(Expr(data.battery + '%'), {"width": "matchParent", "height": 20, "fontSize": 14,
+          "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+        Text(Expr('耳机仓' + data.chargingStatus), {"width": "matchParent", "height": 14,
+          "fontSize": 10, "fontColor": $theme('supportContentColor'), "maxLines": 1,
+          "textOverflow": "ellipsis"})
+      ),
+      #if props.deviceIcon
+        Image(props.deviceIcon, {"width": 24, "height": 24, "objectFit": "contain",
+          "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+      #endif
+    ),
+    Stack({"width": "matchParent", "layoutWeight": 1, "borderRadius": 16,
+      "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+      Row({"width": "matchParent", "height": "matchParent", "padding": 8, "itemMargin": 8,
+        "alignItems": "center"},
+        Column({"layoutWeight": 1, "itemMargin": 2},
+          Text("打开歌单", {"width": "matchParent", "height": 20, "fontSize": 14,
+            "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+          Text("播放每日30首", {"width": "matchParent", "height": 14, "fontSize": 10,
+            "fontColor": $theme('supportContentColor'), "maxLines": 1})
+        ),
+        #if props.musicIcon
+          Image(props.musicIcon, {"width": 24, "height": 24, "objectFit": "contain",
+            "flexShrink": 0, "fillColor": $theme('supportContentColor')})
+        #endif
+      ),
+      #if props.actionId
+        Stack({"width": "matchParent", "height": "matchParent", "onClick": EventAction(props.actionId)},
+          Text("", {"width": "matchParent", "height": "matchParent"})
+        )
+      #endif
+    )
+  )
+)
+#End

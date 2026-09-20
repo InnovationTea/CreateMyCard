@@ -770,7 +770,7 @@
     "outputSchema": {
       "type": "object",
       "description": "经过端侧格式化的当前系统时间实体，包含公历、农历和星期等信息，适合直接用于桌面卡片的时钟或日历组件渲染。",
-      "properties": {        
+      "properties": {
         "currentDate": {
           "type": "string",
           "description": "格式化的当前公历日期（年-月-日），例如 '2026-07-09'。"

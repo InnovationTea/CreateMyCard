@@ -242,6 +242,33 @@ def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
         validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
 
 
+@pytest.mark.parametrize("width,valid", [(276, True), (296, False)])
+def test_wide_formatted_readout_uses_current_content_width(width: int, valid: bool) -> None:
+    _, original_task, source = next(item for item in EXAMPLES if "2x2-V09" in item[0])
+    task = deepcopy(original_task)
+    task["size"] = "2x4"
+    rows = [json.loads(line) for line in source.splitlines()]
+    for row in rows:
+        if len(row) < 3:
+            continue
+        props = row[2]
+        if props.get("width") == 136:
+            props["width"] = 276
+        if row[0] == "temperature":
+            props["width"] = width
+    assert rows[0][0] == "root" and rows[0][1] == "Column"
+    rows[0][0] = "wide_content"
+    rows.insert(0, [
+        "root", "Stack", {"width": "matchParent", "height": "matchParent"}, ["wide_content"],
+    ])
+    changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    if valid:
+        validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x4"})
+    else:
+        with pytest.raises(CompactDslValidationError, match="fontSize"):
+            validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x4"})
+
+
 @pytest.mark.parametrize("identifier", ["2x2-V09", "2x2-V10", "2x2-V01"])
 def test_new_examples_reach_their_generation_route(identifier: str) -> None:
     _, task, _ = next(item for item in EXAMPLES if identifier in item[0])

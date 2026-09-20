@@ -9,9 +9,27 @@
       "entry": "templates/action.cardtpl"
     },
     {
+      "templateId": "CompactAction@1",
+      "wideOnly": true,
+      "description": "单行文本 Compact 动作模板，左侧展示 label 与可选 subtitle 副标题（由服务端按 Action 绑定下发），右侧展示 24x24 语义图标，由第二层通过 actionId、label 和 icon Props 填充。",
+      "entry": "templates/action.cardtpl"
+    },
+    {
       "templateId": "IconAction@1",
       "description": "图标动作模板，由第二层通过 actionId 和 icon Props 填充展示内容。",
       "entry": "templates/action.cardtpl"
+    },
+    {
+      "templateId": "LargeIconAction@1",
+      "wideOnly": true,
+      "description": "59x59 大型图标动作模板，适配300x150横版槽位，由第二层通过 actionId 和 icon Props 填充展示内容。",
+      "entry": "templates/action.cardtpl"
+    },
+    {
+      "templateId": "PlaylistCompactAction@1",
+      "wideOnly": true,
+      "description": "每日30首歌单 Compact 入口，仅用于 event.open.music.daily；显示30首及批准的入口名称。",
+      "entry": "templates/playlist-compact.cardtpl"
     }
   ],
   "compatibility": {

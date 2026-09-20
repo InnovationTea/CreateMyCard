@@ -2,6 +2,8 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from __future__ import annotations
 
+import logging
+
 from .base import BaseValidator, expression_references
 from .display_unit_rules import (
     collect_bound_display_unit_rules,
@@ -10,6 +12,8 @@ from .display_unit_rules import (
     static_text_exactly_matches_rule,
     unit_rule_for_path,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class DisplayUnitValidator(BaseValidator):
@@ -20,6 +24,9 @@ class DisplayUnitValidator(BaseValidator):
 
     def validate(self, context, rules, reporter) -> None:
         del rules
+        if context.has_fusion_template_root():
+            _LOGGER.info("semantic_validation_skipped reason=template_root validator=display_unit")
+            return
         unit_rules = collect_bound_display_unit_rules(
             context.cardspec,
             context.effective_data_capabilities,

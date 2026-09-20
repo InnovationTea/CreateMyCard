@@ -1,0 +1,23 @@
+#Template BluetoothDeviceOverviewCaseConnectionHero@1(props: { deviceIcon: asset })
+data = { battery: $path("/batteryLevel"), connected: $path("/isConnected") }
+Column({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent",
+  "justifyContent": "start", "alignItems": "start", "itemMargin": 8},
+  Text("耳机仓", {"height": 16, "fontSize": 12, "fontWeight": 400,
+    "fontColor": $theme('supportContentColor'), "maxLines": 1}),
+  Row({"width": "matchParent", "itemMargin": 8, "alignItems": "center"},
+    Stack({"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},
+      Progress({"value": data.battery, "total": 100, "type": "ring",
+        "width": 44, "height": 44, "strokeWidth": 6,
+        "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
+      Image(props.deviceIcon, {"width": 20, "height": 20, "objectFit": "contain",
+        "fillColor": $theme('supportContentColor')})
+    ),
+    Column({"layoutWeight": 1, "itemMargin": 2},
+      Text(Expr(data.battery + '%'), {"height": 19, "fontSize": 14, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text(Expr(data.connected ? '已连接' : '未连接'), {"height": 14, "fontSize": 10,
+        "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    )
+  )
+)
+#End

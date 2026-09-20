@@ -5,8 +5,8 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetEarphoneInfo"],
   "paletteSceneIds": ["device.earbuds"],
-  "primaryColor": "#FF52991F",
-  "supportContentColor": "#9952991F",
+  "primaryColor": "#FF34651F",
+  "supportContentColor": "#FF456A35",
   "rootStyle": {
     "backgroundColor": "#FFF0FFE6",
     "borderRadius": 20,
@@ -16,6 +16,6 @@
   },
   "actionStyle": {
     "backgroundColor": "#3364BB5C",
-    "contentColor": "#FF52991F"
+    "contentColor": "#FF34651F"
   }
 }
