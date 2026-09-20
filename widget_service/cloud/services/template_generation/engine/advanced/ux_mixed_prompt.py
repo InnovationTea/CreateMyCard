@@ -1242,6 +1242,7 @@ def _second_layer_layout_selection(
             }
             for group in required_template_groups
         )
+
         def has_half(index: int) -> bool:
             return index < len(group_kinds) and "WideHalf" in group_kinds[index]
         if (component_count, action_count) == (1, 0):
@@ -1266,12 +1267,12 @@ def _second_layer_layout_selection(
                 "WideFullTwoCompactLayout", ("Full",), (_COMPACT_ACTION_TEMPLATE_ID,)
             )
         elif (component_count, action_count) == (2, 0):
-            if (
+            compact_pair_tail = (
                 len(group_kinds) >= 3
-                and "Full" in group_kinds[0]
                 and "Compact" in group_kinds[1]
                 and "Compact" in group_kinds[2]
-            ):
+            )
+            if compact_pair_tail and "Full" in group_kinds[0]:
                 layout_id, kinds, actions = (
                     "WideFullTwoCompactLayout", ("Full", "Compact"), ()
                 )
@@ -1430,16 +1431,15 @@ def _filter_second_layer_template_candidates(
     """Filter first-layer candidates by layout without inspecting business data."""
     if exact_slots:
         if len(layout_kinds) == len(candidates_by_component):
-            filtered = {
-                component_id: tuple(
+            filtered: dict[str, tuple[str, ...]] = {}
+            for (component_id, template_ids), layout_kind in zip(
+                candidates_by_component.items(), layout_kinds, strict=True
+            ):
+                filtered[component_id] = tuple(
                     template_id
                     for template_id in template_ids
                     if provider_template_layout_kind(template_id) == layout_kind
                 )
-                for (component_id, template_ids), layout_kind in zip(
-                    candidates_by_component.items(), layout_kinds, strict=True
-                )
-            }
             if any(not template_ids for template_ids in filtered.values()):
                 raise ValueError(
                     "First-layer Template candidates have no complete layout-slot coverage"

@@ -408,12 +408,11 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         "WideFull",
         "WideHalf",
     }
-    wide_only_ids = {
-        entry.template_id
-        for bundle in registry.provider_bundles.values()
-        for entry in bundle.manifest.templates
-        if entry.wide_card_only
-    }
+    wide_only_ids = set()
+    for bundle in registry.provider_bundles.values():
+        for entry in bundle.manifest.templates:
+            if entry.wide_card_only:
+                wide_only_ids.add(entry.template_id)
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
@@ -6190,14 +6189,12 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
 
 
 def _display_unit_artifact(components: list[dict[str, Any]]) -> Any:
-    genui = "\n".join(
-        json.dumps(message, ensure_ascii=False)
-        for message in [
-            {"createSurface": {"cardType": "WidgetCard"}},
-            {"updateComponents": {"root": "root", "components": components}},
-            {"updateDataModel": {"path": "/", "value": {}}},
-        ]
-    )
+    messages = [
+        {"createSurface": {"cardType": "WidgetCard"}},
+        {"updateComponents": {"root": "root", "components": components}},
+        {"updateDataModel": {"path": "/", "value": {}}},
+    ]
+    genui = "\n".join(json.dumps(message, ensure_ascii=False) for message in messages)
     return validate_card(
         artifact={
             "genui": genui,

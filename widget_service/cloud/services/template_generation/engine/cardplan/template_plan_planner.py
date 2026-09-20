@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from itertools import permutations, product
+from typing import NamedTuple
 
 from models.generation import TaskSpec
 from services.template_generation.engine.advanced.models import (
@@ -200,12 +201,13 @@ def _is_preferred_countdown_plan(
     intent: TemplateSearchIntent,
     task_spec: TaskSpec,
 ) -> bool:
-    if (
-        len(intent.required_output_fields_by_capability) != 2
-        or len(intent.action_ids) != 1
-        or len(plan.business_slots) != 2
-        or len(plan.action_assignments) != 1
-    ):
+    dual_business_with_action = (
+        len(intent.required_output_fields_by_capability) == 2
+        and len(intent.action_ids) == 1
+        and len(plan.business_slots) == 2
+        and len(plan.action_assignments) == 1
+    )
+    if not dual_business_with_action:
         return False
     template_ids = tuple(slot.template_id for slot in plan.business_slots)
     assignment = plan.action_assignments[0]
@@ -665,22 +667,37 @@ def _has_semantic_action_icon(task_spec: TaskSpec, action_ids: tuple[str, ...]) 
     return False
 
 
+class _WidePlanScore(NamedTuple):
+    """Priority-ordered ranking components for wide (2x4) plan drafts."""
+
+    embedded_action_count: int
+    explicit_primary_matches: int
+    generic_binding_penalty: int
+    business_slot_penalty: int
+    primary_matches: int
+    secondary_matches: int
+    optional_only_penalty: int
+    order_matches: int
+
+
 def _wide_plan_score(
     plan: TemplatePlan,
     intent: TemplateSearchIntent,
     registry: CardPlanRegistry,
-) -> tuple[int, ...]:
+) -> _WidePlanScore:
     base = _plan_score(plan, intent, registry)
     generic_count = sum(bool(slot.field_bindings) for slot in plan.business_slots)
     embedded_count = sum(item.consumer == "business-template" for item in plan.action_assignments)
     requested_order = tuple(intent.required_output_fields_by_capability)
     actual_order = tuple(dict.fromkeys(slot.capability_id for slot in plan.business_slots))
     order_matches = int(actual_order == requested_order)
-    return (
-        embedded_count,
-        base[0],
-        -generic_count,
-        -len(plan.business_slots),
-        *base[1:],
-        order_matches,
+    return _WidePlanScore(
+        embedded_action_count=embedded_count,
+        explicit_primary_matches=base[0],
+        generic_binding_penalty=-generic_count,
+        business_slot_penalty=-len(plan.business_slots),
+        primary_matches=base[1],
+        secondary_matches=base[2],
+        optional_only_penalty=base[3],
+        order_matches=order_matches,
     )

@@ -2598,15 +2598,16 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         task_spec=task.model_dump(mode="json"),
         card_spec=card_spec,
     )
-    visible_texts = tuple(
-        row[2]["content"]
-        for row in (json.loads(line) for line in compact_dsl.splitlines() if line.strip())
-        if isinstance(row, list)
-        and len(row) > 2
-        and row[1] == "Text"
-        and isinstance(row[2], dict)
-        and isinstance(row[2].get("content"), str)
-    )
+    visible_texts = []
+    for line in compact_dsl.splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if not isinstance(row, list) or len(row) <= 2 or row[1] != "Text":
+            continue
+        content = row[2].get("content") if isinstance(row[2], dict) else None
+        if isinstance(content, str):
+            visible_texts.append(content)
     assert "设备电量" not in visible_texts
     assert "设备充电" not in visible_texts
 

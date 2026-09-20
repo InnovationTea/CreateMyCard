@@ -1592,14 +1592,13 @@ def project_content_component_facts(
                     for path in paths
                 )
             )
-            specialized_field_names = {
-                field_name
-                for selected_component_id in component_ids
-                if selected_component_id != "GenericMetricOverview"
-                for field_name in _PROVIDER_COMPONENT_FIELDS.get(
-                    selected_component_id, ()
+            specialized_field_names: set[str] = set()
+            for selected_component_id in component_ids:
+                if selected_component_id == "GenericMetricOverview":
+                    continue
+                specialized_field_names.update(
+                    _PROVIDER_COMPONENT_FIELDS.get(selected_component_id, ())
                 )
-            }
             field_names = tuple(
                 name
                 for name in requested_field_names

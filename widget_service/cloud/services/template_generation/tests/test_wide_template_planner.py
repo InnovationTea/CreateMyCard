@@ -564,13 +564,13 @@ def _music_battery_case(
 
 
 def _wide_half_root_action(plans):
-    assignments = [
-        assignment
-        for plan in plans
-        if plan.layout_template_id == "WideHalfTwoCompactLayout@1"
-        for assignment in plan.action_assignments
-        if assignment.consumer == "root-action"
-    ]
+    assignments = []
+    for plan in plans:
+        if plan.layout_template_id != "WideHalfTwoCompactLayout@1":
+            continue
+        for assignment in plan.action_assignments:
+            if assignment.consumer == "root-action":
+                assignments.append(assignment)
     assert len(assignments) == 1
     return assignments[0]
 
@@ -618,14 +618,16 @@ async def test_music_daily_playlist_plan_prompt_and_compile_end_to_end():
         key, sep, value = line.partition("=")
         if sep and key in {"planCandidates", "actionContracts", "outputGrammar"}:
             lines[key] = value
-    action_contracts = json.loads(lines["actionContracts"])
+    action_contracts = json.loads(lines.get("actionContracts", "[]"))
     assert any(item.get("templateId") == "PlaylistCompactAction@1" for item in action_contracts)
+    plan_candidates = json.loads(lines.get("planCandidates", "[]"))
     assert any(
         item["layoutTemplateId"] == "WideHalfTwoCompactLayout@1"
         and item["actionAssignments"][0]["actionTemplateId"] == "PlaylistCompactAction@1"
-        for item in json.loads(lines["planCandidates"])
+        for item in plan_candidates
     )
-    grammar_options = json.loads(lines["outputGrammar"])["atomicPlanOptions"]
+    output_grammar = json.loads(lines.get("outputGrammar", "{}"))
+    grammar_options = output_grammar.get("atomicPlanOptions", [])
     assert any(
         child["templateId"] == "PlaylistCompactAction@1"
         for option in grammar_options
