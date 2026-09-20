@@ -143,9 +143,8 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
     "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
     "centered-focus": (
         "本卡是单业务稀疏居中路由：顶部只放稳定标题，中部只放唯一主信息，"
-        "底部固定一行辅助文字。主信息为纯 number/integer 时固定 38fp，"
-        "字符串或带单位格式化值固定 20fp；1-2 个辅助字段必须全部保留，"
-        "两个辅助字段用 ASCII ' | ' 合并。不生成按钮、进度、图标、空单位或额外信息区。"
+        "底部固定一行且只能放唯一辅助字段。主信息为纯 number/integer 时固定 38fp，"
+        "字符串或带单位格式化值固定 20fp；不生成按钮、进度、图标、空单位或额外信息区。"
     ),
     "earphone-status": "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。",
     "battery-readout": (
@@ -187,10 +186,11 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
 2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
-`134×126vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
+`138×134vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
 使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
 `276×59vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
-不得自由拼接骨架。带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
+root padding 固定为 `8vp`，不得继续保留旧版 `12vp` 外边距。不得自由拼接骨架。
+带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
 最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。""",
 }
 
@@ -257,7 +257,7 @@ class PromptBuilder:
         schema = task_spec.dataModelSchema.get("data")
         business = schema.get(roots[0]) if isinstance(schema, dict) else None
         leaf_count = PromptBuilder._schema_leaf_count(business)
-        return 2 <= leaf_count <= 3
+        return leaf_count == 2
 
     @staticmethod
     def _uses_w1_focus_aux(task_spec: TaskSpec) -> bool:

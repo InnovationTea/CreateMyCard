@@ -225,10 +225,10 @@
 ```
 
 ## 示例十一（2x2-V11）：单业务稀疏居中（S1 centered-focus·无动作）
-本例只用于一个业务对象、一个唯一主信息、1-2 个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部 `primary_area` 单独承载主信息，底部固定一行辅助文字；两个辅助字段必须全部保留并合并为同一个 12fp Text，用 ASCII `" | "` 分隔。纯 number/integer 主信息固定 38fp，字符串或带单位格式化主信息固定 20fp/700。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时仍使用 V01，不得套用本例。
+本例只用于一个业务对象、一个唯一主信息、恰好一个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部 `primary_area` 单独承载主信息，底部固定一行辅助文字。辅助字段不是一个时不得使用本例。纯 number/integer 主信息固定 38fp，字符串或带单位格式化主信息固定 20fp/700。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时仍使用 V01，不得套用本例。
 ### user
 ```json
-{"userQuery":"展示今天的步数、运动状态和更新时间。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"今日累计步数，单位为步","sampleValue":6200},"activityStatus":{"type":"string","description":"今日运动状态摘要","sampleValue":"状态良好"},"updatedAt":{"type":"string","description":"信息更新时间","sampleValue":"09:30"}}}},"assetCandidates":[]}
+{"userQuery":"展示今天的步数和运动状态。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"今日累计步数，单位为步","sampleValue":6200},"activityStatus":{"type":"string","description":"今日运动状态摘要","sampleValue":"状态良好"}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
@@ -240,8 +240,7 @@
 ["primary_row","Row",{"width":126,"justifyContent":"center","alignItems":"bottom","itemMargin":2},["primary_value","primary_unit"]]
 ["primary_value","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
 ["primary_unit","Text",{"content":"步","fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["supporting_text","Text",{"content":"{{ ${/data/healthSport/activityStatus} + ' | ' + ${/data/healthSport/updatedAt} }}","width":126,"height":20,"flexShrink":0,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
+["supporting_text","Text",{"content":{"path":"/data/healthSport/activityStatus"},"width":126,"height":20,"flexShrink":0,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
 ["/data/healthSport/dailySteps",6200]
 ["/data/healthSport/activityStatus","状态良好"]
-["/data/healthSport/updatedAt","09:30"]
 ```
