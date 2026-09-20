@@ -1,3 +1,65 @@
+#Template BluetoothDeviceOverviewEarbudPairHero@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+data = {
+    name: $path("/earphoneName"),
+    left: $path("/leftBatteryLevel"),
+    right: $path("/rightBatteryLevel")
+}
+
+Column(
+    {
+        "_advancedComponent": "BluetoothDeviceOverview",
+        "_layoutActionBackgroundOpacity": 0.1,
+        "width": "matchParent", "height": "matchParent", "itemMargin": 4,
+        "justifyContent": "start", "alignItems": "start", "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text("蓝牙耳机", {
+        "width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
+    }),
+    Text(data.name, {
+        "width": "matchParent", "fontSize": 18, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 },
+        "margin": { "top": 6, "bottom": 4, "left": 0, "right": 0 }
+    }),
+    Row({ "width": 100, "height": 12, "itemMargin": 12, "alignItems": "center" },
+        Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+            #if props.leftEarIcon
+                Image(props.leftEarIcon, {
+                    "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+                }),
+            #else
+                Text("左", {
+                    "width": 12, "height": 12, "fontSize": 10,
+                    "fontColor": $theme('supportContentColor'), "maxLines": 1
+                }),
+            #endif
+            Text(Expr(`'' + ${data.left} + '%'`), {
+                "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'), "maxLines": 1
+            })
+        ),
+        Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+            #if props.rightEarIcon
+                Image(props.rightEarIcon, {
+                    "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+                }),
+            #else
+                Text("右", {
+                    "width": 12, "height": 12, "fontSize": 10,
+                    "fontColor": $theme('supportContentColor'), "maxLines": 1
+                }),
+            #endif
+            Text(Expr(`'' + ${data.right} + '%'`), {
+                "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'), "maxLines": 1
+            })
+        )
+    )
+)
+#End
+
 #Template BluetoothDeviceOverviewHero@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
@@ -51,7 +113,7 @@ Column(
         Expr(`${data.connected}? '已链接' : '未链接'`),
         {
             "width": "matchParent",
-            "fontSize": 20,
+            "fontSize": 18,
             "fontWeight": 700,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,
@@ -841,7 +903,7 @@ Column(
     ),
     Text(
       Expr(data.connected ? '已连接' : '未连接'),
-      { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   Row(
@@ -1191,7 +1253,7 @@ Column(
     "_layoutActionBackgroundOpacity": 0.1,
     "width": "matchParent",
     "height": "matchParent",
-    "padding": {"left": 0, "top": 8, "right": 0, "bottom": 0},
+    "padding": {"left": 0, "top": 6, "right": 0, "bottom": 0},
     "itemMargin": 4,
     "justifyContent": "start",
     "alignItems": "center",
@@ -1288,7 +1350,7 @@ Column(
     "_layoutActionBackgroundOpacity": 0.1,
     "width": "matchParent",
     "height": "matchParent",
-    "padding": {"left": 0, "top": 8, "right": 0, "bottom": 0},
+    "padding": {"left": 0, "top": 6, "right": 0, "bottom": 0},
     "itemMargin": 4,
     "justifyContent": "start",
     "alignItems": "center",

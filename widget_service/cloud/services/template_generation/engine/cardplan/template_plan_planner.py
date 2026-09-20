@@ -19,7 +19,7 @@ from .models import (
     TemplatePlanActionAssignment,
     TemplatePlanBusinessSlot,
 )
-from .prompt import action_bindings
+from .prompt import _asset_semantic_tags, action_bindings
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 from .template_retrieval import (
@@ -34,7 +34,6 @@ _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
 _THEME_TERMS_BY_BUSINESS = {
     "ActivityOverview": ("sport", "activity", "运动", "步数"),
-    "AppUsageOverview": ("app", "usage", "digital", "应用", "时长"),
     "BatteryOverview": ("battery", "device", "电量", "设备"),
     "BluetoothDeviceOverview": ("earphone", "audio", "battery", "耳机", "电量"),
     "CalendarOverview": ("calendar", "schedule", "meeting", "日历", "日程"),
@@ -214,7 +213,7 @@ def _single_business_drafts(
         layouts = (("SingleFocusLayout@1", "Full", None),)
     elif len(action_ids) == 1:
         values = [("HeroActionLayout@1", "Hero", _PILL_ACTION_TEMPLATE_ID)]
-        if _has_semantic_action_icon(task_spec):
+        if _has_semantic_action_icon(task_spec, action_ids):
             values.append(("FullIconActionLayout@1", "Full", _ICON_ACTION_TEMPLATE_ID))
         layouts = tuple(values)
     elif len(action_ids) == 2:
@@ -527,11 +526,17 @@ def _deduplicate_drafts(drafts: list[_PlanDraft]) -> list[_PlanDraft]:
     return result
 
 
-def _has_semantic_action_icon(task_spec: TaskSpec) -> bool:
+def _has_semantic_action_icon(task_spec: TaskSpec, action_ids: tuple[str, ...]) -> bool:
     keywords = {"action", "event", "shortcut", "动作", "操作", "入口", "快捷"}
+    power_saving_selected = any(
+        action.event_id == "event.setPowerSavingMode" and action.action_id in action_ids
+        for action in action_bindings(task_spec)
+    )
     for candidate in task_spec.assetCandidates:
         if not isinstance(candidate, dict) or not isinstance(candidate.get("src"), str):
             continue
+        if power_saving_selected and "power-saving" in _asset_semantic_tags(candidate):
+            return True
         text_values = [str(candidate.get("description", ""))]
         for key in ("sceneTags", "semanticTags", "tags"):
             values = candidate.get(key, ())

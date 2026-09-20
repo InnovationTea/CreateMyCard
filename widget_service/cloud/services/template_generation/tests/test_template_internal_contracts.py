@@ -616,13 +616,13 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     )
     _validate_provider_template_layout_action_requirements(
         "WideSingleFocusLayout",
-        (template("AppUsageOverviewWideHero@1"),),
+        (template("ActivityOverviewWideHero@1"),),
         (pill_one,),
         "2x4",
     )
     _validate_provider_template_layout_action_requirements(
         "WideSingleFocusLayout",
-        (template("AppUsageOverviewWideFull@1"),),
+        (template("BatteryOverviewWideFull@1"),),
         (),
         "2x4",
     )
@@ -644,14 +644,14 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     with pytest.raises(TerselConversionError, match="Wide marker"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
-            (template("AppUsageOverviewWideFull@1"),),
+            (template("BatteryOverviewWideFull@1"),),
             (),
             "2x4",
         )
     with pytest.raises(TerselConversionError, match="suffix mismatches"):
         _validate_provider_template_layout_action_requirements(
             "WideSingleFocusLayout",
-            (template("AppUsageOverviewFull@1"),),
+            (template("BatteryOverviewFull@1"),),
             (),
             "2x4",
         )

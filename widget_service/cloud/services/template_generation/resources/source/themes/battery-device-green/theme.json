@@ -1,0 +1,25 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "battery-device-green",
+  "description": "手机电量浅绿，与蓝牙耳机配色一致",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetPhoneBatteryInfo"],
+  "paletteSceneIds": ["device.battery"],
+  "allowTemplateActionBackgroundOverride": false,
+  "primaryColor": "#FF52991F",
+  "supportContentColor": "#9952991F",
+  "progressColor": "#FF52991F",
+  "progressBackgroundColor": "#3364BB5C",
+  "rootStyle": {
+    "backgroundColor": "#FFF0FFE6",
+    "borderRadius": 20,
+    "padding": 12,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#3364BB5C",
+    "contentColor": "#FF52991F"
+  }
+}

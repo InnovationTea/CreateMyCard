@@ -18,6 +18,8 @@ from services.compact_dsl_a2ui_converter import (
     validate_timeline_unit_layout,
 )
 
+from .compact_dual_action_validator import collect_dual_action_errors
+
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
@@ -108,11 +110,14 @@ def validate_compact_dsl(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
+    visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
+    size = card_spec.get("suggestSize") or task_spec.get("size")
+    collect_dual_action_errors(components, size, errors)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -121,6 +126,22 @@ def validate_compact_dsl(
             binding_paths,
             errors,
         )
+        visible_props = {
+            key: value for key, value in component.props.items() if key != "onClick"
+        }
+        _collect_binding_context(
+            visible_props,
+            location,
+            visible_binding_paths,
+            [],
+        )
+
+    _collect_layout_route_errors(
+        components,
+        task_spec,
+        visible_binding_paths,
+        errors,
+    )
 
     data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(

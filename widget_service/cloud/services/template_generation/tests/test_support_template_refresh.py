@@ -23,10 +23,9 @@ _CALENDAR_SUPPORTS = (
     ("ScheduleOverviewDateSupport@1", "/events/0/title", ("/events/0/startDate",)),
 )
 
-# 主数值与同排单位都属于主文本；应用时长模板保留原有的辅助信息在上布局。
+# 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "ActivityOverviewSupport@1": (0,),
-    "AppUsageOverviewSupport@1": (1,),
     "BatteryOverviewSupport@1": (0,),
     "BatteryOverviewStatusSupport@1": (0,),
     "BluetoothDeviceOverviewEarbudsSupport@1": (0,),
@@ -255,7 +254,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 22
+    assert len(supports) == 21
     assert not supports.intersection({
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",
@@ -371,9 +370,9 @@ def test_all_support_actions_are_optional_and_bound_to_root(with_action: bool) -
         root = _instantiate(template_id, bindings, params)
         options = root.values[0]
         assert isinstance(options, dict)
-        # 两个能力尚未注册的历史模板仍使用覆盖层，本轮未改动其样式。
+        # 以下历史模板仍使用覆盖层，本轮未改动其样式。
         legacy_overlays = {
-            "AppUsageOverviewSupport@1", "ResourceUsageOverviewSupport@1",
+            "ResourceUsageOverviewSupport@1",
             "BluetoothDeviceOverviewEarbudsSupport@1",
         }
         if template_id not in legacy_overlays:

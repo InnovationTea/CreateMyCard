@@ -34,6 +34,9 @@ from services.template_generation.engine.advanced.ux_mixed_prompt import (
     build_ux_mixed_prompt,
     build_ux_mixed_validation_retry_prompt,
 )
+from services.template_generation.engine.cardplan.calendar_action_policy import (
+    resolve_calendar_view_fallback,
+)
 from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
 from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
@@ -53,6 +56,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateSearchIntent,
     build_template_retrieval_prompt,
+    normalize_calendar_reminder_intent,
     restrict_search_intent_to_preferred_templates,
     search_template_variants,
 )
@@ -153,6 +157,9 @@ async def generate_template_a2ui(
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
             intent = TemplateSearchIntent.model_validate(raw_query)
+            intent = normalize_calendar_reminder_intent(
+                intent, selected_task_spec, coverage_bindings,
+            )
             intent = restrict_search_intent_to_preferred_templates(
                 intent,
                 registry,
@@ -163,6 +170,10 @@ async def generate_template_a2ui(
                 trusted_template_action_ids,
                 selected_task_spec,
             )
+            logger.info(
+                f"{_MODULE} template_retrieval_intent "
+                f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
+            )
             search_result = search_template_variants(
                 intent,
                 selected_task_spec,
@@ -171,6 +182,14 @@ async def generate_template_a2ui(
                 card_spec,
                 preferred_template_ids=trusted_template_candidate_ids,
             )
+            resolved_intent = resolve_calendar_view_fallback(
+                intent, search_result, selected_task_spec, registry,
+            )
+            if resolved_intent.action_ids != intent.action_ids:
+                logger.info(
+                    f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
+                )
+            intent = resolved_intent
             template_plans = plan_template_candidates(
                 intent,
                 search_result,
@@ -225,6 +244,21 @@ async def generate_template_a2ui(
         raise TemplateGenerationError("selected template generation failed") from exc
 
 
+def _sample_override_child(current: Any, part: str, pointer: str) -> Any:
+    """只遍历已有样例结构，不创建缺失字段或扩展数组。"""
+    result: Any = None
+    if isinstance(current, dict) and part in current:
+        result = current[part]
+    elif isinstance(current, list) and part.isascii() and part.isdecimal():
+        index = int(part)
+        if part != str(index) or index >= len(current):
+            raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+        result = current[index]
+    else:
+        raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+    return result
+
+
 def _with_trusted_sample_overrides(
     task_spec: TaskSpec,
     sample_overrides: dict[str, Any],
@@ -239,9 +273,7 @@ def _with_trusted_sample_overrides(
         current: Any = schema
         for raw_part in pointer.removeprefix("/").split("/"):
             part = raw_part.replace("~1", "/").replace("~0", "~")
-            if not isinstance(current, dict) or part not in current:
-                raise ValueError(f"trusted sample override path is unavailable: {pointer}")
-            current = current[part]
+            current = _sample_override_child(current, part, pointer)
         if not isinstance(current, dict) or "sampleValue" not in current:
             raise ValueError(f"trusted sample override target is not a field: {pointer}")
         if sample_value is None or not isinstance(sample_value, (str, int, float, bool)):

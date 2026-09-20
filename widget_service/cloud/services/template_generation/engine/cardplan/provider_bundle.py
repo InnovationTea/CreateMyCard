@@ -1326,27 +1326,34 @@ def _template_line_quote(line: str, quote: str | None) -> str | None:
 
 
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
+    components: tuple[str, str]
     single = re.fullmatch(
-        r"#(?:if|elseif)[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        r"#(?:if|elseif)[ \t]+(![ \t]*)?(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if single is not None:
-        namespace, name = single.groups()
-        if namespace == "props":
-            return f'IfParam("{name}",', f'IfMissingParam("{name}",'
-        return f'IfBind("{name}",', f'IfMissingBind("{name}",'
-    grouped = re.fullmatch(
-        r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
-        r"data\.([A-Za-z_][A-Za-z0-9_]*)",
-        content,
-    )
-    if grouped is None or grouped.group(1) == grouped.group(2):
-        keyword = content.split(maxsplit=1)[0]
-        raise ValueError(
-            f"Provider Template {keyword} target is invalid at line {line_number}"
+        negated, namespace, name = single.groups()
+        kind = "Param" if namespace == "props" else "Bind"
+        present = f'If{kind}("{name}",'
+        missing = f'IfMissing{kind}("{name}",'
+        if negated is not None:
+            components = (missing, present)
+        else:
+            components = (present, missing)
+    else:
+        grouped = re.fullmatch(
+            r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
+            r"data\.([A-Za-z_][A-Za-z0-9_]*)",
+            content,
         )
-    binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
-    return f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},"
+        if grouped is None or grouped.group(1) == grouped.group(2):
+            keyword = content.split(maxsplit=1)[0]
+            raise ValueError(
+                f"Provider Template {keyword} target is invalid at line {line_number}"
+            )
+        binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
+        components = (f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},")
+    return components
 
 
 def _remove_empty_template_conditionals(body: str) -> str:

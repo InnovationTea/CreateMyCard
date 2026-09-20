@@ -60,7 +60,6 @@ def _clear_generated_gallery_files(root: Path) -> None:
         manifest_path.unlink()
 
 _PROVIDER_NAMES = {
-    "app-usage": "应用时长",
     "battery": "设备电量",
     "calendar": "日历日程",
     "countdown": "倒计时",
@@ -72,7 +71,6 @@ _PROVIDER_NAMES = {
 
 _BUSINESS_DESCRIPTIONS = {
     "ActivityOverview": ("每日活动", "展示今天的步数、热量和距离"),
-    "AppUsageOverview": ("应用时长", "展示示例应用今天的使用时长"),
     "BatteryOverview": ("设备电量", "展示手机剩余电量和充电状态"),
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
     "CalendarOverview": ("日历日程", "展示下一项日程"),
@@ -85,7 +83,6 @@ _BUSINESS_DESCRIPTIONS = {
 }
 
 _CAPABILITY_ARGUMENTS = {
-    "GetAppUsageDuration": {"appBundleName": "com.example.demo"},
     "GetCalendarEvents": {"futureDays": 7},
     "GetCountdownDays": {"targetDate": "2027-01-01"},
     "GetEarphoneInfo": {},
@@ -101,10 +98,6 @@ _CAPABILITY_ARGUMENTS = {
 
 _ACTION_IDS_BY_BUSINESS = {
     "ActivityOverview": ("event.open.health.sport", "event.open.settings.dnd"),
-    "AppUsageOverview": (
-        "event.open.settings.parentControl",
-        "event.open.settings.dnd",
-    ),
     "BatteryOverview": (
         "event.open.settings.battery",
         "event.setPowerSavingMode",
@@ -127,7 +120,6 @@ _ACTION_IDS_BY_BUSINESS = {
 
 _ACTION_QUERIES_BY_BUSINESS = {
     "ActivityOverview": ("查看运动健康详情", "打开免打扰设置"),
-    "AppUsageOverview": ("打开家长控制设置", "打开免打扰设置"),
     "BatteryOverview": ("打开电池设置", "开启省电模式"),
     "BluetoothDeviceOverview": ("打开蓝牙设置", "打开每日音乐"),
     "CalendarOverview": ("查看日程详情", "进入会议"),
@@ -577,6 +569,22 @@ def _data_binding(
     }
 
 
+def _single_template_data_bindings(
+    definition: BusinessDefinition,
+    template: ProviderTemplateDefinition | None,
+) -> list[dict[str, Any]]:
+    """双城市模板按声明顺序提供独立绑定，其余模板保持原数据根。"""
+    bindings = [_data_binding(definition, template)]
+    if template is not None and template.template_id == "WeatherOverviewDualCityFull@1":
+        bindings = []
+        for index, city in enumerate(("成都市", "上海市"), start=1):
+            binding = _data_binding(definition, template)
+            binding["writeResultTo"] = f"/data/weather{index}"
+            binding["arguments"] = {"prefectureName": city, "forecastDays": 1}
+            bindings.append(binding)
+    return bindings
+
+
 def _candidate_asset_ids(
     target_template: ProviderTemplateDefinition | None,
     asset_capabilities: dict[str, dict[str, Any]],
@@ -661,6 +669,20 @@ def _gallery_sample_overrides(
     )
     if weather_displays_temperature:
         sample_overrides["/data/weather/current/temperatureText"] = "29°"
+    if (
+        weather_template is not None
+        and weather_template.template_id == "WeatherOverviewDualCityFull@1"
+    ):
+        sample_overrides.update(
+            {
+                "/data/weather1/location/prefectureName": "成都市",
+                "/data/weather1/current/temperatureC": 26,
+                "/data/weather1/current/condition": "多云",
+                "/data/weather2/location/prefectureName": "上海市",
+                "/data/weather2/current/temperatureC": 29,
+                "/data/weather2/current/condition": "晴",
+            }
+        )
     if weather_template is not None and weather_template.suffix == "Support":
         sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
@@ -707,7 +729,7 @@ def _request_envelope(
     template_description = (
         target_template.description if target_template is not None else business_description
     )
-    data_bindings = [_data_binding(definition, target_template)]
+    data_bindings = _single_template_data_bindings(definition, target_template)
     action_count = 0
     if scenario_id == "single-two-actions":
         action_count = 2
@@ -728,6 +750,11 @@ def _request_envelope(
             f"生成一个2×2完整信息卡片，按“{template_description}”展示，"
             "不显示操作按钮。"
         )
+    if (
+        target_template is not None
+        and target_template.template_id == "WeatherOverviewDualCityFull@1"
+    ):
+        user_query += "按顺序分别展示成都市和上海市的当前温度及天气现象。"
     action_ids = _ACTION_IDS_BY_BUSINESS[definition.business_id][:action_count]
     event_candidates = [
         _event_candidate(event_capabilities, action_id) for action_id in action_ids
@@ -1438,6 +1465,7 @@ def _expected_action_count(scenario_id: str) -> int:
     return {
         "single-two-actions": 2,
         "single-one-action": 1,
+        "single-icon-action": 1,
         "single-content": 0,
         "dual-one-action": 1,
         "dual-support-content": 0,

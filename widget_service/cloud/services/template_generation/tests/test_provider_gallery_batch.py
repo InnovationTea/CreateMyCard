@@ -203,11 +203,11 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert not stale_input.exists()
-    assert len(manifest.providers) == 10
+    assert len(manifest.providers) == 9
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    assert len(all_cases) == 143
+    assert len(all_cases) == 141
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -296,7 +296,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 140
+    assert len(targeted_cases) == 138
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -377,6 +377,91 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / calendar_date.requestFile).read_text(encoding="utf-8")
     )
     assert calendar_date_request["content"]["candidateAssetIds"] == []
+
+
+def test_dual_city_gallery_inputs_keep_ordered_independent_weather_bindings(
+    tmp_path: Path,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = _find_case(
+        manifest, "WeatherOverview", "single-content", "WeatherOverviewDualCityFull@1"
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    assert len(bindings) == 2
+    expected_fields = [
+        "/current/temperatureC", "/current/condition", "/location/prefectureName"
+    ]
+    for index, city in enumerate(("成都市", "上海市"), start=1):
+        assert bindings[index - 1] == {
+            "capabilityId": "ViewWeather",
+            "arguments": {"prefectureName": city, "forecastDays": 1},
+            "writeResultTo": f"/data/weather{index}",
+            "candidateOutputFields": expected_fields,
+        }
+    query = content.get("userQuery")
+    assert isinstance(query, str)
+    assert "成都市和上海市" in query
+    assert content.get("candidateEventCandidates") == []
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    assert gallery_test.get("sampleOverrides") == {
+        "/data/weather1/location/prefectureName": "成都市",
+        "/data/weather1/current/temperatureC": 26,
+        "/data/weather1/current/condition": "多云",
+        "/data/weather2/location/prefectureName": "上海市",
+        "/data/weather2/current/temperatureC": 29,
+        "/data/weather2/current/condition": "晴",
+    }
+
+
+def test_dual_city_gallery_does_not_change_single_city_inputs(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = _find_case(
+        manifest, "WeatherOverview", "single-content", "WeatherOverviewFull@1"
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    assert len(bindings) == 1
+    assert bindings[0].get("writeResultTo") == "/data/weather"
+    assert bindings[0].get("arguments") == {
+        "prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1
+    }
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    assert gallery_test.get("sampleOverrides") == {
+        "/data/weather/current/temperatureText": "29°"
+    }
+
+
+@pytest.mark.asyncio
+async def test_dual_city_gallery_runner_passes_both_bindings_to_service(tmp_path: Path) -> None:
+    input_root = tmp_path / "inputs"
+    write_gallery_input_dataset(input_root)
+    service = _GalleryService()
+    summary = await ProviderGalleryBatchRunner(service).run(
+        input_root, tmp_path / "output", provider_ids={"com.huawei.weather.cli"}
+    )
+    assert summary.failed == 0
+    requests = []
+    for request, targets in zip(service.requests, service.template_candidate_ids, strict=True):
+        if targets == ("WeatherOverviewDualCityFull@1",):
+            requests.append(request)
+    assert len(requests) == 1
+    bindings = requests[0].candidateDataBindings
+    assert bindings is not None
+    assert [binding.writeResultTo for binding in bindings] == [
+        "/data/weather1", "/data/weather2"
+    ]
+    assert [binding.arguments.get("prefectureName") for binding in bindings] == [
+        "成都市", "上海市"
+    ]
 
 
 def test_countdown_gallery_inputs_use_only_high_version_fusion(
@@ -546,13 +631,13 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 143
+    assert summary.total == 141
     assert summary.failed == 0
-    assert summary.missing == 14
-    assert summary.not_generated == 129
+    assert summary.missing == 8
+    assert summary.not_generated == 133
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
-    assert len(reloaded.providers) == 10
+    assert len(reloaded.providers) == 9
 
 
 def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path: Path) -> None:
@@ -688,8 +773,8 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
     # 通用倒计时 Support 未开放事件白名单，各少一个带动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 64
-    assert len({case.caseId for case in provider.cases}) == 64
+    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 61
+    assert len({case.caseId for case in provider.cases}) == 61
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -715,9 +800,9 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 64
+    assert summary.total == 61
     assert summary.success == 58
-    assert summary.missing == 6
+    assert summary.missing == 3
     assert summary.failed == summary.not_generated == 0
     assert len(service.requests) == 58
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}

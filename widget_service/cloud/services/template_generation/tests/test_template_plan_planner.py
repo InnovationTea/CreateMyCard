@@ -20,6 +20,7 @@ from services.template_generation.engine.cardplan.parser import parse_ux_layout_
 from services.template_generation.engine.cardplan.prompt import action_bindings
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_plan_planner import (
+    _has_semantic_action_icon,
     plan_template_candidates,
     planner_component_candidates,
     planner_required_template_groups,
@@ -35,6 +36,26 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     search_template_variants,
 )
 from services.template_generation.engine.tersel_converter import TerselConversionError
+
+
+@pytest.mark.parametrize(("selected", "description", "expected"), [
+    (True, "默认黑色的电池图标，适用省电模式、节能电池", True),
+    (False, "默认黑色的电池图标，适用省电模式、节能电池", False),
+    (True, "默认黑色的太阳图标，适用晴天", False),
+    (True, "默认黑色的电池图标，适用电量展示", False),
+])
+def test_icon_action_accepts_power_saving_asset_only_for_selected_power_event(
+    selected: bool, description: str, expected: bool,
+) -> None:
+    task = TaskSpec(
+        userQuery="显示手机电量", size="2x2", dataModelSchema={},
+        eventCandidates=[EventAction(
+            id="event.setPowerSavingMode", call="clickToIntent", args={},
+        )],
+        assetCandidates=[{"src": "resources/base/media/example.svg", "description": description}],
+    )
+    selected_ids = ("event.setPowerSavingMode",) if selected else ()
+    assert _has_semantic_action_icon(task, selected_ids) is expected
 
 
 def _field(value: object, data_type: str = "string") -> dict[str, object]:
@@ -94,6 +115,89 @@ def _weather_card_spec() -> dict[str, object]:
     }
 
 
+@pytest.mark.parametrize("has_updated_at", [False, True])
+@pytest.mark.parametrize("requires_updated_at", [False, True])
+def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
+    has_updated_at: bool, requires_updated_at: bool,
+) -> None:
+    weather = {
+        "location": {"prefectureName": _field("深圳市")},
+        "current": {"windDirection": _field("东南风"), "windLevel": _field(2, "integer")},
+    }
+    fields = ["/location/prefectureName", "/current/windDirection", "/current/windLevel"]
+    required = list(fields)
+    if has_updated_at:
+        weather["updatedAt"] = _field("09:00")
+        fields.append("/updatedAt")
+    if requires_updated_at:
+        required.append("/updatedAt")
+    task = TaskSpec(
+        userQuery="查看城市风况", size="2x2", dataModelSchema={"data": {"weather": weather}},
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather", writeResultTo="/data/weather", candidateOutputFields=fields,
+    )
+    intent = TemplateSearchIntent(requiredOutputFieldsByCapability={"ViewWeather": tuple(required)})
+    arguments = (intent, task, get_cardplan_registry(), (binding,), _weather_card_spec())
+    if requires_updated_at and not has_updated_at:
+        with pytest.raises(TemplateRetrievalMiss, match="required output fields"):
+            search_template_variants(*arguments)
+        return
+    result = search_template_variants(*arguments)
+    candidate_ids = []
+    for business in result.business_candidates:
+        for candidate in business.candidates:
+            candidate_ids.append(candidate.template_id)
+    assert "WeatherOverviewWindHero@1" in candidate_ids
+
+
+def test_wind_full_template_supports_no_action_weather_card() -> None:
+    task = TaskSpec(
+        userQuery="显示风向、风力等级和城市名称的天气卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _field("上海市")},
+                    "current": {
+                        "windDirection": _field("东南风"),
+                        "windLevel": _field(2, "integer"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+        ],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/windDirection",
+                "/current/windLevel",
+            )
+        }
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "WeatherOverviewWindFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),
@@ -115,6 +219,7 @@ def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
         "requiredOutputFieldsByCapability",
         "primaryOutputFieldByCapability",
         "action",
+        "allowCalendarViewFallback",
     }
 
 
@@ -301,7 +406,7 @@ def test_second_layer_receives_only_bounded_atomic_plans() -> None:
 def _support_plans() -> tuple[TemplatePlan, ...]:
     action_id = "event.open.weather"
     task_spec = TaskSpec(
-        userQuery="同时显示天气和应用时长，点击查看天气",
+        userQuery="同时显示天气和手机电量，点击查看天气",
         size="2x2",
         dataModelSchema={},
         eventCandidates=[
@@ -324,7 +429,7 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/temperatureText",),
-            "GetAppUsageDuration": ("/appUsage/durationText",),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
         },
         action=(action_id,),
     )
@@ -343,13 +448,13 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
                 ),
             ),
             TemplateBusinessCandidates(
-                capabilityId="GetAppUsageDuration",
-                businessId="AppUsageOverview",
-                explicitFields=("/appUsage/durationText",),
+                capabilityId="GetPhoneBatteryInfo",
+                businessId="BatteryOverview",
+                explicitFields=("/batterySOC",),
                 candidates=(
                     TemplateSearchCandidate(
-                        templateId="AppUsageOverviewSupport@1",
-                        coveredExplicitFields=("/appUsage/durationText",),
+                        templateId="BatteryOverviewSupport@1",
+                        coveredExplicitFields=("/batterySOC",),
                     ),
                 ),
             ),
@@ -504,7 +609,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",{}));'
+        'Template("BatteryOverviewSupport@1",{}));'
     )
     matched_plan_id = _validate_allowed_template_plan(
         parse_ux_layout_card(valid_source),
@@ -517,7 +622,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",'
+        'Template("BatteryOverviewSupport@1",'
         f'{{"actionId":"{action_id}"}}));'
     )
 
