@@ -28,9 +28,10 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown` 与 `/data/calendar`
 拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
 
-- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，依次纵向
-  放置居中的 38fp 倒计时数字和其正下方的 12fp 单位“天”；
-  存在用户明确要求的时间时，只在数字下方增加一行 12fp/400 辅助文字。
+- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，且最多
+  包含两行视觉内容。第一行放居中的 38fp 倒计时数字；第二行无明确时间时只放
+  12fp 单位“天”，有明确时间时使用同一行 `meta_row` 显示“天 · 时间”。
+  禁止增加第三行辅助文字，禁止重复目标名称。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
   无法提取目标名称时固定使用“倒计时”。
 - 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
@@ -43,8 +44,119 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
   `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
+_MEETING_QUERY_MARKERS = ("会议", "例会", "评审会", "入会", "下一场会")
+_MEETING_LIST_QUERY_MARKERS = ("会议列表", "日程列表", "多场会议", "所有会议")
+_TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
+
+_TWO_BY_TWO_SINGLE_ROUTE_LOCK = """# 本次请求单业务边界（高优先级）
+
+本次 TaskSpec 的 `/data` 下只有一个一级业务根。该根内的多个字段仍属于同一个
+业务对象，绝对不能使用 S4，也不能生成孤立的 `136×64vp` S4 内容背板。
+
+- 用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留，每个事实只展示
+  一次；“重点、优先、主要”只决定主次顺序，不得作为删除其余明确字段的理由。
+- 大数字 `value_row` 只能包含纯数字和紧邻的真实单位，禁止加入标签、方向、状态、
+  名称、说明或其它字段；这些信息必须另起一行。
+- 同一对象存在两个及以上最高/最低、当前/目标、已用/剩余等同级量化指标时，必须在
+  全宽 Column 内纵向排列，并将每个指标压成一个完整的 `12fp/400` 单行 Text，按
+  “短标签 + 数值 + 单位”展示；禁止 30fp/38fp hero、混合字号 Row 和多个大数字
+  `value_row`。V01、V06、S3、S4 和 2x4 不执行此规则。
+- S2 状态亚型同时包含一个主状态、两个同级辅助状态和一个底部按钮时，两个辅助状态
+  必须合并为一个 `12fp/400`、`maxLines:1` Text，用短文字标签区分并以 ` | ` 分隔；
+  禁止分别创建左右窄 Row、固定窄宽度槽或 Image。L/R 方向用文字表达，不用左右图标。
+- 多字段使用全宽单业务信息流：重点字段在前，其余字段放在后续辅助行。仅当 S2 数值
+  亚型不含 Progress，并且同时使用大数字 `value_row` 主值、两个辅助字段和一个底部
+  按钮时，内容区固定为主值行加一个 `12fp/400` 辅助摘要 Text；两个辅助字段必须在该
+  Text 中用 ` | ` 分隔，`maxLines:1`，禁止拆成两行、独立 Row/Column 或 Image。
+  任何 Progress、视觉亚型、V01、V06、S3、S4 都不执行此规则。单个环形 Progress 与
+  一个底部按钮组合时，`content_area`、环和状态文字必须水平居中，禁止 `alignItems:"start"`。
+- 用户明确要求打开、查看、导航、设置、进入或播放时，匹配的显式动作必须生成
+  骨架规定的底部 Button/ActionUnit，禁止改为 root.onClick 并用普通 Text 显示
+  “点击查看……”、“点击导航……”等提示。隐式 root 入口不生成任何动作提示 Text。
+- 普通单业务内容区不生成 Image。不得为了使用候选素材，把主内容包装成 S4 小背板。"""
+
+_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK = """# 2x2 单日天气日期显示约束
+
+2x2 单日天气同时提供 `date` 和 `weekday` 时，二者属于同一组日期信息，禁止在同一个
+Text 中拼接显示。默认只保留 `weekday`；只有用户明确要求具体年月日时才只显示 `date`。
+标题已经包含“今天”或“明日”时，内容区不得再次重复同一日期信息。禁止通过缩小字号、
+增加到两行或裁切文本来容纳 `date + weekday`。"""
+
+_TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 2x2 TaskSpec 展示两个独立业务对象，必须锁定 S4 上下双业务骨架。
+
+- root 直接且只能包含上下两个 `136×64vp` 内容背板，间距固定 `8vp`；禁止公共
+  标题、公共内容区、底部 action_area 和 root.onClick。
+- 每个背板最多两行文字，第一行主数据使用 `14fp/700`，第二行辅助数据使用
+  `12fp/400`；动作只绑定语义所属背板，内部子组件不绑定动作。
+- S4 会议背板第一行只放会议标题 `14fp/700`，第二行只放时间
+  `12fp/400`；无标题时使用“会议”。禁止将时间与标题拼成一行，也禁止生成
+  “点击卡片”、“一键入会”、“点击查看”等动作提示 Text。
+- 整张 S4 只能选择一套卡片色板。先按主业务决定 root 渐变和主内容色；没有明确
+  主业务时使用蓝色。两个背板内的 Text、可染色 Image、Progress 和 Divider 必须
+  复用同一个主内容色 RGB，只允许按角色改变 alpha，禁止会议区用橙色、设备区用青色
+  这类按业务分别配色。
+- 文字字符数、是否超过 6 个字、占一行还是两行，都不得决定图标是否存在或位置。
+  1-2 项数据且有语义准确、状态安全的候选素材时保留一个 `20×20vp` 右侧图标，
+  图标右边缘距背板右边固定 `12vp`，结构固定为 `Row -> [text_column, visual]`。
+- 不得把任一业务降为另一业务的辅助信息，也不得复用单业务 hero、标题或动作区。
+- 本锁不适用于已经识别为V01的 `countdown + calendar` 单目标倒计时。"""
+
+_TWO_BY_FOUR_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 2x4 TaskSpec 最终展示两个语义数据块，必须锁定 FEWSHOT_2x4 的 V09
+和 W9 左右双大内容背板。数据块按业务对象划分，不按 action 数量划分；同一
+`healthSport` 根内的 `daily*` 日汇总与 `exercise*` 单次运动记录算两个数据块。
+
+- root 必须是 Row，直接且只能包含左右两个 `144×136vp` Column 背板，间距
+  固定 `8vp`；禁止卡级公共标题、公共内容区和公共动作区。
+- 禁止两个或更多 `296×48-64vp` 全宽内容背板上下堆叠，不得复用 2x2 S4。
+- 每个数据块的标题、数据和至多一个所属动作只能放在自己的背板内；action 不增加
+  数据块，也不得改变 W9 骨架。用户明确要求的动作必须使用背板内部 Button，
+  禁止用普通 Text 显示“点击查看……”或“点击导航……”来代替按钮。
+- 带动作的 W9 大背板直接子节点固定为 `[content, action]`；content 必须写
+  `layoutWeight:1`，action 必须是最后一项并固定 `120×36vp`。纯文字 action 使用
+  Button；图文 action 使用 `Row -> [Image, Text]`，Row 必须写 `itemMargin:8`、
+  左右 `padding:8`、`justifyContent:"center"`、`alignItems:"center"`，Image 固定
+  `20×20vp`。content 最多四行 Text：标题、主值和最多两行辅助信息；辅助字段过多时先以 ` | ` 合并，
+  仍超出则删除低优先级可选字段，禁止生成第五行。每个组件 id 只能有一个父容器，
+  禁止将同一标题或数值同时挂到 content 和大背板 children 中。
+- W9 中倒计时必须合并成一个 `14fp/700` 普通主数据 Text（如 `30天`），禁止使用
+  `30fp/38fp` hero，禁止把“天”拆成独立一行。多日天气每一天只使用一个
+  `12fp/400` Text，星期、天气、温度和降雨等必要信息在该行合并；禁止一天三行和
+  日期间 Divider。
+- action 的动态绑定数据根必须与所在背板显示的数据根一致；引用 `/data/weather/`
+  的按钮只能放在天气背板，不能放进倒计时或其他业务背板。"""
+
+_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 是 2x2 单业务且恰好提供两个动作，必须锁定 FEWSHOT_2x2 的 V03
+和 S3 单信息双按钮骨架。两个动作不增加业务对象数量，也不得改走 S2 或 S4。
+
+- 保留 324 的固定空间预算：root 直接且只能包含 `header_area` 和 `action_area`，
+  `header_area` 固定 `136×48vp`，`action_area` 固定 `136×80vp`，两区域间距
+  `8vp`；动作区纵排两个 `136×36vp` ActionUnit，按钮间距固定 `8vp`。
+- 信息区最多两行。第一行使用 `14fp/700`，第二行使用 `12fp/400`；多个辅助数据
+  在第二行使用 ASCII ` | ` 合并。禁止第三行、CardHeader、独立大数字区和标题图标。
+- 两个动作分别映射到底部两个 ActionUnit，不得把动作绑定到 root 或信息行。"""
+
+_MEETING_V06_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 已由程序识别为 2x2 单会议业务，必须锁定 FEWSHOT_2x2 的 V06
+会议时间线骨架，不得改用 V01 倒计时或普通信息列。
+
+- `day_area` 必须是 root 的第一个直接子节点，固定为左对齐的 `136×16vp Row`，
+  且内部只有一个 Text；禁止把日期 Text 直接挂在 root 下或改成居中标题。
+- `content_area` 固定使用 `Row -> [TimelineUnit, meeting_texts]`，间距 `8vp`。
+  `meeting_texts` 第一行是 `14fp/700` 会议标题，第二行时间、第三行地点均使用
+  `12fp/400`；只有 TaskSpec 没有地点且用户也未要求地点时才省略第三行。
+- 同时提供 `title`、`startDate`、`dtStart`、`countdownDays` 时，依次展示会议日期、
+  会议标题、开始时间和普通辅助文字“还有 N 天”；倒计时不得使用 V01 hero。
+- 无真实会议标题字段且用户未提供会议名称时固定显示“日程”。出现其他业务时
+  禁止使用 V06 和 TimelineUnit，必须按双业务骨架处理。"""
 
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
@@ -53,14 +165,29 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 只能是上下两个 `136×64vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
-降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。""",
+降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。
+双业务中即使一个对象是倒计时，也必须继续使用 S4；倒计时数字只是所属蒙版第一行
+`14fp/700` 的普通主数据，禁止使用 V01、38fp hero、独立倒计时组或公共标题/动作区。
+每个蒙版最多两行文字，但文字字符数、是否单行或双行不得决定图标是否存在或图标位置；
+1-2 项数据且有合法素材时保留一个 `20×20vp` 右侧图标，图标右边缘距蒙版右边固定
+`12vp`，结构固定为 `Row -> [text_column, visual]`。
+S4 整卡只能使用一套色板；两个蒙版内的文字、可染色图标、Progress 和 Divider 必须
+使用相同的主内容色 RGB，仅 alpha 可按主次角色变化，禁止每个业务分别选择主题色。
+2x2 单业务中的多个同级指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、
+左右两个指标组或左右两张内容背板。Row 只可用于同一个指标内部的“数值 + 合法单位”，
+不得把两个不同字段、两个 value_row 或两个指标 Column 并排。""",
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
 2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
 `144×136vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
 使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
 `296×64vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
-不得自由拼接骨架。""",
+不得自由拼接骨架。显式动作必须使用当前骨架的合法按钮；W8/W10 小蒙版按既有例外
+绑定蒙版本身。任何情况都禁止用普通 Text 写“点击查看……”、“点击导航……”等文字
+代替动作控件；隐式整卡或整蒙版入口不显示动作提示文字。单业务只有一个全宽动作时，
+动作必须是满高前景 Column 的最后一个直接子组件并固定为 `296×36vp`，其紧邻上方的
+真实内容区必须使用 `layoutWeight:1`；禁止把动作嵌套进固定高度的 `main`、`body` 或
+其它内容容器后与多组文字共同挤压。""",
 }
 
 
@@ -73,17 +200,42 @@ class PromptBuilder:
         return tuple(data_schema)
 
     @staticmethod
+    def _two_by_four_data_block_count(task_spec: TaskSpec) -> int:
+        data_roots = PromptBuilder._data_roots(task_spec)
+        block_count = len(data_roots)
+        if task_spec.size != "2x4":
+            return block_count
+
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return block_count
+        health_sport = data_schema.get("healthSport")
+        if not isinstance(health_sport, dict):
+            return block_count
+
+        field_names = tuple(health_sport)
+        has_daily_summary = any(name.startswith("daily") for name in field_names)
+        has_exercise_record = any(name.startswith("exercise") for name in field_names)
+        if has_daily_summary and has_exercise_record:
+            block_count += 1
+        return block_count
+
+    @staticmethod
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
-        data_root_count = len(PromptBuilder._data_roots(task_spec))
+        data_block_count = PromptBuilder._two_by_four_data_block_count(task_spec)
         selected_ids: tuple[str, ...] = ()
         dual_ids = (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
         if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
             selected_ids = ("2x2-V01",)
-        elif data_root_count == 2:
+        elif data_block_count == 2:
             if task_spec.size == "2x2":
                 selected_ids = dual_ids
             else:
                 selected_ids = (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
+        elif PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
+            selected_ids = (_TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID,)
+        elif PromptBuilder._uses_meeting_v06(task_spec):
+            selected_ids = ("2x2-V06",)
         if not selected_ids and task_spec.size != "2x2":
             return few_shot
 
@@ -124,6 +276,25 @@ class PromptBuilder:
         )
 
     @staticmethod
+    def _uses_meeting_v06(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x2" or PromptBuilder._data_roots(task_spec) != (
+            "calendar",
+        ):
+            return False
+        query = task_spec.userQuery.casefold()
+        if any(marker in query for marker in _MEETING_LIST_QUERY_MARKERS):
+            return False
+        return any(marker in query for marker in _MEETING_QUERY_MARKERS)
+
+    @staticmethod
+    def _uses_2x2_single_business_dual_action(task_spec: TaskSpec) -> bool:
+        return (
+            task_spec.size == "2x2"
+            and len(PromptBuilder._data_roots(task_spec)) == 1
+            and len(task_spec.eventCandidates) == 2
+        )
+
+    @staticmethod
     def _contains_schema_field(value: Any, field_name: str) -> bool:
         if isinstance(value, dict):
             return field_name in value or any(
@@ -147,7 +318,29 @@ class PromptBuilder:
             f"{_SIZE_LAYOUT_ROUTE_LOCKS[task_spec.size]}"
         )
         if PromptBuilder._uses_countdown_v01(task_spec):
-            return f"{prompt}\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            )
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
+            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
+        if (
+            task_spec.size == "2x4"
+            and PromptBuilder._two_by_four_data_block_count(task_spec) == 2
+        ):
+            return f"{prompt}\n\n{_TWO_BY_FOUR_DUAL_ROUTE_LOCK}"
+        if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
+            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
+        if PromptBuilder._uses_meeting_v06(task_spec):
+            return (
+                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+                f"\n\n{_MEETING_V06_ROUTE_LOCK}"
+            )
+        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 1:
+            prompt = f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
+            if PromptBuilder._data_roots(task_spec) == ("weather",):
+                prompt = f"{prompt}\n\n{_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK}"
+            return prompt
         return prompt
 
     def build_design_compact(
