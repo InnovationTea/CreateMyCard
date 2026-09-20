@@ -166,7 +166,8 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        task_spec=output.projected_task_spec.model_dump(mode="json"),
+        # Production validates against the original TaskSpec, without internal selectors.
+        task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
     )
     assert [event.id for event in output.projected_task_spec.eventCandidates] == [event_id]
