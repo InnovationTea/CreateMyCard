@@ -110,8 +110,6 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
         "resources/base/media/icon_weather_thermometer.svg",
     ("CountdownOverviewSupport@1", "timerIcon"):
         "resources/base/media/icon_timing.svg",
-    ("CountdownOverviewTravelSupport@1", "timerIcon"):
-        "resources/base/media/icon_timing.svg",
 }
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",

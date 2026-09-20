@@ -917,7 +917,7 @@ Column(
       },
       Text(
         data.temperature,
-        {
+        { "height": 28,
           "width": "matchParent",
           "fontSize": 20,
           "fontWeight": 700,

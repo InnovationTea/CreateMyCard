@@ -1311,7 +1311,7 @@ Column(
     },
     Text(
         Expr(`'' + ${data.battery} + '%'`),
-        { "width": "matchParent", "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor') }
+        { "height": 24, "width": "matchParent", "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor') }
     ),
     Row(
         {
@@ -1408,7 +1408,7 @@ Column(
     },
     Text(
         Expr(`'' + ${data.battery} + '%'`),
-        { "width": "matchParent", "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor') }
+        { "height": 24, "width": "matchParent", "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor') }
     ),
     Row(
         {
