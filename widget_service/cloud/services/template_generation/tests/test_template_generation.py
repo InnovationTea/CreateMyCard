@@ -666,13 +666,13 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
 @pytest.mark.parametrize(
     ("template_id", "text_path", "font_size", "height"),
     [
-        ("WeatherOverviewDailyDateFull@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyDateFull@1", (1, 0), 18, 24),
         ("WeatherOverviewDailyDateFull@1", (1, 1), 12, 20),
-        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 32, None),
+        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 18, 24),
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
-        ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewConditionHero@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 18, 24),
+        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 18, 48),
+        ("WeatherOverviewConditionHero@1", (1, 0), 18, 24),
         ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
     ],
 )
@@ -754,7 +754,7 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
         ("WeatherOverviewAirQualityHero@1", "airQuality"),
     ],
 )
-def test_weather_index_templates_use_20vp_primary_values(
+def test_weather_index_templates_use_18fp_text_values(
     template_id: str, value_binding: str,
 ) -> None:
     registry = get_cardplan_registry()
@@ -772,7 +772,7 @@ def test_weather_index_templates_use_20vp_primary_values(
     assert value.values[0] == bindings.get(value_binding)
     value_options = value.values[-1]
     assert isinstance(value_options, dict)
-    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontSize") == 18
     assert value_options.get("fontWeight") == 700
     if value_binding == "uvIndex":
         options = value_column.values[-1]
@@ -780,7 +780,7 @@ def test_weather_index_templates_use_20vp_primary_values(
         assert "height" not in options
         assert "layoutWeight" not in options
         assert options.get("itemMargin") == 0
-        assert value_options.get("height") == 28
+        assert value_options.get("height") == 24
         label = value_column.children[1]
         assert label.component_type == "Text"
         assert label.values[0] == "紫外线"

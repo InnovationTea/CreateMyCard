@@ -56,7 +56,7 @@ Column(
             { "width": "matchParent", "justifyContent": "start", "alignItems": "bottom" },
             Text(
                 Expr(`'' + ${data.min} + '/' + ${data.max}`),
-                { "fontSize": 34, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+                { "height": 24, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
             )
         ),
         Text(
