@@ -14,23 +14,35 @@ from services.template_generation.engine.cardplan.preview_dataset import (
 
 def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
-    cases = manifest["cases"]
+    cases = manifest.get("cases")
+    assert isinstance(cases, list)
 
-    assert manifest["templateCount"] == 108
-    assert manifest["countsByLayout"] == {
+    assert manifest.get("templateCount") == 112
+    assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
         "Support": 21,
         "Compact": 12,
-        "Hero": 31,
-        "Full": 33,
+        "Hero": 32,
+        "Full": 36,
         "WideHero": 1,
         "WideFull": 8,
     }
-    assert manifest["countsBySize"] == {"2x2": 99, "2x4": 9}
-    assert len(cases) == 108
-    assert len({case["templateId"] for case in cases}) == 108
-    assert all((tmp_path / case["file"]).is_file() for case in cases)
+    assert manifest.get("countsBySize") == {"2x2": 103, "2x4": 9}
+    assert len(cases) == 112
+    template_ids: set[str] = set()
+    for case in cases:
+        template_id = case.get("templateId")
+        file_name = case.get("file")
+        assert isinstance(template_id, str)
+        assert isinstance(file_name, str)
+        template_ids.add(template_id)
+        assert (tmp_path / file_name).is_file()
+    assert len(template_ids) == 112
+    assert {
+        "BluetoothDeviceOverviewEarbudTripleFull@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+    }.issubset(template_ids)
 
 
 def test_template_preview_a2ui_has_surface_components_and_data():

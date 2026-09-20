@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 117
+    assert len(registry.provider_template_ids) == 121
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -269,6 +269,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudTripleFull@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneCaseCompact@1",
