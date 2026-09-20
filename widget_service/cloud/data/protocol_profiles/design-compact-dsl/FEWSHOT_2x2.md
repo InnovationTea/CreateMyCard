@@ -1,6 +1,6 @@
 # 2x2 Few-shot
 
-示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `126×59vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
+示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须使用 root `padding:8` 完整生成上下两个 `134×63vp` 分区，分区间距为 `8vp`；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧纯色和同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
 
@@ -121,13 +121,13 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["phone_row","ear_row"]]
-["phone_row","Column",{"width":126,"height":59,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_value","phone_status"]]
-["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":102,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
-["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":102,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
-["ear_row","Column",{"width":126,"height":59,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_value","ear_status"]]
-["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":102,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
-["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":102,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["phone_row","ear_row"]]
+["phone_row","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_value","phone_status"]]
+["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":110,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
+["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["ear_row","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_value","ear_status"]]
+["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":110,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
+["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ["/data/earphone/batteryLevel",47]
@@ -205,17 +205,38 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["shanghai","beijing"]]
-["shanghai","Column",{"width":126,"height":59,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["shanghaiValue","shanghaiCondition"]]
-["shanghaiValue","Text",{"content":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","width":102,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["shanghaiCondition","Text",{"content":{"path":"/data/shanghai/current/condition"},"width":102,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["shanghai","beijing"]]
+["shanghai","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["shanghaiValue","shanghaiCondition"]]
+["shanghaiValue","Text",{"content":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
+["shanghaiCondition","Text",{"content":{"path":"/data/shanghai/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["/data/shanghai/location/prefectureName","上海"]
 ["/data/shanghai/current/temperatureText","29°C"]
 ["/data/shanghai/current/condition","多云"]
-["beijing","Column",{"width":126,"height":59,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["beijingValue","beijingCondition"]]
-["beijingValue","Text",{"content":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","width":102,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["beijingCondition","Text",{"content":{"path":"/data/beijing/current/condition"},"width":102,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["beijing","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["beijingValue","beijingCondition"]]
+["beijingValue","Text",{"content":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
+["beijingCondition","Text",{"content":{"path":"/data/beijing/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["/data/beijing/location/prefectureName","北京"]
 ["/data/beijing/current/temperatureText","18°C"]
 ["/data/beijing/current/condition","晴"]
+```
+
+## 示例十一（2x2-V11）：单业务稀疏居中（S1 centered-focus·无动作）
+本例只用于一个业务对象、一个唯一主信息、1-2 个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部主信息与其下一行辅助文字作为一个整体居中；两个辅助字段必须合并为同一个 12fp Text，并用 ASCII `" | "` 分隔。纯 number/integer 主信息固定 38fp，短文字主信息改用单个 20fp/700 Text。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area 或第三行信息。倒计时仍使用 V01，不得套用本例。
+### user
+```json
+{"userQuery":"展示今天的步数、运动状态和更新时间。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"今日累计步数，单位为步","sampleValue":6200},"activityStatus":{"type":"string","description":"今日运动状态摘要","sampleValue":"状态良好"},"updatedAt":{"type":"string","description":"信息更新时间","sampleValue":"09:30"}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFFDD",0],["#FFF2FFF6",1]]}},["title_area","focus_group"]]
+["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"今日步数","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
+["focus_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":4,"flexShrink":1},["primary_row","supporting_text"]]
+["primary_row","Row",{"width":126,"justifyContent":"center","alignItems":"bottom","itemMargin":2},["primary_value","primary_unit"]]
+["primary_value","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
+["primary_unit","Text",{"content":"步","fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
+["supporting_text","Text",{"content":"{{ ${/data/healthSport/activityStatus} + ' | ' + ${/data/healthSport/updatedAt} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
+["/data/healthSport/dailySteps",6200]
+["/data/healthSport/activityStatus","状态良好"]
+["/data/healthSport/updatedAt","09:30"]
 ```

@@ -195,6 +195,9 @@ def _collect_hero_value_errors(
         numeric_paths[component.component_id] = path
         if path is not None:
             continue
+        if _is_centered_focus_text(component, components, task_spec, font_size):
+            numeric_paths.pop(component.component_id)
+            continue
         if _is_readable_formatted_hero(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
             continue
@@ -228,7 +231,83 @@ def _collect_hero_value_errors(
                 f"component {component.component_id}: Text {suffix.component_id} "
                 f"after the large numeric value must contain only a real unit for "
                 f"{value_source}. Move labels or descriptions to a separate line."
-            )
+        )
+
+
+def _schema_leaf_count(value: Any, limit: int = 4) -> int:
+    if isinstance(value, dict):
+        if isinstance(value.get("type"), str):
+            return 1
+        children = value.values()
+    elif isinstance(value, list):
+        children = value
+    else:
+        return 0
+
+    count = 0
+    for child in children:
+        count += _schema_leaf_count(child, limit=limit)
+        if count >= limit:
+            return count
+    return count
+
+
+def _is_centered_focus_text(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    font_size: float,
+) -> bool:
+    if task_spec.get("size") != "2x2" or font_size != 20.0:
+        return False
+    if task_spec.get("eventCandidates"):
+        return False
+    schema = task_spec.get("dataModelSchema")
+    data = schema.get("data") if isinstance(schema, dict) else None
+    if not isinstance(data, dict) or len(data) != 1:
+        return False
+    business_name, business_schema = next(iter(data.items()))
+    if business_name.casefold() in {"calendar", "countdown"}:
+        return False
+    leaf_count = _schema_leaf_count(business_schema)
+    if not 2 <= leaf_count <= 3:
+        return False
+
+    forbidden_types = {"ActionUnit", "Button", "CardHeader", "Image", "Progress"}
+    for candidate in components:
+        if candidate.component_type in forbidden_types:
+            return False
+    parents = [
+        candidate
+        for candidate in components
+        if component.component_id in candidate.children
+    ]
+    if len(parents) != 1:
+        return False
+    focus_group = parents[0]
+    if focus_group.component_type != "Column":
+        return False
+    if focus_group.props.get("justifyContent") != "center":
+        return False
+    if focus_group.props.get("alignItems") != "center":
+        return False
+
+    roots = [candidate for candidate in components if candidate.component_id == "root"]
+    if len(roots) != 1:
+        return False
+    root = roots[0]
+    if root.component_type != "Column" or len(root.children) != 2:
+        return False
+    if root.children[-1] != focus_group.component_id:
+        return False
+    if root.props.get("padding") != 12 or root.props.get("alignItems") != "center":
+        return False
+    props = component.props
+    return (
+        props.get("width") == 126
+        and props.get("textAlign") == "center"
+        and props.get("maxLines") == 1
+    )
 
 
 def _collect_two_by_two_weather_date_errors(
@@ -788,9 +867,9 @@ def _collect_two_by_four_full_width_action_errors(
 def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type not in {"Row", "Column"}:
         return False
-    if component.props.get("width") != 126:
+    if component.props.get("width") != 134:
         return False
-    if component.props.get("height") != 59:
+    if component.props.get("height") != 63:
         return False
     if "backgroundColor" not in component.props:
         return False
@@ -803,13 +882,16 @@ def _has_two_by_two_s4_zones(
 ) -> bool:
     if root is None or root.component_type != "Column":
         return False
-    if len(root.children) != 2 or root.props.get("itemMargin") != 8:
+    has_expected_root_layout = (
+        root.props.get("padding") == 8 and root.props.get("itemMargin") == 8
+    )
+    if len(root.children) != 2 or not has_expected_root_layout:
         return False
     for child_id in root.children:
         zone = components_by_id.get(child_id)
         if zone is None or zone.component_type not in {"Row", "Column"}:
             return False
-        if zone.props.get("width") != 126 or zone.props.get("height") != 59:
+        if zone.props.get("width") != 134 or zone.props.get("height") != 63:
             return False
     return True
 
@@ -1170,7 +1252,7 @@ def _collect_layout_route_errors(
                 errors.append(
                     "2x2 card has one data root and must use a full-width "
                     "single-business layout; do not generate an isolated "
-                    "126x59 S4 backboard."
+                    "134x63 S4 backboard."
                 )
         _collect_2x2_countdown_group_errors(
             components,
@@ -1233,8 +1315,8 @@ def _collect_layout_route_errors(
         roots = ", ".join(sorted(data_roots))
         errors.append(
             f"2x2 card displays two data roots ({roots}) and must use S4: root "
-            "must be a Column with exactly two direct 126x59 Row/Column "
-            "backboards and itemMargin 8. Countdown remains ordinary 14fp/700 "
+            "must be a Column with padding 8 and exactly two direct 134x63 "
+            "Row/Column backboards with itemMargin 8. Countdown remains ordinary 14fp/700 "
             "primary text inside its backboard."
         )
         return

@@ -1167,11 +1167,13 @@ def _two_by_two_dual_zone_ids(
     root = components_by_id.get("root")
     if root is None or root.component_type != "Column" or len(root.children) != 2:
         return set()
+    if root.props.get("padding") != 8 or root.props.get("itemMargin") != 8:
+        return set()
     zones = [components_by_id.get(child_id) for child_id in root.children]
     if any(zone is None for zone in zones):
         return set()
     if not all(
-        zone.props.get("width") == 126 and zone.props.get("height") == 59
+        zone.props.get("width") == 134 and zone.props.get("height") == 63
         for zone in zones
         if zone is not None
     ):
@@ -1190,8 +1192,9 @@ def _normalize_small_backboard_icon_alignment(
     }
     if size == "2x2":
         candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
-        backboard_width = 126
-        text_width = 74
+        backboard_width = 134
+        backboard_height = 63
+        text_width = 82
     elif size == "2x4":
         candidate_ids = set()
         for component in components:
@@ -1200,6 +1203,7 @@ def _normalize_small_backboard_icon_alignment(
             if component.props.get("height") == 59:
                 candidate_ids.add(component.component_id)
         backboard_width = 134
+        backboard_height = 59
         text_width = 82
     else:
         return components
@@ -1228,7 +1232,7 @@ def _normalize_small_backboard_icon_alignment(
         backboard_props = {
             **backboard.props,
             "width": backboard_width,
-            "height": 59,
+            "height": backboard_height,
             "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
             "itemMargin": 8,
             "justifyContent": "start",

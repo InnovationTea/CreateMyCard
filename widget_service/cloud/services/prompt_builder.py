@@ -141,6 +141,11 @@ _GENERIC_FEW_SHOT_IDS = {
 
 _VISUAL_ROUTE_INSTRUCTIONS = {
     "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
+    "centered-focus": (
+        "本卡是单业务稀疏居中路由：顶部只放稳定标题，中部只放唯一主信息，"
+        "底部紧随一行辅助文字。主信息为纯数字时固定 38fp，为文字时固定 20fp；"
+        "不生成按钮、进度、图标或额外信息区。"
+    ),
     "earphone-status": "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。",
     "battery-readout": (
         "本卡是量化主值路由：电量或温度主读数使用最大安全字号，"
@@ -170,8 +175,9 @@ def _contains_any(value: str, markers: tuple[str, ...]) -> bool:
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
 
-2x2 若最终展示两个独立业务对象，必须且只能使用 S4：root 为 Column，直接子组件
-只能是上下两个 `126×59vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
+2x2 若最终展示两个独立业务对象，必须且只能使用 S4：root 为 Column，padding 固定
+为 `8vp`，直接子组件只能是上下两个 `134×63vp` 内容蒙版，间距 `8vp`。禁止左右
+并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
 降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。
@@ -219,6 +225,38 @@ class PromptBuilder:
             return False
         serialized = json.dumps(schema, ensure_ascii=False).casefold()
         return any(marker.casefold() in serialized for marker in markers)
+
+    @staticmethod
+    def _schema_leaf_count(value: Any, limit: int = 4) -> int:
+        if isinstance(value, dict):
+            if isinstance(value.get("type"), str):
+                return 1
+            children = value.values()
+        elif isinstance(value, list):
+            children = value
+        else:
+            return 0
+
+        count = 0
+        for child in children:
+            count += PromptBuilder._schema_leaf_count(child, limit=limit)
+            if count >= limit:
+                return count
+        return count
+
+    @staticmethod
+    def _uses_centered_focus_v11(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x2":
+            return False
+        if task_spec.eventCandidates or PromptBuilder._query_requests_action(task_spec):
+            return False
+        roots = PromptBuilder._data_roots(task_spec)
+        if len(roots) != 1 or roots[0].casefold() in {"calendar", "countdown"}:
+            return False
+        schema = task_spec.dataModelSchema.get("data")
+        business = schema.get(roots[0]) if isinstance(schema, dict) else None
+        leaf_count = PromptBuilder._schema_leaf_count(business)
+        return 2 <= leaf_count <= 3
 
     @staticmethod
     def _uses_w1_focus_aux(task_spec: TaskSpec) -> bool:
@@ -327,6 +365,9 @@ class PromptBuilder:
             ("两个", "分别", "各自", "每个", "每首", "单独", "双入口"),
         ):
             return "generic", ("2x2-V03",)
+
+        if PromptBuilder._uses_centered_focus_v11(task_spec):
+            return "centered-focus", ("2x2-V11",)
 
         normalized_roots = {root.casefold() for root in roots}
         if "earphone" in normalized_roots:
