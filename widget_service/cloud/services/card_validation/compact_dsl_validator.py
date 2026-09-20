@@ -27,9 +27,9 @@ _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
 )
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _REFERENCE_CANVAS_HEIGHT = {
-    "2x2": 160.0,
-    "2x4": 160.0,
-    "4x2": 160.0,
+    "2x2": 150.0,
+    "2x4": 150.0,
+    "4x2": 150.0,
 }
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
 _COMMON_DISPLAY_UNITS = frozenset(
@@ -313,13 +313,13 @@ def _is_readable_formatted_hero(
     if component_width is None:
         return False
     is_full_width = (
-        component_width == 136.0
+        component_width == 126.0
         if task_spec.get("size") == "2x2"
-        else component_width == 296.0
+        else component_width == 276.0
     )
     is_large_2x4_panel = (
         task_spec.get("size") == "2x4"
-        and component_width == 120.0
+        and component_width == 110.0
         and _is_large_2x4_panel(component, components)
     )
     if not is_full_width and not is_large_2x4_panel:
@@ -390,7 +390,7 @@ def _is_large_2x4_panel(
         for parent in child_to_parents.get(child_id, []):
             width = _non_negative_number(parent.props.get("width"))
             height = _non_negative_number(parent.props.get("height"))
-            if width == 144.0 and height == 136.0:
+            if width == 134.0 and height == 126.0:
                 return True
             pending.append(parent.component_id)
     return False
@@ -581,7 +581,7 @@ def _has_stacked_two_by_four_backboards(
                 continue
             height = _non_negative_number(child.props.get("height"))
             border_radius = _non_negative_number(child.props.get("borderRadius"))
-            is_full_width_backboard = child.props.get("width") == 296
+            is_full_width_backboard = child.props.get("width") in {276, 296}
             is_compact_height = height is not None and 48 <= height <= 64
             has_backboard_shape = border_radius is not None and border_radius >= 12
             if is_full_width_backboard and is_compact_height and has_backboard_shape:
@@ -594,9 +594,9 @@ def _has_stacked_two_by_four_backboards(
 def _is_two_by_four_large_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type != "Column":
         return False
-    if component.props.get("width") != 144:
+    if component.props.get("width") != 134:
         return False
-    if component.props.get("height") != 136:
+    if component.props.get("height") != 126:
         return False
     return component.props.get("padding") == 12
 
@@ -682,9 +682,9 @@ def _collect_two_by_four_action_backboard_errors(
             f"2x4 large backboard {backboard.component_id} must place its action "
             "as the final direct child."
         )
-    if action.props.get("width") != 120 or action.props.get("height") != 36:
+    if action.props.get("width") != 110 or action.props.get("height") != 36:
         errors.append(
-            f"2x4 large backboard {backboard.component_id} action must be 120x36."
+            f"2x4 large backboard {backboard.component_id} action must be 110x36."
         )
     if action.component_type == "Row":
         _collect_two_by_four_action_row_errors(action, errors)
@@ -710,8 +710,8 @@ def _collect_two_by_four_action_backboard_errors(
     if _descendant_type_count(content, components_by_id, "Text") > 4:
         errors.append(
             f"2x4 large backboard {backboard.component_id} with a Button may "
-            "contain at most four Text rows: title, primary value, and up to "
-            "two auxiliary rows. Merge or remove lower-priority fields."
+            "contain at most four Text nodes across no more than three visual "
+            "rows. Merge or remove lower-priority fields."
         )
 
 
@@ -748,7 +748,7 @@ def _collect_two_by_four_full_width_action_errors(
     for action in components:
         if not _is_two_by_four_direct_action(action):
             continue
-        if action.props.get("width") != 296 or action.props.get("height") != 36:
+        if action.props.get("width") != 276 or action.props.get("height") != 36:
             continue
 
         parent = parent_by_child.get(action.component_id)
@@ -780,7 +780,7 @@ def _collect_two_by_four_full_width_action_errors(
         if content is None or content.props.get("layoutWeight") != 1:
             errors.append(
                 f"2x4 content immediately above full-width action "
-                f"{action.component_id} must use layoutWeight 1 so the 296x36 "
+                f"{action.component_id} must use layoutWeight 1 so the 276x36 "
                 "action remains fixed at the bottom without overlapping content."
             )
 
@@ -788,9 +788,9 @@ def _collect_two_by_four_full_width_action_errors(
 def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type not in {"Row", "Column"}:
         return False
-    if component.props.get("width") != 136:
+    if component.props.get("width") != 126:
         return False
-    if component.props.get("height") != 64:
+    if component.props.get("height") != 59:
         return False
     if "backgroundColor" not in component.props:
         return False
@@ -809,7 +809,7 @@ def _has_two_by_two_s4_zones(
         zone = components_by_id.get(child_id)
         if zone is None or zone.component_type not in {"Row", "Column"}:
             return False
-        if zone.props.get("width") != 136 or zone.props.get("height") != 64:
+        if zone.props.get("width") != 126 or zone.props.get("height") != 59:
             return False
     return True
 
@@ -1144,7 +1144,7 @@ def _collect_layout_route_errors(
         )
         if _has_stacked_two_by_four_backboards(components, components_by_id):
             errors.append(
-                "2x4 cards must not stack two or more full-width 296x48-64 "
+                "2x4 cards must not stack two or more full-width 276x48-59 "
                 "content backboards vertically. Select the matching W skeleton; "
                 "two semantic data blocks must use W9 left/right backboards."
             )
@@ -1160,7 +1160,7 @@ def _collect_layout_route_errors(
                 errors.append(
                     f"2x4 large backboard {component.component_id} may contain at "
                     "most one action control. Do not stack two buttons inside a "
-                    "144x136 backboard; remove duplicate or lower-priority actions."
+                    "134x126 backboard; remove duplicate or lower-priority actions."
                 )
 
     if size == "2x2" and len(data_roots) == 1:
@@ -1170,7 +1170,7 @@ def _collect_layout_route_errors(
                 errors.append(
                     "2x2 card has one data root and must use a full-width "
                     "single-business layout; do not generate an isolated "
-                    "136x64 S4 backboard."
+                    "126x59 S4 backboard."
                 )
         _collect_2x2_countdown_group_errors(
             components,
@@ -1233,7 +1233,7 @@ def _collect_layout_route_errors(
         roots = ", ".join(sorted(data_roots))
         errors.append(
             f"2x2 card displays two data roots ({roots}) and must use S4: root "
-            "must be a Column with exactly two direct 136x64 Row/Column "
+            "must be a Column with exactly two direct 126x59 Row/Column "
             "backboards and itemMargin 8. Countdown remains ordinary 14fp/700 "
             "primary text inside its backboard."
         )
@@ -1250,7 +1250,7 @@ def _collect_layout_route_errors(
     roots = ", ".join(sorted(data_roots))
     errors.append(
         f"2x4 card displays two semantic data blocks ({roots}) and must use W9: "
-        "root must be a Row with exactly two direct 144x136 Column backboards "
+        "root must be a Row with exactly two direct 134x126 Column backboards "
         "and itemMargin 8. Do not use a shared title, a shared action area, or "
         "stacked full-width business rows."
     )
