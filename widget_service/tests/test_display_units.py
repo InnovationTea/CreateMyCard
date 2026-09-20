@@ -208,6 +208,91 @@ def test_validator_reports_missing_unit_for_raw_number():
     assert reporter.has_code("DISPLAY_UNIT_MISSING")
 
 
+def _template_unit_dsl(
+    *,
+    marker_state: str = "valid",
+    fusion: bool = False,
+    sibling_units: int = 0,
+) -> str:
+    source = _dsl("{{ ${/data/battery/level} }}", sibling_units=sibling_units)
+    messages = [json.loads(line) for line in source.splitlines()]
+    update = messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    template = components[0]
+    template["id"] = "template_root"
+    children = ["template_root"]
+    root = {"id": "root", "component": "Stack", "children": children}
+    components.insert(0, root)
+    if fusion:
+        children.append("fusionBallBackground")
+        components.append({"id": "fusionBallBackground", "component": "Divider"})
+    if marker_state == "missing":
+        template["id"] = "content"
+        children[0] = "content"
+    elif marker_state == "dangling":
+        template["id"] = "content"
+        children.append("content")
+    elif marker_state == "unreferenced":
+        children[0] = "value"
+    elif marker_state == "nested":
+        children[0] = "wrapper"
+        components.append({
+            "id": "wrapper", "component": "Column", "children": ["template_root"],
+        })
+    elif marker_state == "duplicate":
+        components.append(dict(template))
+    elif marker_state == "different-root":
+        root["id"] = "other_root"
+        update["root"] = "other_root"
+    return "\n".join(json.dumps(message, ensure_ascii=False) for message in messages)
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("fusion", [False, True])
+def test_valid_template_skips_missing_display_unit(size: str, fusion: bool) -> None:
+    reporter = validate_card(artifact={
+        "genui": _template_unit_dsl(fusion=fusion),
+        "cardSpec": {**_card_spec(), "suggestSize": size},
+        "effectiveCapabilities": {"data": [_capability(False).model_dump(mode="json")]},
+    })
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+@pytest.mark.parametrize("marker_state", [
+    "missing", "dangling", "unreferenced", "nested", "duplicate", "different-root",
+])
+@pytest.mark.parametrize("fusion", [False, True])
+def test_invalid_template_marker_keeps_missing_display_unit_check(
+    marker_state: str, fusion: bool,
+) -> None:
+    reporter = validate_card(artifact={
+        "genui": _template_unit_dsl(marker_state=marker_state, fusion=fusion),
+        "cardSpec": _card_spec(),
+        "effectiveCapabilities": {"data": [_capability(False).model_dump(mode="json")]},
+    })
+
+    assert reporter.has_code("DISPLAY_UNIT_MISSING")
+
+
+@pytest.mark.parametrize("unit_included", [False, True])
+@pytest.mark.parametrize("fusion", [False, True])
+def test_valid_template_still_reports_duplicate_display_units(
+    unit_included: bool, fusion: bool,
+) -> None:
+    reporter = validate_card(artifact={
+        "genui": _template_unit_dsl(fusion=fusion, sibling_units=1 if unit_included else 2),
+        "cardSpec": _card_spec(),
+        "effectiveCapabilities": {
+            "data": [_capability(unit_included).model_dump(mode="json")],
+        },
+    })
+
+    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
+
+
 def test_validator_reports_duplicate_unit_for_formatted_text():
     reporter = validate_card(
         artifact={

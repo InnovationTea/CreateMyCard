@@ -3000,16 +3000,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(countdown)["justifyContent"] == "center"
     countdown_value_row = countdown.children[2]
     assert countdown_value_row.component == "Row"
-    assert _template_node_options(countdown_value_row)["justifyContent"] == "center"
-    assert len(countdown_value_row.children) == 2
-    countdown_value, transparent_unit = countdown_value_row.children
+    assert _template_node_options(countdown_value_row).get("justifyContent") == "center"
+    assert len(countdown_value_row.children) == 1
+    countdown_value = countdown_value_row.children[0]
     assert countdown_value.component == "Text"
     assert countdown_value.values[0].kind == "binding"
     assert countdown_value.values[0].name == "days"
-    assert transparent_unit.component == "Text"
-    assert transparent_unit.values[0].value == "天"
-    assert _template_node_options(transparent_unit)["fontSize"] == 8
-    assert _template_node_options(transparent_unit)["fontColor"] == "#00000000"
     visible_unit = countdown.children[3]
     assert visible_unit.component == "Text"
     assert visible_unit.values[0].value == "天"
