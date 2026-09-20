@@ -84,6 +84,7 @@ _VALUE_FOCUS_MARKERS = (
     "百分比",
     "percent",
 )
+_EXPLICIT_PRIMARY_FOCUS_MARKERS = ("一眼", "重点", "主要", "最关心")
 _STATUS_FOCUS_MARKERS = (
     "是否",
     "状态",
@@ -220,6 +221,21 @@ class PromptBuilder:
         return any(marker.casefold() in serialized for marker in markers)
 
     @staticmethod
+    def _uses_w1_focus_aux(task_spec: TaskSpec) -> bool:
+        """Route an explicitly prioritized, single health object to W1."""
+        if task_spec.size != "2x4" or not _contains_any(
+            task_spec.userQuery,
+            _EXPLICIT_PRIMARY_FOCUS_MARKERS,
+        ):
+            return False
+        roots = PromptBuilder._data_roots(task_spec)
+        if len(roots) != 1 or roots[0].casefold() != "healthsport":
+            return False
+        schema = task_spec.dataModelSchema.get("data")
+        health = schema.get("healthSport") if isinstance(schema, dict) else None
+        return isinstance(health, dict) and 2 <= len(health) <= 3
+
+    @staticmethod
     def _query_requests_action(task_spec: TaskSpec) -> bool:
         return _contains_any(task_spec.userQuery, _ACTION_QUERY_MARKERS)
 
@@ -346,6 +362,8 @@ class PromptBuilder:
         ):
             if task_spec.size == "2x2":
                 return "health-readout", ("2x2-V07",)
+            if PromptBuilder._uses_w1_focus_aux(task_spec):
+                return "health-readout", ("2x4-V04",)
             if PromptBuilder._schema_has_field(
                 task_spec,
                 ("score", "percent", "percentage", "duration"),
