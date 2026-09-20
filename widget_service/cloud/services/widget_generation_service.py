@@ -722,13 +722,18 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
-            # JSX 内部已有编译和校验，但交付前仍须执行统一素材映射。
+            # JSX 路径：agent 内部已有编译、验证和重试；仅映射交付资源，跳过工程质量流程。
             if source_generated_by_jsx:
-                processing_result = DslProcessingResult(
-                    source_dsl=source_dsl, standard_dsl=source_dsl,
+                logger.info(
+                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
+                    "reason=jsx_internal_validation"
                 )
-            else:
-                processing_result = processor.process(source_dsl, processing_context)
+                latest_processing_result = DslProcessingResult(
+                    source_dsl=source_dsl,
+                    standard_dsl=asset_mapper.rewrite_standard(source_dsl),
+                )
+                return []
+            processing_result = processor.process(source_dsl, processing_context)
             if not processing_result.errors:
                 try:
                     processing_result = replace(
@@ -771,14 +776,10 @@ class WidgetGenerationService:
                     latest_processing_result,
                 )
                 return conversion_errors
-            if source_generated_by_jsx or not settings.enable_artifact_validation:
-                skip_reason = (
-                    "jsx_internal_validation" if source_generated_by_jsx
-                    else "enable_artifact_validation_false"
-                )
+            if not settings.enable_artifact_validation:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
-                    f"reason={skip_reason}"
+                    "reason=enable_artifact_validation_false"
                 )
                 self._append_repair_record(
                     repair_records,

@@ -569,6 +569,8 @@ ArtifactStore.save
 - 端侧读取的 `genui` 保存映射后的地址；标题、按钮等展开出的 Image 统一处理。
 - 只替换本次有效素材对应的完整路径，不替换文字、事件参数、DataModel 或动态绑定/表达式。
 - 完整校验关闭时仍执行映射；模板和 JSX 生成标准 A2UI 后也执行映射。
+- JSX 保持 agent 内部编译、验证和重试的原有职责：交付资源映射后直接返回，不进入工程侧
+  processor、validator 或质量 repair。映射异常直接向外传播，不作为模型质量错误重试，也不保存产物。
 - 最终有效素材白名单认可原始路径及其精确映射地址，URL 仍须满足既有域名规则；同域名的其它
   URL 不会因此成为本次有效素材。独立 `validate_card` 调用可通过
   `ValidationOptions.asset_src_url_mapping` 显式提供映射。
