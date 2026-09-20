@@ -482,7 +482,7 @@ Column(
     ),
   Text(
       data.health,
-      {"width": "matchParent", "height": 26, "fontSize": 20, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "height": 24, "fontSize": 18, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       data.level,
@@ -534,7 +534,7 @@ Column(
       },
       Text(
           data.percentText,
-          { "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          { "height": 40, "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
   #if data.charging
@@ -880,7 +880,7 @@ Column(
       },
       Text(
         data.temperature,
-        {
+        { "height": 28,
           "width": "matchParent",
           "fontSize": 20,
           "fontWeight": 700,

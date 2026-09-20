@@ -1099,6 +1099,23 @@ def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
     return None
 
 
+def _template_subtree_component_ids(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    if len(components) != len(components_by_id):
+        return set()
+    root = components_by_id.get("root")
+    template = components_by_id.get("template_root")
+    if root is None or template is None:
+        return set()
+    if template.component_id not in root.children:
+        return set()
+    template_ids = {template.component_id}
+    template_ids.update(_descendant_component_ids(template_ids, components_by_id))
+    return template_ids
+
+
 def _normalize_ring_stack_children(
     components: list[ComponentRow],
     *,
@@ -1121,6 +1138,7 @@ def _normalize_ring_stack_children(
         dual_zone_ids,
         components_by_id,
     )
+    template_component_ids = _template_subtree_component_ids(components, components_by_id)
     normalized: list[ComponentRow] = []
     for component in components:
         props = component.props
@@ -1134,7 +1152,8 @@ def _normalize_ring_stack_children(
             if components_by_id[child].props.get("type") == "ring"
         ]
         is_ring = component.component_type == "Progress" and props.get("type") == "ring"
-        if size == "2x2" and (is_ring or ring_progress_ids):
+        resize_ring = size == "2x2" and (is_ring or bool(ring_progress_ids))
+        if resize_ring and component.component_id not in template_component_ids:
             ring_size = (
                 44 if component.component_id in dual_zone_descendants else 52
             )
