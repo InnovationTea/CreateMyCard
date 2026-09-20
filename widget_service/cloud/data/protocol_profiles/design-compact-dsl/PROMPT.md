@@ -8,11 +8,11 @@
 
 **2x2 图标生成前置约束**：普通内容区生成零个 Image，不生成“每行文字配一个图标”的结构。只有环形 Progress 中心和 S4 两个独立对象的分区主视觉可在内容区使用 Image；两座城市的天气也属于 S4，每个天气分区各用 1 个合法天气图标。其余图标仅放按钮区或 CardHeader，继续遵守总数和区域互斥；L/R/盒等现有 Text 标识保留。用户必须明确要求图标本身才可例外，要求展示天气、日期、心率或动作不算。
 
-**2x2 双业务生成前置约束**：最终展示恰好两个业务对象时立即锁定 S4，root 固定 `padding:8`，直接子组件只能是上下两个 `134×63vp` 内容背板且间距 `8vp`，禁止标题区、底部 `action_area`、Button、ActionUnit 和 TimelineUnit；每个保留动作只能绑定所属内容背板，即使其中一个业务是带 `EnterMeeting` 的会议也不得生成独立“加入会议”按钮，也不得在背板内生成“点击卡片”、“一键入会”等动作提示 Text。S4 会议背板固定第一行仅放会议标题 `14fp/700`，第二行仅放时间 `12fp/400`；无标题字段且用户未提供名称时使用“会议”，禁止将时间与标题拼成同一行。进入 S4 后全部文字只执行小内容背板规则，禁止继续提取 S1/S2/S3、V01 或 hero 规则。倒计时只作为所属背板第一行 `14fp/700` 的普通主数据。整张 S4 只能选择一套卡片色板：两个背板内的 Text、可染色 Image、Progress 和 Divider 必须使用相同的主内容色 RGB，只允许按角色改变 alpha，禁止按业务分别使用会议橙、设备青等不同主题色。每个背板最多两行文字，但文字字符数、是否超过 6 个字、占一行还是两行，都不得决定图标是否存在或位置；1-2 项数据且有语义准确、状态安全的候选素材时保留一个右侧图标，固定 `20×20vp` 且距背板右边 `12vp`。
+**2x2 双业务生成前置约束**：最终展示恰好两个业务对象时立即锁定 S4，root 固定 `padding:8`，直接子组件只能是上下两个 `134×63vp` 内容背板且间距 `8vp`，禁止标题区、底部 `action_area`、Button、ActionUnit 和 TimelineUnit；每个保留动作只能绑定所属内容背板，即使其中一个业务是带 `EnterMeeting` 的会议也不得生成独立“加入会议”按钮，也不得在背板内生成“点击卡片”、“一键入会”等动作提示 Text。S4 会议背板固定第一行仅放会议标题 `14fp/700`，第二行仅放时间 `12fp/400`；无标题字段且用户未提供名称时使用“会议”，禁止将时间与标题拼成同一行。进入 S4 后全部文字只执行小内容背板规则，禁止继续提取 S1/S2/S3、V01 或 hero 规则。倒计时只作为所属背板第一行 `14fp/700` 的普通主数据。整张 S4 只能选择一套卡片色板：两个背板内的 Text、可染色 Image、Progress 和 Divider 必须使用相同的主内容色 RGB，只允许按角色改变 alpha，禁止按业务分别使用会议橙、设备青等不同主题色。每个背板最多两行文字，但文字字符数、是否超过 6 个字、占一行还是两行，都不得决定图标是否存在或位置；1-2 项数据且有语义准确、状态安全的候选素材时保留一个右侧图标，固定 `20×20vp` 且距背板右边 `12vp`。只要背板包含 visual，背板就必须是 `Row -> [82vp 文字组, 20vp visual]`，固定 `itemMargin:8`、`justifyContent:start`、`alignItems:center`；严禁使用 Column 把 visual 排到文字下方。无 visual 时才允许背板使用 Column，文字宽度为 `110vp`。
 
 **2x2 单业务多字段生成前置约束**：`/data` 下只有一个一级业务根时始终是单业务；同一根内的名称、状态及多个指标不得按字段数拆成 S4。禁止生成单个或残缺的 `134×63vp` S4 内容背板，使用全宽单业务信息流。用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留并各显示一次；“重点、优先、主要”只调整字段顺序和视觉主次，不得删除其余明确字段。重点字段放在前面。仅当 S2 数值亚型不含 Progress，且同时包含大数字 `value_row` 主值、两个辅助字段和一个底部按钮时，两个辅助字段必须合并为后一行的单个 `12fp/400` Text，并以 ` | ` 分隔；环形 Progress 视觉亚型绝不执行此合并规则。普通单业务内容区不生成 Image，不得为使用候选素材套用 S4 小背板。
 
-**2x2 单业务稀疏居中生成前置约束**：整卡只有一个业务对象、只有一个明确主信息和 1-2 个辅助字段，并且没有任何保留事件或 action 时，使用 S1 `centered-focus` 亚型并参考 V11。root 固定 `padding:12`，一级顺序固定为顶部居中的 `title_area 20vp` 与占据其余空间的 `focus_group`；`focus_group` 内主信息和一行辅助信息整体居中。存在两个辅助字段时必须合并为同一个 `12fp/400` Text，并用 ASCII `" | "` 分隔，禁止增加第三行。纯 number/integer 主信息固定 `38fp/700`，真实单位另用 `12fp/400`；文字主信息固定 `20fp/700`；辅助信息固定 `12fp/400`。所有文字居中，不生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area 或第三行信息。倒计时 V01、会议时间线 V06、S3 和 S4 不适用本亚型；一旦存在需要保留的 action，立即退出本亚型并使用对应的原有骨架。
+**2x2 单业务稀疏居中生成前置约束**：整卡只有一个业务对象、只有一个明确主信息和 1-2 个辅助字段，并且没有任何保留事件或 action 时，使用 S1 `centered-focus` 亚型并参考 V11。root 固定 `padding:12`，一级顺序固定为顶部居中的 `title_area 20vp` 与占据其余空间的 `focus_group`；`focus_group` 直接包含 `primary_area` 和底部 `supporting_text`。`primary_area` 使用 `layoutWeight:1` 将唯一主信息固定在中间，`supporting_text` 固定 `height:20`、`flexShrink:0` 沉底。存在两个辅助字段时必须全部保留并合并为同一个 `12fp/400` Text，用 ASCII `" | "` 分隔，禁止增加第三行。纯 number/integer 主信息固定 `38fp/700`，真实单位另用 `12fp/400`；字符串或带单位格式化主信息固定 `20fp/700`；辅助信息固定 `12fp/400`。所有文字居中，不生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时 V01、会议时间线 V06、S3 和 S4 不适用本亚型；一旦存在需要保留的 action，立即退出本亚型并使用对应的原有骨架。
 
 **2x2 单业务指标生成前置约束**：大数字 `value_row` 只能包含纯数字 Text 和紧邻的真实单位 Text，禁止在该 Row 内放入标签、方向、状态、名称、说明或其它字段；这些信息必须放在主值下一行。同一业务对象内存在最高/最低、当前/目标、已用/剩余等两个及以上同级量化指标时，所有指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、左右两个指标组或左右两张内容背板；同时禁止 `30fp/38fp` hero、数值与标签混合字号 Row 以及多个大数字 `value_row`，每个指标必须压成一个完整的 `12fp/400` 单行 Text，按“短标签 + 数值 + 单位”展示。此规则不适用于 V01、V06、S3、S4 和 2x4。
 
@@ -717,8 +717,8 @@ ActionUnit——卡级 CTA：
 #### `S1-centered-focus`（单业务稀疏居中）
 
 - 用于：一个业务对象、一个唯一主信息、1-2 个辅助字段且没有 action 的纯展示卡；固定参考 FEWSHOT_2x2 V11。两个辅助字段必须合并为同一行。倒计时继续固定使用 V01，不得借本亚型改变倒计时标题、单位或动作布局。
-- region：`root Column -> [title_area, focus_group]`。root `padding:12`、`itemMargin:8`、`alignItems:center`；`title_area` 固定 `126×20vp` 且文字居中；`focus_group` 使用 `width:126`、`layoutWeight:1`、`justifyContent:center`、`alignItems:center`，内部只有主信息组和最多一行辅助 Text。
-- 字号：主信息是纯 number/integer 时，数字固定 `38fp/700`，真实单位固定 `12fp/400`；主信息是短文字时固定 `20fp/700`。辅助信息固定 `12fp/400`。标题、主信息和辅助信息均为单行居中，不通过缩字号容纳第三项。
+- region：`root Column -> [title_area, focus_group]`。root `padding:12`、`itemMargin:8`、`alignItems:center`；`title_area` 固定 `126×20vp` 且文字居中；`focus_group` 使用 `width:126`、`layoutWeight:1`、`justifyContent:start`、`alignItems:center`、`itemMargin:4`，直接子节点固定为 `[primary_area, supporting_text]`。`primary_area` 使用 `width:126`、`layoutWeight:1`、`justifyContent:center`、`alignItems:center` 将主信息固定在中间；`supporting_text` 固定 `126×20vp`、`flexShrink:0` 并沉底。
+- 字号：主信息是纯 number/integer 时，数字固定 `38fp/700`，真实单位固定 `12fp/400`；主信息是字符串或带单位格式化值时固定 `20fp/700`。辅助信息固定 `12fp/400`。标题、主信息和辅助信息均为单行居中；两个辅助字段必须全部绑定并用 ASCII `" | "` 合并，不通过丢字段或缩字号容纳。
 - 禁止：Button、ActionUnit、Progress、Image、CardHeader、bottom_area、第三行信息、两个同级主指标和任何 action。出现 action、会议时间线、双业务或多指标时改走原有对应骨架。
 
 ### `S2-info-pair-action`（两信息 + 单按钮）——最大簇
@@ -749,7 +749,7 @@ ActionUnit——卡级 CTA：
 
 - 用于：两个独立展示对象的并列分区，可为不同业务（天气+打车、内存+耳机），也可为同类业务（两座城市的天气）；不能将同一对象的多个字段当成双业务。
 - calendar 会议与任一其他业务共同展示时也属于 S4；即使存在 EnterMeeting 候选，也禁止套用 V06 或 TimelineUnit，会议内容只放在所属 zone 内。
-- region：只允许上下纵堆，固定为 `root -> [zone_top, zone_bottom]`，root `padding:8`、`itemMargin:8`；两 zone 必须同时存在且均为 `134×63vp`、borderRadius 16、白色 80% 背板，且 `63 + 8 + 63 = 134`，禁止只生成其中一个 zone。不得增加 title/header/footer/action_area，也禁止左右双业务布局。每个 zone 必须完整遵守 8.3 节小内容蒙版规则，文字在左、图标或环图在右。
+- region：只允许上下纵堆，固定为 `root -> [zone_top, zone_bottom]`，root `padding:8`、`itemMargin:8`；两 zone 必须同时存在且均为 `134×63vp`、borderRadius 16、白色 80% 背板，且 `63 + 8 + 63 = 134`，禁止只生成其中一个 zone。不得增加 title/header/footer/action_area，也禁止左右双业务布局。每个 zone 必须完整遵守 8.3 节小内容蒙版规则；有 visual 时 zone 必须是 `Row -> [82vp 文字组, 20vp visual]`，固定 `itemMargin:8`、`justifyContent:start`、`alignItems:center`，严禁 Column 纵排 visual；无 visual 时才允许 Column 和 `110vp` 文字宽度。
 - 两块背板 Row/Column 必须显式写 `padding:{left:12,right:12,top:0,bottom:0}`。内部可用宽度为 `134 - 12 - 12 = 110vp`，visual 的右边缘固定距蒙版右边 12vp；使用环图时，其 Stack 与环形 Progress 均固定 `44×44vp`、`strokeWidth:6`，按环外框定位，图标保持在环中心。不能漏掉背板、内边距或用 root 的 padding 代替。
 - action：有经 2.4 和 2.6.1 保留、且目标属于该对象的事件时，才把 `onClick` 绑定到所属 zone，不生成独立 Button、ActionUnit、action_area 或动作文案；S4 的 root 严禁 `onClick`，即使全卡只有一个显式或隐式事件也不得绑定 root。每区最多 1 个属于自身业务的 handler，两个业务各有动作时分别绑定各自 zone。同一事件不得重复绑定 root、另一区域或内部子组件。
 - color：整卡先按主业务选择一套背景和主内容色，无明确主次时使用蓝色。两个 zone 内所有 Text、可染色 Image、Progress 与 Divider 复用同一主内容色 RGB；主次层级只能调整 alpha，禁止给两个业务分别套各自主题色。白色 80% 内容背板保持统一，不参与主内容色比较。

@@ -114,7 +114,7 @@
 
 ## 示例五（2x2-V05）：手机+耳机电量（S4 上下双背板·青色微渐变）
 本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 S4；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。
-对象名比图标或环图更重要：第一行明确“手机 / 耳机盒＋电量”，第二行显示充电状态。移除可选环图以保证两行文字完整。
+对象名比图标或环图更重要：第一行明确“手机 / 耳机盒＋电量”，第二行显示充电状态。存在合法主视觉图标时，背板固定使用 Row，左侧 82vp 文字列，右侧 20vp 图标；移除可选环图以保证两行文字完整。
 ### user
 ```json
 {"userQuery":"我想随时看看手机和耳机盒还剩多少电、有没有在充电，点手机那块能打开电池设置，点耳机那块能打开蓝牙设置。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":47},"chargingStatusDesc":{"type":"string","description":"耳机盒当前充电状态","sampleValue":"充电中"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
@@ -122,12 +122,16 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["phone_row","ear_row"]]
-["phone_row","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_value","phone_status"]]
-["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":110,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
-["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
-["ear_row","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"center","alignItems":"start","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_value","ear_status"]]
-["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":110,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
-["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["phone_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_text","phone_icon"]]
+["phone_text","Column",{"width":82,"justifyContent":"center","alignItems":"start","itemMargin":4},["phone_value","phone_status"]]
+["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
+["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["phone_icon","Image",{"src":"resources/base/media/phone_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1C838C","flexShrink":0}]
+["ear_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_text","ear_icon"]]
+["ear_text","Column",{"width":82,"justifyContent":"center","alignItems":"start","itemMargin":4},["ear_value","ear_status"]]
+["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
+["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1C838C","flexShrink":0}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ["/data/earphone/batteryLevel",47]
@@ -221,7 +225,7 @@
 ```
 
 ## 示例十一（2x2-V11）：单业务稀疏居中（S1 centered-focus·无动作）
-本例只用于一个业务对象、一个唯一主信息、1-2 个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部主信息与其下一行辅助文字作为一个整体居中；两个辅助字段必须合并为同一个 12fp Text，并用 ASCII `" | "` 分隔。纯 number/integer 主信息固定 38fp，短文字主信息改用单个 20fp/700 Text。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area 或第三行信息。倒计时仍使用 V01，不得套用本例。
+本例只用于一个业务对象、一个唯一主信息、1-2 个辅助字段且没有 action 的纯展示卡。顶部是稳定标题，中部 `primary_area` 单独承载主信息，底部固定一行辅助文字；两个辅助字段必须全部保留并合并为同一个 12fp Text，用 ASCII `" | "` 分隔。纯 number/integer 主信息固定 38fp，字符串或带单位格式化主信息固定 20fp/700。不得生成 Button、ActionUnit、Progress、Image、CardHeader、bottom_area、空单位 Text 或第三行信息。倒计时仍使用 V01，不得套用本例。
 ### user
 ```json
 {"userQuery":"展示今天的步数、运动状态和更新时间。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"今日累计步数，单位为步","sampleValue":6200},"activityStatus":{"type":"string","description":"今日运动状态摘要","sampleValue":"状态良好"},"updatedAt":{"type":"string","description":"信息更新时间","sampleValue":"09:30"}}}},"assetCandidates":[]}
@@ -231,11 +235,12 @@
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFFDD",0],["#FFF2FFF6",1]]}},["title_area","focus_group"]]
 ["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
 ["title_text","Text",{"content":"今日步数","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
-["focus_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":4,"flexShrink":1},["primary_row","supporting_text"]]
+["focus_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","alignItems":"center","itemMargin":4,"flexShrink":1},["primary_area","supporting_text"]]
+["primary_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","flexShrink":1},["primary_row"]]
 ["primary_row","Row",{"width":126,"justifyContent":"center","alignItems":"bottom","itemMargin":2},["primary_value","primary_unit"]]
 ["primary_value","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
 ["primary_unit","Text",{"content":"步","fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["supporting_text","Text",{"content":"{{ ${/data/healthSport/activityStatus} + ' | ' + ${/data/healthSport/updatedAt} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
+["supporting_text","Text",{"content":"{{ ${/data/healthSport/activityStatus} + ' | ' + ${/data/healthSport/updatedAt} }}","width":126,"height":20,"flexShrink":0,"fontSize":12,"fontWeight":400,"fontColor":"#991C8C41","textAlign":"center","maxLines":1}]
 ["/data/healthSport/dailySteps",6200]
 ["/data/healthSport/activityStatus","状态良好"]
 ["/data/healthSport/updatedAt","09:30"]

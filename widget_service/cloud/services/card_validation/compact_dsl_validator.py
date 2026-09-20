@@ -260,47 +260,23 @@ def _is_centered_focus_text(
 ) -> bool:
     if task_spec.get("size") != "2x2" or font_size != 20.0:
         return False
-    if task_spec.get("eventCandidates"):
+    parts = _centered_focus_layout_parts(components)
+    if parts is None:
         return False
-    schema = task_spec.get("dataModelSchema")
-    data = schema.get("data") if isinstance(schema, dict) else None
-    if not isinstance(data, dict) or len(data) != 1:
-        return False
-    business_name, business_schema = next(iter(data.items()))
-    if business_name.casefold() in {"calendar", "countdown"}:
-        return False
-    leaf_count = _schema_leaf_count(business_schema)
-    if not 2 <= leaf_count <= 3:
-        return False
-
     forbidden_types = {"ActionUnit", "Button", "CardHeader", "Image", "Progress"}
     for candidate in components:
         if candidate.component_type in forbidden_types:
             return False
-    parents = [
-        candidate
-        for candidate in components
-        if component.component_id in candidate.children
-    ]
-    if len(parents) != 1:
-        return False
-    focus_group = parents[0]
-    if focus_group.component_type != "Column":
-        return False
-    if focus_group.props.get("justifyContent") != "center":
-        return False
-    if focus_group.props.get("alignItems") != "center":
-        return False
-
-    roots = [candidate for candidate in components if candidate.component_id == "root"]
-    if len(roots) != 1:
-        return False
-    root = roots[0]
-    if root.component_type != "Column" or len(root.children) != 2:
-        return False
-    if root.children[-1] != focus_group.component_id:
-        return False
-    if root.props.get("padding") != 12 or root.props.get("alignItems") != "center":
+    primary_area = parts[3]
+    components_by_id = {
+        candidate.component_id: candidate for candidate in components
+    }
+    primary_descendants = _descendant_components(
+        primary_area,
+        components_by_id,
+    )
+    primary_ids = {candidate.component_id for candidate in primary_descendants}
+    if component.component_id not in primary_ids:
         return False
     props = component.props
     return (
@@ -308,6 +284,196 @@ def _is_centered_focus_text(
         and props.get("textAlign") == "center"
         and props.get("maxLines") == 1
     )
+
+
+def _centered_focus_candidate_parts(
+    components: list[ComponentRow],
+) -> tuple[ComponentRow, ComponentRow, ComponentRow] | None:
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column" or len(root.children) != 2:
+        return None
+    title_area = components_by_id.get(root.children[0])
+    focus_group = components_by_id.get(root.children[1])
+    if title_area is None or focus_group is None:
+        return None
+    if focus_group.component_type != "Column":
+        return None
+    if focus_group.props.get("width") != 126:
+        return None
+    if focus_group.props.get("layoutWeight") != 1:
+        return None
+    return root, title_area, focus_group
+
+
+def _centered_focus_layout_parts(
+    components: list[ComponentRow],
+) -> tuple[ComponentRow, ComponentRow, ComponentRow, ComponentRow, ComponentRow] | None:
+    candidate_parts = _centered_focus_candidate_parts(components)
+    if candidate_parts is None:
+        return None
+    root, title_area, focus_group = candidate_parts
+    if len(focus_group.children) != 2:
+        return None
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    primary_area = components_by_id.get(focus_group.children[0])
+    supporting_text = components_by_id.get(focus_group.children[1])
+    if primary_area is None or primary_area.component_type != "Column":
+        return None
+    if supporting_text is None or supporting_text.component_type != "Text":
+        return None
+    return root, title_area, focus_group, primary_area, supporting_text
+
+
+def _is_centered_focus_support(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+) -> bool:
+    if task_spec.get("size") != "2x2":
+        return False
+    parts = _centered_focus_layout_parts(components)
+    return parts is not None and parts[4].component_id == component.component_id
+
+
+def _collect_centered_focus_layout_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    visible_binding_paths: list[str],
+    errors: list[str],
+) -> None:
+    candidate_parts = _centered_focus_candidate_parts(components)
+    if task_spec.get("size") != "2x2" or candidate_parts is None:
+        return
+    schema = task_spec.get("dataModelSchema")
+    schema_data = schema.get("data") if isinstance(schema, dict) else None
+    if not isinstance(schema_data, dict) or len(schema_data) != 1:
+        return
+    business_name, business_schema = next(iter(schema_data.items()))
+    leaf_count = _schema_leaf_count(business_schema)
+    if business_name.casefold() in {"calendar", "countdown"}:
+        return
+    if not 2 <= leaf_count <= 3 or task_spec.get("eventCandidates"):
+        return
+
+    parts = _centered_focus_layout_parts(components)
+    if parts is None:
+        errors.append(
+            "2x2 centered-focus must use root -> [title_area, focus_group], "
+            "focus_group -> [primary_area, supporting_text]. primary_area must "
+            "use layoutWeight 1 and center the primary value; supporting_text "
+            "must remain the fixed bottom row."
+        )
+        return
+    root, title_area, focus_group, primary_area, supporting_text = parts
+    layout_valid = (
+        root.props.get("padding") == 12
+        and root.props.get("itemMargin") == 8
+        and root.props.get("alignItems") == "center"
+        and title_area.component_type == "Row"
+        and title_area.props.get("width") == 126
+        and title_area.props.get("height") == 20
+        and focus_group.props.get("justifyContent") == "start"
+        and focus_group.props.get("alignItems") == "center"
+        and focus_group.props.get("itemMargin") == 4
+        and primary_area.props.get("width") == 126
+        and primary_area.props.get("layoutWeight") == 1
+        and primary_area.props.get("justifyContent") == "center"
+        and primary_area.props.get("alignItems") == "center"
+    )
+    if not layout_valid:
+        errors.append(
+            "2x2 centered-focus must keep a 20vp centered title, a weighted "
+            "primary_area centered in the remaining space, and one fixed bottom row."
+        )
+    forbidden_types = {"ActionUnit", "Button", "CardHeader", "Image", "Progress"}
+    for candidate in components:
+        if candidate.component_type in forbidden_types:
+            errors.append(
+                "2x2 centered-focus must not contain actions, images, progress, "
+                "or CardHeader components."
+            )
+            break
+
+    supporting_style_valid = (
+        supporting_text.props.get("width") == 126
+        and supporting_text.props.get("height") == 20
+        and supporting_text.props.get("flexShrink") == 0
+        and supporting_text.props.get("fontSize") == 12
+        and supporting_text.props.get("fontWeight") == 400
+        and supporting_text.props.get("textAlign") == "center"
+        and supporting_text.props.get("maxLines") == 1
+    )
+    if not supporting_style_valid:
+        errors.append(
+            f"2x2 centered-focus supporting Text {supporting_text.component_id} "
+            "must use width 126, height 20, flexShrink 0, and 12fp/400 so it "
+            "stays fixed at the bottom."
+        )
+
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    primary_texts = []
+    for descendant in _descendant_components(primary_area, components_by_id):
+        if descendant.component_type != "Text":
+            continue
+        content = descendant.props.get("content")
+        if isinstance(content, str) and not content.strip():
+            errors.append(
+                f"2x2 centered-focus Text {descendant.component_id} is empty; "
+                "do not generate an empty unit or placeholder."
+            )
+        if descendant.props.get("fontWeight") == 700:
+            primary_texts.append(descendant)
+    if len(primary_texts) != 1:
+        errors.append(
+            "2x2 centered-focus primary_area must contain exactly one 700-weight "
+            "primary Text."
+        )
+        return
+
+    primary_text = primary_texts[0]
+    primary_paths = _component_content_paths(primary_text)
+    expected_font_size = 20
+    if len(primary_paths) == 1 and isinstance(schema, dict):
+        schema_node = _schema_node_at_path(schema, primary_paths[0])
+        if _schema_type(schema_node) in _NUMERIC_SCHEMA_TYPES:
+            expected_font_size = 38
+    primary_style_valid = (
+        primary_text.props.get("fontSize") == expected_font_size
+        and primary_text.props.get("textAlign") == "center"
+        and primary_text.props.get("maxLines") == 1
+    )
+    if expected_font_size == 20:
+        primary_style_valid = (
+            primary_style_valid and primary_text.props.get("width") == 126
+        )
+    if not primary_style_valid:
+        errors.append(
+            f"2x2 centered-focus primary Text {primary_text.component_id} must "
+            f"use {expected_font_size}fp/700 and centered single-line alignment."
+        )
+
+    supporting_paths = set(_component_content_paths(supporting_text))
+    if len(primary_paths) != 1 or len(supporting_paths) != leaf_count - 1:
+        errors.append(
+            "2x2 centered-focus must bind exactly one primary field and preserve "
+            "all 1-2 auxiliary fields in the single bottom supporting Text."
+        )
+    expected_prefix = f"/data/{business_name}/"
+    displayed_paths = {
+        path for path in visible_binding_paths if path.startswith(expected_prefix)
+    }
+    if len(displayed_paths) < leaf_count:
+        errors.append(
+            "2x2 centered-focus must display every selected primary and auxiliary "
+            "field exactly once; do not drop an explicitly requested field."
+        )
 
 
 def _collect_two_by_two_weather_date_errors(
@@ -338,6 +504,8 @@ def _collect_two_by_two_weather_date_errors(
         has_date = any(path.endswith("/date") for path in paths)
         has_weekday = any(path.endswith("/weekday") for path in paths)
         if not has_date or not has_weekday:
+            continue
+        if _is_centered_focus_support(component, components, task_spec):
             continue
         errors.append(
             f"component {component.component_id}: 2x2 single-day weather must not "
@@ -1072,6 +1240,31 @@ def _collect_two_by_two_s4_text_errors(
         zone = components_by_id.get(zone_id)
         if zone is None:
             continue
+        direct_children = [
+            components_by_id.get(child_id) for child_id in zone.children
+        ]
+        direct_visuals = []
+        for child in direct_children:
+            if child is None:
+                continue
+            if child.component_type in {"Image", "Progress", "Stack"}:
+                direct_visuals.append(child)
+        if direct_visuals:
+            expected_layout = (
+                zone.component_type == "Row"
+                and len(zone.children) == 2
+                and zone.props.get("itemMargin") == 8
+                and zone.props.get("justifyContent") == "start"
+                and zone.props.get("alignItems") == "center"
+            )
+            visual_is_last = zone.children[-1] == direct_visuals[-1].component_id
+            if not expected_layout or not visual_is_last:
+                errors.append(
+                    f"2x2 S4 backboard {zone.component_id} with a visual must use "
+                    "Row -> [82vp text group, 20vp visual], itemMargin 8, "
+                    "justifyContent start, and alignItems center. Do not place "
+                    "the visual below text in a Column."
+                )
         text_components = []
         for descendant in _descendant_components(zone, components_by_id):
             if descendant.component_type == "Text":
@@ -1246,6 +1439,12 @@ def _collect_layout_route_errors(
                 )
 
     if size == "2x2" and len(data_roots) == 1:
+        _collect_centered_focus_layout_errors(
+            components,
+            task_spec,
+            visible_binding_paths,
+            errors,
+        )
         if root is not None and len(root.children) == 1:
             only_child = components_by_id.get(root.children[0])
             if _is_2x2_small_backboard(only_child):

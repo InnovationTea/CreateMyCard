@@ -1211,7 +1211,10 @@ def _normalize_small_backboard_icon_alignment(
     replacements: dict[str, ComponentRow] = {}
     for candidate_id in candidate_ids:
         backboard = components_by_id[candidate_id]
-        if backboard.component_type != "Row" or len(backboard.children) != 2:
+        if (
+            backboard.component_type not in {"Row", "Column"}
+            or len(backboard.children) != 2
+        ):
             continue
         children = [components_by_id.get(child_id) for child_id in backboard.children]
         text = next(
@@ -1240,7 +1243,7 @@ def _normalize_small_backboard_icon_alignment(
         }
         replacements[backboard.component_id] = ComponentRow(
             backboard.component_id,
-            backboard.component_type,
+            "Row",
             backboard_props,
             (text.component_id, icon.component_id),
         )
