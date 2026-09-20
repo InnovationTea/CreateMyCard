@@ -1108,7 +1108,7 @@
     "id": "asset.emoji_earphone",
     "type": "asset",
     "src": "resources/base/media/emoji_earphone.png",
-    "description": "样式：香槟金与米白配色的写实 3D 头戴式耳机，带金属头梁、柔软耳罩与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：耳机设备、音乐播放、音频输出、蓝牙连接与设备电量卡片。",
+    "description": "样式：香槟金与米白配色的写实 3D 头戴式耳机，带金属头梁、柔软耳罩与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以耳机为唯一主业务的设备、蓝牙或音频卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：音乐附带动作、耳机电量正文或双业务分区。",
     "sceneTags": [
       "audio",
       "headphones"
@@ -1119,7 +1119,7 @@
     "id": "asset.emoji_calendar",
     "type": "asset",
     "src": "resources/base/media/emoji_calendar.png",
-    "description": "样式：红色页眉与浅灰日期圆点组成的扁平日历图形，当前日期以红色圆点突出，白色不透明背景，原始尺寸为 1024×1024，PNG 位图需保留原色；适用：日历应用入口、日期概览、日程安排、会议与事项提醒。",
+    "description": "样式：红色页眉与浅灰日期圆点组成的扁平日历图形，白色不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：以日期概览、日历事项或会议安排为唯一主业务的卡片，优先作为 2x2 单业务 CardHeader 右上角 20vp 主题图。",
     "sceneTags": [
       "calendar",
       "schedule"
@@ -1130,7 +1130,7 @@
     "id": "asset.emoji_Fitness_Health",
     "type": "asset",
     "src": "resources/base/media/emoji_Fitness_Health.png",
-    "description": "样式：橙色方形底上的白色运动健康心形标识，采用简洁扁平风格与不透明背景，原始尺寸为 1024×1024，PNG 位图需保留原色；适用：运动健康应用入口、健康数据总览、健身记录、活动目标与训练计划。",
+    "description": "样式：橙色方形底上的白色运动健康应用标识，不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：以运动健康应用、健身记录或活动目标为唯一主业务的卡片，优先作为 2x2 单业务 CardHeader 右上角 20vp 主题图。",
     "sceneTags": [
       "health",
       "app-icon"
@@ -1141,7 +1141,7 @@
     "id": "asset.emoji_music1",
     "type": "asset",
     "src": "resources/base/media/emoji_music1.png",
-    "description": "样式：白色圆角方形底上的蓝色立体音乐图标，叠加青蓝与粉紫光晕，原始尺寸为 120×120，PNG 位图需保留原色；适用：音乐应用入口、歌曲播放、歌单、专辑与音频内容卡片。",
+    "description": "样式：白色圆角方形底上的蓝色立体音乐应用图标，原始尺寸为 120×120，PNG 位图保留原色；适用：以音乐应用、歌曲播放、歌单或音频内容为唯一主业务的卡片，优先作为 2x2 单业务 CardHeader 右上角 20vp 主题图。",
     "sceneTags": [
       "music",
       "app-icon"
@@ -1152,7 +1152,7 @@
     "id": "asset.emoji_phone1",
     "type": "asset",
     "src": "resources/base/media/emoji_phone1.png",
-    "description": "样式：绿色圆角方形底上的白色立体电话听筒图标，带柔和高光与阴影，原始尺寸为 120×120，PNG 位图需保留原色；适用：电话应用入口、拨号、联系人快捷呼叫、通话记录与来电提醒。",
+    "description": "样式：绿色圆角方形底上的白色立体电话听筒图标，原始尺寸为 120×120，PNG 位图保留原色；适用：以电话、拨号、联系人呼叫或通话记录为唯一主业务的卡片，优先作为 2x2 单业务 CardHeader 右上角 20vp 主题图；不匹配手机电量或设备状态。",
     "sceneTags": [
       "phone",
       "app-icon"
@@ -1163,7 +1163,7 @@
     "id": "asset.emoji_calendar2",
     "type": "asset",
     "src": "resources/base/media/emoji_calendar2.png",
-    "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：日期概览、日历事项、会议日程、计划安排与纪念日卡片。",
+    "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以日历事项、明确会议或计划为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图，不因普通时间字段匹配。",
     "sceneTags": [
       "calendar",
       "schedule"
@@ -1174,7 +1174,7 @@
     "id": "asset.emoji_clean",
     "type": "asset",
     "src": "resources/base/media/emoji_clean.png",
-    "description": "样式：木质手柄与米白棉线组成的写实 3D 拖把，斜向摆放并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：家居清洁、清扫任务、卫生计划、系统清理与维护提醒。",
+    "description": "样式：木质手柄与米白棉线组成的写实 3D 拖把，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以家居清洁或清扫任务为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：内存清理、电池健康或泛维护状态。",
     "sceneTags": [
       "clean",
       "maintenance"
@@ -1185,7 +1185,7 @@
     "id": "asset.emoji_clock",
     "type": "asset",
     "src": "resources/base/media/emoji_clock.png",
-    "description": "样式：红色金属外壳的写实 3D 双铃闹钟，白色表盘配黑色指针与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：闹钟、起床提醒、定时任务、日程提醒与倒计时。",
+    "description": "样式：红色金属外壳的写实 3D 双铃闹钟，白色表盘配黑色指针与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以闹钟、起床提醒或明确计时任务为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：单会议时间线或仅含普通日期时间的卡片。",
     "sceneTags": [
       "time",
       "alarm"
@@ -1196,7 +1196,7 @@
     "id": "asset.emoji_courier_box",
     "type": "asset",
     "src": "resources/base/media/emoji_courier_box.png",
-    "description": "样式：棕色瓦楞纸箱的写实 3D 快递包裹，带封箱胶带、物流标签和搬运标识，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：快递查询、包裹配送、物流进度、收件提醒与仓储信息。",
+    "description": "样式：棕色瓦楞纸箱的写实 3D 快递包裹，带封箱胶带、物流标签和搬运标识，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以快递查询、包裹配送或物流进度为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。",
     "sceneTags": [
       "delivery",
       "logistics"
@@ -1207,7 +1207,7 @@
     "id": "asset.emoji_health",
     "type": "asset",
     "src": "resources/base/media/emoji_health.png",
-    "description": "样式：红色渐变的写实 3D 爱心，表面圆润并带柔和高光，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：健康概览、心率与心脏健康、关爱提醒、收藏和喜爱状态。",
+    "description": "样式：红色渐变的写实 3D 爱心，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以心率或心脏健康为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：收藏、歌单、泛电量或动态危险状态。",
     "sceneTags": [
       "health",
       "heart"
@@ -1218,7 +1218,7 @@
     "id": "asset.emoji_light",
     "type": "asset",
     "src": "resources/base/media/emoji_light.png",
-    "description": "样式：暖黄色发光灯泡的写实 3D 图形，带银灰螺口和透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：智能照明、灯光开启、亮度调节、灵感提示与家居设备控制。",
+    "description": "样式：暖黄色发光灯泡的写实 3D 图形，带银灰螺口和透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以智能照明、灯光开启或亮度调节为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：省电、手机电量或泛设置。",
     "sceneTags": [
       "home",
       "light"
@@ -1229,7 +1229,7 @@
     "id": "asset.emoji_music",
     "type": "asset",
     "src": "resources/base/media/emoji_music.png",
-    "description": "样式：黑色高光材质的写实 3D 双八分音符，造型圆润并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐播放、歌曲信息、歌单、音频内容与音乐状态展示。",
+    "description": "样式：黑色高光材质的写实 3D 双八分音符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以音乐播放、歌曲、歌单或音频内容为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：音乐附带动作按钮。",
     "sceneTags": [
       "music",
       "media"
@@ -1240,7 +1240,7 @@
     "id": "asset.emoji_music_2",
     "type": "asset",
     "src": "resources/base/media/emoji_music_2.png",
-    "description": "样式：一大一小两枚黑色高光八分音符组成的写实 3D 图形，错位排列并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐推荐、歌曲列表、正在播放、音频内容与娱乐卡片。",
+    "description": "样式：一大一小两枚黑色高光八分音符组成的写实 3D 图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以音乐推荐、歌曲列表、正在播放或音频内容为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图，与 emoji_music 二选一。",
     "sceneTags": [
       "music",
       "media"
@@ -1251,7 +1251,7 @@
     "id": "asset.emoji_notepad",
     "type": "asset",
     "src": "resources/base/media/emoji_notepad.png",
-    "description": "样式：蓝色横线与红色竖线组成的写实 3D 线圈记事本，带金属装订环和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：备忘录、笔记、待办清单、文字记录与便签卡片。",
+    "description": "样式：蓝色横线与红色竖线组成的写实 3D 线圈记事本，带金属装订环和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以备忘录、笔记或待办清单为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：任意日程附带文本。",
     "sceneTags": [
       "notes",
       "record"
@@ -1262,7 +1262,7 @@
     "id": "asset.emoji_run",
     "type": "asset",
     "src": "resources/base/media/emoji_run.png",
-    "description": "样式：灰色运动上衣与深色短裤装扮的写实 3D 跑步人物，呈向前奔跑姿态并使用透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：跑步记录、步数、配速、训练计划、运动目标与健身卡片。",
+    "description": "样式：灰色运动上衣与深色短裤装扮的写实 3D 跑步人物，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以跑步记录、步数、配速或运动目标为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：睡眠或泛健康卡片。",
     "sceneTags": [
       "health",
       "sport"
@@ -1273,7 +1273,7 @@
     "id": "asset.emoji_study",
     "type": "asset",
     "src": "resources/base/media/emoji_study.png",
-    "description": "样式：白色横线纸张与绿红配色铅笔组成的写实 3D 学习图形，带透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：学习计划、课程任务、作业、笔记编辑、考试复习与专注学习卡片。",
+    "description": "样式：白色横线纸张与绿红配色铅笔组成的写实 3D 学习图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以学习计划、课程任务、作业或考试复习为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：普通日程。",
     "sceneTags": [
       "study",
       "notes"
@@ -1284,7 +1284,7 @@
     "id": "asset.emoji_time",
     "type": "asset",
     "src": "resources/base/media/emoji_time.png",
-    "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、时钟、计时、时长统计、世界时间与时间管理卡片。",
+    "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以当前时间、计时或时长统计为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：只含时间字段的日程或会议卡片。",
     "sceneTags": [
       "time",
       "clock"
@@ -1295,7 +1295,7 @@
     "id": "asset.emoji_z",
     "type": "asset",
     "src": "resources/base/media/emoji_z.png",
-    "description": "样式：三枚由小到大排列的蓝紫渐变立体 Z 字符，带高光与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：睡眠状态、就寝提醒、午休、勿扰模式、睡眠时长与晚安卡片。",
+    "description": "样式：三枚由小到大排列的蓝紫渐变立体 Z 字符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以睡眠、就寝、午休或睡眠时长为唯一主业务的卡片；仅可作 2x2 单业务 CardHeader 右上角 20vp 主题图。不适用：会议、普通勿扰按钮或其他附带状态。",
     "sceneTags": [
       "sleep",
       "night"
