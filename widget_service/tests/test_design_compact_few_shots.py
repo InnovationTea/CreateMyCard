@@ -230,7 +230,7 @@ def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
         assert isinstance(content, dict)
         path = content.get("path")
         assert isinstance(path, str)
-        props["content"] = "{{ ${" + path + "} }}"
+        props["content"] = "{{ ${" + path + "} + '温度' }}"
     else:
         schema = task.get("dataModelSchema")
         assert isinstance(schema, dict)
@@ -240,6 +240,21 @@ def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     with pytest.raises(CompactDslValidationError, match="fontSize"):
         validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
+
+
+def test_formatted_readout_accepts_direct_expression_binding() -> None:
+    _, task, source = next(item for item in EXAMPLES if "2x2-V09" in item[0])
+    rows = [json.loads(line) for line in source.splitlines()]
+    row = next(row for row in rows if row[0] == "temperature")
+    props = row[2]
+    content = props.get("content")
+    assert isinstance(content, dict)
+    path = content.get("path")
+    assert isinstance(path, str)
+    props["content"] = "{{ ${" + path + "} }}"
+    changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
 
 
 @pytest.mark.parametrize("identifier", ["2x2-V09", "2x2-V10", "2x2-V01"])

@@ -233,11 +233,8 @@ def _is_readable_formatted_hero(
     data = schema.get("data")
     if not isinstance(data, dict) or len(data) != 1:
         return False
-    content = component.props.get("content")
-    if not isinstance(content, dict) or set(content) != {"path"}:
-        return False
-    path = content.get("path")
-    if not isinstance(path, str):
+    path = _direct_binding_path(component.props.get("content"))
+    if path is None:
         return False
     node = _schema_node_at_path(schema, path)
     if not isinstance(node, dict) or node.get("type") != "string":
@@ -253,7 +250,9 @@ def _is_readable_formatted_hero(
         return False
     expected_width = 136.0 if task_spec.get("size") == "2x2" else 296.0
     props = component.props
-    if props.get("width") != expected_width or props.get("maxLines") != 1:
+    if _resolved_component_width(component, components) != expected_width:
+        return False
+    if props.get("maxLines") != 1:
         return False
     height = _non_negative_number(props.get("height"))
     if height is None or height < font_size * 1.4:
@@ -267,14 +266,75 @@ def _is_readable_formatted_hero(
     if len(parents) != 1:
         return False
     parent = parents[0]
-    if parent.component_type != "Column" or parent.props.get("width") != expected_width:
+    if parent.component_type != "Column":
         return False
-    if parent.props.get("padding", 0) != 0:
+    if _resolved_component_width(parent, components) != expected_width:
+        return False
+    if _horizontal_spacing(parent.props.get("padding", 0)) != 0:
         return False
     estimated = 0.0
     for character in pressure:
         estimated += font_size * (0.6 if character.isascii() else 1.0)
     return estimated * 1.2 <= expected_width
+
+
+def _direct_binding_path(content: Any) -> str | None:
+    """Read one direct binding without evaluating expressions or coercing values."""
+    path: str | None = None
+    if isinstance(content, dict) and set(content) == {"path"}:
+        candidate = content.get("path")
+        if isinstance(candidate, str):
+            path = candidate
+    elif isinstance(content, str):
+        expression = _EXPRESSION_PATTERN.fullmatch(content.strip())
+        if expression is not None:
+            reference = _REFERENCE_PATTERN.fullmatch(expression.group("body").strip())
+            if reference is not None:
+                path = reference.group("path").strip()
+    return path
+
+
+def _horizontal_spacing(value: Any) -> float | None:
+    spacing: float | None = None
+    if isinstance(value, dict):
+        left = _non_negative_number(value.get("left", 0))
+        right = _non_negative_number(value.get("right", 0))
+        if left is not None and right is not None:
+            spacing = left + right
+    else:
+        uniform = _non_negative_number(value)
+        if uniform is not None:
+            spacing = 2.0 * uniform
+    return spacing
+
+
+def _resolved_component_width(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    visited: frozenset[str] = frozenset(),
+) -> float | None:
+    """Resolve a declared width conservatively through non-partitioning parents."""
+    width: float | None = None
+    if component.component_id not in visited:
+        declared_width = component.props.get("width")
+        width = _non_negative_number(declared_width)
+        if declared_width == "matchParent":
+            parents = []
+            for parent in components:
+                if component.component_id in parent.children:
+                    parents.append(parent)
+            if len(parents) == 1 and parents[0].component_type in {"Column", "Stack"}:
+                parent = parents[0]
+                parent_width = _resolved_component_width(
+                    parent, components, visited | {component.component_id}
+                )
+                padding = _horizontal_spacing(parent.props.get("padding", 0))
+                margin = _horizontal_spacing(component.props.get("margin", 0))
+                if parent_width is not None and padding is not None and margin is not None:
+                    available_width = parent_width - padding - margin
+                    if available_width >= 0:
+                        width = available_width
+    return width
 
 
 def _formatted_hero_pressure(sample: str, description: str) -> str | None:
@@ -287,7 +347,7 @@ def _formatted_hero_pressure(sample: str, description: str) -> str | None:
     duration = duration and re.fullmatch(
         r"\d+小时(?:\d+分)?|\d+(?:分钟|分|秒)", sample
     ) is not None
-    percentage = any(word in description for word in ("百分比", "百分率"))
+    percentage = any(word in description for word in ("百分比", "百分率", "%"))
     percentage = percentage and re.fullmatch(r"\d+(?:\.\d+)?%", sample) is not None
     pressure: str | None = None
     if temperature or duration or percentage:

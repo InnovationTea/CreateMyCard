@@ -53,11 +53,11 @@ Column(
                 )
             #endif
         ),
-        Row(
+        Column(
             { "width": "matchParent", "justifyContent": "start", "alignItems": "bottom" },
             Text(
                 data.duration,
-                { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         ),
         #if data.score
@@ -182,11 +182,11 @@ Column(
           )
         #endif
     ),
-    Row(
+    Column(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
         Text(
             data.duration,
-            { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            { "width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
     ),
     #if data.score
@@ -264,7 +264,7 @@ Column(
             },
             Text(
                 data.duration,
-                { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "height": 24, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
                 "睡眠监测时长",
@@ -359,11 +359,11 @@ Column(
                 )
             #endif
         ),
-        Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
+        Column(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "margin": {"top": 4} },
             Text(
                 data.duration,
-                { "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         )
     ),
@@ -417,11 +417,11 @@ Column(
             ),
         #endif
     ),
-    Row(
+    Column(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
         Text(
             data.duration,
-            { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            { "width": "matchParent", "height": 28, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
     ),
     #if data.startTime && data.endTime

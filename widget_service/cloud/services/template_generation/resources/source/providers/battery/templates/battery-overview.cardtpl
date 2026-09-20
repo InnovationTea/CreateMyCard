@@ -482,7 +482,7 @@ Column(
     ),
   Text(
       data.health,
-      {"width": "matchParent", "height": 26, "fontSize": 20, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "height": 24, "fontSize": 18, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       data.level,
@@ -522,7 +522,7 @@ Column(
       {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
   #endif
-  Row(
+  Column(
       {
         "width": "matchParent",
         "itemMargin": 2,
@@ -534,7 +534,7 @@ Column(
       },
       Text(
           data.percentText,
-          { "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          { "width": "matchParent", "height": 34, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
   #if data.charging
@@ -880,7 +880,7 @@ Column(
       },
       Text(
         data.temperature,
-        {
+        { "height": 28,
           "width": "matchParent",
           "fontSize": 20,
           "fontWeight": 700,
