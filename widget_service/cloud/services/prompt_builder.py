@@ -96,6 +96,40 @@ _STATUS_FOCUS_MARKERS = (
     "status",
 )
 _PURE_DISPLAY_MARKERS = ("纯展示", "只展示", "不要点击", "不可点击", "不需要操作")
+_CUSTOM_BACKGROUND_MARKERS = (
+    "背景",
+    "配色",
+    "颜色",
+    "渐变",
+    "纯色",
+    "深色",
+    "浅色",
+    "蓝色",
+    "紫色",
+    "暖色",
+    "青色",
+    "绿色",
+    "粉色",
+    "粉红色",
+    "红色",
+    "橙色",
+    "黑色",
+    "白色",
+)
+_DENSE_CONTENT_MARKERS = (
+    "列表",
+    "多条",
+    "多项",
+    "多个指标",
+    "三件",
+    "三条",
+    "三个",
+    "三项",
+    "四个",
+    "四项",
+    "对比",
+    "概览",
+)
 _SIDE_EFFECT_EVENT_MARKERS = (
     "clicktoapi",
     "clicktocallphone",
@@ -137,6 +171,10 @@ _GENERIC_FEW_SHOT_IDS = {
     "2x2": ("2x2-V00",),
     "2x4": ("2x4-V00",),
 }
+_GENERIC_MULTI_FEW_SHOT_IDS = {
+    "2x2": ("2x2-V00",),
+    "2x4": ("2x4-V13",),
+}
 
 _VISUAL_ROUTE_INSTRUCTIONS = {
     "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
@@ -156,7 +194,9 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
     "health-readout": "本卡是健康主读数路由：一个指标承担第一焦点，其余指标降为紧邻的辅助信息。",
     "multi-business": (
         "本卡是多业务路由：每个分区先确定自己的主焦点和内容变体，"
-        "不机械复制标题+两行文字+按钮。"
+        "不机械复制标题+两行文字+按钮。稀疏分区放大主值或核心状态，"
+        "有语义精确且状态安全的候选素材时优先放一枚右侧业务图标；"
+        "没有合法素材时保持纯文字，不留空槽。"
     ),
     "generic": "本卡先确定一个第一焦点，再为辅助信息分配较低字号和更短阅读路径。",
 }
@@ -304,7 +344,7 @@ class PromptBuilder:
             )
             if multi_business_ids:
                 return "multi-business", multi_business_ids
-            return "multi-business", _GENERIC_FEW_SHOT_IDS[task_spec.size]
+            return "multi-business", _GENERIC_MULTI_FEW_SHOT_IDS[task_spec.size]
 
         if task_spec.size == "2x2" and event_count >= 2 and _contains_any(
             query,
@@ -425,6 +465,47 @@ class PromptBuilder:
             "为每个其它字段标注支撑或弱提示；"
             "删除不能提升理解的字段和表面。"
             "主焦点至少在字号、位置、面积、颜色明度或连续留白中的两项明显强于辅助信息。"
+        )
+
+    @staticmethod
+    def _fusion_ball_recommendation(task_spec: TaskSpec) -> str:
+        """仅对高置信的简单 2x2 单业务提供轻量推荐。"""
+        if task_spec.size != "2x2" or PromptBuilder._data_block_count(task_spec) != 1:
+            return ""
+        if _contains_any(task_spec.userQuery, _CUSTOM_BACKGROUND_MARKERS):
+            return ""
+        if _contains_any(task_spec.userQuery, _DENSE_CONTENT_MARKERS):
+            return ""
+
+        route, _ = PromptBuilder._visual_route(task_spec)
+        supported_route = route in {
+            "countdown",
+            "earphone-status",
+            "battery-readout",
+            "calendar-event",
+        }
+        if route == "health-readout":
+            supported_route = _contains_any(
+                task_spec.userQuery,
+                ("睡眠", "专注", "运动", "步数", "训练"),
+            )
+        if not supported_route:
+            return ""
+
+        query_requests_dual_action = len(task_spec.eventCandidates) >= 2 and _contains_any(
+            task_spec.userQuery,
+            ("两个", "分别", "各自", "双入口"),
+        )
+        if query_requests_dual_action:
+            return ""
+
+        return (
+            "# 本次融球推荐（高优先级）\n\n"
+            "本轮是 2x2 单业务且内容较少，运行时已允许融球。"
+            "若最终仍是单内容组、显式动作不超过一个，且第十二节"
+            "已为当前业务登记融球 Design Token，优先使用该融球。"
+            "推荐只改变背景与对应前景色，不得为融球删除用户必需内容、"
+            "改变骨架或增加装饰节点。"
         )
 
     @staticmethod
@@ -551,6 +632,9 @@ class PromptBuilder:
             return system_prompt
         system_prompt = PromptBuilder._with_size_few_shot(system_prompt, task_spec)
         if fusion_ball_enabled(task_spec.appVersion):
+            recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
+            if recommendation:
+                return f"{system_prompt}\n\n{recommendation}"
             return system_prompt
         return f"{system_prompt}\n\n{_FUSION_BALL_DISABLED_INSTRUCTION}"
 

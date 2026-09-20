@@ -1760,9 +1760,21 @@ def _collect_expression_context(
         return
 
     body = match.group("body").strip()
+    quoted_paths = _quoted_expression_paths(body)
+    for path in quoted_paths:
+        errors.append(
+            f'{location}: expression wraps quoted JSON Pointer "{path}"; '
+            f"use ${{{path}}} for a dynamic binding, or use a plain "
+            "static value without {{ }}."
+        )
+
     references = list(_REFERENCE_PATTERN.finditer(body))
     if not references:
-        _collect_missing_reference_error(body, location, errors)
+        if not quoted_paths:
+            errors.append(
+                f"{location}: expression has no ${{/json/pointer}} reference; "
+                "use a plain static value instead."
+            )
         return
 
     if body.count("${") != len(references):
@@ -1777,51 +1789,40 @@ def _collect_expression_context(
         binding_paths.append(path)
 
 
-def _collect_missing_reference_error(
-    body: str,
-    location: str,
-    errors: list[str],
-) -> None:
-    quoted_path = _quoted_expression_path(body)
-    if quoted_path is not None:
-        errors.append(
-            f'{location}: expression wraps quoted JSON Pointer "{quoted_path}"; '
-            f"use ${{{quoted_path}}} for a dynamic binding, or use a plain "
-            "static value without {{ }}."
-        )
-        return
-    errors.append(
-        f"{location}: expression has no ${{/json/pointer}} reference; "
-        "use a plain static value instead."
-    )
-
-
-def _quoted_expression_path(body: str) -> str | None:
-    if not _is_quoted_literal(body):
-        return None
-    candidate = body[1:-1]
-    if not candidate.startswith("/"):
-        return None
-    return candidate
-
-
-def _is_quoted_literal(value: str) -> bool:
-    if len(value) < 2 or value[0] not in {"'", '"'}:
-        return False
-    quote = value[0]
-    if value[-1] != quote:
-        return False
-    escaped = False
-    for char in value[1:-1]:
-        if escaped:
-            escaped = False
+def _quoted_expression_paths(body: str) -> list[str]:
+    """Collect JSON Pointer-looking string literals from an expression body."""
+    paths: list[str] = []
+    index = 0
+    while index < len(body):
+        quote = body[index]
+        if quote not in {"'", '"'}:
+            index += 1
             continue
-        if char == "\\":
-            escaped = True
-            continue
-        if char == quote:
-            return False
-    return not escaped
+
+        index += 1
+        literal: list[str] = []
+        escaped = False
+        while index < len(body):
+            char = body[index]
+            index += 1
+            if escaped:
+                literal.append(char)
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if char != quote:
+                literal.append(char)
+                continue
+
+            candidate = "".join(literal)
+            is_binding_path = candidate in {"/data", "/state"}
+            is_binding_descendant = candidate.startswith(("/data/", "/state/"))
+            if (is_binding_path or is_binding_descendant) and candidate not in paths:
+                paths.append(candidate)
+            break
+    return paths
 
 
 def _collect_path_binding(

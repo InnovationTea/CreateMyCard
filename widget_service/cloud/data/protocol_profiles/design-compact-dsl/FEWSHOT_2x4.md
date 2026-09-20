@@ -49,25 +49,25 @@
 ["/data/calendar/events/1/title","确认Q3设计需求"]
 ["/data/calendar/events/2/title","申请下周出差"]
 ```
-## 示例九（2x4-V02）：手机电量大环与右侧说明（W3-ring-detail·青色微渐变）
+## 示例九（2x4-V02）：手机电量大环与右侧说明（W3-ring-detail·蓝色微渐变）
 ### user
 ```json
 {"userQuery":"做张手机电量卡片，让我一眼看清还剩多少电，电量是否正常、有没有在充电。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"0到100的手机电量百分比","sampleValue":68},"batterySOCText":{"type":"string","description":"格式化电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"电量等级","sampleValue":"正常电量"},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["content"]]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":2,"justifyContent":"start","alignItems":"start"},["title","main"]]
-["title","CardHeader",{"title":"手机电量","fontColor":"#FF1C838C"}]
+["title","CardHeader",{"title":"手机电量","fontColor":"#FF1F4799"}]
 ["main","Row",{"width":296,"height":113,"itemMargin":8,"alignItems":"center"},["ringArea","info"]]
 ["ringArea","Column",{"width":144,"height":113,"justifyContent":"center","alignItems":"center"},["ringStack"]]
 ["ringStack","Stack",{"width":92,"height":92,"alignContent":"center"},["ring","ringValue"]]
-["ring","Progress",{"type":"ring","width":92,"height":92,"strokeWidth":8,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1C838C","backgroundColor":"#331C838C"}]
-["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C838C","textAlign":"center","maxLines":1}]
+["ring","Progress",{"type":"ring","width":92,"height":92,"strokeWidth":8,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"center","maxLines":1}]
 ["info","Column",{"width":144,"height":113,"itemMargin":4,"justifyContent":"center"},["infoTitle","level","status"]]
-["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
-["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
-["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C838C","maxLines":1}]
+["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/batterySOCText","68%"]
 ["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]
@@ -126,28 +126,28 @@
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
 ```
-## 示例十二（2x4-V05）：健康三指标（W4-metric-triple·绿色微渐变）
+## 示例十二（2x4-V05）：健康三指标（W4-metric-triple·紫色微渐变）
 ### user
 ```json
 {"userQuery":"做张健康卡片，把睡眠得分、今天消耗的热量和走的步数放在一起，方便我随时看看。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"sleepScore":{"type":"integer","description":"0到100的睡眠得分","sampleValue":80},"dailyTotalCaloriesText":{"type":"string","description":"含单位的今日总消耗热量","sampleValue":"92 千卡"},"dailySteps":{"type":"integer","description":"今日累计步数","sampleValue":2031}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFFDD",0],["#FFF2FFF6",1]]}},["content"]]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"spaceBetween","alignItems":"start"},["title","metrics"]]
-["title","CardHeader",{"title":"我的健康数据","fontColor":"#FF1C8C41"}]
+["title","CardHeader",{"title":"我的健康数据","fontColor":"#FF563D99"}]
 ["metrics","Row",{"width":296,"height":84,"justifyContent":"spaceBetween","alignItems":"center"},["metric0","sep0","metric1","sep1","metric2"]]
 ["metric0","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value0","label0"]]
-["label0","Text",{"content":"睡眠得分","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["value0","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["sep0","Divider",{"width":1,"height":64,"vertical":true,"color":"#331C8C41"}]
+["label0","Text",{"content":"睡眠得分","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["value0","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["sep0","Divider",{"width":1,"height":64,"vertical":true,"color":"#33563D99"}]
 ["metric1","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value1","label1"]]
-["label1","Text",{"content":"消耗热量","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["value1","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["sep1","Divider",{"width":1,"height":64,"vertical":true,"color":"#331C8C41"}]
+["label1","Text",{"content":"消耗热量","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["value1","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["sep1","Divider",{"width":1,"height":64,"vertical":true,"color":"#33563D99"}]
 ["metric2","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["value2","label2"]]
-["label2","Text",{"content":"今日步数","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
-["value2","Text",{"content":"{{ ${/data/healthSport/dailySteps} + '步' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C8C41","textAlign":"center","maxLines":1}]
+["label2","Text",{"content":"今日步数","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["value2","Text",{"content":"{{ ${/data/healthSport/dailySteps} + '步' }}","width":96,"fontSize":18,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
 ["/data/healthSport/sleepScore",80]
 ["/data/healthSport/dailyTotalCaloriesText","92 千卡"]
 ["/data/healthSport/dailySteps",2031]
@@ -307,7 +307,7 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["/data/weather/current/temperatureRangeText","25°C / 32°C"]
 ```
 
-## 示例十九（2x4-V12）：耳机连接状态主读数（单业务 status-led·青色微渐变）
+## 示例十九（2x4-V12）：耳机连接状态主读数（单业务 status-led·蓝色微渐变）
 本例用于单耳机业务的 `status-led` 变体：连接状态是第一焦点，设备名称和左右耳电量贴近状态，蓝牙设置沉底。不要把手机电量环、天气或额外背板迁移到耳机卡片。
 ### user
 ```json
@@ -315,17 +315,49 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ```
 ### assistant
 ```genui
-["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["content"]]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["header","body","cta"]]
 ["body","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["statusGroup","battery"]]
-["header","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#FF1C838C"}]
+["header","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#FF1F4799"}]
 ["statusGroup","Column",{"width":296,"height":42,"itemMargin":2,"justifyContent":"center","alignItems":"start"},["status","name"]]
-["status","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":296,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
-["name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":296,"height":16,"fontSize":14,"fontWeight":500,"fontColor":"#FF1C838C","maxLines":1}]
-["battery","Text",{"content":"{{ '左耳 ' + ${/data/earphone/leftBatteryLevel} + '% | 右耳 ' + ${/data/earphone/rightBatteryLevel} + '%' }}","width":296,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#991C838C","maxLines":1}]
-["cta","Button",{"label":"蓝牙设置","width":296,"height":36,"borderRadius":18,"backgroundColor":"#331C838C","fontColor":"#FF1C838C","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["status","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":296,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":296,"height":16,"fontSize":14,"fontWeight":500,"fontColor":"#FF1F4799","maxLines":1}]
+["battery","Text",{"content":"{{ '左耳 ' + ${/data/earphone/leftBatteryLevel} + '% | 右耳 ' + ${/data/earphone/rightBatteryLevel} + '%' }}","width":296,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["cta","Button",{"label":"蓝牙设置","width":296,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
 ["/data/earphone/isConnected",true]
 ["/data/earphone/earphoneName","FreeBuds Pro 3"]
 ["/data/earphone/leftBatteryLevel",76]
 ["/data/earphone/rightBatteryLevel",78]
+```
+
+## 示例二十（2x4-V13）：中性稀疏双业务（W9-dual-backboards·蓝色微渐变）
+
+本例只演示未覆盖业务组合的 W9 稀疏构图，不提供可复制的业务文案。两侧各保留一个主焦点和一条必要上下文，真实内容组稳定居中；候选素材与对象精确匹配，因此放在各自标题右侧。若真实 TaskSpec 没有合法素材，只删除图标并让标题占满宽度，不留空槽、不猜测路径。
+
+### user
+```json
+{"userQuery":"做张横向卡片，同时看看项目状态和下一次同步时间。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"project":{"name":{"type":"string","description":"项目名称","sampleValue":"新品设计"},"status":{"type":"string","description":"项目当前状态","sampleValue":"评审中"}},"sync":{"title":{"type":"string","description":"同步事项名称","sampleValue":"方案同步"},"time":{"type":"string","description":"下次同步时间","sampleValue":"14:00"}}}},"assetCandidates":[{"src":"resources/base/media/project_fill.svg","description":"项目概览的中性单色图标，适用于项目状态分区。"},{"src":"resources/base/media/calendar_fill.svg","description":"日历与时间安排的中性单色图标，适用于同步时间分区。"}]}
+```
+
+### assistant
+```genui
+["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"borderRadius":20,"clip":true,"justifyContent":"center","alignItems":"center","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["projectZone","syncZone"]]
+["projectZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":8,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["projectHeader","projectContent"]]
+["projectHeader","Row",{"width":120,"height":20,"itemMargin":8,"alignItems":"center"},["projectLabel","projectIcon"]]
+["projectLabel","Text",{"content":{"path":"/data/project/name"},"width":92,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["projectIcon","Image",{"src":"resources/base/media/project_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
+["projectContent","Column",{"width":120,"layoutWeight":1,"justifyContent":"center","itemMargin":4},["projectStatus","projectContext"]]
+["projectStatus","Text",{"content":{"path":"/data/project/status"},"width":120,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["projectContext","Text",{"content":"当前进度","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["syncZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":8,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["syncHeader","syncContent"]]
+["syncHeader","Row",{"width":120,"height":20,"itemMargin":8,"alignItems":"center"},["syncLabel","syncIcon"]]
+["syncLabel","Text",{"content":{"path":"/data/sync/title"},"width":92,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["syncIcon","Image",{"src":"resources/base/media/calendar_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
+["syncContent","Column",{"width":120,"layoutWeight":1,"justifyContent":"center","itemMargin":4},["syncTime","syncContext"]]
+["syncTime","Text",{"content":{"path":"/data/sync/time"},"width":120,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["syncContext","Text",{"content":"下次同步","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["/data/project/name","新品设计"]
+["/data/project/status","评审中"]
+["/data/sync/title","方案同步"]
+["/data/sync/time","14:00"]
 ```
