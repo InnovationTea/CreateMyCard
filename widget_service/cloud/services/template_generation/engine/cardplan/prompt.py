@@ -1051,6 +1051,7 @@ def _provider_variant_matches_trusted_state(
             "full",
             "hero",
             "healthLevelHero",
+            "percentLevelHero",
             "percentRingHero",
             "progressCompact",
             "statusIconCompact",
