@@ -1307,20 +1307,6 @@ def _collect_two_by_four_w9_density_errors(
                 "auxiliary line after its business title. Merge auxiliary fields "
                 "with ' | '."
             )
-        return
-
-    if len(line_profile) > 3:
-        errors.append(
-            f"2x4 W9 backboard {zone.component_id} may contain at most one "
-            "emphasized information line and two 12fp/400 auxiliary lines after "
-            "its business title."
-        )
-    emphasized_line_count = sum(1 for emphasized in line_profile if emphasized)
-    if emphasized_line_count > 1:
-        errors.append(
-            f"2x4 W9 backboard {zone.component_id} may emphasize at most one "
-            "information line; keep peer data at ordinary text size."
-        )
 
 
 def _collect_two_by_four_w9_content_errors(
@@ -1906,19 +1892,6 @@ def _collect_two_by_two_content_density_errors(
                 "may contain only the value/unit line and one 12fp/400 auxiliary "
                 "line. Merge auxiliary fields into that line with ' | '."
             )
-        return
-
-    if len(line_profile) > 3:
-        errors.append(
-            "2x2 150vp text-only single-business content may contain at most one "
-            "emphasized information line and two 12fp/400 auxiliary lines."
-        )
-    emphasized_line_count = sum(1 for emphasized in line_profile if emphasized)
-    if emphasized_line_count > 1:
-        errors.append(
-            "2x2 150vp text-only single-business content may emphasize at most one "
-            "information line; keep peer data at ordinary text size."
-        )
 
 
 def _collect_layout_route_errors(
