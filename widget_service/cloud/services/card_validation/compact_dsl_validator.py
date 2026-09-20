@@ -1213,6 +1213,21 @@ def _component_content_paths(component: ComponentRow) -> list[str]:
     return paths
 
 
+def _numeric_content_paths(
+    components: list[ComponentRow],
+    data_model_schema: dict[str, Any],
+) -> set[str]:
+    paths: set[str] = set()
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        for path in _component_content_paths(component):
+            schema_node = _schema_node_at_path(data_model_schema, path)
+            if _schema_type(schema_node) in _NUMERIC_SCHEMA_TYPES:
+                paths.add(path)
+    return paths
+
+
 def _binding_roots(value: Any, location: str) -> set[str]:
     paths: list[str] = []
     _collect_binding_context(value, location, paths, [])
@@ -1251,6 +1266,7 @@ def _collect_two_by_four_w9_density_errors(
     content_regions: list[ComponentRow],
     content_components: list[ComponentRow],
     components_by_id: dict[str, ComponentRow],
+    task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
     if any(
@@ -1294,6 +1310,19 @@ def _collect_two_by_four_w9_density_errors(
             large_number_count += 1
 
     if large_number_count:
+        data_model_schema = task_spec.get("dataModelSchema")
+        numeric_paths = (
+            _numeric_content_paths(content_components, data_model_schema)
+            if isinstance(data_model_schema, dict)
+            else set()
+        )
+        if len(numeric_paths) >= 2:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} displays multiple peer "
+                "quantitative fields and must keep all of them as ordinary "
+                "complete text lines with the same typography; do not promote "
+                "one field to a 30fp/38fp hero."
+            )
         if large_number_count > 1:
             errors.append(
                 f"2x4 W9 backboard {zone.component_id} contains multiple "
@@ -1312,6 +1341,7 @@ def _collect_two_by_four_w9_density_errors(
 def _collect_two_by_four_w9_content_errors(
     root: ComponentRow,
     components_by_id: dict[str, ComponentRow],
+    task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
     for zone_id in root.children:
@@ -1338,6 +1368,7 @@ def _collect_two_by_four_w9_content_errors(
             content_regions,
             content_components,
             components_by_id,
+            task_spec,
             errors,
         )
 
@@ -1880,6 +1911,19 @@ def _collect_two_by_two_content_density_errors(
             large_number_count += 1
 
     if large_number_count:
+        data_model_schema = task_spec.get("dataModelSchema")
+        numeric_paths = (
+            _numeric_content_paths(information_components, data_model_schema)
+            if isinstance(data_model_schema, dict)
+            else set()
+        )
+        if len(numeric_paths) >= 2:
+            errors.append(
+                "2x2 150vp single-business content displays multiple peer "
+                "quantitative fields and must keep all of them as ordinary "
+                "complete text lines with the same typography; do not promote "
+                "one field to a 30fp/38fp hero."
+            )
         if large_number_count > 1:
             errors.append(
                 "2x2 150vp single-business content contains multiple 30fp/38fp "
@@ -2088,6 +2132,7 @@ def _collect_layout_route_errors(
         _collect_two_by_four_w9_content_errors(
             root,
             components_by_id,
+            task_spec,
             errors,
         )
         return
