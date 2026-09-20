@@ -1176,6 +1176,100 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"dataBindings": []},
             )
 
+    def test_rejects_quoted_json_pointer_mixed_with_valid_binding(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["reminder"],
+                ],
+                [
+                    "reminder",
+                    "Text",
+                    {
+                        "content": (
+                            "{{ '/data/calendar/events/0/dtStart' + ' · ' + "
+                            "${/data/calendar/events/0/remindTime/0} }}"
+                        )
+                    },
+                ],
+                ["/data/calendar/events/0/dtStart", "14:00"],
+                ["/data/calendar/events/0/remindTime/0", "15"],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "calendar": {
+                        "events": [
+                            {
+                                "dtStart": {"type": "string"},
+                                "remindTime": [{"type": "string"}],
+                            }
+                        ]
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "expression wraps quoted JSON Pointer",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec=task_spec,
+                card_spec={"dataBindings": []},
+            )
+
+    def test_allows_slash_as_expression_display_separator(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["ratio"],
+                ],
+                [
+                    "ratio",
+                    "Text",
+                    {
+                        "content": (
+                            "{{ ${/data/metrics/used} + '/' + "
+                            "${/data/metrics/total} }}"
+                        )
+                    },
+                ],
+                ["/data/metrics/used", 2],
+                ["/data/metrics/total", 5],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "metrics": {
+                        "used": {"type": "integer"},
+                        "total": {"type": "integer"},
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"dataBindings": []},
+        )
+
+        self.assertEqual(result.warnings, ())
+
     def test_rejects_compact_data_path_missing_from_task_spec(self) -> None:
         compact_dsl = _serialize(
             [
