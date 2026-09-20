@@ -666,7 +666,8 @@ def _collect_two_by_four_full_width_action_errors(
             )
             continue
 
-        assert parent is not None
+        if parent is None:
+            continue
         if not parent.children or parent.children[-1] != action.component_id:
             errors.append(
                 f"2x4 full-width action {action.component_id} must be the final "
@@ -1087,8 +1088,7 @@ def _collect_layout_route_errors(
         return
 
     if size == "2x2":
-        if _has_two_by_two_s4_zones(root, components_by_id):
-            assert root is not None
+        if root is not None and _has_two_by_two_s4_zones(root, components_by_id):
             _collect_two_by_two_s4_text_errors(
                 root,
                 components_by_id,
@@ -1139,8 +1139,7 @@ def _collect_layout_route_errors(
         )
         return
 
-    if _has_two_by_four_w9_backboards(root, components_by_id):
-        assert root is not None
+    if root is not None and _has_two_by_four_w9_backboards(root, components_by_id):
         _collect_two_by_four_w9_content_errors(
             root,
             components_by_id,
