@@ -72,6 +72,7 @@ def test_rejects_invalid_s3_slots(change: str) -> None:
 def test_does_not_apply_to_wide_cards() -> None:
     rows = _rows()
     rows[1][2].pop("height")
+    rows[0][2]["itemMargin"] = 4
     _validate(rows, "2x4")
 
 

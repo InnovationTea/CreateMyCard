@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import unittest
 
+import pytest
+
 from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
@@ -998,7 +1000,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         message = str(raised.exception)
         self.assertIn(
-            "vertical layout requires at least 156vp within 136vp",
+            "vertical layout requires at least 156vp within 126vp",
             message,
         )
 
@@ -1503,6 +1505,115 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
+
+def _converted_components(rows: list[list[object]], size: str) -> dict[str, dict]:
+    output = convert_compact_dsl_to_a2ui(_serialize(rows), size=size)
+    message = json.loads(output.splitlines()[1])
+    update = message.get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    result: dict[str, dict] = {}
+    for component in components:
+        component_id = component.get("id")
+        assert isinstance(component_id, str)
+        result[component_id] = component
+    return result
+
+
+@pytest.mark.parametrize("size,width", (("2x2", 136), ("2x4", 276)))
+def test_card_header_keeps_branch_canvas_budget(size: str, width: int) -> None:
+    if size == "2x4":
+        root_rows: list[list[object]] = [
+            ["root", "Stack", {}, ["content"]],
+            [
+                "content", "Column",
+                {
+                    "width": "matchParent", "height": "matchParent",
+                    "padding": 12, "justifyContent": "start",
+                },
+                ["header", "body"],
+            ],
+        ]
+    else:
+        root_rows = [
+            ["root", "Column", {"padding": 12, "justifyContent": "start"}, ["header", "body"]],
+        ]
+    components = _converted_components(
+        root_rows + [
+            ["header", "CardHeader", {"title": "天气", "fontColor": "#FF1F4799"}],
+            ["body", "Text", {"content": "多云"}],
+        ],
+        size,
+    )
+    for component_id in ("header", "header_title"):
+        component = components.get(component_id)
+        assert isinstance(component, dict)
+        styles = component.get("styles")
+        assert isinstance(styles, dict)
+        assert styles.get("width") == width
+
+
+@pytest.mark.parametrize("size,width,height", (("2x2", 136, 64), ("2x4", 134, 59)))
+def test_small_backboard_keeps_size_and_right_icon_inset(
+    size: str, width: int, height: int,
+) -> None:
+    rows: list[list[object]] = [
+        ["root", "Column", {"itemMargin": 8}, ["zone0", "zone1"]],
+    ]
+    for index in range(2):
+        rows.extend([
+            [
+                f"zone{index}", "Row", {"width": width, "height": height},
+                [f"text{index}", f"icon{index}"],
+            ],
+            [f"text{index}", "Text", {"content": "已连接"}],
+            [f"icon{index}", "Image", {"src": "resources/base/media/icon_earphone.svg"}],
+        ])
+    components = _converted_components(rows, size)
+    zone = components.get("zone0")
+    text = components.get("text0")
+    icon = components.get("icon0")
+    assert isinstance(zone, dict) and isinstance(text, dict) and isinstance(icon, dict)
+    zone_styles = zone.get("styles")
+    text_styles = text.get("styles")
+    icon_styles = icon.get("styles")
+    assert isinstance(zone_styles, dict)
+    assert isinstance(text_styles, dict) and isinstance(icon_styles, dict)
+    assert zone_styles.get("height") == height
+    assert zone_styles.get("width") == width
+    assert text_styles.get("width") == width - 52
+    assert icon_styles.get("width") == 20
+    assert zone_styles.get("itemMargin", zone.get("itemMargin")) == 8
+    assert zone_styles.get("padding") == {"left": 12, "right": 12, "top": 0, "bottom": 0}
+
+
+def test_wide_single_action_fills_276vp_content_width() -> None:
+    components = _converted_components(
+        [
+            [
+                "root", "Column",
+                {"height": "matchParent", "backgroundColor": "#FFE5EDFE"},
+                ["body", "actions"],
+            ],
+            ["body", "Text", {"content": "天气"}],
+            ["actions", "Row", {"width": 276}, ["button"]],
+            [
+                "button", "Button",
+                {
+                    "label": "查看天气", "width": 134, "height": 36,
+                    "onClick": [{"call": "clickToDeeplink", "args": {"uri": "weather"}}],
+                },
+            ],
+        ],
+        "2x4",
+    )
+    button = components.get("button")
+    assert isinstance(button, dict)
+    styles = button.get("styles")
+    assert isinstance(styles, dict)
+    assert styles.get("width") == 276
+
 
 if __name__ == "__main__":
     unittest.main()
