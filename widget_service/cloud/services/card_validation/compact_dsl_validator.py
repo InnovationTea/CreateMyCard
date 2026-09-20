@@ -1170,13 +1170,15 @@ def _collect_2x2_countdown_group_errors(
     if not has_countdown:
         return
 
-    day_units = [
-        component
-        for component in components
-        if component.component_type == "Text"
-        and isinstance(component.props.get("content"), str)
-        and component.props["content"].strip() == "天"
-    ]
+    day_units = []
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        content = component.props.get("content")
+        if not isinstance(content, str):
+            continue
+        if content.strip() == "天":
+            day_units.append(component)
     if len(day_units) > 1:
         errors.append(
             "2x2 countdown must display the day unit exactly once; do not place "

@@ -854,12 +854,9 @@ def validate_timeline_unit_layout(
         day_area.props.get(name) == value
         for name, value in expected_layout.items()
     )
-    if (
-        day_area is None
-        or day_area.component_type != "Row"
-        or not has_expected_layout
-        or len(day_area.children) != 1
-    ):
+    is_expected_row = day_area is not None and day_area.component_type == "Row"
+    has_single_child = day_area is not None and len(day_area.children) == 1
+    if not all((is_expected_row, has_expected_layout, has_single_child)):
         raise CompactDslConversionError(
             "TimelineUnit date context must be the first root child and use a "
             "left-aligned 136x16 Row with exactly one Text child."
