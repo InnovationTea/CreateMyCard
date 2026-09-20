@@ -198,6 +198,40 @@ def test_wind_full_template_supports_no_action_weather_card() -> None:
     assert plans[0].business_slots[0].template_id == "WeatherOverviewWindFull@1"
 
 
+def test_activity_full_template_supports_steps_only_action_less_card() -> None:
+    task = TaskSpec(
+        userQuery="做个卡片，显示今天总步数",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {"dailySteps": _field(6200, "integer")},
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=["/dailySteps"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport"}
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetHealthAndSportSummary": ("/dailySteps",)},
+        primaryOutputFieldByCapability={"GetHealthAndSportSummary": "/dailySteps"},
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "ActivityOverviewFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),
