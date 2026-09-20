@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 117
+    assert len(registry.provider_template_ids) == 120
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -3140,6 +3140,7 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewCompact@1",
         "BatteryOverviewHealthLevelHero@1",
         "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewPercentLevelHero@1",
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BatteryOverviewChargingRingHero@1",

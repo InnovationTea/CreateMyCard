@@ -482,7 +482,7 @@ Column(
     ),
   Text(
       data.health,
-      {"width": "matchParent", "height": 24, "fontSize": 18, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "height": 26, "fontSize": 18, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       data.level,
@@ -534,7 +534,7 @@ Column(
       },
       Text(
           data.percentText,
-          { "height": 40, "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
   #if data.charging
@@ -543,6 +543,43 @@ Column(
       {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
   #endif
+)
+#End
+
+#Template BatteryOverviewPercentLevelHero@1(props: {})
+data = {
+    percentText: $path("/batterySOCText"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Column(
+  {
+    "_advancedComponent": "BatteryOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent", "height": "matchParent",
+    "padding": {"left": 0, "top": 0, "right": 0, "bottom": 0},
+    "itemMargin": 4, "justifyContent": "start", "alignItems": "start",
+    "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Text(
+    "手机电量",
+    {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+  ),
+  Row(
+    {
+      "width": "matchParent", "itemMargin": 2, "margin": {"top": 6},
+      "justifyContent": "start", "alignItems": "center", "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+      data.percentText,
+      {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+  ),
+  Text(
+    data.level,
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+  )
 )
 #End
 
