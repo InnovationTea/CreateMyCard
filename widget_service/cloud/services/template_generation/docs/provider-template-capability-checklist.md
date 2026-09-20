@@ -225,3 +225,12 @@ HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度�
 - 模板 `$path` 只能引用主数据或次要数据；`$optionalPath` 只能引用可选数据。
 - 模板展开前确定性校验布局尺寸、业务模板数量、Action 数量和 Action 类型。
 - Earphone 与 Calendar 均已启用并进入线上候选。
+
+新增三电量模板（独立于既有成对模板）：
+
+| 模板 | 展示 | 必需字段 |
+| --- | --- | --- |
+| `BluetoothDeviceOverviewEarbudTripleFull@1` | 固定小标题、大字名称、左右耳与盒电量，无动作 | 名称、三处电量 |
+| `BluetoothDeviceOverviewEarbudTripleHero@1` | 三列图标电量及下方充电状态，单个 PillAction | 名称、三处电量、三处充电状态 |
+
+EarbudPairCompact 的可选字段：`/batteryLevel`、`/isConnected`；必需字段不变。

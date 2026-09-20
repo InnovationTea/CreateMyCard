@@ -1069,11 +1069,13 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     name: $path("/earphoneName"),
     left: $path("/leftBatteryLevel"),
-    right: $path("/rightBatteryLevel")
+    right: $path("/rightBatteryLevel"),
+    case: $optionalPath("/batteryLevel"),
+    connected: $optionalPath("/isConnected")
 }
 
 Column(
@@ -1090,16 +1092,30 @@ Column(
       "minHeight": 0
     }
   },
+  #if data.connected
+    Row({ "width": "matchParent", "itemMargin": 4, "alignItems": "center" },
+      Text(data.name, {
+        "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'),
+        "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 1,
+        "constraintSize": { "minWidth": 0, "maxWidth": 94 }
+      }),
+      Text(Expr(data.connected ? '已连接' : '未连接'), {
+        "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+        "maxLines": 1, "flexShrink": 0
+      })
+    ),
+  #else
   Text(
     data.name,
     { "width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor') }
   ),
+  #endif
   Row(
     {
-      "width": 84,
+      "width": "matchParent",
       "height": 12,
-      "itemMargin": 0,
-      "justifyContent": "spaceBetween",
+      "itemMargin": #Expr(data.case ? 8 : 12),
+      "justifyContent": "start",
       "alignItems": "center",
     },
     Row(
@@ -1149,7 +1165,24 @@ Column(
         Expr('' + data.right + '%'),
         { "fontColor": $theme('supportContentColor'), "fontSize": 10, "fontWeight": 400 }
       )
-    )
+    ),
+    #if data.case
+      Row({ "width": 36, "height": 12, "itemMargin": 0,
+        "justifyContent": "spaceBetween", "alignItems": "center" },
+        #if props.caseIcon
+          Image(props.caseIcon, {
+            "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
+          }),
+        #else
+          Text("盒", {
+            "fontColor": $theme('supportContentColor'), "fontSize": 10, "fontWeight": 400
+          }),
+        #endif
+        Text(Expr('' + data.case + '%'), {
+          "fontColor": $theme('supportContentColor'), "fontSize": 10, "fontWeight": 400
+        })
+      )
+    #endif
   )
 )
 #End
