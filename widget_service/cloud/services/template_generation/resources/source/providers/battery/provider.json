@@ -109,6 +109,16 @@
       "secondaryData": []
     },
     {
+      "templateId": "BatteryOverviewPercentLevelHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "百分比文本与电量等级 Hero；仅单电量2x2明确要求这两项且原有模板均不能完整覆盖时作为兜底，不依赖数值电量或展示进度环。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": ["/batterySOCText"],
+      "secondaryData": ["/batteryCapacityLevelDesc"]
+    },
+    {
       "templateId": "BatteryOverviewPercentRingHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",

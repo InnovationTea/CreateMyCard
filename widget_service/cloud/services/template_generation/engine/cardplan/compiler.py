@@ -1056,6 +1056,7 @@ def _validate_provider_template_state(
             "full",
             "hero",
             "healthLevelHero",
+            "percentLevelHero",
             "percentRingHero",
             "progressCompact",
             "progressSupport",

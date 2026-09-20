@@ -10,6 +10,7 @@
 第一层 LLM
   -> 数据可用性 Search
   -> 日历默认查看动作策略（仅适用场景）
+  -> 电量默认设置动作策略（仅适用场景）
   -> 确定性 Template Planner
   -> 第二层 LLM
   -> Validator / Compiler
@@ -56,6 +57,11 @@ Search 直接入口也使用同一规则，之后仍严格检查候选白名单�
   Action。首层仍不判断 Full/Hero 是否可用，也不直接把默认查看事件加入 `action`。
 - 输出不包含 `themeId`、`schemaVersion`、组件、模板、布局或 Props。服务内部仍使用严格模型校验字段、
   JSON Pointer、唯一性和关联关系。
+
+`allowBatterySettingsFallback` 同样是可选严格布尔值，旧首层输出缺省为 `false`。仅向 `2x2`、候选
+能力只有 `GetPhoneBatteryInfo` 的首层提示词暴露该字段及电量专用说明，其余业务的提示词保持不变。
+首层只标记用户是否允许默认入口：未明确禁止按钮、操作或跳转为 `true`，明确禁止为 `false`；
+`action` 仍只包含显式要求的动作，不为适配 Hero 补字段、删字段或判断模板可用性。
 
 ## 3. Search
 
@@ -117,6 +123,29 @@ Action 且 `allowCalendarViewFallback=true` 的请求应用默认查看策略：
 默认文案沿用已注册的“查看日程”，可信候选显式提供文案时仍优先使用该文案。显式动作请求保留原语义；
 双业务、其他业务和宽卡不使用此兜底。用户说“不要按钮”“不需要操作”“只展示不交互”等时禁止补选；
 单纯没有提到按钮不属于禁止。此策略不改变 Search 的纯数据职责。
+
+电量策略独立应用于 `2x2`、唯一 `GetPhoneBatteryInfo / BatteryOverview` 业务、无已选 Action 且
+`allowBatterySettingsFallback=true` 的请求：
+
+1. 已有可用 Full 时保持原结果；没有 Full 且有通过 Search 的 Hero 时才检查设置入口。
+2. 已批准候选中必须恰有一个 `event.open.settings.battery`，调用为 `clickToDeeplink`，参数精确为
+   `intentName=Settings`、`bundleName=com.huawei.hmos.settings`、
+   `abilityName=com.huawei.hmos.settings.MainAbility`、`uri=battery`，才补选该事件。
+3. 默认文案沿用已注册的“电池设置”，候选提供可信文案时仍沿用该文案。候选缺失、重复、参数不符、
+   只有 Compact/Support 也不触发。完全没有电池设置候选且显式字段包含 `/healthStatusDesc` 时，
+   可改为复用唯一合法的 `event.open.settings.batteryHealth` 候选，按钮文案为“电池健康”，
+   目标参数除 `uri=smart_charge_battery_health` 外与上述系统设置参数一致。
+   有电池设置候选但其重复或非法时，不用健康入口掩盖错误；省电模式不用于默认入口。
+
+显式动作和画廊指定动作保持原集合，Full 不会删除它们。禁止按钮、其他业务、混合业务、宽卡和旧 LLM
+选择路线不受此策略影响。原始 TaskSpec、候选数据和显式字段不变，仍由 Planner 校验完整字段覆盖及
+动作消费；该策略只增加此前无 Full 的合法 Hero 入口，不放宽 Search 或全局动作规则。
+
+`BatteryOverviewPercentLevelHero@1` 是 Search 专用的电量补充分支：仅单电量 `2x2`，且用户显式字段
+恰好为 `/batterySOCText` 和 `/batteryCapacityLevelDesc`，才检查该模板。在类型、必需输入和完整覆盖
+校验后，只要任一旧模板仍能完整覆盖，就移除新变体候选；旧模板无完整覆盖时才保留它。
+额外候选字段不触发此分支；混合业务、宽卡、旧检索适配器和旧 LLM 选择路线不暴露该变体。
+禁用模板与可信画廊模板限制仍生效，不能用新变体绕过；不从百分比样例反推数值绑定。
 
 Planner 是确定性服务模块，输入第一层意图、Search 结果、卡片尺寸、TaskSpec 和 Registry。它通过
 `templateId` 从 Registry 重新取得模板定义，并联合规划：
