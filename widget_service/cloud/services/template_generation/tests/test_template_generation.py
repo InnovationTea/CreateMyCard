@@ -2074,22 +2074,137 @@ def test_activity_template_sizes_separate_compact_and_wide_variants():
 def test_activity_daily_summary_stacks_supporting_metrics():
     registry = get_cardplan_registry()
     root = registry.require_variant("ActivityOverviewFull@1", "default").root
-    supporting_metrics = next(
-        node
-        for node in reversed(_template_nodes(root, "Column"))
-        if len(node.children) == 2 and all(child.component == "Row" for child in node.children)
+    calories_guard = next(
+        child for child in root.children if child.component == "IfBind"
     )
 
+    assert calories_guard.values[0].value == "calories"
+    # 热量分支顶部区：标题行 + 数字/万步进度块。
+    header_and_progress = calories_guard.children[0]
+    assert header_and_progress.component == "Column"
+    assert [child.component for child in header_and_progress.children] == [
+        "Row",
+        "Column",
+    ]
+    number_block = header_and_progress.children[1]
+    assert [child.component for child in number_block.children] == ["Row", "Progress"]
+    supporting_metrics = calories_guard.children[1]
     assert supporting_metrics.component == "Column"
     supporting_options = _template_node_options(supporting_metrics)
     assert supporting_options["justifyContent"] == "start"
     assert supporting_options.get("alignItems", "start") == "start"
-    assert len(supporting_metrics.children) == 2
-    assert all(child.component == "Row" for child in supporting_metrics.children)
-    assert all(
-        _template_node_options(child)["alignItems"] == "center"
-        for child in supporting_metrics.children
+    assert [child.component for child in supporting_metrics.children] == [
+        "Row",
+        "IfBind",
+    ]
+    assert supporting_metrics.children[1].values[0].value == "distance"
+    assert supporting_metrics.children[1].children[0].component == "Row"
+    assert _template_node_options(supporting_metrics.children[0])["alignItems"] == "center"
+
+    # 热量缺失时按距离回退；两者都缺失时渲染 Countdown 风格的三行居中步数卡（无进度条）。
+    distance_fallback = root.children[-1]
+    assert distance_fallback.component == "IfMissingBind"
+    assert distance_fallback.values[0].value == "calories"
+    distance_guard = distance_fallback.children[0]
+    assert distance_guard.component == "IfBind"
+    assert distance_guard.values[0].value == "distance"
+    fallback_column = distance_guard.children[1]
+    assert fallback_column.component == "Column"
+    assert [child.component for child in fallback_column.children] == ["Row"]
+
+    steps_only_guard = distance_fallback.children[1]
+    assert steps_only_guard.component == "IfMissingBind"
+    assert steps_only_guard.values[0].value == "distance"
+    steps_only_card = steps_only_guard.children[0]
+    assert steps_only_card.component == "Column"
+    card_options = _template_node_options(steps_only_card)
+    assert card_options["justifyContent"] == "center"
+    assert card_options["alignItems"] == "center"
+    # 三行均为 matchParent + textAlign center 的 Text，保证步数视觉居中。
+    assert [child.component for child in steps_only_card.children] == [
+        "Text",
+        "Text",
+        "Text",
+    ]
+    assert _template_node_options(steps_only_card.children[1])["textAlign"] == "center"
+
+
+def test_activity_full_renders_metric_rows_only_when_fields_are_advertised():
+    registry = get_cardplan_registry()
+    root = registry.require_variant("ActivityOverviewFull@1", "default").root
+    theme_values = {
+        "primaryColor": "#FF401F99",
+        "supportContentColor": "#991F4799",
+        "progressColor": "#33564AF7",
+        "progressBackgroundColor": "#1F33564A",
+    }
+    binding_paths = {
+        "steps": "${data.healthSport.dailySteps}",
+        "calories": "${data.healthSport.dailyTotalCaloriesText}",
+        "distance": "${data.healthSport.dailyDistanceText}",
+    }
+
+    def instantiate(*names: str) -> Nested2Node:
+        bindings: dict[str, str] = {}
+        for name in names:
+            path = binding_paths.get(name)
+            assert path is not None
+            bindings[name] = path
+        return _instantiate_blueprint(
+            root,
+            {},
+            bindings,
+            theme_values,
+        )
+
+    def walk(node: Nested2Node) -> list[Nested2Node]:
+        nodes = [node]
+        for child in node.children:
+            nodes.extend(walk(child))
+        return nodes
+
+    def text_values(node: Nested2Node) -> tuple[str, ...]:
+        values: list[str] = []
+        for item in walk(node):
+            if item.component_type != "Text" or not item.values:
+                continue
+            value = item.values[0]
+            if isinstance(value, str):
+                values.append(value)
+        return tuple(values)
+
+    steps_only = instantiate("steps")
+    steps_only_text = text_values(steps_only)
+    # 仅步数时渲染 Countdown 风格三行居中卡：标题/步数/单位，无进度条、无原标题。
+    assert any("今日总步数" in value for value in steps_only_text)
+    assert not any("今日活动" in value for value in steps_only_text)
+    assert not any(
+        "消耗热量" in value or "运动距离" in value for value in steps_only_text
     )
+    assert not any(node.component_type == "Progress" for node in walk(steps_only))
+    steps_only_card = steps_only.children[-1]
+    assert steps_only_card.component_type == "Column"
+    assert steps_only_card.values[0]["justifyContent"] == "center"
+    assert [child.component_type for child in steps_only_card.children] == [
+        "Text",
+        "Text",
+        "Text",
+    ]
+    assert steps_only_card.children[1].values[-1]["textAlign"] == "center"
+
+    distance_only = instantiate("steps", "distance")
+    distance_only_text = text_values(distance_only)
+    assert not any("消耗热量" in value for value in distance_only_text)
+    assert any("运动距离" in value for value in distance_only_text)
+    assert any(node.component_type == "Progress" for node in walk(distance_only))
+
+    complete = instantiate("steps", "calories", "distance")
+    complete_text = text_values(complete)
+    assert any("dailyTotalCaloriesText" in value for value in complete_text)
+    assert any("消耗热量" in value for value in complete_text)
+    assert any("dailyDistanceText" in value for value in complete_text)
+    assert any("运动距离" in value for value in complete_text)
+    assert any(node.component_type == "Progress" for node in walk(complete))
 
 
 def test_workout_template_requires_one_complete_training_session():
@@ -2649,18 +2764,21 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
 def test_sport_templates_bind_progress_color_to_dedicated_theme_tokens() -> None:
     registry = get_cardplan_registry()
 
-    for template_id in (
-        "ActivityOverviewHero@1",
-        "ActivityOverviewFull@1",
+    # ActivityOverviewFull@1 仅在补充数据（热量/距离）存在时渲染进度条，
+    # 卡片语言没有 ||，因此进度条在 #if/#elseif 两个存在分支里各有一份。
+    for template_id, expected_progress in (
+        ("ActivityOverviewHero@1", 1),
+        ("ActivityOverviewFull@1", 2),
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties["color"]
-        assert color.kind == "theme"
-        assert color.name == "progressColor"
+        assert len(progress) == expected_progress
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties["color"]
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
 
 
 def test_health_sport_templates_follow_latest_display_contract() -> None:
@@ -2674,7 +2792,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "组件形态：hero。"
         ),
         "ActivityOverviewFull@1": (
-            "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，"
+            "今日活动完整摘要，展示步数与固定万步基准进度，可补充消耗热量和运动距离，"
             "可使用步数图标。 组件形态：full。"
         ),
         "SleepOverviewFull@1": (
@@ -3054,7 +3172,8 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         _template_node_options(node) for node in _template_nodes(activity, "Text")
     ]
     assert all(options.get("fontColor") != "#E6000000" for options in activity_text_options)
-    assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 2
+    # 距离文本在 calories 主分支与 #else 距离兜底分支各出现一次。
+    assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 3
 
 
 def test_calendar_templates_follow_latest_schedule_contract() -> None:
