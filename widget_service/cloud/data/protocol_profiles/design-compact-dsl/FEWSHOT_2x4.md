@@ -2,9 +2,31 @@
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧纯色和同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
 
-2x4 最终恰好两个业务数据块时必须参考 V09：root 必须是 Row，并直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止生成上下两个 `296×64vp` 背板或任何其它上下双业务布局。
+2x4 最终恰好两个业务数据块时，若业务组合与 V09 的天气+手机电量示例一致，可以参考 V09 的内容组织；其它业务组合只参考本尺寸的 W9 结构硬约束，不复制 V09 的业务语义。root 必须是 Row，并直接使用左右两个 `144×136vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止生成上下两个 `296×64vp` 背板或任何其它上下双业务布局。
+
+2x4 的外框固定不等于内部内容固定。先为每个背板选择一个主焦点变体：`value-led` 让数值占据第一视觉位置，使用纯数字与小号单位；`status-led` 让核心状态句成为最大文字；`event-led` 让事项标题与时间形成连续信息组；`action-led` 让唯一明确动作沉底但不压过主状态；字段较多时使用 `dense-summary`，只保留一项主值和一项必要辅助。除 W8/W9/W10 的固定区域边界外，允许改变内部顺序、对齐、留白和是否保留弱字段，禁止每个分区机械复用“标题 + 两行 14/12fp”。
+
+2x4 单业务不要默认把内容平均摊满高度：先让主值或主状态占据连续的视觉区域，再把单位、状态和辅助指标贴近主焦点。只有用户明确要求多个并列指标时才使用等权布局；如果一个字段能回答主要问题，宁可保留稳定留白，也不要添加重复标签、空背板或弱装饰。
+
+事件候选只是可用动作范围，不等于必须生成按钮；只有 `userQuery` 明确要求查看、加入、设置、导航等显式入口且存在匹配事件时，才参考 W6/V08 的双入口构图。若候选是与当前业务严格匹配且无副作用的详情入口，即使 query 很简短，也可以把整卡或所属分区作为唯一点击入口；不要为了显示入口额外增加按钮。没有明确动作时优先保留业务主焦点和稳定留白。
 
 图标与动作必须逐一匹配当前对象和真实目标；候选中允许存在干扰项。示例里的动作不是业务默认配置，跨业务组合只在用户明确要求时保留。没有准确图标就用纯文字；不要按分区数复制共享动作。
+
+## 示例零（2x4-V00）：中性单业务骨架（未知业务回退）
+本例只提供 2x4 的主信息、辅助信息和稳定留白，不携带天气、设备、健康或日程语义。未知业务、字段含义不足或多业务组合无法匹配已知示例时，只参考本例的结构，不复制“主信息”等文案。
+### user
+```json
+{"userQuery":"生成一张信息卡片","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"view":{"primary":{"type":"string","description":"主要展示值","sampleValue":"示例值"},"secondary":{"type":"string","description":"辅助展示值","sampleValue":"辅助信息"}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":18,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"center","alignItems":"start","itemMargin":8},["primary","secondary"]]
+["primary","Text",{"content":{"path":"/data/view/primary"},"width":296,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["secondary","Text",{"content":{"path":"/data/view/secondary"},"width":296,"fontSize":14,"fontWeight":400,"fontColor":"#991F4799","maxLines":2}]
+["/data/view/primary","示例值"]
+["/data/view/secondary","辅助信息"]
+```
 
 ## 示例八（2x4-V01）：三行近期日程列表（W7-list-rows·黄色微渐变）
 ### user
@@ -213,7 +235,7 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["weatherContent","weatherButton"]]
 ["weatherTitle","Text",{"content":"上海天气","width":120,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherTitle","weatherValue","weatherStatus"]]
-["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '°C' }}","width":120,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '°C' }}","width":120,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherButton","Button",{"label":"查看天气","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
 ["batteryZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["batteryContent","batteryButton"]]
@@ -239,8 +261,10 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"borderRadius":20,"clip":true,"justifyContent":"center","alignItems":"center","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["weatherZone","secondaryColumn"]]
 ["weatherZone","Column",{"width":144,"height":136,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["weatherContent","weatherButton"]]
 ["weatherLabel","Text",{"content":"上海天气","width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherValue","weatherLabel","weatherStatus"]]
-["weatherValue","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '°C' }}","width":120,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherContent","Column",{"width":120,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherLabel","weatherReadout","weatherStatus"]]
+["weatherReadout","Row",{"width":120,"height":42,"alignItems":"bottom","itemMargin":2},["weatherValue","weatherUnit"]]
+["weatherValue","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":30,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["weatherUnit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":120,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherButton","Button",{"label":"查看天气","width":120,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
 ["secondaryColumn","Column",{"width":144,"height":136,"itemMargin":8},["batteryZone","earphoneZone"]]
@@ -258,4 +282,50 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ["/data/earphone/isConnected",true]
+```
+
+## 示例十八（2x4-V11）：单城市天气主读数（单业务 value-led·蓝色微渐变）
+本例用于展示单业务 2x4 的 `value-led` 变体：主温度占据连续的视觉区域，单位紧贴主值，天气现象和温度范围作为辅助信息；不使用双背板，也不为了填满高度增加弱指标。它遵循单数据块的安全区域约束，不把内部变体误标为固定 `W2-text-flow`。
+### user
+```json
+{"userQuery":"做一张上海天气卡片，让我一眼看到当前温度和天气情况。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}],"dataModelSchema":{"data":{"weather":{"location":{"districtName":{"type":"string","description":"当前城市或地区名称","sampleValue":"上海市"},"cityCode":{"type":"string","description":"城市编码","sampleValue":"101020100"}},"current":{"temperatureText":{"type":"string","description":"包含单位的当前温度文本","sampleValue":"29°C"},"condition":{"type":"string","description":"当前天气现象","sampleValue":"多云"},"temperatureRangeText":{"type":"string","description":"当天温度范围文本","sampleValue":"25°C / 32°C"}}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}],"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":6,"justifyContent":"start","alignItems":"start"},["header","hero","support"]]
+["header","CardHeader",{"title":{"path":"/data/weather/location/districtName"},"fontColor":"#FF1F4799"}]
+["hero","Column",{"width":296,"height":76,"justifyContent":"center","alignItems":"start","itemMargin":2},["temperature","condition"]]
+["temperature","Text",{"content":{"path":"/data/weather/current/temperatureText"},"width":296,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["condition","Text",{"content":{"path":"/data/weather/current/condition"},"width":296,"fontSize":16,"fontWeight":500,"fontColor":"#FF1F4799","maxLines":1}]
+["support","Row",{"width":296,"height":36,"itemMargin":8,"alignItems":"center"},["range"]]
+["range","Text",{"content":{"path":"/data/weather/current/temperatureRangeText"},"width":296,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["/data/weather/location/districtName","上海市"]
+["/data/weather/location/cityCode","101020100"]
+["/data/weather/current/temperatureText","29°C"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/temperatureRangeText","25°C / 32°C"]
+```
+
+## 示例十九（2x4-V12）：耳机连接状态主读数（单业务 status-led·青色微渐变）
+本例用于单耳机业务的 `status-led` 变体：连接状态是第一焦点，设备名称和左右耳电量贴近状态，蓝牙设置沉底。不要把手机电量环、天气或额外背板迁移到耳机卡片。
+### user
+```json
+{"userQuery":"做张耳机状态卡片，优先让我看到是否已连接和耳机名称，底部放蓝牙设置。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":76},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":78}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFCCFCFF",0],["#FFF2FEFF",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["header","body","cta"]]
+["body","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["statusGroup","battery"]]
+["header","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#FF1C838C"}]
+["statusGroup","Column",{"width":296,"height":42,"itemMargin":2,"justifyContent":"center","alignItems":"start"},["status","name"]]
+["status","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":296,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1C838C","maxLines":1}]
+["name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":296,"height":16,"fontSize":14,"fontWeight":500,"fontColor":"#FF1C838C","maxLines":1}]
+["battery","Text",{"content":"{{ '左耳 ' + ${/data/earphone/leftBatteryLevel} + '% | 右耳 ' + ${/data/earphone/rightBatteryLevel} + '%' }}","width":296,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#991C838C","maxLines":1}]
+["cta","Button",{"label":"蓝牙设置","width":296,"height":36,"borderRadius":18,"backgroundColor":"#331C838C","fontColor":"#FF1C838C","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","FreeBuds Pro 3"]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/rightBatteryLevel",78]
 ```

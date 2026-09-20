@@ -22,6 +22,9 @@ from .compact_dual_action_validator import collect_dual_action_errors
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
+_SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
+    r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
+)
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _REFERENCE_CANVAS_HEIGHT = {
     "2x2": 160.0,
@@ -270,35 +273,60 @@ def _is_readable_formatted_hero(
     task_spec: dict[str, Any],
     font_size: float,
 ) -> bool:
-    """仅放行全宽、单行且通过保守压力预算的格式化主读数。"""
+    """放行全宽或大分区内、单行且通过压力预算的格式化主读数。"""
     if font_size not in (20.0, 24.0):
         return False
     schema = task_spec.get("dataModelSchema")
     if not isinstance(schema, dict):
         return False
     data = schema.get("data")
-    if not isinstance(data, dict) or len(data) != 1:
+    if not isinstance(data, dict):
         return False
     content = component.props.get("content")
-    if not isinstance(content, dict) or set(content) != {"path"}:
-        return False
-    path = content.get("path")
-    if not isinstance(path, str):
+    path, expression_unit = _formatted_hero_binding(content)
+    if path is None:
         return False
     node = _schema_node_at_path(schema, path)
-    if not isinstance(node, dict) or node.get("type") != "string":
+    if not isinstance(node, dict):
         return False
     sample = node.get("sampleValue")
     description = node.get("description")
-    if not isinstance(sample, str) or not isinstance(description, str):
+    if not isinstance(description, str):
+        return False
+    if expression_unit is not None:
+        if expression_unit not in _COMMON_DISPLAY_UNITS:
+            return False
+        if node.get("type") not in (*_NUMERIC_SCHEMA_TYPES, "string"):
+            return False
+        if not isinstance(sample, (int, float, str)) or isinstance(sample, bool):
+            return False
+        sample = f"{sample}{expression_unit}"
+    elif node.get("type") != "string" or not isinstance(sample, str):
         return False
     pressure = _formatted_hero_pressure(sample, description)
     if pressure is None:
         return False
     if task_spec.get("size") not in ("2x2", "2x4"):
         return False
-    expected_width = 136.0 if task_spec.get("size") == "2x2" else 296.0
     props = component.props
+    component_width = _non_negative_number(props.get("width"))
+    if component_width is None:
+        return False
+    is_full_width = (
+        component_width == 136.0
+        if task_spec.get("size") == "2x2"
+        else component_width == 296.0
+    )
+    is_large_2x4_panel = (
+        task_spec.get("size") == "2x4"
+        and component_width == 120.0
+        and _is_large_2x4_panel(component, components)
+    )
+    if not is_full_width and not is_large_2x4_panel:
+        return False
+    if isinstance(data, dict) and len(data) != 1 and not is_large_2x4_panel:
+        return False
+    expected_width = component_width
     if props.get("width") != expected_width or props.get("maxLines") != 1:
         return False
     height = _non_negative_number(props.get("height"))
@@ -313,7 +341,15 @@ def _is_readable_formatted_hero(
     if len(parents) != 1:
         return False
     parent = parents[0]
-    if parent.component_type != "Column" or parent.props.get("width") != expected_width:
+    if parent.component_type == "Column":
+        if parent.props.get("width") != expected_width:
+            return False
+    elif parent.component_type == "Row":
+        if parent.props.get("width") != expected_width:
+            return False
+        if not _has_parent_column(parent, components, expected_width):
+            return False
+    else:
         return False
     if parent.props.get("padding", 0) != 0:
         return False
@@ -321,6 +357,70 @@ def _is_readable_formatted_hero(
     for character in pressure:
         estimated += font_size * (0.6 if character.isascii() else 1.0)
     return estimated * 1.2 <= expected_width
+
+
+def _formatted_hero_binding(content: Any) -> tuple[str | None, str | None]:
+    if isinstance(content, dict) and set(content) == {"path"}:
+        path = content.get("path")
+        return (path, None) if isinstance(path, str) else (None, None)
+    if not isinstance(content, str):
+        return None, None
+    match = _SIMPLE_FORMATTED_EXPRESSION_PATTERN.fullmatch(content.strip())
+    if match is None:
+        return None, None
+    return match.group("path"), match.group("unit")
+
+
+def _is_large_2x4_panel(
+    component: ComponentRow,
+    components: list[ComponentRow],
+) -> bool:
+    child_to_parents: dict[str, list[ComponentRow]] = {}
+    for parent in components:
+        for child_id in parent.children:
+            child_to_parents.setdefault(child_id, []).append(parent)
+
+    pending = [component.component_id]
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop()
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        for parent in child_to_parents.get(child_id, []):
+            width = _non_negative_number(parent.props.get("width"))
+            height = _non_negative_number(parent.props.get("height"))
+            if width == 144.0 and height == 136.0:
+                return True
+            pending.append(parent.component_id)
+    return False
+
+
+def _has_parent_column(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    width: float,
+) -> bool:
+    child_to_parents: dict[str, list[ComponentRow]] = {}
+    for parent in components:
+        for child_id in parent.children:
+            child_to_parents.setdefault(child_id, []).append(parent)
+    pending = [component.component_id]
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop()
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        for parent in child_to_parents.get(child_id, []):
+            if (
+                parent.component_type == "Column"
+                and parent.props.get("width") == width
+                and parent.props.get("padding", 0) == 0
+            ):
+                return True
+            pending.append(parent.component_id)
+    return False
 
 
 def _formatted_hero_pressure(sample: str, description: str) -> str | None:
