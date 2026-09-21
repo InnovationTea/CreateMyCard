@@ -159,8 +159,8 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
-_WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
+_WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
+_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -668,13 +668,13 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
 @pytest.mark.parametrize(
     ("template_id", "text_path", "font_size", "height"),
     [
-        ("WeatherOverviewDailyDateFull@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyDateFull@1", (1, 0), 18, 24),
         ("WeatherOverviewDailyDateFull@1", (1, 1), 12, 20),
-        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 32, None),
+        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 30, 40),
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
         ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewConditionHero@1", (1, 0), 20, 28),
+        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 18, 24),
+        ("WeatherOverviewConditionHero@1", (1, 0), 18, 24),
         ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
     ],
 )
@@ -756,7 +756,7 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
         ("WeatherOverviewAirQualityHero@1", "airQuality"),
     ],
 )
-def test_weather_index_templates_use_20vp_primary_values(
+def test_weather_index_templates_use_18fp_text_values(
     template_id: str, value_binding: str,
 ) -> None:
     registry = get_cardplan_registry()
@@ -774,7 +774,7 @@ def test_weather_index_templates_use_20vp_primary_values(
     assert value.values[0] == bindings.get(value_binding)
     value_options = value.values[-1]
     assert isinstance(value_options, dict)
-    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontSize") == 18
     assert value_options.get("fontWeight") == 700
     if value_binding == "uvIndex":
         options = value_column.values[-1]
@@ -782,7 +782,7 @@ def test_weather_index_templates_use_20vp_primary_values(
         assert "height" not in options
         assert "layoutWeight" not in options
         assert options.get("itemMargin") == 0
-        assert value_options.get("height") == 28
+        assert value_options.get("height") == 24
         label = value_column.children[1]
         assert label.component_type == "Text"
         assert label.values[0] == "紫外线"
@@ -1501,7 +1501,7 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-sleep-violet",
             "sleep",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-sport-orange",
@@ -1511,12 +1511,12 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-battery-teal",
             "battery",
-            FusionBallPalette("#FF17734C", "#FF26BFA6", "#FF60BF98"),
+            FusionBallPalette("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
         ),
         (
             "fusion-schedule-cool",
             "schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
         ("device-clean-blue-teal", None, None),
     ],
@@ -1712,6 +1712,9 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
         "fusionBallSmallSlot",
         "fusionBallGlassLayer",
     ]
+    glass_style = background.children[-1].values[-1]
+    assert isinstance(glass_style, dict)
+    assert glass_style.get("backdropBlur") == {"radius": 210}
     ball_colors = tuple(
         child.children[0].values[-1]["backgroundColor"]
         for child in background.children[:3]
@@ -3124,16 +3127,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(countdown)["justifyContent"] == "center"
     countdown_value_row = countdown.children[2]
     assert countdown_value_row.component == "Row"
-    assert _template_node_options(countdown_value_row)["justifyContent"] == "center"
-    assert len(countdown_value_row.children) == 2
-    countdown_value, transparent_unit = countdown_value_row.children
+    assert _template_node_options(countdown_value_row).get("justifyContent") == "center"
+    assert len(countdown_value_row.children) == 1
+    countdown_value = countdown_value_row.children[0]
     assert countdown_value.component == "Text"
     assert countdown_value.values[0].kind == "binding"
     assert countdown_value.values[0].name == "days"
-    assert transparent_unit.component == "Text"
-    assert transparent_unit.values[0].value == "天"
-    assert _template_node_options(transparent_unit)["fontSize"] == 8
-    assert _template_node_options(transparent_unit)["fontColor"] == "#00000000"
     visible_unit = countdown.children[3]
     assert visible_unit.component == "Text"
     assert visible_unit.values[0].value == "天"
@@ -5793,9 +5792,9 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
         "fusionBallBackground",
         "template_root",
     ]
-    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
-    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF1F9985"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF24B3B3"
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF5AB38E"
     assert components["template_root"]["children"] == [
         "__genui_render_component__template_root"
     ]
@@ -6095,7 +6094,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFB33024",
+        "fusionBallLarge": "#FFF24131",
         "fusionBallMedium": "#FFFF8833",
         "fusionBallSmall": "#FFE68073",
     }
@@ -7036,7 +7035,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     )
 
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
-        "radius": 120
+        "radius": 210
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert "linearGradient" not in components[content_id]["styles"]

@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
 from core.errors import GenerationStatus
 from models.capability import (
@@ -204,6 +204,7 @@ class CandidateEventCandidate(BaseModel):
 
 class GenerateWidgetCardRequest(VersionedToolRequest):
     userQuery: str = Field(min_length=1)
+    extrainfo: list[str] | None = None
     sourceArtifactUrl: str | None = None
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
@@ -212,6 +213,19 @@ class GenerateWidgetCardRequest(VersionedToolRequest):
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
     options: GenerationOptions = Field(default_factory=GenerationOptions)
+
+    @field_validator("extrainfo")
+    @classmethod
+    def validate_extrainfo(cls, value: list[str] | None) -> list[str] | None:
+        """只接受本轮已清洗的非空上下文事实字符串。"""
+        if value is None:
+            return None
+        normalized = []
+        for item in value:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError("extrainfo items must be non-empty strings")
+            normalized.append(item.strip())
+        return normalized or None
 
     @model_validator(mode="after")
     def validate_generation_mode_fields(self) -> "GenerateWidgetCardRequest":
@@ -247,6 +261,7 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     - operation：要调用的能力名称。
     - dataCapabilityIds：获取数据能力 schema 时使用的数据能力 ID。
     - userQuery：生成卡片时使用的用户原始需求。
+    - extrainfo：本轮生成使用的已清洗外部事实和会话有效上下文，不进入 artifact。
     - sourceArtifactUrl：编辑模式使用的上一版 artifact URL。
     - size：生成卡片时主 Agent 建议的尺寸。
     - title：生成卡片时主 Agent 建议的标题。
@@ -260,6 +275,7 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     operation: WidgetCardOperation
     dataCapabilityIds: list[str] = Field(default_factory=list)
     userQuery: str | None = None
+    extrainfo: list[str] | None = None
     sourceArtifactUrl: str | None = None
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)

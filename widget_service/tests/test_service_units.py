@@ -90,7 +90,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.artifact_store import ArtifactStore, RepairArtifactRecord
+from services.artifact_store import ArtifactStore, RepairArtifactRecord, _remove_extrainfo
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
@@ -1067,9 +1067,30 @@ def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
     assert "machineRecoveredCandidate" not in repair_input
     target_structure = repair_input.get("targetStructure")
     assert isinstance(target_structure, dict)
+    assert target_structure.get("extrainfo") == ["non-empty string, optional"]
     assert isinstance(target_structure.get("candidateDataBindings"), list)
     assert isinstance(target_structure.get("candidateEventCandidates"), list)
     assert "array 的字段即使只有一项也必须输出 array" in system_content
+
+
+def test_artifact_request_block_does_not_persist_extrainfo():
+    body = {
+        "content": {
+            "userQuery": "制作卡片",
+            "extrainfo": ["只供本轮模型使用的事实"],
+        },
+        "arguments": json_module.dumps(
+            {"userQuery": "制作卡片", "extrainfo": ["嵌套事实"]},
+            ensure_ascii=False,
+        ),
+    }
+
+    request_block = ArtifactStore(request_body=body)._request_block_body()
+
+    assert "extrainfo" not in request_block
+    assert "只供本轮模型使用的事实" not in request_block
+    assert "嵌套事实" not in request_block
+    assert _remove_extrainfo({"extrainfo": ["事实"], "value": 1}) == {"value": 1}
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
@@ -2870,6 +2891,68 @@ def test_design_compact_create_prompt_is_plain_task_spec_json(
             "args": {"uri": "weather://detail"},
         }
     ]
+
+
+def test_design_compact_prompt_carries_extrainfo_without_extending_task_spec(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
+    task_spec = TaskSpecBuilder().build(
+        user_query="把前文答案做成卡片",
+        size="2x2",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    facts = ["演出时间为今晚 19:30。", "地点是上海大剧院。"]
+
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        extrainfo=facts,
+    )
+    payload = json_module.loads(prompt[1]["content"])
+
+    assert payload["userQuery"] == "把前文答案做成卡片"
+    assert "extrainfo=" in prompt[0]["content"]
+    assert all(fact in prompt[0]["content"] for fact in facts)
+    assert "不属于 TaskSpec" in prompt[0]["content"]
+
+    generic_prompt = PromptBuilder().build(task_spec, extrainfo=facts)
+    generic_payload = json_module.loads(generic_prompt[1]["content"])
+    assert generic_payload["userQuery"] == "把前文答案做成卡片"
+    assert all(fact in generic_prompt[0]["content"] for fact in facts)
+
+
+def test_design_compact_edit_prompt_does_not_inherit_extrainfo(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
+    task_spec = TaskSpecBuilder().build(
+        user_query="改成蓝色",
+        size="2x2",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        previous_design_token="token",
+    )
+    payload = json_module.loads(prompt[1]["content"])
+
+    assert "extrainfo" not in payload
 
 
 @pytest.mark.asyncio

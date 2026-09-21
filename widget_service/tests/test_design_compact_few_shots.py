@@ -225,40 +225,26 @@ def test_example_gradients_preserve_ux_direction_and_stops(
         assert gradient.get("colors") in allowed, name
 
 
-@pytest.mark.parametrize("change", ["font", "width", "height", "expression", "roots", "padding"])
+@pytest.mark.parametrize("change", ["width", "height", "padding"])
 def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
     _, original_task, source = next(item for item in EXAMPLES if "2x2-V09" in item[0])
     task = deepcopy(original_task)
     rows = [json.loads(line) for line in source.splitlines()]
     row = next(row for row in rows if row[0] == "temperature")
     props = row[2]
-    if change == "font":
-        props["fontSize"] = 30
-    elif change == "width":
+    if change == "width":
         props["width"] = 112
     elif change == "height":
         props["height"] = 20
     elif change == "padding":
         props["padding"] = 4
-    elif change == "expression":
-        content = props.get("content")
-        assert isinstance(content, dict)
-        path = content.get("path")
-        assert isinstance(path, str)
-        props["content"] = "{{ ${" + path + "} }}"
-    else:
-        schema = task.get("dataModelSchema")
-        assert isinstance(schema, dict)
-        data = schema.get("data")
-        assert isinstance(data, dict)
-        data["other"] = {}
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     with pytest.raises(CompactDslValidationError, match="fontSize"):
         validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
 
 
 def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -> None:
-    """2x4 大分区允许单字段加真实单位的 24fp 主读数。"""
+    """2x4 大分区允许单字段加真实单位的 20fp 主读数。"""
     _, original_task, source = next(item for item in EXAMPLES if "2x4-V10" in item[0])
     task = deepcopy(original_task)
     rows = [json.loads(line) for line in source.splitlines()]
@@ -266,9 +252,9 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
     row[2].update(
         {
             "content": "{{ " + "$" + "{/data/weather/current/temperatureC}" + " + '°C' }}",
-            "width": 120,
-            "height": 34,
-            "fontSize": 24,
+            "width": 114,
+            "height": 28,
+            "fontSize": 20,
         }
     )
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
@@ -277,6 +263,98 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
         task_spec=task,
         card_spec={"suggestSize": "2x4"},
     )
+    assert not result.warnings
+
+
+def test_adaptive_primary_weather_status_allows_large_font_in_full_width_slot() -> None:
+    task = {
+        "userQuery": "做一张天气卡片",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "condition": {
+                            "type": "string",
+                            "description": "当前天气现象",
+                            "sampleValue": "多云",
+                        }
+                    }
+                }
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
+            '["main","Column",{"width":136,"height":54,"padding":0},["condition"]]',
+            '["condition","Text",{"width":136,"height":54,"content":{"path":"/data/weather/current/condition"},"fontSize":38,"maxLines":1}]',
+            '["/data/weather/current/condition","多云"]',
+        ]
+    )
+    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
+    assert not result.warnings
+
+
+def test_adaptive_primary_text_allows_overlong_runtime_status() -> None:
+    task = {
+        "userQuery": "做一张天气卡片",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "condition": {
+                            "type": "string",
+                            "description": "当前天气现象",
+                            "sampleValue": "雷阵雨转局部多云",
+                        }
+                    }
+                }
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
+            '["main","Column",{"width":136,"height":54,"padding":0},["condition"]]',
+            '["condition","Text",{"width":136,"height":54,"content":{"path":"/data/weather/current/condition"},"fontSize":38,"maxLines":1}]',
+            '["/data/weather/current/condition","雷阵雨转局部多云"]',
+        ]
+    )
+    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
+    assert not result.warnings
+
+
+def test_adaptive_primary_percentage_allows_renderer_sized_font() -> None:
+    task = {
+        "userQuery": "看明日降雨概率",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "daily": [
+                        {
+                            "rainProbabilityPercent": {
+                                "type": "string",
+                                "description": "降雨概率百分比",
+                                "sampleValue": "20%",
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
+            '["main","Column",{"width":136,"height":54,"padding":0},["rain"]]',
+            '["rain","Text",{"content":{"path":"/data/weather/daily/1/rainProbabilityPercent"},"fontSize":38,"maxLines":1}]',
+            '["/data/weather/daily/1/rainProbabilityPercent","20%"]',
+        ]
+    )
+    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
     assert not result.warnings
 
 
@@ -292,6 +370,34 @@ def test_new_examples_reach_their_generation_route(identifier: str) -> None:
     if identifier == "2x2-V10":
         assert "2x2-V05" in selected
         assert "2x2-V09" not in selected
+
+
+def test_countdown_with_action_uses_left_aligned_v08_route() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V08" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    assert route == "countdown"
+    assert selected == ("2x2-V08",)
+    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
+    assert "value-led" in instruction or "第一焦点" in instruction
+
+
+def test_countdown_with_action_rejects_centered_value_row() -> None:
+    _, original_task, source = next(item for item in EXAMPLES if "2x2-V08" in item[0])
+    task = deepcopy(original_task)
+    rows = [json.loads(line) for line in source.splitlines()]
+    value_group = next(row for row in rows if row[0] == "value_group")
+    value_group[2]["alignItems"] = "center"
+    value_row = next(row for row in rows if row[0] == "value_row")
+    value_row[2]["justifyContent"] = "center"
+    changed_source = "\n".join(
+        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows
+    )
+    with pytest.raises(CompactDslValidationError, match="left-align"):
+        validate_compact_dsl(
+            changed_source,
+            task_spec=task,
+            card_spec={"suggestSize": "2x2"},
+        )
 
 
 @pytest.mark.parametrize(

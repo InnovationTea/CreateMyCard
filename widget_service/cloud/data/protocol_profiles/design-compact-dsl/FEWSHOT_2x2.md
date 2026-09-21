@@ -1,8 +1,10 @@
 # 2x2 Few-shot
 
-示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `136×64vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
+示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `134×63vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧纯色和同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
+
+融球与浅色 S4 的表面不可混用：当任一 2x2 示例将 root 改为 `fusion-ball-*` 时，分区背板若保留只能改成 `#33FFFFFF`，文字和单色图标改用白色；不得复制 V05 的 `#CCFFFFFF` 背板或蓝/紫/暖文字色。S4 分区需要图标时必须使用 `Row -> [text_group, visual]`，图标在右侧，不得用 `Column` 将图标堆到文字下方。
 
 图标与动作必须逐一匹配当前对象和真实目标；候选中允许存在干扰项。示例里的动作不是业务默认配置，跨业务组合只在用户明确要求时保留。没有准确图标就用纯文字；不要按分区数复制共享动作。
 
@@ -17,8 +19,8 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"justifyContent":"center","alignItems":"center","itemMargin":6,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["primary","secondary"]]
-["primary","Text",{"content":{"path":"/data/view/primary"},"width":136,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"center","maxLines":1}]
-["secondary","Text",{"content":{"path":"/data/view/secondary"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","textAlign":"center","maxLines":1}]
+["primary","Text",{"content":{"path":"/data/view/primary"},"width":126,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"center","maxLines":1}]
+["secondary","Text",{"content":{"path":"/data/view/secondary"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","textAlign":"center","maxLines":1}]
 ["/data/view/primary","示例值"]
 ["/data/view/secondary","辅助信息"]
 ```
@@ -33,9 +35,9 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"design":"fusion-ball-sport-orange"},["title_area","value_group"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"运动会倒计时","width":112,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","textAlign":"center","maxLines":1}]
-["value_group","Column",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
+["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"运动会倒计时","width":102,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","textAlign":"center","maxLines":1}]
+["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
 ["/data/countdown/countdownDays",32]
@@ -66,7 +68,7 @@
 ```
 
 ## 示例三（2x2-V03）：耳机盒电量与双入口（S3 紧凑信息组）
-两个按钮占 80vp，组间距 8vp，信息组只能占 48vp。对象和电量合并为 14fp 主信息，12fp 状态紧随其下；不生成 CardHeader、独立大数字区或标题图标。按钮图标仅用于动作识别。示例的两个入口均由用户明确要求，不能因候选存在而自动增加按钮。
+两个按钮占 78vp，根组间距 8vp，信息组占 40vp，按钮内部间距 6vp。对象和电量合并为 14fp 主信息，12fp 状态紧随其下；不生成 CardHeader、独立大数字区或标题图标。按钮图标仅用于动作识别。示例的两个入口均由用户明确要求，不能因候选存在而自动增加按钮。
 ### user
 ```json
 {"userQuery":"显示耳机盒电量和充电状态，并提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100，展示时追加%","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
@@ -74,10 +76,10 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["header_area","action_area"]]
-["header_area","Column",{"width":136,"height":48,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":0},["device_name","battery_row"]]
-["device_name","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":136,"fontSize":14,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1,"height":20}]
-["battery_row","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1,"height":18}]
-["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0,"alignItems":"start","height":80},["cta_play","cta_fav"]]
+["header_area","Column",{"width":126,"height":40,"justifyContent":"start","alignItems":"start","itemMargin":2,"flexShrink":0},["device_name","battery_row"]]
+["device_name","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":126,"fontSize":14,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1,"height":20}]
+["battery_row","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1,"height":18}]
+["action_area","Column",{"width":126,"itemMargin":6,"flexShrink":0,"alignItems":"start","height":78},["cta_play","cta_fav"]]
 ["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#33563D99","actionInk":"#FF563D99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
 ["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#33563D99","actionInk":"#FF563D99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
 ["/data/earphone/batteryLevel",80]
@@ -96,13 +98,12 @@
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","content_area","bottom_area"]]
 ["title_area","CardHeader",{"title":{"path":"/data/weather/location/prefectureName"},"fontColor":"#FF1F4799","icon":"resources/base/media/icon_weather_temperature1.svg"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","flexShrink":1},["value_row"]]
-["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
+["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","alignItems":"start","flexShrink":1},["value_row"]]
+["value_row","Row",{"width":126,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["value_unit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":5},"maxLines":1,"flexShrink":0}]
-["bottom_area","Column",{"width":136,"height":40,"itemMargin":4,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["weather_status","temp_range"]]
-["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":20,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["weather_summary"]]
+["weather_summary","Text",{"content":"{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/daily/0/temperatureRangeText} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["/data/weather/current/temperatureC",38]
 ["/data/weather/current/condition","晴"]
 ["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
@@ -121,16 +122,16 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["phone_row","ear_row"]]
-["phone_row","Row",{"width":136,"height":64,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_text","phone_icon"]]
-["phone_text","Column",{"width":84,"justifyContent":"center","itemMargin":4},["phone_value","phone_status"]]
-["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":84,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":84,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["phone_row","ear_row"]]
+["phone_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_text","phone_icon"]]
+["phone_text","Column",{"width":82,"justifyContent":"center","itemMargin":4},["phone_value","phone_status"]]
+["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["phone_icon","Image",{"src":"resources/base/media/phone_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
-["ear_row","Row",{"width":136,"height":64,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_text","ear_icon"]]
-["ear_text","Column",{"width":84,"justifyContent":"center","itemMargin":4},["ear_value","ear_status"]]
-["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":84,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":84,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["ear_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_text","ear_icon"]]
+["ear_text","Column",{"width":82,"justifyContent":"center","itemMargin":4},["ear_value","ear_status"]]
+["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
@@ -147,14 +148,14 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFFFE0CC",0],["#FFFFF7F2",1]]}},["day_area","content_area","action_area"]]
-["day_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
+["day_area","Row",{"width":126,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
 ["day_tag","Text",{"content":"下一场会议","fontSize":12,"fontWeight":400,"fontColor":"#FF8C4B1C","maxLines":1}]
-["content_area","Row",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":8,"alignItems":"top","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
+["content_area","Row",{"width":126,"layoutWeight":1,"padding":{"top":4},"itemMargin":8,"alignItems":"top","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
 ["timeline","TimelineUnit",{"color":"#FF8C4B1C","lineColor":"#1A8C4B1C"}]
 ["meeting_texts","Column",{"width":"matchParent","height":48,"layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time"]]
 ["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":14,"fontWeight":700,"width":"matchParent","fontColor":"#FF8C4B1C","maxLines":1}]
 ["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#FF8C4B1C","maxLines":1}]
-["action_area","Column",{"width":136,"flexShrink":0,"alignItems":"start"},["cta"]]
+["action_area","Column",{"width":126,"flexShrink":0,"alignItems":"start"},["cta"]]
 ["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#338C4B1C","actionInk":"#FF8C4B1C","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"flexShrink":0}]
 ["/data/calendar/events/0/title","UI需求评审会"]
 ["/data/calendar/events/0/dtStart","14:00 - 15:30"]
@@ -182,8 +183,34 @@
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
 ```
 
+## 示例八（2x2-V08）：发布会倒计时（左对齐主值·开始时间·单动作）
+倒计时存在底部按钮或另一类可见数据时，不再使用 V01 的居中数字与纵向单位。标题、主值组和辅助信息
+统一左对齐；数字与单位放在同一 `value_row`，开始时间独占第二行，底部动作沉底。`/data/countdown`
+与 `/data/calendar` 在这里共同描述同一个发布会目标，不拆成 S4 两个业务对象。
+### user
+```json
+{"userQuery":"下一场日程是18天后的产品发布会，显示离发布会还有几天、日程标题和开始时间，并提供查看详情按钮。","size":"2x2","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数纯整数，返回值不包含‘天’","sampleValue":18}},"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"产品发布会"},"dtStart":{"type":"string","description":"格式化后的日程开始时间短文本","sampleValue":"上午10:00"},"entityId":{"type":"string","description":"系统日程的全局唯一实体ID","sampleValue":"event-001"}}]}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":0,"design":"fusion-ball-sport-orange"},["title_area","value_group","action_area"]]
+["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
+["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":0,"flexShrink":1},["value_row","start_time"]]
+["value_row","Row",{"width":126,"height":48,"justifyContent":"start","alignItems":"bottom","itemMargin":0,"flexShrink":0},["value_num","value_unit"]]
+["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"天","fontSize":16,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["start_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"width":126,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
+["action_area","Column",{"width":136,"height":36,"flexShrink":0},["action"]]
+["action","ActionUnit",{"state":"capsule","label":"查看详情","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
+["/data/countdown/countdownDays",18]
+["/data/calendar/events/0/title","产品发布会"]
+["/data/calendar/events/0/dtStart","上午10:00"]
+["/data/calendar/events/0/entityId","event-001"]
+```
+
 ## 示例九（2x2-V09）：电池温度（S2 完整主读数·单动作）
-完整温度使用24fp；负号、小数与单位一起检查，不拆单位、不追加无关时间。状态紧跟主值，按钮沉底。
+完整温度在 126vp 内容宽度内使用20fp；负号、小数与单位一起检查，不拆单位、不追加无关时间。状态紧跟主值，按钮沉底。
 ### user
 ```json
 {"userQuery":"显示电池温度和充电状态，使用浅青渐变，并能打开电池设置。","size":"2x2","assetCandidates":[],"eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"phoneBattery":{"batteryTemperatureText":{"type":"string","description":"包含单位的电池温度文本","sampleValue":"29.0°C"},"chargingStatusDesc":{"type":"string","description":"当前充电状态","sampleValue":"未充电"}}}}}
@@ -192,10 +219,10 @@
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main","action_area"]]
 ["header","CardHeader",{"title":"电池温度","fontColor":"#FF1F4799"}]
-["main","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","itemMargin":4},["temperature","status"]]
-["temperature","Text",{"content":{"path":"/data/phoneBattery/batteryTemperatureText"},"width":136,"fontSize":24,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1,"height":34}]
-["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":136,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
-["action_area","Column",{"width":136,"height":36,"flexShrink":0},["action"]]
+["main","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","itemMargin":4},["temperature","status"]]
+["temperature","Text",{"content":{"path":"/data/phoneBattery/batteryTemperatureText"},"width":126,"fontSize":20,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1,"height":28}]
+["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":126,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["action_area","Column",{"width":126,"height":36,"flexShrink":0},["action"]]
 ["action","ActionUnit",{"state":"capsule","label":"电池设置","actionSurface":"#331F4799","actionInk":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
 ["/data/phoneBattery/batteryTemperatureText","29.0°C"]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
@@ -209,16 +236,16 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["shanghai","beijing"]]
-["shanghai","Column",{"width":136,"height":64,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["shanghaiValue","shanghaiCondition"]]
-["shanghaiValue","Text",{"content":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","width":112,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["shanghaiCondition","Text",{"content":{"path":"/data/shanghai/current/condition"},"width":112,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["shanghai","beijing"]]
+["shanghai","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["shanghaiValue","shanghaiCondition"]]
+["shanghaiValue","Text",{"content":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
+["shanghaiCondition","Text",{"content":{"path":"/data/shanghai/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["/data/shanghai/location/prefectureName","上海"]
 ["/data/shanghai/current/temperatureText","29°C"]
 ["/data/shanghai/current/condition","多云"]
-["beijing","Column",{"width":136,"height":64,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["beijingValue","beijingCondition"]]
-["beijingValue","Text",{"content":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","width":112,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["beijingCondition","Text",{"content":{"path":"/data/beijing/current/condition"},"width":112,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["beijing","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["beijingValue","beijingCondition"]]
+["beijingValue","Text",{"content":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
+["beijingCondition","Text",{"content":{"path":"/data/beijing/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["/data/beijing/location/prefectureName","北京"]
 ["/data/beijing/current/temperatureText","18°C"]
 ["/data/beijing/current/condition","晴"]

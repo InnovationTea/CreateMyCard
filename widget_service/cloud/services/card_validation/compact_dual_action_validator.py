@@ -20,10 +20,10 @@ def collect_dual_action_errors(
     reason = _structure_error(root, by_id, actions)
     if reason:
         errors.append(
-            "S3_DUAL_ACTION_LAYOUT: " + reason + " Use a root Column with a 136x48 "
-            "information Column and a 136x80 action Column, root padding 12 and gap 8; "
+            "S3_DUAL_ACTION_LAYOUT: " + reason + " Use a root Column with a 126x40 "
+            "information Column and a 126x78 action Column, root padding 12 and gap 8; "
             "place one 14fp main Text and an optional 12fp status Text in the information "
-            "group, and two 36vp capsules with gap 8 in the action group. Remove the "
+            "group, and two 36vp capsules with gap 6 in the action group. Remove the "
             "separate CardHeader and large-number region; preserve both event handlers."
         )
 
@@ -36,19 +36,19 @@ def _structure_error(
     if root.component_type != "Column" or len(root.children) != 2:
         return "Two capsules require exactly two root regions."
     if not _padding_is_twelve(root.props.get("padding")) or _gap(root) != 8:
-        return "Root padding or gap violates the 136vp budget."
+        return "Root padding or gap violates the 126vp budget."
     info = by_id.get(root.children[0])
     action = by_id.get(root.children[1])
     if info is None or action is None:
         return "Missing information or action region."
-    for region, height in ((info, 48), (action, 80)):
+    for region, height in ((info, 40), (action, 78)):
         geometry = (region.component_type, region.props.get("width"), region.props.get("height"))
-        if geometry != ("Column", 136, height):
-            return f"Region {region.component_id} must be 136x{height}."
+        if geometry != ("Column", 126, height):
+            return f"Region {region.component_id} must be 126x{height}."
     if len(action.children) != 2 or set(action.children) != set(actions):
         return "Capsules must be direct children of the last region."
-    if _gap(action) != 8:
-        return "Capsule gap must be 8vp."
+    if _gap(action) != 6:
+        return "Capsule gap must be 6vp."
     if len(info.children) not in (1, 2):
         return "Information must contain one or two direct text lines."
     for index, child_id in enumerate(info.children):

@@ -949,7 +949,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             CompactDslValidationError,
-            "vertical layout requires at least 164vp within 136vp",
+            "vertical layout requires at least 164vp within 126vp",
         ):
             validate_compact_dsl(
                 compact_dsl,
@@ -998,7 +998,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         message = str(raised.exception)
         self.assertIn(
-            "vertical layout requires at least 156vp within 136vp",
+            "vertical layout requires at least 156vp within 126vp",
             message,
         )
 
@@ -1046,13 +1046,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {
                         "width": "matchParent",
                         "height": "matchParent",
-                        "padding": 12,
+                        "padding": 8,
                         "itemMargin": 8,
                     },
                     ["zone_top", "zone_bottom"],
                 ],
-                ["zone_top", "Text", {"content": "上区", "height": 64}],
-                ["zone_bottom", "Text", {"content": "下区", "height": 64}],
+                ["zone_top", "Text", {"content": "上区", "height": 63}],
+                ["zone_bottom", "Text", {"content": "下区", "height": 63}],
             ]
         )
 
