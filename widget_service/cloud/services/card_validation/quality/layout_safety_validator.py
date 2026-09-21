@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,6 +24,10 @@ _ALIGNMENTS = {
     "bottomEnd": (1.0, 1.0),
 }
 _HIDDEN = {"hidden", "none"}
+_VISIBILITY_BRANCH = re.compile(
+    r"^\s*\{\{\s*(?P<condition>.+?)\s*\?\s*['\"](?P<when_true>visible|none)['\"]"
+    r"\s*:\s*['\"](?P<when_false>visible|none)['\"]\s*\}\}\s*$"
+)
 
 
 @dataclass(frozen=True)
@@ -54,9 +59,33 @@ def _visible(component: dict[str, Any]) -> bool:
     return not isinstance(visibility, str) or visibility not in _HIDDEN
 
 
+def _visibility_branch(component: dict[str, Any]) -> tuple[str, bool] | None:
+    """Return the condition and true-branch visibility for a simple ternary."""
+    visibility = _styles(component).get("visibility")
+    if not isinstance(visibility, str):
+        return None
+    match = _VISIBILITY_BRANCH.fullmatch(visibility)
+    if match is None:
+        return None
+    when_true = match.group("when_true")
+    when_false = match.group("when_false")
+    if when_true == when_false:
+        return None
+    condition = " ".join(match.group("condition").split())
+    return condition, when_true == "visible"
+
+
+def _mutually_exclusive(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    left_branch = _visibility_branch(left)
+    right_branch = _visibility_branch(right)
+    if left_branch is None or right_branch is None:
+        return False
+    return left_branch[0] == right_branch[0] and left_branch[1] != right_branch[1]
+
+
 def _has_label(component: dict[str, Any]) -> bool:
     kind = component.get("component")
-    if not isinstance(kind, str) or kind not in {"Text", "Button"}:
+    if not isinstance(kind, str) or kind not in {"Text", "Button", "Checkbox"}:
         return False
     key = "content" if kind == "Text" else "label"
     value = component.get(key)
@@ -183,6 +212,7 @@ class LayoutSafetyValidator(BaseValidator):
     ) -> None:
         alignment = _styles(component).get("alignContent", "center")
         slots: list[_Slot] = []
+        slot_components: dict[str, dict[str, Any]] = {}
         seen: set[str] = set()
         for child in children:
             child_id = child.get("id")
@@ -191,10 +221,15 @@ class LayoutSafetyValidator(BaseValidator):
             seen.add(child_id)
             if _contains_label(child, by_id):
                 slots.append(_slot(child, alignment))
+                slot_components[child_id] = child
         conflicts: list[list[str]] = []
         for left_index, left in enumerate(slots):
             for right_index in range(left_index + 1, len(slots)):
                 right = slots[right_index]
+                if _mutually_exclusive(
+                    slot_components[left.component_id], slot_components[right.component_id]
+                ):
+                    continue
                 if _separated(left.horizontal, right.horizontal):
                     continue
                 if _separated(left.vertical, right.vertical):
