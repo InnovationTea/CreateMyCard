@@ -4,6 +4,8 @@
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧纯色和同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
 
+融球与浅色 S4 的表面不可混用：当任一 2x2 示例将 root 改为 `fusion-ball-*` 时，分区背板若保留只能改成 `#33FFFFFF`，文字和单色图标改用白色；不得复制 V05 的 `#CCFFFFFF` 背板或蓝/紫/暖文字色。S4 分区需要图标时必须使用 `Row -> [text_group, visual]`，图标在右侧，不得用 `Column` 将图标堆到文字下方。
+
 图标与动作必须逐一匹配当前对象和真实目标；候选中允许存在干扰项。示例里的动作不是业务默认配置，跨业务组合只在用户明确要求时保留。没有准确图标就用纯文字；不要按分区数复制共享动作。
 
 2x2 单业务示例不应被理解为统一模板：先判断主焦点是量化主值、核心状态、事项标题还是唯一动作，再决定主区域的顺序和留白。量化主值优先使用大字号纯数字并把单位降为 12-16fp；状态或事项卡只放大真正的核心句，其余字段保持 12fp 支撑层。除 S3/S4 固定规则外，允许在同一骨架内采用顶部主值、中心主值或底部动作沉底三种安全变体，但必须保留一个清晰重心。
@@ -179,6 +181,32 @@
 ["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1}]
 ["/data/healthSport/dailySteps",2319]
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
+```
+
+## 示例八（2x2-V08）：发布会倒计时（左对齐主值·开始时间·单动作）
+倒计时存在底部按钮或另一类可见数据时，不再使用 V01 的居中数字与纵向单位。标题、主值组和辅助信息
+统一左对齐；数字与单位放在同一 `value_row`，开始时间独占第二行，底部动作沉底。`/data/countdown`
+与 `/data/calendar` 在这里共同描述同一个发布会目标，不拆成 S4 两个业务对象。
+### user
+```json
+{"userQuery":"下一场日程是18天后的产品发布会，显示离发布会还有几天、日程标题和开始时间，并提供查看详情按钮。","size":"2x2","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数纯整数，返回值不包含‘天’","sampleValue":18}},"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"产品发布会"},"dtStart":{"type":"string","description":"格式化后的日程开始时间短文本","sampleValue":"上午10:00"},"entityId":{"type":"string","description":"系统日程的全局唯一实体ID","sampleValue":"event-001"}}]}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":0,"design":"fusion-ball-sport-orange"},["title_area","value_group","action_area"]]
+["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
+["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":0,"flexShrink":1},["value_row","start_time"]]
+["value_row","Row",{"width":126,"height":48,"justifyContent":"start","alignItems":"bottom","itemMargin":0,"flexShrink":0},["value_num","value_unit"]]
+["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"天","fontSize":16,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["start_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"width":126,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
+["action_area","Column",{"width":136,"height":36,"flexShrink":0},["action"]]
+["action","ActionUnit",{"state":"capsule","label":"查看详情","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
+["/data/countdown/countdownDays",18]
+["/data/calendar/events/0/title","产品发布会"]
+["/data/calendar/events/0/dtStart","上午10:00"]
+["/data/calendar/events/0/entityId","event-001"]
 ```
 
 ## 示例九（2x2-V09）：电池温度（S2 完整主读数·单动作）
