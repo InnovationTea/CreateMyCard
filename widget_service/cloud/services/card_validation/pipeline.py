@@ -13,6 +13,8 @@ contract checks remain the responsibility of the ``generateWidgetCard`` service.
 
 from __future__ import annotations
 
+import logging
+
 from .aesthetic_baseline_validator import AestheticBaselineValidator
 from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
@@ -25,6 +27,8 @@ from .display_unit_validator import DisplayUnitValidator
 from .effective_capability_validator import EffectiveCapabilityValidator
 from .expression_validator import ExpressionValidator
 from .protocol_validator import ProtocolValidator
+
+_LOGGER = logging.getLogger(__name__)
 
 STATIC_VALIDATORS = [
     ProtocolValidator(),
@@ -71,6 +75,9 @@ def run_pipeline(
     *,
     stop_on_stage_error: bool = False,
 ) -> None:
+    if context.has_fusion_template_root():
+        _LOGGER.info("card_validation_skipped reason=template_root entry=run_pipeline")
+        return
     validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
     for current_stage in selected_stages(stage):
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
