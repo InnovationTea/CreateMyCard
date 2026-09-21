@@ -678,6 +678,7 @@ Column(
       {
         "width": "matchParent",
         "height": 20,
+        "itemMargin": 4,
         "justifyContent": "spaceBetween",
         "alignItems": "top",
         "clip": true,
@@ -687,6 +688,7 @@ Column(
         Text(
           props.headerLabel,
           {
+            "layoutWeight": 1,
             "height": 16,
             "fontSize": 12,
             "fontWeight": 700,
@@ -700,6 +702,7 @@ Column(
         Text(
           "下一个日程",
           {
+            "layoutWeight": 1,
             "height": 16,
             "fontSize": 12,
             "fontWeight": 700,
@@ -1775,6 +1778,7 @@ Column(
       {
         "width": "matchParent",
         "height": 20,
+        "itemMargin": 4,
         "justifyContent": "spaceBetween",
         "alignItems": "top",
         "clip": true,
@@ -1784,6 +1788,7 @@ Column(
         Text(
           props.headerLabel,
           {
+            "layoutWeight": 1,
             "height": 16,
             "fontSize": 12,
             "fontWeight": 700,
@@ -1797,6 +1802,7 @@ Column(
         Text(
           "下一个日程",
           {
+            "layoutWeight": 1,
             "height": 16,
             "fontSize": 12,
             "fontWeight": 700,
