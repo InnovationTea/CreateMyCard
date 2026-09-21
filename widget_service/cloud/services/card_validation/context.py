@@ -32,7 +32,7 @@ class ValidationContext:
     quality_score: int | None = None
 
     def has_fusion_template_root(self) -> bool:
-        """兼容既有调用名，仅按模板根标记判断整卡质量豁免。"""
+        """兼容既有调用名，仅按模板根标记判断整卡校验豁免。"""
         if self.root_id != "root" or self.duplicate_component_ids:
             return False
         root = self.root_component

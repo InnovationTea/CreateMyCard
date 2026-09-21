@@ -364,12 +364,14 @@ def test_dynamic_text_also_participates_in_contrast_validation(content: Any) -> 
     ("onClick", [{"call": "unknownTemplateAction", "args": {}}], "EVENT_CAPABILITY_UNKNOWN"),
     ("undeclaredField", True, "DSL_FIELD_FORBIDDEN"),
 ])
-def test_template_subtree_retains_other_validation(
-    field: str, value: Any, expected_code: str,
+@pytest.mark.parametrize("template", [True, False])
+def test_subtree_validation_only_runs_without_template_marker(
+    field: str, value: Any, expected_code: str, template: bool,
 ) -> None:
-    components = _template_components()
+    components = _template_components(("template_root" if template else "content",))
     components[-1][field] = value
     reporter = validate_card(dsl_text=_component_dsl(components))
 
-    assert reporter.has_code(expected_code)
-    assert not reporter.has_code("VISUAL.CONTRAST")
+    assert reporter.has_code(expected_code) is not template
+    if template:
+        assert reporter.diagnostics == []
