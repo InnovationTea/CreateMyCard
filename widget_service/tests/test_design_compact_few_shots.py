@@ -257,6 +257,9 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
             "fontSize": 20,
         }
     )
+    rows = [item for item in rows if item[0] != "weatherUnit"]
+    readout = next(item for item in rows if item[0] == "weatherReadout")
+    readout[3] = [item for item in readout[3] if item != "weatherUnit"]
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     result = validate_compact_dsl(
         changed_source,
@@ -264,6 +267,116 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
         card_spec={"suggestSize": "2x4"},
     )
     assert not result.warnings
+
+
+def test_formatted_measurement_allows_current_or_voltage_hero() -> None:
+    """带合法测量单位的电流/电压字符串可以作为单业务主读数。"""
+    task = {
+        "userQuery": "查看当前充电电流",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "phoneBattery": {
+                    "nowCurrentText": {
+                        "type": "string",
+                        "description": "当前设备电池实时电流文本，已包含 mA 单位",
+                        "sampleValue": "-151 mA",
+                    }
+                }
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12},["main"]]',
+            '["main","Column",{"width":126,"height":40,"padding":0},["current"]]',
+            '["current","Text",{"content":{"path":"/data/phoneBattery/nowCurrentText"},'
+            '"width":126,"height":34,"fontSize":24,"maxLines":1}]',
+            '["/data/phoneBattery/nowCurrentText","-151 mA"]',
+        ]
+    )
+    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
+    assert not result.warnings
+
+
+@pytest.mark.parametrize("font_size,height", [(20, 28), (24, 34)])
+def test_w9_allows_battery_percentage_formatted_hero(font_size: int, height: int) -> None:
+    """2x4 W9 大分区允许预算足够的带百分号电量主读数。"""
+    task = {
+        "userQuery": "查看手机电量和耳机状态",
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "phoneBattery": {
+                    "batterySOCText": {
+                        "type": "string",
+                        "description": "当前手机设备剩余电量文本，已包含%单位",
+                        "sampleValue": "68%",
+                    }
+                },
+                "earphone": {
+                    "isConnected": {
+                        "type": "boolean",
+                        "description": "当前耳机连接状态",
+                        "sampleValue": True,
+                    }
+                },
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Row",{"width":"matchParent","height":"matchParent",'
+            '"padding":8,"itemMargin":8},["phone","earphone"]]',
+            '["phone","Column",{"width":138,"height":134,"padding":12},["phoneContent"]]',
+            '["phoneContent","Column",{"width":114,"layoutWeight":1,'
+            '"justifyContent":"center"},["value"]]',
+            '["value","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},'
+            f'"width":114,"height":{height},"fontSize":{font_size},"maxLines":1}}]',
+            '["earphone","Column",{"width":138,"height":134,"padding":12},["earphoneContent"]]',
+            '["earphoneContent","Column",{"width":114,"layoutWeight":1,'
+            '"justifyContent":"center"},["status"]]',
+            '["status","Text",{"content":{"path":"/data/earphone/isConnected"},'
+            '"width":114,"fontSize":14,"maxLines":1}]',
+            '["/data/phoneBattery/batterySOCText","68%"]',
+            '["/data/earphone/isConnected",true]',
+        ]
+    )
+    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
+    assert not result.warnings
+
+
+def test_formatted_measurement_rejects_redundant_field_label() -> None:
+    """带单位字符串不能在同一行追加“电流/电压”等字段标签。"""
+    task = {
+        "userQuery": "查看当前充电电流",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "phoneBattery": {
+                    "nowCurrentText": {
+                        "type": "string",
+                        "description": "当前设备电池实时电流文本，已包含 mA 单位",
+                        "sampleValue": "-151 mA",
+                    }
+                }
+            }
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12},["main"]]',
+            '["main","Row",{"width":126,"height":28},["current","label"]]',
+            '["current","Text",{"content":{"path":"/data/phoneBattery/nowCurrentText"},'
+            '"width":126,"height":34,"fontSize":24,"maxLines":1}]',
+            '["label","Text",{"content":"电流","fontSize":12,"maxLines":1}]',
+            '["/data/phoneBattery/nowCurrentText","-151 mA"]',
+        ]
+    )
+    with pytest.raises(CompactDslValidationError, match="large numeric value"):
+        validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
 
 
 def test_adaptive_primary_weather_status_allows_large_font_in_full_width_slot() -> None:
@@ -405,7 +518,7 @@ def test_countdown_with_action_rejects_centered_value_row() -> None:
     [
         ("2x2-V02", ("2x2-V02",), ("2x2-V03", "2x2-V04")),
         ("2x2-V03", ("2x2-V03",), ("2x2-V02",)),
-        ("2x4-V01", ("2x4-V01", "2x4-V07"), ("2x4-V09", "2x4-V10")),
+        ("2x4-V01", ("2x4-V01",), ("2x4-V07", "2x4-V09", "2x4-V10")),
         ("2x4-V11", ("2x4-V11",), ("2x4-V01", "2x4-V09")),
         ("2x4-V12", ("2x4-V12",), ("2x4-V02", "2x4-V09")),
     ],
@@ -479,7 +592,7 @@ def test_calendar_route_does_not_promote_candidate_actions_without_user_intent()
     _, task, _ = next(item for item in EXAMPLES if "2x4-V01" in item[0])
     route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
     assert route == "calendar-event"
-    assert selected == ("2x4-V01", "2x4-V07")
+    assert selected == ("2x4-V01",)
 
 
 def test_calendar_route_uses_action_variant_only_for_explicit_actions() -> None:
@@ -487,9 +600,9 @@ def test_calendar_route_uses_action_variant_only_for_explicit_actions() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x4-V08" in item[0])
     route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
     assert route == "calendar-event"
-    assert selected == ("2x4-V08", "2x4-V07")
+    assert selected == ("2x4-V08",)
     instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "action-led" in instruction
+    assert "用户语义包含显式动作" in instruction
 
 
 def test_short_query_keeps_matching_read_only_entry_without_visible_button() -> None:
@@ -557,3 +670,156 @@ def test_unknown_multi_business_uses_neutral_size_fallback() -> None:
     route, selected = PromptBuilder._visual_route(task)
     assert route == "multi-business"
     assert selected == ("2x4-V13",)
+
+
+def test_phone_and_earphone_use_sparse_device_gold_example() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    assert route == "multi-business"
+    assert selected == ("2x4-V14",)
+
+    layout_scope = PromptBuilder._layout_scope(SimpleNamespace(**task))
+    assert layout_scope == "W9-dual-backboards"
+
+
+def test_compiled_focus_instruction_is_concrete_for_sparse_w9() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
+    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
+    assert "本轮路由摘要" in instruction
+    assert "W9-dual-backboards" in instruction
+    assert "2x4-V14" in instruction
+
+
+def test_route_pruning_keeps_only_w9_layout_contract_for_sparse_dual() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
+    assert len(pruned) < len(prompt)
+    assert "### `W9-dual-backboards`" in pruned
+    assert "### `W8-quad-cells`" not in pruned
+    assert "### `W10-triple-backboards`" not in pruned
+    assert "## 9.1 2x2" not in pruned
+    assert "# 十、文字与信息适配" in pruned
+    assert "**2x4 双业务生成前置约束**" in pruned
+
+    lock = PromptBuilder._layout_route_lock(task_spec, layout_scope)
+    assert "W9 左右双大背板" in lock
+    assert "W8" not in lock
+    assert "W10" not in lock
+
+    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
+    assert "2x4-V14" in assembled
+    assert "2x4-V13" not in assembled
+    assert "### `W9-dual-backboards`" in assembled
+    assert "### `W8-quad-cells`" not in assembled
+
+
+def test_route_pruning_keeps_single_business_skeleton_range_for_weather() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V04" in item[0])
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
+    assert layout_scope == "S1-S3 adaptive-single-business"
+    assert "### `S2-info-pair-action`" in pruned
+    assert "### `S1-single-info`" in pruned
+    assert "### `S3-info-dual-action`" in pruned
+    assert "### `S4-stacked-zones`" not in pruned
+    assert "## 9.2 2x4" not in pruned
+    assert "**2x2 单业务多字段生成前置约束**" in pruned
+
+
+def test_single_business_range_preserves_dual_action_constraint() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V03" in item[0])
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
+    assert layout_scope == "S1-S3 adaptive-single-business"
+    assert "**2x2 双按钮前置约束**" in pruned
+    assert "### `S3-info-dual-action`" in pruned
+    assert "### `S2-info-pair-action`" in pruned
+
+
+def test_health_summary_with_explicit_action_uses_compact_metric_example() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V11" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    assert route == "health-readout"
+    assert selected == ("2x2-V11",)
+
+    document = (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8")
+    selected_document = PromptBuilder._select_few_shot(
+        document,
+        SimpleNamespace(**task),
+    )
+    assert "2x2-V11" in selected_document
+    assert "2x2-V07" not in selected_document
+
+
+@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
+def test_each_gold_example_compiles_only_hard_object_count_route(
+    name: str,
+    task: dict,
+    source: str,
+) -> None:
+    """代码只锁定由尺寸和对象数确定的骨架，单业务细分留给提示词。"""
+    del source
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    block_count = PromptBuilder._data_block_count(task_spec)
+    if task_spec.size == "2x2":
+        expected = (
+            "S4-stacked-zones"
+            if block_count >= 2
+            else "S1-S3 adaptive-single-business"
+        )
+    elif block_count >= 4:
+        expected = "W8-quad-cells"
+    elif block_count == 3:
+        expected = "W10-triple-backboards"
+    elif block_count == 2:
+        expected = "W9-dual-backboards"
+    else:
+        expected = "W1-W7 adaptive-single-business"
+    assert layout_scope == expected, name
+
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
+    _, selected_ids = PromptBuilder._visual_route(task_spec)
+    assert selected_ids[0] in assembled, name
+    other_size = "## 9.2 2x4" if task_spec.size == "2x2" else "## 9.1 2x2"
+    assert other_size not in assembled, name
+
+
+@pytest.mark.parametrize("identifier", ("2x4-V00", "2x4-V02", "2x4-V11", "2x4-V12"))
+def test_adaptive_single_business_retains_all_single_business_skeletons(
+    identifier: str,
+) -> None:
+    """单业务只裁剪尺寸，不由 Python 提前决定具体 W 骨架。"""
+    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    assert layout_scope == "W1-W7 adaptive-single-business"
+
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
+    assert "### `W1-progress-aux`" in assembled
+    assert "### `W2-text-flow`" in assembled
+    assert "### `W3-ring-detail`" in assembled
+    assert "### `W4-metric-triple`" in assembled
+    assert "### `W5-progress-detail`" in assembled
+    assert "### `W6-agenda-cta`" in assembled
+    assert "### `W7-list-rows`" in assembled
+
+
+def test_sparse_w9_asymmetric_hierarchy_stays_in_prompt_policy() -> None:
+    """W9 主次关系由通用提示词约束，不在 Python 中继续增加构图分支。"""
+    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
+    task_spec = SimpleNamespace(**task)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
+    assert layout_scope == "W9-dual-backboards"
+    assert "不得镜像复制相同的标题、主值、辅助行模板" in assembled

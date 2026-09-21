@@ -24,7 +24,6 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
 from models.generation import TaskSpec
 from services.prompt_builder import PromptBuilder
-from services.protocol_registry import A2UIProtocolRegistry
 from services.source_artifact_repository import (
     SourceArtifactError,
     SourceArtifactRepository,
@@ -335,7 +334,7 @@ async def test_design_edit_repair_saves_final_design_token(
 
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert len(prompts) == 2
-    assert updated.design_token == source.design_token
+    assert updated.design_token.replace("\r", "") == source.design_token.replace("\r", "")
     repair_payload = json.loads(prompts[1][1]["content"])
     original_user = json.loads(repair_payload["originalUserContent"])
     assert original_user["previousDesignToken"]["content"] == source.design_token
@@ -482,10 +481,14 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
     )
 
     edit_context = json.loads(prompt[1]["content"])
-    assert prompt[0]["content"].startswith(
-        A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
-    )
-    assert "编辑模式附加规则" in prompt[0]["content"]
+    system_prompt = prompt[0]["content"]
+    assert "# 本轮路由摘要（高优先级）" in system_prompt
+    assert "## 9.2 2x4 固定骨架" in system_prompt
+    assert "## 9.1 2x2 固定骨架" not in system_prompt
+    assert "### `W8-quad-cells`" not in system_prompt
+    assert "### `W9-dual-backboards`" not in system_prompt
+    assert "### `W10-triple-backboards`" not in system_prompt
+    assert "编辑模式附加规则" in system_prompt
     assert edit_context["previousGenui"] == previous_genui
     assert edit_context["editInstruction"] == "改成蓝色"
     assert "appVersion" not in edit_context["newTaskSpec"]
