@@ -25,7 +25,10 @@ def test_battery_green_palette_matches_earphone_without_changing_layout() -> Non
     earphone = registry.require_theme("audio-product-neutral-violet")
     memory = registry.require_theme("device-clean-blue-teal")
 
-    assert battery.reference_values == earphone.reference_values
+    expected_earphone_values = dict(battery.reference_values)
+    expected_earphone_values["actionStyle.backgroundColor"] = "#33FFFFFF"
+    assert earphone.reference_values == expected_earphone_values
+    assert battery.reference_values.get("actionStyle.backgroundColor") == "#3364BB5C"
     assert battery.root_style.get("backgroundColor") == earphone.root_style.get("backgroundColor")
     assert "linearGradient" not in battery.root_style
     assert battery.supported_capability_ids == ("GetPhoneBatteryInfo",)

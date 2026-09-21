@@ -114,7 +114,6 @@ data = {
 Column(
     {
         "_advancedComponent": "BluetoothDeviceOverview",
-        "_layoutActionBackgroundOpacity": 0.1,
         "width": "matchParent", "height": "matchParent", "itemMargin": 4,
         "justifyContent": "start", "alignItems": "start", "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
@@ -125,10 +124,10 @@ Column(
         "constraintSize": { "minWidth": 0, "minHeight": 0 },
         "margin": { "top": 0, "bottom": 4, "left": 0, "right": 0 }
     }),
-    Row({ "width": "matchParent", "height": 26, "itemMargin": 0,
+    Row({ "width": "matchParent", "height": 42, "itemMargin": 0,
         "justifyContent": "spaceBetween", "alignItems": "start" },
-        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
-            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+        Column({ "width": 44, "height": 42, "itemMargin": 2, "alignItems": "center" },
+            Column({ "width": 28, "height": 28, "itemMargin": 4, "alignItems": "center" },
                 #if props.leftEarIcon
                     Image(props.leftEarIcon, {
                         "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
@@ -141,6 +140,7 @@ Column(
                 #endif
                 Text(Expr('' + data.left + '%'), {
                     "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "textAlign": "center",
                     "fontColor": $theme('supportContentColor'), "maxLines": 1
                 })
             ),
@@ -149,8 +149,8 @@ Column(
                 "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
             })
         ),
-        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
-            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+        Column({ "width": 44, "height": 42, "itemMargin": 2, "alignItems": "center" },
+            Column({ "width": 28, "height": 28, "itemMargin": 4, "alignItems": "center" },
                 #if props.rightEarIcon
                     Image(props.rightEarIcon, {
                         "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
@@ -163,6 +163,7 @@ Column(
                 #endif
                 Text(Expr('' + data.right + '%'), {
                     "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "textAlign": "center",
                     "fontColor": $theme('supportContentColor'), "maxLines": 1
                 })
             ),
@@ -171,8 +172,8 @@ Column(
                 "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"
             })
         ),
-        Column({ "width": 44, "height": 26, "itemMargin": 2, "alignItems": "center" },
-            Row({ "width": 44, "height": 12, "itemMargin": 4, "alignItems": "center" },
+        Column({ "width": 44, "height": 42, "itemMargin": 2, "alignItems": "center" },
+            Column({ "width": 28, "height": 28, "itemMargin": 4, "alignItems": "center" },
                 #if props.caseIcon
                     Image(props.caseIcon, {
                         "width": 12, "height": 12, "fillColor": $theme('supportContentColor')
@@ -185,6 +186,7 @@ Column(
                 #endif
                 Text(Expr('' + data.case + '%'), {
                     "width": 28, "height": 12, "fontSize": 10, "fontWeight": 500,
+                    "textAlign": "center",
                     "fontColor": $theme('supportContentColor'), "maxLines": 1
                 })
             ),

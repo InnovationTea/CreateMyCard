@@ -56,6 +56,11 @@ async def test_compact_optional_fields(connected: bool | None, battery: int | No
     )
     result = await generate_template_a2ui(task, _bluetooth_card_spec(), (binding,), model)
     assert "CompactTwoActionLayout@1" in result.template_ids
+    for line in result.a2ui.splitlines():
+        for component in json.loads(line).get("updateComponents", {}).get("components", []):
+            if component.get("onClick"):
+                assert component.get("styles", {}).get("backgroundColor") == "#33FFFFFF"
+
     assert ("/isConnected" in result.a2ui) == (connected is not None)
     assert ("/batteryLevel" in result.a2ui) == (battery is not None)
     assert ("未连接" in result.a2ui) == (connected is not None)
@@ -71,3 +76,26 @@ async def test_compact_optional_fields(connected: bool | None, battery: int | No
     row = battery_rows[0]
     assert row.get("itemMargin") == (12 if battery is None else 8)
     assert len(row.get("children", [])) == (2 if battery is None else 3)
+
+    components = {}
+    for line in result.a2ui.splitlines():
+        for component in json.loads(line).get("updateComponents", {}).get("components", []):
+            components[component.get("id")] = component
+    title_rows = []
+    for component in components.values():
+        if component.get("component") != "Row":
+            continue
+        children = component.get("children", [])
+        if len(children) != 3:
+            continue
+        separator = components.get(children[1], {})
+        if separator.get("content") == "|":
+            title_rows.append(component)
+    assert len(title_rows) == (0 if connected is None else 1)
+    for title in title_rows:
+        for child_id in title.get("children", []):
+            child = components.get(child_id)
+            assert isinstance(child, dict)
+            styles = child.get("styles", {})
+            assert styles.get("fontSize") == 12
+            assert styles.get("fontWeight") == 700

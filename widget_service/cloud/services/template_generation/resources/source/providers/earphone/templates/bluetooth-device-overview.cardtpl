@@ -8,7 +8,6 @@ data = {
 Column(
     {
         "_advancedComponent": "BluetoothDeviceOverview",
-        "_layoutActionBackgroundOpacity": 0.1,
         "width": "matchParent", "height": "matchParent", "itemMargin": 4,
         "justifyContent": "start", "alignItems": "start", "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
@@ -71,7 +70,6 @@ data = {
 Column(
     {
         "_advancedComponent": "BluetoothDeviceOverview",
-        "_layoutActionBackgroundOpacity": 0.1,
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
@@ -734,7 +732,6 @@ data = {
 Column(
   {
     "_advancedComponent": "BluetoothDeviceOverview",
-    "_layoutActionBackgroundOpacity": 0.1,
     "width": "matchParent",
     "height": "matchParent",
     "itemMargin": 4,
@@ -878,7 +875,10 @@ data = {
     name: $path("/earphoneName"),
     case: $path("/batteryLevel"),
     left: $path("/leftBatteryLevel"),
-    right: $path("/rightBatteryLevel")
+    right: $path("/rightBatteryLevel"),
+    leftCharge: $optionalPath("/leftChargingStatusDesc"),
+    rightCharge: $optionalPath("/rightChargingStatusDesc"),
+    caseCharge: $optionalPath("/chargingStatusDesc")
 }
 
 Column(
@@ -907,10 +907,10 @@ Column(
     )
   ),
   Row(
-    { "width": "matchParent", "height": 40, "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    { "width": "matchParent", "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 54 : 40) : 40) : 40), "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     Column(
       {
-          "height": 40,
+          "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 54 : 40) : 40) : 40),
           "itemMargin": 2,
           "justifyContent": "start",
           "alignItems": "center",
@@ -927,11 +927,20 @@ Column(
       #endif
       Text(Expr('' + data.left + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
-        )
+        ),
+      #if data.leftCharge && data.rightCharge
+        #if data.caseCharge
+          Text(data.leftCharge, {
+            "width": 40, "height": 12, "fontSize": 10, "fontWeight": 400,
+            "textAlign": "center", "fontColor": $theme('supportContentColor'),
+            "maxLines": 1, "textOverflow": "ellipsis"
+          })
+        #endif
+      #endif
     ),
     Column(
       {
-          "height": 40,
+          "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 54 : 40) : 40) : 40),
           "itemMargin": 2,
           "justifyContent": "start",
           "alignItems": "center",
@@ -948,11 +957,20 @@ Column(
       #endif
       Text(Expr('' + data.right + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
-        )
+        ),
+      #if data.leftCharge && data.rightCharge
+        #if data.caseCharge
+          Text(data.rightCharge, {
+            "width": 40, "height": 12, "fontSize": 10, "fontWeight": 400,
+            "textAlign": "center", "fontColor": $theme('supportContentColor'),
+            "maxLines": 1, "textOverflow": "ellipsis"
+          })
+        #endif
+      #endif
     ),
     Column(
       {
-          "height": 40,
+          "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 54 : 40) : 40) : 40),
           "itemMargin": 2,
           "justifyContent": "start",
           "alignItems": "center",
@@ -969,7 +987,16 @@ Column(
       #endif
       Text(Expr('' + data.case + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
-        )
+        ),
+      #if data.leftCharge && data.rightCharge
+        #if data.caseCharge
+          Text(data.caseCharge, {
+            "width": 40, "height": 12, "fontSize": 10, "fontWeight": 400,
+            "textAlign": "center", "fontColor": $theme('supportContentColor'),
+            "maxLines": 1, "textOverflow": "ellipsis"
+          })
+        #endif
+      #endif
     ),
   )
 )
@@ -1095,19 +1122,23 @@ Column(
   #if data.connected
     Row({ "width": "matchParent", "itemMargin": 4, "alignItems": "center" },
       Text(data.name, {
-        "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'),
+        "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'),
         "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 1,
-        "constraintSize": { "minWidth": 0, "maxWidth": 94 }
+        "constraintSize": { "minWidth": 0, "maxWidth": 74 }
+      }),
+      Text("|", {
+        "width": 6, "fontSize": 12, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0
       }),
       Text(Expr(data.connected ? '已连接' : '未连接'), {
-        "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+        "width": 48, "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'),
         "maxLines": 1, "flexShrink": 0
       })
     ),
   #else
   Text(
     data.name,
-    { "width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor') }
+    { "width": "matchParent", "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor') }
   ),
   #endif
   Row(
@@ -1283,7 +1314,6 @@ data = {
 Column(
   {
     "_advancedComponent": "BluetoothDeviceOverview",
-    "_layoutActionBackgroundOpacity": 0.1,
     "width": "matchParent",
     "height": "matchParent",
     "padding": {"left": 0, "top": 6, "right": 0, "bottom": 0},
@@ -1380,7 +1410,6 @@ data = {
 Column(
   {
     "_advancedComponent": "BluetoothDeviceOverview",
-    "_layoutActionBackgroundOpacity": 0.1,
     "width": "matchParent",
     "height": "matchParent",
     "padding": {"left": 0, "top": 6, "right": 0, "bottom": 0},
