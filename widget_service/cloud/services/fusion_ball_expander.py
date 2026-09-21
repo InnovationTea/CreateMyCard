@@ -38,6 +38,8 @@ _DESIGN_TOKEN_FIXED_PALETTES = {
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"
 _FUSION_CAPSULE_ICON = "#99FFFFFF"
+_FUSION_CONTENT_BACKGROUND = "#33FFFFFF"
+_FUSION_CONTENT_TEXT = "#FFFFFFFF"
 _FUSION_CAPSULE_HEIGHT = 36
 _FUSION_CAPSULE_BORDER_RADII = frozenset({18, 20})
 _BACKGROUND_STYLE_KEYS = frozenset(
@@ -198,6 +200,7 @@ def expand_fusion_ball_components(
     foreground_styles["height"] = "matchParent"
 
     content_components = [foreground, *(item for item in copied if item is not root)]
+    _normalize_fusion_content_styles(content_components, content_id)
     _apply_fusion_capsule_styles(content_components, content_id)
 
     expanded_root = {
@@ -217,6 +220,31 @@ def expand_fusion_ball_components(
     background = _build_fusion_ball_components(palette)
     remaining = content_components[1:]
     return [expanded_root, *background, foreground, *remaining]
+
+
+def _normalize_fusion_content_styles(
+    components: list[dict[str, Any]],
+    content_id: str,
+) -> None:
+    """将浅色骨架的内容表面收敛为融球前景样式。"""
+    components_by_id = {
+        item.get("id"): item for item in components if isinstance(item.get("id"), str)
+    }
+    content_ids = _collect_descendant_ids(components_by_id, content_id)
+    for component_id in content_ids:
+        component = components_by_id.get(component_id)
+        if not isinstance(component, dict) or component_id == content_id:
+            continue
+        styles = component.get("styles")
+        if not isinstance(styles, dict):
+            continue
+        background_color = styles.get("backgroundColor")
+        if isinstance(background_color, str) and background_color.upper() == "#CCFFFFFF":
+            styles["backgroundColor"] = _FUSION_CONTENT_BACKGROUND
+        if component.get("component") == "Text":
+            styles["fontColor"] = _FUSION_CONTENT_TEXT
+        elif component.get("component") == "Image" and "fillColor" in styles:
+            styles["fillColor"] = _FUSION_CONTENT_TEXT
 
 
 def _apply_fusion_capsule_styles(
