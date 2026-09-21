@@ -22,6 +22,7 @@ from .compact_dual_action_validator import collect_dual_action_errors
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
+_STRING_LITERAL_PATTERN = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
 _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
     r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
 )
@@ -82,7 +83,49 @@ _COMMON_DISPLAY_UNITS = frozenset(
         "kWh",
         "bpm",
         "次/分钟",
+        "mV",
+        "μA",
+        "uA",
+        "kHz",
+        "MHz",
+        "Pa",
+        "kPa",
+        "Wh",
+        "MB",
+        "GB",
+        "TB",
+        "km/h",
+        "m/s",
     }
+)
+
+_MEASUREMENT_DESCRIPTION_MARKERS = (
+    "温度",
+    "电量",
+    "电池电量",
+    "剩余电量",
+    "占比",
+    "比例",
+    "电流",
+    "电压",
+    "功率",
+    "频率",
+    "速度",
+    "距离",
+    "容量",
+    "湿度",
+    "压力",
+    "海拔",
+    "重量",
+    "体重",
+    "长度",
+    "宽度",
+    "高度",
+)
+_MEASUREMENT_SAMPLE_PATTERN = re.compile(
+    r"[+-]?\d+(?:\.\d+)?\s*(?:°C|℃|°F|mA|μA|uA|A|mV|V|kW|W|kWh|Wh|MHz|kHz|Hz|"
+    r"km/h|m/s|km|千米|公里|m|米|cm|厘米|mm|毫米|kg|g|mg|MB|GB|TB|Pa|kPa|%|"
+    r"毫秒|小时|分钟|分|秒)$"
 )
 
 _AMBIGUOUS_METRIC_DESCRIPTION_MARKERS = (
@@ -218,6 +261,11 @@ def _collect_hero_value_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
+    # 与质量阶段使用相同的有效模板根标记，仅豁免主文字校验。
+    if len(components_by_id) == len(components) and "template_root" in components_by_id:
+        root = components_by_id.get("root")
+        if root is not None and "template_root" in root.children:
+            return
     data_model_schema = task_spec.get("dataModelSchema")
     if not isinstance(data_model_schema, dict):
         return
@@ -231,6 +279,7 @@ def _collect_hero_value_errors(
         )
 
     numeric_paths: dict[str, str | None] = {}
+    formatted_hero_ids: set[str] = set()
     for component in components:
         if component.component_type != "Text":
             continue
@@ -246,26 +295,35 @@ def _collect_hero_value_errors(
             continue
         if _is_readable_formatted_hero(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
+            formatted_hero_ids.add(component.component_id)
             continue
         if _is_adaptive_primary_text(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
             continue
         errors.append(
             f"component {component.component_id}: fontSize {_format_vp(font_size)} "
-            "is reserved for a pure number/integer value. Text, formatted values, "
-            "names, dates, times, and statuses must use at most 18fp on their own line; "
-            "a directly bound temperature, duration, or percentage may use 20/24fp "
-            "only in a single-business full-width column with a sufficient text budget."
+            "requires a pure number/integer or a supported primary value. "
+            "A directly bound measurement with a declared unit may use 20/24fp "
+            "in a full-width area or 2x4 large panel when its text budget fits; "
+            "ordinary names, dates, times, and statuses remain at most 18fp."
         )
 
     for component in components:
         if component.component_type != "Row":
             continue
         for index, child_id in enumerate(component.children[:-1]):
+            suffix = components_by_id.get(component.children[index + 1])
+            if child_id in formatted_hero_ids:
+                if suffix is not None and suffix.component_type == "Text":
+                    errors.append(
+                        f"component {component.component_id}: formatted value "
+                        f"{child_id} already contains its unit; do not append "
+                        f"Text {suffix.component_id} or a field label."
+                    )
+                continue
             if child_id not in numeric_paths:
                 continue
             numeric_path = numeric_paths[child_id]
-            suffix = components_by_id.get(component.children[index + 1])
             if suffix is None or suffix.component_type != "Text":
                 continue
             content = suffix.props.get("content")
@@ -337,6 +395,8 @@ def _is_adaptive_primary_text(
         return False
     parent = parents[0]
     if parent.component_type not in {"Column", "Row"} or parent.props.get("padding", 0) != 0:
+        return False
+    if parent.component_type == "Row" and len(parent.children) != 1:
         return False
     width = _non_negative_number(props.get("width"))
     parent_width = _non_negative_number(parent.props.get("width"))
@@ -447,13 +507,17 @@ def _is_readable_formatted_hero(
 def _formatted_hero_binding(content: Any) -> tuple[str | None, str | None]:
     if isinstance(content, dict) and set(content) == {"path"}:
         path = content.get("path")
-        return (path, None) if isinstance(path, str) else (None, None)
+        if isinstance(path, str):
+            return path, None
+        return None, None
     if not isinstance(content, str):
         return None, None
     match = _SIMPLE_FORMATTED_EXPRESSION_PATTERN.fullmatch(content.strip())
     if match is None:
         return None, None
-    return match.group("path"), match.group("unit")
+    path = match.group("path")
+    unit = match.group("unit")
+    return path, unit
 
 
 def _is_large_2x4_panel(
@@ -521,10 +585,12 @@ def _formatted_hero_pressure(sample: str, description: str) -> str | None:
     duration = duration and re.fullmatch(
         r"\d+小时(?:\d+分)?|\d+(?:分钟|分|秒)", sample
     ) is not None
-    percentage = any(word in description for word in ("百分比", "百分率"))
+    percentage = any(word in description for word in ("百分比", "百分率", "电量", "占比", "比例"))
     percentage = percentage and re.fullmatch(r"\d+(?:\.\d+)?%", sample) is not None
+    measurement = any(marker in description for marker in _MEASUREMENT_DESCRIPTION_MARKERS)
+    measurement = measurement and _MEASUREMENT_SAMPLE_PATTERN.fullmatch(sample) is not None
     pressure: str | None = None
-    if temperature or duration or percentage:
+    if temperature or duration or percentage or measurement:
         pressure = re.sub(r"\d+", lambda match: "9" * max(2, len(match.group())), sample)
         if temperature:
             pressure = re.sub(
@@ -1584,9 +1650,13 @@ def _contains_action_control(
 ) -> bool:
     if component.component_type in {"ActionUnit", "Button"}:
         return True
+    if component.component_type == "Row" and "onClick" in component.props:
+        return True
     descendants = _descendant_components(component, components_by_id)
     for descendant in descendants:
         if descendant.component_type in {"ActionUnit", "Button"}:
+            return True
+        if descendant.component_type == "Row" and "onClick" in descendant.props:
             return True
     return False
 
@@ -2171,6 +2241,26 @@ def _has_nearby_metric_label(
     parent_by_child: dict[str, str],
     components_by_id: dict[str, ComponentRow],
 ) -> bool:
+    def has_metric_label(value: Any) -> bool:
+        if not isinstance(value, str):
+            return False
+        if "{{" in value:
+            candidates = [
+                match[1:-1].strip()
+                for match in _STRING_LITERAL_PATTERN.findall(value)
+            ]
+        else:
+            candidates = [value.strip()]
+        return any(
+            len(candidate) >= 2
+            and candidate not in _AMBIGUOUS_STATUS_MARKERS
+            and candidate not in _COMMON_DISPLAY_UNITS
+            for candidate in candidates
+        )
+
+    if has_metric_label(component.props.get("content")):
+        return True
+
     current = component.component_id
     for _ in range(3):
         parent_id = parent_by_child.get(current)
@@ -2186,12 +2276,8 @@ def _has_nearby_metric_label(
                 if sibling and sibling.component_type == "Text"
                 else None
             )
-            if isinstance(text, str) and "{{" not in text and len(text.strip()) >= 2:
-                if (
-                    text.strip() not in _AMBIGUOUS_STATUS_MARKERS
-                    and text.strip() not in _COMMON_DISPLAY_UNITS
-                ):
-                    return True
+            if has_metric_label(text):
+                return True
         current = parent.component_id
     return False
 

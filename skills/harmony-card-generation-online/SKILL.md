@@ -168,6 +168,9 @@ invoke(functionName:"RequestDataPermission", arguments:{
 ### 8. 完整请求校验并调用生成
 
 - **进入条件：** 能力、参数、权限和来源处理完成；读取运行指南“编辑请求”和“生成结果与内部留存”。
+- **edit 参数门禁：** edit 模式下，用户明确要求修改且生成工具参数中存在对应字段时，必须在本次调用中显式传入该字段；
+  只有用户未要求修改的字段才允许依赖来源继承。不能只在 `userQuery` 描述修改内容后省略对应参数，
+  也不能用来源值代替本轮明确修改值。
 - **回复前置条件：** 核对实际反馈：本轮采用的外部事实是否已按入口或来源返回时序实际发送？
   未发送时先用 R16W/R16 直接说明；本步只检查回复完成，不在这里执行首次事实回复或隐含回填。
 - **用户回复：** 正常调用前不重复开始回复或播报工具步骤；仍需用户信息用 R05 等待，技术缺口用 R14 停止。
@@ -199,6 +202,18 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"把背景改成蓝色。",
+  sourceArtifactUrl:"<本会话目标卡片最近有效工具结果的原始 artifactUrl>"
+},"skillName":"harmony-card-generation-online")
+```
+
+- **尺寸 edit 示例：** 多轮用户明确要求改变已有卡片尺寸时，仍使用 edit，并在生成工具入参中显式传入本轮目标 `size`；
+  不能只在 `userQuery` 中描述尺寸而省略字段。
+
+```text
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"把已有卡片改成 2x4 尺寸。",
+  size:"2x4",
   sourceArtifactUrl:"<本会话目标卡片最近有效工具结果的原始 artifactUrl>"
 },"skillName":"harmony-card-generation-online")
 ```

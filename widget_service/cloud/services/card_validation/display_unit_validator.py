@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .base import BaseValidator, expression_references
+from .context import ValidationContext
 from .display_unit_rules import (
     collect_bound_display_unit_rules,
     matching_unit_literal_count,
@@ -18,7 +19,7 @@ class DisplayUnitValidator(BaseValidator):
     stage = "semantic"
     name = "display_unit"
 
-    def validate(self, context, rules, reporter) -> None:
+    def validate(self, context: ValidationContext, rules, reporter) -> None:
         del rules
         unit_rules = collect_bound_display_unit_rules(
             context.cardspec,
@@ -26,6 +27,7 @@ class DisplayUnitValidator(BaseValidator):
         )
         if not unit_rules:
             return
+        skip_missing_unit = context.has_fusion_template_root()
         parents_by_child = self._parents_by_child(context.components)
         for component in context.components:
             if component.get("component") != "Text":
@@ -64,7 +66,7 @@ class DisplayUnitValidator(BaseValidator):
                     message="动态字段已自带展示单位，不得再次拼接或另行展示相同单位。",
                     fix_hint="删除表达式或相邻 Text 中重复追加的单位，仅保留字段自身内容。",
                 )
-            elif not rule.unit_included and visible_unit_count == 0:
+            elif not rule.unit_included and visible_unit_count == 0 and not skip_missing_unit:
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_MISSING",

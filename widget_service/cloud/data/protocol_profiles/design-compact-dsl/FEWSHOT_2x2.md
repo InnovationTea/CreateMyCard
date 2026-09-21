@@ -209,8 +209,8 @@
 ["/data/calendar/events/0/entityId","event-001"]
 ```
 
-## 示例九（2x2-V09）：电池温度（S2 完整主读数·单动作）
-完整温度在 126vp 内容宽度内使用20fp；负号、小数与单位一起检查，不拆单位、不追加无关时间。状态紧跟主值，按钮沉底。
+## 示例九（2x2-V09）：电池测量主读数（S2 完整主读数·单动作）
+完整温度在 126vp 内容宽度内使用20fp；同样适用于 description 明确为电流、电压、功率、频率等测量值且首帧为“数字+合法单位”的格式化字符串。负号、小数和单位一起做压力检查，不拆单位、不追加字段标签。若同一业务同时有多个测量值，只突出一个主读数，其余值使用 12/14/18fp 辅助行；`"4 V"` 后不能再拼“电压”，`"-151 mA"` 后不能再拼“电流”。状态紧跟主值，按钮沉底。
 ### user
 ```json
 {"userQuery":"显示电池温度和充电状态，使用浅青渐变，并能打开电池设置。","size":"2x2","assetCandidates":[],"eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"phoneBattery":{"batteryTemperatureText":{"type":"string","description":"包含单位的电池温度文本","sampleValue":"29.0°C"},"chargingStatusDesc":{"type":"string","description":"当前充电状态","sampleValue":"未充电"}}}}}
@@ -249,4 +249,29 @@
 ["/data/beijing/location/prefectureName","北京"]
 ["/data/beijing/current/temperatureText","18°C"]
 ["/data/beijing/current/condition","晴"]
+```
+
+## 示例十一（2x2-V11）：运动三指标与歌单入口（单主值·紧凑辅助行·图文动作）
+本例展示一项明确主指标、两项辅助指标和一个显式跨业务动作。多个辅助 Text 位于同一个 Row 时只算一条视觉行，全部使用 `12fp/400`，以 ` | ` 分隔并保留自解释单位；图文动作 Row 属于动作区，不计入信息行。相同歌单事件只绑定按钮一次，不再绑定 root。
+### user
+```json
+{"userQuery":"帮我做个运动音乐卡片，看今天最近一次运动的时长、消耗热量和平均心率，训练时可以打开歌单。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"dataModelSchema":{"data":{"healthSport":{"exerciseDurationText":{"type":"string","description":"已包含时间单位的单次运动时长文本","sampleValue":"40分"},"exerciseCalorieText":{"type":"string","description":"已包含千卡单位的单次运动热量文本","sampleValue":"260 千卡"},"exerciseHeartRateAvg":{"type":"integer","description":"平均心率纯整数，展示时追加次/分钟","sampleValue":135}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"音乐音符单色图标；适用于用户明确要求的歌单动作入口。"}]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-sport-orange"},["title_area","content_area","action_area"]]
+["title_area","CardHeader",{"title":"运动记录","fontColor":"#FFFFFFFF"}]
+["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["duration","aux_metrics"]]
+["duration","Text",{"content":{"path":"/data/healthSport/exerciseDurationText"},"width":136,"fontSize":24,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["aux_metrics","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":4},["calorie","separator","heart_rate"]]
+["calorie","Text",{"content":{"path":"/data/healthSport/exerciseCalorieText"},"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["separator","Text",{"content":"|","fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","maxLines":1}]
+["heart_rate","Text",{"content":"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}","fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["action_area","Column",{"width":136,"height":36,"flexShrink":0,"justifyContent":"start","alignItems":"center"},["music_action"]]
+["music_action","Row",{"width":126,"height":36,"borderRadius":18,"backgroundColor":"#33FFFFFF","padding":{"left":8,"right":8,"top":0,"bottom":0},"itemMargin":8,"justifyContent":"center","alignItems":"center","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]},["music_icon","music_label"]]
+["music_icon","Image",{"src":"resources/base/media/music_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#99FFFFFF"}]
+["music_label","Text",{"content":"打开歌单","fontSize":14,"fontWeight":400,"fontColor":"#E6FFFFFF","maxLines":1}]
+["/data/healthSport/exerciseDurationText","40分"]
+["/data/healthSport/exerciseCalorieText","260 千卡"]
+["/data/healthSport/exerciseHeartRateAvg",135]
 ```

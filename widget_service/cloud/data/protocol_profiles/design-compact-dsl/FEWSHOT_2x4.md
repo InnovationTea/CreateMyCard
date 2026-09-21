@@ -241,7 +241,7 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["batteryZone","Column",{"width":138,"height":134,"padding":12,"itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["batteryContent","batteryButton"]]
 ["batteryTitle","Text",{"content":"手机电量","width":114,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["batteryContent","Column",{"width":114,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["batteryTitle","batteryValue","batteryStatus"]]
-["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":114,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["batteryValue","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","width":114,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
 ["batteryStatus","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["batteryButton","Button",{"label":"电池设置","width":114,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
 ["/data/weather/location/cityCode","101020100"]
@@ -332,7 +332,7 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 
 ## 示例二十（2x4-V13）：中性稀疏双业务（W9-dual-backboards·蓝色微渐变）
 
-本例只演示未覆盖业务组合的 W9 稀疏构图，不提供可复制的业务文案。两侧各保留一个主焦点和一条必要上下文，真实内容组稳定居中；候选素材与对象精确匹配，因此放在各自标题右侧。若真实 TaskSpec 没有合法素材，只删除图标并让标题占满宽度，不留空槽、不猜测路径。
+本例是未知业务组合的 W9 稀疏金标，不提供可复制的业务文案。两侧各保留一个主焦点和一条必要上下文，真实内容组稳定居中；候选素材与对象精确匹配，因此放在各自标题右侧。若真实 TaskSpec 没有合法素材，只删除图标并让标题占满宽度，不留空槽、不猜测路径。
 
 ### user
 ```json
@@ -360,4 +360,33 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["/data/project/status","评审中"]
 ["/data/sync/title","方案同步"]
 ["/data/sync/time","14:00"]
+```
+
+## 示例二十一（2x4-V14）：手机电量与耳机状态（W9 稀疏双业务金标·蓝色微渐变）
+
+本例是常见设备组合的稀疏 W9 金标。每侧只有 2～3 项必要事实且没有动作，直接 content Column 必须使用 `layoutWeight:1` 与 `justifyContent:"center"`，让主读数或核心状态位于背板视觉中心。手机电量使用 20fp 完整格式化主读数，耳机连接状态使用 18fp；业务标签和必要状态保持 12fp。禁止把全部内容缩成顶部小字，也不添加更新时间、图标、进度环或重复电量来填充留白。
+
+### user
+```json
+{"userQuery":"做张横向卡片，主要看手机剩余电量，也看看耳机是否连接和充电盒电量。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOCText":{"type":"string","description":"当前手机剩余电量文本，已包含%单位","sampleValue":"68%"},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"earphoneName":{"type":"string","description":"耳机设备名称","sampleValue":"FreeBuds Pro"},"isConnected":{"type":"boolean","description":"耳机当前是否连接","sampleValue":true},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100，展示时追加%","sampleValue":80}}}},"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Row",{"width":"matchParent","height":"matchParent","padding":8,"itemMargin":8,"borderRadius":20,"clip":true,"justifyContent":"center","alignItems":"center","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["phoneZone","earphoneZone"]]
+["phoneZone","Column",{"width":138,"height":134,"padding":12,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["phoneContent"]]
+["phoneContent","Column",{"width":114,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4},["phoneLabel","phoneValue","phoneStatus"]]
+["phoneLabel","Text",{"content":"手机电量","width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["phoneValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":114,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["earphoneZone","Column",{"width":138,"height":134,"padding":12,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["earphoneContent"]]
+["earphoneContent","Column",{"width":114,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4},["earphoneName","earphoneStatus","caseBattery"]]
+["earphoneName","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["earphoneStatus","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":114,"height":26,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["caseBattery","Text",{"content":"{{ '充电盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
+["/data/earphone/earphoneName","FreeBuds Pro"]
+["/data/earphone/isConnected",true]
+["/data/earphone/batteryLevel",80]
 ```
