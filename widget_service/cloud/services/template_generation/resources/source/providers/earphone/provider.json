@@ -39,7 +39,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudTripleHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "三电量 Hero：耳机名称，下方左耳、右耳、盒三列对齐，上行图标与电量，下行各自充电状态，配一个操作按钮。",
+      "description": "三电量 Hero：耳机名称，下方左耳、右耳、盒三列对齐，每列从上到下为图标、电量百分比、各自充电状态，配一个操作按钮。",
       "entry": "templates/earbud-triple.cardtpl",
       "primaryData": [
         "/earphoneName"
@@ -193,7 +193,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudPairFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机成对 Full，展示连接状态、名称、盒与左右耳电量。",
+      "description": "耳机成对 Full，展示连接状态、名称、盒与左右耳电量；三项充电状态均存在时增加完整的充电状态层。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/isConnected",
@@ -204,7 +204,7 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": []
+      "optionalData": ["/leftChargingStatusDesc", "/rightChargingStatusDesc", "/chargingStatusDesc"]
     },
     {
       "templateId": "BluetoothDeviceOverviewCompleteWideFull@1",
