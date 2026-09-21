@@ -8,7 +8,7 @@ from services.template_generation.engine.cardplan.registry import get_cardplan_r
 
 
 @pytest.mark.parametrize("fusion", [False, True])
-def test_all_single_earphone_templates_use_twenty_percent_white(fusion: bool) -> None:
+def test_earphone_white_buttons_apply_only_to_fusion(fusion: bool) -> None:
     registry = get_cardplan_registry(fusion)
     theme_id = "fusion-battery-teal" if fusion else "audio-product-neutral-violet"
     theme = registry.require_theme(theme_id)
@@ -26,7 +26,12 @@ def test_all_single_earphone_templates_use_twenty_percent_white(fusion: bool) ->
             contract, registry, foreground=theme.action_style.content_color,
             default=theme.action_style.background_color,
         )
-        assert background == "#33FFFFFF", record.template_id
+        expected = "#33FFFFFF" if fusion else "#3364BB5C"
+        definition = registry.templates.get(record.template_id)
+        assert definition is not None
+        if not fusion and definition.layout_action_style is not None:
+            expected = "#1952991F"
+        assert background == expected, record.template_id
         checked += 1
     assert checked > 0
 

@@ -59,7 +59,7 @@ async def test_compact_optional_fields(connected: bool | None, battery: int | No
     for line in result.a2ui.splitlines():
         for component in json.loads(line).get("updateComponents", {}).get("components", []):
             if component.get("onClick"):
-                assert component.get("styles", {}).get("backgroundColor") == "#33FFFFFF"
+                assert component.get("styles", {}).get("backgroundColor") == "#3364BB5C"
 
     assert ("/isConnected" in result.a2ui) == (connected is not None)
     assert ("/batteryLevel" in result.a2ui) == (battery is not None)

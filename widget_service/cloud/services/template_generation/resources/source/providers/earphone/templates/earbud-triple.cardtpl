@@ -114,6 +114,7 @@ data = {
 Column(
     {
         "_advancedComponent": "BluetoothDeviceOverview",
+        "_layoutActionBackgroundOpacity": 0.1,
         "width": "matchParent", "height": "matchParent", "itemMargin": 4,
         "justifyContent": "start", "alignItems": "start", "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }

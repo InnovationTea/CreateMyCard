@@ -8658,6 +8658,9 @@ def _provider_layout_action_background(
 ) -> str:
     """Resolve a single-business Provider Template Action background override."""
     theme = registry.require_theme(contract.theme_profile_id)
+    business_names = _contract_ux_business_component_names(contract, registry)
+    if theme.fusion_ball_style is not None and business_names == {"BluetoothDeviceOverview"}:
+        return default
     if not theme.allow_template_action_background_override:
         return default
     if len(_contract_ux_business_component_names(contract, registry)) != 1:
