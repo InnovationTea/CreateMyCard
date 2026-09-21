@@ -151,7 +151,7 @@
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `WorkoutOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseTypeName`<br>`/exerciseDurationText` | `/exerciseCalorieText`<br>`/exerciseEndTimeText` | 无 |
+| ✅ | `WorkoutOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseDurationText` | `/exerciseCalorieText` | `/exerciseEndTimeText`<br>`/exerciseTypeName` |
 | ✅ | `WorkoutOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/exerciseCalorieText` | `/exerciseDurationText` | `/exerciseTypeName` |
 
 ## HeartRateOverview
