@@ -360,7 +360,7 @@ def test_existing_calendar_candidates_and_plans_equal_pre_fix_behavior(
 
 
 @pytest.mark.parametrize("required", [(), _HERO_FIELDS[:2]])
-def test_unused_reminder_candidate_does_not_change_existing_search_or_plans(
+def test_unused_reminder_candidate_does_not_change_existing_candidates_or_plans(
     monkeypatch: pytest.MonkeyPatch, required: tuple[str, ...],
 ) -> None:
     binding = _binding(_HERO_FIELDS)
@@ -376,5 +376,19 @@ def test_unused_reminder_candidate_does_not_change_existing_search_or_plans(
         context.setattr(retrieval, "normalize_calendar_reminder_intent", lambda i, _t, _b: i)
         baseline = search_template_variants(*args)
         baseline_plans = plan_template_candidates(intent, baseline, task, registry)
-    assert result == baseline
+    gained_fields: set[str] = set()
+    for group, prior_group in zip(
+        result.business_candidates, baseline.business_candidates, strict=True,
+    ):
+        assert group.capability_id == prior_group.capability_id
+        assert group.business_id == prior_group.business_id
+        assert group.explicit_fields == prior_group.explicit_fields
+        for candidate, prior in zip(group.candidates, prior_group.candidates, strict=True):
+            assert candidate.template_id == prior.template_id
+            assert candidate.covered_explicit_fields == prior.covered_explicit_fields
+            assert set(prior.available_data_fields).issubset(candidate.available_data_fields)
+            gained_fields.update(
+                set(candidate.available_data_fields) - set(prior.available_data_fields)
+            )
+    assert gained_fields == {binding.writeResultTo + _LEAF}
     assert plans == baseline_plans

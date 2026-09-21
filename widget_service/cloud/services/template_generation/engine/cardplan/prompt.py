@@ -685,8 +685,8 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
         "layoutActionCandidates="
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
-        "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
-        "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
+        "PillAction@1 的 actionId/label 必须来自同一候选，只展示文本，禁止设置 icon；"
+        "IconAction@1 必须填写批准的 actionId/icon，图标从 actionIconCandidates 选择。"
     )
     two_support_allowed = "TwoSupportLayout" in contract.allowed_layout_component_ids
     if two_support_allowed:

@@ -27,4 +27,5 @@ contractVersion: hybrid-body-contract/0.5
 6. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、业务文本、
    数据路径、绑定、事件执行字段、A2UI 或候选外 Template。
 7. 只按动态契约选择完整模板，不判断运行时数据值或按样例数据改写模板；当前不支持 IF/If 组件。
+8. PillAction@1 暂时只展示文本，仅允许 actionId、label Props，禁止设置 icon；IconAction@1 仍按签名填写图标。
 <!-- prompt:end -->

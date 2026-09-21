@@ -28,6 +28,7 @@ from .calendar_field_paths import (
     calendar_reminder_aliases,
     normalize_calendar_reminder_bindings,
 )
+from .models import TemplateDefinition
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
@@ -90,6 +91,7 @@ class TemplateSearchCandidate(BaseModel):
 
     template_id: str = Field(alias="templateId", min_length=1)
     covered_explicit_fields: tuple[str, ...] = Field(alias="coveredExplicitFields")
+    available_data_fields: tuple[str, ...] = Field(default=(), alias="availableDataFields")
 
 
 class TemplateBusinessCandidates(BaseModel):
@@ -464,6 +466,12 @@ def search_template_variants(
                         templateId=template_id,
                         coveredExplicitFields=tuple(
                             path for path in explicit_fields if path in covered_paths
+                        ),
+                        availableDataFields=_template_available_data_fields(
+                            registry.require_template(template_id),
+                            task_spec,
+                            data_roots,
+                            candidate_paths,
                         ),
                     )
                 )
@@ -1365,6 +1373,32 @@ def _log_action_param_fields_dropped(
             }
         )}"
     )
+
+
+def _template_available_data_fields(
+    definition: TemplateDefinition,
+    task_spec: TaskSpec,
+    data_roots: tuple[str, ...],
+    candidate_paths: set[str],
+) -> tuple[str, ...]:
+    """Report distinct, usable binding paths without ranking Search candidates."""
+    paths: set[str] = set()
+    for binding in definition.bindings.values():
+        if binding.path not in candidate_paths:
+            continue
+        root = data_roots[binding.root_index]
+        pointer = f"{root.rstrip('/')}{binding.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is None:
+            continue
+        actual_type = leaf.get("type")
+        numeric_types_match = (
+            binding.data_type in {"integer", "number"}
+            and actual_type in ("integer", "number")
+        )
+        if actual_type == binding.data_type or numeric_types_match:
+            paths.add(pointer)
+    return tuple(sorted(paths))
 
 
 def _capability_data_roots(
