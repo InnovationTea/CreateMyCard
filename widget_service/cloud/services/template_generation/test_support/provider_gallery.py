@@ -561,8 +561,16 @@ def _data_binding(
         fields = _ordered_unique([*fields, *_WORKOUT_RUNTIME_FIELDS])
     if definition.business_id == "BluetoothDeviceOverview":
         fields = _ordered_unique([*fields, "/isConnected", "/earphoneName"])
+    arguments = deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id])
+    if definition.capability_id == "ViewWeather":
+        forecast_days = 1
+        for field in fields:
+            daily_field = re.fullmatch(r"/daily/(\d+)/.+", field)
+            if daily_field is not None:
+                forecast_days = max(forecast_days, int(daily_field.group(1)) + 1)
+        arguments["forecastDays"] = forecast_days
     return {
-        "arguments": deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id]),
+        "arguments": arguments,
         "candidateOutputFields": list(fields),
         "capabilityId": definition.capability_id,
         "writeResultTo": definition.data_domain,
@@ -684,7 +692,9 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        for field in weather_template.fields:
+            if field.endswith("/condition"):
+                sample_overrides[f"/data/weather{field}"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
         (
             template
