@@ -63,16 +63,16 @@
       "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，可使用步数图标。 组件形态：full。",
-      "optionalData": [],
+      "description": "今日活动完整摘要，展示步数与固定万步基准进度，可补充消耗热量和运动距离，可使用步数图标。 组件形态：full。",
+      "optionalData": [
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText"
+      ],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
         "/dailySteps"
       ],
-      "secondaryData": [
-        "/dailyTotalCaloriesText",
-        "/dailyDistanceText"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "ActivityOverviewWideFull@1",

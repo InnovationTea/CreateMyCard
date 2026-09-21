@@ -62,6 +62,7 @@
 | ✅ | `BatteryOverviewStatusSupport@1` | 约 2x1；左侧双行文本展示充电状态与充电器类型，右侧可选 24vp 电池图标，事件在模板内部 | `/chargingStatusDesc` | `/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewPercentLevelHero@1` | 单电量 2×2；旧模板无完整覆盖且显式要求文本百分比与等级时，Hero + 1 个 PillAction | `/batterySOCText` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingDiagnosticsHero@1` | 约 2x1.7；充电诊断 Hero + 1 个 PillAction | `/nowCurrentText`<br>`/voltageText` | `/batteryCapacityLevelDesc`<br>`/isBatteryPresentText` | 无 |
 | ✅ | `BatteryOverviewChargingRingHero@1` | 约 2x1.7；充电状态环 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc` | 无 |

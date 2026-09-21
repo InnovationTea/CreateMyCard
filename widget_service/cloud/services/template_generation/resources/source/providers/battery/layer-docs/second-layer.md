@@ -3,6 +3,9 @@
 - Provider：`com.huawei.battery.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
+  - `BatteryOverviewPercentLevelHero@1`：文本百分比与电量等级的单业务 2×2 兜底 Hero。
+    主数据：/batterySOCText；次要数据：/batteryCapacityLevelDesc；无可选数据。
+    只在原模板不能完整覆盖这两项显式需求时进入 Plan；不显示进度环，不补数值字段，底部复用已选按钮。
   - `BatteryOverviewFull@1`：完整 2x2 电量摘要；展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewHero@1`：约 2x1.7 的通用电量 Hero；展示电量进度环和电量等级，用于主内容加一个 `PillAction@1`。主数据：/batterySOC；次要数据：/batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewWideFull@1`：完整 4x2 电量摘要；横向展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
