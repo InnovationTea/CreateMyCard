@@ -1433,5 +1433,159 @@
       "warning"
     ],
     "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_uv_color",
+    "type": "asset",
+    "src": "resources/base/media/ic_uv_color.svg",
+    "description": "样式：浅黄色到浅橙色渐变的太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标颜色不代表具体紫外线等级，等级仍以数据字段和文字为准。",
+    "sceneTags": [
+      "weather",
+      "uv"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_uv_monochrome",
+    "type": "asset",
+    "src": "resources/base/media/ic_uv_monochrome.svg",
+    "description": "样式：黑色单色太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标不表示具体紫外线等级，等级仍以数据字段和文字为准。",
+    "sceneTags": [
+      "weather",
+      "uv"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_warning_color",
+    "type": "asset",
+    "src": "resources/base/media/ic_warning_color.svg",
+    "description": "样式：橙黄色到橙红色渐变的提示铃图标，顶部带放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；渐变颜色不代表预警等级。",
+    "sceneTags": [
+      "weather",
+      "warning"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_warning_monochrome",
+    "type": "asset",
+    "src": "resources/base/media/ic_warning_monochrome.svg",
+    "description": "样式：黑色单色提示铃图标，顶部带放射光线，原始尺寸为 24×24；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；图标不表示预警等级或已确认的告警状态。",
+    "sceneTags": [
+      "weather",
+      "warning"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_weather_color",
+    "type": "asset",
+    "src": "resources/base/media/ic_weather_color.svg",
+    "description": "样式：白色到浅灰渐变的云朵图标，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "sceneTags": [
+      "weather",
+      "condition"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_weather_monochrome",
+    "type": "asset",
+    "src": "resources/base/media/ic_weather_monochrome.svg",
+    "description": "样式：黑色单色云朵图标，原始尺寸为 24×24；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "sceneTags": [
+      "weather",
+      "condition"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_Bluetooth",
+    "type": "asset",
+    "src": "resources/base/media/ic_Bluetooth.svg",
+    "description": "样式：默认黑色的单色蓝牙标志图标，原始尺寸为 24×24；适用：蓝牙设备连接卡片中配合 GetEarphoneInfo 展示蓝牙耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。图标本身不表示当前已连接、已开启或已关闭状态。",
+    "sceneTags": [
+      "bluetooth",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_flashlight",
+    "type": "asset",
+    "src": "resources/base/media/ic_flashlight.svg",
+    "description": "样式：默认黑色的单色手电筒图标，筒身为竖向圆角轮廓，原始尺寸为 24×24；适用：手电筒快捷控制卡片，可结合 event.openFlashlight 开启手电筒或 event.closeFlashlight 关闭手电筒。图标本身不表示手电筒当前开关状态。",
+    "sceneTags": [
+      "flashlight",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_flashlight2",
+    "type": "asset",
+    "src": "resources/base/media/ic_flashlight2.svg",
+    "description": "样式：默认黑色的单色手电筒图标，筒身为较宽的竖向圆角轮廓，原始尺寸为 24×24；适用：手电筒快捷控制卡片，可结合 event.openFlashlight 开启手电筒或 event.closeFlashlight 关闭手电筒。图标本身不表示手电筒当前开关状态。",
+    "sceneTags": [
+      "flashlight",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_hotspot",
+    "type": "asset",
+    "src": "resources/base/media/ic_hotspot.svg",
+    "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "sceneTags": [
+      "network",
+      "hotspot"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_hotspot2",
+    "type": "asset",
+    "src": "resources/base/media/ic_hotspot2.svg",
+    "description": "样式：默认黑色的单色同心无线信号图标，由中心圆点和两层弧形信号环组成，原始尺寸为 66×60；适用：个人热点或无线共享设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "sceneTags": [
+      "network",
+      "hotspot"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ranking",
+    "type": "asset",
+    "src": "resources/base/media/ic_ranking.svg",
+    "description": "样式：默认黑色的单色三柱排行图标，柱体高度依次变化，原始尺寸为 24×24；适用：耗电排行或应用使用时长排行卡片，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标仅表示排行主题，不表示具体名次或应用数据。",
+    "sceneTags": [
+      "ranking",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ranking2",
+    "type": "asset",
+    "src": "resources/base/media/ic_ranking2.svg",
+    "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
+    "sceneTags": [
+      "ranking",
+      "app-icon" 
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_switch",
+    "type": "asset",
+    "src": "resources/base/media/ic_switch.svg",
+    "description": "样式：默认黑色的单色双滑块开关图标，两个水平开关轨道分别朝向相反位置，原始尺寸为 96×96；适用：系统设置类开关控制卡片，可配合 event.setBluetoothMode 等设置开关事件表达开启或关闭操作。图标本身不表示具体开关当前状态，实际状态以对应数据能力支持为准。",
+    "sceneTags": [
+      "settings",
+      "switch"
+    ],
+    "minXiaoyiVersion": "1.0.0"
   }
 ]

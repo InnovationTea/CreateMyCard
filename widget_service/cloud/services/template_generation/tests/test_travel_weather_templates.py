@@ -294,8 +294,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     body = (
         'Template("TwoSupportLayout@1",{},'
         'Template("CountdownOverviewTravelSupport@1",'
-        '{"title":"西安出行","actionId":"event.open.clock.alarm",'
-        '"timerIcon":"resources/base/media/icon_timing.svg"}),'
+        '{"title":"西安出行","actionId":"event.open.clock.alarm"}),'
         'Template("WeatherOverviewTravelSupport@1",'
         '{"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
     )
@@ -314,7 +313,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     assert "${/data/weather/daily/4/condition}" in output.a2ui
     assert "${/data/weather/daily/4/rainProbabilityPercent}" in output.a2ui
     assert "clickToDeeplink" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
     condition = _component_for_content(
         output.a2ui,
@@ -391,7 +390,7 @@ async def test_q042_binds_weather_action_to_weather_capsule() -> None:
     body = (
         'Template("TwoSupportLayout@1",{},'
         'Template("CountdownOverviewTravelSupport@1",'
-        '{"title":"出差倒计时","timerIcon":"resources/base/media/icon_timing.svg"}),'
+        '{"title":"出差倒计时"}),'
         'Template("WeatherOverviewTemperatureSupport@1",'
         '{"actionId":"event.open.weather",'
         '"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
@@ -411,7 +410,7 @@ async def test_q042_binds_weather_action_to_weather_capsule() -> None:
     assert "${/data/weather/current/temperatureC}" in output.a2ui
     assert "${/data/weather/current/condition}" in output.a2ui
     assert "${/data/weather/location/cityCode}" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
     condition = _component_for_content(
         output.a2ui,

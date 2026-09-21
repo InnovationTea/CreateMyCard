@@ -2,10 +2,9 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """单位校验只消费连续相邻的静态 Text，不跨越其他组件。"""
 
-from types import SimpleNamespace
-
 import pytest
 
+from services.card_validation.context import ValidationContext
 from services.card_validation.diagnostics import Reporter
 from services.card_validation.display_unit_validator import DisplayUnitValidator
 
@@ -29,14 +28,14 @@ def _validate_siblings(
         component_id = component.get("id")
         assert isinstance(component_id, str)
         components_by_id[component_id] = component
-    context = SimpleNamespace(
+    context = ValidationContext(
         components=components,
         components_by_id=components_by_id,
         cardspec={
             "dataBindings": [{"capabilityId": "Countdown", "writeResultTo": "/data/countdown"}]
         },
-        effective_data_capabilities=[
-            {
+        effective_data_capabilities={
+            "Countdown": {
                 "id": "Countdown",
                 "outputSchema": {
                     "type": "object",
@@ -49,7 +48,7 @@ def _validate_siblings(
                     },
                 },
             }
-        ],
+        },
     )
     reporter = Reporter()
     DisplayUnitValidator().validate(context, {}, reporter)

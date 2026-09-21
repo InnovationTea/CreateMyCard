@@ -1153,9 +1153,9 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         )
         assert background_count == 1
         palette = {
-            "fusionBallLarge": "#FF121E59",
-            "fusionBallMedium": "#FF2BA2D9",
-            "fusionBallSmall": "#FF52CCCC",
+            "fusionBallLarge": "#FF1F3399",
+            "fusionBallMedium": "#FF2385B3",
+            "fusionBallSmall": "#FF24B3B3",
         }
         for component_id, color in palette.items():
             component = by_id.get(component_id)

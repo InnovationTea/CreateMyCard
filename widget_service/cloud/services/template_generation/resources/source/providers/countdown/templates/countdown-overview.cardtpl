@@ -21,10 +21,6 @@ Column(
     Text(
       data.days,
       { "fontSize": 40, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    ),
-    Text(
-      "天",
-      { "fontSize": 8, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   Text(
@@ -34,7 +30,7 @@ Column(
 )
 #End
 
-#Template CountdownOverviewTravelSupport@1(props: { title?: string, timerIcon?: asset, actionId?: string })
+#Template CountdownOverviewTravelSupport@1(props: { title?: string, actionId?: string })
 data = {
     days: $path("/countdownDays")
 }
@@ -88,19 +84,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    ),
-    #if props.timerIcon
-      Image(
-        props.timerIcon,
-        {
-          "width": 24,
-          "height": 24,
-          "objectFit": "contain",
-          "flexShrink": 0,
-          "fillColor": $theme('supportContentColor')
-        }
-      )
-    #endif
+    )
   )
 )
 #End
