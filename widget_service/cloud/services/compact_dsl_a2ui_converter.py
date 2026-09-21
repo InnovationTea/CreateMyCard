@@ -318,6 +318,8 @@ _COLOR_TOKENS = {
     "mask_sixth": "#0C000000",
 }
 _DEFAULT_ROOT_BACKGROUND = "#FFE5EDFE"
+_TWO_BY_TWO_SINGLE_RING_SIZE = 48
+_TWO_BY_TWO_DUAL_RING_SIZE = 44
 _PLAIN_BACKGROUND_INKS = {
     "#FFE5EDFE": "#FF1F4799",
     "#FFEDE6FF": "#FF401F99",
@@ -844,7 +846,7 @@ def validate_timeline_unit_layout(
 
     day_area = components_by_id.get(root.children[0])
     expected_layout = {
-        "width": 136,
+        "width": 126,
         "height": 16,
         "justifyContent": "start",
         "alignItems": "center",
@@ -859,7 +861,7 @@ def validate_timeline_unit_layout(
     if not all((is_expected_row, has_expected_layout, has_single_child)):
         raise CompactDslConversionError(
             "TimelineUnit date context must be the first root child and use a "
-            "left-aligned 136x16 Row with exactly one Text child."
+            "left-aligned 126x16 Row with exactly one Text child."
         )
 
     day_text = components_by_id.get(day_area.children[0])
@@ -925,7 +927,7 @@ def _is_non_calendar_data_path(value: Any) -> bool:
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
-    row_width = 136 if size == "2x2" else 296
+    row_width = 126 if size == "2x2" else 276
     title_width = row_width - 28 if icon else row_width
     title_id = f"{component.component_id}_title"
     icon_id = f"{component.component_id}_icon"
@@ -1008,7 +1010,7 @@ def _normalize_special_action_units(
     if size == "2x4":
         for component_id in action_ids:
             parent = parents.get(component_id)
-            if parent is None or parent.props.get("width") != 296:
+            if parent is None or parent.props.get("width") != 276:
                 continue
             if parent.children != (component_id,):
                 continue
@@ -1039,7 +1041,7 @@ def _normalize_special_action_units(
                 props["fillColor"] = action_ink
 
         if component_id in full_width_action_ids:
-            props["width"] = 296
+            props["width"] = 276
         if component_id in bottom_layout_ids:
             props["padding"] = 12
             props["justifyContent"] = "spaceBetween"
@@ -1155,7 +1157,9 @@ def _normalize_ring_stack_children(
         resize_ring = size == "2x2" and (is_ring or bool(ring_progress_ids))
         if resize_ring and component.component_id not in template_component_ids:
             ring_size = (
-                44 if component.component_id in dual_zone_descendants else 52
+                _TWO_BY_TWO_DUAL_RING_SIZE
+                if component.component_id in dual_zone_descendants
+                else _TWO_BY_TWO_SINGLE_RING_SIZE
             )
             props = {**props, "width": ring_size, "height": ring_size}
             if is_ring:
@@ -1186,11 +1190,13 @@ def _two_by_two_dual_zone_ids(
     root = components_by_id.get("root")
     if root is None or root.component_type != "Column" or len(root.children) != 2:
         return set()
+    if root.props.get("padding") != 8 or root.props.get("itemMargin") != 8:
+        return set()
     zones = [components_by_id.get(child_id) for child_id in root.children]
     if any(zone is None for zone in zones):
         return set()
     if not all(
-        zone.props.get("width") == 136 and zone.props.get("height") == 64
+        zone.props.get("width") == 134 and zone.props.get("height") == 63
         for zone in zones
         if zone is not None
     ):
@@ -1209,24 +1215,29 @@ def _normalize_small_backboard_icon_alignment(
     }
     if size == "2x2":
         candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
-        backboard_width = 136
-        text_width = 84
+        backboard_width = 134
+        backboard_height = 63
+        text_width = 82
     elif size == "2x4":
         candidate_ids = set()
         for component in components:
-            if component.props.get("width") != 144:
+            if component.props.get("width") != 138:
                 continue
-            if component.props.get("height") == 64:
+            if component.props.get("height") == 63:
                 candidate_ids.add(component.component_id)
-        backboard_width = 144
-        text_width = 92
+        backboard_width = 138
+        backboard_height = 63
+        text_width = 86
     else:
         return components
 
     replacements: dict[str, ComponentRow] = {}
     for candidate_id in candidate_ids:
         backboard = components_by_id[candidate_id]
-        if backboard.component_type != "Row" or len(backboard.children) != 2:
+        if (
+            backboard.component_type not in {"Row", "Column"}
+            or not 1 <= len(backboard.children) <= 2
+        ):
             continue
         children = [components_by_id.get(child_id) for child_id in backboard.children]
         text = next(
@@ -1241,13 +1252,28 @@ def _normalize_small_backboard_icon_alignment(
             (child for child in children if child and child.component_type == "Image"),
             None,
         )
+        if icon is None and backboard.component_type == "Column":
+            replacements[backboard.component_id] = ComponentRow(
+                backboard.component_id,
+                backboard.component_type,
+                {
+                    **backboard.props,
+                    "width": backboard_width,
+                    "height": backboard_height,
+                    "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
+                    "justifyContent": "center",
+                    "alignItems": "start",
+                },
+                backboard.children,
+            )
+            continue
         if text is None or icon is None:
             continue
 
         backboard_props = {
             **backboard.props,
             "width": backboard_width,
-            "height": 64,
+            "height": backboard_height,
             "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
             "itemMargin": 8,
             "justifyContent": "start",
@@ -1255,14 +1281,18 @@ def _normalize_small_backboard_icon_alignment(
         }
         replacements[backboard.component_id] = ComponentRow(
             backboard.component_id,
-            backboard.component_type,
+            "Row",
             backboard_props,
             (text.component_id, icon.component_id),
         )
+        text_props = {**text.props, "width": text_width}
+        if text.component_type == "Column":
+            text_props["justifyContent"] = "center"
+            text_props["alignItems"] = "start"
         replacements[text.component_id] = ComponentRow(
             text.component_id,
             text.component_type,
-            {**text.props, "width": text_width},
+            text_props,
             text.children,
         )
         replacements[icon.component_id] = ComponentRow(

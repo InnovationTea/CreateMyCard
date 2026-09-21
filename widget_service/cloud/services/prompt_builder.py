@@ -24,14 +24,15 @@ _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
-本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，必须锁定 FEWSHOT_2x2 的 V01，
+本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，默认参考 FEWSHOT_2x2 的 V01，
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown` 与 `/data/calendar`
-拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
+拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标；如果用户明确要求展示
+时间等额外数据，按本提示词的 V08 左对齐规则调整实际构图。
 
-- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，且最多
-  包含两行视觉内容。第一行放居中的 38fp 倒计时数字；第二行无明确时间时只放
-  12fp 单位“天”，有明确时间时使用同一行 `meta_row` 显示“天 · 时间”。
-  禁止增加第三行辅助文字，禁止重复目标名称。
+- 没有可见按钮、也没有额外展示数据时使用 V01 的纯倒计时构图；如果用户要求展示
+  时间等额外数据，必须按下方 V08 的左对齐规则处理，即使本轮 few-shot 同时包含 V01。
+- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，依次纵向
+  放置居中的 38fp 倒计时数字和其正下方的 12fp 单位“天”。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
   无法提取目标名称时固定使用“倒计时”。
 - 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
@@ -43,151 +44,208 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
   `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
 
+_COUNTDOWN_V08_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
+
+本次 TaskSpec 已由程序识别为带显式动作或额外展示数据的 2x2 单目标倒计时，必须锁定
+FEWSHOT_2x2 的 V08，不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown`
+与 `/data/calendar` 拆成两个业务对象。两者共同描述同一个倒计时目标。
+
+- 只要最终保留可见按钮，或显示开始时间、日期、状态等另一类数据，标题、主值组和辅助信息
+  全部左对齐；禁止继续使用 V01 的居中数字加垂直单位构图。
+- root 依次包含顶部 `title_area`、中部 `value_group` 和可选的底部 `action_area`。
+  `title_area` 与标题文字左对齐；`value_group` 必须是全宽 Column，`alignItems:"start"`。
+- `value_group` 第一行必须是左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的
+  12-16fp 单位“天”；第二行仅在确有另一类展示数据时使用 12fp/400 Text。
+  禁止把“天”和辅助时间拆成数字下方的两行，禁止生成第三行。
+- 只有用户明确要求且候选目标匹配时才生成底部胶囊 ActionUnit；`action_area` 必须是 root
+  最后一项并固定沉底。显式“查看/打开”动作不得改绑 root，也不得用普通 Text 模拟按钮。
+- 顶部标题只能是活动、事件等倒计时目标名称；存在可用动态标题且用户要求展示时优先绑定，
+  禁止使用日期或时间作为标题，无法提取目标名称时固定使用“倒计时”。
+- 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
+  `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
+
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
-_MEETING_QUERY_MARKERS = ("会议", "例会", "评审会", "入会", "下一场会")
-_MEETING_LIST_QUERY_MARKERS = ("会议列表", "日程列表", "多场会议", "所有会议")
-_TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID = "2x2-V03"
+_ACTION_QUERY_MARKERS = (
+    "按钮",
+    "入口",
+    "打开",
+    "查看",
+    "设置",
+    "加入",
+    "进入",
+    "导航",
+    "拨号",
+    "播放",
+    "点击",
+    "点一下",
+    "点开",
+    "点卡片",
+    "能点",
+    "可点击",
+    "点进去",
+    "跳转",
+    "操作",
+    "action",
+    "open",
+    "view",
+    "join",
+    "navigate",
+)
+_PURE_DISPLAY_MARKERS = ("纯展示", "只展示", "不要点击", "不可点击", "不需要操作")
+_CUSTOM_BACKGROUND_MARKERS = (
+    "背景",
+    "配色",
+    "颜色",
+    "渐变",
+    "纯色",
+    "深色",
+    "浅色",
+    "蓝色",
+    "紫色",
+    "暖色",
+    "青色",
+    "绿色",
+    "粉色",
+    "粉红色",
+    "红色",
+    "橙色",
+    "黑色",
+    "白色",
+)
+_DENSE_CONTENT_MARKERS = (
+    "列表",
+    "多条",
+    "多项",
+    "多个指标",
+    "三件",
+    "三条",
+    "三个",
+    "三项",
+    "四个",
+    "四项",
+    "对比",
+    "概览",
+)
+_SIDE_EFFECT_EVENT_MARKERS = (
+    "clicktoapi",
+    "clicktocallphone",
+    "clicktophone",
+    "settings",
+    "bluetooth_entry",
+    "entermeeting",
+    "navigation",
+    "navigate",
+    "拨号",
+    "导航",
+    "播放",
+    "暂停",
+    "删除",
+    "清理",
+    "开启",
+    "关闭",
+)
+_IMPLICIT_ROUTE_EVENT_MARKERS = {
+    "weather-readout": ("weather", "天气", "viewweather"),
+    "calendar-event": ("calendar", "日程", "会议", "viewcalendarevent"),
+    "health-readout": ("health", "运动", "睡眠", "viewhealth"),
+    "earphone-status": ("earphone", "bluetooth", "viewearphone"),
+    "battery-readout": ("battery", "phonebattery", "viewbattery"),
+    "multi-business": (
+        "weather",
+        "calendar",
+        "health",
+        "earphone",
+        "phonebattery",
+        "天气",
+        "日程",
+        "运动",
+    ),
+}
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
+_GENERIC_FEW_SHOT_IDS = {
+    "2x2": ("2x2-V00",),
+    "2x4": ("2x4-V00",),
+}
+_GENERIC_MULTI_FEW_SHOT_IDS = {
+    "2x2": ("2x2-V00",),
+    "2x4": ("2x4-V13",),
+}
+_VISUAL_ROUTE_INSTRUCTIONS = {
+    "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
+    "earphone-status": "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。",
+    "battery-readout": (
+        "本卡是量化主值路由：电量、温度、电流、电压、功率等测量值中只选择一个主读数使用最大安全字号，"
+        "其余同级测量值降为紧邻的辅助信息；schema 已包含单位的字符串整体绑定，"
+        "不再追加字段标签或重复单位。"
+    ),
+    "weather-readout": (
+        "本卡是单业务主读数路由：地点只消除歧义，温度或天气现象成为主焦点，"
+        "辅助指标不得平均铺开。"
+    ),
+    "calendar-event": (
+        "本卡是事项路由：事项标题与时间形成连续信息组，"
+        "日期/地点/更新时间只保留必要项。"
+    ),
+    "health-readout": "本卡是健康主读数路由：一个指标承担第一焦点，其余指标降为紧邻的辅助信息。",
+    "multi-business": (
+        "本卡是多业务路由：每个分区先确定自己的主焦点和内容变体，"
+        "不机械复制标题+两行文字+按钮。稀疏分区放大主值或核心状态，"
+        "有语义精确且状态安全的候选素材时优先放一枚右侧业务图标；"
+        "没有合法素材时保持纯文字，不留空槽。"
+    ),
+    "generic": "本卡先确定一个第一焦点，再为辅助信息分配较低字号和更短阅读路径。",
+}
 
-_TWO_BY_TWO_SINGLE_ROUTE_LOCK = """# 本次请求单业务边界（高优先级）
 
-本次 TaskSpec 的 `/data` 下只有一个一级业务根。该根内的多个字段仍属于同一个
-业务对象，绝对不能使用 S4，也不能生成孤立的 `136×64vp` S4 内容背板。
-
-- 用户明确要求展示且不用于动作参数的 1-3 个不同字段必须全部保留，每个事实只展示
-  一次；“重点、优先、主要”只决定主次顺序，不得作为删除其余明确字段的理由。
-- 大数字 `value_row` 只能包含纯数字和紧邻的真实单位，禁止加入标签、方向、状态、
-  名称、说明或其它字段；这些信息必须另起一行。
-- 同一对象存在两个及以上最高/最低、当前/目标、已用/剩余等同级量化指标时，必须在
-  全宽 Column 内纵向排列，并将每个指标压成一个完整的 `12fp/400` 单行 Text，按
-  “短标签 + 数值 + 单位”展示；禁止 30fp/38fp hero、混合字号 Row 和多个大数字
-  `value_row`。V01、V06、S3、S4 和 2x4 不执行此规则。
-- S2 状态亚型同时包含一个主状态、两个同级辅助状态和一个底部按钮时，两个辅助状态
-  必须合并为一个 `12fp/400`、`maxLines:1` Text，用短文字标签区分并以 ` | ` 分隔；
-  禁止分别创建左右窄 Row、固定窄宽度槽或 Image。L/R 方向用文字表达，不用左右图标。
-- 多字段使用全宽单业务信息流：重点字段在前，其余字段放在后续辅助行。仅当 S2 数值
-  亚型不含 Progress，并且同时使用大数字 `value_row` 主值、两个辅助字段和一个底部
-  按钮时，内容区固定为主值行加一个 `12fp/400` 辅助摘要 Text；两个辅助字段必须在该
-  Text 中用 ` | ` 分隔，`maxLines:1`，禁止拆成两行、独立 Row/Column 或 Image。
-  任何 Progress、视觉亚型、V01、V06、S3、S4 都不执行此规则。单个环形 Progress 与
-  一个底部按钮组合时，`content_area`、环和状态文字必须水平居中，禁止 `alignItems:"start"`。
-- 用户明确要求打开、查看、导航、设置、进入或播放时，匹配的显式动作必须生成
-  骨架规定的底部 Button/ActionUnit，禁止改为 root.onClick 并用普通 Text 显示
-  “点击查看……”、“点击导航……”等提示。隐式 root 入口不生成任何动作提示 Text。
-- 普通单业务内容区不生成 Image。不得为了使用候选素材，把主内容包装成 S4 小背板。"""
-
-_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK = """# 2x2 单日天气日期显示约束
-
-2x2 单日天气同时提供 `date` 和 `weekday` 时，二者属于同一组日期信息，禁止在同一个
-Text 中拼接显示。默认只保留 `weekday`；只有用户明确要求具体年月日时才只显示 `date`。
-标题已经包含“今天”或“明日”时，内容区不得再次重复同一日期信息。禁止通过缩小字号、
-增加到两行或裁切文本来容纳 `date + weekday`。"""
-
-_TWO_BY_TWO_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
-
-本次 2x2 TaskSpec 展示两个独立业务对象，必须锁定 S4 上下双业务骨架。
-
-- root 直接且只能包含上下两个 `136×64vp` 内容背板，间距固定 `8vp`；禁止公共
-  标题、公共内容区、底部 action_area 和 root.onClick。
-- 每个背板最多两行文字，第一行主数据使用 `14fp/700`，第二行辅助数据使用
-  `12fp/400`；动作只绑定语义所属背板，内部子组件不绑定动作。
-- S4 会议背板第一行只放会议标题 `14fp/700`，第二行只放时间
-  `12fp/400`；无标题时使用“会议”。禁止将时间与标题拼成一行，也禁止生成
-  “点击卡片”、“一键入会”、“点击查看”等动作提示 Text。
-- 整张 S4 只能选择一套卡片色板。先按主业务决定 root 渐变和主内容色；没有明确
-  主业务时使用蓝色。两个背板内的 Text、可染色 Image、Progress 和 Divider 必须
-  复用同一个主内容色 RGB，只允许按角色改变 alpha，禁止会议区用橙色、设备区用青色
-  这类按业务分别配色。
-- 文字字符数、是否超过 6 个字、占一行还是两行，都不得决定图标是否存在或位置。
-  1-2 项数据且有语义准确、状态安全的候选素材时保留一个 `20×20vp` 右侧图标，
-  图标右边缘距背板右边固定 `12vp`，结构固定为 `Row -> [text_column, visual]`。
-- 不得把任一业务降为另一业务的辅助信息，也不得复用单业务 hero、标题或动作区。
-- 本锁不适用于已经识别为V01的 `countdown + calendar` 单目标倒计时。"""
-
-_TWO_BY_FOUR_DUAL_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
-
-本次 2x4 TaskSpec 最终展示两个语义数据块，必须锁定 FEWSHOT_2x4 的 V09
-和 W9 左右双大内容背板。数据块按业务对象划分，不按 action 数量划分；同一
-`healthSport` 根内的 `daily*` 日汇总与 `exercise*` 单次运动记录算两个数据块。
-
-- root 必须是 Row，直接且只能包含左右两个 `144×136vp` Column 背板，间距
-  固定 `8vp`；禁止卡级公共标题、公共内容区和公共动作区。
-- 禁止两个或更多 `296×48-64vp` 全宽内容背板上下堆叠，不得复用 2x2 S4。
-- 每个数据块的标题、数据和至多一个所属动作只能放在自己的背板内；action 不增加
-  数据块，也不得改变 W9 骨架。用户明确要求的动作必须使用背板内部 Button，
-  禁止用普通 Text 显示“点击查看……”或“点击导航……”来代替按钮。
-- 带动作的 W9 大背板直接子节点固定为 `[content, action]`；content 必须写
-  `layoutWeight:1`，action 必须是最后一项并固定 `120×36vp`。纯文字 action 使用
-  Button；图文 action 使用 `Row -> [Image, Text]`，Row 必须写 `itemMargin:8`、
-  左右 `padding:8`、`justifyContent:"center"`、`alignItems:"center"`，Image 固定
-  `20×20vp`。content 最多四行 Text：标题、主值和最多两行辅助信息；辅助字段过多时先以 ` | ` 合并，
-  仍超出则删除低优先级可选字段，禁止生成第五行。每个组件 id 只能有一个父容器，
-  禁止将同一标题或数值同时挂到 content 和大背板 children 中。
-- W9 中倒计时必须合并成一个 `14fp/700` 普通主数据 Text（如 `30天`），禁止使用
-  `30fp/38fp` hero，禁止把“天”拆成独立一行。多日天气每一天只使用一个
-  `12fp/400` Text，星期、天气、温度和降雨等必要信息在该行合并；禁止一天三行和
-  日期间 Divider。
-- action 的动态绑定数据根必须与所在背板显示的数据根一致；引用 `/data/weather/`
-  的按钮只能放在天气背板，不能放进倒计时或其他业务背板。"""
-
-_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
-
-本次 TaskSpec 是 2x2 单业务且恰好提供两个动作，必须锁定 FEWSHOT_2x2 的 V03
-和 S3 单信息双按钮骨架。两个动作不增加业务对象数量，也不得改走 S2 或 S4。
-
-- 保留 324 的固定空间预算：root 直接且只能包含 `header_area` 和 `action_area`，
-  `header_area` 固定 `136×48vp`，`action_area` 固定 `136×80vp`，两区域间距
-  `8vp`；动作区纵排两个 `136×36vp` ActionUnit，按钮间距固定 `8vp`。
-- 信息区最多两行。第一行使用 `14fp/700`，第二行使用 `12fp/400`；多个辅助数据
-  在第二行使用 ASCII ` | ` 合并。禁止第三行、CardHeader、独立大数字区和标题图标。
-- 两个动作分别映射到底部两个 ActionUnit，不得把动作绑定到 root 或信息行。"""
-
-_MEETING_V06_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
-
-本次 TaskSpec 已由程序识别为 2x2 单会议业务，必须锁定 FEWSHOT_2x2 的 V06
-会议时间线骨架，不得改用 V01 倒计时或普通信息列。
-
-- `day_area` 必须是 root 的第一个直接子节点，固定为左对齐的 `136×16vp Row`，
-  且内部只有一个 Text；禁止把日期 Text 直接挂在 root 下或改成居中标题。
-- `content_area` 固定使用 `Row -> [TimelineUnit, meeting_texts]`，间距 `8vp`。
-  `meeting_texts` 第一行是 `14fp/700` 会议标题，第二行时间、第三行地点均使用
-  `12fp/400`；只有 TaskSpec 没有地点且用户也未要求地点时才省略第三行。
-- 同时提供 `title`、`startDate`、`dtStart`、`countdownDays` 时，依次展示会议日期、
-  会议标题、开始时间和普通辅助文字“还有 N 天”；倒计时不得使用 V01 hero。
-- 无真实会议标题字段且用户未提供会议名称时固定显示“日程”。出现其他业务时
-  禁止使用 V06 和 TimelineUnit，必须按双业务骨架处理。"""
+def _contains_any(value: str, markers: tuple[str, ...]) -> bool:
+    normalized = value.casefold()
+    return any(marker.casefold() in normalized for marker in markers)
 
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
 
 2x2 若最终展示两个独立业务对象，必须且只能使用 S4：root 为 Column，直接子组件
-只能是上下两个 `136×64vp` 内容蒙版，间距 `8vp`。禁止左右并排两个业务组，禁止
+只能是上下两个 `134×63vp` 内容蒙版，root padding 固定为 `8vp`，间距 `8vp`。
+禁止左右并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
 降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。
-双业务中即使一个对象是倒计时，也必须继续使用 S4；倒计时数字只是所属蒙版第一行
-`14fp/700` 的普通主数据，禁止使用 V01、38fp hero、独立倒计时组或公共标题/动作区。
-每个蒙版最多两行文字，但文字字符数、是否单行或双行不得决定图标是否存在或图标位置；
-1-2 项数据且有合法素材时保留一个 `20×20vp` 右侧图标，图标右边缘距蒙版右边固定
-`12vp`，结构固定为 `Row -> [text_column, visual]`。
-S4 整卡只能使用一套色板；两个蒙版内的文字、可染色图标、Progress 和 Divider 必须
-使用相同的主内容色 RGB，仅 alpha 可按主次角色变化，禁止每个业务分别选择主题色。
-2x2 单业务中的多个同级指标必须在全宽 Column 内上下排列，禁止用 Row 拆成左右两列、
-左右两个指标组或左右两张内容背板。Row 只可用于同一个指标内部的“数值 + 合法单位”，
-不得把两个不同字段、两个 value_row 或两个指标 Column 并排。""",
+双业务共用一套 root 色板；各分区只允许使用所属对象的数据、事件和素材，不能把动作
+或动态绑定跨区迁移。""",
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
 2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
-`144×136vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
+`138×134vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
 使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
-`296×64vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
-不得自由拼接骨架。显式动作必须使用当前骨架的合法按钮；W8/W10 小蒙版按既有例外
-绑定蒙版本身。任何情况都禁止用普通 Text 写“点击查看……”、“点击导航……”等文字
-代替动作控件；隐式整卡或整蒙版入口不显示动作提示文字。单业务只有一个全宽动作时，
-动作必须是满高前景 Column 的最后一个直接子组件并固定为 `296×36vp`，其紧邻上方的
-真实内容区必须使用 `layoutWeight:1`；禁止把动作嵌套进固定高度的 `main`、`body` 或
-其它内容容器后与多组文字共同挤压。""",
+`276×59vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
+root padding 固定为 `8vp`，不得继续保留旧版 `12vp` 外边距。不得自由拼接骨架。
+带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
+最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。""",
+}
+
+_TWO_BY_FOUR_ROUTE_LOCKS = {
+    "W8-quad-cells": """# 本次尺寸骨架硬约束（高优先级）
+
+本轮固定使用 W8 四格。root padding 固定为 8vp，第一层是 2×2 网格，四个
+138×63vp 小背板分别承载一个业务数据块；禁止公共标题、公共内容区、公共动作区、
+第五个数据块和格内按钮。""",
+    "W9-dual-backboards": """# 本次尺寸骨架硬约束（高优先级）
+
+本轮固定使用 W9 左右双大背板。root 必须是 Row，padding 与两背板间距均为 8vp，
+直接且只能包含两个 138×134vp 背板；禁止上下堆叠、公共标题、公共内容区和公共动作区。
+每个业务的数据与至多一个动作只放在所属背板内；带动作时真实 content 必须使用
+layoutWeight:1，动作是最后一个直接子项。""",
+    "W10-triple-backboards": """# 本次尺寸骨架硬约束（高优先级）
+
+本轮固定使用 W10 左大右双小。root 必须是 Row，padding 与分区间距均为 8vp；
+左侧是 138×134vp 大背板，右侧是两个 138×63vp 小背板。禁止公共标题、公共动作区、
+三个等宽栏和第四个数据块。""",
+    "W1-W7 adaptive-single-business": """# 本次尺寸骨架硬约束（高优先级）
+
+本轮只有一个业务数据块，只能在当前第九节保留的 W1-W7 单业务骨架中选择，
+禁止生成 W8/W9/W10 多业务背板。围绕编译简报指定的第一焦点组织连续内容组，
+动作存在时沉底，内容稀疏时稳定居中，不得用弱字段或空表面填满画布。""",
 }
 
 
@@ -200,44 +258,329 @@ class PromptBuilder:
         return tuple(data_schema)
 
     @staticmethod
-    def _two_by_four_data_block_count(task_spec: TaskSpec) -> int:
-        data_roots = PromptBuilder._data_roots(task_spec)
-        block_count = len(data_roots)
-        if task_spec.size != "2x4":
-            return block_count
+    def _data_block_count(task_spec: TaskSpec) -> int:
+        """按校验器相同的业务对象口径统计数据块。"""
+        roots = PromptBuilder._data_roots(task_spec)
+        is_countdown_target = (
+            task_spec.size == "2x2"
+            and set(roots).issubset({"countdown", "calendar"})
+            and PromptBuilder._schema_has_field(task_spec, ("countdownDays",))
+            and _contains_any(task_spec.userQuery, _COUNTDOWN_QUERY_MARKERS)
+        )
+        if is_countdown_target:
+            return 1
+        count = len(roots)
+        if task_spec.size != "2x4" or "healthSport" not in roots:
+            return count
+        schema = task_spec.dataModelSchema.get("data")
+        health = schema.get("healthSport") if isinstance(schema, dict) else None
+        if not isinstance(health, dict):
+            return count
+        names = tuple(health)
+        has_daily = any(name.startswith("daily") for name in names)
+        has_exercise = any(name.startswith("exercise") for name in names)
+        return count + int(has_daily and has_exercise)
 
+    @staticmethod
+    def _schema_has_field(task_spec: TaskSpec, markers: tuple[str, ...]) -> bool:
+        schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(schema, dict):
+            return False
+        serialized = json.dumps(schema, ensure_ascii=False).casefold()
+        return any(marker.casefold() in serialized for marker in markers)
+
+    @staticmethod
+    def _calendar_event_count(task_spec: TaskSpec) -> int:
         data_schema = task_spec.dataModelSchema.get("data")
-        if not isinstance(data_schema, dict):
-            return block_count
-        health_sport = data_schema.get("healthSport")
-        if not isinstance(health_sport, dict):
-            return block_count
+        calendar = data_schema.get("calendar") if isinstance(data_schema, dict) else None
+        events = calendar.get("events") if isinstance(calendar, dict) else None
+        return len(events) if isinstance(events, list) else 0
 
-        field_names = tuple(health_sport)
-        has_daily_summary = any(name.startswith("daily") for name in field_names)
-        has_exercise_record = any(name.startswith("exercise") for name in field_names)
-        if has_daily_summary and has_exercise_record:
-            block_count += 1
-        return block_count
+    @staticmethod
+    def _query_requests_action(task_spec: TaskSpec) -> bool:
+        return _contains_any(task_spec.userQuery, _ACTION_QUERY_MARKERS)
+
+    @staticmethod
+    def _event_text(event: Any) -> str:
+        if isinstance(event, dict):
+            payload = event
+        else:
+            model_dump = getattr(event, "model_dump", None)
+            payload = model_dump(mode="json") if callable(model_dump) else {}
+        return json.dumps(payload, ensure_ascii=False).casefold()
+
+    @staticmethod
+    def _has_implicit_entry(task_spec: TaskSpec, route: str) -> bool:
+        if _contains_any(task_spec.userQuery, _PURE_DISPLAY_MARKERS):
+            return False
+        route_markers = _IMPLICIT_ROUTE_EVENT_MARKERS.get(route, ())
+        if not route_markers:
+            return False
+        for event in task_spec.eventCandidates:
+            event_text = PromptBuilder._event_text(event)
+            if any(marker in event_text for marker in _SIDE_EFFECT_EVENT_MARKERS):
+                continue
+            if any(marker in event_text for marker in route_markers):
+                return True
+        return False
+
+    @staticmethod
+    def _action_guidance(task_spec: TaskSpec, route: str) -> str:
+        if _contains_any(task_spec.userQuery, _PURE_DISPLAY_MARKERS):
+            return "用户明确要求纯展示，本轮不生成点击行为或 CTA。"
+        if PromptBuilder._query_requests_action(task_spec):
+            return (
+                "用户语义包含显式动作；仅绑定目标匹配的候选，"
+                "并在当前骨架允许时保留一个清晰 CTA。"
+            )
+        if PromptBuilder._has_implicit_entry(task_spec, route):
+            return (
+                "当前存在与主业务同对象且无副作用的隐式详情入口；优先把整卡或所属分区作为唯一点击入口，"
+                "不要为了显示入口额外增加按钮、标题或背板。"
+            )
+        return "没有高置信的同业务隐式入口时保持纯展示，不用候选数量补出按钮。"
+
+    @staticmethod
+    def _visual_route(task_spec: TaskSpec) -> tuple[str, tuple[str, ...]]:
+        roots = PromptBuilder._data_roots(task_spec)
+        query = task_spec.userQuery
+        event_count = len(task_spec.eventCandidates)
+
+        if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
+            example_id = (
+                "2x2-V08"
+                if PromptBuilder._uses_expanded_countdown_layout(task_spec)
+                else "2x2-V01"
+            )
+            return "countdown", (example_id,)
+
+        if PromptBuilder._data_block_count(task_spec) >= 2:
+            multi_business_ids = PromptBuilder._multi_business_few_shot_ids(
+                task_spec,
+                roots,
+            )
+            if multi_business_ids:
+                return "multi-business", multi_business_ids
+            return "multi-business", _GENERIC_MULTI_FEW_SHOT_IDS[task_spec.size]
+
+        if task_spec.size == "2x2" and event_count >= 2 and _contains_any(
+            query,
+            ("两个", "分别", "各自", "每个", "每首", "单独", "双入口"),
+        ):
+            return "generic", ("2x2-V03",)
+
+        normalized_roots = {root.casefold() for root in roots}
+        if "earphone" in normalized_roots:
+            return "earphone-status", (
+                ("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",)
+            )
+        if "phonebattery" in normalized_roots:
+            return "battery-readout", (("2x2-V09",) if task_spec.size == "2x2" else ("2x4-V02",))
+        if "weather" in normalized_roots or any(
+            _contains_any(query, markers)
+            for markers in (("天气", "温度", "空气质量"),)
+        ):
+            return "weather-readout", (
+                ("2x2-V04",) if task_spec.size == "2x2" else ("2x4-V11",)
+            )
+        if "calendar" in normalized_roots or _contains_any(
+            query, ("日程", "会议", "提醒", "安排")
+        ):
+            if task_spec.size == "2x2":
+                return "calendar-event", ("2x2-V06",)
+            if event_count >= 2 and PromptBuilder._query_requests_action(task_spec):
+                return "calendar-event", ("2x4-V08",)
+            if PromptBuilder._calendar_event_count(task_spec) >= 2 or _contains_any(
+                query,
+                ("三件", "列表", "接下来"),
+            ):
+                return "calendar-event", ("2x4-V01",)
+            return "calendar-event", ("2x4-V07",)
+        if "healthsport" in normalized_roots or _contains_any(
+            query, ("步数", "运动", "睡眠", "心率", "健康")
+        ):
+            if task_spec.size == "2x2":
+                has_exercise_summary = all(
+                    PromptBuilder._schema_has_field(task_spec, (marker,))
+                    for marker in (
+                        "exerciseDuration",
+                        "exerciseCalorie",
+                        "exerciseHeartRate",
+                    )
+                )
+                if has_exercise_summary and PromptBuilder._query_requests_action(task_spec):
+                    return "health-readout", ("2x2-V11",)
+                return "health-readout", ("2x2-V07",)
+            has_sleep_score = PromptBuilder._schema_has_field(task_spec, ("sleepScore",))
+            has_sleep_duration = PromptBuilder._schema_has_field(
+                task_spec,
+                ("sleepDuration", "deepSleepDuration"),
+            )
+            if has_sleep_score and has_sleep_duration:
+                if _contains_any(query, ("最关心", "重点", "主要看", "多少分")):
+                    return "health-readout", ("2x4-V04",)
+                return "health-readout", ("2x4-V03",)
+            has_metric_triple = all(
+                PromptBuilder._schema_has_field(task_spec, (marker,))
+                for marker in ("sleepScore", "dailyTotalCalories", "dailySteps")
+            )
+            if has_metric_triple:
+                return "health-readout", ("2x4-V05",)
+            return "health-readout", ("2x4-V03",)
+        return "generic", _GENERIC_FEW_SHOT_IDS[task_spec.size]
+
+    @staticmethod
+    def _multi_business_few_shot_ids(
+        task_spec: TaskSpec,
+        roots: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Select business-specific multi-object examples only for known combinations.
+
+        The size locks already enforce S4/W8/W9/W10 geometry.  Unknown combinations
+        should therefore use a neutral structural example instead of borrowing the
+        semantics of weather, battery, or earphone examples.
+        """
+        normalized_roots = {root.casefold() for root in roots}
+        if task_spec.size == "2x2":
+            if normalized_roots == {"phonebattery", "earphone"}:
+                return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
+            if PromptBuilder._query_mentions_weather(task_spec):
+                return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
+            return ()
+        if normalized_roots == {"weather", "phonebattery"}:
+            return (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
+        if normalized_roots == {"phonebattery", "earphone"}:
+            return ("2x4-V14",)
+        if normalized_roots == {"weather", "phonebattery", "earphone"}:
+            return ("2x4-V10",)
+        if len(roots) == 4 and normalized_roots.issubset(
+            {"weather", "phonebattery", "earphone", "calendar"}
+        ):
+            return ("2x4-V06",)
+        return ()
+
+    @staticmethod
+    def _layout_scope(task_spec: TaskSpec) -> str:
+        """只返回由尺寸和数据块数量确定的骨架范围。"""
+        block_count = PromptBuilder._data_block_count(task_spec)
+        if task_spec.size == "2x2":
+            if block_count >= 2:
+                return "S4-stacked-zones"
+            return "S1-S3 adaptive-single-business"
+
+        if block_count >= 4:
+            return "W8-quad-cells"
+        if block_count == 3:
+            return "W10-triple-backboards"
+        if block_count == 2:
+            return "W9-dual-backboards"
+        return "W1-W7 adaptive-single-business"
+
+    @staticmethod
+    def _query_mentions_weather(task_spec: TaskSpec) -> bool:
+        return _contains_any(task_spec.userQuery, ("天气", "温度", "空气质量"))
+
+    @staticmethod
+    def _filter_layout_subsections(
+        lines: list[str],
+        allowed_names: tuple[str, ...],
+    ) -> list[str]:
+        heading_indexes = [
+            index
+            for index, line in enumerate(lines)
+            if line.startswith("### `S") or line.startswith("### `W")
+        ]
+        if not heading_indexes:
+            return lines
+        selected = list(lines[: heading_indexes[0]])
+        for position, start in enumerate(heading_indexes):
+            end = (
+                heading_indexes[position + 1]
+                if position + 1 < len(heading_indexes)
+                else len(lines)
+            )
+            heading = lines[start]
+            if any(f"`{name}`" in heading for name in allowed_names):
+                selected.extend(lines[start:end])
+        return selected
+
+    @staticmethod
+    def _prune_prompt_for_route(
+        system_prompt: str,
+        task_spec: TaskSpec,
+        layout_scope: str,
+    ) -> str:
+        """仅按尺寸和数据块数量裁剪第九节布局骨架。"""
+        lines = system_prompt.splitlines()
+        try:
+            chapter_start = lines.index("# 九、固定布局骨架路由")
+            chapter_end = lines.index("# 十、文字与信息适配")
+            two_by_two_start = lines.index("## 9.1 2x2 固定骨架（v0.2 四分法）")
+            two_by_four_start = lines.index("## 9.2 2x4 固定骨架（v0.4 W 骨架 · W1→W10）")
+        except ValueError:
+            return system_prompt
+
+        chapter_intro = lines[chapter_start:two_by_two_start]
+        if task_spec.size == "2x2":
+            layout_lines = lines[two_by_two_start:two_by_four_start]
+            if layout_scope == "S1-S3 adaptive-single-business":
+                allowed = (
+                    "S1-single-info",
+                    "S2-info-pair-action",
+                    "S3-info-dual-action",
+                )
+            else:
+                allowed = (layout_scope,)
+        else:
+            layout_lines = lines[two_by_four_start:chapter_end]
+            tail_start = next(
+                (
+                    index
+                    for index, line in enumerate(layout_lines)
+                    if line.startswith("骨架落地时还必须满足：")
+                ),
+                len(layout_lines),
+            )
+            tail = layout_lines[tail_start:]
+            layout_lines = layout_lines[:tail_start]
+            if layout_scope == "W1-W7 adaptive-single-business":
+                allowed = tuple(
+                    name
+                    for name in (
+                        "W1-progress-aux",
+                        "W2-text-flow",
+                        "W3-ring-detail",
+                        "W4-metric-triple",
+                        "W5-progress-detail",
+                        "W6-agenda-cta",
+                        "W7-list-rows",
+                    )
+                )
+            else:
+                allowed = (layout_scope,)
+            layout_lines = PromptBuilder._filter_layout_subsections(
+                layout_lines,
+                allowed,
+            )
+            layout_lines.extend(tail)
+
+        if task_spec.size == "2x2":
+            layout_lines = PromptBuilder._filter_layout_subsections(
+                layout_lines,
+                allowed,
+            )
+
+        result = [
+            *lines[:chapter_start],
+            *chapter_intro,
+            *layout_lines,
+            *lines[chapter_end:],
+        ]
+        return "\n".join(result)
 
     @staticmethod
     def _select_few_shot(few_shot: str, task_spec: TaskSpec) -> str:
-        data_block_count = PromptBuilder._two_by_four_data_block_count(task_spec)
-        selected_ids: tuple[str, ...] = ()
-        dual_ids = (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
-        if task_spec.size == "2x2" and PromptBuilder._uses_countdown_v01(task_spec):
-            selected_ids = ("2x2-V01",)
-        elif data_block_count == 2:
-            if task_spec.size == "2x2":
-                selected_ids = dual_ids
-            else:
-                selected_ids = (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
-        elif PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
-            selected_ids = (_TWO_BY_TWO_DUAL_ACTION_FEW_SHOT_ID,)
-        elif PromptBuilder._uses_meeting_v06(task_spec):
-            selected_ids = ("2x2-V06",)
-        if not selected_ids and task_spec.size != "2x2":
-            return few_shot
+        _, selected_ids = PromptBuilder._visual_route(task_spec)
 
         lines = few_shot.splitlines()
         headings = [index for index, line in enumerate(lines) if line.startswith("## ")]
@@ -246,15 +589,107 @@ class PromptBuilder:
         matched = False
         for position, start in enumerate(headings):
             heading = lines[start]
-            include = not any(identifier in heading for identifier in dual_ids)
-            if selected_ids:
-                include = any(identifier in heading for identifier in selected_ids)
+            include = any(identifier in heading for identifier in selected_ids)
             if not include:
                 continue
             matched = True
             end = headings[position + 1] if position + 1 < len(headings) else len(lines)
             selected_lines.extend(lines[start:end])
         return "\n".join(selected_lines).strip() if matched else few_shot
+
+    @staticmethod
+    def _visual_route_instruction(
+        task_spec: TaskSpec,
+        layout_scope: str | None = None,
+    ) -> str:
+        if layout_scope is None:
+            layout_scope = PromptBuilder._layout_scope(task_spec)
+        route, example_ids = PromptBuilder._visual_route(task_spec)
+        examples = "、".join(example_ids)
+        instruction = _VISUAL_ROUTE_INSTRUCTIONS[route]
+        if "adaptive" in layout_scope:
+            skeleton_instruction = (
+                f"- 骨架范围：`{layout_scope}`。由模型按本轮字段关系在该范围内选择。\n"
+            )
+        else:
+            skeleton_instruction = (
+                f"- 固定骨架：`{layout_scope}`。不得选择或混入其它骨架。\n"
+            )
+        return (
+            "# 本轮路由摘要（高优先级）\n\n"
+            f"{skeleton_instruction}"
+            f"- 视觉重点：{instruction}\n"
+            "- 信息裁决：只保留 userQuery 明确要求及消除歧义所需的字段，"
+            "不要用弱字段填满空间。\n"
+            f"- 动作处理：{PromptBuilder._action_guidance(task_spec, route)}\n"
+            f"- 参考金标：{examples}。示例只提供构图、字号关系和留白方式；"
+            "必须使用当前 TaskSpec 的真实路径、事件和素材，"
+            "禁止复制示例业务值、标题、颜色或组件 id。\n\n"
+            "生成前先按以上摘要完成字段槽位映射，并由模型选出唯一第一焦点，再输出组件。"
+            "主焦点至少在字号、位置、面积、颜色明度或连续留白中的两项明显强于辅助信息。"
+        )
+
+    @staticmethod
+    def _layout_route_lock(task_spec: TaskSpec, layout_scope: str) -> str:
+        if task_spec.size == "2x2":
+            if layout_scope == "S4-stacked-zones":
+                return _SIZE_LAYOUT_ROUTE_LOCKS["2x2"]
+            return (
+                "# 本次尺寸骨架硬约束（高优先级）\n\n"
+                "本轮只有一个业务对象，只能在 S1、S2、S3 中按字段关系选择；"
+                "不得生成 S4 双业务背板。root 使用单业务安全区，全部内容围绕"
+                "userQuery 指定的第一焦点组织，动作与信息区域遵守所选骨架的容量。"
+            )
+
+        lock = _TWO_BY_FOUR_ROUTE_LOCKS.get(layout_scope)
+        if lock is not None:
+            return lock
+        return (
+            "# 本次尺寸骨架硬约束（高优先级）\n\n"
+            f"本轮固定使用 `{layout_scope}`，不得生成或混入其它 2x4 骨架。"
+            "全部一级区域、主焦点和动作必须落入该骨架声明的槽位。"
+        )
+
+    @staticmethod
+    def _fusion_ball_recommendation(task_spec: TaskSpec) -> str:
+        """仅对高置信的简单 2x2 单业务提供轻量推荐。"""
+        if task_spec.size != "2x2" or PromptBuilder._data_block_count(task_spec) != 1:
+            return ""
+        if _contains_any(task_spec.userQuery, _CUSTOM_BACKGROUND_MARKERS):
+            return ""
+        if _contains_any(task_spec.userQuery, _DENSE_CONTENT_MARKERS):
+            return ""
+
+        route, _ = PromptBuilder._visual_route(task_spec)
+        supported_route = route in {
+            "countdown",
+            "earphone-status",
+            "battery-readout",
+            "calendar-event",
+        }
+        if route == "health-readout":
+            supported_route = _contains_any(
+                task_spec.userQuery,
+                ("睡眠", "专注", "运动", "步数", "训练"),
+            )
+        if not supported_route:
+            return ""
+
+        query_requests_dual_action = len(task_spec.eventCandidates) >= 2 and _contains_any(
+            task_spec.userQuery,
+            ("两个", "分别", "各自", "双入口"),
+        )
+        if query_requests_dual_action:
+            return ""
+
+        return (
+            "# 本次融球推荐（高优先级）\n\n"
+            "本轮是 2x2 单业务且内容较少，运行时已允许融球。"
+            "若最终仍是单内容组、显式动作不超过一个，且第十二节"
+            "已为当前业务登记融球 Design Token，优先使用该融球。"
+            "推荐只改变背景与对应前景色，不得为融球删除用户必需内容、"
+            "改变骨架或增加装饰节点。"
+        )
 
     @staticmethod
     def _uses_countdown_v01(task_spec: TaskSpec) -> bool:
@@ -276,23 +711,9 @@ class PromptBuilder:
         )
 
     @staticmethod
-    def _uses_meeting_v06(task_spec: TaskSpec) -> bool:
-        if task_spec.size != "2x2" or PromptBuilder._data_roots(task_spec) != (
-            "calendar",
-        ):
-            return False
-        query = task_spec.userQuery.casefold()
-        if any(marker in query for marker in _MEETING_LIST_QUERY_MARKERS):
-            return False
-        return any(marker in query for marker in _MEETING_QUERY_MARKERS)
-
-    @staticmethod
-    def _uses_2x2_single_business_dual_action(task_spec: TaskSpec) -> bool:
-        return (
-            task_spec.size == "2x2"
-            and len(PromptBuilder._data_roots(task_spec)) == 1
-            and len(task_spec.eventCandidates) == 2
-        )
+    def _uses_expanded_countdown_layout(task_spec: TaskSpec) -> bool:
+        """只用明确动作选择 V08；额外可见数据由模型输出和校验器最终判定。"""
+        return PromptBuilder._query_requests_action(task_spec)
 
     @staticmethod
     def _contains_schema_field(value: Any, field_name: str) -> bool:
@@ -310,37 +731,33 @@ class PromptBuilder:
 
     @staticmethod
     def _with_size_few_shot(system_prompt: str, task_spec: TaskSpec) -> str:
-        profile_dir = get_settings().data_root / "protocol_profiles" / DESIGN_COMPACT_PROFILE_ID
-        few_shot = (profile_dir / f"FEWSHOT_{task_spec.size}.md").read_text(encoding="utf-8")
+        layout_scope = PromptBuilder._layout_scope(task_spec)
+        system_prompt = PromptBuilder._prune_prompt_for_route(
+            system_prompt,
+            task_spec,
+            layout_scope,
+        )
+        profile_dir = (
+            get_settings().data_root
+            / "protocol_profiles"
+            / DESIGN_COMPACT_PROFILE_ID
+        )
+        few_shot = (profile_dir / f"FEWSHOT_{task_spec.size}.md").read_text(
+            encoding="utf-8"
+        )
         few_shot = PromptBuilder._select_few_shot(few_shot, task_spec)
         prompt = (
             f"{system_prompt}\n\n{few_shot}\n\n"
-            f"{_SIZE_LAYOUT_ROUTE_LOCKS[task_spec.size]}"
+            f"{PromptBuilder._visual_route_instruction(task_spec, layout_scope)}\n\n"
+            f"{PromptBuilder._layout_route_lock(task_spec, layout_scope)}"
         )
         if PromptBuilder._uses_countdown_v01(task_spec):
-            return (
-                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
-                f"\n\n{_COUNTDOWN_V01_ROUTE_LOCK}"
+            route_lock = (
+                _COUNTDOWN_V08_ROUTE_LOCK
+                if PromptBuilder._uses_expanded_countdown_layout(task_spec)
+                else _COUNTDOWN_V01_ROUTE_LOCK
             )
-        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 2:
-            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ROUTE_LOCK}"
-        if (
-            task_spec.size == "2x4"
-            and PromptBuilder._two_by_four_data_block_count(task_spec) == 2
-        ):
-            return f"{prompt}\n\n{_TWO_BY_FOUR_DUAL_ROUTE_LOCK}"
-        if PromptBuilder._uses_2x2_single_business_dual_action(task_spec):
-            return f"{prompt}\n\n{_TWO_BY_TWO_DUAL_ACTION_ROUTE_LOCK}"
-        if PromptBuilder._uses_meeting_v06(task_spec):
-            return (
-                f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
-                f"\n\n{_MEETING_V06_ROUTE_LOCK}"
-            )
-        if task_spec.size == "2x2" and len(PromptBuilder._data_roots(task_spec)) == 1:
-            prompt = f"{prompt}\n\n{_TWO_BY_TWO_SINGLE_ROUTE_LOCK}"
-            if PromptBuilder._data_roots(task_spec) == ("weather",):
-                prompt = f"{prompt}\n\n{_TWO_BY_TWO_WEATHER_DATE_ROUTE_LOCK}"
-            return prompt
+            return f"{prompt}\n\n{route_lock}"
         return prompt
 
     def build_design_compact(
@@ -420,6 +837,9 @@ class PromptBuilder:
             return system_prompt
         system_prompt = PromptBuilder._with_size_few_shot(system_prompt, task_spec)
         if fusion_ball_enabled(task_spec.appVersion):
+            recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
+            if recommendation:
+                return f"{system_prompt}\n\n{recommendation}"
             return system_prompt
         return f"{system_prompt}\n\n{_FUSION_BALL_DISABLED_INSTRUCTION}"
 
@@ -502,7 +922,10 @@ class PromptBuilder:
                 "qualityErrors": quality_errors,
                 "dslFormat": dsl_format,
                 "instruction": (
-                    "以 invalidSourceDsl 为直接修复对象，逐项处理 qualityErrors，"
+                    "以 invalidSourceDsl 为直接修复对象；先从 originalUserContent 恢复"
+                    " TaskSpec 的字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
+                    "每次修改后复查受影响父容器、"
+                    "相邻节点和全部首次生成门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
                     "只输出修复后的完整源格式 DSL，封装形式遵循原始系统提示词，禁止解释或补丁。"
                 ),
             },

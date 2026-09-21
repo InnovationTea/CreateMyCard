@@ -24,7 +24,6 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
 from models.generation import TaskSpec
 from services.prompt_builder import PromptBuilder
-from services.protocol_registry import A2UIProtocolRegistry
 from services.source_artifact_repository import (
     SourceArtifactError,
     SourceArtifactRepository,
@@ -234,7 +233,6 @@ async def test_design_compact_edit_uses_previous_design_token(
         edited.artifactUrl,
     )
     edit_payload = json.loads(prompts[0][1]["content"])
-    create_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
     edit_system_file = (
         CLOUD_ROOT
         / "data"
@@ -242,14 +240,15 @@ async def test_design_compact_edit_uses_previous_design_token(
         / "design-compact-dsl"
         / "EDIT_SYSTEM_PROMPT.md"
     )
-    expected_system = edit_system_file.read_text(encoding="utf-8").replace(
+    edit_system_prefix = edit_system_file.read_text(encoding="utf-8").split(
         "{{CREATE_SYSTEM_PROMPT}}",
-        create_system,
-    )
+        maxsplit=1,
+    )[0]
 
     assert len(prompts[0]) == 2
     assert prompts[0][0]["role"] == "system"
-    assert prompts[0][0]["content"].startswith(expected_system)
+    assert prompts[0][0]["content"].startswith(edit_system_prefix)
+    assert "# 2x2 Few-shot" in prompts[0][0]["content"]
     assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in (
         prompts[0][0]["content"]
     )
@@ -262,7 +261,13 @@ async def test_design_compact_edit_uses_previous_design_token(
     }
     assert updated.artifact.meta.generationMode == "edit"
     assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
-    assert updated.design_token == source.design_token
+    updated_rows = [
+        json.loads(line) for line in updated.design_token.splitlines() if line.strip()
+    ]
+    source_rows = [
+        json.loads(line) for line in source.design_token.splitlines() if line.strip()
+    ]
+    assert updated_rows == source_rows
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 
@@ -404,7 +409,7 @@ async def test_design_edit_repair_saves_final_design_token(
 
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert len(prompts) == 2
-    assert updated.design_token == source.design_token
+    assert updated.design_token.replace("\r", "") == source.design_token.replace("\r", "")
     repair_payload = json.loads(prompts[1][1]["content"])
     original_user = json.loads(repair_payload["originalUserContent"])
     assert original_user["previousDesignToken"]["content"] == source.design_token
@@ -551,10 +556,14 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
     )
 
     edit_context = json.loads(prompt[1]["content"])
-    assert prompt[0]["content"].startswith(
-        A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
-    )
-    assert "编辑模式附加规则" in prompt[0]["content"]
+    system_prompt = prompt[0]["content"]
+    assert "# 本轮路由摘要（高优先级）" in system_prompt
+    assert "## 9.2 2x4 固定骨架" in system_prompt
+    assert "## 9.1 2x2 固定骨架" not in system_prompt
+    assert "### `W8-quad-cells`" not in system_prompt
+    assert "### `W9-dual-backboards`" not in system_prompt
+    assert "### `W10-triple-backboards`" not in system_prompt
+    assert "编辑模式附加规则" in system_prompt
     assert edit_context["previousGenui"] == previous_genui
     assert edit_context["editInstruction"] == "改成蓝色"
     assert "appVersion" not in edit_context["newTaskSpec"]
