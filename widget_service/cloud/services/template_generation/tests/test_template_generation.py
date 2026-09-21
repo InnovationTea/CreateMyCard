@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 122
+    assert len(registry.provider_template_ids) == 123
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",

@@ -242,6 +242,20 @@
       ]
     },
     {
+      "templateId": "HeartRateOverviewUpdatedFull@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，展示平均心率与更新时间。 组件形态：fullUpdated。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
       "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
