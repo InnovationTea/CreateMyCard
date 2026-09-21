@@ -73,22 +73,15 @@ def run_pipeline(
     *,
     stop_on_stage_error: bool = False,
 ) -> None:
-    context.validation_policy = context.resolve_validation_policy()
-    policy = context.validation_policy
     validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
     for current_stage in selected_stages(stage):
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
             return
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
             return
-        stage_validators = [
-            validator for validator in validators if validator.stage == current_stage
-        ]
-        if current_stage == "quality" and not any(
-            validator.name in policy.a2ui_validators for validator in stage_validators
-        ):
+        if current_stage == "quality" and context.has_fusion_template_root():
             _LOGGER.info("quality_validation_skipped reason=template_root")
             continue
-        for validator in stage_validators:
-            if validator.name in policy.a2ui_validators:
+        for validator in validators:
+            if validator.stage == current_stage:
                 validator.validate(context, rules, reporter)

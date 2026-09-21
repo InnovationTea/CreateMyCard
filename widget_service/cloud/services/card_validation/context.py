@@ -5,12 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .validation_policy import (
-    STANDARD_VALIDATION_POLICY,
-    CardValidationPolicy,
-    resolve_validation_policy,
-)
-
 
 @dataclass
 class ValidationContext:
@@ -36,22 +30,19 @@ class ValidationContext:
     expression_locations: list[tuple[str, str, Any, str | None]] = field(default_factory=list)
     template_context_by_component: dict[str, dict[str, Any]] = field(default_factory=dict)
     quality_score: int | None = None
-    validation_policy: CardValidationPolicy = STANDARD_VALIDATION_POLICY
-
-    def resolve_validation_policy(self) -> CardValidationPolicy:
-        """为标准 A2UI 入口适配共享策略的结构输入。"""
-        root = self.root_component
-        children = root.get("children") if root is not None else None
-        return resolve_validation_policy(
-            root_id=self.root_id,
-            root_children=children if isinstance(children, list) else None,
-            component_ids=self.components_by_id,
-            duplicate_component_ids=self.duplicate_component_ids,
-        )
 
     def has_fusion_template_root(self) -> bool:
-        """兼容既有查询；实际校验只消费入口选定的策略。"""
-        return self.resolve_validation_policy().name == "template"
+        """兼容既有调用名，仅按模板根标记判断整卡质量豁免。"""
+        if self.root_id != "root" or self.duplicate_component_ids:
+            return False
+        root = self.root_component
+        template = self.components_by_id.get("template_root")
+        if root is None or template is None:
+            return False
+        children = root.get("children")
+        if not isinstance(children, list):
+            return False
+        return "template_root" in children
 
     def line_for_genui_pointer(self, pointer: str) -> int | None:
         if pointer.startswith("/createSurface"):

@@ -12,7 +12,6 @@ from services.card_validation.compact_dsl_validator import (
     _collect_hero_value_errors,
     validate_compact_dsl,
 )
-from services.card_validation.validation_policy import CompactRule, resolve_validation_policy
 from services.compact_dsl_a2ui_converter import ComponentRow
 
 
@@ -50,21 +49,6 @@ def _errors(rows: list[ComponentRow], spec: dict[str, Any]) -> list[str]:
     return errors
 
 
-def _validation_errors(rows: list[ComponentRow], spec: dict[str, Any]) -> list[str]:
-    source = _source(rows)
-    schema = spec.get("dataModelSchema", {}).get("data", {})
-    for root, fields in schema.items():
-        for name, node in fields.items():
-            assert "sampleValue" in node
-            source += "\n" + json.dumps([f"/data/{root}/{name}", node.get("sampleValue")])
-    errors: list[str] = []
-    try:
-        validate_compact_dsl(source, task_spec=spec, card_spec={"suggestSize": spec.get("size")})
-    except CompactDslValidationError as exc:
-        errors = list(exc.errors)
-    return errors
-
-
 def _source(rows: list[ComponentRow]) -> str:
     lines = []
     for component in rows:
@@ -86,7 +70,7 @@ def test_valid_template_skips_hero_typography(
     size: str, fusion: bool, content: Any,
 ) -> None:
     rows, spec = _fixture(size, fusion, content)
-    assert not _validation_errors(rows, spec)
+    assert not _errors(rows, spec)
 
 
 @pytest.mark.parametrize("marker", [
@@ -111,27 +95,21 @@ def test_invalid_template_marker_keeps_hero_validation(marker: str) -> None:
         rows.append(ComponentRow("value", "Text", {"content": "重复"}))
     else:
         rows[0] = ComponentRow("preview_root", "Stack", {}, ("template_root",))
-    policy = resolve_validation_policy(
-        root_id=rows[0].component_id,
-        root_children=rows[0].children,
-        component_ids=(row.component_id for row in rows),
-    )
-    assert CompactRule.HERO_VALUE in policy.compact_rules
     assert any("fontSize 30" in error for error in _errors(rows, spec))
 
 
 def test_template_marker_is_rechecked_after_each_repair() -> None:
     rows, spec = _fixture()
-    assert not _validation_errors(rows, spec)
+    assert not _errors(rows, spec)
     rows[0] = ComponentRow("root", "Stack", {}, ("reading",))
-    assert _validation_errors(rows, spec)
+    assert _errors(rows, spec)
 
 
 def test_template_skips_adjacent_numeric_label_check() -> None:
     rows, spec = _fixture(content="68")
-    assert not _validation_errors(rows, spec)
+    assert not _errors(rows, spec)
     rows[0] = ComponentRow("root", "Stack", {}, ("reading",))
-    assert any("real unit" in error for error in _validation_errors(rows, spec))
+    assert any("real unit" in error for error in _errors(rows, spec))
 
 
 @pytest.mark.parametrize(("change", "message"), [

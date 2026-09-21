@@ -130,21 +130,24 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 
-校验规则由 `card_validation/validation_policy.py` 集中管理：普通与模板策略分别声明
-`compact_rules`、`a2ui_validators`、`display_unit_rules`，业务层不逐条控制校验。
-`validate_compact_dsl` 与 `run_pipeline` 在解析后调用同一个策略选择函数；仅当根 `root` 直接引用
-实际存在的精确标记 `template_root` 且无重复组件 ID 时使用模板清单。每次修复后重新识别，
-普通、融球和预览模板使用同一判定，不改变融球范围。标记是工程约定，不是不可伪造的来源凭证。
-
-模板清单保留组件、素材、事件、绑定、首帧数据、双动作结构、高度预算，以及标准 A2UI 的 hard、
-semantic 与重复单位校验；不选择自由生成的 Compact 融球视觉组合、指标标签、天气日期组合、
-主文字字号和布局路由规则，也不选择对比度与缺失单位规则。新增或恢复模板适用规则只修改集中清单，
-不向各校验函数添加模板分支。直接调用叶子校验器不进行场景选择，应使用完整校验入口。
-
-规则内部阈值保持不变。模板的标签文案与布局质量仍需通过模板测试和端侧检查，跳过设计规则不等于
-视觉通过。`quality_validation_skipped reason=template_root` 仍记录质量阶段未执行，不伪造分数。
-`has_fusion_template_root()` 保留为兼容查询，委托统一策略判定；校验器不再调用该查询决定是否跳过。
-不恢复运行时 IF 支持；运动健康 30fp 文本仍使用自然高度，其它模板原有尺寸保持不变。
+公共调度器确认根 `root` 的 `children` 数组直接引用实际存在且 ID 精确等于 `template_root` 的组件，
+且组件 ID 无重复后，跳过整卡
+`quality` 阶段，包括并列的背景、标题和动作。不按文本或前缀匹配；每次修复后重新识别标记。
+不依赖 `fusionBallBackground`，非融球、融球及独立模板预览使用相同规则。
+缺少模板标记、孤立标记、非直接子节点、重复 ID、普通生成及模板回退产物不自动豁免。
+标记是工程约定，不是不可伪造的来源凭证；解析失败与组件引用合法性仍按原规则检查。
+跳过记录 `quality_validation_skipped reason=template_root`，不视为实际质量通过或伪造分数，
+也不因被跳过的检查触发质量修复。
+转换前 `_collect_hero_value_errors` 也按上述有效模板标记直接返回，跳过主文字的大字号语义、
+格式化主读数条件及相邻单位限制；不为模板改写普通生成的绑定、宽度或单位说明识别规则。
+同一有效模板根标记还用于跳过 `semantic` 阶段的 `DISPLAY_UNIT_MISSING`，允许数值与可见单位
+分属不同的固定布局容器。融球、非融球和独立模板预览均适用；普通卡片和无效标记仍检查单位缺失。
+`DISPLAY_UNIT_DUPLICATED`、其它 semantic、hard、其余转换前校验及高度预算保持不变，
+也不恢复运行时 IF 支持。
+模板字号按评审结果保留；原有 38fp 主值统一改为 30fp、高度 40vp。
+运动健康模板的 30fp 文本使用自然高度，不声明固定 height，以保持与相邻单位或说明的对齐。
+独立调用对比度校验器使用同一模板根判断，符合条件整卡跳过，否则所有内容正常检查。
+`has_fusion_template_root()` 保留既有方法名以兼容调用，但不再检查融球背景。
 
 回归覆盖普通模板、融球模板、预览模板、精确标识、非模板并列节点及其它校验继续生效。
 

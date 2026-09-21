@@ -27,9 +27,7 @@ class DisplayUnitValidator(BaseValidator):
         )
         if not unit_rules:
             return
-        selected_rules = context.validation_policy.display_unit_rules
-        check_missing_unit = "DISPLAY_UNIT_MISSING" in selected_rules
-        check_duplicate_unit = "DISPLAY_UNIT_DUPLICATED" in selected_rules
+        skip_missing_unit = context.has_fusion_template_root()
         parents_by_child = self._parents_by_child(context.components)
         for component in context.components:
             if component.get("component") != "Text":
@@ -55,7 +53,7 @@ class DisplayUnitValidator(BaseValidator):
             )
             visible_unit_count = inline_count + sibling_count
             pointer = f"/updateComponents/componentsById/{component_id}/content"
-            if rule.unit_included and visible_unit_count and check_duplicate_unit:
+            if rule.unit_included and visible_unit_count:
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_DUPLICATED",
@@ -68,7 +66,7 @@ class DisplayUnitValidator(BaseValidator):
                     message="动态字段已自带展示单位，不得再次拼接或另行展示相同单位。",
                     fix_hint="删除表达式或相邻 Text 中重复追加的单位，仅保留字段自身内容。",
                 )
-            elif not rule.unit_included and visible_unit_count == 0 and check_missing_unit:
+            elif not rule.unit_included and visible_unit_count == 0 and not skip_missing_unit:
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_MISSING",
@@ -84,7 +82,7 @@ class DisplayUnitValidator(BaseValidator):
                         f"静态 Text 包含该单位，且整组只展示一次。"
                     ),
                 )
-            elif not rule.unit_included and visible_unit_count > 1 and check_duplicate_unit:
+            elif not rule.unit_included and visible_unit_count > 1:
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_DUPLICATED",
