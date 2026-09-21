@@ -38,5 +38,13 @@
   "ASSET_PATH_NOT_DECLARED": {
     "message": "资源路径未在素材库 allowlist 中声明。",
     "fixHint": "使用 rules/config/asset.json.allowlist 中声明的素材，或删除 Image。"
+  },
+  "QUALITY.LAYOUT_UNBALANCED": {
+    "message": "普通卡片布局存在大面积未使用空间。",
+    "fixHint": "根据内容关系设置分布式对齐或 layoutWeight；必要时增减 Row/Column 容器以重新组织内容。"
+  },
+  "QUALITY.LAYOUT_REDUNDANT_CONTAINER": {
+    "message": "布局容器可能存在无意义的同类型嵌套。",
+    "fixHint": "如果没有独立的对齐、背景或点击语义，请移除一层容器；否则保留并明确其布局职责。"
   }
 }
