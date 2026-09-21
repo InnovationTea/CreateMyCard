@@ -48,7 +48,7 @@
 先牢记仓电量场景的完整决策：明确“耳机盒电量和充电状态”时，核心是
 `/batteryLevel`、`/chargingStatusDesc`，不能只输出字段就结束，必须继续完成后面的动作决策。
 即使输入还提供名称、左右耳电量、左右耳充电状态，也不能转成左右耳概览。
-`EarbudsFull` 不展示仓字段，`EarbudPairFull` 不展示仓充电状态，不能因为有左右耳候选就认为 Full 可用。
+`EarbudsFull` 不展示仓字段；`EarbudPairFull` 仅在自身必需字段和左耳、右耳、仓三项充电状态全部可用时展示完整充电状态层，不能仅因为有左右耳电量候选就认为 Full 可用。
 以本轮启用模板参考为准；无可用 Full、仓 Hero 可用且候选包含蓝牙设置、用户未要求或禁止动作时，
 输出一个蓝牙设置动作。此条件下 `action=[]` 是遗漏，不是遵从“用户没要求操作”。
 
@@ -93,7 +93,7 @@
 - `BluetoothDeviceOverviewEarbudTripleFull@1`：必需名称和三处电量，不要求连接状态，不展示充电状态；无动作。
 - `BluetoothDeviceOverviewEarbudTripleHero@1`：必需名称、三处电量及三处充电状态；搭配一个动作。
 - `BluetoothDeviceOverviewEarbudsFull@1`：必需左右耳电量；可选左右耳充电状态。哪只没电对应左右耳电量，不要求名称。
-- `BluetoothDeviceOverviewEarbudPairFull@1`：必需连接状态、名称、仓电量、左右耳电量。适合连接或整体概览；只问连接时需求只取连接状态，不补其余需求。
+- `BluetoothDeviceOverviewEarbudPairFull@1`：必需连接状态、名称、仓电量、左右耳电量。三项充电状态均可选，但必须全部可用才同时展示。适合连接或整体概览；只问连接时需求只取连接状态，不补其余需求。
 - `BluetoothDeviceOverviewHero@1`：必需连接状态、名称；可选左右耳电量。
 - `BluetoothDeviceOverviewEarbudPairHero@1`：必需名称、左右耳电量；不要求连接状态或仓电量，适合名称与左右电量的单按钮卡片。
 - `BluetoothDeviceOverviewEarphoneCaseHero@1`：必需仓电量、仓充电状态。
@@ -157,7 +157,8 @@
   需求含名称、仓电量或连接状态时，此 Full 不可用。
 - EarbudPairFull：输入必须同时含 `/isConnected`、`/earphoneName`、`/batteryLevel`、
   `/leftBatteryLevel`、`/rightBatteryLevel`；缺任何一项即不可用，即使该项不属于用户要显示的字段。
-  需求含任何充电状态时，此 Full 也不能覆盖。
+  需求包含充电状态时，还必须同时具备 `/leftChargingStatusDesc`、`/rightChargingStatusDesc`、
+  `/chargingStatusDesc`，才可由此 Full 的完整可选状态层覆盖；缺少任意一项时不能以隐藏状态满足明确需求。
 - 上述 Full 均不可用且提供蓝牙设置候选时，以下满足条件的 Hero 回退是必须执行的规则，不是可选建议：
   名称＋仓电量，输入含 `/earphoneName`、`/batteryLevel` → EarphoneHero，输出蓝牙设置动作；
   仓电量＋仓充电状态，输入含 `/batteryLevel`、`/chargingStatusDesc` → EarphoneCaseHero，输出蓝牙设置动作；
