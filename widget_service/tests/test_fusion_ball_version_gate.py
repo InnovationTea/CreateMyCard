@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.fusion_ball_expander import (
     FUSION_BALL_MIN_PRD_VERSION_CONFIG,
     FusionBallPalette,
+    expand_fusion_ball_components,
     fusion_ball_enabled,
     fusion_ball_palette_for_root,
 )
@@ -276,6 +277,45 @@ def test_converter_expands_fusion_ball_with_relative_dimensions(
         "borderRadius": 20,
         "clip": True,
     }
+
+
+def test_fusion_expansion_normalizes_light_s4_surface_to_translucent_white() -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": ["zone"],
+            "styles": {"width": 160, "height": 160, "backgroundColor": "#CCFFFFFF"},
+        },
+        {
+            "id": "zone",
+            "component": "Column",
+            "children": ["label", "icon"],
+            "styles": {"backgroundColor": "#CCFFFFFF"},
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": "耳机盒",
+            "styles": {"fontColor": "#FF1F4799"},
+        },
+        {
+            "id": "icon",
+            "component": "Image",
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "styles": {"fillColor": "#FF1F4799"},
+        },
+    ]
+
+    expanded = expand_fusion_ball_components(
+        components,
+        FusionBallPalette("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
+    )
+    by_id = {component["id"]: component for component in expanded}
+
+    assert by_id["zone"]["styles"]["backgroundColor"] == "#33FFFFFF"
+    assert by_id["label"]["styles"]["fontColor"] == "#FFFFFFFF"
+    assert by_id["icon"]["styles"]["fillColor"] == "#FFFFFFFF"
 
 
 def test_design_processor_copies_task_spec_app_version_into_profile(
