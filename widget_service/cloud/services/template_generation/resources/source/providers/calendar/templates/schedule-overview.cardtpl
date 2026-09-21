@@ -949,7 +949,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Row(
-    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "Top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     #if props.headerLabel
       Text(
         props.headerLabel,
@@ -1069,7 +1069,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Row(
-    {"width": "matchParent", "height": 20, "justifyContent": "start", "alignItems": "Top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"width": "matchParent", "height": 20, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Text(
       data.date,
       {"height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
