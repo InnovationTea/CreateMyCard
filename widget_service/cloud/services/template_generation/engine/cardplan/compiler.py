@@ -4517,15 +4517,24 @@ def _instantiate_blueprint_children(
                     )
                 )
             continue
-        instantiated.append(
-            _instantiate_blueprint(
-                child,
-                params,
-                bindings,
-                theme_values,
-                spread_children=spread_children,
-            )
+        instantiated_child = _instantiate_blueprint(
+            child,
+            params,
+            bindings,
+            theme_values,
+            spread_children=spread_children,
         )
+        if (
+            child.component in _CONTAINERS
+            and child.children
+            and not instantiated_child.children
+        ):
+            # 蓝图子节点实例化后全部为空（如容器内容仅由数据/参数条件构成且条件
+            # 不成立，或条件命中但内部又递归剪空）时，容器会展开为空，直接命中
+            # 扩展校验的空容器拒绝；此处丢弃这种条件性空容器。
+            # 蓝图本身无子节点的静态空容器不在此列，仍由扩展校验拒绝。
+            continue
+        instantiated.append(instantiated_child)
     return tuple(instantiated)
 
 
