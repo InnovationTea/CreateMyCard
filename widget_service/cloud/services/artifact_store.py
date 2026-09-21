@@ -146,5 +146,32 @@ class ArtifactStore:
                 request_payload = {}
         else:
             request_payload = self.request_body
+        request_payload = _remove_extrainfo(request_payload)
         sanitized_payload = _sanitize_json_log_value(request_payload)
         return json.dumps(sanitized_payload, ensure_ascii=False, indent=2)
+
+
+def _remove_extrainfo(value: Any) -> Any:
+    """从 artifact 的回放请求块移除仅供本轮模型使用的 extrainfo。"""
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        for key, child in value.items():
+            if key == "extrainfo":
+                continue
+            if key == "arguments" and isinstance(child, str):
+                try:
+                    decoded = json.loads(child)
+                except json.JSONDecodeError:
+                    sanitized[key] = child
+                else:
+                    sanitized[key] = json.dumps(
+                        _remove_extrainfo(decoded),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                continue
+            sanitized[key] = _remove_extrainfo(child)
+        return sanitized
+    if isinstance(value, list):
+        return [_remove_extrainfo(item) for item in value]
+    return value

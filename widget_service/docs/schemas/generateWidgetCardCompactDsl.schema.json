@@ -38,6 +38,15 @@
             "required": true,
             "description": "用户原始卡片需求；缺失时服务会尝试使用 utterance.original 兜底。"
           },
+          "extrainfo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "description": "本轮已清洗、已向用户告知且与卡片相关的外部事实和会话有效上下文；只用于本轮生成模型输入，不进入 TaskSpec 或 artifact。"
+          },
           "sourceArtifactUrl": {
             "type": "string",
             "required": false,
