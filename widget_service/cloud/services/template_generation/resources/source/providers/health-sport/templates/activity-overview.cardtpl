@@ -95,7 +95,7 @@ Column(
         },
         Text(
             data.steps,
-            {"fontSize": 38, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
+            {"fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
         ),
         Text(
             "步",
@@ -374,7 +374,7 @@ Column(
               },
               Text(
                   data.steps,
-                  { "fontSize": 38, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                  { "fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
               ),
               Text(
                   "步",

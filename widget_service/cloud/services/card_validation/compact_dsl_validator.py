@@ -166,6 +166,11 @@ def _collect_hero_value_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
+    # 与质量阶段使用相同的有效模板根标记，仅豁免主文字校验。
+    if len(components_by_id) == len(components) and "template_root" in components_by_id:
+        root = components_by_id.get("root")
+        if root is not None and "template_root" in root.children:
+            return
     data_model_schema = task_spec.get("dataModelSchema")
     if not isinstance(data_model_schema, dict):
         return
