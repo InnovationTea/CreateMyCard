@@ -27,10 +27,14 @@ _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
 )
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _REFERENCE_CANVAS_HEIGHT = {
-    "2x2": 160.0,
-    "2x4": 160.0,
-    "4x2": 160.0,
+    "2x2": 150.0,
+    "2x4": 150.0,
+    "4x2": 150.0,
 }
+_TWO_BY_FOUR_MULTI_ROOT_PADDING = 8
+_TWO_BY_FOUR_MULTI_LARGE_WIDTH = 138
+_TWO_BY_FOUR_MULTI_LARGE_HEIGHT = 134
+_TWO_BY_FOUR_MULTI_INNER_WIDTH = 114
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
 _COMMON_DISPLAY_UNITS = frozenset(
     {
@@ -347,13 +351,13 @@ def _is_readable_formatted_hero(
     if component_width is None:
         return False
     is_full_width = (
-        component_width == 136.0
+        component_width == 126.0
         if task_spec.get("size") == "2x2"
-        else component_width == 296.0
+        else component_width == 276.0
     )
     is_large_2x4_panel = (
         task_spec.get("size") == "2x4"
-        and component_width == 120.0
+        and component_width == _TWO_BY_FOUR_MULTI_INNER_WIDTH
         and _is_large_2x4_panel(component, components)
     )
     if not is_full_width and not is_large_2x4_panel:
@@ -424,7 +428,10 @@ def _is_large_2x4_panel(
         for parent in child_to_parents.get(child_id, []):
             width = _non_negative_number(parent.props.get("width"))
             height = _non_negative_number(parent.props.get("height"))
-            if width == 144.0 and height == 136.0:
+            if (
+                width == _TWO_BY_FOUR_MULTI_LARGE_WIDTH
+                and height == _TWO_BY_FOUR_MULTI_LARGE_HEIGHT
+            ):
                 return True
             pending.append(parent.component_id)
     return False
@@ -615,7 +622,7 @@ def _has_stacked_two_by_four_backboards(
                 continue
             height = _non_negative_number(child.props.get("height"))
             border_radius = _non_negative_number(child.props.get("borderRadius"))
-            is_full_width_backboard = child.props.get("width") == 296
+            is_full_width_backboard = child.props.get("width") in {276, 296}
             is_compact_height = height is not None and 48 <= height <= 64
             has_backboard_shape = border_radius is not None and border_radius >= 12
             if is_full_width_backboard and is_compact_height and has_backboard_shape:
@@ -628,9 +635,9 @@ def _has_stacked_two_by_four_backboards(
 def _is_two_by_four_large_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type != "Column":
         return False
-    if component.props.get("width") != 144:
+    if component.props.get("width") != _TWO_BY_FOUR_MULTI_LARGE_WIDTH:
         return False
-    if component.props.get("height") != 136:
+    if component.props.get("height") != _TWO_BY_FOUR_MULTI_LARGE_HEIGHT:
         return False
     return component.props.get("padding") == 12
 
@@ -716,9 +723,13 @@ def _collect_two_by_four_action_backboard_errors(
             f"2x4 large backboard {backboard.component_id} must place its action "
             "as the final direct child."
         )
-    if action.props.get("width") != 120 or action.props.get("height") != 36:
+    if (
+        action.props.get("width") != _TWO_BY_FOUR_MULTI_INNER_WIDTH
+        or action.props.get("height") != 36
+    ):
         errors.append(
-            f"2x4 large backboard {backboard.component_id} action must be 120x36."
+            f"2x4 large backboard {backboard.component_id} action must be "
+            f"{_TWO_BY_FOUR_MULTI_INNER_WIDTH}x36."
         )
     if action.component_type == "Row":
         _collect_two_by_four_action_row_errors(action, errors)
@@ -744,8 +755,8 @@ def _collect_two_by_four_action_backboard_errors(
     if _descendant_type_count(content, components_by_id, "Text") > 4:
         errors.append(
             f"2x4 large backboard {backboard.component_id} with a Button may "
-            "contain at most four Text rows: title, primary value, and up to "
-            "two auxiliary rows. Merge or remove lower-priority fields."
+            "contain at most four Text nodes across no more than three visual "
+            "rows. Merge or remove lower-priority fields."
         )
 
 
@@ -782,7 +793,7 @@ def _collect_two_by_four_full_width_action_errors(
     for action in components:
         if not _is_two_by_four_direct_action(action):
             continue
-        if action.props.get("width") != 296 or action.props.get("height") != 36:
+        if action.props.get("width") != 276 or action.props.get("height") != 36:
             continue
 
         parent = parent_by_child.get(action.component_id)
@@ -814,7 +825,7 @@ def _collect_two_by_four_full_width_action_errors(
         if content is None or content.props.get("layoutWeight") != 1:
             errors.append(
                 f"2x4 content immediately above full-width action "
-                f"{action.component_id} must use layoutWeight 1 so the 296x36 "
+                f"{action.component_id} must use layoutWeight 1 so the 276x36 "
                 "action remains fixed at the bottom without overlapping content."
             )
 
@@ -822,9 +833,9 @@ def _collect_two_by_four_full_width_action_errors(
 def _is_2x2_small_backboard(component: ComponentRow | None) -> bool:
     if component is None or component.component_type not in {"Row", "Column"}:
         return False
-    if component.props.get("width") != 136:
+    if component.props.get("width") != 134:
         return False
-    if component.props.get("height") != 64:
+    if component.props.get("height") != 63:
         return False
     if "backgroundColor" not in component.props:
         return False
@@ -837,13 +848,16 @@ def _has_two_by_two_s4_zones(
 ) -> bool:
     if root is None or root.component_type != "Column":
         return False
-    if len(root.children) != 2 or root.props.get("itemMargin") != 8:
+    has_expected_root_layout = (
+        root.props.get("padding") == 8 and root.props.get("itemMargin") == 8
+    )
+    if len(root.children) != 2 or not has_expected_root_layout:
         return False
     for child_id in root.children:
         zone = components_by_id.get(child_id)
         if zone is None or zone.component_type not in {"Row", "Column"}:
             return False
-        if zone.props.get("width") != 136 or zone.props.get("height") != 64:
+        if zone.props.get("width") != 134 or zone.props.get("height") != 63:
             return False
     return True
 
@@ -879,6 +893,21 @@ def _component_content_paths(component: ComponentRow) -> list[str]:
     return paths
 
 
+def _numeric_content_paths(
+    components: list[ComponentRow],
+    data_model_schema: dict[str, Any],
+) -> set[str]:
+    paths: set[str] = set()
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        for path in _component_content_paths(component):
+            schema_node = _schema_node_at_path(data_model_schema, path)
+            if _schema_type(schema_node) in _NUMERIC_SCHEMA_TYPES:
+                paths.add(path)
+    return paths
+
+
 def _binding_roots(value: Any, location: str) -> set[str]:
     paths: list[str] = []
     _collect_binding_context(value, location, paths, [])
@@ -890,9 +919,109 @@ def _binding_roots(value: Any, location: str) -> set[str]:
     return roots
 
 
+def _first_text_component(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    visiting: set[str],
+) -> ComponentRow | None:
+    if component.component_type == "Text":
+        return component
+    if component.component_id in visiting:
+        return None
+    visiting.add(component.component_id)
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        result = _first_text_component(child, components_by_id, visiting)
+        if result is not None:
+            visiting.remove(component.component_id)
+            return result
+    visiting.remove(component.component_id)
+    return None
+
+
+def _collect_two_by_four_w9_density_errors(
+    zone: ComponentRow,
+    content_regions: list[ComponentRow],
+    content_components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if any(
+        component.component_type == "Progress"
+        for component in content_components
+    ):
+        return
+
+    line_profile: list[bool] = []
+    for region in content_regions:
+        line_profile.extend(
+            _visual_text_line_profile(region, components_by_id, set())
+        )
+    if not line_profile:
+        return
+
+    first_text = None
+    for region in content_regions:
+        first_text = _first_text_component(region, components_by_id, set())
+        if first_text is not None:
+            break
+    if first_text is not None:
+        font_size = _non_negative_number(first_text.props.get("fontSize"))
+        font_weight = _non_negative_number(first_text.props.get("fontWeight"))
+        identifier = first_text.component_id.casefold()
+        looks_like_title = "title" in identifier or "label" in identifier
+        has_later_emphasis = any(line_profile[1:])
+        if (
+            font_size == 12
+            and font_weight == 400
+            and (looks_like_title or has_later_emphasis)
+        ):
+            line_profile = line_profile[1:]
+
+    large_number_count = 0
+    for component in content_components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is not None and font_size >= 30:
+            large_number_count += 1
+
+    if large_number_count:
+        data_model_schema = task_spec.get("dataModelSchema")
+        numeric_paths = (
+            _numeric_content_paths(content_components, data_model_schema)
+            if isinstance(data_model_schema, dict)
+            else set()
+        )
+        if len(numeric_paths) >= 2:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} displays multiple peer "
+                "quantitative fields and must keep all of them as ordinary "
+                "complete text lines with the same typography; do not promote "
+                "one field to a 30fp/38fp hero."
+            )
+        if large_number_count > 1:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} contains multiple "
+                "30fp/38fp values. Keep peer metrics as ordinary complete text "
+                "lines instead of manufacturing multiple hero values."
+            )
+        if len(line_profile) > 2:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} with a 30fp/38fp numeric "
+                "hero may contain only the value/unit line and one 12fp/400 "
+                "auxiliary line after its business title. Merge auxiliary fields "
+                "with ' | '."
+            )
+
+
 def _collect_two_by_four_w9_content_errors(
     root: ComponentRow,
     components_by_id: dict[str, ComponentRow],
+    task_spec: dict[str, Any],
     errors: list[str],
 ) -> None:
     for zone_id in root.children:
@@ -900,6 +1029,7 @@ def _collect_two_by_four_w9_content_errors(
         if zone is None:
             continue
 
+        content_regions: list[ComponentRow] = []
         content_components: list[ComponentRow] = []
         actions: list[ComponentRow] = []
         for child_id in zone.children:
@@ -909,8 +1039,18 @@ def _collect_two_by_four_w9_content_errors(
             if _is_two_by_four_direct_action(child):
                 actions.append(child)
                 continue
+            content_regions.append(child)
             content_components.append(child)
             content_components.extend(_descendant_components(child, components_by_id))
+
+        _collect_two_by_four_w9_density_errors(
+            zone,
+            content_regions,
+            content_components,
+            components_by_id,
+            task_spec,
+            errors,
+        )
 
         text_components = [
             component
@@ -1029,6 +1169,38 @@ def _collect_two_by_two_s4_text_errors(
             if descendant.component_type == "Text":
                 text_components.append(descendant)
 
+        if len(text_components) > 2:
+            errors.append(
+                f"2x2 S4 backboard {zone.component_id} contains "
+                f"{len(text_components)} Text rows; keep at most two single-line "
+                "Text components."
+            )
+        for text_component in text_components:
+            if text_component.props.get("maxLines") != 1:
+                errors.append(
+                    f"2x2 S4 Text {text_component.component_id} must use "
+                    "maxLines 1; a backboard must never render a third line."
+                )
+            content = text_component.props.get("content")
+            if not isinstance(content, str) or "{{" in content:
+                continue
+            text_width = _non_negative_number(text_component.props.get("width"))
+            font_size = _non_negative_number(
+                text_component.props.get("fontSize")
+            )
+            if text_width is None or font_size is None:
+                continue
+            estimated_width = 0.0
+            for character in content.strip():
+                estimated_width += font_size * (0.6 if character.isascii() else 1.0)
+            if estimated_width > text_width:
+                errors.append(
+                    f"2x2 S4 static Text {text_component.component_id} exceeds its "
+                    f"{text_width:g}vp single-line width; shorten the wording while "
+                    "keeping its meaning. Do not wrap it, add a third line, or move "
+                    "the visual."
+                )
+
         if "onClick" in zone.props:
             for text_component in text_components:
                 content = text_component.props.get("content")
@@ -1068,6 +1240,55 @@ def _collect_two_by_two_s4_text_errors(
             errors.append(
                 f"2x2 S4 calendar backboard {zone.component_id} must keep a "
                 "separate 14fp/700 meeting title above its 12fp/400 time row."
+            )
+
+
+def _collect_two_by_two_s4_vertical_alignment_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    for zone_id in root.children:
+        zone = components_by_id.get(zone_id)
+        if zone is None:
+            continue
+        direct_children: list[ComponentRow] = []
+        for child_id in zone.children:
+            child = components_by_id.get(child_id)
+            if child is not None:
+                direct_children.append(child)
+
+        has_visual = False
+        for child in direct_children:
+            if child.component_type in {"Image", "Progress", "Stack"}:
+                has_visual = True
+                break
+        if not has_visual:
+            if (
+                zone.component_type == "Column"
+                and zone.props.get("justifyContent") != "center"
+            ):
+                errors.append(
+                    f"2x2 S4 backboard {zone.component_id} without a visual must "
+                    "vertically center its one or two text lines with "
+                    "justifyContent center; do not reserve an empty third line."
+                )
+            continue
+
+        text_group = None
+        for child in direct_children:
+            if child.component_type in {"Column", "Text"}:
+                text_group = child
+                break
+        if (
+            text_group is not None
+            and text_group.component_type == "Column"
+            and text_group.props.get("justifyContent") != "center"
+        ):
+            errors.append(
+                f"2x2 S4 text group {text_group.component_id} must use "
+                "justifyContent center so its one or two lines remain vertically "
+                "centered beside the visual."
             )
 
 
@@ -1121,13 +1342,250 @@ def _has_two_by_four_w9_backboards(
 ) -> bool:
     if root is None or root.component_type != "Row":
         return False
-    if len(root.children) != 2 or root.props.get("itemMargin") != 8:
+    expected_root_layout = (
+        root.props.get("padding") == _TWO_BY_FOUR_MULTI_ROOT_PADDING
+        and root.props.get("itemMargin") == 8
+    )
+    if len(root.children) != 2 or not expected_root_layout:
         return False
     for child_id in root.children:
         backboard = components_by_id.get(child_id)
         if not _is_two_by_four_large_backboard(backboard):
             return False
     return True
+
+
+def _is_two_by_four_small_backboard(component: ComponentRow | None) -> bool:
+    if component is None or component.component_type not in {"Row", "Column"}:
+        return False
+    expected_size = (
+        component.props.get("width") == _TWO_BY_FOUR_MULTI_LARGE_WIDTH
+        and component.props.get("height") == 63
+    )
+    return expected_size and component.props.get("padding") == 12
+
+
+def _has_two_by_four_w8_backboards(
+    root: ComponentRow | None,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if root is None or root.component_type != "Column":
+        return False
+    root_layout_valid = (
+        root.props.get("padding") == _TWO_BY_FOUR_MULTI_ROOT_PADDING
+        and root.props.get("itemMargin") == 8
+        and len(root.children) == 2
+    )
+    if not root_layout_valid:
+        return False
+    for row_id in root.children:
+        row = components_by_id.get(row_id)
+        if row is None or row.component_type != "Row":
+            return False
+        row_layout_valid = (
+            row.props.get("width") == 284
+            and row.props.get("height") == 63
+            and row.props.get("itemMargin") == 8
+            and len(row.children) == 2
+        )
+        if not row_layout_valid:
+            return False
+        for zone_id in row.children:
+            if not _is_two_by_four_small_backboard(
+                components_by_id.get(zone_id)
+            ):
+                return False
+    return True
+
+
+def _has_two_by_four_w10_backboards(
+    root: ComponentRow | None,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if root is None or root.component_type != "Row":
+        return False
+    root_layout_valid = (
+        root.props.get("padding") == _TWO_BY_FOUR_MULTI_ROOT_PADDING
+        and root.props.get("itemMargin") == 8
+        and len(root.children) == 2
+    )
+    if not root_layout_valid:
+        return False
+    first = components_by_id.get(root.children[0])
+    second = components_by_id.get(root.children[1])
+    if _is_two_by_four_large_backboard(first):
+        side = second
+    elif _is_two_by_four_large_backboard(second):
+        side = first
+    else:
+        return False
+    if side is None or side.component_type != "Column":
+        return False
+    side_layout_valid = (
+        side.props.get("width") == _TWO_BY_FOUR_MULTI_LARGE_WIDTH
+        and side.props.get("height") == _TWO_BY_FOUR_MULTI_LARGE_HEIGHT
+        and side.props.get("itemMargin") == 8
+        and len(side.children) == 2
+    )
+    if not side_layout_valid:
+        return False
+    return all(
+        _is_two_by_four_small_backboard(components_by_id.get(zone_id))
+        for zone_id in side.children
+    )
+
+
+def _visual_text_line_profile(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    visiting: set[str],
+) -> list[bool]:
+    """Return visual text lines, marking lines that use emphasized text."""
+    if component.component_type == "Text":
+        font_size = _non_negative_number(component.props.get("fontSize")) or 0.0
+        font_weight = _non_negative_number(component.props.get("fontWeight")) or 0.0
+        return [font_size > 12 or font_weight >= 500]
+    if component.component_id in visiting:
+        return []
+
+    visiting.add(component.component_id)
+    child_profiles: list[list[bool]] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        child_profiles.append(
+            _visual_text_line_profile(child, components_by_id, visiting)
+        )
+    visiting.remove(component.component_id)
+
+    if component.component_type in {"Column", "List"}:
+        result: list[bool] = []
+        for profile in child_profiles:
+            result.extend(profile)
+        return result
+    if component.component_type not in {"Row", "Stack"}:
+        return []
+
+    line_count = max((len(profile) for profile in child_profiles), default=0)
+    result = []
+    for line_index in range(line_count):
+        emphasized = False
+        for profile in child_profiles:
+            if line_index < len(profile) and profile[line_index]:
+                emphasized = True
+                break
+        result.append(emphasized)
+    return result
+
+
+def _contains_action_control(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if component.component_type in {"ActionUnit", "Button"}:
+        return True
+    descendants = _descendant_components(component, components_by_id)
+    for descendant in descendants:
+        if descendant.component_type in {"ActionUnit", "Button"}:
+            return True
+    return False
+
+
+def _is_two_by_two_title_region(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if component.component_type == "CardHeader":
+        return True
+    height = _non_negative_number(component.props.get("height"))
+    if height not in {20.0, 28.0}:
+        return False
+    profile = _visual_text_line_profile(component, components_by_id, set())
+    return len(profile) == 1
+
+
+def _collect_two_by_two_content_density_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    """Enforce the text-line budget introduced for the 150vp 2x2 canvas."""
+    if task_spec.get("size") != "2x2":
+        return
+    if _uses_2x2_v01_countdown_layout(task_spec):
+        return
+    if any(component.component_type == "TimelineUnit" for component in components):
+        return
+
+    root = components_by_id.get("root")
+    if root is None or root.component_type != "Column":
+        return
+
+    information_regions: list[ComponentRow] = []
+    for index, child_id in enumerate(root.children):
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        if index == 0 and _is_two_by_two_title_region(child, components_by_id):
+            continue
+        if _contains_action_control(child, components_by_id):
+            continue
+        information_regions.append(child)
+    if not information_regions:
+        return
+
+    information_components: list[ComponentRow] = []
+    line_profile: list[bool] = []
+    for region in information_regions:
+        information_components.append(region)
+        information_components.extend(
+            _descendant_components(region, components_by_id)
+        )
+        line_profile.extend(
+            _visual_text_line_profile(region, components_by_id, set())
+        )
+    if any(
+        component.component_type == "Progress"
+        for component in information_components
+    ):
+        return
+
+    large_number_count = 0
+    for component in information_components:
+        if component.component_type != "Text":
+            continue
+        font_size = _non_negative_number(component.props.get("fontSize"))
+        if font_size is not None and font_size >= 30:
+            large_number_count += 1
+
+    if large_number_count:
+        data_model_schema = task_spec.get("dataModelSchema")
+        numeric_paths = (
+            _numeric_content_paths(information_components, data_model_schema)
+            if isinstance(data_model_schema, dict)
+            else set()
+        )
+        if len(numeric_paths) >= 2:
+            errors.append(
+                "2x2 150vp single-business content displays multiple peer "
+                "quantitative fields and must keep all of them as ordinary "
+                "complete text lines with the same typography; do not promote "
+                "one field to a 30fp/38fp hero."
+            )
+        if large_number_count > 1:
+            errors.append(
+                "2x2 150vp single-business content contains multiple 30fp/38fp "
+                "values. Treat peer metrics as ordinary complete text lines instead "
+                "of manufacturing multiple hero values."
+            )
+        if len(line_profile) > 2:
+            errors.append(
+                "2x2 150vp single-business content with a 30fp/38fp numeric hero "
+                "may contain only the value/unit line and one 12fp/400 auxiliary "
+                "line. Merge auxiliary fields into that line with ' | '."
+            )
 
 
 def _collect_layout_route_errors(
@@ -1144,6 +1602,16 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if (
+        size == "2x2"
+        and root is not None
+        and _has_two_by_two_s4_zones(root, components_by_id)
+    ):
+        _collect_two_by_two_s4_vertical_alignment_errors(
+            root,
+            components_by_id,
+            errors,
+        )
     if size == "2x2" and _uses_2x2_v01_countdown_layout(task_spec):
         _collect_2x2_countdown_group_errors(
             components,
@@ -1178,7 +1646,7 @@ def _collect_layout_route_errors(
         )
         if _has_stacked_two_by_four_backboards(components, components_by_id):
             errors.append(
-                "2x4 cards must not stack two or more full-width 296x48-64 "
+                "2x4 cards must not stack two or more full-width 276x48-59 "
                 "content backboards vertically. Select the matching W skeleton; "
                 "two semantic data blocks must use W9 left/right backboards."
             )
@@ -1194,7 +1662,7 @@ def _collect_layout_route_errors(
                 errors.append(
                     f"2x4 large backboard {component.component_id} may contain at "
                     "most one action control. Do not stack two buttons inside a "
-                    "144x136 backboard; remove duplicate or lower-priority actions."
+                    "138x134 backboard; remove duplicate or lower-priority actions."
                 )
 
     if size == "2x2" and len(data_roots) == 1:
@@ -1204,7 +1672,7 @@ def _collect_layout_route_errors(
                 errors.append(
                     "2x2 card has one data root and must use a full-width "
                     "single-business layout; do not generate an isolated "
-                    "136x64 S4 backboard."
+                    "134x63 S4 backboard."
                 )
         _collect_2x2_countdown_group_errors(
             components,
@@ -1218,6 +1686,26 @@ def _collect_layout_route_errors(
     data_block_count = len(data_roots)
     if size == "2x4":
         data_block_count = _two_by_four_data_block_count(task_spec, data_roots)
+        if data_block_count == 4:
+            if _has_two_by_four_w8_backboards(root, components_by_id):
+                return
+            errors.append(
+                "2x4 card displays four semantic data blocks and must use W8: "
+                "root must be a Column with padding 8 and two direct 284x63 "
+                "Rows separated by itemMargin 8; each Row must contain two "
+                "138x63 backboards separated by itemMargin 8."
+            )
+            return
+        if data_block_count == 3:
+            if _has_two_by_four_w10_backboards(root, components_by_id):
+                return
+            errors.append(
+                "2x4 card displays three semantic data blocks and must use W10: "
+                "root must be a Row with padding 8 and itemMargin 8, containing "
+                "one 138x134 large backboard and one 138x134 Column with two "
+                "138x63 backboards separated by itemMargin 8."
+            )
+            return
     if data_block_count != 2:
         return
 
@@ -1267,8 +1755,8 @@ def _collect_layout_route_errors(
         roots = ", ".join(sorted(data_roots))
         errors.append(
             f"2x2 card displays two data roots ({roots}) and must use S4: root "
-            "must be a Column with exactly two direct 136x64 Row/Column "
-            "backboards and itemMargin 8. Countdown remains ordinary 14fp/700 "
+            "must be a Column with padding 8 and exactly two direct 134x63 "
+            "Row/Column backboards with itemMargin 8. Countdown remains ordinary 14fp/700 "
             "primary text inside its backboard."
         )
         return
@@ -1277,6 +1765,7 @@ def _collect_layout_route_errors(
         _collect_two_by_four_w9_content_errors(
             root,
             components_by_id,
+            task_spec,
             errors,
         )
         return
@@ -1284,8 +1773,8 @@ def _collect_layout_route_errors(
     roots = ", ".join(sorted(data_roots))
     errors.append(
         f"2x4 card displays two semantic data blocks ({roots}) and must use W9: "
-        "root must be a Row with exactly two direct 144x136 Column backboards "
-        "and itemMargin 8. Do not use a shared title, a shared action area, or "
+        "root must be a Row with padding 8 and exactly two direct 138x134 "
+        "Column backboards with itemMargin 8. Do not use a shared title, a shared action area, or "
         "stacked full-width business rows."
     )
 
