@@ -60,7 +60,7 @@ async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bo
     battery_columns = []
     for component in components:
         styles = component.get("styles", {})
-        if component.get("component") == "Column" and styles.get("height") in (40, 54):
+        if component.get("component") == "Column" and styles.get("height") in (34, 50):
             battery_columns.append(component)
         if component.get("component") != "Text":
             continue
@@ -69,11 +69,19 @@ async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bo
             charge_nodes.append(component)
     assert len(battery_columns) == 3
     for column in battery_columns:
-        assert column.get("styles", {}).get("height") == (54 if mask == 7 else 40)
-        assert len(column.get("children", [])) == (3 if mask == 7 else 2)
+        assert column.get("styles", {}).get("alignItems") == "start"
+        assert column.get("styles", {}).get("height") == (50 if mask == 7 else 34)
+        children = column.get("children", [])
+        assert len(children) == (3 if mask == 7 else 2)
+        percent = next(item for item in components if item.get("id") == children[1])
+        assert percent.get("styles", {}).get("fontSize") == 12
+        assert percent.get("styles", {}).get("fontWeight") == 500
+        assert percent.get("styles", {}).get("fontColor") == "#FFFFFFFF"
     assert len(charge_nodes) == (3 if mask == 7 else 0)
     for component in charge_nodes:
         styles = component.get("styles", {})
-        assert styles.get("width") == 40
+        assert styles.get("width") == 36
         assert styles.get("fontSize") == 10
-        assert styles.get("textAlign") == "center"
+        assert styles.get("fontWeight") == 400
+        assert styles.get("fontColor") == "#99FFFFFF"
+        assert styles.get("textAlign") == "start"

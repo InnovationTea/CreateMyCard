@@ -154,7 +154,7 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 ## 无连接状态的三电量耳机模板
 
 新增 EarbudTripleFull：固定小标题“蓝牙耳机”，大字动态耳机名称，其余沿用 EarbudPairFull 的三电量布局；不要求连接状态，不包含动作。
-新增 EarbudTripleHero：不展示顶部固定“蓝牙耳机”标题，耳机名称从顶部开始，其后为左右耳及盒电量，三列等宽对齐，各列依次为图标、电量百分比、对应充电状态三层，间距4vp和2vp，列高42vp，搭配一个 PillAction。
+新增 EarbudTripleHero：不展示顶部固定标题，保留耳机名称和 PillAction；电量区域与 EarbudPairFull 统一为126vp宽、36vp列宽、9vp列间距、2vp层间距，左对齐；图标16vp占位、12vp可见图形，电量12fp/500白色，状态10fp/400、60%白色，三层高50vp。
 两者独立注册，不修改既有 EarbudPairFull、EarbudPairHero、EarbudPairCompact 或通用动作规划。
 只在需求涉及左右耳和耳机盒三处电量时考虑新增模板；不能因候选字段齐全扩大用户需求。
 
