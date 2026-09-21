@@ -24,7 +24,6 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
 from models.generation import TaskSpec
 from services.prompt_builder import PromptBuilder
-from services.protocol_registry import A2UIProtocolRegistry
 from services.source_artifact_repository import (
     SourceArtifactError,
     SourceArtifactRepository,
@@ -234,7 +233,6 @@ async def test_design_compact_edit_uses_previous_design_token(
         edited.artifactUrl,
     )
     edit_payload = json.loads(prompts[0][1]["content"])
-    create_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
     edit_system_file = (
         CLOUD_ROOT
         / "data"
@@ -242,14 +240,15 @@ async def test_design_compact_edit_uses_previous_design_token(
         / "design-compact-dsl"
         / "EDIT_SYSTEM_PROMPT.md"
     )
-    expected_system = edit_system_file.read_text(encoding="utf-8").replace(
+    edit_system_prefix = edit_system_file.read_text(encoding="utf-8").split(
         "{{CREATE_SYSTEM_PROMPT}}",
-        create_system,
-    )
+        maxsplit=1,
+    )[0]
 
     assert len(prompts[0]) == 2
     assert prompts[0][0]["role"] == "system"
-    assert prompts[0][0]["content"].startswith(expected_system)
+    assert prompts[0][0]["content"].startswith(edit_system_prefix)
+    assert "# 2x2 Few-shot" in prompts[0][0]["content"]
     assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in (
         prompts[0][0]["content"]
     )
@@ -262,7 +261,13 @@ async def test_design_compact_edit_uses_previous_design_token(
     }
     assert updated.artifact.meta.generationMode == "edit"
     assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
-    assert updated.design_token == source.design_token
+    updated_rows = [
+        json.loads(line) for line in updated.design_token.splitlines() if line.strip()
+    ]
+    source_rows = [
+        json.loads(line) for line in source.design_token.splitlines() if line.strip()
+    ]
+    assert updated_rows == source_rows
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 

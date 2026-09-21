@@ -142,12 +142,12 @@ def test_design_compact_prompt_appends_fusion_ball_restriction_when_disabled(
     )
 
     system_prompt = prompt[0]["content"]
-    assert system_prompt.startswith("design rules\n\n# 本次请求运行时限制")
+    assert system_prompt.startswith("design rules\n\n# 2x2 Few-shot")
     assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in system_prompt
     assert "root 必须按非融球背景规则生成" in system_prompt
 
 
-def test_design_compact_prompt_is_unchanged_when_fusion_ball_enabled(
+def test_design_compact_prompt_does_not_append_restriction_when_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -164,7 +164,9 @@ def test_design_compact_prompt_is_unchanged_when_fusion_ball_enabled(
 
     prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
 
-    assert prompt[0] == {"role": "system", "content": "design rules"}
+    system_prompt = prompt[0]["content"]
+    assert system_prompt.startswith("design rules\n\n# 2x2 Few-shot")
+    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" not in system_prompt
 
 
 def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
@@ -192,7 +194,7 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     [
         (
             "fusion-ball-schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
         (
             "fusion-ball-schedule-warm",
@@ -200,11 +202,11 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
         ),
         (
             "fusion-ball-sleep-violet",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-ball-sport-orange",
-            FusionBallPalette("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+            FusionBallPalette("#FFF24131", "#FFFF8833", "#FFE68073"),
         ),
     ],
 )
