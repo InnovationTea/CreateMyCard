@@ -36,9 +36,11 @@
 ```text
 generate_widget_card_compact_dsl_ws
 → _serve_operation_websocket
+→ _repair_compact_dsl_content_if_needed（参数兜底，仅执行一次现有流程）
 → _normalize_payload
 → _arguments_from_envelope
 → GenerateWidgetCardRequest
+→ run_compact_dsl_with_retry（仅包围生成业务调用，不含参数兜底和最终下发）
 → WidgetGenerationService.generate_widget_card_compact_dsl
 → WidgetGenerationService._compact_protocol_selection
 → WidgetGenerationService._generate_widget_card_with_policy
@@ -70,6 +72,43 @@ generate_widget_card_compact_dsl_ws
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
+
+## 2.1 参数兜底后的接口级重试
+
+该机制只作用于 `generateWidgetCardCompactDsl` WebSocket 入口，不影响其它接口，也不改变参数修复、
+模型调用异常重试和校验 repair 的原有策略。现有图中的生成链路对应下面的一次生成尝试。
+
+```text
+接收请求 → arguments 提醒/修复 → 参数归一化与请求校验 → start 帧、心跳
+  → 接口尝试 1：能力裁决 → 生成 → 转换 → 校验 → 保存/上传
+      ├─ 成功、可用降级或不可重试失败：收口
+      └─ 可重试失败且有剩余次数：从修复后的请求快照开始下一次生成
+  → AIWidgetEnd（已发出 AIWidgetStart 时）→ 最终接口结果
+```
+
+配置：
+
+```yaml
+enable_compact_dsl_interface_retry: false
+compact_dsl_interface_retry_count: 1
+```
+
+- 默认关闭；配置缺失时也保持关闭。次数是非负整数，表示首次执行之外的额外次数：`0` 不重试，
+  `1` 最多执行两次，`2` 最多执行三次。次数不是 arguments 提醒次数，也不是模型修复次数。
+- 参数提醒或修复失败直接按原逻辑返回。生成的内部重试不会重复修复 arguments，也不增加其连续异常计数。
+- 每次尝试深拷贝修复后、已归一化的请求，保留显式字段集合、原始请求体、原始 ROM 和模型会话上下文。
+- 返回 `failed` 且错误码为 `A2UI_GENERATION_FAILED`、`VALIDATION_FAILED`、`ARTIFACT_UPLOAD_FAILED`
+  或 `TIMEOUT` 时可重试。抛出的模型生成异常、明确上传异常、连接异常和超时也可重试。
+- 参数错误、业务预检失败、不支持场景、编辑源文件错误及其它未分类异常不重试；取消保持原样传播。
+  耗尽次数后返回最后一次失败结果，或者交给原路由异常处理，不伪造成功或降级结果。
+- 同一请求只尝试下发一次 `AIWidgetStart`，中途失败不下发 `AIWidgetEnd`；最后才下发结束指令和结果。
+  沿用同一 `cardId`、`requestId` 和流 ID，心跳覆盖整个过程。下发最终结果失败不触发重新生成。
+- 上传空地址、连接失败或超时归类为 `ArtifactUploadError`；本地文件缺失、权限错误及未知上传异常保持原类型。
+  上传结果不确定时重试可能留下额外文件，只下发最终成功的地址，不自动清理本地或远端排障文件。
+- 每轮记录 `interface_attempt_started`、完成/失败日志及耗时，重试前记录 `interface_retry_scheduled`。
+  接口总耗时包含参数兜底和所有尝试；日志中的接口尝试次数与现有模型/校验重试次数分开记录。
+- 内部模型重试及校验修复仍按各自配置执行，接口重试会再次执行它们，因此调用次数和耗时会叠加。
+  此机制是有限次重试，不保证所有请求成功，也不绕过最终校验。
 
 ## 3. WebSocket 请求和归一化
 
@@ -526,6 +565,31 @@ ArtifactStore.save
 ```
 
 ## 13. 响应数据流
+
+### 素材地址与交付文件
+
+素材映射沿用 `asset.src.url.mapping`（内部 `asset_src_url_mapping`）：命中替换，未命中保留
+原路径，不增加一期、二期或本地、云端分类规则。映射配置按请求取快照，重试沿用同一份。
+
+```text
+原始 assetCandidates.src → 模型生成极简协议 → 按原始候选校验 → 转换标准 A2UI
+→ 映射 Image.src / 静态 styles.backgroundImage → 最终 artifact 校验 → 保存 MD
+```
+
+- 模型输入和 MD 的 `taskspec`、`designcompactdsl` 保留原始资源路径。
+- 端侧读取的 `genui` 保存映射后的地址；标题、按钮等展开出的 Image 统一处理。
+- 只替换本次有效素材对应的完整路径，不替换文字、事件参数、DataModel 或动态绑定/表达式。
+- 完整校验关闭时仍执行映射；模板和 JSX 生成标准 A2UI 后也执行映射。
+- JSX 保持 agent 内部编译、验证和重试的原有职责：交付资源映射后直接返回，不进入工程侧
+  processor、validator 或质量 repair。映射异常直接向外传播，不作为模型质量错误重试，也不保存产物。
+- 最终有效素材白名单认可原始路径及其精确映射地址，URL 仍须满足既有域名规则；同域名的其它
+  URL 不会因此成为本次有效素材。独立 `validate_card` 调用可通过
+  `ValidationOptions.asset_src_url_mapping` 显式提供映射。
+- repair 的源协议仍为模型原始输出，结构化错误 actual/expected 中的映射地址还原为原路径。
+- 编辑读取历史候选时，根据来源能力版本中的素材 ID 和已保存的候选地址恢复原始路径；当前映射
+  也可用于还原。多义或无法恢复的静态 URL 拒绝猜测。仅改输入副本，不覆盖历史文件或原摘要。
+- Design 编辑读取 `designcompactdsl`；标准 A2UI 编辑读取还原后的 `genui`。动态图片不做运行时
+  URL 转换，保留原有绑定语义。
 
 生成结果暂不返回 `message`。内部话术继续保留，统一由响应模型的
 `Field(exclude=True)` 排除；需要恢复输出时移除该标记。错误详情中的 `error.message` 不受影响。

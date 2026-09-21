@@ -20,6 +20,10 @@ _MODULE = "[Artifact Store]"
 file_obs = UploadFileOSMS()
 
 
+class ArtifactUploadError(RuntimeError):
+    """上传暂时失败；区别于本地文件缺失、权限错误等不可重试异常。"""
+
+
 @dataclass(frozen=True)
 class RepairArtifactRecord:
     """记录一次模型 repair 及其确定性转换、校验结果。"""
@@ -117,9 +121,12 @@ class ArtifactStore:
 
         # 上传只产生远端或 mock OBS 副本，本地 artifact 暂时保留在 workspace，
         # 便于排障和人工核对；后续如需清理应由独立生命周期策略处理。
-        artifact_url = await file_obs.upload_file(file_path)
+        try:
+            artifact_url = await file_obs.upload_file(file_path)
+        except (TimeoutError, ConnectionError) as exc:
+            raise ArtifactUploadError("artifact upload to OBS failed") from exc
         if not artifact_url:
-            raise RuntimeError("artifact upload to OBS failed")
+            raise ArtifactUploadError("artifact upload to OBS failed")
         logger.info(
             f"{_MODULE} artifact_uploaded artifact_url={artifact_url} "
             f"local_file_retained={file_path}"

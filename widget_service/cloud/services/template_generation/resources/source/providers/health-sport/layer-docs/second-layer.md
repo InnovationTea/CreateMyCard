@@ -15,7 +15,7 @@
     不展示得分或进度环，不能覆盖用户显式要求的得分。
     四种 Support 均只用于 `TwoSupportLayout@1`，可接收 Planner 分配的 `actionId` 并绑定根节点点击。
   - `ActivityOverviewCompact@1`：每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
-  - `ActivityOverviewFull@1`：今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，可使用步数图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
+  - `ActivityOverviewFull@1`：今日活动完整摘要，展示步数与固定万步基准进度，可补充消耗热量和运动距离，可使用步数图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/dailySteps；次要数据：无；可选数据：/dailyTotalCaloriesText, /dailyDistanceText。
   - `ActivityOverviewHero@1`：今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewWideHero@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideHero。 布局场景：约 4x1.7；WideHero + 1 个 PillAction。 主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
   - `ActivityOverviewWideFull@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideFull。 布局场景：完整 4x2；单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
@@ -38,7 +38,7 @@
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
-- `ActivityOverviewCompact@1` 与 `ActivityOverviewHero@1` 只表达步数；`ActivityOverviewFull@1` 还要求并展示热量和距离。Hero 与 Full 的万步进度是固定展示基准，不得描述成用户个人目标或可信达成率。
+- `ActivityOverviewCompact@1` 与 `ActivityOverviewHero@1` 只表达步数；`ActivityOverviewFull@1` 展示步数与固定万步基准进度，可补充展示热量和距离，字段未提供时对应整行省略。Hero 与 Full 的万步进度是固定展示基准，不得描述成用户个人目标或可信达成率。
 - `SleepOverviewCompact@1` 表达时长。`SleepOverviewHero@1` 至少表达时长，并按得分、状态、
   完整睡眠时段的顺序选择一个补充区域；睡眠时段仅在入睡和醒来时刻同时存在时展示。
 - `SleepOverviewFull@1` 要求时长和状态；得分存在时展示得分，得分缺失且入睡和醒来时刻都存在时

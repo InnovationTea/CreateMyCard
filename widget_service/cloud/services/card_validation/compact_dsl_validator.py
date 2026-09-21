@@ -115,6 +115,7 @@ def validate_compact_dsl(
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
+    _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     _collect_hero_value_errors(components, task_spec, errors)
@@ -159,6 +160,39 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _collect_asset_source_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """转换前只接受模型输入中的原始静态素材路径，不提前放行交付 URL。"""
+    candidates = task_spec.get("assetCandidates")
+    if not isinstance(candidates, list):
+        return
+    sources: set[str] = set()
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        src = candidate.get("src")
+        if isinstance(src, str):
+            sources.add(src)
+    for component in components:
+        keys = ["backgroundImage"]
+        if component.component_type == "Image":
+            keys.append("src")
+        elif component.component_type in {"ActionUnit", "CardHeader"}:
+            keys.append("icon")
+        for key in keys:
+            value = component.props.get(key)
+            if not isinstance(value, str) or value.strip().startswith("{{"):
+                continue
+            if value not in sources:
+                errors.append(
+                    f"component {component.component_id}.props.{key}: "
+                    "asset must use an original src from TaskSpec.assetCandidates."
+                )
 
 
 def _collect_hero_value_errors(
