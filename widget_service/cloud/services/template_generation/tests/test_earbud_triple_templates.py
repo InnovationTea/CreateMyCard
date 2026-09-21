@@ -89,7 +89,7 @@ async def test_triple_templates_preserve_header_batteries_and_action(
     for line in result.a2ui.splitlines():
         for component in json.loads(line).get("updateComponents", {}).get("components", []):
             if component.get("onClick"):
-                assert component.get("styles", {}).get("backgroundColor") == "#33FFFFFF"
+                assert component.get("styles", {}).get("backgroundColor") == "#1952991F"
 
     for field in required_fields:
         assert field in result.a2ui

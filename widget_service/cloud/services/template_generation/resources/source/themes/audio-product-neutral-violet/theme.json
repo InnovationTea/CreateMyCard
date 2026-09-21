@@ -14,13 +14,8 @@
     "alignContent": "topStart",
     "clip": true
   },
-  "progressBackgroundColor": "#3364BB5C",
-  "supportContentStyle": {
-    "backgroundColor": "#3364BB5C",
-    "borderRadius": 20
-  },
   "actionStyle": {
-    "backgroundColor": "#33FFFFFF",
+    "backgroundColor": "#3364BB5C",
     "contentColor": "#FF52991F"
   }
 }

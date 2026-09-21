@@ -1620,7 +1620,7 @@ def test_non_fusion_earphone_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.root_style["backgroundColor"] == "#FFF0FFE6"
     assert "linearGradient" not in theme.root_style
     assert theme.action_style.content_color == "#FF52991F"
-    assert theme.action_style.background_color == "#33FFFFFF"
+    assert theme.action_style.background_color == "#3364BB5C"
 
 
 def test_non_fusion_schedule_theme_uses_the_reviewed_solid_palette() -> None:
