@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any
 
 from .base import BaseValidator
 
-_LOGGER = logging.getLogger(__name__)
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _NORMAL_ROOT_ID = "root_0"
 _FUSION_BACKGROUND_ID = "fusionBallBackground"
@@ -126,11 +124,6 @@ class ContrastValidator(BaseValidator):
 
     def validate(self, context, rules, reporter) -> None:
         del rules
-        if context.has_fusion_template_root():
-            _LOGGER.info(
-                "quality_validation_skipped reason=template_root validator=contrast"
-            )
-            return
         if not context.components or not context.root_id:
             return
         by_id = context.components_by_id
