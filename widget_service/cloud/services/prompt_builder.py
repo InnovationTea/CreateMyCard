@@ -64,6 +64,64 @@ FEWSHOT_2x2 的 V08，不得重新套用普通 S1/S2/S3/S4，也不得按 `/data
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
   `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
 
+_TWO_BY_TWO_COUNTDOWN_WEATHER_ROUTE_LOCK = """# 本次 2x2 倒计时与天气路由（高优先级）
+
+本次请求包含倒计时与天气两个独立展示对象，固定使用 S4 上下双背板，不得套用
+单业务倒计时或自由文字流：
+
+- root 固定 `padding:8`、`itemMargin:8`，直接包含两个 `134×63vp` 背板。
+- 倒计时背板只放两行：第一行 `14fp/700` 的“数字+天”，第二行 `12fp/400`
+  的短状态；有 `icon_timing` 候选时放在右侧固定图标槽。
+- 天气背板只放两行：第一行 `14fp/700` 的地点与温度，第二行 `12fp/400`
+  的天气状态；有天气温度计候选时放在右侧固定图标槽。
+- 每个带图标背板使用 `Row -> [82vp 文字 Column, 20×20vp Image]`；天气详情
+  动作绑定天气背板本身，不生成按钮或动作提示文字。"""
+
+_TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK = """# 本次 2x4 倒计时双业务路由（高优先级）
+
+本次请求包含倒计时和另一个独立业务对象，外层固定使用 W9 左右两个大内容背板，
+但两个背板必须分别选择内部内容变体，禁止把整卡统一压成 dense-summary：
+
+- 倒计时背板使用 value-led：顶部 `12fp/400` 目标标题，中部居中展示
+  `30fp/38fp`、`700` 的纯倒计时数字，单位“天”作为其正下方的 `12fp` 独立一行。
+  不得把数字压成 `14fp` 的 `30天`，也不得从另一个业务根借字段填充本背板。
+- 另一背板按自己的业务选择变体。多日天气使用 dense-summary，每天压成一行，
+  显式天气详情动作固定沉底；日程列表使用 event-led，事项标题与时间成组排列，
+  若动作只查看第一场日程，绑定第一场事项行，不额外生成挤占列表空间的重复 CTA。
+- 每个背板只能引用一个 `/data` 一级业务根。倒计时背板只引用 `/data/countdown`，
+  天气、日程等数据和动作必须留在各自背板。"""
+
+_TWO_BY_FOUR_FOCUS_AUX_ROUTE_LOCK = """# 本次 2x4 主焦点双辅助路由（高优先级）
+
+本次请求存在一个明确主焦点，且其余必要信息可压入右侧两个辅助槽，固定使用
+W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或满宽底部按钮：
+
+- root 为 Row，`padding:12`、`itemMargin:10`，直接包含左侧 `136×126vp`
+  `focus_zone` 和右侧 `130×126vp` `aux_column`；左侧不加内容背板。
+- `aux_column` 固定上下两个 `130×59vp`、间距 `8vp` 的白色 80% 辅助背板。
+- 左侧只建立一个主焦点，可按业务使用大数字、环形进度、最多三项的事项列表或
+  一条突出状态；Progress 不是选择本骨架的前提。
+- 右侧每个槽只承载一项辅助指标、紧密相关的一组两行状态摘要或动作。耳机左右电量
+  等成对信息可以在同一辅助槽压成两行。动作直接绑定整个辅助背板，
+  不再生成满宽底部 CTA；没有动作时使用必要辅助信息，禁止留下空背板。
+- 数据根数量只用于校验字段归属，不决定左右等权。只有两个业务确实等权且都需要
+  完整内容区时才使用 W9。"""
+
+_TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK = """# 本次电池 W1 填槽约束
+
+- 左侧以剩余电量为唯一主焦点；若用户要求系统识别状态，把“识别+状态”作为左侧
+  唯一辅助行。用户没有明确要求进度图形时不生成 Progress。
+- 右上背板显示充电电流，右下背板显示充电电压；标签与值各占一行。
+- 四项信息分别只显示一次，禁止生成“剩余电量 / 100%”等重复说明。"""
+
+_TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK = """# 本次耳机 W1 填槽约束
+
+- 左侧只显示耳机名称、连接状态，以及一行“耳机仓电量 | 充电状态”，不得把左右耳
+  状态继续铺在左侧。
+- 右上背板用两行分别显示左耳和右耳的“电量 | 充电状态”。
+- 右下 `130×59vp` 背板承载音乐动作，直接绑定 onClick；禁止生成 `276vp/300vp`
+  满宽按钮，也禁止把动作移到 root 底部或画布外。"""
+
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
 _ACTION_QUERY_MARKERS = (
     "按钮",
@@ -180,14 +238,21 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
         "不再追加字段标签或重复单位。"
     ),
     "weather-readout": (
-        "本卡是单业务主读数路由：地点只消除歧义，温度或天气现象成为主焦点，"
-        "辅助指标不得平均铺开。"
+        "本卡是单业务天气路由：先按字段语义选择主焦点；温度、降雨概率等量化字段"
+        "使用 value-led，天气现象、预警、日期和星期使用 status-led。地点只消除歧义，"
+        "辅助指标不得平均铺开。2x2 稀疏天气卡存在与主语义精确匹配的素材时，优先放在"
+        "CardHeader 右上角；日期、星期和天气现象都需要展示时可以省略图标以保留文字。"
+        "量化主值的 Row 仍只包含数字和真实单位，指标名放在标题或主值上方，辅助信息沉底。"
     ),
     "calendar-event": (
         "本卡是事项路由：事项标题与时间形成连续信息组，"
         "日期/地点/更新时间只保留必要项。"
     ),
     "health-readout": "本卡是健康主读数路由：一个指标承担第一焦点，其余指标降为紧邻的辅助信息。",
+    "focus-aux": (
+        "本卡是 2x4 主焦点双辅助路由：左侧只保留一个主焦点，"
+        "右侧两个紧凑槽分别承载必要辅助信息或动作。"
+    ),
     "multi-business": (
         "本卡是多业务路由：每个分区先确定自己的主焦点和内容变体，"
         "不机械复制标题+两行文字+按钮。稀疏分区放大主值或核心状态，"
@@ -215,7 +280,8 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 或动态绑定跨区迁移。""",
     "2x4": """# 本次尺寸骨架硬约束（高优先级）
 
-2x4 多业务禁止上下堆叠全宽长条蒙版。两个数据块必须使用 W9 左右两个
+2x4 多业务禁止上下堆叠全宽长条蒙版。除非提示词末尾明确锁定 W1-focus-aux，
+两个等权数据块必须使用 W9 左右两个
 `138×134vp` 大内容蒙版；三个数据块必须使用 W10 左大右双小；四个数据块必须
 使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
 `276×59vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
@@ -348,6 +414,16 @@ class PromptBuilder:
     def _action_guidance(task_spec: TaskSpec, route: str) -> str:
         if _contains_any(task_spec.userQuery, _PURE_DISPLAY_MARKERS):
             return "用户明确要求纯展示，本轮不生成点击行为或 CTA。"
+        if (
+            route == "weather-readout"
+            and task_spec.size == "2x2"
+            and PromptBuilder._query_requests_action(task_spec)
+            and not _contains_any(task_spec.userQuery, ("按钮", "入口"))
+        ):
+            return (
+                "用户要求点按查看天气详情；把匹配的只读天气动作绑定到整卡，"
+                "不生成 Button、ActionUnit，也不生成‘点击查看详情’‘查看天气’等可见提示 Text。"
+            )
         if PromptBuilder._query_requests_action(task_spec):
             return (
                 "用户语义包含显式动作；仅绑定目标匹配的候选，"
@@ -373,6 +449,9 @@ class PromptBuilder:
                 else "2x2-V01"
             )
             return "countdown", (example_id,)
+
+        if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
+            return "focus-aux", ("2x4-V04",)
 
         if PromptBuilder._data_block_count(task_spec) >= 2:
             multi_business_ids = PromptBuilder._multi_business_few_shot_ids(
@@ -482,6 +561,8 @@ class PromptBuilder:
     @staticmethod
     def _layout_scope(task_spec: TaskSpec) -> str:
         """只返回由尺寸和数据块数量确定的骨架范围。"""
+        if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
+            return "W1-focus-aux"
         block_count = PromptBuilder._data_block_count(task_spec)
         if task_spec.size == "2x2":
             if block_count >= 2:
@@ -567,7 +648,7 @@ class PromptBuilder:
                 allowed = tuple(
                     name
                     for name in (
-                        "W1-progress-aux",
+                        "W1-focus-aux",
                         "W2-text-flow",
                         "W3-ring-detail",
                         "W4-metric-triple",
@@ -736,6 +817,130 @@ class PromptBuilder:
         return PromptBuilder._query_requests_action(task_spec)
 
     @staticmethod
+    def _uses_two_by_four_countdown_multi_layout(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x4":
+            return False
+        roots = PromptBuilder._data_roots(task_spec)
+        if len(roots) != 2 or "countdown" not in roots:
+            return False
+        return PromptBuilder._contains_schema_field(
+            task_spec.dataModelSchema.get("data"),
+            "countdownDays",
+        )
+
+    @staticmethod
+    def _uses_two_by_two_countdown_weather_layout(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x2":
+            return False
+        roots = {
+            root.casefold() for root in PromptBuilder._data_roots(task_spec)
+        }
+        return roots == {"countdown", "weather"}
+
+    @staticmethod
+    def _two_by_four_focus_aux_domain_lock(task_spec: TaskSpec) -> str:
+        roots = {
+            root.casefold() for root in PromptBuilder._data_roots(task_spec)
+        }
+        if roots == {"phonebattery"}:
+            return _TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK
+        if roots == {"earphone"}:
+            return _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK
+        return ""
+
+    @staticmethod
+    def _schema_leaf_count(value: Any) -> int:
+        if isinstance(value, dict):
+            if isinstance(value.get("type"), str):
+                return 1
+            return sum(
+                PromptBuilder._schema_leaf_count(child)
+                for child in value.values()
+            )
+        if isinstance(value, list):
+            return sum(
+                PromptBuilder._schema_leaf_count(child)
+                for child in value
+            )
+        return 0
+
+    @staticmethod
+    def _schema_field_names(value: Any) -> set[str]:
+        if isinstance(value, dict):
+            if isinstance(value.get("type"), str):
+                return set()
+            names = {str(key).casefold() for key in value}
+            for child in value.values():
+                names.update(PromptBuilder._schema_field_names(child))
+            return names
+        if isinstance(value, list):
+            names: set[str] = set()
+            for child in value:
+                names.update(PromptBuilder._schema_field_names(child))
+            return names
+        return set()
+
+    @staticmethod
+    def _is_dense_phone_battery_schema(value: Any) -> bool:
+        field_names = PromptBuilder._schema_field_names(value)
+        detail_groups = (
+            ("temperature",),
+            ("health",),
+            ("plugged", "charger", "chargingtype"),
+            ("updated", "updatetime"),
+        )
+        detail_count = 0
+        for markers in detail_groups:
+            group_matches = False
+            for field_name in field_names:
+                for marker in markers:
+                    if marker in field_name:
+                        group_matches = True
+                        break
+                if group_matches:
+                    break
+            if group_matches:
+                detail_count += 1
+        fact_count = PromptBuilder._schema_leaf_count(value)
+        has_raw_and_formatted_soc = {
+            "batterysoc",
+            "batterysoctext",
+        }.issubset(field_names)
+        if has_raw_and_formatted_soc:
+            fact_count -= 1
+        return detail_count >= 2 or fact_count >= 4
+
+    @staticmethod
+    def _uses_two_by_four_focus_aux_layout(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x4":
+            return False
+        roots = PromptBuilder._data_roots(task_spec)
+        normalized_roots = {root.casefold() for root in roots}
+        if not roots or "countdown" in normalized_roots or len(roots) > 2:
+            return False
+
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return False
+
+        if len(roots) == 1:
+            if "healthsport" in normalized_roots:
+                return PromptBuilder._schema_leaf_count(data_schema) >= 4
+            if "phonebattery" in normalized_roots:
+                phone_battery = next(iter(data_schema.values()))
+                return PromptBuilder._is_dense_phone_battery_schema(
+                    phone_battery
+                )
+            if "earphone" in normalized_roots:
+                return PromptBuilder._schema_leaf_count(data_schema) >= 6
+            return False
+
+        supported = normalized_roots == {"calendar", "phonebattery"} or (
+            "healthsport" in normalized_roots
+        )
+        return supported and PromptBuilder._schema_leaf_count(data_schema) >= 3
+
+    @staticmethod
     def _contains_schema_field(value: Any, field_name: str) -> bool:
         if isinstance(value, dict):
             return field_name in value or any(
@@ -778,6 +983,16 @@ class PromptBuilder:
                 else _COUNTDOWN_V01_ROUTE_LOCK
             )
             return f"{prompt}\n\n{route_lock}"
+        if PromptBuilder._uses_two_by_two_countdown_weather_layout(task_spec):
+            return f"{prompt}\n\n{_TWO_BY_TWO_COUNTDOWN_WEATHER_ROUTE_LOCK}"
+        if PromptBuilder._uses_two_by_four_countdown_multi_layout(task_spec):
+            return f"{prompt}\n\n{_TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK}"
+        if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
+            domain_lock = PromptBuilder._two_by_four_focus_aux_domain_lock(
+                task_spec
+            )
+            suffix = f"\n\n{domain_lock}" if domain_lock else ""
+            return f"{prompt}\n\n{_TWO_BY_FOUR_FOCUS_AUX_ROUTE_LOCK}{suffix}"
         return prompt
 
     def build_design_compact(
