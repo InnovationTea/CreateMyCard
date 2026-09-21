@@ -258,7 +258,7 @@ def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
 
 
 def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -> None:
-    """2x4 大分区允许单字段加真实单位的 24fp 主读数。"""
+    """2x4 大分区允许单字段加真实单位的 20fp 主读数。"""
     _, original_task, source = next(item for item in EXAMPLES if "2x4-V10" in item[0])
     task = deepcopy(original_task)
     rows = [json.loads(line) for line in source.splitlines()]
@@ -266,9 +266,9 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
     row[2].update(
         {
             "content": "{{ " + "$" + "{/data/weather/current/temperatureC}" + " + '°C' }}",
-            "width": 120,
-            "height": 34,
-            "fontSize": 24,
+            "width": 114,
+            "height": 28,
+            "fontSize": 20,
         }
     )
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)

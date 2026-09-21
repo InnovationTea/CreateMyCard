@@ -36,6 +36,17 @@
         "type": "String",
         "description": "能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"
       },
+      "extrainfo": {
+        "type": "Array<String>",
+        "description": "本轮已清洗、已告知且与卡片相关的外部事实和会话有效上下文；没有内容时省略，不进入 TaskSpec 或 artifact",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "卡片相关的外部事实或上下文信息"
+          }
+        }
+      },
       "candidateDataBindings": {
         "type": "Array",
         "description": "已通过能力概述裁决的候选数据能力调用列表",

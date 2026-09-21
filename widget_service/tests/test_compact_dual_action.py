@@ -10,10 +10,10 @@ from services.card_validation import CompactDslValidationError, validate_compact
 def _rows() -> list:
     return [
         ["root", "Column", {"padding": 12, "itemMargin": 8}, ["summary", "controls"]],
-        ["summary", "Column", {"width": 136, "height": 48, "itemMargin": 4}, ["a", "b"]],
+        ["summary", "Column", {"width": 126, "height": 40, "itemMargin": 2}, ["a", "b"]],
         ["a", "Text", {"content": "电量 80%", "fontSize": 14, "height": 20, "maxLines": 1}],
         ["b", "Text", {"content": "未充电", "fontSize": 12, "height": 18, "maxLines": 1}],
-        ["controls", "Column", {"width": 136, "height": 80, "itemMargin": 8}, ["one", "two"]],
+        ["controls", "Column", {"width": 126, "height": 78, "itemMargin": 6}, ["one", "two"]],
         ["one", "ActionUnit", {"state": "capsule", "label": "动作一", "onClick": []}],
         ["two", "ActionUnit", {"state": "capsule", "label": "动作二", "onClick": []}],
         ["/state/ready", True],
