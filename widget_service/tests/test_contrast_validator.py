@@ -5,9 +5,6 @@ import pytest
 
 from services.card_validation import validate_card
 from services.card_validation.context import ValidationContext
-from services.card_validation.contrast_validator import ContrastValidator
-from services.card_validation.diagnostics import Reporter
-from services.card_validation.source_parser import SourceParser
 
 
 def _dsl(text_color: str, background_color: str) -> str:
@@ -189,7 +186,7 @@ def test_template_root_skips_whole_card_contrast(template_first: bool) -> None:
 
 
 @pytest.mark.parametrize("fusion", [False, True])
-def test_direct_contrast_validator_uses_template_marker_without_fusion_dependency(
+def test_pipeline_selects_template_policy_without_fusion_dependency(
     fusion: bool, caplog,
 ) -> None:
     components = _template_components()
@@ -198,12 +195,10 @@ def test_direct_contrast_validator_uses_template_marker_without_fusion_dependenc
         assert isinstance(children, list)
         children.append("fusionBallBackground")
         components.append({"id": "fusionBallBackground", "component": "Stack"})
-    reporter = Reporter({})
-    context = SourceParser().parse(_component_dsl(components), "", reporter)
     with caplog.at_level("INFO"):
-        ContrastValidator().validate(context, {}, reporter)
+        reporter = validate_card(dsl_text=_component_dsl(components))
     assert not reporter.has_code("VISUAL.CONTRAST")
-    assert "quality_validation_skipped reason=template_root validator=contrast" in caplog.text
+    assert "quality_validation_skipped reason=template_root" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -215,6 +210,7 @@ def test_direct_contrast_validator_uses_template_marker_without_fusion_dependenc
         ("root", ["template_root"], False, set(), False),
         ("root", ["content"], True, set(), False),
         ("root", "template_root", True, set(), False),
+        ("root", ("template_root",), True, set(), False),
         ("root", ["template_root_0"], True, set(), False),
         ("other_root", ["template_root"], True, set(), False),
         ("root", ["template_root"], True, {"template_root"}, False),

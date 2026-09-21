@@ -391,16 +391,20 @@ def test_checked_in_action_templates_expose_second_layer_props() -> None:
     icon_schema = icon.variants[0].parameters_schema
     assert pill.provider_id == "com.huawei.action.cli"
     assert pill_schema["required"] == ["actionId", "label"]
-    assert set(pill_schema["properties"]) == {"actionId", "label", "icon"}
+    pill_properties = pill_schema.get("properties")
+    assert isinstance(pill_properties, dict)
+    assert set(pill_properties) == {"actionId", "label"}
     assert icon_schema["required"] == ["actionId", "icon"]
     assert set(icon_schema["properties"]) == {"actionId", "icon"}
-    for definition in (pill, icon):
+    for definition, expected_root in ((pill, "Button"), (icon, "Stack")):
         root = definition.variants[0].root
-        assert root.component == "Stack"
-        options = root.values[0].properties
-        assert options["onClick"].kind == "event-action"
-        assert options["onClick"].items[0].kind == "parameter"
-        assert options["onClick"].items[0].name == "actionId"
+        assert root.component == expected_root
+        options = root.values[-1].properties
+        event = options.get("onClick")
+        assert event is not None
+        assert event.kind == "event-action"
+        assert event.items[0].kind == "parameter"
+        assert event.items[0].name == "actionId"
         assert "_actionId" not in options
 
 
