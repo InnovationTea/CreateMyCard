@@ -232,7 +232,8 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
 
 2x2 若最终展示两个独立业务对象，必须且只能使用 S4：root 为 Column，直接子组件
-只能是上下两个 `134×63vp` 内容蒙版，root padding 固定为 `8vp`，间距 `8vp`。禁止左右并排两个业务组，禁止
+只能是上下两个 `134×63vp` 内容蒙版，root padding 固定为 `8vp`，间距 `8vp`。
+禁止左右并排两个业务组，禁止
 公共 title/header/content/bottom/action_area，禁止 root 绑定 onClick；动作只绑定所属蒙版。
 可见数据来自两个不同 `/data` 一级业务节点时，固定按两个对象处理，禁止把其中一个
 降为另一个的辅助信息。若只有一个业务对象则禁止使用 S4，不能生成单个 S4 蒙版。

@@ -247,6 +247,9 @@ def _collect_hero_value_errors(
         if _is_readable_formatted_hero(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
             continue
+        if _is_adaptive_primary_text(component, components, task_spec, font_size):
+            numeric_paths.pop(component.component_id)
+            continue
         errors.append(
             f"component {component.component_id}: fontSize {_format_vp(font_size)} "
             "is reserved for a pure number/integer value. Text, formatted values, "
@@ -314,6 +317,39 @@ def _collect_two_by_two_weather_date_errors(
             "concatenate date and weekday in one Text. Keep weekday by default, "
             "or keep date alone when the user explicitly requests the exact date."
         )
+
+
+def _is_adaptive_primary_text(
+    component: ComponentRow,
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    font_size: float,
+) -> bool:
+    if font_size not in (20.0, 24.0, 30.0, 32.0, 38.0):
+        return False
+    if task_spec.get("size") not in {"2x2", "2x4"}:
+        return False
+    props = component.props
+    if props.get("maxLines") != 1 or props.get("padding", 0) != 0:
+        return False
+    parents = [parent for parent in components if component.component_id in parent.children]
+    if len(parents) != 1:
+        return False
+    parent = parents[0]
+    if parent.component_type not in {"Column", "Row"} or parent.props.get("padding", 0) != 0:
+        return False
+    width = _non_negative_number(props.get("width"))
+    parent_width = _non_negative_number(parent.props.get("width"))
+    effective_width = width if width is not None else parent_width
+    if effective_width is None or parent_width != effective_width:
+        return False
+    expected = {"2x2": {126.0, 136.0}, "2x4": {276.0, 296.0}}[task_spec["size"]]
+    if effective_width not in expected and not (
+        task_spec["size"] == "2x4" and effective_width in {114.0, 120.0}
+    ):
+        return False
+    height = _non_negative_number(props.get("height"))
+    return height is None or height >= font_size * 1.4
 
 
 def _is_readable_formatted_hero(
@@ -2052,7 +2088,12 @@ def _is_status_or_ambiguous_text(component: ComponentRow, task_spec: dict[str, A
     if isinstance(content, str) and "{{" not in content:
         return any(marker in content for marker in _AMBIGUOUS_STATUS_MARKERS)
     paths: list[str] = []
-    _collect_binding_context(content, f"component {component.component_id}.props.content", paths, [])
+    _collect_binding_context(
+        content,
+        f"component {component.component_id}.props.content",
+        paths,
+        [],
+    )
     schema = task_spec.get("dataModelSchema")
     if not isinstance(schema, dict):
         return False
@@ -2115,7 +2156,9 @@ def _is_ambiguous_metric_node(node: Any) -> bool:
     description = node.get("description")
     sample = node.get("sampleValue")
     if not isinstance(description, str) or not any(
-        marker in description for marker in _AMBIGUOUS_METRIC_DESCRIPTION_MARKERS if marker != "概率"
+        marker in description
+        for marker in _AMBIGUOUS_METRIC_DESCRIPTION_MARKERS
+        if marker != "概率"
     ):
         return False
     if isinstance(sample, (int, float)) and not isinstance(sample, bool):
@@ -2138,9 +2181,16 @@ def _has_nearby_metric_label(
             if sibling_id == current:
                 continue
             sibling = components_by_id.get(sibling_id)
-            text = sibling.props.get("content") if sibling and sibling.component_type == "Text" else None
+            text = (
+                sibling.props.get("content")
+                if sibling and sibling.component_type == "Text"
+                else None
+            )
             if isinstance(text, str) and "{{" not in text and len(text.strip()) >= 2:
-                if text.strip() not in _AMBIGUOUS_STATUS_MARKERS and text.strip() not in _COMMON_DISPLAY_UNITS:
+                if (
+                    text.strip() not in _AMBIGUOUS_STATUS_MARKERS
+                    and text.strip() not in _COMMON_DISPLAY_UNITS
+                ):
                     return True
         current = parent.component_id
     return False
@@ -2159,7 +2209,12 @@ def _collect_ambiguous_metric_text_errors(
         if component.component_type != "Text":
             continue
         paths: list[str] = []
-        _collect_binding_context(component.props.get("content"), f"component {component.component_id}.props.content", paths, [])
+        _collect_binding_context(
+            component.props.get("content"),
+            f"component {component.component_id}.props.content",
+            paths,
+            [],
+        )
         for path in paths:
             node = _schema_node_at_path(task_spec.get("dataModelSchema"), path)
             if _is_ambiguous_metric_node(node) and not _has_nearby_metric_label(
@@ -2168,7 +2223,8 @@ def _collect_ambiguous_metric_text_errors(
                 detail = node.get("description") if isinstance(node, dict) else path
                 errors.append(
                     f"component {component.component_id}: value {path} has ambiguous meaning "
-                    f"({detail}); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
+                    f"({detail}); add a nearby metric label such as 感冒指数、紫外线指数 "
+                    "or 睡眠得分 instead of showing the value alone."
                 )
                 break
 
