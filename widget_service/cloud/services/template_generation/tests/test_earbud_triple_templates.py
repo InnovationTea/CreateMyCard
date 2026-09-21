@@ -109,10 +109,10 @@ async def test_triple_templates_preserve_header_batteries_and_action(
             update = json.loads(line).get("updateComponents", {})
             for component in update.get("components", []):
                 styles = component.get("styles", {})
-                if component.get("component") == "Column" and styles.get("width") == 44:
+                if component.get("component") == "Column" and styles.get("width") == 36:
                     columns.append(component)
         assert len(columns) == 3
-        assert all(column.get("styles", {}).get("height") == 42 for column in columns)
+        assert all(column.get("styles", {}).get("height") == 50 for column in columns)
         components = {}
         for line in result.a2ui.splitlines():
             update = json.loads(line).get("updateComponents", {})
@@ -120,22 +120,24 @@ async def test_triple_templates_preserve_header_batteries_and_action(
                 components[component.get("id")] = component
         for column in columns:
             assert column.get("itemMargin") == 2
+            assert column.get("styles", {}).get("alignItems") == "start"
             children = column.get("children", [])
-            assert len(children) == 2
-            stack = components.get(children[0])
-            assert isinstance(stack, dict)
-            assert stack.get("component") == "Column"
-            assert stack.get("itemMargin") == 4
-            assert stack.get("styles", {}).get("height") == 28
-            layers = stack.get("children", [])
-            assert len(layers) == 2
-            percent = components.get(layers[1])
+            assert len(children) == 3
+            icon = components.get(children[0])
+            assert isinstance(icon, dict)
+            assert icon.get("component") == "Stack"
+            assert icon.get("styles", {}).get("width") == 16
+            percent = components.get(children[1])
             assert isinstance(percent, dict)
-            assert percent.get("component") == "Text"
-            assert percent.get("styles", {}).get("textAlign") == "center"
-            status = components.get(children[1])
+            assert percent.get("styles", {}).get("fontSize") == 12
+            assert percent.get("styles", {}).get("fontWeight") == 500
+            assert percent.get("styles", {}).get("fontColor") == "#FFFFFFFF"
+            status = components.get(children[2])
             assert isinstance(status, dict)
-            assert status.get("component") == "Text"
+            assert status.get("styles", {}).get("fontSize") == 10
+            assert status.get("styles", {}).get("fontWeight") == 400
+            assert status.get("styles", {}).get("fontColor") == "#99FFFFFF"
+            assert status.get("styles", {}).get("textAlign") == "start"
         return
     headers = []
     for line in result.a2ui.splitlines():
