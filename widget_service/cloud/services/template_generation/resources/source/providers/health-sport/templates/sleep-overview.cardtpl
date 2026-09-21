@@ -339,6 +339,7 @@ Column(
         "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
+    #if data.startTime && data.endTime
     Column(
         { "itemMargin": 8, "justifyContent": "start", "width": "matchParent" },
         Row(
@@ -369,20 +370,38 @@ Column(
     ),
     Column(
         { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
-        #if data.startTime && data.endTime
-            Row(
-                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-                Text(
-                    "时段 ",
-                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-                ),
-                Text(
-                    `${data.startTime}-${data.endTime}`,
-                    { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-                )
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+            Text(
+                "时段 ",
+                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+            ),
+            Text(
+                `${data.startTime}-${data.endTime}`,
+                { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
-        #endif
+        )
     )
+    #else
+    Column(
+        {
+            "width": "matchParent",
+            "height": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "center",
+            "alignItems": "center",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Text(
+            "小睡时长",
+            {"width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+        Text(
+            data.duration,
+            {"width": "matchParent", "margin": {"top": 4}, "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+    )
+    #endif
 )
 #End
 
