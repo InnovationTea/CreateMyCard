@@ -1602,6 +1602,12 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    _collect_two_by_two_content_density_errors(
+        components,
+        task_spec,
+        components_by_id,
+        errors,
+    )
     if (
         size == "2x2"
         and root is not None

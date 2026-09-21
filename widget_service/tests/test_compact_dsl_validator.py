@@ -105,7 +105,49 @@ def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
     prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
 
     assert "## 3.1 一级高度算账硬门禁" in prompt
-    assert "20 + 64 + 64 + 8 × 2 = 164 > 136" in prompt
-    assert "64 + 40 + 36 + 8 × 2 = 156 > 136" in prompt
+    assert "20 + 59 + 59 + 8 × 2 = 154 > 134" in prompt
+    assert "20 + 66 + 36 + 36 = 158 > 126" in prompt
     assert "itemMargin 不生效" not in prompt
     assert "两者可以同时设置" in prompt
+
+
+def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12,"itemMargin":4},["value_row","minimum"]]',
+            '["value_row","Row",{"width":126,"height":40},["maximum","unit"]]',
+            '["maximum","Text",{"content":{"path":"/data/healthSport/max"},'
+            '"fontSize":30,"fontWeight":700,"maxLines":1}]',
+            '["unit","Text",{"content":"次/分钟","fontSize":12,'
+            '"fontWeight":500,"maxLines":1}]',
+            '["minimum","Text",{"content":"{{ \'最低 \' + '
+            '${/data/healthSport/min} + \'次/分钟\' }}","height":18,'
+            '"fontSize":12,"fontWeight":400,"maxLines":1}]',
+            '["/data/healthSport/max",168]',
+            '["/data/healthSport/min",96]',
+        ]
+    )
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "healthSport": {
+                    "max": {"type": "integer"},
+                    "min": {"type": "integer"},
+                }
+            }
+        },
+        "assetCandidates": [],
+        "eventCandidates": [],
+    }
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match="multiple peer quantitative fields",
+    ):
+        validate_compact_dsl(
+            source,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
