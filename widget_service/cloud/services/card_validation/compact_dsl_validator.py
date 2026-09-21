@@ -367,13 +367,17 @@ def _is_readable_formatted_hero(
 def _formatted_hero_binding(content: Any) -> tuple[str | None, str | None]:
     if isinstance(content, dict) and set(content) == {"path"}:
         path = content.get("path")
-        return (path, None) if isinstance(path, str) else (None, None)
+        if isinstance(path, str):
+            return path, None
+        return None, None
     if not isinstance(content, str):
         return None, None
     match = _SIMPLE_FORMATTED_EXPRESSION_PATTERN.fullmatch(content.strip())
     if match is None:
         return None, None
-    return match.group("path"), match.group("unit")
+    path = match.group("path")
+    unit = match.group("unit")
+    return path, unit
 
 
 def _is_large_2x4_panel(
