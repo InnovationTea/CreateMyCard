@@ -1704,8 +1704,11 @@ def _collect_two_by_four_w9_content_errors(
             content_components.append(child)
             content_components.extend(_descendant_components(child, components_by_id))
 
-        total_action_count += len(actions)
-        for action in actions:
+        counted_actions = list(actions)
+        if "onClick" in zone.props:
+            counted_actions.append(zone)
+        total_action_count += len(counted_actions)
+        for action in counted_actions:
             fingerprint = json.dumps(
                 action.props.get("onClick"),
                 ensure_ascii=False,
@@ -1784,7 +1787,7 @@ def _collect_two_by_four_w9_content_errors(
                 errors,
             )
 
-        for action in actions:
+        for action in counted_actions:
             action_roots = _binding_roots(
                 action.props.get("onClick"),
                 f"component {action.component_id}.props.onClick",
@@ -2197,43 +2200,34 @@ def _has_expected_two_by_four_aux_icon_layout(
 ) -> bool:
     if cell.component_type != "Row" or len(cell.children) != 2:
         return False
-    if cell.props.get("itemMargin") != 8:
+    children = [components_by_id.get(child_id) for child_id in cell.children]
+    visual_count = sum(
+        child is not None and child.component_type == "Image"
+        for child in children
+    )
+    if visual_count != 1:
         return False
-    if cell.props.get("justifyContent") != "start":
+    text_container = next(
+        (
+            child
+            for child in children
+            if child is not None and child.component_type in {"Column", "Text"}
+        ),
+        None,
+    )
+    if text_container is None:
         return False
-    if cell.props.get("alignItems") != "center":
+    if text_container.component_type == "Text":
+        return text_container.props.get("maxLines") == 1
+    if not 1 <= len(text_container.children) <= 2:
         return False
-
-    padding = cell.props.get("padding")
-    if not isinstance(padding, dict):
-        return False
-    if padding.get("left") != 12 or padding.get("right") != 12:
-        return False
-
-    text_column = components_by_id.get(cell.children[0])
-    visual = components_by_id.get(cell.children[1])
-    if text_column is None or text_column.component_type != "Column":
-        return False
-    if text_column.props.get("width") != 78:
-        return False
-    if text_column.props.get("justifyContent") != "center":
-        return False
-    if text_column.props.get("alignItems") not in {None, "start"}:
-        return False
-    if visual is None or visual.component_type != "Image":
-        return False
-    if visual.props.get("width") != 20 or visual.props.get("height") != 20:
-        return False
-
-    if not 1 <= len(text_column.children) <= 2:
-        return False
-    for child_id in text_column.children:
+    for child_id in text_container.children:
         text = components_by_id.get(child_id)
-        if text is None or text.component_type != "Text":
-            return False
-        if text.props.get("maxLines") != 1:
-            return False
-        if text.props.get("textAlign") not in {None, "start"}:
+        if (
+            text is None
+            or text.component_type != "Text"
+            or text.props.get("maxLines") != 1
+        ):
             return False
     return True
 
@@ -2256,10 +2250,9 @@ def _collect_two_by_four_aux_icon_errors(
             continue
         errors.append(
             f"2x4 130x59 auxiliary backboard {cell.component_id} with an icon "
-            "must use Row -> [78vp text Column, 20x20vp Image], with padding "
-            "left/right 12, itemMargin 8, justifyContent start, alignItems "
-            "center, one or two left-aligned single-line Text children, and "
-            "the Image as the final direct child on the right."
+            "must contain exactly one one-line Text or one 1-2 line text Column "
+            "plus one Image. The converter normalizes the cell to left-aligned "
+            "text and a 20x20vp Image on the right."
         )
 
 
