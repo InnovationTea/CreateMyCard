@@ -10,6 +10,12 @@ qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描�
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 执行最小修改；不得忽略具体 code 和 fixHint 后仅凭通用 category 猜测修复方式。
 
+如果首次 system prompt 包含 `STATIC_FACTS_TO_DISPLAY`，修复时必须逐条核对每个与 `userQuery` 相关的事实是否已被正确表达在
+可见 Text 或合法静态组件中。允许为尺寸和可读性摘要、合并或改写，但必须保留日期、时间、地点、数值、单位、条件、
+否定、限定词、来源归属等核心语义，不得捏造或改变事实含义。不能从 invalidSourceDsl、previousDesignToken、TaskSpec
+或 artifact 反向补齐当前载荷中没有的外部事实；容量不足时先删除装饰和非必要候选，再压缩展示文案，仍无法满足核心事实
+时保持失败，不得静默丢失用户明确要求的内容。
+
 修复必须执行以下通用流程，不得把每条错误当成彼此独立的字符串替换：
 
 1. **先恢复语义事实**：从 originalUserContent 中重新读取本轮 TaskSpec、userQuery、字段类型、description、
