@@ -53,17 +53,31 @@ def _required_only_schema(definition, extra_paths: tuple[str, ...] = ()) -> dict
     return schema
 
 
-def _full_template_ids() -> list[str]:
-    registry = get_cardplan_registry()
+def _is_valid_full_template(wire_id: str, definition) -> bool:
+    """判断单个模版是否为有效的 Full 类型"""
     # BatteryOverview 依赖专属的 selector/variant 准入机制（电量数值-文本配对），
     # 仅必需字段意图无法表达其真实准入条件，由 battery 专项测试覆盖。
-    return sorted(
+
+    if definition.binding_count != 1:
+        return False
+    if provider_template_layout_kind(wire_id) != "Full":
+        return False
+    if wire_id.startswith("BatteryOverview"):
+        return False
+    return True
+
+
+def _full_template_ids() -> list[str]:
+    registry = get_cardplan_registry()
+
+    # 生成器表达式中的逻辑现在非常简单，符合 G.EXP.04 规范
+    valid_templates = (
         wire_id
         for wire_id, definition in registry.templates.items()
-        if definition.binding_count == 1
-        and provider_template_layout_kind(wire_id) == "Full"
-        and not wire_id.startswith("BatteryOverview")
+        if _is_valid_full_template(wire_id, definition)
     )
+
+    return sorted(valid_templates)
 
 
 class _DeterministicPlanModel:
