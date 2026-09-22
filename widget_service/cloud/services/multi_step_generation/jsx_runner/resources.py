@@ -5,7 +5,13 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from .card_sizes import CARD_SIZE_DIMENSIONS, DEFAULT_CARD_SIZE
-from .config import RESOURCE_STAGES, SKILL_DIR
+from .config import (
+    PROMPT_FEW_SHOT_ROLES,
+    PROMPT_PACKAGE_DIRS,
+    PROMPT_RESOURCE_ROLES,
+    RESOURCE_STAGES,
+    SKILL_DIR,
+)
 
 if "." in (__package__ or ""):
     from ..jsx_to_a2ui.catalog.bindings import bindable_prop_type_labels
@@ -21,7 +27,10 @@ _CONTRACT_BLOCK = re.compile(
 )
 _CONTRACT_LINE = re.compile(r"^\s*(?P<name>[A-Za-z_$][\w$]*)\s*:\s*\{(?P<body>.*)\},?\s*$")
 _ARRAY_FIELD = r"\b{field}\s*:\s*\[(?P<values>[^]]*)\]"
-FEW_SHOT_2X4_PATH = SKILL_DIR / "references" / "fewshots" / "end_to_end_2x4.md"
+_YAML_FRONTMATTER = re.compile(
+    r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\Z)",
+    re.DOTALL,
+)
 
 
 # Model-facing Card appearances follow the current v15 designer source.
@@ -86,6 +95,7 @@ GENERATION_COMPONENTS_COMMON = frozenset(
     {
         "Badge",
         "Card",
+        "DataDisplay",
         "DoubleLineTitle",
         "EmphasisText",
         "EmphasizedData",
@@ -106,8 +116,8 @@ GENERATION_COMPONENTS_COMMON = frozenset(
 )
 
 GENERATION_COMPONENTS_BY_SIZE = {
-    "2x2": frozenset({"DataDisplay", "CircleButton"}),
-    "2x4": frozenset({"TopTextBottomValue", "TextBlock", "CardButton"}),
+    "2x2": frozenset({"CircleButton"}),
+    "2x4": frozenset({"TopTextBottomValue", "TextBlock", "CardButton", "NumericRatioStack"}),
 }
 
 # Keep this explicit literal for the Node validator's static contract discovery.
@@ -127,6 +137,7 @@ GENERATION_COMPONENTS = frozenset(
         "H_BarChart",
         "InfoBlock",
         "NumericRatio",
+        "NumericRatioStack",
         "PillButton",
         "ProgressCircle",
         "ProgressCircleSingle",
@@ -181,6 +192,7 @@ _GENERATION_REQUIRED_PROPS = {
     "ProgressCircleSingle": frozenset({"appearance", "ariaLabel"}),
     "ProgressCircle": frozenset({"appearance", "ariaLabel"}),
     "NumericRatio": frozenset({"appearance"}),
+    "NumericRatioStack": frozenset({"appearance", "direction"}),
     "EventCard": frozenset({"items"}),
     "PillButton": frozenset({"appearance"}),
     "CircleButton": frozenset({"appearance"}),
@@ -198,6 +210,10 @@ _GENERATION_ENUM_OVERRIDES = {
         "align": frozenset({"stretch", "flex-start", "center", "flex-end"}),
     },
     "H_BarChart": {"mode": frozenset({"light", "dark"})},
+    "NumericRatioStack": {
+        "appearance": frozenset({"card"}),
+        "direction": frozenset({"column", "row"}),
+    },
 }
 for _component_name in (
     "ProgressCircleSingle",
@@ -378,29 +394,45 @@ def generation_contract_sync_errors() -> list[str]:
 
 
 def format_generation_contract(card_size: str | None = None) -> str:
+    semantic_2x4 = card_size == "2x4"
     lines = [
         "# 可生成 JSX 合同",
         "",
         "只允许提交一个以 <Card> 为根的声明式 JSX 表达式。",
         "禁止原生 HTML、style/className、spread props、变量读取、函数调用、条件表达式、Hooks 和副作用。",
         "属性表达式只允许字符串、数字、布尔值、null，以及 JSON-like 数组/对象；布局必须显式表达。",
-        "Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"。",
-        "Stack/Grid 的 basis、minWidth 以及 Stack.alignSelf、Stack.wrap 仅属于 runtime 兼容能力，不属于可生成子集。",
-        "固定槽使用 flex={0}，并按父级 direction 通过 width 或 height 声明主轴尺寸。",
+        (
+            "2x4 只提交 Card.layout + Region.slot/variant；禁止输出 Stack/Grid。"
+            if semantic_2x4 else
+            "Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"。"
+        ),
+        (
+            "多个同级占比值使用 NumericRatioStack，通过 direction 选择横排或纵排。"
+            if semantic_2x4 else
+            "Stack/Grid 的 basis、minWidth 以及 Stack.alignSelf、Stack.wrap 仅属于 runtime 兼容能力，不属于可生成子集。"
+        ),
         "禁止使用 Card.background 和仅供实现层覆盖的硬编码颜色属性。",
         "",
         "Card appearance 必选值：" + ", ".join(sorted(generation_card_appearances(card_size))),
         "",
         "## 组件",
     ]
-    for name, item in generatable_contracts(
+    contracts = generatable_contracts(
         card_size,
         include_legacy_appearances=False,
-    ).items():
+    )
+    if semantic_2x4:
+        contracts = {name: item for name, item in contracts.items() if name not in {"Stack", "Grid"}}
+    for name, item in contracts.items():
         required = set(item.required)
         optional = set(item.optional)
         enums = dict(item.enums or {})
-        if name in {"Card", "Stack"}:
+        if semantic_2x4 and name == "Card":
+            required.add("layout")
+            optional.difference_update({"direction", "gap", "align", "justify", "padding"})
+            optional.add("flow")
+            enums.pop("direction", None)
+        elif name in {"Card", "Stack"}:
             required.add("direction")
             optional.discard("direction")
             enums["direction"] = frozenset({"column", "row"})
@@ -433,51 +465,45 @@ class GenerationResources:
         return tuple(stage.key for stage in RESOURCE_STAGES)
 
     def missing_files(self) -> list[Path]:
-        paths = [stage.path for stage in RESOURCE_STAGES if stage.path is not None]
-        paths.append(SKILL_DIR / "references" / "components" / "components_common.md")
-        paths.extend(SKILL_DIR / "references" / "components" / f"components_{size}.md" for size in CARD_SIZE_DIMENSIONS)
-        paths.extend(
-            SKILL_DIR / "references" / "layouts" / f"layout_patterns_{size}.md" for size in CARD_SIZE_DIMENSIONS
-        )
-        if self.include_few_shot:
-            paths.append(FEW_SHOT_2X4_PATH)
+        paths: list[Path] = []
+        for card_size, package_dir in PROMPT_PACKAGE_DIRS.items():
+            for roles in PROMPT_RESOURCE_ROLES.values():
+                paths.extend(package_dir / role / "SKILL.md" for role in roles)
+            if self.include_few_shot:
+                paths.extend(
+                    package_dir / role / "SKILL.md"
+                    for role in PROMPT_FEW_SHOT_ROLES.get(card_size, ())
+                )
         paths.append(SKILL_DIR / "design-system-runtime.jsx")
         return [path for path in paths if not path.exists()]
 
     def source_files(self, key: str, *, card_size: str | None = None) -> tuple[Path, ...]:
         """Return the source files whose contents form one model-visible resource."""
-        stage = self._by_key.get(key)
-        if stage is None:
+        if key not in self._by_key:
             raise KeyError(f"unknown generation resource {key!r}")
-        if key == "jsx_contract":
-            files = (SKILL_DIR / "references" / "core.md",)
-        elif key == "component_style":
-            resolved_size = card_size or DEFAULT_CARD_SIZE
-            if resolved_size not in CARD_SIZE_DIMENSIONS:
-                allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
-                raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
-            component_dir = SKILL_DIR / "references" / "components"
-            files = (
-                component_dir / "components_common.md",
-                component_dir / f"components_{resolved_size}.md",
+        resolved_size = card_size or DEFAULT_CARD_SIZE
+        if resolved_size not in CARD_SIZE_DIMENSIONS:
+            allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
+            raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
+        package_dir = PROMPT_PACKAGE_DIRS[resolved_size]
+        files = tuple(
+            package_dir / role / "SKILL.md"
+            for role in PROMPT_RESOURCE_ROLES[key]
+        )
+        if self.include_few_shot and key == "layout_patterns":
+            files += tuple(
+                package_dir / role / "SKILL.md"
+                for role in PROMPT_FEW_SHOT_ROLES.get(resolved_size, ())
             )
-        elif key == "layout_patterns":
-            resolved_size = card_size or DEFAULT_CARD_SIZE
-            if resolved_size not in CARD_SIZE_DIMENSIONS:
-                allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
-                raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
-            files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
-            if self.include_few_shot and resolved_size == "2x4":
-                files += (FEW_SHOT_2X4_PATH,)
-        else:
-            if stage.path is None:
-                raise AssertionError()
-            files = (stage.path,)
         return files
 
     def read(self, key: str, *, card_size: str | None = None) -> str:
         source_files = self.source_files(key, card_size=card_size)
-        return "\n\n".join(path.read_text(encoding="utf-8") for path in source_files)
+        contents = []
+        for path in source_files:
+            source = path.read_text(encoding="utf-8")
+            contents.append(_YAML_FRONTMATTER.sub("", source, count=1).lstrip("\r\n"))
+        return "\n\n".join(contents)
 
 
 def iter_asset_values(value: object, *, key: str | None = None) -> Iterable[str]:

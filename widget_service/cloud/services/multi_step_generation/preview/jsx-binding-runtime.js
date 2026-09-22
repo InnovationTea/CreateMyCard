@@ -11,19 +11,22 @@
     const id = dataIds && dataIds[prop];
     if (!prop || typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(values, id)) return;
     const value = values[id];
-    target[prop] = value;
-    if (Object.prototype.hasOwnProperty.call(dataIds, 'unit')) return;
     const numeric = (typeof value === 'number' && Number.isFinite(value))
       || (typeof value === 'string' && /^[+-]?\d+(?:\.\d+)?$/.test(value.trim()));
+    if (!numeric) {
+      if (typeof value === 'string') delete target.unit;
+      return;
+    }
+    target[prop] = value;
+    if (Object.prototype.hasOwnProperty.call(dataIds, 'unit')) return;
     if (numeric && target.unit == null) {
       const declared = values[displayUnitsKey] && values[displayUnitsKey][id];
       if (declared) target.unit = declared;
       else if (['NumericRatio', 'NumericRatioStack'].includes(componentName) && typeof value === 'number') {
         target.unit = '%';
       }
-    } else if (typeof value === 'string' && !numeric) {
-      delete target.unit;
     }
+    applyValueTemplate(target, target, prop);
   }
 
   function displayBindingValue(values, id) {
@@ -37,7 +40,21 @@
   function applyValueTemplate(target, source, prop) {
     const template = source && source[`${prop}Template`];
     if (typeof template !== "string" || template.split("{value}").length !== 2) return;
-    target[prop] = template.replace("{value}", String(target[prop]));
+    const [prefix, suffix] = template.split("{value}");
+    let value = String(target[prop]);
+    if (prefix && !value.startsWith(prefix)) value = `${prefix}${value}`;
+    if (suffix && !value.endsWith(suffix)) value = `${value}${suffix}`;
+    target[prop] = value;
+  }
+
+  function applyIndexedValueTemplate(template, values) {
+    if (typeof template !== "string" || values.length < 2) return null;
+    const matches = [...template.matchAll(/\{(\d+)\}/g)];
+    if (matches.length !== values.length
+      || matches.some((match, index) => Number(match[1]) !== index)) return null;
+    const remainder = template.replace(/\{\d+\}/g, "");
+    if (/\{[^{}]*\}/.test(remainder)) return null;
+    return template.replace(/\{(\d+)\}/g, (_, index) => String(values[Number(index)]));
   }
 
   const emphasizedUnitPattern = new RegExp(
@@ -84,11 +101,18 @@
         || (componentName === "InfoBlock" && prop === "secondaryText")
         || (componentName === "TableText" && prop === "parameter");
       const validArray = Array.isArray(id) && id.every((item) => typeof item === "string" && item);
-      if (validArray && ((timeRange && id.length === 2) || (multiField && id.length >= 2))) {
+      if (validArray && ((timeRange && id.length === 2)
+        || (multiField && id.length >= 2))) {
         const missing = id.filter((item) => !Object.prototype.hasOwnProperty.call(values, item));
         missing.forEach((item) => unresolved.add(item));
-        if (!missing.length) target[prop] = id.map((item) => String(displayBindingValue(values, item)))
-          .join(timeRange ? " – " : " ｜ ");
+        if (!missing.length) {
+          const resolvedValues = id.map((item) => displayBindingValue(values, item));
+          const templated = applyIndexedValueTemplate(target[`${prop}Template`], resolvedValues);
+          const separator = timeRange ? " – " : componentName === "TableText" ? "｜" : " ｜ ";
+          target[prop] = templated == null
+            ? resolvedValues.map(String).join(separator)
+            : templated;
+        }
         continue;
       }
       if (typeof id !== "string" || !id) continue;

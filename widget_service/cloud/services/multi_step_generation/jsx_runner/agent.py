@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from .config import MODEL_THINKING_MODE, THINKING_MODES
+from .config import MODEL_THINKING_MODE, RESOURCE_STAGES, THINKING_MODES
 from .prompt import (
     build_layout_fallback_prompt,
     build_plan_context,
@@ -32,13 +32,12 @@ from .workflow import (
     ConversionError,
     CompiledSubmission,
     OrderedWorkflowState,
-    _canonical_layout_pattern,
-    _canonical_sub_pattern,
     browser_repair_preservation_findings,
     build_agent_tools,
     execute_tool,
     submission_reference_ids,
     tool_result_message,
+    validate_plan_arguments,
 )
 
 
@@ -46,82 +45,15 @@ SUBMIT_MODES = ("direct", "auto")
 PLAN_MAX_TOKENS = 2048
 DEFAULT_PLAN_MAX_TOKENS = 1024
 DEFAULT_MAX_TOKENS = 4096
-REPLAN_ROOT_FAILURE_THRESHOLD = 2
 LAYOUT_FALLBACK_SUBMISSION_LIMITS = {
     "compact_component": 2,
-    "drop_optional_component": 2,
+    "drop_optional_component": 3,
 }
+STATIC_CAPACITY_REPAIR_LIMIT = 3
+POST_BROWSER_REPAIR_LIMIT = 6
+COMPACT_REQUIRED_INFORMATION_LIMIT = 3
 
 MAX_CONSECUTIVE_NO_TOOL_CALLS = 3
-
-
-def _layout_decision_signature(decision: object) -> tuple[str, tuple[tuple[str, str], ...]] | None:
-    if not isinstance(decision, dict):
-        return None
-    pattern = _canonical_layout_pattern(decision.get("layoutPattern"))
-    if pattern is None:
-        return None
-    raw_sub_pattern = decision.get("subPattern")
-    if raw_sub_pattern is None:
-        return pattern, ()
-    if not isinstance(raw_sub_pattern, dict):
-        return None
-    sub_pattern: list[tuple[str, str]] = []
-    for region, raw_name in raw_sub_pattern.items():
-        canonical_name = _canonical_sub_pattern(raw_name)
-        if not isinstance(region, str) or canonical_name is None:
-            return None
-        sub_pattern.append((region, canonical_name))
-    return pattern, tuple(sorted(sub_pattern))
-
-
-def _planned_layout_decisions(plan: object) -> list[dict[str, Any]]:
-    if not isinstance(plan, dict):
-        return []
-    decisions: list[dict[str, Any]] = []
-    for name in ("layout_optionA", "layout_optionB"):
-        option = plan.get(name)
-        if not isinstance(option, dict) or _layout_decision_signature(option) is None:
-            continue
-        decision = {"layoutPattern": option["layoutPattern"]}
-        if "subPattern" in option:
-            decision["subPattern"] = option["subPattern"]
-        decisions.append(decision)
-    return decisions
-
-
-def _decision_follows_plan(decision: object, plan: object) -> bool:
-    signature = _layout_decision_signature(decision)
-    return signature is not None and signature in {
-        _layout_decision_signature(option)
-        for option in _planned_layout_decisions(plan)
-    }
-
-
-def _repair_root_keys(result: dict[str, Any]) -> set[str]:
-    """Stable per-fact roots survive mixed diagnostics; warnings never count."""
-    roots: set[str] = set()
-    for item in result.get("findings", []):
-        if not isinstance(item, dict) or item.get("severity") != "error":
-            continue
-        code = str(item.get("code", ""))
-        if code == "required-information":
-            facts = (item.get("details") or {}).get("missingFacts", [])
-            if facts:
-                for fact in facts:
-                    for key in ("dataId", "actionId", "text"):
-                        if key in fact:
-                            roots.add(f"information:{key}:{fact[key]}")
-            else:
-                roots.add("information:" + str(item.get("message", "")))
-        elif "required input actionIds are missing from the generated card:" in str(item.get("message", "")):
-            missing_actions = (
-                str(item["message"])
-                .split("required input actionIds are missing from the generated card:", 1)[1]
-                .split(";", 1)[0]
-            )
-            roots.update("information:actionId:" + value for value in re.findall(r"'([^']+)'", missing_actions))
-    return roots
 
 
 class MissingToolCallError(RuntimeError):
@@ -287,6 +219,8 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "repairCalls",
         "repairLimit",
         "browserFailures",
+        "postBrowserRepairFailures",
+        "requiredInformationFailures",
         "remainingRepairs",
         "fallbackStage",
         "fallbackAttempt",
@@ -297,7 +231,6 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "layoutBudgetFailures",
         "repairStrategy",
         "anchorLayoutAttempted",
-        "structuralReplans",
         "requiredFactsChecked",
         "requiredFactsAdvisory",
         "requiredFactsUnavailable",
@@ -326,6 +259,158 @@ def _is_static_layout_failure(result: dict[str, Any]) -> bool:
         and item.get("severity") == "error"
         and item.get("code") in {"layout-budget", "layout-structure"}
         for item in findings
+    )
+
+
+def _is_static_capacity_failure(result: dict[str, Any]) -> bool:
+    """Return whether a static failure indicates unresolved layout capacity."""
+
+    if result.get("ok") or result.get("phase") == "browser_layout":
+        return False
+    if (
+        _is_missing_required_action_failure(result)
+        or _is_required_information_failure(result)
+    ):
+        return False
+    return _is_static_layout_failure(result)
+
+
+def _consumes_layout_fallback_attempt(
+    result: dict[str, Any],
+    *,
+    browser_failure: bool,
+) -> bool:
+    """Charge fallback budgets only for actual layout-capacity attempts."""
+
+    if (
+        result.get("ok")
+        or _is_missing_required_action_failure(result)
+        or _is_required_information_failure(result)
+    ):
+        return False
+    return browser_failure or _is_static_layout_failure(result)
+
+
+def _is_local_component_repair(result: dict[str, Any]) -> bool:
+    """Return whether every error can be fixed without changing semantic layout."""
+
+    if _is_missing_required_action_failure(result):
+        return False
+    findings = result.get("findings")
+    if not isinstance(findings, list):
+        return False
+    errors = [
+        item for item in findings
+        if isinstance(item, dict) and item.get("severity") == "error"
+    ]
+    return bool(errors) and all(
+        str(item.get("code") or "") in {
+            "contract-or-protocol",
+            "static-text-binding-conflict",
+        }
+        for item in errors
+    )
+
+
+def _is_missing_required_action_failure(result: dict[str, Any]) -> bool:
+    """Return whether the submission omitted an Action required by the task."""
+
+    messages = [str(result.get("error") or "")]
+    findings = result.get("findings")
+    if isinstance(findings, list):
+        messages.extend(
+            str(item.get("message") or "")
+            for item in findings
+            if isinstance(item, dict) and item.get("severity") == "error"
+        )
+    return any("required input actionIds are missing" in message for message in messages)
+
+
+def _is_required_information_failure(result: dict[str, Any]) -> bool:
+    """Return whether required display facts, rather than layout capacity, failed."""
+
+    if result.get("phase") == "required_information":
+        return True
+    findings = result.get("findings")
+    return isinstance(findings, list) and any(
+        isinstance(item, dict)
+        and item.get("severity") == "error"
+        and item.get("code") == "required-information"
+        for item in findings
+    )
+
+
+def _required_action_ids(
+    task: dict[str, Any],
+    required_facts: list[dict[str, Any]] | None,
+) -> set[str]:
+    if required_facts is not None:
+        return {
+            str(fact["actionId"])
+            for fact in required_facts
+            if isinstance(fact, dict)
+            and isinstance(fact.get("actionId"), str)
+            and fact["actionId"].strip()
+        }
+    actions = task.get("actions")
+    if not isinstance(actions, list):
+        return set()
+    return {
+        str(action["id"])
+        for action in actions
+        if isinstance(action, dict)
+        and isinstance(action.get("id"), str)
+        and action["id"].strip()
+    }
+
+
+def _semantic_repair_scope_instruction(
+    *,
+    result: dict[str, Any],
+    submitted_jsx: str | None,
+    task: dict[str, Any],
+    required_facts: list[dict[str, Any]] | None,
+    browser_failure: bool,
+    fallback_stage: str | None,
+) -> str:
+    if _is_missing_required_action_failure(result):
+        action_ids = sorted(_required_action_ids(task, required_facts))
+        instruction = (
+            "当前错误是必需 Action 缺失，属于操作槽与布局结构错误，不是组件 Prop 的局部错误。"
+            f"必须保留并分别放置全部 Action：{action_ids!r}；每个 Action 使用一个合法操作槽，"
+            "不得写入 unmetRequirements，也不得在 compact 或 drop 阶段删除。单 Action variant "
+            "只能包含一个位于最后的 PillButton，不得在同一 Region 追加第二个 PillButton 或 CardButton；"
+            "同步更新 Card.layout 和 Region.variant；decision 由 Runner 自动派生。"
+        )
+        if (
+            submitted_jsx
+            and len(action_ids) == 2
+            and re.search(r'\blayout\s*=\s*["\']main-right-double["\']', submitted_jsx)
+        ):
+            instruction += (
+                " 当前使用 main-right-double 且存在两个必需 Action。先按业务归属分配："
+                "如果 main 业务组拥有一个 Action，优先使用 wide-title-content-action 或"
+                " wide-title-primary-secondary-action，并把该 Action 作为 main Region 最后的 PillButton；"
+                "另一个 Action 放入 side-top 或 side-bottom 的 CardButton，剩余固定侧槽可保留一个"
+                " InfoBlock。若侧边不需要信息模块，也可以使用两个 CardButton。只有 main 无法使用"
+                "合法 Action variant 且侧边槽不足时，才更换父布局。"
+            )
+        return instruction
+    if _is_local_component_repair(result):
+        return (
+            "本轮全部 ERROR 都是数据绑定、静态文字绑定或组件 Prop 错误，属于局部修复："
+            "保持上一版 Card.layout 和全部 Region.slot/variant 不变；保持未被"
+            "findings 指向的组件与区域不变，只修改 findings 明确指出的组件 Prop。不得把"
+            "双内容 variant 改成单内容，也不得用 Stack/Grid 合包已有内容。"
+        )
+    if browser_failure or _is_static_layout_failure(result) or fallback_stage is not None:
+        return (
+            "本轮存在布局类 findings 或 Runner 已进入布局兜底阶段，可以依据当前完整内容"
+            "调整 variant/layout；decision 由 Runner 根据语义标识自动更新。"
+        )
+    return (
+        "本轮 findings 尚未证明布局结构或容量不成立；保持上一版 Card.layout、"
+        "Region.slot/variant，只修复被明确指出的问题。"
     )
 
 
@@ -540,7 +625,6 @@ class JsxA2UIAgent:
             raise ValueError(
                 f"plan_max_tokens must be between 1 and {PLAN_MAX_TOKENS}"
             )
-        self.plan_enabled = True
         self.plan_max_tokens = plan_max_tokens
         self.resources = resources or GenerationResources()
         self.verbose = verbose
@@ -588,6 +672,7 @@ class JsxA2UIAgent:
             validate_layout_budget=layout_budget_validation,
             validate_dynamic_values=getattr(self, "validate_dynamic_values", True),
             enable_dynamic_data_binding=getattr(self, "enable_dynamic_data_binding", True),
+            require_semantic_layout=True,
         )
         messages: list[dict[str, Any]] = [
             {
@@ -615,10 +700,11 @@ class JsxA2UIAgent:
         protocol_retries = 0
         repair_pending = False
         browser_failures = 0
+        post_browser_repair_failures = 0
+        compact_required_information_streak = 0
         pillbutton_anchor_attempted = False
         static_layout_failure_streak = 0
-        structural_replans = 0
-        repair_root_counts: dict[str, int] = {}
+        static_capacity_failure_streak = 0
         previous_failed_submission: tuple[str, str] | None = None
         previous_layout_fingerprints: frozenset[str] = frozenset()
         structural_browser_repair = False
@@ -648,7 +734,7 @@ class JsxA2UIAgent:
             f"layout_budget_validation={'enabled' if layout_budget_validation else 'disabled'}，"
             f"dynamic_data_binding={'enabled' if getattr(self, 'enable_dynamic_data_binding', True) else 'disabled'}，"
             f"browser_validation={'enabled' if browser_validation else 'disabled'}，"
-            f"plan={'enabled' if getattr(self, 'plan_enabled', False) else 'disabled'}，"
+            "info_plan=enabled，"
             f"plan_max_tokens={getattr(self, 'plan_max_tokens', DEFAULT_PLAN_MAX_TOKENS)}，"
             f"browser_fallback_after={self.max_validation_repairs}，"
             "fallback_submission_limits="
@@ -659,20 +745,16 @@ class JsxA2UIAgent:
         consecutive_no_tool_calls = 0
         recovery_message_index: int | None = None
         for turn in range(1, self.max_turns + 1):
-            expected_target = (
-                state.expected_stage.key
-                if state.expected_stage is not None
-                else "submit_card_plan"
-                if getattr(self, "plan_enabled", False) and plan is None
-                else "submit_card_jsx"
-            )
-            expected_tool = (
-                "read_generation_resource"
-                if state.expected_stage is not None
-                else "submit_card_plan"
-                if getattr(self, "plan_enabled", False) and plan is None
-                else "submit_card_jsx"
-            )
+            plan_due = plan is None and state.next_stage_index >= 2
+            if plan_due:
+                expected_target = "submit_card_plan"
+                expected_tool = "submit_card_plan"
+            elif state.expected_stage is not None:
+                expected_target = state.expected_stage.key
+                expected_tool = "read_generation_resource"
+            else:
+                expected_target = "submit_card_jsx"
+                expected_tool = "submit_card_jsx"
             if repair_pending and expected_tool == "submit_card_jsx":
                 repair_calls += 1
             directive = (
@@ -939,49 +1021,23 @@ class JsxA2UIAgent:
                     }
                 elif function.name == "submit_card_plan":
                     turn_record["submitted_plan"] = arguments
-                    # Plan is a model-authored reasoning aid, not a validation
-                    # gate. Once its tool arguments are valid JSON, preserve the
-                    # payload verbatim and continue to JSX. JSX submission still
-                    # passes through the normal Python/compiler/browser checks.
-                    plan = arguments
-                    previous_failed_submission = None
-                    turn_record["plan"] = plan
-                    result = {"ok": True, "next": "submit_card_jsx"}
+                    result = validate_plan_arguments(
+                        arguments,
+                        state.expected_card_size,
+                        state.prompt_task,
+                        state.compile_context,
+                    )
+                    if result.get("ok"):
+                        plan = result.get("plan", arguments)
+                        state.install_plan(plan, warnings=result.get("warnings"))
+                        previous_failed_submission = None
+                        turn_record["plan"] = plan
                 elif function.name == "submit_card_jsx" and isinstance(arguments.get("jsx"), str):
                     submitted_jsx = arguments["jsx"]
-                    if isinstance(arguments.get("decision"), dict):
-                        turn_record["decision"] = arguments["decision"]
-                    planned_decisions = _planned_layout_decisions(plan)
-                    if (
-                        planned_decisions
-                        and state.active_layout_fallback is None
-                        and not _decision_follows_plan(arguments.get("decision"), plan)
-                    ):
-                        result = {
-                            "ok": False,
-                            "phase": "plan_alignment",
-                            "retryable": True,
-                            "error": (
-                                "submit_card_jsx.decision must match layout_optionA or "
-                                "layout_optionB from the accepted Plan"
-                            ),
-                            "instruction": (
-                                "不要在 JSX 阶段自行发明第三套布局。请从 accepted Plan 的 "
-                                "layout_optionA 或 layout_optionB 中选择一套，原样填写其 "
-                                "layoutPattern 和 subPattern，并按对应 content 实现完整 JSX。"
-                            ),
-                            "findings": [{
-                                "severity": "error",
-                                "code": "plan-decision-mismatch",
-                                "phase": "plan_alignment",
-                                "message": (
-                                    f"submitted decision {arguments.get('decision')!r} does not match "
-                                    f"planned decisions {planned_decisions!r}"
-                                ),
-                            }],
-                        }
-                    else:
-                        result = execute_tool(function.name, arguments, state)
+                    result = execute_tool(function.name, arguments, state)
+                    submitted = state.pending_submission or state.submission
+                    if result.get("ok") and submitted is not None and submitted.decision:
+                        turn_record["decision"] = submitted.decision
                 else:
                     result = execute_tool(function.name, arguments, state)
             except Exception as exc:
@@ -1022,22 +1078,27 @@ class JsxA2UIAgent:
             )
             browser_failure = False
             if expected_tool == "submit_card_plan" and terminal_error is None:
+                remaining_resources = len(RESOURCE_STAGES) - state.next_stage_index
                 if result.get("ok"):
-                    if turn >= self.max_turns:
+                    if turn + remaining_resources + 1 > self.max_turns:
                         result.update({"ok": False, "phase": "workflow_budget", "retryable": False,
-                                       "error": "Plan is valid but no JSX submission turn remains."})
-                        terminal_error = RuntimeError("workflow_budget: plan accepted too late for a JSX submission")
+                                       "error": "Info Plan is valid but required resource/JSX turns do not remain."})
+                        terminal_error = RuntimeError(
+                            "workflow_budget: Info Plan accepted too late to read remaining resources and submit JSX"
+                        )
                 else:
-                    # A malformed or truncated tool call did not submit a Plan
-                    # payload. Retry only the tool protocol; semantic Plan
-                    # validation is intentionally disabled.
-                    result.update({"retryTarget": "submit_card_plan"})
-            if (
-                function.name == "submit_card_jsx"
-                and submitted_jsx is not None
-                and state.active_layout_fallback in fallback_attempts
-            ):
-                fallback_attempts[state.active_layout_fallback] += 1
+                    # Protocol and Info Plan contract errors retry the same
+                    # stage. Only the global turn budget bounds these repairs.
+                    result.setdefault("phase", "plan_contract")
+                    result.update({
+                        "retryTarget": "submit_card_plan",
+                    })
+                    if turn + remaining_resources + 2 > self.max_turns:
+                        result["retryable"] = False
+                        terminal_error = RuntimeError(
+                            "workflow_budget: Info Plan could not be validated before the remaining resource/JSX turns; "
+                            "no JSX was accepted. Last plan error: " + str(result.get("error"))
+                        )
             if function.name == "submit_card_jsx" and result.get("ok") and state.pending_submission is not None:
                 preservation_errors: list[dict[str, Any]] = []
                 preservation_warnings: list[dict[str, str]] = []
@@ -1050,13 +1111,9 @@ class JsxA2UIAgent:
                             require_all_data_ids=(
                                 state.active_layout_fallback == "compact_component"
                             ),
-                            require_unmet_for_omissions=(
-                                state.active_layout_fallback == "drop_optional_component"
-                            ),
                         )
                     )
-                    if (state.active_layout_fallback == "drop_optional_component"
-                            and state.pending_submission.unmet_requirements):
+                    if state.active_layout_fallback == "drop_optional_component":
                         state.pending_submission.semantic_status = "partial"
                 try:
                     report = await validate_generated_card(
@@ -1238,19 +1295,15 @@ class JsxA2UIAgent:
                 and not result.get("ok")
             )
             if failed_jsx_submission and result.get("retryable", True) and terminal_error is None:
-                roots = _repair_root_keys(result)
                 submission_key = (
                     submitted_jsx.strip(),
-                    json.dumps(arguments.get('decision'), sort_keys=True, ensure_ascii=False),
+                    json.dumps(arguments.get('decision'), sort_keys=True, ensure_ascii=False)
+                    if not state.require_semantic_layout else "",
                 )
                 no_progress = submission_key == previous_failed_submission
                 previous_failed_submission = submission_key
                 if no_progress:
                     result['noProgress'] = True
-                for root_key in roots:
-                    repair_root_counts[root_key] = repair_root_counts.get(root_key, 0) + 1
-                information_count = max(
-                    (repair_root_counts[key] for key in roots if key.startswith("information:")), default=0)
                 if _is_static_layout_failure(result):
                     static_layout_failure_streak += 1
                     result = _static_layout_repair_feedback(result, static_layout_failure_streak)
@@ -1262,7 +1315,40 @@ class JsxA2UIAgent:
                 else:
                     static_layout_failure_streak = 0
 
+                if _is_static_capacity_failure(result):
+                    static_capacity_failure_streak += 1
+                    result["staticCapacityFailures"] = static_capacity_failure_streak
+                else:
+                    static_capacity_failure_streak = 0
+
+                consumes_fallback_attempt = _consumes_layout_fallback_attempt(
+                    result,
+                    browser_failure=browser_failure,
+                )
+                if (
+                    browser_repair_baseline is not None
+                    and state.active_layout_fallback is None
+                ):
+                    post_browser_repair_failures += 1
+                    result["postBrowserRepairFailures"] = post_browser_repair_failures
+                if (
+                    state.active_layout_fallback in fallback_attempts
+                    and consumes_fallback_attempt
+                ):
+                    fallback_attempts[state.active_layout_fallback] += 1
+
                 active_fallback = state.active_layout_fallback
+                if active_fallback == "compact_component":
+                    if (
+                        _is_required_information_failure(result)
+                        and not _is_missing_required_action_failure(result)
+                    ):
+                        compact_required_information_streak += 1
+                        result["requiredInformationFailures"] = compact_required_information_streak
+                    else:
+                        compact_required_information_streak = 0
+                else:
+                    compact_required_information_streak = 0
                 fallback_exhausted = False
                 if active_fallback in fallback_attempts:
                     attempt = fallback_attempts[active_fallback]
@@ -1270,8 +1356,17 @@ class JsxA2UIAgent:
                     result.update(fallbackStage=active_fallback, fallbackAttempt=attempt,
                                   fallbackAttemptLimit=limit, fallbackRemainingAttempts=max(0, limit - attempt))
                     fallback_exhausted = attempt >= limit
-                if active_fallback == "compact_component" and fallback_exhausted and browser_failure:
+                if (
+                    active_fallback == "compact_component"
+                    and (
+                        fallback_exhausted
+                        or compact_required_information_streak
+                        >= COMPACT_REQUIRED_INFORMATION_LIMIT
+                    )
+                    and not _is_missing_required_action_failure(result)
+                ):
                     state.active_layout_fallback = "drop_optional_component"
+                    compact_required_information_streak = 0
                     previous_failed_submission = None
                     fallback_history.append("drop_optional_component")
                     result.update(
@@ -1280,43 +1375,19 @@ class JsxA2UIAgent:
                         + build_layout_fallback_prompt("drop_optional_component"),
                     )
                     fallback_exhausted = False
-                elif active_fallback == "drop_optional_component" and not fallback_exhausted:
+                elif (
+                    active_fallback == "drop_optional_component"
+                    and not fallback_exhausted
+                    and consumes_fallback_attempt
+                ):
                     result["instruction"] = str(result.get("instruction", "")) + (
                         "\n继续重新分配剩余内容的空间；不得再删除第二个业务显示组件或任何 Action。"
                     )
-                replan_reason = None
                 if fallback_exhausted:
-                    replan_reason = "bounded fallback repairs exhausted"
-                elif information_count >= REPLAN_ROOT_FAILURE_THRESHOLD:
-                    replan_reason = "required_information: repeated omissions"
-                if replan_reason:
-                    # Decide once after the full report. Mixed error families
-                    # must not spend two replan budgets or overwrite a terminal error.
-                    if getattr(self, "plan_enabled", False) and structural_replans < 2 and turn <= self.max_turns - 2:
-                        structural_replans += 1
-                        plan = None
-                        state.active_layout_fallback = None
-                        for strategy in fallback_attempts:
-                            fallback_attempts[strategy] = 0
-                        repair_root_counts.clear()
-                        static_layout_failure_streak = 0
-                        previous_layout_fingerprints = frozenset()
-                        structural_browser_repair = False
-                        browser_failures = 0
-                        previous_failed_submission = None
-                        result.update(
-                            repairStrategy="replan", retryTarget="submit_card_plan",
-                            structuralReplans=structural_replans,
-                            instruction=(
-                                replan_reason + "；根据本轮全部 findings 重新规划合法布局。"
-                                "保留已选真实 ID 和明确要求的正文，可补充事实、修正描述，不得删信息过检。"
-                            ),
-                        )
-                    else:
-                        terminal_error = RuntimeError(
-                            replan_reason + "; required facts were preserved. "
-                            + str(result.get("error"))
-                        )
+                    terminal_error = RuntimeError(
+                        "bounded fallback repairs exhausted; required facts were preserved. "
+                        + str(result.get("error"))
+                    )
                 elif (
                     browser_failure
                     and state.active_layout_fallback is None
@@ -1329,9 +1400,11 @@ class JsxA2UIAgent:
                         pillbutton_gap_exhausted
                         or no_progress
                         or browser_failures >= self.max_validation_repairs
+                        or post_browser_repair_failures >= POST_BROWSER_REPAIR_LIMIT
                     ):
                         # Runner-only transition: no model call just to change mode.
                         state.active_layout_fallback = "compact_component"
+                        post_browser_repair_failures = 0
                         previous_failed_submission = None
                         fallback_history.append("compact_component")
                         result.update(
@@ -1341,6 +1414,28 @@ class JsxA2UIAgent:
                                 + build_layout_fallback_prompt("compact_component")
                             ),
                         )
+                elif (
+                    state.active_layout_fallback is None
+                    and (
+                        static_capacity_failure_streak >= STATIC_CAPACITY_REPAIR_LIMIT
+                        or post_browser_repair_failures >= POST_BROWSER_REPAIR_LIMIT
+                    )
+                ):
+                    state.active_layout_fallback = "compact_component"
+                    static_capacity_failure_streak = 0
+                    post_browser_repair_failures = 0
+                    previous_failed_submission = None
+                    fallback_history.append("compact_component")
+                    result.update(
+                        fallbackStage="compact_component",
+                        fallbackAttempt=0,
+                        fallbackAttemptLimit=LAYOUT_FALLBACK_SUBMISSION_LIMITS["compact_component"],
+                        fallbackRemainingAttempts=LAYOUT_FALLBACK_SUBMISSION_LIMITS["compact_component"],
+                        instruction=(
+                            str(result.get("instruction", "")) + "\n"
+                            + build_layout_fallback_prompt("compact_component")
+                        ),
+                    )
             failed_submit = function.name == "submit_card_jsx" and not result.get("ok")
             non_retryable_failure = result.get("retryable") is False and terminal_error is None
             if failed_submit and non_retryable_failure:
@@ -1376,9 +1471,25 @@ class JsxA2UIAgent:
                 result.update({"retryable": False, "retryTarget": None,
                                "failedStage": expected_tool})
             elif failed_submit:
-                result["retryTarget"] = (
-                    "submit_card_plan" if plan is None and getattr(self, "plan_enabled", False)
-                    else "submit_card_jsx"
+                result["retryTarget"] = "submit_card_jsx"
+            if state.require_semantic_layout and repairable_failure:
+                repair_scope = _semantic_repair_scope_instruction(
+                    result=result,
+                    submitted_jsx=submitted_jsx,
+                    task=task,
+                    required_facts=state.required_facts,
+                    browser_failure=browser_failure,
+                    fallback_stage=state.active_layout_fallback,
+                )
+                result["instruction"] = (
+                    str(result.get("instruction", ""))
+                    + "\n2x4 修复必须继续提交 Card.layout + Region；findings 的 Stack 是程序展开结果，"
+                    "不得手改外壳的 flex、宽高、对齐或间距，也不得复制展开结果或在 Region 内提交 Stack/Grid。"
+                    "先调整内容组件或 Region.variant；多个紧凑占比使用 NumericRatioStack。"
+                    "新增或恢复组件时复核内容关系：核心与辅助需上下分离时使用双内容槽。"
+                    + "\n" + repair_scope
+                    + "\n不得因更换布局删除 Info Plan 冻结的事实或 Action。"
+                    "保留各业务组与其 Action 的归属。"
                 )
             messages.append(tool_result_message(first.id, result))
             if function.name == "submit_card_plan" and result.get("ok") and plan is not None:
@@ -1389,8 +1500,6 @@ class JsxA2UIAgent:
                 messages.append({
                     "role": "user",
                     "content": (
-                        _stage_directive("submit_card_plan")
-                        if plan is None and getattr(self, "plan_enabled", False) else
                         "上一次提交未通过。请根据上一条工具结果中的 findings 和修复要求，"
                         "直接调用 submit_card_jsx，提交修复后的完整 JSX 和必需参数。"
                         "保留要求的数据绑定和动作，不要输出普通文本、分析、解释或 Markdown。"
@@ -1456,6 +1565,7 @@ class JsxA2UIAgent:
                 return {
                     "component_name": component_name,
                     "source": state.submission.source,
+                    "semantic_source": state.submission.semantic_source,
                     "jsx": state.submission.jsx,
                     "a2ui": state.submission.messages,
                     "decision": state.submission.decision,
@@ -1469,7 +1579,7 @@ class JsxA2UIAgent:
                     "model": self.model,
                     "provider": self.provider,
                     "thinking_mode": self.thinking_mode,
-                    **({"plan": plan} if getattr(self, "plan_enabled", False) else {}),
+                    "plan": plan,
                     "turns": turn,
                     "failed_submissions": failed_submissions,
                     "repair_calls": repair_calls,

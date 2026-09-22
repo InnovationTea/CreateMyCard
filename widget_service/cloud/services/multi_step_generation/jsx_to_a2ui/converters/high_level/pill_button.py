@@ -27,7 +27,7 @@ def convert_pill_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         foreground = color_with_opacity(foreground, 0.4)
         icon_color = color_with_opacity(icon_color, 0.4)
     common_styles = {
-        "width": (118 if ctx.card_size == "2x4" else 120) if ctx.inside_backplate else 136,
+        "width": (116 if ctx.card_size == "2x4" else 126) if ctx.inside_backplate else (132 if ctx.card_size == "2x4" else 126),
         "height": 36,
         "borderRadius": 18 if ctx.inside_backplate and ctx.card_size == "2x4" else 30,
         "backgroundColor": background,

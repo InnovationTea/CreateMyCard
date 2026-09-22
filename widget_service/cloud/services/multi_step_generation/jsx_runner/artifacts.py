@@ -47,6 +47,14 @@ def build_component_name(task: dict[str, Any], fallback_index: int) -> str:
     return f"CardGenerated_{safe}"
 
 
+def build_artifact_stem(component_name: str) -> str:
+    """Keep the JSX function name stable while sorting its files by task id."""
+    prefix = "CardGenerated_"
+    if component_name.startswith(prefix):
+        return f"{component_name.removeprefix(prefix)}_CardGenerated"
+    return component_name
+
+
 def create_run_dir(output_root: Path, run_id: str | None = None) -> tuple[str, Path]:
     resolved_id = run_id or datetime.now(UTC).astimezone().strftime("%Y%m%d-%H%M%S")
     if resolved_id in {".", ".."} or not re.fullmatch(r"[A-Za-z0-9._-]+", resolved_id):
@@ -86,12 +94,25 @@ def write_rejected_card(
     turn: int,
     task: dict[str, Any],
     run_dir: Path,
+    phase: str | None = None,
 ) -> dict[str, str]:
     """Persist a rejected JSX candidate beside successful JSX artifacts."""
     jsx_dir = run_dir / "jsx"
     jsx_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"{component_name}.turn-{turn:02d}.rejected"
+    phase_name = re.sub(r"[^A-Za-z0-9_-]+", "-", phase or "unknown").strip("-") or "unknown"
+    stem = f"{component_name.removeprefix('CardGenerated_')}.turn-{turn:02d}.{phase_name}.rejected"
     source = _wrap_expression(component_name, jsx)
+    # Galleries still render Stack JSX. Preserve the model input separately.
+    from .workflow import ConversionError, _serialize_jsx, extract_card_functions, lower_semantic_card
+    try:
+        root = extract_card_functions(source)[component_name]
+        if "layout" in root.props:
+            expanded, _ = lower_semantic_card(root)
+            semantic_path = jsx_dir / f"{stem}.semantic.jsx"
+            semantic_path.write_text(source, encoding="utf-8")
+            source = _wrap_expression(component_name, _serialize_jsx(expanded))
+    except (ConversionError, KeyError):
+        pass  # Invalid semantic/syntax submissions remain available for diagnosis.
     jsx_path = jsx_dir / f"{stem}.jsx"
     jsx_path.write_text(source, encoding="utf-8")
     return {
@@ -106,8 +127,9 @@ def write_card(
     compile_context: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     name = result["component_name"]
+    artifact_stem = build_artifact_stem(name)
     jsx_dir = run_dir / "jsx"
-    jsx_path = jsx_dir / f"{name}.jsx"
+    jsx_path = jsx_dir / f"{artifact_stem}.jsx"
     a2ui_path = run_dir / "a2ui" / f"{name}.a2ui.json"
     jsx_path.write_text(result["source"], encoding="utf-8")
     a2ui_path.write_text(json.dumps(result["a2ui"], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -115,6 +137,10 @@ def write_card(
         "jsx": jsx_path.relative_to(run_dir).as_posix(),
         "a2ui": a2ui_path.relative_to(run_dir).as_posix(),
     }
+    if result.get("semantic_source"):
+        semantic_path = jsx_dir / f"{artifact_stem}.semantic.jsx"
+        semantic_path.write_text(result["semantic_source"], encoding="utf-8")
+        paths["semantic_jsx"] = semantic_path.relative_to(run_dir).as_posix()
     if compile_context and (
         compile_context.get("data")
         or compile_context.get("actions")

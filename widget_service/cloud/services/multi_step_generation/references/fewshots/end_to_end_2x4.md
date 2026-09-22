@@ -42,26 +42,25 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "本周工作室总用电量。",
-      "dataId": "studioPower.week.totalText"
+      "dataId": "studioPower.week.totalText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "本周照明用电量。",
-      "dataId": "studioPower.week.lightingText"
+      "dataId": "studioPower.week.lightingText",
+      "componentHints": ["TextBlock"]
     },
     {
       "requirement": "本周空调用电量。",
-      "dataId": "studioPower.week.coolingText"
+      "dataId": "studioPower.week.coolingText",
+      "componentHints": ["TextBlock"]
     },
     {
       "requirement": "本周设备用电量。",
-      "dataId": "studioPower.week.equipmentText"
+      "dataId": "studioPower.week.equipmentText",
+      "componentHints": ["TextBlock"]
     }
-  ],
-  "layout_optionA": {
-    "layoutPattern": "上下双区",
-    "subPattern": {},
-    "content": "整卡标题下，上区用 EmphasisText 表达总用电量及其含义；下区用一个三项 TextBlock 横向展示短小的同级明细。"
-  }
+  ]
 })
 ```
 
@@ -69,27 +68,16 @@ submit_card_plan({
 
 ```js
 submit_card_jsx({
-  "decision": { "layoutPattern": "上下双区", "subPattern": {} },
-  "jsx": `<Card direction="column" size="2x4" appearance="solid-blue" gap={4}>
-  <Stack direction="column" flex={0} width="full" height={20}>
+  "jsx": `<Card size="2x4" appearance="solid-blue" layout="top-bottom">
+  <Region slot="title">
     <SingleLineTitle title="本周工作室用电" />
-  </Stack>
-  <Stack direction="column" flex={1} width="full" gap={8} justify="space-between">
-    <Stack direction="column" flex={0} width="full">
-      <EmphasisText
-        mainText="96千瓦时"
-        secondaryText="总用电量"
-        dataIds={{ mainText: "studioPower.week.totalText" }}
-      />
-    </Stack>
-    <Stack direction="column" flex={0} width="full">
-      <TextBlock items={[
-        { label: "照明", parameter: "18千瓦时", dataIds: { parameter: "studioPower.week.lightingText" } },
-        { label: "空调", parameter: "34千瓦时", dataIds: { parameter: "studioPower.week.coolingText" } },
-        { label: "设备", parameter: "29千瓦时", dataIds: { parameter: "studioPower.week.equipmentText" } }
-      ]} />
-    </Stack>
-  </Stack>
+  </Region>
+  <Region slot="primary">
+    <EmphasisText mainText="96千瓦时" secondaryText="总用电量" dataIds={{"mainText":"studioPower.week.totalText"}} />
+  </Region>
+  <Region slot="details">
+    <TextBlock items={[{"label":"照明","parameter":"18千瓦时","dataIds":{"parameter":"studioPower.week.lightingText"}},{"label":"空调","parameter":"34千瓦时","dataIds":{"parameter":"studioPower.week.coolingText"}},{"label":"设备","parameter":"29千瓦时","dataIds":{"parameter":"studioPower.week.equipmentText"}}]} />
+  </Region>
 </Card>`,
   "coverage": [
     { "requirement": "展示本周工作室总用电量" },
@@ -136,45 +124,45 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "温室当前温度。",
-      "dataId": "facility.greenhouse.temperatureText"
+      "dataId": "facility.greenhouse.temperatureText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "带标签的温室当前湿度文案。",
-      "dataId": "facility.greenhouse.humidityText"
+      "dataId": "facility.greenhouse.humidityText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "温室当前通风模式。",
-      "dataId": "facility.greenhouse.ventilationMode"
+      "dataId": "facility.greenhouse.ventilationMode",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "冷藏区当前温度。",
-      "dataId": "facility.coldRoom.temperatureText"
+      "dataId": "facility.coldRoom.temperatureText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "冷藏区当前门状态。",
-      "dataId": "facility.coldRoom.doorStatusText"
+      "dataId": "facility.coldRoom.doorStatusText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "冷藏区当前告警状态。",
-      "dataId": "facility.coldRoom.alertStatusText"
+      "dataId": "facility.coldRoom.alertStatusText",
+      "componentHints": ["EmphasisText"]
     },
     {
       "requirement": "调节通风",
-      "actionId": "facility.greenhouse.adjustVentilation"
+      "actionId": "facility.greenhouse.adjustVentilation",
+      "componentHints": ["PillButton"]
     },
     {
       "requirement": "查看告警",
-      "actionId": "facility.coldRoom.viewAlerts"
+      "actionId": "facility.coldRoom.viewAlerts",
+      "componentHints": ["PillButton"]
     }
-  ],
-  "layout_optionA": {
-    "layoutPattern": "左右双区",
-    "subPattern": {
-      "left": "Sub-118-D 标题内容单按钮",
-      "right": "Sub-118-D 标题内容单按钮"
-    },
-    "content": "左右各保留独立标题；每侧用一个 EmphasisText 突出温度，并以带标签的状态文案补充湿度、通风或门与告警状态；底部 PillButton 只绑定本组 Action。"
-  }
+  ]
 })
 ```
 
@@ -182,54 +170,17 @@ submit_card_plan({
 
 ```js
 submit_card_jsx({
-  "decision": {
-    "layoutPattern": "左右双区",
-    "subPattern": {
-      "left": "Sub-118-D 标题内容单按钮",
-      "right": "Sub-118-D 标题内容单按钮"
-    }
-  },
-  "jsx": `<Card direction="row" size="2x4" appearance="solid-green" gap={12}>
-  <Stack direction="column" surface="backplate" flex={0} width={142} height={136} align="center" justify="center">
-    <Stack direction="column" flex={0} width={118} height={112} gap={6}>
-      <Stack direction="column" flex={0} width={118}>
-        <SingleLineTitle title="温室" />
-      </Stack>
-      <Stack direction="column" flex={1} width={118}>
-        <EmphasisText
-          mainText="24℃"
-          secondaryText="湿度63% ｜ 自动档"
-          dataIds={{
-            mainText: "facility.greenhouse.temperatureText",
-            secondaryText: ["facility.greenhouse.humidityText", "facility.greenhouse.ventilationMode"]
-          }}
-        />
-      </Stack>
-      <Stack direction="column" flex={0} width={118} height={36}>
-        <PillButton label="调节通风" appearance="card" actionId="facility.greenhouse.adjustVentilation" />
-      </Stack>
-    </Stack>
-  </Stack>
-  <Stack direction="column" surface="backplate" flex={0} width={142} height={136} align="center" justify="center">
-    <Stack direction="column" flex={0} width={118} height={112} gap={6}>
-      <Stack direction="column" flex={0} width={118}>
-        <SingleLineTitle title="冷藏区" />
-      </Stack>
-      <Stack direction="column" flex={1} width={118}>
-        <EmphasisText
-          mainText="-4℃"
-          secondaryText="门已关 ｜ 无告警"
-          dataIds={{
-            mainText: "facility.coldRoom.temperatureText",
-            secondaryText: ["facility.coldRoom.doorStatusText", "facility.coldRoom.alertStatusText"]
-          }}
-        />
-      </Stack>
-      <Stack direction="column" flex={0} width={118} height={36}>
-        <PillButton label="查看告警" appearance="card" actionId="facility.coldRoom.viewAlerts" />
-      </Stack>
-    </Stack>
-  </Stack>
+  "jsx": `<Card size="2x4" appearance="solid-green" layout="split-panels">
+  <Region slot="left" variant="compact-title-content-action">
+    <SingleLineTitle title="温室" />
+    <EmphasisText mainText="24℃" secondaryText="湿度63% ｜ 自动档" dataIds={{"mainText":"facility.greenhouse.temperatureText","secondaryText":["facility.greenhouse.humidityText","facility.greenhouse.ventilationMode"]}} />
+    <PillButton label="调节通风" appearance="card" actionId="facility.greenhouse.adjustVentilation" />
+  </Region>
+  <Region slot="right" variant="compact-title-content-action">
+    <SingleLineTitle title="冷藏区" />
+    <EmphasisText mainText="-4℃" secondaryText="门已关 ｜ 无告警" dataIds={{"mainText":"facility.coldRoom.temperatureText","secondaryText":["facility.coldRoom.doorStatusText","facility.coldRoom.alertStatusText"]}} />
+    <PillButton label="查看告警" appearance="card" actionId="facility.coldRoom.viewAlerts" />
+  </Region>
 </Card>`,
   "coverage": [
     { "requirement": "展示温室温度、湿度、通风模式并提供调节通风操作" },
@@ -276,42 +227,45 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "展会布置任务名称。",
-      "dataId": "exhibition.setup.taskName"
+      "dataId": "exhibition.setup.taskName",
+      "componentHints": ["EventCard"]
     },
     {
       "requirement": "任务开始时间。",
-      "dataId": "exhibition.setup.startTime"
+      "dataId": "exhibition.setup.startTime",
+      "componentHints": ["EventCard"]
     },
     {
       "requirement": "任务结束时间。",
-      "dataId": "exhibition.setup.endTime"
+      "dataId": "exhibition.setup.endTime",
+      "componentHints": ["EventCard"]
     },
     {
       "requirement": "任务所在场馆与入口。",
-      "dataId": "exhibition.setup.locationText"
+      "dataId": "exhibition.setup.locationText",
+      "componentHints": ["EventCard"]
     },
     {
       "requirement": "现场设备数量。",
-      "dataId": "exhibition.device.countText"
+      "dataId": "exhibition.device.countText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "现场设备故障情况。",
-      "dataId": "exhibition.device.faultText"
+      "dataId": "exhibition.device.faultText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "现场设备巡检状态。",
-      "dataId": "exhibition.device.inspectionStatus"
+      "dataId": "exhibition.device.inspectionStatus",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "联系负责人",
-      "actionId": "exhibition.manager.contact"
+      "actionId": "exhibition.manager.contact",
+      "componentHints": ["CardButton"]
     }
-  ],
-  "layout_optionA": {
-    "layoutPattern": "左内容右侧双槽",
-    "subPattern": { "content": "Sub-140-B 标题单内容" },
-    "content": "左侧标题下用 EventCard 展示任务名、明确的起止时间范围和场馆入口；右上一个 InfoBlock 聚合三个设备字段，右下 CardButton 保留联系操作。"
-  }
+  ]
 })
 ```
 
@@ -319,45 +273,17 @@ submit_card_plan({
 
 ```js
 submit_card_jsx({
-  "decision": {
-    "layoutPattern": "左内容右侧双槽",
-    "subPattern": { "content": "Sub-140-B 标题单内容" }
-  },
-  "jsx": `<Card direction="row" size="2x4" appearance="solid-purple" gap={12}>
-  <Stack direction="column" flex={0} width={140} height={136} gap={8}>
-    <Stack direction="column" flex={0} width={140}>
-      <SingleLineTitle title="展会布置" />
-    </Stack>
-    <Stack direction="column" flex={1} width={140} align="flex-start" justify="flex-end">
-      <EventCard
-        items={[{
-          title: "主展区布置",
-          time: "09:00 – 11:30",
-          location: "A馆东入口",
-          dataIds: {
-            title: "exhibition.setup.taskName",
-            time: ["exhibition.setup.startTime", "exhibition.setup.endTime"],
-            location: "exhibition.setup.locationText"
-          }
-        }]}
-      />
-    </Stack>
-  </Stack>
-  <Stack direction="column" flex={0} width={144} height={136} gap={8}>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <InfoBlock
-        primaryText="12台设备"
-        secondaryText="1台故障 ｜ 已巡检"
-        dataIds={{
-          primaryText: "exhibition.device.countText",
-          secondaryText: ["exhibition.device.faultText", "exhibition.device.inspectionStatus"]
-        }}
-      />
-    </Stack>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <CardButton text="联系负责人" actionId="exhibition.manager.contact" />
-    </Stack>
-  </Stack>
+  "jsx": `<Card size="2x4" appearance="solid-purple" layout="main-right-double">
+  <Region slot="main" variant="wide-title-content">
+    <SingleLineTitle title="展会布置" />
+    <EventCard items={[{"title":"主展区布置","time":"09:00 – 11:30","location":"A馆东入口","dataIds":{"title":"exhibition.setup.taskName","time":["exhibition.setup.startTime","exhibition.setup.endTime"],"location":"exhibition.setup.locationText"}}]} />
+  </Region>
+  <Region slot="side-top">
+    <InfoBlock primaryText="12台设备" secondaryText="1台故障 ｜ 已巡检" dataIds={{"primaryText":"exhibition.device.countText","secondaryText":["exhibition.device.faultText","exhibition.device.inspectionStatus"]}} />
+  </Region>
+  <Region slot="side-bottom">
+    <CardButton text="联系负责人" actionId="exhibition.manager.contact" />
+  </Region>
 </Card>`,
   "coverage": [
     { "requirement": "展示展会布置任务名、时间范围、场馆和入口" },
@@ -405,42 +331,45 @@ submit_card_plan({
   "info_required": [
     {
       "requirement": "店内当前顾客数。",
-      "dataId": "cafe.customer.currentText"
+      "dataId": "cafe.customer.currentText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "当前排队情况。",
-      "dataId": "cafe.customer.queueText"
+      "dataId": "cafe.customer.queueText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "当前空位情况。",
-      "dataId": "cafe.customer.seatText"
+      "dataId": "cafe.customer.seatText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "当前待取订单数量。",
-      "dataId": "cafe.order.pendingText"
+      "dataId": "cafe.order.pendingText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "当前低库存情况。",
-      "dataId": "cafe.stock.lowText"
+      "dataId": "cafe.stock.lowText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "下一批物料到货时间。",
-      "dataId": "cafe.stock.nextArrivalText"
+      "dataId": "cafe.stock.nextArrivalText",
+      "componentHints": ["InfoBlock"]
     },
     {
       "requirement": "打开收银",
-      "actionId": "cafe.cashier.open"
+      "actionId": "cafe.cashier.open",
+      "componentHints": ["CardButton"]
     },
     {
       "requirement": "查看补货",
-      "actionId": "cafe.stock.viewRestock"
+      "actionId": "cafe.stock.viewRestock",
+      "componentHints": ["CardButton"]
     }
-  ],
-  "layout_optionA": {
-    "layoutPattern": "四槽宫格",
-    "subPattern": {},
-    "content": "左列上下为两个复合 InfoBlock，每个承载三个相关字段；右列上下为打开收银和查看补货两个 CardButton。"
-  }
+  ]
 })
 ```
 
@@ -448,38 +377,19 @@ submit_card_plan({
 
 ```js
 submit_card_jsx({
-  "decision": { "layoutPattern": "四槽宫格", "subPattern": {} },
-  "jsx": `<Card direction="row" size="2x4" appearance="solid-cyan" gap={8}>
-  <Stack direction="column" flex={0} width={144} height={136} gap={8}>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <InfoBlock
-        primaryText="28位顾客"
-        secondaryText="排队4人 ｜ 空位12个"
-        dataIds={{
-          primaryText: "cafe.customer.currentText",
-          secondaryText: ["cafe.customer.queueText", "cafe.customer.seatText"]
-        }}
-      />
-    </Stack>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <InfoBlock
-        primaryText="6单待取"
-        secondaryText="低库存3项 ｜ 16:30到货"
-        dataIds={{
-          primaryText: "cafe.order.pendingText",
-          secondaryText: ["cafe.stock.lowText", "cafe.stock.nextArrivalText"]
-        }}
-      />
-    </Stack>
-  </Stack>
-  <Stack direction="column" flex={0} width={144} height={136} gap={8}>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <CardButton text="打开收银" actionId="cafe.cashier.open" />
-    </Stack>
-    <Stack direction="column" flex={0} width={144} height={64}>
-      <CardButton text="查看补货" actionId="cafe.stock.viewRestock" />
-    </Stack>
-  </Stack>
+  "jsx": `<Card size="2x4" appearance="solid-cyan" layout="four-blocks">
+  <Region slot="top-left">
+    <InfoBlock primaryText="28位顾客" secondaryText="排队4人 ｜ 空位12个" dataIds={{"primaryText":"cafe.customer.currentText","secondaryText":["cafe.customer.queueText","cafe.customer.seatText"]}} />
+  </Region>
+  <Region slot="bottom-left">
+    <InfoBlock primaryText="6单待取" secondaryText="低库存3项 ｜ 16:30到货" dataIds={{"primaryText":"cafe.order.pendingText","secondaryText":["cafe.stock.lowText","cafe.stock.nextArrivalText"]}} />
+  </Region>
+  <Region slot="top-right">
+    <CardButton text="打开收银" actionId="cafe.cashier.open" />
+  </Region>
+  <Region slot="bottom-right">
+    <CardButton text="查看补货" actionId="cafe.stock.viewRestock" />
+  </Region>
 </Card>`,
   "coverage": [
     { "requirement": "展示当前顾客数、排队情况和空位" },

@@ -9,7 +9,7 @@ from typing import Any
 TOP_LEVEL_2X2_TYPES = frozenset(
     {"0", "1", "2", "3", "6", "10-A", "10-B", "12", "14", "15"}
 )
-TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15"})
+TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15", "15-R"})
 FIXED_SLOT_COMPONENTS = frozenset({"CardButton", "InfoBlock"})
 
 # Public names are the exact labels exposed to the generation model. The
@@ -23,7 +23,7 @@ LAYOUT_PATTERN_2X2_CODES = {
     "内容四宫格": "6",
     "标题内容单按钮": "10-A",
     "标题主次内容单按钮": "10-B",
-    "双列内容单按钮": "12",
+    "标题双列内容可选按钮": "12",
     "标题锚点内容": "14",
     "紧凑内容双按钮": "15",
 }
@@ -32,12 +32,15 @@ LAYOUT_PATTERN_2X4_CODES = {
     "左右双区": "13",
     "四槽宫格": "14",
     "左内容右侧双槽": "15",
+    "左侧双槽右内容": "15-R",
 }
 SUB_PATTERN_2X4_GROUPS = {
     "Sub-118-A 核心居中": "118",
     "Sub-118-B 标题单内容": "118",
     "Sub-118-C 标题双内容": "118",
     "Sub-118-D 标题内容单按钮": "118",
+    "Sub-118-E 标题双列内容可选按钮": "118",
+    "Sub-118-F 内容双按钮": "118",
     "Sub-140-A 核心居中": "140",
     "Sub-140-B 标题单内容": "140",
     "Sub-140-C 标题内容单按钮": "140",
@@ -46,13 +49,9 @@ SUB_PATTERN_2X4_GROUPS = {
     "Sub-140-F 标题主次内容单按钮": "140",
     "Sub-140-G 标题双内容": "140",
     "Sub-140-H 内容四宫格": "140",
+    "Sub-140-I 标题双列内容可选按钮": "140",
+    "Sub-140-J 内容双按钮": "140",
 }
-
-TYPE13_WIDE_SUB_PATTERNS = frozenset({
-    "Sub-140-D 标题双列内容可选按钮",
-    "Sub-140-E 上下双信息块",
-    "Sub-140-H 内容四宫格",
-})
 
 LAYOUT_PATTERN_2X2_NAMES = tuple(LAYOUT_PATTERN_2X2_CODES)
 LAYOUT_PATTERN_2X4_NAMES = tuple(LAYOUT_PATTERN_2X4_CODES)
@@ -101,15 +100,23 @@ def fixed_slot_kind(node: Any) -> str | None:
     return None
 
 
+def is_fixed_slot_column(node: Any) -> bool:
+    children = node.child_elements()
+    return (
+        node.tag == "Stack"
+        and node.props.get("width") == 132
+        and node.props.get("height") == 126
+        and node.props.get("direction", "column") == "column"
+        and node.props.get("gap") == 12
+        and len(children) == 2
+        and all(fixed_slot_kind(child) is not None for child in children)
+    )
+
+
 def fixed_grid_errors(children: list[Any], columns: int | None) -> list[str]:
     kinds = [fixed_slot_kind(child) for child in children]
     if columns != 2 or len(kinds) != 4 or any(kind is None for kind in kinds):
         return ['2x4 layout "四槽宫格" requires four valid CardButton/InfoBlock slots in a two-column Grid']
-    if kinds[0] != kinds[2] or kinds[1] != kinds[3]:
-        return [
-            '2x4 layout "四槽宫格" mixed CardButton/InfoBlock slots must use '
-            "the same component type within each column"
-        ]
     return []
 
 
@@ -162,6 +169,92 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             if node.tag in {"SingleLineTitle", "DoubleLineTitle"}:
                 title_slots.append(child)
                 break
+    if pattern in {"1", "2", "14"} and root.props.get("gap") != 6:
+        errors.append(f'2x2 layout "{pattern_name}" requires a 6vp title-to-content gap')
+    if pattern in {"10-A", "10-B"}:
+        valid_title = (
+            len(title_slots) == 1
+            and len(children) == 2
+            and title_slots[0] is children[0]
+            and title_slots[0].props.get("flex", 0) == 0
+            and title_slots[0].props.get("mb", 0) == 0
+            and root.props.get("gap") == 6
+        )
+        if not valid_title:
+            errors.append(
+                f'2x2 layout "{pattern_name}" requires Card gap={{6}}, one leading '
+                'flex={0} title slot, no title mb, and one following action body'
+            )
+        action_body = children[1] if len(children) == 2 else None
+        body_children = (
+            action_body.child_elements()
+            if action_body is not None and action_body.tag == "Stack"
+            else []
+        )
+        valid_body = (
+            action_body is not None
+            and action_body.tag == "Stack"
+            and action_body.props.get("flex") == 1
+            and action_body.props.get("width") == "full"
+            and action_body.props.get("gap") == 8
+            and action_body.props.get("mb", 0) == 0
+            and len(body_children) == 2
+        )
+        if not valid_body:
+            errors.append(
+                f'2x2 layout "{pattern_name}" action body must use flex={{1}}, '
+                'width="full", gap={8}, no mb, and contain content plus the button slot'
+            )
+        else:
+            content, button_slot = body_children
+            valid_content = _stack_matches(content, {
+                "flex": 1,
+                "width": "full",
+                "align": "flex-start",
+                "justify": "flex-start",
+            }) and content.props.get("mb", 0) == 0
+            if pattern == "10-B":
+                content_children = content.child_elements() if content.tag == "Stack" else []
+                valid_content = (
+                    valid_content
+                    and content.props.get("gap") == 2
+                    and len(content_children) == 2
+                    and all(
+                        child.tag == "Stack"
+                        and child.props.get("flex", 0) == 0
+                        and child.props.get("width") == "full"
+                        for child in content_children
+                    )
+                )
+            if not valid_content:
+                detail = (
+                    'a flex={1}, width="full", gap={2} content group with two '
+                    'flex={0} full-width content slots'
+                    if pattern == "10-B"
+                    else 'a flex={1}, width="full" content region'
+                )
+                errors.append(
+                    f'2x2 layout "{pattern_name}" requires {detail}, aligned '
+                    'to flex-start with no mb'
+                )
+            button_descendants = _descendants([button_slot])
+            all_buttons = [
+                node for node in descendants
+                if node.tag in {"PillButton", "CircleButton", "CardButton"}
+            ]
+            if (
+                button_slot.tag != "Stack"
+                or button_slot.props.get("flex", 0) != 0
+                or button_slot.props.get("height") != 36
+                or button_slot.props.get("width") != "full"
+                or sum(node.tag == "PillButton" for node in button_descendants) != 1
+                or len(all_buttons) != 1
+                or all_buttons[0].tag != "PillButton"
+            ):
+                errors.append(
+                    f'2x2 layout "{pattern_name}" requires exactly one PillButton '
+                    'in the final 126 × 36vp flex={0} full-width slot'
+                )
     if pattern == "1":
         content_slots = [child for child in children if child not in title_slots]
         if len(title_slots) != 1 or len(content_slots) != 1:
@@ -175,6 +268,26 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                     '2x2 layout "标题单内容" content region must use flex={1}, '
                     'width="full", align="flex-start" and justify="flex-end"'
                 )
+    if pattern == "3":
+        info_blocks = [node for node in descendants if node.tag == "InfoBlock"]
+        valid_slots = (
+            root.props.get("padding") == 8
+            and root.props.get("gap") == 8
+            and len(children) == 2
+            and all(
+                child.tag == "Stack"
+                and child.props.get("flex") == 0
+                and child.props.get("width") == "full"
+                and child.props.get("height") == 63
+                and sum(node.tag == "InfoBlock" for node in _descendants([child])) == 1
+                for child in children
+            )
+        )
+        if len(info_blocks) != 2 or not valid_slots:
+            errors.append(
+                '2x2 layout "双信息块" requires padding={8}, gap={8}, and two '
+                '134 × 63vp InfoBlock slots'
+            )
     if pattern == "15":
         non_compact_progress_circles = [
             node
@@ -210,7 +323,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             for slot in button_slots
         ):
             errors.append(
-                '2x2 layout "紧凑内容双按钮" requires two 136 × 36vp '
+                '2x2 layout "紧凑内容双按钮" requires two 126 × 36vp '
                 'flex={0} PillButton slots'
             )
         if len(content_slots) != 1 or not children or content_slots[0] is not children[0]:
@@ -230,21 +343,31 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                     'width="full", align="flex-start", justify="flex-start" and Card gap={8}'
                 )
     if pattern == "12":
-        if len(title_slots) == 1:
-            title_slot = title_slots[0]
-            if title_slot.props.get("flex") != 0 or title_slot.props.get("height") not in {None, "auto"}:
-                errors.append(
-                    '2x2 layout "双列内容单按钮" requires a flex={0} natural-height title slot'
-                )
-            title_nodes = [
-                node
-                for node in _descendants([title_slot])
-                if node.tag in {"SingleLineTitle", "DoubleLineTitle"}
-            ]
-            if any(node.tag != "SingleLineTitle" for node in title_nodes):
-                errors.append('2x2 layout "双列内容单按钮" requires SingleLineTitle')
-
+        if (
+            len(title_slots) != 1
+            or title_slots[0].props.get("mb") != 6
+            or title_slots[0].props.get("flex", 0) != 0
+            or title_slots[0].props.get("width") != "full"
+            or not children
+            or title_slots[0] is not children[0]
+        ):
+            errors.append(
+                '2x2 layout "标题双列内容可选按钮" requires one leading flex={0}, '
+                'width="full" title slot with mb={6}'
+            )
+        type12_titles = [
+            node for node in descendants if node.tag in {"SingleLineTitle", "DoubleLineTitle"}
+        ]
+        if len(type12_titles) != 1 or type12_titles[0].tag != "SingleLineTitle":
+            errors.append(
+                '2x2 layout "标题双列内容可选按钮" requires exactly one SingleLineTitle'
+            )
+        if root.props.get("gap", 0) != 0:
+            errors.append(
+                '2x2 layout "标题双列内容可选按钮" uses gap={0}; spacing is owned by slots'
+            )
         button_slots = []
+        pill_buttons = [node for node in descendants if node.tag == "PillButton"]
         for child in children:
             if child.tag != "Stack":
                 continue
@@ -252,20 +375,33 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 if node.tag == "PillButton":
                     button_slots.append(child)
                     break
-        if len(button_slots) > 1:
-            errors.append('2x2 layout "双列内容单按钮" allows at most one PillButton slot')
+        if len(button_slots) > 1 or len(pill_buttons) > 1:
+            errors.append('2x2 layout "标题双列内容可选按钮" allows at most one PillButton slot')
         elif button_slots:
             button_slot = button_slots[0]
-            if button_slot.props.get("height") != 36 or button_slot.props.get("width") != "full":
+            if (
+                button_slot.props.get("flex", 0) != 0
+                or button_slot.props.get("height") != 36
+                or button_slot.props.get("width") != "full"
+                or button_slot is not children[-1]
+            ):
                 errors.append(
-                    '2x2 layout "双列内容单按钮" PillButton slot must be 136 × 36vp'
+                    '2x2 layout "标题双列内容可选按钮" PillButton slot must be the final '
+                    '126 × 36vp flex={0} block'
                 )
+        other_buttons = [
+            node for node in descendants if node.tag in {"CircleButton", "CardButton"}
+        ]
+        if other_buttons:
+            errors.append(
+                '2x2 layout "标题双列内容可选按钮" only supports an optional PillButton'
+            )
 
         structural_slots = [
-            child for child in children if child not in title_slots and child not in button_slots
+            child for child in children if child not in button_slots and child not in title_slots
         ]
         if len(structural_slots) != 1:
-            errors.append('2x2 layout "双列内容单按钮" requires one adaptive two-column content region')
+            errors.append('2x2 layout "标题双列内容可选按钮" requires one adaptive two-column content region')
         else:
             content = structural_slots[0]
             allowed_horizontal_business_rows.add(id(content))
@@ -274,19 +410,27 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 content.tag == "Stack"
                 and content.props.get("direction") == "row"
                 and content.props.get("flex") == 1
+                and content.props.get("width") == "full"
+                and content.props.get("mb", 0) == (8 if button_slots else 0)
             )
             if valid_content:
-                valid_content = content.props.get("gap") == 8 and len(columns) == 2
+                valid_content = (
+                    content.props.get("gap") == 8
+                    and len(columns) == 2
+                )
             if valid_content:
                 valid_content = not any(column.tag != "Stack" for column in columns)
             if valid_content:
-                valid_content = not any(column.props.get("width") != 64 for column in columns)
+                valid_content = not any(
+                    column.props.get("flex", 0) != 0 or column.props.get("width") != 59
+                    for column in columns
+                )
             if valid_content:
                 valid_content = not any(column.props.get("height") != "full" for column in columns)
             if not valid_content:
                 errors.append(
-                    '2x2 layout "双列内容单按钮" requires two 64vp fixed-width columns '
-                    'with gap={8} inside a flex={1} content region'
+                    '2x2 layout "标题双列内容可选按钮" requires two adaptive-height '
+                    '59vp fixed-width columns with gap={8}; content mb={8} only when the button exists'
                 )
             else:
                 column_components = [
@@ -300,13 +444,13 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 if any(
                     len(components) != 1
                     or components[0].tag != "ProgressCircle"
-                    or components[0].props.get("size", "sm") != "sm"
+                    or components[0].props.get("size") != "sm"
                     for components in column_components
                 ):
                     errors.append(
-                        '2x2 layout "双列内容单按钮" only allows exactly two '
-                    'ProgressCircle size="sm" components, one in each column'
-                )
+                        '2x2 layout "标题双列内容可选按钮" requires exactly one '
+                        'ProgressCircle size="sm" in each 59vp column'
+                    )
     if pattern == "14":
         content_slots = [child for child in children if child not in title_slots]
         if len(title_slots) != 1 or len(content_slots) != 1:
@@ -348,7 +492,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 if not valid_hero or not valid_bottom:
                     errors.append(
                         '2x2 layout "标题锚点内容" requires an adaptive Hero and a '
-                        'bottom-aligned 88 + 8 + 40vp row'
+                        'bottom-aligned 78 + 8 + 40vp row'
                     )
                 else:
                     secondary, action = bottom_children
@@ -358,7 +502,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                     ]
                     if (
                         not _stack_matches(secondary, {
-                            "width": 88, "align": "flex-start", "justify": "flex-end",
+                            "width": 78, "align": "flex-start", "justify": "flex-end",
                         })
                         or not _stack_matches(action, {
                             "width": 40, "height": 40, "align": "center", "justify": "center",
@@ -366,7 +510,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                         or len(circle_buttons) != 1
                     ):
                         errors.append(
-                            '2x2 layout "标题锚点内容" requires an 88vp secondary region, '
+                            '2x2 layout "标题锚点内容" requires a 78vp secondary region, '
                             'an 8vp gap and one centered CircleButton in a 40 × 40vp slot'
                         )
     for node in descendants:
@@ -413,7 +557,7 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             errors.append(
                 "a 2x2 content region cannot place two business components side by side "
                 'in a direction="row" Stack; use a documented vertical layout. Only '
-                'the two ProgressCircle columns in "双列内容单按钮" and the 88 + 8 + '
+                'the two ProgressCircle columns in "标题双列内容可选按钮" and the 88 + 8 + '
                 '40vp secondary/CircleButton row in "标题锚点内容" are allowed'
             )
     return list(dict.fromkeys(errors))
@@ -427,7 +571,11 @@ def fixed_slot_dimension_errors(container: Any) -> list[str]:
             continue
         # A Stack containing InfoBlock may be a content wrapper, not a fixed
         # slot. Only a Grid or an explicit CardButton slot proves intent here.
-        if container.tag != "Grid" and fixed_slot_kind(child) != "CardButton":
+        if (
+            container.tag != "Grid"
+            and not is_fixed_slot_column(container)
+            and fixed_slot_kind(child) != "CardButton"
+        ):
             continue
         width = preferred_axis_size(child, container, "width") if child.tag == "Stack" else None
         height = preferred_axis_size(child, container, "height") if child.tag == "Stack" else None
@@ -443,7 +591,7 @@ def fixed_slot_dimension_errors(container: Any) -> list[str]:
                 token = tokens[index // 2]
                 if re.fullmatch(r"\d+(?:\.\d+)?px", token):
                     height = float(token[:-2])
-        for axis, value, expected in (("width", width, 144), ("height", height, 64)):
+        for axis, value, expected in (("width", width, 132), ("height", height, 57)):
             if _finite_number(value) and value != expected:
                 errors.append(f"2x4 fixed slot {axis} must be {expected}vp; found {value}vp")
     return list(dict.fromkeys(errors))
@@ -454,14 +602,15 @@ def _component_region_errors(root: Any, pattern: str) -> list[str]:
     children = root.child_elements()
     descendants = _descendants(children)
     pattern_name = layout_pattern_name("2x4", pattern)
-    if pattern == "12" and any(node.tag == "InfoBlock" for node in descendants):
+    if pattern in {"12", "13"} and any(node.tag == "InfoBlock" for node in descendants):
         errors.append(f'2x4 layout "{pattern_name}" does not provide an InfoBlock slot')
+    if pattern in {"12", "13"} and any(node.tag == "CardButton" for node in descendants):
+        errors.append(f'2x4 layout "{pattern_name}" does not provide a CardButton fixed slot')
     return errors
 
 
 def _type13_parent_errors(
     root: Any,
-    wide_regions: frozenset[str] = frozenset(),
 ) -> list[str]:
     children = root.child_elements()
     if not (
@@ -473,16 +622,11 @@ def _type13_parent_errors(
     errors: list[str] = []
     for index, child in enumerate(children):
         region = "left" if index == 0 else "right"
-        if region in wide_regions:
-            if child.props.get("surface") == "backplate":
-                errors.append(
-                    f'2x4 layout "左右双区" {region} Sub-140 region must not use a backplate'
-                )
-        elif child.props.get("surface") != "backplate":
+        if child.props.get("surface") != "backplate":
             errors.append(
                 f'2x4 layout "左右双区" {region} Sub-118 region requires a backplate'
             )
-        for axis, expected in (("width", 142), ("height", 136)):
+        for axis, expected in (("width", 132), ("height", 126)):
             value = preferred_axis_size(child, root, axis)
             if _finite_number(value) and value != expected:
                 errors.append(
@@ -490,6 +634,40 @@ def _type13_parent_errors(
                 )
         if any(node.props.get("position") == "absolute" for node in _descendants(child.child_elements())):
             errors.append('2x4 layout "左右双区" subpatterns must use normal flow, not absolute positioning')
+        inner = child.child_elements()
+        if len(inner) != 1 or inner[0].tag != "Stack":
+            errors.append(
+                f'2x4 layout "左右双区" {region} backplate requires one 116 × 110vp Sub-118 container'
+            )
+            continue
+        content = inner[0]
+        if content.props.get("width") != 116 or content.props.get("height") != 110:
+            errors.append(
+                f'2x4 layout "左右双区" {region} backplate content must be 116 × 110vp '
+                "to preserve the 8vp safe inset"
+            )
+        local_titles = [
+            node for node in _descendants(content.child_elements())
+            if node.tag in {"SingleLineTitle", "DoubleLineTitle"}
+        ]
+        if local_titles:
+            title_slot = next(
+                (
+                    slot for slot in content.child_elements()
+                    if any(
+                        node.tag in {"SingleLineTitle", "DoubleLineTitle"}
+                        for node in _descendants([slot])
+                    )
+                ),
+                None,
+            )
+            if title_slot is None or title_slot.props.get("mb") != 4:
+                # Direct JSX may express the same spacing as the container gap;
+                # semantic lowering uses title-slot mb={4}.
+                if content.props.get("gap") != 4:
+                    errors.append(
+                        f'2x4 layout "左右双区" {region} title-to-first-content gap must be 4vp'
+                    )
     gap = root.props.get("gap", 0)
     if _finite_number(gap) and gap != 12:
         errors.append('2x4 layout "左右双区" parent regions require a 12vp horizontal gap')
@@ -499,8 +677,6 @@ def _type13_parent_errors(
 def declared_layout_errors(
     root: Any,
     pattern: str | None,
-    *,
-    type13_wide_regions: frozenset[str] = frozenset(),
 ) -> list[str]:
     """Check only explicitly declared patterns and unambiguous JSX structures."""
     if pattern not in TOP_LEVEL_2X4_TYPES:
@@ -519,13 +695,15 @@ def declared_layout_errors(
         ):
             public_title_slots += 1
     if pattern == "12":
-        if public_title_slots != 1:
-            errors.append('2x4 layout "上下双区" requires exactly one public title slot')
+        if public_title_slots > 1:
+            errors.append('2x4 layout "上下双区" allows at most one public title slot')
+        if public_title_slots == 1 and root.props.get("gap") != 6:
+            errors.append('2x4 layout "上下双区" title-to-first-content gap must be 6vp')
     elif public_title_slots:
         errors.append(
             "only 2x4 layout \"上下双区\" allows a public title slot; "
             "use a local sublayout title"
         )
     if pattern == "13":
-        errors.extend(_type13_parent_errors(root, type13_wide_regions))
+        errors.extend(_type13_parent_errors(root))
     return list(dict.fromkeys(errors))

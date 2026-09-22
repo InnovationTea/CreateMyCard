@@ -69,7 +69,12 @@ def adapt_flex_children(
                         "height": "wrapContent", "layoutWeight": 1,
                     })
                     row_height = sum(
-                        child.styles.get("height", 0) for child in converted.children
+                        child.styles.get("constraintSize", {}).get(
+                            "minHeight", child.styles.get("height", 0)
+                        )
+                        + child.styles.get("margin", {}).get("top", 0)
+                        + child.styles.get("margin", {}).get("bottom", 0)
+                        for child in converted.children
                     )
                     gaps = converted.props.get("itemMargin", 0) * max(
                         0, len(converted.children) - 1

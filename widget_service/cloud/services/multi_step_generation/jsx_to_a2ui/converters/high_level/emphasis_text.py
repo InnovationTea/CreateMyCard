@@ -28,8 +28,8 @@ def convert_emphasis_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx.prop(node, "mainText"),
         styles={
             "width": None if ctx.intrinsic_width else "matchParent",
-            "constraintSize": {"minWidth": 0, "minHeight": 20},
-            "fontSize": 20,
+            "constraintSize": {"minWidth": 0, "minHeight": 24},
+            "fontSize": 18,
             "fontWeight": 700,
             "fontColor": palette(ctx).primary,
             "flexShrink": 1,

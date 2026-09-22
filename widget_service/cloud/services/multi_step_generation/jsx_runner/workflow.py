@@ -12,6 +12,8 @@ if "." in (__package__ or ""):
     from ..jsx_to_a2ui.catalog.bindings import (
         BINDABLE_PROPS,
         CompileContext,
+        data_binding_ids,
+        indexed_value_template_tokens,
         materialize_binding_literals,
         status_binding_evidence,
     )
@@ -27,11 +29,14 @@ if "." in (__package__ or ""):
     from ..jsx_to_a2ui.ir.a2ui_nodes import collect_binding_validation_errors
     from ..jsx_to_a2ui.parser.jsx_ast import JSXElement
     from ..jsx_to_a2ui.parser.jsx_parser import extract_card_functions
+    from ..jsx_to_a2ui.semantic_layouts import lower_semantic_card
     from ..jsx_to_a2ui.validation.jsx_preflight import collect_conversion_preflight_errors
 else:  # Support top-level package imports.
     from jsx_to_a2ui.catalog.bindings import (
         BINDABLE_PROPS,
         CompileContext,
+        data_binding_ids,
+        indexed_value_template_tokens,
         materialize_binding_literals,
         status_binding_evidence,
     )
@@ -47,6 +52,7 @@ else:  # Support top-level package imports.
     from jsx_to_a2ui.ir.a2ui_nodes import collect_binding_validation_errors
     from jsx_to_a2ui.parser.jsx_ast import JSXElement
     from jsx_to_a2ui.parser.jsx_parser import extract_card_functions
+    from jsx_to_a2ui.semantic_layouts import lower_semantic_card
     from jsx_to_a2ui.validation.jsx_preflight import collect_conversion_preflight_errors
 
 from .card_sizes import CARD_SIZE_DIMENSIONS, card_dimensions, task_card_size
@@ -58,7 +64,6 @@ from .layout_rules import (
     LAYOUT_PATTERN_2X4_NAMES,
     SUB_PATTERN_2X4_GROUPS,
     SUB_PATTERN_2X4_NAMES,
-    TYPE13_WIDE_SUB_PATTERNS,
     TOP_LEVEL_2X2_TYPES,
     TOP_LEVEL_2X4_TYPES,
     declared_2x2_layout_errors,
@@ -80,6 +85,7 @@ from .required_facts import (
 )
 from .resources import (
     GenerationResources,
+    generation_components_for_size,
     generatable_contracts,
     iter_asset_values,
 )
@@ -99,6 +105,7 @@ class CompiledSubmission:
     unmet_requirements: list[str] = field(default_factory=list)
     semantic_status: str = "completed"
     warnings: list[dict[str, str]] = field(default_factory=list)
+    semantic_source: str | None = None
 
 
 def submission_reference_ids(
@@ -120,14 +127,13 @@ def browser_repair_preservation_findings(
     compile_context: dict[str, Any] | None,
     *,
     require_all_data_ids: bool = False,
-    require_unmet_for_omissions: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     """Detect deterministic semantic regressions introduced by layout repair.
 
     Removing an action is a definite regression. Text/number similarity alone
     does not prove staticization. Completely omitting a data binding is
     advisory during ordinary repair, forbidden during compact fallback, and
-    allowed during drop fallback only when unmetRequirements records the loss.
+    allowed during drop fallback. Action removal is always forbidden.
     """
 
     baseline_data, baseline_actions = submission_reference_ids(baseline)
@@ -195,7 +201,7 @@ def browser_repair_preservation_findings(
                 staticized[binding_id] = sorted(set(matches))
 
     if staticized:
-        strict_preservation = require_all_data_ids or require_unmet_for_omissions
+        strict_preservation = require_all_data_ids
         (errors if strict_preservation else warnings).append(
             {
                 "severity": "error" if strict_preservation else "warning",
@@ -223,19 +229,6 @@ def browser_repair_preservation_findings(
                         "紧凑组件替换阶段不得删除信息，但本次提交省略了数据绑定："
                         + omitted_text
                         + "。请通过更换组件或重组布局保留这些 dataIds。"
-                    ),
-                    "details": {"removedDataIds": omitted},
-                }
-            )
-        elif require_unmet_for_omissions and not candidate.unmet_requirements:
-            errors.append(
-                {
-                    "severity": "error",
-                    "code": "browser-fallback-drop-missing-unmet-requirement",
-                    "message": (
-                        "删除最低优先级组件后省略了数据绑定："
-                        + omitted_text
-                        + "，但没有在 unmetRequirements 中记录省略的需求。"
                     ),
                     "details": {"removedDataIds": omitted},
                 }
@@ -405,7 +398,7 @@ def _validate_generation_subset(root: JSXElement, expected_size: str | None = No
     if expected_size is None and resolved_size is None:
         card_contract = contracts["Card"]
         card_enums = dict(card_contract.enums or {})
-        card_enums["size"] = card_enums.get("size", frozenset()) | {160}
+        card_enums["size"] = card_enums.get("size", frozenset()) | {150}
         contracts = {
             **contracts,
             "Card": replace(card_contract, enums=card_enums),
@@ -429,10 +422,10 @@ def _validate_generation_subset(root: JSXElement, expected_size: str | None = No
                 f"input task size={expected_size!r} requires <Card size={expected_size!r}> "
                 f"({width}x{height}vp), found {actual_size!r}"
             )
-    elif actual_size not in CARD_SIZE_DIMENSIONS and actual_size != 160:
+    elif actual_size not in CARD_SIZE_DIMENSIONS and actual_size != 150:
         allowed = ", ".join(repr(item) for item in CARD_SIZE_DIMENSIONS)
         errors.append(
-            f"generated Card.size must be one of {allowed}; legacy size={{160}} "
+            f"generated Card.size must be one of {allowed}; numeric size={{150}} "
             f"is accepted only when no task size is available, found {actual_size!r}"
         )
     if resolved_size == "2x2":
@@ -445,6 +438,10 @@ def _validate_generation_subset(root: JSXElement, expected_size: str | None = No
             "a Card may contain at most one EventCard; put one or two schedules "
             "in that component's items prop"
         )
+    for ratio_stack in (node for node in _walk(root) if node.tag == "NumericRatioStack"):
+        items = ratio_stack.props.get("items")
+        if isinstance(items, list) and len(items) != 3:
+            errors.append("NumericRatioStack.items must contain exactly three items")
     for node in _walk(root):
         if node.tag in _ARIA_LABEL_COMPONENTS and "ariaLabel" in node.props:
             aria_label = node.props.get("ariaLabel")
@@ -487,6 +484,16 @@ def _canonical_sub_pattern(value: object) -> str | None:
     return None
 
 
+def _layout_decision_fields(decision: dict[str, Any]) -> dict[str, Any]:
+    """Keep only fields that describe the submitted layout decision."""
+
+    return {
+        key: decision[key]
+        for key in ("layoutPattern", "subPattern")
+        if key in decision
+    }
+
+
 def _validate_sub_pattern_decision(
     decision: dict[str, Any],
     size: object,
@@ -521,8 +528,8 @@ def _validate_sub_pattern_decision(
 
     if pattern == "13":
         expected_regions = {"left", "right"}
-        required_group = None
-    elif pattern == "15":
+        required_group = "118"
+    elif pattern in {"15", "15-R"}:
         expected_regions = {"content"}
         required_group = "140"
     elif pattern in {"12", "14"}:
@@ -552,26 +559,6 @@ def _validate_sub_pattern_decision(
                 f'decision.subPattern.{region} must use a Sub-{required_group} layout for '
                 "the selected top-level layoutPattern"
             )
-    if pattern == "13" and len(canonical_by_region) == 2:
-        wide_regions = {
-            region
-            for region, name in canonical_by_region.items()
-            if SUB_PATTERN_2X4_GROUPS[name] == "140"
-        }
-        invalid_wide = {
-            canonical_by_region[region]
-            for region in wide_regions
-            if canonical_by_region[region] not in TYPE13_WIDE_SUB_PATTERNS
-        }
-        if invalid_wide:
-            errors.append(
-                '2x4 layout "左右双区" only allows Sub-140-D, Sub-140-E or '
-                "Sub-140-H as its wide no-backplate side"
-            )
-        if len(wide_regions) > 1:
-            errors.append(
-                '2x4 layout "左右双区" allows at most one Sub-140 no-backplate side'
-            )
     return errors
 
 
@@ -591,25 +578,14 @@ def _validate_layout_decision(
         if pattern is not None and pattern not in TOP_LEVEL_2X2_TYPES:
             errors.append("2x2 decision.layoutPattern must use a documented 2x2 layout name")
         errors.extend(declared_2x2_layout_errors(root, pattern))
+        if _number(root.props.get("padding", 12)) == 8 and pattern != "3":
+            errors.append('only 2x2 layout "双信息块" may use Card.padding=8vp')
     if size == "2x4":
         if pattern is not None and pattern not in TOP_LEVEL_2X4_TYPES:
             errors.append("2x4 decision.layoutPattern must use a documented 2x4 top-level layout name")
         sub_pattern_errors = _validate_sub_pattern_decision(decision, size, pattern)
         errors.extend(sub_pattern_errors)
-        type13_wide_regions: frozenset[str] = frozenset()
-        if pattern == "13" and isinstance(decision.get("subPattern"), dict):
-            type13_wide_regions = frozenset(
-                region
-                for region, raw_name in decision["subPattern"].items()
-                if _canonical_sub_pattern(raw_name) in TYPE13_WIDE_SUB_PATTERNS
-            )
-        errors.extend(
-            declared_layout_errors(
-                root,
-                pattern,
-                type13_wide_regions=type13_wide_regions,
-            )
-        )
+        errors.extend(declared_layout_errors(root, pattern))
     else:
         errors.extend(_validate_sub_pattern_decision(decision, size, pattern))
     appearance = root.props.get("appearance")
@@ -688,10 +664,13 @@ def _validate_layout_values(root: JSXElement) -> None:
             if isinstance(value, bool) or ((numeric := _number(value)) is not None and numeric < 0):
                 issues.append(f"<{node.tag}>.padding must contain non-negative numbers")
                 break
-        if node.tag == "Card" and _number(node.props.get("padding", 12)) != 12:
+        if (
+            node.tag == "Card"
+            and _number(node.props.get("padding", 12)) != 12
+            and not (node.props.get("size") == "2x2" and _number(node.props.get("padding")) == 8)
+        ):
             issues.append(
-                "<Card>.padding must be omitted or equal to 12vp so the "
-                "documented safe content area remains deterministic"
+                '<Card>.padding must be 12vp, except 2x2 layout "双信息块" which uses 8vp'
             )
         if parent is not None and parent.tag == "Grid" and node.props.get("basis") is not None:
             issues.append(
@@ -721,14 +700,14 @@ def _validate_layout_values(root: JSXElement) -> None:
 
 _INTRINSIC_HEIGHTS = {
     "Badge": 16,
-    "DataDisplay": 114,
-    "EmphasizedData": 38,
+    # 2x4 uses a 64vp value line and two 4vp gaps so Type13 Type0 closes at 110vp.
+    "DataDisplay": 110,
+    "EmphasizedData": 32,
     "ProgressLine1": 25,
     "NumericRatio": 16,
     "ChecklistItem": 48,
     "PillButton": 36,
     "CircleButton": 36,
-    "InfoBlock": 64,
     "TopTextBottomValue": 68,
     "TextBlock": 48,
 }
@@ -787,6 +766,13 @@ def _validate_action_slot_compatibility(
                 + rendered
             )
     info_blocks = [node for node in _walk(root) if node.tag == "InfoBlock"]
+    if size == "2x2" and info_blocks and pattern is not None and pattern != "3":
+        issues.append('InfoBlock is only allowed in 2x2 layout "双信息块"')
+    if size == "2x4" and info_blocks and pattern is not None and pattern not in {"14", "15", "15-R"}:
+        issues.append(
+            'InfoBlock is only allowed in 2x4 layouts "四槽宫格", '
+            '"左内容右侧双槽", or "左侧双槽右内容" fixed slots'
+        )
     if size == "2x2" and info_blocks:
         extra_business_components = [
             node.tag for node in _walk(root) if node.tag not in {"Card", "Stack", "Grid", "InfoBlock"}
@@ -835,8 +821,8 @@ def _validate_action_slot_compatibility(
                     issues.extend(fixed_grid_errors(children, _grid_column_count(container)))
                     for axis in ("rowGap", "columnGap"):
                         gap = _number(container.props.get(axis, container.props.get("gap", 0)))
-                        if gap is not None and gap != 8:
-                            issues.append(f'2x4 layout "四槽宫格" {axis} must be 8vp; found {_vp(gap)}vp')
+                        if gap is not None and gap != 12:
+                            issues.append(f'2x4 layout "四槽宫格" {axis} must be 12vp; found {_vp(gap)}vp')
             elif (
                 sum(is_card_button_slot(child) for child in children) >= 2
                 and container.tag in {"Card", "Stack"}
@@ -909,7 +895,7 @@ def _height_lower_bound(node: JSXElement, value: float) -> float:
 
 def _vertical_padding(node: JSXElement) -> float:
     if node.tag == "Stack" and node.props.get("surface") == "backplate":
-        return 12
+        return 16 if _BUDGET_CARD_SIZE.get() == "2x4" else 12
     if node.tag != "Card":
         return 0
     padding = node.props.get("padding", 12)
@@ -995,7 +981,7 @@ def _minimum_height(node: JSXElement) -> float:
     if node.tag == "Icon":
         return _height_lower_bound(node, _number(node.props.get("size")) or 0)
     if node.tag == "SingleLineTitle":
-        return _height_lower_bound(node, 18)
+        return _height_lower_bound(node, 16)
     if node.tag == "DoubleLineTitle":
         return _height_lower_bound(node, 40)
     if node.tag == "SecondaryBody":
@@ -1006,7 +992,7 @@ def _minimum_height(node: JSXElement) -> float:
     if node.tag == "EmphasisText":
         return _height_lower_bound(
             node,
-            20 + (2 if node.props.get("secondaryText") == "" else 18
+            24 + (2 if node.props.get("secondaryText") == "" else 18
                   if node.props.get("secondaryText") is not None else 0),
         )
     if node.tag == "ProgressLine2":
@@ -1022,7 +1008,10 @@ def _minimum_height(node: JSXElement) -> float:
     if node.tag == "H_BarChart":
         items = node.props.get("items")
         count = len(items) if isinstance(items, list) else 0
-        return _height_lower_bound(node, count * 30 + max(0, count - 1) * 11)
+        item_height = 28 if count == 3 else 30
+        return _height_lower_bound(node, count * item_height + max(0, count - 1) * 11)
+    if node.tag == "InfoBlock":
+        return _height_lower_bound(node, 57 if _BUDGET_CARD_SIZE.get() == "2x4" else 63)
     if node.tag == "ProgressCircle":
         diameter = 96 if node.props.get("size", "sm") == "md" else 44
         return _height_lower_bound(node, diameter + 2 + 14)
@@ -1033,6 +1022,11 @@ def _minimum_height(node: JSXElement) -> float:
                 46 if node.props.get("secondaryLabel") is not None else 44,
             )
         return _height_lower_bound(node, 52)
+    if node.tag == "NumericRatioStack":
+        return _height_lower_bound(
+            node,
+            16 if node.props.get("direction", "column") == "row" else 56,
+        )
     if node.tag == "EventCard":
         items = node.props.get("items")
         if isinstance(items, list):
@@ -1492,9 +1486,9 @@ def _validate_vertical_container(
                 f"{path} CardButton parent slot height must be between 48vp and 64vp; "
                 f"found {_vp(inner)}vp"
             )
-        if inner_width is not None and inner_width > 144 + 1e-9:
+        if inner_width is not None and inner_width > 132 + 1e-9:
             issues.append(
-                f"{path} CardButton parent slot width must be at most 144vp; "
+                f"{path} CardButton parent slot width must be at most 132vp; "
                 f"found {_vp(inner_width)}vp"
             )
         if inner_width is not None and inner_width < inner - 1e-9:
@@ -1573,9 +1567,9 @@ def _validate_vertical_container(
                     f"found {_vp(row_height)}vp"
                 )
             if child.tag == "CardButton" and column_width is not None:
-                if column_width > 144 + 1e-9:
+                if column_width > 132 + 1e-9:
                     issues.append(
-                        f"{child_path} CardButton Grid column width must be at most 144vp; "
+                        f"{child_path} CardButton Grid column width must be at most 132vp; "
                         f"found {_vp(column_width)}vp"
                     )
                 if column_width < row_height - 1e-9:
@@ -1797,7 +1791,7 @@ def _raise_estimated_layout_risks(estimated_issues: list[str]) -> None:
 
 def _horizontal_padding(node: JSXElement) -> float:
     if node.tag == "Stack" and node.props.get("surface") == "backplate":
-        return 12
+        return 16 if _BUDGET_CARD_SIZE.get() == "2x4" else 12
     if node.tag != "Card":
         return 0
     padding = node.props.get("padding", 12)
@@ -1839,10 +1833,15 @@ def _minimum_width(
     )
     intrinsic = {
         "CircleButton": 36,
-        "PillButton": (118 if _BUDGET_CARD_SIZE.get() == "2x4" else 120) if inside_backplate else 136,
+        "PillButton": (
+            (116 if _BUDGET_CARD_SIZE.get() == "2x4" else 126)
+            if inside_backplate
+            else (132 if _BUDGET_CARD_SIZE.get() == "2x4" else 126)
+        ),
         "NumericRatio": 20,
-        "InfoBlock": 136,
-        "TopTextBottomValue": 296,
+        "NumericRatioStack": 76 if node.props.get("direction", "column") == "row" else 20,
+        "InfoBlock": 132 if _BUDGET_CARD_SIZE.get() == "2x4" else 134,
+        "TopTextBottomValue": 276,
     }.get(node.tag, 0)
     if node.tag == "TextBlock":
         items = node.props.get("items")
@@ -2140,7 +2139,7 @@ def _wrapping_text_candidates(node: JSXElement) -> list[tuple[str, object, float
         return [("title", node.props.get("title"), 14)]
     if node.tag == "EmphasisText":
         return [
-            ("mainText", node.props.get("mainText"), 20),
+            ("mainText", node.props.get("mainText"), 18),
             ("secondaryText", node.props.get("secondaryText"), 12),
         ]
     return []
@@ -2149,7 +2148,7 @@ def _wrapping_text_candidates(node: JSXElement) -> list[tuple[str, object, float
 def _estimated_row_text_width(node: JSXElement) -> float | None:
     if node.tag == "EmphasisText":
         return max(
-            _estimated_text_width(node.props.get("mainText"), 20),
+            _estimated_text_width(node.props.get("mainText"), 18),
             _estimated_text_width(node.props.get("secondaryText"), 12),
         )
     if node.tag == "EmphasizedData":
@@ -2223,11 +2222,11 @@ def _validate_horizontal_container(
     direct_actions = [
         child for child in node.child_elements() if child.tag in {"CardButton", "PillButton"}
     ]
-    if node.tag in {"Card", "Stack"} and direct_actions and inner > 144 + 1e-9:
+    if node.tag in {"Card", "Stack"} and direct_actions and inner > 132 + 1e-9:
         names = ", ".join(dict.fromkeys(child.tag for child in direct_actions))
         issues.append(
             f"{path} is a {_vp(inner)}vp-wide parent slot for {names}; action slots "
-            "must stay within one half-card region of at most 144vp"
+            "must stay within one half-card region of at most 132vp"
         )
     if node.tag == "EmphasizedData":
         required_text = _emphasized_data_width(node)
@@ -2530,6 +2529,7 @@ def _validate_horizontal_budget(
 def _validate_text_region_usage(
     root: JSXElement, decision: dict[str, Any] | None,
     advisory_issues: list[tuple[str, str]],
+    user_query: str = "",
 ) -> None:
     if root.props.get("size") not in CARD_SIZE_DIMENSIONS:
         return  # Legacy numeric-size fixtures are outside the generation API.
@@ -2537,10 +2537,32 @@ def _validate_text_region_usage(
     # of a separate semantic region and must not reset the core count.
     pattern = _canonical_layout_pattern((decision or {}).get("layoutPattern"))
     regions = [root]
-    if root.props.get("size") == "2x4" and pattern in {"13", "15"}:
+    if root.props.get("size") == "2x4" and pattern in {"13", "15", "15-R"}:
         regions = root.child_elements()
     ignored = {"Card", "Stack", "Grid", "SingleLineTitle", "DoubleLineTitle", "Badge",
                "Icon", "AppIcon", "WeatherIcon", "PillButton", "CircleButton", "CardButton"}
+    explicit_peer_table_intent = bool(re.search(
+        r"列表|清单|一览|表格|逐项|分别|各项|同等|等权|并列|对比|比较|汇总|"
+        r"\b(?:list|table|overview|compare|comparison|each)\b",
+        user_query,
+        re.I,
+    ))
+    all_business = [node for node in _walk(root) if node.tag not in ignored]
+    if (
+        pattern is not None
+        and all_business
+        and all(node.tag == "TableText" for node in all_business)
+        and not explicit_peer_table_intent
+    ):
+        raise ValidationError(
+            "the card cannot use TableText as its only business information for an ordinary "
+            "multi-field request. Select the most relevant dynamic fact as one core EmphasisText, "
+            "EmphasizedData, progress, InfoBlock or other semantic core, and put the remaining "
+            "supplementary facts into one SecondaryBody or one labeled TableText according to "
+            "which is clearer. A static category title does not count "
+            "as the core. Sole TableText is reserved for an explicit list, table, comparison or "
+            "equal-priority overview request"
+        )
     for index, region in enumerate(regions):
         business = [node for node in _walk(region) if node.tag not in ignored]
         if business and all(node.tag == "SecondaryBody" for node in business):
@@ -2549,11 +2571,22 @@ def _validate_text_region_usage(
                 "choose a core component without inventing or deleting facts"
             )
         emphasized = [node for node in business if node.tag in {"EmphasisText", "EmphasizedData"}]
-        # Production submit_card_jsx calls always include a documented decision,
-        # which establishes the semantic region boundary. Keep legacy/internal
-        # decision-less geometry probes outside this semantic hard gate because
-        # arbitrary wrapper Stacks do not provide enough evidence to identify a
-        # region reliably.
+        for node in business:
+            if node.tag != "EmphasisText":
+                continue
+            bindings = node.props.get("dataIds")
+            secondary_ids = bindings.get("secondaryText") if isinstance(bindings, dict) else None
+            if isinstance(secondary_ids, list) and len(secondary_ids) >= 3:
+                raise ValidationError(
+                    "EmphasisText.secondaryText cannot combine three or more distinct dataIds into "
+                    "one unlabeled value string. Keep one core component and render those "
+                    "supplementary facts with one SecondaryBody when values are self-describing, "
+                    "or one TableText when per-item labels are required for clarity"
+                )
+        # Semantic 2x4 submissions derive a documented decision from
+        # Card.layout/Region.variant, which establishes the region boundary.
+        # Keep legacy/internal decision-less geometry probes outside this hard
+        # gate because arbitrary wrapper Stacks do not identify a region.
         if len(emphasized) > 1 and pattern is not None:
             component_names = ", ".join(node.tag for node in emphasized)
             raise ValidationError(
@@ -2641,7 +2674,6 @@ _REQUIRED_FACT_STATIC_PROPS = {
     "Gauge": ("label",),
     "PillButton": ("label",),
     "CardButton": ("text",),
-    "TableText": ("items[].label",),
     "TextBlock": ("items[].label",),
     "TopTextBottomValue": ("items[].label", "items[].unit"),
     "H_BarChart": ("items[].label",),
@@ -2680,6 +2712,117 @@ def _required_fact_display_values(node: JSXElement, *, include_bound: bool = Fal
         for index, item in enumerate(items):
             if isinstance(item, dict) and item_prop in item:
                 yield f"items[{index}].{item_prop}", item[item_prop]
+
+
+def _required_text_binding_conflicts(
+    root: JSXElement,
+    facts: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], set[str]]:
+    """Reject a static text fact whose visible owner is dynamically bound.
+
+    This must run before binding materialization. Otherwise the authoritative
+    data value replaces the model's literal and the downstream coverage check
+    can only report the misleading symptom that the text disappeared.
+    """
+
+    bound_owners: list[dict[str, Any]] = []
+    for node in _walk(root):
+        allowed = BINDABLE_PROPS.get(node.tag, frozenset())
+        owners: list[tuple[dict[str, Any], str]] = [(node.props, "")]
+        items = node.props.get("items")
+        if isinstance(items, list):
+            owners.extend(
+                (item, f"items[{index}].")
+                for index, item in enumerate(items)
+                if isinstance(item, dict)
+            )
+        for owner, prefix in owners:
+            data_ids = owner.get("dataIds")
+            if not isinstance(data_ids, dict):
+                continue
+            for prop, binding_ids in data_ids.items():
+                location = prefix + prop
+                contract_location = f"items[].{prop}" if prefix else prop
+                if contract_location not in allowed or prop not in owner:
+                    continue
+                if not prefix and prop in _inactive_scalar_props(node):
+                    continue
+                ids = (
+                    [binding_ids]
+                    if isinstance(binding_ids, str) and binding_ids
+                    else [value for value in binding_ids if isinstance(value, str) and value]
+                    if isinstance(binding_ids, list)
+                    else []
+                )
+                if not ids:
+                    continue
+                bound_owners.append({
+                    "component": node.tag,
+                    "prop": location,
+                    "value": owner[prop],
+                    "dataIds": ids,
+                    "template": owner.get(f"{prop}Template"),
+                })
+
+    findings: list[dict[str, Any]] = []
+    conflicted_texts: set[str] = set()
+    for fact in facts:
+        text = fact.get("text")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        normalized_text = re.sub(r"\s+", "", text)
+        pattern = (r"(?<![\d.])" if normalized_text[0].isdigit() else "") + re.escape(normalized_text)
+        if normalized_text[-1].isdigit():
+            pattern += r"(?![\d.])"
+        for owner in bound_owners:
+            value = owner["value"]
+            if not isinstance(value, (str, int, float)) or isinstance(value, bool):
+                continue
+            normalized_value = re.sub(r"\s+", "", str(value))
+            if re.search(pattern, normalized_value) is None:
+                continue
+            template = owner.get("template")
+            if (
+                isinstance(template, str)
+                and "{value}" in template
+                and re.search(pattern, re.sub(r"\s+", "", template)) is not None
+            ):
+                # The template preserves the static text while replacing only
+                # its dynamic placeholder, so this is a legitimate mixed owner.
+                continue
+            other_owners = [
+                f"<{candidate['component']}> {candidate['prop']}"
+                for candidate in bound_owners
+                if candidate is not owner
+                and set(candidate["dataIds"]) & set(owner["dataIds"])
+            ]
+            requirement = str(fact.get("requirement") or text)
+            ids = owner["dataIds"]
+            message = (
+                f"Info Plan declares {text!r} as a static text fact, but "
+                f"<{owner['component']}> {owner['prop']} binds it to dataIds={ids!r}. "
+                "A text fact must remain an unbound visible literal; remove the binding "
+                "from this prop instead of assigning an unrelated dataId."
+            )
+            if other_owners:
+                message += " The same dataId is already visibly owned by " + ", ".join(other_owners) + "."
+            findings.append({
+                "severity": "error",
+                "code": "static-text-binding-conflict",
+                "phase": "required_information",
+                "message": message,
+                "details": {
+                    "requirement": requirement,
+                    "text": text,
+                    "component": owner["component"],
+                    "prop": owner["prop"],
+                    "dataIds": ids,
+                    "otherOwners": other_owners,
+                },
+            })
+            conflicted_texts.add(text)
+            break
+    return findings, conflicted_texts
 
 
 def _literal_is_grounded_in_query(literal: object, prompt_task: dict[str, Any] | None) -> bool:
@@ -2882,6 +3025,117 @@ def _validate_status_unit_semantics(
             validate_owner(node, node.props, "")
 
 
+def _validate_info_block_status_labels(
+    root: JSXElement,
+    compile_context: CompileContext,
+) -> None:
+    """Require object labels when InfoBlock combines ambiguous charging states."""
+
+    def is_charging_status(binding: Any) -> bool:
+        identifier = binding.id.casefold()
+        description = binding.description.casefold()
+        return "charging" in identifier or ("充电" in description and "状态" in description)
+
+    issues: list[str] = []
+    for node in _walk(root):
+        if node.tag != "InfoBlock":
+            continue
+        data_ids = node.props.get("dataIds")
+        if not isinstance(data_ids, dict):
+            continue
+
+        primary_id = data_ids.get("primaryText")
+        if isinstance(primary_id, str) and primary_id:
+            try:
+                primary_binding = compile_context.data_binding(primary_id)
+            except ValidationError:
+                primary_binding = None
+            template = node.props.get("primaryTextTemplate")
+            if (
+                primary_binding is not None
+                and is_charging_status(primary_binding)
+                and (not isinstance(template, str) or template.count("{value}") != 1)
+            ):
+                issues.append(
+                    "<InfoBlock> primaryText binds a charging status that is not self-describing; "
+                    "add primaryTextTemplate with the object label, for example "
+                    "primaryTextTemplate=\"对象名 {value}\""
+                )
+
+        secondary_ids = data_binding_ids(
+            "InfoBlock", "secondaryText", data_ids.get("secondaryText")
+        )
+        if secondary_ids is None or len(secondary_ids) < 2:
+            continue
+        charging_count = 0
+        for binding_id in secondary_ids:
+            try:
+                binding = compile_context.data_binding(binding_id)
+            except ValidationError:
+                continue
+            charging_count += int(is_charging_status(binding))
+        if charging_count < 2:
+            continue
+        template = node.props.get("secondaryTextTemplate")
+        if indexed_value_template_tokens(template, len(secondary_ids)) is None:
+            example = " ｜ ".join(
+                f"对象{index + 1} {{{index}}}" for index in range(len(secondary_ids))
+            )
+            issues.append(
+                "<InfoBlock> secondaryText binds multiple charging statuses that are not "
+                "self-describing; add an indexed secondaryTextTemplate that labels each object, "
+                f"for example secondaryTextTemplate=\"{example}\""
+            )
+    if issues:
+        raise ValidationError("; ".join(dict.fromkeys(issues)))
+
+
+def _validate_emphasis_text_secondary_labels(
+    root: JSXElement,
+    compile_context: CompileContext,
+) -> None:
+    """Keep EmphasisText secondary values understandable after live updates."""
+
+    issues: list[str] = []
+    for node in _walk(root):
+        if node.tag != "EmphasisText":
+            continue
+        data_ids = node.props.get("dataIds")
+        if not isinstance(data_ids, dict):
+            continue
+        secondary_ids = data_binding_ids(
+            "EmphasisText", "secondaryText", data_ids.get("secondaryText")
+        )
+        if secondary_ids is None:
+            continue
+        template = node.props.get("secondaryTextTemplate")
+        if len(secondary_ids) > 1:
+            if indexed_value_template_tokens(template, len(secondary_ids)) is None:
+                issues.append(
+                    "<EmphasisText> secondaryText combines multiple dataIds; add an indexed "
+                    "secondaryTextTemplate with meaningful static labels for every value, using "
+                    "{0}, {1}, ... once each in dataIds order"
+                )
+            continue
+        value_maps = node.props.get("dataValueMaps")
+        if isinstance(value_maps, dict) and "secondaryText" in value_maps:
+            continue
+        try:
+            binding = compile_context.data_binding(secondary_ids[0])
+        except ValidationError:
+            continue
+        if (
+            metric_requires_label(binding.value_for_prop("EmphasisText", "secondaryText"))
+            and (not isinstance(template, str) or template.count("{value}") != 1)
+        ):
+            issues.append(
+                "<EmphasisText> secondaryText binds a value that is not self-describing; add "
+                "secondaryTextTemplate with a meaningful static label and one {value} placeholder"
+            )
+    if issues:
+        raise ValidationError("; ".join(dict.fromkeys(issues)))
+
+
 def _collect_static_dynamic_value_warnings(
     root: JSXElement,
     compile_context: dict[str, Any],
@@ -3063,6 +3317,36 @@ def _prompt_action_ids(prompt_task: dict[str, Any] | None) -> set[str]:
     return action_ids
 
 
+def _normalize_info_plan_component_hints(
+    facts: list[dict[str, Any]],
+    card_size: str | None,
+    warnings: list[dict[str, Any]],
+) -> None:
+    """Keep component hints soft, size-scoped and safe to ignore."""
+
+    allowed = generation_components_for_size(card_size) - {"Card", "Grid", "Stack"}
+    for index, fact in enumerate(facts):
+        hints = fact.get("componentHints")
+        if not isinstance(hints, list):
+            continue
+        accepted = [hint for hint in hints if hint in allowed]
+        dropped = [hint for hint in hints if hint not in allowed]
+        if accepted:
+            fact["componentHints"] = accepted
+        else:
+            fact.pop("componentHints", None)
+        if dropped:
+            warnings.append({
+                "severity": "warning",
+                "phase": "plan_contract",
+                "code": "plan-component-hint-dropped",
+                "message": (
+                    f"info_required[{index}].componentHints removed unsupported "
+                    f"components {dropped!r}"
+                ),
+            })
+
+
 def _validate_required_action_coverage(
     root: JSXElement,
     prompt_task: dict[str, Any] | None,
@@ -3165,6 +3449,66 @@ def _effective_binding_ids(root: JSXElement) -> tuple[set[str], set[str]]:
         if node.tag in {"PillButton", "CircleButton", "CardButton"} and isinstance(action_id, str) and action_id:
             action_ids.add(action_id)
     return data_ids, action_ids
+
+
+_INDEXED_DATA_ID = re.compile(r"^(?P<collection>.+)\.(?P<index>\d+)\.[^.]+$")
+
+
+def _event_card_capacity_omissions(
+    root: JSXElement,
+    missing: list[dict[str, Any]],
+    used_data: set[str],
+) -> list[dict[str, Any]]:
+    """Allow one full EventCard to omit wholly unrendered extra schedules.
+
+    EventCard intentionally supports at most two items. When its two item
+    slots are both occupied by distinct objects from one indexed collection,
+    extra objects from that collection may be omitted without turning the
+    otherwise valid two-item card into an endless required-information repair.
+    Partially rendered objects and non-EventCard facts remain protected.
+    """
+
+    event_cards = [node for node in _walk(root) if node.tag == "EventCard"]
+    if len(event_cards) != 1:
+        return []
+    items = event_cards[0].props.get("items")
+    if not isinstance(items, list) or len(items) != 2:
+        return []
+
+    represented_groups: set[tuple[str, int]] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            return []
+        item_groups = set()
+        for data_id in _data_ids(item.get("dataIds")):
+            match = _INDEXED_DATA_ID.fullmatch(data_id)
+            if match is not None:
+                item_groups.add((match.group("collection"), int(match.group("index"))))
+        if len(item_groups) != 1:
+            return []
+        represented_groups.update(item_groups)
+    if len(represented_groups) != 2:
+        return []
+
+    represented_collections = {collection for collection, _ in represented_groups}
+    used_groups = {
+        (match.group("collection"), int(match.group("index")))
+        for data_id in used_data
+        if (match := _INDEXED_DATA_ID.fullmatch(data_id)) is not None
+    }
+    omitted: list[dict[str, Any]] = []
+    for fact in missing:
+        data_id = fact.get("dataId")
+        hints = fact.get("componentHints")
+        if not isinstance(data_id, str) or not isinstance(hints, list) or "EventCard" not in hints:
+            continue
+        match = _INDEXED_DATA_ID.fullmatch(data_id)
+        if match is None:
+            continue
+        group = (match.group("collection"), int(match.group("index")))
+        if group[0] in represented_collections and group not in used_groups:
+            omitted.append(fact)
+    return omitted
 
 
 _NO_UNMET_REQUIREMENTS = frozenset(
@@ -3362,6 +3706,7 @@ def _validation_finding(exc: ConversionError) -> dict[str, str]:
             "items must contain one or two schedules", "a Card may contain at most one EventCard",
             "cannot use SecondaryBody as its only business information",
             "one semantic region allows at most one EmphasisText or EmphasizedData",
+            "required input actionIds are missing",
         )
         for marker in layout_markers:
             if marker in str(exc):
@@ -3389,6 +3734,7 @@ class OrderedWorkflowState:
         validation_enabled: bool = True,
         validate_dynamic_values: bool = True,
         enable_dynamic_data_binding: bool = True,
+        require_semantic_layout: bool = False,
     ) -> None:
         if not re.fullmatch(r"Card[A-Za-z0-9_$]+", component_name):
             raise ValueError("component_name must match Card[A-Za-z0-9_$]+")
@@ -3410,6 +3756,7 @@ class OrderedWorkflowState:
         self.validate_layout_budget = validate_layout_budget and validation_enabled
         self.validate_dynamic_values = validate_dynamic_values
         self.enable_dynamic_data_binding = enable_dynamic_data_binding
+        self.require_semantic_layout = require_semantic_layout and self.expected_card_size == "2x4"
         self.active_layout_fallback: str | None = None
         self.required_facts: list[dict[str, Any]] | None = None
         self.plan_warnings: list[dict[str, Any]] = []
@@ -3421,28 +3768,19 @@ class OrderedWorkflowState:
             CompileContext.from_payload(self.compile_context),
             warnings=warnings,
         )
-        resolved_ids = {fact["dataId"] for fact in facts if "initialValue" in fact}
-        # A layout-only replan cannot turn previously unverified evidence into
-        # permission to override a value. Only a newly evidenced value clears it.
-        for warning in self.plan_warnings:
-            if warning.get("code") != "plan-initial-value-unverified":
-                continue
-            if warning.get("dataId") not in resolved_ids:
-                warnings.append(warning)
-        if self.required_facts is not None:
-            query = str((self.prompt_task or {}).get("userQuery") or "")
-            previous = enforceable_facts(self.required_facts, query)
-            identities = {(key, fact[key]) for fact in facts for key in ("dataId", "actionId", "text") if key in fact}
-            if any((key, fact[key]) not in identities for fact in previous
-                   for key in ("dataId", "actionId", "text") if key in fact):
-                raise ValidationError("replanning must preserve the frozen required IDs and explicitly requested copy; additions and descriptive corrections are allowed")
-            # A layout-only replan must not erase an already resolved initial value.
-            # An explicitly evidenced correction is validated normally above.
-            initial = {fact["dataId"]: fact for fact in previous if "initialValue" in fact}
-            for fact in facts:
-                old = initial.get(fact.get("dataId"))
-                if old is not None and "initialValue" not in fact:
-                    fact.update(initialValue=old["initialValue"], valueSourceQuote=old["valueSourceQuote"])
+        _normalize_info_plan_component_hints(facts, self.expected_card_size, warnings)
+        planned_actions = {fact["actionId"] for fact in facts if "actionId" in fact}
+        for action_id in sorted(_prompt_action_ids(self.prompt_task) - planned_actions):
+            facts.append({
+                "requirement": f"Preserve requested action {action_id}",
+                "actionId": action_id,
+            })
+            warnings.append({
+                "severity": "warning",
+                "phase": "plan_contract",
+                "code": "plan-action-restored",
+                "message": f"Required input action {action_id!r} was added to the Info Plan",
+            })
         context = context_with_initial_values(facts, self.compile_context)
         for warning in input_availability_warnings(CompileContext.from_payload(context)):
             if warning not in warnings:
@@ -3463,7 +3801,7 @@ class OrderedWorkflowState:
     def read_generation_resource(self, key: str) -> dict[str, Any]:
         expected = self.expected_stage
         if expected is None:
-            return {"ok": False, "error": "all resources are loaded; call submit_card_plan"}
+            return {"ok": False, "error": "all resources are loaded; call submit_card_jsx"}
         if key != expected.key:
             return {"ok": False, "error": f"expected resource {expected.key!r}, received {key!r}"}
         source_files = [
@@ -3479,11 +3817,17 @@ class OrderedWorkflowState:
         )
         self.next_stage_index += 1
         following = self.expected_stage
+        if self.next_stage_index == 2 and self.required_facts is None:
+            next_target = "submit_card_plan"
+        elif following is not None:
+            next_target = following.key
+        else:
+            next_target = "submit_card_jsx"
         return {
             "ok": True,
             "resource": key,
             "content": content,
-            "next": following.key if following else "submit_card_plan",
+            "next": next_target,
         }
 
     def mark_resources_loaded(self) -> None:
@@ -3517,6 +3861,30 @@ class OrderedWorkflowState:
             source = wrap_card_source(self.component_name, expression)
             cards = extract_card_functions(source)
             root = cards[self.component_name]
+            semantic_source = None
+            if self.require_semantic_layout and "layout" not in root.props:
+                raise LayoutStructureError(
+                    "2x4 generation requires Card.layout and Region slots; raw Stack/Grid is not "
+                    "allowed in semantic JSX"
+                )
+            if "layout" in root.props:
+                semantic_source = source
+                try:
+                    root, derived_decision = lower_semantic_card(root)
+                except ValidationError as exc:
+                    raise LayoutStructureError(str(exc)) from exc
+                submitted_decision = (
+                    _layout_decision_fields(decision)
+                    if decision is not None
+                    else None
+                )
+                if submitted_decision is not None and submitted_decision != derived_decision:
+                    raise LayoutStructureError(
+                        f"decision must match Card.layout/Region.variant: {derived_decision!r}"
+                    )
+                decision = derived_decision
+                expression = _serialize_jsx(root)
+                source = wrap_card_source(self.component_name, expression)
         except ConversionError as exc:
             return {
                 "ok": False,
@@ -3531,6 +3899,8 @@ class OrderedWorkflowState:
         compile_context_error: ConversionError | None = None
         initial_value_warnings: list[dict[str, Any]] = []
         binding_normalization_warnings: list[dict[str, str]] = []
+        required_fact_binding_findings: list[dict[str, Any]] = []
+        conflicted_required_texts: set[str] = set()
         user_query = str((self.prompt_task or {}).get("userQuery") or "")
         # Planned generation resolves overrides by ID in the plan, not by
         # treating any JSX literal found in the query as that field's value.
@@ -3542,6 +3912,12 @@ class OrderedWorkflowState:
             parsed_compile_context.rendered_layout = None
             binding_normalization_warnings = _remove_empty_scalar_data_ids(root)
             if self.required_facts is not None:
+                required_fact_binding_findings, conflicted_required_texts = (
+                    _required_text_binding_conflicts(
+                        root,
+                        enforceable_facts(self.required_facts, user_query),
+                    )
+                )
                 initial_value_warnings = _unplanned_query_values(
                     root, parsed_compile_context, self.prompt_task,
                     {fact['dataId'] for fact in self.required_facts if 'initialValue' in fact},
@@ -3560,7 +3936,7 @@ class OrderedWorkflowState:
         except ConversionError as exc:
             compile_context_error = exc
 
-        findings: list[dict[str, str]] = []
+        findings: list[dict[str, Any]] = []
         finding_messages: set[str] = set()
         layout_warning_messages: list[str] = []
         semantic_warning_messages: list[tuple[str, str]] = []
@@ -3571,6 +3947,12 @@ class OrderedWorkflowState:
                 return
             finding_messages.add(message)
             findings.append(_validation_finding(exc))
+
+        for finding in required_fact_binding_findings:
+            message = finding["message"]
+            if message not in finding_messages:
+                finding_messages.add(message)
+                findings.append(finding)
 
         if self.validation_enabled:
             validators = [
@@ -3611,7 +3993,12 @@ class OrderedWorkflowState:
                     )
                 )
             validators.append(lambda: _validate_metric_semantics(root, semantic_warning_messages))
-            validators.append(lambda: _validate_text_region_usage(root, decision, semantic_warning_messages))
+            validators.append(lambda: _validate_text_region_usage(
+                root,
+                decision,
+                semantic_warning_messages,
+                str((self.prompt_task or {}).get("userQuery") or ""),
+            ))
             validators.append(lambda: _validate_static_title_dynamic_fact_ownership(root))
             if self.validate_dynamic_values:
                 validators.append(
@@ -3639,6 +4026,8 @@ class OrderedWorkflowState:
 
             if parsed_compile_context is not None:
                 try:
+                    _validate_info_block_status_labels(root, parsed_compile_context)
+                    _validate_emphasis_text_secondary_labels(root, parsed_compile_context)
                     _validate_status_unit_semantics(
                         root,
                         parsed_compile_context,
@@ -3672,16 +4061,26 @@ class OrderedWorkflowState:
             selected = [fact for fact in enforceable_facts(self.required_facts, user_query)
                         if fact.get("actionId") not in _prompt_action_ids(self.prompt_task)]
             missing = missing_required_facts(selected, used_data, used_actions, literals)
+            # A static text that was present in the submitted JSX but attached
+            # to a dynamic binding already has a more precise root-cause error.
+            # Do not additionally misreport the same fact as simply missing.
+            missing = [
+                fact for fact in missing
+                if fact.get("text") not in conflicted_required_texts
+            ]
+            capacity_omissions = _event_card_capacity_omissions(root, missing, used_data)
+            if capacity_omissions:
+                dropped_required_facts.extend(capacity_omissions)
+                missing = [fact for fact in missing if fact not in capacity_omissions]
+                semantic_warning_messages.append((
+                    "event-card-capacity-omission",
+                    "EventCard 已使用两个日程槽；未展示的额外完整日程已按组件容量限制省略。",
+                ))
             if missing and self.active_layout_fallback == "drop_optional_component":
-                declared_unmet = {
-                    value.strip() for value in (unmet_requirements or [])
-                    if isinstance(value, str) and value.strip()
-                }
-                dropped_required_facts = [
+                dropped_required_facts.extend(
                     fact for fact in missing
                     if fact.get("actionId") is None
-                    and str(fact.get("requirement") or "").strip() in declared_unmet
-                ]
+                )
                 missing = [fact for fact in missing if fact not in dropped_required_facts]
             if missing:
                 add_finding(RequiredInformationError(
@@ -3777,6 +4176,7 @@ class OrderedWorkflowState:
             unmet_requirements=normalized_unmet,
             semantic_status=semantic_status,
             warnings=warnings,
+            semantic_source=semantic_source,
         )
         if self.defer_browser_validation:
             self.pending_submission = prepared
@@ -3856,20 +4256,17 @@ def _decision_schema(card_size: str | None = None) -> dict[str, Any]:
         }
         type13_region_value = {
             "type": "string",
-            "enum": [
-                *sub_118_value["enum"],
-                *sorted(TYPE13_WIDE_SUB_PATTERNS),
-            ],
+            "enum": list(sub_118_value["enum"]),
             "description": (
-                "左右双区通常选择 Sub-118；仅一侧可选择文档允许的 "
-                "Sub-140-D、Sub-140-E 或 Sub-140-H 无背板变体。"
+                "Type13 左右父区均使用四边 8vp 安全边距内的 116×110vp 子布局。"
             ),
         }
         properties["subPattern"] = {
             "type": "object",
             "description": (
                 "2x4 父内容区的子布局定位。左右双区填写 left 和 right；"
-                "左内容右侧双槽填写 content；上下双区和四槽宫格填写空对象。"
+                "Type15 左内容右侧双槽与 Type15-R 左侧双槽右内容均填写 content；"
+                "上下双区和四槽宫格填写空对象。"
             ),
             "properties": {
                 "left": type13_region_value,
@@ -3888,45 +4285,27 @@ def _decision_schema(card_size: str | None = None) -> dict[str, Any]:
     }
 
 
-def _plan_layout_option_schema(card_size: str | None = None) -> dict[str, Any]:
-    schema = _decision_schema(card_size)
-    decision_properties = schema["properties"]
-    properties = {
-        "content": {
-            "type": "string",
-            "description": (
-                "先按父区域列出最终使用的业务组件实例，并逐区明确内容组件数、"
-                "单内容或双内容、是否有局部标题、Action 数量及是否有按钮；"
-                "Stack 和业务组件内部结构不计入内容组件数。"
-            ),
-        },
-        "layoutPattern": decision_properties["layoutPattern"],
-    }
-    if "subPattern" in decision_properties:
-        properties["subPattern"] = decision_properties["subPattern"]
-    return {
-        **schema,
-        "description": "一套布局方案；整个对象控制在 512 tokens 内。",
-        "properties": properties,
-        "required": ["content", *schema["required"]],
-    }
-
-
 def build_plan_tool(card_size: str | None = None, compile_context: dict[str, Any] | None = None) -> dict[str, Any]:
-    option_schema = _plan_layout_option_schema(card_size)
+    component_names = sorted(
+        generation_components_for_size(card_size) - {"Card", "Grid", "Stack"}
+    )
     return {
         "type": "function",
         "function": {
             "name": "submit_card_plan",
-            "description": "提交必须展示的信息和最多两套简短布局方案。",
+            "description": (
+                "提交必须展示的信息及每项信息可优先尝试的组件软候选。"
+                "本阶段不选择布局；最终布局由 submit_card_jsx 的 JSX 携带。"
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "info_required": required_facts_schema(CompileContext.from_payload(compile_context)),
-                    "layout_optionA": option_schema,
-                    "layout_optionB": option_schema,
+                    "info_required": required_facts_schema(
+                        CompileContext.from_payload(compile_context),
+                        component_names=component_names,
+                    ),
                 },
-                "required": ["info_required", "layout_optionA"],
+                "required": ["info_required"],
                 "additionalProperties": False,
             },
         },
@@ -3941,48 +4320,13 @@ def _validate_plan_arguments(
     errors: list[str] = []
     plan_warnings: list[dict[str, str]] = []
     required_actions = _prompt_action_ids(prompt_task)
-    if not isinstance(arguments.get("layout_optionA"), dict):
-        errors.append("layout_optionA must be an object")
-    for name in ("layout_optionA", "layout_optionB"):
-        option = arguments.get(name)
-        if option is None:
-            continue
-        if not isinstance(option, dict):
-            errors.append(f"{name} must be an object")
-            continue
-        pattern = (
-            _canonical_layout_pattern(option.get("layoutPattern"))
-            if isinstance(option.get("layoutPattern"), str) else None
-        )
-        if not isinstance(option.get("layoutPattern"), str) or not option["layoutPattern"].strip():
-            errors.append(f"{name}.layoutPattern must be a non-empty string")
-        elif card_size == "2x2" and pattern not in TOP_LEVEL_2X2_TYPES:
-            errors.append(f"{name}.layoutPattern must name a documented 2x2 layout")
-        elif card_size == "2x4":
-            if pattern not in TOP_LEVEL_2X4_TYPES:
-                errors.append(f"{name}.layoutPattern must name a documented 2x4 layout")
-            else:
-                if required_actions and pattern == "12":
-                    errors.append(
-                        f'{name} cannot use 2x4 layout "上下双区" '
-                        'because the task requires actionIds '
-                        f'{sorted(required_actions)!r}; choose an Action-capable layout'
-                    )
-                for error in _validate_sub_pattern_decision(option, card_size, pattern):
-                    errors.append(f"{name}: {error}")
-        if not isinstance(option.get("content"), str) or not option["content"].strip():
-            plan_warnings.append({"severity": "warning", "code": "plan-description-missing",
-                                  "message": (
-                                      f"{name}.content is missing; "
-                                      "layout structure is checked against the submitted JSX"
-                                  )})
     facts = []
-    exclusions = {}
     try:
         facts = validate_required_facts(
             arguments.get("info_required"), str((prompt_task or {}).get("userQuery") or ""),
             CompileContext.from_payload(compile_context), warnings=plan_warnings,
         )
+        _normalize_info_plan_component_hints(facts, card_size, plan_warnings)
         planned_actions = {fact["actionId"] for fact in facts if "actionId" in fact}
         # The input already specifies these actions. Restore their metadata
         # deterministically; the actual button/slot checks still run on JSX.
@@ -3993,13 +4337,17 @@ def _validate_plan_arguments(
     except ConversionError as exc:
         errors.append(str(exc))
     else:
-        # Inventory depends on successfully normalized facts. A rejected fact
-        # list is not an empty plan; checking it would invent missing-ID errors.
+        # Keep the advisory inventory warning, but the Info Plan no longer
+        # accepts or persists model-authored data_exclusions.
         try:
-            exclusions = validate_data_inventory(
-                facts, arguments.get("data_exclusions"),
-                CompileContext.from_payload(context_with_initial_values(facts, compile_context)),
-                prompt_task, plan_warnings,
+            validate_data_inventory(
+                facts,
+                None,
+                CompileContext.from_payload(
+                    context_with_initial_values(facts, compile_context)
+                ),
+                prompt_task,
+                plan_warnings,
             )
         except ConversionError as exc:
             errors.append(str(exc))
@@ -4007,9 +4355,9 @@ def _validate_plan_arguments(
         return {"ok": False, "error": "; ".join(dict.fromkeys(errors)),
                 "findings": [{"severity": "error", "phase": "plan_contract", "code": "plan-contract", "message": error}
                              for error in dict.fromkeys(errors)], "warnings": plan_warnings}
-    result = {"ok": True, "next": "submit_card_jsx", "plan": {**arguments, "info_required": facts}}
-    if exclusions:
-        result['plan']['data_exclusions'] = exclusions
+    # The normalized Plan deliberately contains no layout choice. For 2x4,
+    # the runner derives it from each semantic JSX candidate.
+    result = {"ok": True, "next": "jsx_contract", "plan": {"info_required": facts}}
     if plan_warnings:
         result["warnings"] = plan_warnings
     return result
@@ -4039,6 +4387,28 @@ def build_agent_tools(
     card_size: str | None = None,
     compile_context: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    submit_properties: dict[str, Any] = {
+        "jsx": {"type": "string"},
+        "coverage": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "requirement": {"type": "string"},
+                },
+                "required": ["requirement"],
+                "additionalProperties": False,
+            },
+        },
+        "unmetRequirements": {"type": "array", "items": {"type": "string"}},
+    }
+    submit_required = ["jsx"]
+    # 2x4 semantic JSX already carries the complete layout choice in
+    # Card.layout and Region.variant. Derive the public decision from those
+    # fields so the model cannot submit a second, divergent copy.
+    if card_size != "2x4":
+        submit_properties = {"decision": _decision_schema(card_size), **submit_properties}
+        submit_required.insert(0, "decision")
     return [
         {
             "type": "function",
@@ -4069,23 +4439,8 @@ def build_agent_tools(
                 ),
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "decision": _decision_schema(card_size),
-                        "jsx": {"type": "string"},
-                        "coverage": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "requirement": {"type": "string"},
-                                },
-                                "required": ["requirement"],
-                                "additionalProperties": False,
-                            },
-                        },
-                        "unmetRequirements": {"type": "array", "items": {"type": "string"}},
-                    },
-                    "required": ["decision", "jsx"],
+                    "properties": submit_properties,
+                    "required": submit_required,
                     "additionalProperties": False,
                 },
             },
@@ -4103,7 +4458,7 @@ def execute_tool(name: str, arguments: dict[str, Any], state: OrderedWorkflowSta
     if name == "read_generation_resource":
         return state.read_generation_resource(str(arguments.get("name", "")))
     if name == "submit_card_jsx":
-        decision = arguments.get("decision")
+        decision = None if state.expected_card_size == "2x4" else arguments.get("decision")
         if decision is not None and not isinstance(decision, dict):
             return {"ok": False, "error": "decision must be an object"}
         return state.submit_card_jsx(
