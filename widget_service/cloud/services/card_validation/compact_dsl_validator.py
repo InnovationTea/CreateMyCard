@@ -19,6 +19,7 @@ from services.compact_dsl_a2ui_converter import (
 )
 
 from .compact_dual_action_validator import collect_dual_action_errors
+from .validation_policy import CompactRule, resolve_validation_policy
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
@@ -175,15 +176,29 @@ def validate_compact_dsl(
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
-    _collect_asset_source_errors(components, task_spec, errors)
-    _collect_component_contract_errors(components, task_spec, errors)
-    _collect_fusion_composition_errors(components, task_spec, errors)
-    _collect_ambiguous_metric_text_errors(components, task_spec, errors)
-    _collect_two_by_two_weather_date_errors(components, task_spec, errors)
-    _collect_hero_value_errors(components, task_spec, errors)
-    _collect_height_budget_errors(components, task_spec, card_spec, errors)
+    root = next((component for component in components if component.component_id == "root"), None)
+    policy = resolve_validation_policy(
+        root_id="root" if root is not None else None,
+        root_children=root.children if root is not None else (),
+        component_ids=(component.component_id for component in components),
+    )
+    if CompactRule.ASSET_SOURCE in policy.compact_rules:
+        _collect_asset_source_errors(components, task_spec, errors)
+    if CompactRule.COMPONENT_CONTRACT in policy.compact_rules:
+        _collect_component_contract_errors(components, task_spec, errors)
+    if CompactRule.FUSION_COMPOSITION in policy.compact_rules:
+        _collect_fusion_composition_errors(components, task_spec, errors)
+    if CompactRule.METRIC_LABEL in policy.compact_rules:
+        _collect_ambiguous_metric_text_errors(components, task_spec, errors)
+    if CompactRule.WEATHER_DATE in policy.compact_rules:
+        _collect_two_by_two_weather_date_errors(components, task_spec, errors)
+    if CompactRule.HERO_VALUE in policy.compact_rules:
+        _collect_hero_value_errors(components, task_spec, errors)
+    if CompactRule.HEIGHT_BUDGET in policy.compact_rules:
+        _collect_height_budget_errors(components, task_spec, card_spec, errors)
     size = card_spec.get("suggestSize") or task_spec.get("size")
-    collect_dual_action_errors(components, size, errors)
+    if CompactRule.DUAL_ACTION in policy.compact_rules:
+        collect_dual_action_errors(components, size, errors)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -202,21 +217,23 @@ def validate_compact_dsl(
             [],
         )
 
-    _collect_layout_route_errors(
-        components,
-        task_spec,
-        visible_binding_paths,
-        errors,
-    )
+    if CompactRule.LAYOUT_ROUTE in policy.compact_rules:
+        _collect_layout_route_errors(
+            components,
+            task_spec,
+            visible_binding_paths,
+            errors,
+        )
 
     data_model = build_compact_data_model(data_rows)
-    _collect_data_context_errors(
-        binding_paths,
-        data_rows,
-        data_model,
-        task_spec,
-        errors,
-    )
+    if CompactRule.DATA_CONTEXT in policy.compact_rules:
+        _collect_data_context_errors(
+            binding_paths,
+            data_rows,
+            data_model,
+            task_spec,
+            errors,
+        )
     if errors:
         raise CompactDslValidationError(errors)
 
@@ -265,11 +282,6 @@ def _collect_hero_value_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
-    # 与质量阶段使用相同的有效模板根标记，仅豁免主文字校验。
-    if len(components_by_id) == len(components) and "template_root" in components_by_id:
-        root = components_by_id.get("root")
-        if root is not None and "template_root" in root.children:
-            return
     data_model_schema = task_spec.get("dataModelSchema")
     if not isinstance(data_model_schema, dict):
         return
