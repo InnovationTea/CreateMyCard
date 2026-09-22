@@ -235,20 +235,29 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
     "battery-readout": (
         "本卡是量化主值路由：电量、温度、电流、电压、功率等测量值中只选择一个主读数使用最大安全字号，"
         "其余同级测量值降为紧邻的辅助信息；schema 已包含单位的字符串整体绑定，"
-        "不再追加字段标签或重复单位。"
+        "不再追加字段标签或重复单位。存在两个以上独立辅助事实时，降低主值字号并分行，"
+        "禁止为保留 30/38fp hero 把辅助事实合并成一个 ` | ` 行。"
     ),
     "weather-readout": (
         "本卡是单业务天气路由：先按字段语义选择主焦点；温度、降雨概率等量化字段"
         "使用 value-led，天气现象、预警、日期和星期使用 status-led。地点只消除歧义，"
-        "辅助指标不得平均铺开。2x2 稀疏天气卡存在与主语义精确匹配的素材时，优先放在"
-        "CardHeader 右上角；日期、星期和天气现象都需要展示时可以省略图标以保留文字。"
-        "量化主值的 Row 仍只包含数字和真实单位，指标名放在标题或主值上方，辅助信息沉底。"
+        "辅助指标不得平均铺开。2x2 稀疏天气卡先用字号、位置和留白建立焦点；存在与"
+        "整卡主题精确匹配、状态中性的素材且标题宽度成立时，默认放入 CardHeader 右上角。"
+        "量化主值的 Row 仍只包含数字和真实单位，直接说明贴近主值，独立范围或更新时间沉底。"
+        "若用户要求三个同级状态或指数概览，则整组作为焦点并使用对齐的标签—值列表，"
+        "不得从中任意挑选一个无标签状态放大。"
     ),
     "calendar-event": (
         "本卡是事项路由：事项标题与时间形成连续信息组，"
         "日期/地点/更新时间只保留必要项。"
     ),
-    "health-readout": "本卡是健康主读数路由：一个指标承担第一焦点，其余指标降为紧邻的辅助信息。",
+    "health-readout": (
+        "本卡是健康读数路由：先判断是单一主读数还是恰好两个同级短指标；前者只保留一个"
+        "第一焦点并让支撑信息紧邻，后者共同构成并列焦点组，在各自宽度预算成立时用等宽"
+        "双列和一致的值＋标签关系，否则改用对齐的纵向标签—值行。短纯数字且共享单位明确时，"
+        "双列值可统一使用 20fp；不得按数值大小任意挑选其中一个 hero。"
+        "整体结果、总时长或总量优先于组成项和局部时长，除非用户明确要求查看局部指标。"
+    ),
     "focus-aux": (
         "本卡是 2x4 主焦点双辅助路由：左侧只保留一个主焦点，"
         "右侧两个紧凑槽分别承载必要辅助信息或动作。"
@@ -480,7 +489,9 @@ class PromptBuilder:
             for markers in (("天气", "温度", "空气质量"),)
         ):
             return "weather-readout", (
-                ("2x2-V04",) if task_spec.size == "2x2" else ("2x4-V11",)
+                ("2x2-V04", "2x2-V14")
+                if task_spec.size == "2x2"
+                else ("2x4-V11",)
             )
         if "calendar" in normalized_roots or _contains_any(
             query, ("日程", "会议", "提醒", "安排")
@@ -509,7 +520,13 @@ class PromptBuilder:
                 )
                 if has_exercise_summary and PromptBuilder._query_requests_action(task_spec):
                     return "health-readout", ("2x2-V11",)
-                return "health-readout", ("2x2-V07",)
+                has_sleep_summary = PromptBuilder._schema_has_field(
+                    task_spec,
+                    ("sleepDuration", "deepSleepDuration", "sleepType"),
+                )
+                if has_sleep_summary and _contains_any(query, ("睡眠", "睡了", "深睡")):
+                    return "health-readout", ("2x2-V12",)
+                return "health-readout", ("2x2-V07", "2x2-V13")
             has_sleep_score = PromptBuilder._schema_has_field(task_spec, ("sleepScore",))
             has_sleep_duration = PromptBuilder._schema_has_field(
                 task_spec,
@@ -708,6 +725,25 @@ class PromptBuilder:
         route, example_ids = PromptBuilder._visual_route(task_spec)
         examples = "、".join(example_ids)
         instruction = _VISUAL_ROUTE_INSTRUCTIONS[route]
+        density_instruction = ""
+        icon_instruction = ""
+        if task_spec.size == "2x2" and "adaptive" in layout_scope:
+            density_instruction = (
+                "- 密度处理：内容稀疏时不要全部贴顶；无动作的一至三行 content_area 默认"
+                "使用 justifyContent:center，并采用顶部上下文、居中主信息组和可选底部元数据；"
+                "有动作则让主信息组在沉底动作上方居中。纵向仍有一行空间时，独立事实必须分行，"
+                "禁止用 ` | ` 横向硬塞。仅当结构是标题＋唯一纯数字主值＋单动作时，"
+                "使用 126vp 居中 content_area 内的 106×58vp Hero 安全盒，并按 "
+                "38/16fp、30/14fp、24/12fp、20/12fp 逐档降级直至长值压力成立。\n"
+            )
+            icon_instruction = (
+                "- 图标机会：若已有 CardHeader，候选中存在与整卡主题精确匹配、状态中性的"
+                "业务/对象/指标图标，且扣除 20vp 图标槽后标题仍完整，则默认保留一枚右上角"
+                "图标；只有标题压力、状态风险、用户禁用或主视觉冲突时才省略。可染色 SVG"
+                "必须显式写 fillColor：浅色卡跟随 CardHeader.fontColor，深色或融球卡使用白色"
+                "或对应图标角色色；不得遗漏后显示默认黑色。明确保留原色的 SVG 和 PNG 不写"
+                " fillColor。\n"
+            )
         if "adaptive" in layout_scope:
             skeleton_instruction = (
                 f"- 骨架范围：`{layout_scope}`。由模型按本轮字段关系在该范围内选择。\n"
@@ -720,14 +756,19 @@ class PromptBuilder:
             "# 本轮路由摘要（高优先级）\n\n"
             f"{skeleton_instruction}"
             f"- 视觉重点：{instruction}\n"
+            f"{density_instruction}"
+            f"{icon_instruction}"
             "- 信息裁决：只保留 userQuery 明确要求及消除歧义所需的字段，"
             "不要用弱字段填满空间。\n"
             f"- 动作处理：{PromptBuilder._action_guidance(task_spec, route)}\n"
             f"- 参考金标：{examples}。示例只提供构图、字号关系和留白方式；"
             "必须使用当前 TaskSpec 的真实路径、事件和素材，"
             "禁止复制示例业务值、标题、颜色或组件 id。\n\n"
-            "生成前先按以上摘要完成字段槽位映射，并由模型选出唯一第一焦点，再输出组件。"
-            "主焦点至少在字号、位置、面积、颜色明度或连续留白中的两项明显强于辅助信息。"
+            "生成前先按以上摘要完成字段槽位映射，并按用户明确重点、整体结果/总量/主状态、"
+            "局部指标、metadata 的顺序选出一个第一焦点；仅当用户要求同级比较/概览，或字段"
+            "具有天然对照关系时，改为一个合法并列焦点组。单焦点至少在字号、位置、面积、"
+            "颜色明度或连续留白中的两项明显强于辅助信息；并列焦点组内必须同字号、同字重、"
+            "同对齐且视觉重量相近。"
         )
 
     @staticmethod
