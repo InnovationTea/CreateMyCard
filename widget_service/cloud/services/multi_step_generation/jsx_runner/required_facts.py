@@ -23,7 +23,11 @@ else:
     from jsx_to_a2ui.exceptions import ValidationError
 
 
-def required_facts_schema(context: CompileContext | None = None) -> dict[str, Any]:
+def required_facts_schema(
+    context: CompileContext | None = None,
+    *,
+    component_names: list[str] | None = None,
+) -> dict[str, Any]:
     schema = {
         "type": "array",
         "minItems": 1,
@@ -42,6 +46,16 @@ def required_facts_schema(context: CompileContext | None = None) -> dict[str, An
                 "text": {"type": "string", "description": "仅用户原文明确出现的静态正文；禁止填写样例值、字段说明或设计说明。动态信息必须选 dataId。"},
                 "initialValue": {"type": ["string", "number"], "description": "仅用户明确覆盖该 ID 的样例时填写；否则省略，不要填空占位。"},
                 "valueSourceQuote": {"type": "string", "description": "只与 initialValue 一起填写，引用用户明确给出该值的原文；不用时省略。"},
+                "componentHints": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 1,
+                    "uniqueItems": True,
+                    "description": (
+                        "可选的组件软候选，按优先顺序填写。只表示该事实可优先尝试的表达方式；"
+                        "后续可根据布局容量、槽位和组件合同更换，不冻结最终组件。"
+                    ),
+                },
             },
             "required": ["requirement"],
             "additionalProperties": False,
@@ -52,6 +66,10 @@ def required_facts_schema(context: CompileContext | None = None) -> dict[str, An
         for key, values in (("dataId", context.data), ("actionId", context.actions)):
             if values:
                 props[key]["enum"] = list(values)
+    if component_names:
+        schema["items"]["properties"]["componentHints"]["items"]["enum"] = list(
+            dict.fromkeys(component_names)
+        )
     return schema
 
 
@@ -170,7 +188,7 @@ def is_verbatim_requirement(text: str, query: str) -> bool:
             continue  # Quoted object name is not necessarily requested copy.
         if re.search(
             r"(?:展示|显示|写上|display|show|write)\s*"
-            r"(?:待办事项|待办|正文|文案|文字|文本|内容|text|copy)?\s*[:：]?\s*$",
+            r"(?:待办事项|待办|正文|文案|提醒文字|文字|文本|内容|text|copy)?\s*[:：]?\s*$",
             clause, re.I,
         ):
             return True
@@ -222,6 +240,28 @@ def validate_required_facts(
         for key in ("dataId", "actionId", "text", "valueSourceQuote"):
             if fact.get(key) in (None, ""):
                 fact.pop(key, None)
+        raw_hints = fact.get("componentHints")
+        if raw_hints is not None:
+            if not isinstance(raw_hints, list):
+                fact.pop("componentHints", None)
+                warn(
+                    "plan-component-hints-normalized",
+                    f"{where}.componentHints must be an array and was ignored",
+                )
+            else:
+                hints = list(dict.fromkeys(
+                    hint.strip() for hint in raw_hints
+                    if isinstance(hint, str) and hint.strip()
+                ))
+                if hints:
+                    fact["componentHints"] = hints
+                else:
+                    fact.pop("componentHints", None)
+                if len(hints) != len(raw_hints):
+                    warn(
+                        "plan-component-hints-normalized",
+                        f"{where}.componentHints removed empty, invalid or duplicate entries",
+                    )
         if not _nonempty(fact.get("requirement")):
             fact["requirement"] = str(fact.get("text") or fact.get("dataId") or fact.get("actionId") or where)
             warn("plan-metadata-normalized", f"{where}.requirement was derived from its target")
@@ -300,6 +340,11 @@ def validate_required_facts(
                             )
                     if "initialValue" in item:
                         previous.update(initialValue=item["initialValue"], valueSourceQuote=item["valueSourceQuote"])
+                    if "componentHints" in item:
+                        previous["componentHints"] = list(dict.fromkeys([
+                            *previous.get("componentHints", []),
+                            *item["componentHints"],
+                        ]))
                     if item["requirement"] not in previous["requirement"]:
                         previous["requirement"] += "; " + item["requirement"]
                     warn("plan-metadata-normalized", f"{where} duplicates {target} {item[target]!r}; merged")
@@ -310,6 +355,32 @@ def validate_required_facts(
                 errors.append(str(exc))
     if errors:
         raise ValidationError("; ".join(dict.fromkeys(errors)))
+
+    daily_weekday_prefixes = set()
+    for item in normalized:
+        data_id = item.get("dataId")
+        if not isinstance(data_id, str):
+            continue
+        if re.fullmatch(r".+\.daily\.\d+\.weekday", data_id):
+            daily_weekday_prefixes.add(data_id.removesuffix(".weekday"))
+    if daily_weekday_prefixes:
+        retained: list[dict[str, Any]] = []
+        for item in normalized:
+            data_id = item.get("dataId")
+            if (
+                isinstance(data_id, str)
+                and re.fullmatch(r".+\.daily\.\d+\.date", data_id)
+                and data_id.removesuffix(".date") in daily_weekday_prefixes
+            ):
+                warn(
+                    "plan-redundant-daily-date-demoted",
+                    f"{data_id!r} is optional because the same daily record already requires weekday; "
+                    "the date remains available to JSX but is not frozen as a required fact",
+                    dataId=data_id,
+                )
+                continue
+            retained.append(item)
+        normalized = retained
     return normalized
 
 

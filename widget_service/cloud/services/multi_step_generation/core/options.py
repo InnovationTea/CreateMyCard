@@ -10,9 +10,9 @@ from ..jsx_runner.agent import DEFAULT_MAX_TOKENS, DEFAULT_PLAN_MAX_TOKENS, PLAN
 class BridgeOptions:
     """JSX 生成、校验和修复参数的统一入口。"""
 
-    max_turns: int = 30
+    max_turns: int = 20
     max_tokens: int = DEFAULT_MAX_TOKENS
-    request_timeout: float = 120.0
+    request_timeout: float = 900.0
     browser_fallback_after: int = 3
     browser_validation: bool = True
     validation_enabled: bool = True

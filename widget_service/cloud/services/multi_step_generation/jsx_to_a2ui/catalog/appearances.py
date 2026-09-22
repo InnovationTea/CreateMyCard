@@ -56,7 +56,7 @@ APPEARANCES: dict[str, Appearance] = {
     "solid-purple": _palette("solid-purple", "EDE6FF", "401F99"),
     "orb-orange": _palette("orb-orange", "BF3F26", "FFFFFF", ("BF3F26", "FF8E3E", "FAA89E")),
     "orb-blue": _palette("orb-blue", "121E59", "FFFFFF", ("121E59", "8FA2D9", "52CCCC")),
-    "orb-purple": _palette("orb-purple", "1B1259", "FFFFFF", ("1B1259", "5761D9", "B398D9")),
+    "orb-purple": _palette("orb-purple", "1B1259", "FFFFFF", ("1B1259", "572BD9", "B398D9")),
     "orb-green": _palette("orb-green", "17734C", "FFFFFF", ("17734C", "26BFA6", "60BF98")),
 }
 

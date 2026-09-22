@@ -105,8 +105,8 @@ const generationContractPath = path.join(skillDir, "jsx_runner/resources.py");
 const templatePath = path.join(skillDir, "templates/template.html");
 const parseOptions = { sourceType: "script", plugins: ["jsx"], errorRecovery: false };
 const CARD_SIZE_PRESETS = Object.freeze({
-  "2x2": Object.freeze({ token: "2x2", width: 160, height: 160 }),
-  "2x4": Object.freeze({ token: "2x4", width: 320, height: 160 }),
+  "2x2": Object.freeze({ token: "2x2", width: 150, height: 150 }),
+  "2x4": Object.freeze({ token: "2x4", width: 300, height: 150 }),
 });
 const LOCAL_BROWSER_RUNTIMES = Object.freeze([
   Object.freeze({
@@ -430,15 +430,28 @@ function fixedSlotKind(element) {
   return name === "Stack" && ["CardButton", "InfoBlock"].includes(childName) ? childName : null;
 }
 
+function isFixedSlotColumn(element) {
+  if (jsxName(element?.openingElement?.name) !== "Stack") return false;
+  const props = elementProps(element);
+  const children = directJsxChildren(element);
+  return preferredAxisSize(element, null, "width") === 132
+    && preferredAxisSize(element, null, "height") === 126
+    && (props.get("direction") ?? "column") === "column"
+    && props.get("gap") === 12
+    && children.length === 2
+    && children.every((child) => fixedSlotKind(child) !== null);
+}
+
 function validateFixedSlotDimensions(element) {
   const findings = [];
   const parentName = jsxName(element.openingElement.name);
   const isGrid = parentName === "Grid";
+  const isFixedColumn = isFixedSlotColumn(element);
   directJsxChildren(element).forEach((child, index) => {
     const kind = fixedSlotKind(child);
-    if (kind === null || (!isGrid && kind !== "CardButton")) return;
+    if (kind === null || (!isGrid && !isFixedColumn && kind !== "CardButton")) return;
     const dimensions = isGrid ? cardButtonSlotDimensions(element, index) : {};
-    for (const [axis, expected] of [["width", 144], ["height", 64]]) {
+    for (const [axis, expected] of [["width", 132], ["height", 57]]) {
       const explicit = jsxName(child.openingElement.name) === "Stack" ? preferredAxisSize(child, element, axis) : null;
       const value = explicit == null || explicit === "full" ? dimensions[axis] : explicit;
       if (Number.isFinite(value) && value !== expected) {
@@ -447,6 +460,33 @@ function validateFixedSlotDimensions(element) {
       }
     }
   });
+  return findings;
+}
+
+function validateFixedSlotPlacement(root, cardSize) {
+  if (cardSize !== "2x4") return [];
+  const findings = [];
+  const visit = (element, parent = null, grandparent = null) => {
+    const name = jsxName(element?.openingElement?.name);
+    if (["InfoBlock", "CardButton"].includes(name)) {
+      const parentChildren = parent ? directJsxChildren(parent) : [];
+      const parentIsSlot = jsxName(parent?.openingElement?.name) === "Stack"
+        && preferredAxisSize(parent, grandparent, "width") === 132
+        && preferredAxisSize(parent, grandparent, "height") === 57
+        && parentChildren.length === 1;
+      const grandparentName = jsxName(grandparent?.openingElement?.name);
+      const documentedContainer = grandparentName === "Grid" || isFixedSlotColumn(grandparent);
+      if (!parentIsSlot || !documentedContainer) {
+        findings.push(finding(
+          "error",
+          "fixed-slot-placement",
+          `<${name}> must occupy one 132×57vp slot in 四槽宫格 or a fixed double-slot column`,
+        ));
+      }
+    }
+    directJsxChildren(element).forEach((child) => visit(child, element, parent));
+  };
+  visit(root);
   return findings;
 }
 
@@ -482,8 +522,8 @@ function validateCardButtonSlots(root, cardSize) {
       if (multiColumnGrid) {
         for (const axis of ["rowGap", "columnGap"]) {
           const gap = props.get(axis) ?? props.get("gap") ?? 0;
-          if (Number.isFinite(gap) && gap !== 8) {
-            findings.push(finding("error", "fixed-grid-gap", `四槽宫格 ${axis} must be 8vp; found ${gap}vp`));
+          if (Number.isFinite(gap) && gap !== 12) {
+            findings.push(finding("error", "fixed-grid-gap", `四槽宫格 ${axis} must be 12vp; found ${gap}vp`));
           }
         }
         const kinds = children.map(fixedSlotKind);
@@ -494,11 +534,6 @@ function validateCardButtonSlots(root, cardSize) {
             "card-button-grid-layout",
             "四槽宫格 requires four valid CardButton/InfoBlock slots in a two-column Grid",
           ));
-        }
-        if (kinds.length === 4 && kinds.every((kind) => kind !== null)
-          && (kinds[0] !== kinds[2] || kinds[1] !== kinds[3])) {
-          findings.push(finding("error", "card-button-grid-layout",
-            "四槽宫格 mixed CardButton/InfoBlock slots must use the same component type within each column"));
         }
       } else if (children.filter(isCardButtonSlot).length >= 2
         && ["Card", "Stack"].includes(parentName) && (props.get("direction") ?? "column") === "row") {
@@ -519,11 +554,11 @@ function validateCardButtonSlots(root, cardSize) {
             `<CardButton> parent slot must be at least as wide as it is tall; found ${width}×${height}vp`,
           ));
         }
-        if (Number.isFinite(width) && width > 144) {
+        if (Number.isFinite(width) && width > 132) {
           findings.push(finding(
             "error",
             "card-button-slot-width",
-            `<CardButton> parent slot must stay within one half-card region of at most 144vp; found ${width}vp`,
+            `<CardButton> parent slot must stay within one half-card region of at most 132vp; found ${width}vp`,
           ));
         }
         if (Number.isFinite(height) && (height < 48 || height > 64)) {
@@ -746,6 +781,11 @@ function validateStructure(source, componentName, schema, task) {
     .filter((attribute) => attribute.type === "JSXAttribute")
     .map((attribute) => [jsxName(attribute.name), attributeValue(attribute)]));
   const cardAppearance = rootProps.get("appearance");
+  const rootOpenings = openingElements(root);
+  const rootInfoBlocks = rootOpenings.filter((opening) => jsxName(opening.name) === "InfoBlock");
+  const rootBusinessComponents = rootOpenings.filter((opening) => !["Card", "Stack", "Grid"].includes(jsxName(opening.name)));
+  const isDoubleInfoBlockCard = rootInfoBlocks.length === 2
+    && rootBusinessComponents.length === 2;
 
   const cardModeComponents = new Set(["PillButton", "CircleButton", "ProgressCircleSingle", "ProgressCircle", "NumericRatio", "NumericRatioStack"]);
   const ariaComponents = new Set(["CircleButton", "ProgressCircleSingle", "ProgressCircle"]);
@@ -755,7 +795,7 @@ function validateStructure(source, componentName, schema, task) {
     findings.push(finding("error", "task-card-size", `task.size must be \"2x2\" or \"2x4\", found ${JSON.stringify(taskSize)}`));
   }
   let resolvedCardSize = taskCardSize;
-  for (const opening of openingElements(root)) {
+  for (const opening of rootOpenings) {
     const name = jsxName(opening.name);
     if (!name) {
       findings.push(finding("error", "member-jsx", `member/namespaced JSX at line ${opening.loc?.start.line}`));
@@ -804,17 +844,24 @@ function validateStructure(source, componentName, schema, task) {
           "card-size",
           `task.size=${JSON.stringify(taskCardSize.token)} requires Card.size=${JSON.stringify(taskCardSize.token)}, found ${JSON.stringify(actualSize)}`,
         ));
-      } else if (!taskCardSize && !CARD_SIZE_PRESETS[actualSize] && actualSize !== 160) {
+      } else if (!taskCardSize && !CARD_SIZE_PRESETS[actualSize] && actualSize !== 150) {
         findings.push(finding("error", "card-size", `Card.size must be \"2x2\" or \"2x4\", found ${JSON.stringify(actualSize)}`));
       }
-      resolvedCardSize = taskCardSize || CARD_SIZE_PRESETS[actualSize] || (actualSize === 160 ? CARD_SIZE_PRESETS["2x2"] : null);
+      resolvedCardSize = taskCardSize || CARD_SIZE_PRESETS[actualSize] || (actualSize === 150 ? CARD_SIZE_PRESETS["2x2"] : null);
       if (!schema.appearances.has(provided.get("appearance"))) findings.push(finding("error", "card-appearance", `unsupported Card.appearance: ${JSON.stringify(provided.get("appearance"))}`));
       if (resolvedCardSize?.token === "2x4" && String(provided.get("appearance")).startsWith("orb-")) {
         findings.push(finding("error", "card-appearance", "2x4 generated cards must use solid appearances; orb themes are 2x2 only"));
       }
       const padding = provided.has("padding") ? provided.get("padding") : 12;
-      if (padding !== 12 && padding !== "12px") {
-        findings.push(finding("error", "card-padding", "Card.padding must be omitted or equal to 12vp"));
+      const expectedPadding = resolvedCardSize?.token === "2x2" && isDoubleInfoBlockCard ? 8 : 12;
+      if (padding !== expectedPadding && padding !== `${expectedPadding}px`) {
+        findings.push(finding(
+          "error",
+          "card-padding",
+          isDoubleInfoBlockCard
+            ? '2x2 layout "双信息块" requires Card.padding=8vp'
+            : `Card.padding must be ${expectedPadding}vp`,
+        ));
       }
     }
     if (cardModeComponents.has(name) && provided.get("appearance") !== "card") {
@@ -885,6 +932,7 @@ function validateStructure(source, componentName, schema, task) {
     }
   }
   findings.push(...validateCardButtonSlots(root, resolvedCardSize?.token));
+  findings.push(...validateFixedSlotPlacement(root, resolvedCardSize?.token));
   const scopedComponents = schema.generationSafeBySize.get(resolvedCardSize?.token);
   if (scopedComponents) {
     const componentNames = new Set(openingElements(root).map((opening) => jsxName(opening.name)));
@@ -898,9 +946,53 @@ function validateStructure(source, componentName, schema, task) {
       }
     }
   }
-  const infoBlocks = openingElements(root).filter((opening) => jsxName(opening.name) === "InfoBlock");
+  const infoBlocks = rootInfoBlocks;
   if (resolvedCardSize?.token === "2x2" && infoBlocks.length && infoBlocks.length !== 2) {
     findings.push(finding("error", "info-block-count", 'Card size="2x2" must contain exactly two InfoBlock components'));
+  }
+  if (resolvedCardSize?.token === "2x2" && infoBlocks.length) {
+    const children = directJsxChildren(root);
+    const validSlots = isDoubleInfoBlockCard
+      && rootProps.get("gap") === 8
+      && children.length === 2
+      && children.every((child) => {
+        if (jsxName(child.openingElement.name) !== "Stack") return false;
+        const props = elementProps(child);
+        const contents = directJsxChildren(child);
+        return props.get("flex") === 0
+          && props.get("width") === "full"
+          && props.get("height") === 63
+          && contents.length === 1
+          && jsxName(contents[0].openingElement.name) === "InfoBlock";
+      });
+    if (!validSlots) {
+      findings.push(finding(
+        "error",
+        "info-block-layout",
+        '2x2 layout "双信息块" requires padding={8}, gap={8}, and two 134×63vp InfoBlock slots',
+      ));
+    }
+  }
+  if (resolvedCardSize?.token === "2x2") {
+    const children = directJsxChildren(root);
+    const titleSlot = children[0];
+    const titleNames = titleSlot
+      ? openingElements(titleSlot).map((opening) => jsxName(opening.name))
+      : [];
+    if (titleSlot && children.length >= 2
+      && titleNames.some((name) => ["SingleLineTitle", "DoubleLineTitle"].includes(name))) {
+      const titleProps = elementProps(titleSlot);
+      const cardGap = rootProps.has("gap") ? rootProps.get("gap") : 0;
+      const titleMargin = titleProps.has("mb") ? titleProps.get("mb") : 0;
+      if (typeof cardGap === "number" && typeof titleMargin === "number"
+        && cardGap + titleMargin !== 6) {
+        findings.push(finding(
+          "error",
+          "title-content-gap",
+          `2x2 title-to-content spacing must be exactly 6vp; Card gap (${cardGap}) + title mb (${titleMargin}) = ${cardGap + titleMargin}vp`,
+        ));
+      }
+    }
   }
   return { findings, root, signature: collectSignature(root), cardSize: resolvedCardSize };
 }
@@ -1110,6 +1202,7 @@ async function inspectBrowserCard(page) {
       visibleHorizontalOverflow: [],
       semanticComponents: [],
       edgeSpacingViolations: [],
+      titleContentGapViolations: [],
       pillButtonGapViolations: [],
       heightOverflowComponents: [],
       semanticOverlaps: [],
@@ -1343,6 +1436,36 @@ async function inspectBrowserCard(page) {
       node,
       semanticPaintedRects.get(node),
     ));
+    // For 2×2 titled layouts, validate the structural title-region boundary,
+    // not the first painted business component. The content region may align
+    // its own content to the bottom, but it must still start exactly 6vp below
+    // the natural-height title slot.
+    if (Math.abs(cardRect.width - 150) <= tolerance && Math.abs(cardRect.height - 150) <= tolerance) {
+      const titleNode = card.querySelector(".title-demo-row");
+      if (titleNode) {
+        let titleSlot = titleNode;
+        while (titleSlot.parentElement && titleSlot.parentElement !== card) {
+          titleSlot = titleSlot.parentElement;
+        }
+        const contentRegion = titleSlot.parentElement === card ? titleSlot.nextElementSibling : null;
+        if (contentRegion) {
+          const titleRect = titleSlot.getBoundingClientRect();
+          const contentRect = contentRegion.getBoundingClientRect();
+          const actualGap = contentRect.top - titleRect.bottom;
+          const requiredGap = 6;
+          if (Math.abs(actualGap - requiredGap) > tolerance) {
+            result.titleContentGapViolations.push({
+              title: describe(titleNode, paintedRect(titleNode)),
+              titleSlot: { rect: relativeRect(titleRect), ...describeNode(titleSlot) },
+              contentRegion: { rect: relativeRect(contentRect), ...describeNode(contentRegion) },
+              actualGap,
+              requiredGap,
+              difference: actualGap - requiredGap,
+            });
+          }
+        }
+      }
+    }
     // PillButton is the only business component whose inter-component gap is
     // measured here. Other component gaps remain governed by the existing
     // browser overflow/overlap/edge checks.
@@ -1363,9 +1486,8 @@ async function inspectBrowserCard(page) {
       const preceding = candidates[0];
       if (!preceding) continue;
       const actualGap = buttonRect.top - preceding.rect.bottom;
-      // 2x2 and Sub-140 use 8vp. The narrower 118vp PillButton is the
-      // documented Sub-118 variant, whose adjacent-module gap is 6vp.
-      const requiredGap = buttonRect.width <= 120.75 && cardRect.width > 200 ? 6 : 8;
+      // Type13 uses 6vp before its 116vp PillButton; Type15/15-R and 2x2 use 8vp.
+      const requiredGap = buttonRect.width <= 118.75 && cardRect.width > 200 ? 6 : 8;
       if (actualGap >= requiredGap - tolerance) continue;
       result.pillButtonGapViolations.push({
         button: describe(button, buttonRect),
@@ -1487,7 +1609,19 @@ async function inspectBrowserCard(page) {
         }
       }
     }
-    const requiredCardInset = 12;
+    const cardCss = getComputedStyle(card);
+    const cardInset = {
+      left: Number.parseFloat(cardCss.paddingLeft),
+      top: Number.parseFloat(cardCss.paddingTop),
+      right: Number.parseFloat(cardCss.paddingRight),
+      bottom: Number.parseFloat(cardCss.paddingBottom),
+    };
+    const doubleInfoBlockLayout = Math.abs(cardRect.width - 150) <= tolerance
+      && Math.abs(cardRect.height - 150) <= tolerance
+      && semanticNodes.length === 2
+      && semanticNodes.every((node) => node.matches(".info-block"))
+      && Object.values(cardInset).every((value) => Math.abs(value - 8) <= tolerance);
+    const requiredCardInset = doubleInfoBlockLayout ? 8 : 12;
     for (const node of semanticNodes) {
       const visible = visibleRect(node);
       const content = semanticPaintedRects.get(node);
@@ -1774,6 +1908,7 @@ function browserFindings(metrics, cardSize) {
   }
   for (const item of strongestDiagnostics(metrics.edgeSpacingViolations, (entry) => Math.max(...Object.values(entry.shortfall)))) {
     const maximumShortfall = Math.max(...Object.values(item.shortfall));
+    const requiredInset = Number.isFinite(item.requiredInset) ? item.requiredInset : 12;
     // Browser flex/text layout commonly introduces sub-pixel rounding around a
     // nominal 12vp inset. Keep 10-12vp visible in diagnostics, but only make a
     // clearly smaller inset block generation.
@@ -1793,17 +1928,17 @@ function browserFindings(metrics, cardSize) {
     findings.push(browserFinding(
       severity,
       "browser-edge-spacing",
-      `${label} 距离 Card 边缘不足 12vp：${edges}`,
+      `${label} 距离 Card 边缘不足 ${rounded(requiredInset)}vp：${edges}`,
       {
         component: item.component || "未知 DOM 节点",
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
         likelyCause: isProgressCircleSingleLabelOverflow
           ? `ProgressCircleSingle 的环形区域、间距和 label 共同形成 ${rounded(componentWidth)}vp 固有宽度，超过父内容区的 ${rounded(parentWidth)}vp；label 过长且组件不换行，因此侵入 Card 安全边距。`
-          : "组件位置、尺寸或父级布局占用了 Card 的 12vp 安全内边距。",
+          : `组件位置、尺寸或父级布局占用了 Card 的 ${rounded(requiredInset)}vp 安全内边距。`,
         suggestion: isProgressCircleSingleLabelOverflow
           ? "保留 ProgressCircleSingle、value、dataIds 和完整 ariaLabel，优先概括静态 label，使其不超过 5 个汉字（例如将“白天降雨概率”缩短为“降雨概率”）；不要仅为通过校验而替换组件或删除动态数据。若 label 必须动态绑定且无法缩短，再重新选择能容纳完整文本的布局或组件。"
-          : "调整父级 Stack/Grid 的 padding、direction、width、height、flex 或定位，使组件四边均位于 Card 的 12vp 安全区内。",
+          : `调整父级 Stack/Grid 的 padding、direction、width、height、flex 或定位，使组件四边均位于 Card 的 ${rounded(requiredInset)}vp 安全区内。`,
       },
     ));
   }
@@ -1821,6 +1956,20 @@ function browserFindings(metrics, cardSize) {
         evidence: item,
         likelyCause: "PillButton 底部操作槽与前一个可见业务组件之间没有保留布局规定的垂直间距。",
         suggestion: "2×2 单 Action 卡片先判断是否满足标题锚点内容布局：若右下 40×40vp 槽能避开正文、输入有可准确表达操作的 Icon，则改用 CircleButton；不适用时再重新压缩或更换其他合法布局。",
+      },
+    ));
+  }
+  for (const item of strongestDiagnostics(metrics.titleContentGapViolations, (entry) => Math.abs(entry.difference))) {
+    findings.push(browserFinding(
+      "error",
+      "browser-title-content-gap",
+      `2×2 标题区与下方内容区的实际间距为 ${rounded(item.actualGap)}vp，要求恰好为 ${rounded(item.requiredGap)}vp`,
+      {
+        component: "Card/title-region",
+        components: [item.title?.component || "Title", "ContentRegion"],
+        evidence: item,
+        likelyCause: "Card gap 与标题槽的 mb 同时表达了同一段间距，或标题后的内容区没有使用新版 6vp 间距。",
+        suggestion: "标题内容单按钮和标题主次内容单按钮使用 Card gap={6}，标题槽不写 mb；将内容区和底部按钮放入 gap={8} 的弹性操作主体。其他带标题 2×2 布局也只保留一处 6vp 标题间距。",
       },
     ));
   }

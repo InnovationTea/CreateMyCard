@@ -74,6 +74,9 @@ Search 输入第一层意图、卡片尺寸、TaskSpec、CardSpec 已批准的�
 4. 使用 `primaryData + secondaryData + optionalData` 计算显式字段覆盖；`optionalData` 可以形成覆盖，
    但不会成为模板准入的必需数据。
 5. 只保留能够独立覆盖该业务全部显式字段的模板。
+6. 为每个候选返回 `availableDataFields`：本轮候选字段中被模板实际引用、TaskSpec 已提供且类型兼容的
+   完整绑定路径，包含可用的非显式字段。按完整路径去重，不同绑定根分别计算；缺失字段、未引用字段、
+   静态文案、图标和仅用于事件参数的字段不计入。该字段只提供数据事实，不在 Search 中排序。
 
 Search 不读取主题、布局、Action 数量或 Action 消费位置，也不对业务顺序做判断。输出不重复模板自身的
 输入定义：
@@ -97,6 +100,11 @@ Search 不读取主题、布局、Action 数量或 Action 消费位置，也不�
             "/current/temperatureText",
             "/current/airQuality",
             "/location/districtName"
+          ],
+          "availableDataFields": [
+            "/data/weather/current/airQuality",
+            "/data/weather/current/temperatureText",
+            "/data/weather/location/districtName"
           ]
         }
       ]
@@ -157,8 +165,11 @@ Planner 是确定性服务模块，输入第一层意图、Search 结果、卡�
 - 显式字段覆盖与主焦点匹配信号。
 
 硬约束是每个 Plan 必须覆盖用户全部显式字段并消费每个已选 Action 恰好一次。`2x2` 单业务有显式主焦点
-时，优先只保留该字段命中模板 `primaryData` 的 Plan；未声明主焦点时按模板主数据、次数据、可选数据的
-匹配程度稳定排序。双业务 Action 可以由 `HeroTitleContentActionLayout` 的根 Action 消费，也可以由
+时，优先只保留该字段命中模板 `primaryData` 的 Plan。排序依次比较显式主焦点命中数、显式字段的主数据
+匹配数、数据使用量、次数据匹配数，最后减少仅落在可选数据中的显式字段数。数据使用量取 Plan 全部业务
+模板 `availableDataFields` 的去重并集大小；同一请求可用数据总量固定，因此按使用字段数排序等价于按
+数据使用率排序。主数据优先级保持高于使用量，同分时保留既有候选顺序。双业务 Action 可以由
+`HeroTitleContentActionLayout` 的根 Action 消费，也可以由
 `TwoSupportLayout` 中声明了可选 `actionId` 的 Support 模板消费，因此 Planner 不会先固定布局再判断
 Action。
 
@@ -181,7 +192,7 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 第二层输入最多三个完整 Plan，以及这些 Plan 涉及的 Template 完整 Props 签名、可信字符串、数字、素材
 和 Provider 二层说明。它只能：
 
-1. 完整选择一个 Plan；
+1. 按下发优先级，在能合法补全开放 Props 的候选中优先完整选择排名靠前的 Plan；
 2. 按所选 Template 的签名补全开放 Props 和可信素材；
 3. 输出一棵以该 Plan 的 Layout Template 为根的调用树。
 

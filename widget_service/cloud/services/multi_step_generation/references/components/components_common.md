@@ -7,7 +7,7 @@
 ### 数据与动作引用共同约定
 
 - `dataIds` 只记录可见显示 Prop 对应的输入 `data[].id`，不参与样式或布局计算。`data[].value` 是预览样例；若 `userQuery` 明确给出同一业务字段的当前具体值，单 ID 绑定的显示 Prop 使用 `userQuery` 中的值并继续绑定原 `dataId`；否则使用样例值。不得用 ID 字符串替代显示内容。
-- `dataIds` 的 key 必须是对应组件属性表明确允许绑定的 Prop。通常每个 value 原样引用一个输入中真实存在且当前任务内唯一的 `id`；`EventCard.items[].dataIds.time` 可按 `[dtStartId, dtEndId]` 顺序引用两个 ID，`EmphasisText.dataIds.mainText`、`EmphasisText.dataIds.secondaryText`、`InfoBlock.dataIds.secondaryText` 和 `TableText.items[].dataIds.parameter` 可使用包含两个或更多 ID 的有序数组。不得缩写、改名或虚构 ID。
+- `dataIds` 的 key 必须是对应组件属性表明确允许绑定的 Prop。通常每个 value 原样引用一个输入中真实存在且当前任务内唯一的 `id`；`EventCard.items[].dataIds.time` 可按 `[dtStartId, dtEndId]` 顺序引用两个 ID，`EmphasisText.dataIds.secondaryText`、`InfoBlock.dataIds.secondaryText` 与 `TableText.items[].dataIds.parameter` 可使用包含两个或更多 ID 的有序数组。`EmphasisText.dataIds.mainText` 与 `TableText.items[].dataIds.label` 只允许一个 ID。不得缩写、改名或虚构 ID。
 - 根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案是静态 UI 文案，不绑定。标题或副标题只有在当前输入 `data[]` 明确提供对应字段时才绑定；不得按业务域构造 `*.cardTitle`、`*.subtitle` 等不存在的 ID。
 - `dataIds` 引用的数据类型必须与目标 Prop 的用途兼容。最终渲染为可见文本的 Prop 可绑定 string、integer 或 number，数字由文本组件直接显示；参与进度计算的 Prop 通常只能绑定 integer 或 number，`ProgressCircle.externalText` 可额外接受纯数字字符串或数字百分比字符串并在组件内部转换。Boolean 优先绑定 `done` 等 boolean Prop。确实需要把 Boolean 显示成双状态文案且输入没有描述性字符串时，必须同时为同一 Prop 提供完整的 `dataValueMaps`，其中 `true`／`false` 都是非空且不同的字符串；禁止只按当前样例值静态翻译。
 - `dataValueMaps` 只做 Boolean 到可见文本的响应式映射，不代替 `dataIds`，也不能用于进度值、布局或视觉属性。其 key 必须同时存在于同一对象的 `dataIds`；数组项需要映射时，将 `dataValueMaps` 与该项的 `dataIds` 写在同一个 item 内。
@@ -15,7 +15,7 @@
 - Boolean 可直接用于 `disabled`、`done` 等 boolean Prop。文本 Prop 不接受裸 Boolean；只有同时通过同名 `dataIds` 和完整 `dataValueMaps={{ prop: { true: "…", false: "…" } }}` 声明双状态文案时，才允许把 Boolean 响应式显示为文本。
 - 所有来自输入 `data` 的可见业务值都必须绑定；通常一个显示 Prop 只绑定一个数据 ID。只有组件属性表明确声明数组形式时，才能让同一显示 Prop 绑定多个 ID。`Card`、`Stack`、`Grid`、Icon、appearance、尺寸、位置和颜色等视觉属性不得绑定。
 - 每个原子业务事实在整张卡片中必须只有一个可见 owner，标题也计入 owner。一个 ID 已绑定到可见文本 Prop 或作为有序 ID 数组成员进入某段文本后，不得再绑定到另一段可见文本；也不得通过静态标题、标签或同义改写重复表达同一事实。同一数值可以同时驱动进度图形和该图形配套的唯一数值文本。若 `SecondaryBody`、`TableText` 等组件的最少条目数会迫使事实重复，应改选合同匹配的组件，不能复制数据凑数。
-- 多个输入字段不得在 JSX 中手工拼成一个动态字符串。应使用组件的多 item 模式、拆成多个组件，或使用合同明确允许的有序 ID 数组；`EventCard.items[].time` 用 ` – ` 组合开始／结束时间，`EmphasisText.mainText`、`EmphasisText.secondaryText` 、`InfoBlock.secondaryText` 和 `TableText.items[].parameter` 用 ` ｜ ` 组合多个短字段。添加或删除绑定不得改变其余 Props、组件树和槽位尺寸。
+- 多个输入字段不得在 JSX 中手工拼成一个动态字符串。应使用组件的多 item 模式、拆成多个组件，或使用合同明确允许的有序 ID 数组；`EventCard.items[].time` 用 ` – ` 组合开始／结束时间，`EmphasisText.secondaryText` 与 `InfoBlock.secondaryText` 可用 ` ｜ ` 组合多个紧密关联的短字段，`TableText.items[].parameter` 使用紧凑连接符 `｜`；`EmphasisText.mainText` 不允许拼接多个业务字段。添加或删除绑定不得改变其余 Props、组件树和槽位尺寸。
 - 静态 `label`、`unit` 和 `separator` 可以说明动态值，但必须遵守对应组件合同，不得改变数值和业务语义。有单位槽的组件可为独立数字或纯数字字符串声明静态单位，保留原值及精度；完整带单位字符串必须保留完整，不得自行拆分或补写单位。
 - 格式化字符串只能绑定到接受字符串的显示 Prop；`EmphasizedData` 会自动拆分完整字符串，生成代码仍原样填写 `value="25 分钟"`。`ProgressCircle` 只绑定 `externalText`，由组件内部解析其中的数字驱动圆环；其他进度组件仍按各自属性表绑定实际进度值。`ProgressCircleSingle.value` 在没有独立数值字段时允许绑定完整的格式化百分比字符串。
 - `actionId` 只能原样引用输入 `actions[].id`。模型输入中的 `actions[].description` 是映射后的推荐按钮术语，不是上游原始动作描述或业务数据；只能用于选择动作，并可作为绑定该动作的按钮内简短 `label`／`text`／`ariaLabel`。禁止把该术语或改写后的操作说明放入标题、正文、摘要、数据项或按钮外的任何可见内容；按钮已经表达操作后，不得再生成“点击／点开／打开／查看／进入……”等引导文案重复说明该操作。一个控件最多引用一个动作，同一 `actionId` 在一张卡片中最多使用一次。
@@ -24,7 +24,7 @@
 
 本文件只包含两种 Card 尺寸都可使用的组件。Runner 会根据当前任务的 `Card.size`，继续拼接对应尺寸的专属组件文档。
 
-`SingleLineTitle`、`DoubleLineTitle`、`Badge`、`EmphasizedData`、`EmphasisText`、`SecondaryBody`、`InfoBlock`、`TableText`、`ProgressLine2`、`ProgressCircleSingle`、`ProgressCircle`、`NumericRatio`、`EventCard`、`H_BarChart`、`PillButton`
+`SingleLineTitle`、`DoubleLineTitle`、`Badge`、`EmphasizedData`、`EmphasisText`、`SecondaryBody`、`DataDisplay`、`InfoBlock`、`TableText`、`ProgressLine2`、`ProgressCircleSingle`、`ProgressCircle`、`NumericRatio`、`EventCard`、`H_BarChart`、`PillButton`
 
 ### 1.2 动态数据与显式单位
 
@@ -67,7 +67,7 @@
 | 占位属性 | 值 | 说明 |
 |---|---|---|
 | `width` | `fit-content`，上限 `100%` | 按标题文本自然宽度占位；超出父槽时收缩并省略 |
-| `height` | 18vp | 固定单行占高；超宽时省略，不增加高度 |
+| `height` | 16vp | title 行高固定为 16vp；超宽时省略，不增加高度 |
 
 ### 2.2 DoubleLineTitle
 
@@ -192,8 +192,10 @@
 选择文本组件前，必须先按用户意图在每个语义分区内将展示事实分为“唯一核心”“补充说明”或“同级属性”，再选择组件：
 
 - 如果存在一个与用户意图相关性明显最高的字段，该字段必须由 `EmphasisText`、`EmphasizedData`、`InfoBlock` 或其他能够表达核心信息的业务组件承载；不得为了结构简单或节省高度，把它降级为 `TableText.items[].parameter`。核心字段是纯文本时使用 `EmphasisText`，是数值与单位或完整格式化数值文本时使用 `EmphasizedData`；若只有一个补充字段且不满足 `SecondaryBody` 至少两项的合同，可选择语义匹配的 `InfoBlock` 或核心组件自身允许的解释槽。
-- 核心信息之外的多个补充字段使用同分区内的 `SecondaryBody`，并保留此前规定的自适应换行规则。空间不足时应更换可闭合的 Layout Pattern、使用规范允许的紧凑规格或选择能够无损承载相同事实的核心组件；不得仅为通过布局校验取消核心层级并把全部事实压成 `TableText`。
-- 只有两个及以上字段在用户意图中确实是同级并列属性，或者该分区的核心信息已经由标题或其他核心业务组件唯一表达时，才能使用 `TableText` 展示这些属性。用户按顺序列举多个字段本身不自动证明第一个字段是核心；必须依据问题焦点、对象关系和语义主次判断，不得虚构核心层级。
+- 核心信息之外的多个补充字段按可读性选择同分区内的一个 `SecondaryBody` 或一个 `TableText`。值本身自描述、适合作为简短正文连续阅读时使用 `SecondaryBody`，并保留此前规定的自适应换行规则；值是“良、中等、低、是、否”等离开逐项标签就无法判断含义的状态或等级时，使用 `TableText` 保留每项标签。空间不足时应更换可闭合的 Layout Pattern、使用规范允许的紧凑规格或选择能够无损承载相同事实的核心组件；不得仅为通过布局校验取消核心层级并把包括核心在内的全部事实压成 `TableText`。
+- 普通多字段信息卡默认必须依据用户目的、问题焦点和业务语义选出一个相关性最高的动态核心字段。静态类别标题（例如“设备状态”“天气信息”“健康指数”）只说明卡片主题，不是核心业务事实，不能代替 `EmphasisText`、`EmphasizedData` 或其他核心组件。
+- 只有用户明确要求列表、清单、逐项查看、对比或等权汇总，并且两个及以上字段在用户意图中确实同级时，才能使用 `TableText` 作为唯一业务组件。已经存在独立核心组件时，`TableText` 可以承载必须依赖逐项标签才能准确理解的补充明细。左侧 `label` 可以是静态标签，也可以是每行的动态短标识。不能仅因为字段可写成“标签 + 参数”、数量较多、空间紧张或存在按钮，就把包括核心在内的全部信息判定为同级。若核心信息已经由标题表达，该标题必须真实绑定并展示用户关注的动态核心字段；普通静态标题不满足这一条件。
+- `EmphasisText.secondaryText` 只承载一个次文本字段，或少量组合后仍可立即理解的紧密关联字段。单个裸数值使用 `{value}` 模板补充语义；多 ID 次文本必须使用 `{0}`、`{1}`……索引模板逐项标注。不得把三个及以上不同语义的补充字段压入同一行；这种情况应保留核心组件，并将补充字段改用带逐项标签的 `TableText`。
 - 同一语义分区最多只能有一个强调核心：`EmphasisText` 和 `EmphasizedData` 合并计数，任意组合总数超过一个均为错误。普通包装 `Stack` 不会建立新的语义分区；只有当前 Layout Pattern 明确划分的独立业务分区才分别计算。
 
 ### 3.1 EmphasizedData
@@ -262,27 +264,36 @@
 | 占位属性 | 值 | 说明 |
 |---|---|---|
 | `width` | `max-content`，受父槽宽度约束 | 单组或多组数值均横向排列，不主动占满父槽 |
-| `value-typography` | Display_S / 38px / Bold 700 / 38px | 核心数值使用紧凑 `line-height: 1`；单行数字行盒为 38vp，单位换行时组件按内容向下扩展，不强行裁切或压缩为 38vp |
+| `value-typography` | Title_L / 30fp / Bold 700 / 32vp | 核心数值使用 `font-primary`；单行数值行盒为 32vp |
 | `value-color` | `font-primary` | 核心数值字色 |
-| `unit-typography` | Caption_L / 12px / Regular 400 / 18px | 单位字体规格 |
+| `unit-typography` | Caption_L / 12fp / Medium 500 / 18vp | 单位字体规格 |
 | `unit-color` | `font-secondary` | 单位字色 |
 | `align-items` | `baseline` | 数值与单位的第一行文字基线对齐，而非行盒底部对齐；`ProgressLine2` 保留其紧凑单位行盒及既有基线对齐 |
-| `gap` | 2px | 数值与单位、单位与下一组数值之间的水平间距 |
-| `temperature-format` | `26°` | 数值和 `°` 作为整体采用 38px Bold 样式 |
+| `gap` | 2vp | 数值与单位、单位与下一组数值之间的水平间距 |
+| `temperature-format` | `26°` | 数值和 `°` 作为整体采用 Title_L / Bold 样式 |
 | `description-slot` | 无 | 数值和可选单位就是全部信息 |
 
 ### 3.2 EmphasisText
 
-文档中名称为“强调文本”。用于展示当前分区内与用户意图相关性最高的核心文本数据，由一个主文本字段，或主文本加次文本两个字段构成；次文本槽位非必选。同一分区内只允许出现一个核心信息，不得并列或堆叠多个 `EmphasisText`，也不得再用 `EmphasizedData` 重复强调另一个核心信息。
+文档中名称为“强调文本”。用于展示当前分区内与用户意图相关性最高的核心文本数据。`mainText` 只承载一个核心字段；紧密关联的第二字段使用 `secondaryText`，不得把两个业务字段用 `｜` 拼接在 `mainText` 中。同一分区内只允许出现一个核心信息，不得并列或堆叠多个 `EmphasisText`，也不得再用 `EmphasizedData` 重复强调另一个核心信息。
 
 #### 组件属性
 
 | 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
 |---|---|---|---|---|
-| `mainText` | `string` | 必选 | 无默认值 | 主文本 |
+| `mainText` | `string` | 必选，只能表达一个核心字段 | 无默认值 | 主文本；不得用 `｜` 拼接其他业务字段 |
 | `secondaryText` | `string` | 可选 | 不传时不创建次文本行 | 与核心主文本共同构成同一核心信息的第二个文本字段；没有真实且必要的第二字段时省略，不得虚构 |
-| `dataIds` | `{ mainText?: string \| string[], secondaryText?: string \| string[] }` | 对应文本来自输入数据时必选 | 不传时无绑定 | 单字段传一个 ID；同一显示 Prop 由多个短字段组成时，传包含两个或更多 ID 的有序数组 |
+| `secondaryTextTemplate` | `string` | 单个 ID 使用一个 `{value}`；有序数组依次使用 `{0}`、`{1}`……且各出现一次 | 不传时直接显示绑定值 | 为动态次文本补充静态语义标签；`secondaryText` 仍填写完整预览文案 |
+| `dataIds` | `{ mainText?: string, secondaryText?: string \| string[] }` | 对应文本来自输入数据时必选 | 不传时无绑定 | `mainText` 只绑定一个 ID；仅 `secondaryText` 在多个短字段合并后仍表达同一次要语义时可使用有序数组 |
 | `dataValueMaps` | `{ mainText?: { true: string, false: string }, secondaryText?: { true: string, false: string } }` | 单 ID 绑定源为 Boolean 且需要显示文本时必选 | 不传时不转换 | 必须与同名的单个 `dataIds` 配对；多 ID 数组不支持 Boolean 映射 |
+
+#### 空间占位
+
+| 占位属性 | 值 | 说明 |
+|---|---|---|
+| `mainText-typography` | Subtitle_L / 18fp / Bold 700 / 24vp | 主文本使用 `font-primary`，单行行盒高 24vp |
+| `secondaryText-typography` | Body_S / 12fp / Regular 400 / 16vp | 次文本使用 `font-secondary` |
+| `gap` | 2vp | 主文本与次文本之间的纵向间距；省略次文本时不保留空行 |
 
 ```jsx
 <EmphasisText
@@ -301,19 +312,24 @@
 />
 ```
 
-只有一个核心文本字段时省略 `secondaryText`：
+运动类型是核心文本、时长是关联补充时，必须分别使用 `mainText` 和 `secondaryText`：
 
 ```jsx
 <EmphasisText
   mainText="户外跑步"
-  dataIds={{ mainText: "healthSport.lastExerciseType" }}
+  secondaryText="时长 40分"
+  secondaryTextTemplate="时长 {value}"
+  dataIds={{
+    mainText: "healthSport.exerciseTypeName",
+    secondaryText: "healthSport.exerciseDurationText",
+  }}
 />
 ```
 
-同一行文本需要跟随多个数据源独立更新时，对应 `dataIds` 可使用有序数组。JSX 预览由 `mainText` 和 `secondaryText` 中的完整样例文本保持原有视觉；后续转换层按数组顺序用固定的 ` ｜ ` 连接各数据路径。不得用 ID 替代可见文本。
+`mainText` 不支持多 ID 数组。两个字段存在主次关系时分别放入 `mainText` 和 `secondaryText`；更多补充字段改用 `SecondaryBody` 或 `TableText`。单个次文本值脱离标签无法理解时，使用包含一个 `{value}` 的 `secondaryTextTemplate`。多个短字段合并后仍表达同一次要语义时，`dataIds.secondaryText` 使用有序数组，并必须用索引模板为每项保留语义。
 
 ```jsx
-<EmphasisText mainText="多云" secondaryText="上海市 ｜ 青浦区" dataIds={{"mainText":"weather.current.condition","secondaryText":["weather.location.prefectureName","weather.location.districtName"]}} />
+<EmphasisText mainText="多云" secondaryText="城市 上海市 ｜ 区域 青浦区" secondaryTextTemplate="城市 {0} ｜ 区域 {1}" dataIds={{"mainText":"weather.current.condition","secondaryText":["weather.location.prefectureName","weather.location.districtName"]}} />
 ```
 
 数组中每个 ID 必须真实存在、不重复，且对应 string、integer 或 number 类型的短显示字段。数组不接受 Boolean，也不与 `dataValueMaps` 组合；Boolean 状态仍使用单 ID 和同名 `dataValueMaps`。只有一个数据源时必须使用字符串 ID，不要生成单元素数组。
@@ -434,23 +450,82 @@
 - 入睡时间、起床时间或最高温、最低温来自不同数据字段时，分别绑定到独立组件或同一组件的独立 item；只有输入本身提供完整展示字段时，才能原样绑定到一个 `body` Prop。
 - 裸数字、百分比和“优／正常／高”等孤立状态通常需要静态语义 Label；温度文本（如 `29°C`）和时刻文本（如 `07:30`）自身已带明确类型信息，不强制重复添加“温度”“时间”等 Label。
 
+### 3.5 DataDisplay
+
+由文本标签、核心数值和单位／辅助信息组成的三行纵向文本组件，用于 2×2 或 2×4 的“核心居中”单模块布局。它适合倒计时、日期等需要以一个超大数值作为唯一视觉核心的场景，不用于同一分区并列展示多组数据。
+
+#### 组件属性
+
+| 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
+|---|---|---|---|---|
+| `label` | `string` | 必选 | 无默认值 | 第一行文本标签 |
+| `value` | `number \| string` | 必选 | 无默认值 | 第二行核心数值；保持输入值的真实内容，不附加静态单位 |
+| `supportingText` | `string` | 必选 | 无默认值 | 第三行单位或辅助信息 |
+| `dataIds` | `{ value?: string }` | `value` 来自输入数据时必选 | 不传时无绑定 | 只允许绑定核心数值 `value`；`label` 与 `supportingText` 始终是静态 UI 文案，不绑定数据 ID |
+
+静态说明文字不需要绑定。下面示例中，`label` 和 `supportingText` 是静态 UI 文案，只有动态倒计时数值绑定数据：
+
+```jsx
+<Stack direction="column" width={116} height={110} align="center" justify="center">
+  <DataDisplay
+    label="马拉松还剩"
+    value={7}
+    supportingText="天"
+    dataIds={{ value: "marathon.remainingDays" }}
+  />
+</Stack>
+```
+
+即使 `label` 或 `supportingText` 的显示文案与输入数据内容相同，也不得为它们填写 `dataIds`。动态更新只作用于中间的核心 `value`，不会改变三行结构、样式或布局。
+
+#### 空间占位
+
+| Card 尺寸 | `width` | `height` | 说明 |
+|---|---|---|---|
+| `2x2` | `max-content`，最大 126vp | 114vp | 三行分别占 18vp、60vp、20vp，两处垂直间距各 8vp；在 126 × 126vp 安全内容区内居中 |
+| `2x4` | `100%`，最大为父槽宽度 | 110vp | 三行分别占 18vp、64vp、20vp，两处间距各 4vp；“左右双区”在 116 × 110vp 安全区内居中，“左内容右侧双槽／左侧双槽右内容”在 132 × 126vp 内容区内居中 |
+
+2×4 模式下，组件宽度随“左右双区”或“左内容右侧双槽／左侧双槽右内容”的父槽变化；`label`、`value` 和 `supportingText` 均保持单行，超出当前宽度时省略，不通过缩小字号或增加组件高度解决。
+
+#### 布局约束
+
+- `DataDisplay` 只用于“核心居中”单模块布局，不额外添加标题、按钮或并列业务组件。
+- 2×2 中放入 126 × 126vp 安全内容区并水平、垂直居中。
+- 2×4 中只进入“左右双区”的 116 × 110vp“核心居中”子布局，或“左内容右侧双槽／左侧双槽右内容”的 132 × 126vp“核心居中”子布局，并设置水平、垂直居中。
+- 背景选择遵循 `references/core.md` 的 `Card.appearance` 规则；融球背景仅适用于 2×2，2×4 使用该尺寸允许的纯色背景。禁止在业务 JSX 中手工添加椭圆 DOM、`style`、`background` 或硬编码颜色。
+
 ### 3.6 InfoBlock
 
-高度固定为 64vp、宽度填满父槽的紧凑信息组件，由主文本、副文本和背板组成，并可按需增加右侧尾部视觉。存在明确的图形识别或 0–100 占比／进度语义时，尾部视觉在 Icon 与 ProgressCircle 中二选一；没有合适视觉或需要为文本保留完整宽度时可以省略 `visual`。
+高度由固定槽决定、宽度填满父槽的紧凑信息组件：2×2 高 63vp，2×4 高 57vp。由主文本、副文本和背板组成，并可按需增加右侧尾部视觉。
+
+**先确认槽位再选择：**2×4 的 InfoBlock 是固定槽模块，不是普通内容组件；仅用于“左内容右侧双槽／左侧双槽右内容”的固定槽列或“四槽宫格”。所有 Sub-118／Sub-140 内容区均禁止使用，包裹 Stack/Grid 也不能改变这一限制；合法 Region.slot 见[语义布局接口](../layouts/semantic_layouts_2x4.md#infoblock-槽位限制)。普通内容区的主副文本优先考虑 EmphasisText，核心数值考虑 EmphasizedData，单设备余量考虑 ProgressCircleSingle（子布局用 size="compact"）；按组件合同保留全部信息和绑定，不机械替换 Props，也不为使用 InfoBlock 虚构其他固定槽模块。2×2“双信息块”用法不变。
 
 #### 组件属性
 
 | 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
 |---|---|---|---|---|
 | `primaryText` | `string \| number` | 必选 | 无默认值 | 左侧第一行核心信息；数值和文本均可，单行省略 |
+| `primaryTextTemplate` | `string` | 仅当 `dataIds.primaryText` 存在时可选；必须且只能包含一个 `{value}` | 不传时直接显示绑定值 | 为动态主值增加简短静态前后缀；`primaryText` 仍填写完整预览文案 |
 | `secondaryText` | `string \| number` | 必选 | 无默认值 | 左侧第二行解释信息或次要信息，单行省略；可由一个数据字段提供，也可组合多个短字段 |
+| `secondaryTextTemplate` | `string` | 单个 ID 使用一个 `{value}`；有序数组依次使用 `{0}`、`{1}`……且各出现一次 | 不传时直接显示绑定值 | 为动态副文本增加静态语义标签；`secondaryText` 仍填写完整预览文案 |
 | `unit` | `string` | 可选，静态 UI 文案 | 不传时不显示 | 主文本为数值时与其同行显示；不允许绑定数据 ID |
 | `visual` | `InfoBlockIconVisual \| InfoBlockProgressVisual` | 可选；提供时二选一 | 不传时不显示尾部视觉，文本区域使用剩余宽度 | 右侧 Icon 或 ProgressCircle；不得同时提供两种视觉 |
 | `dataIds` | `{ primaryText?: string, secondaryText?: string \| string[] }` | 对应文本来自输入数据时分别绑定 | 不传时无绑定 | `primaryText` 绑定一个 ID；`secondaryText` 绑定一个 ID，或按显示顺序绑定两个及以上 ID；`unit` 与 `visual` 不绑定 |
 
-省略 `visual` 时，组件只显示主、副文本，不生成空视觉占位。提供 `visual` 时只接受两种结构：`{ type: "icon", icon, color?: "native" }` 用于图形识别；`{ type: "progressCircle", icon }` 用于 0–100 占比／进度，圆环直接解析并限制 `primaryText`。两者的 `icon` 均必选且必须来自语义匹配的 `assetCandidates`；单色 Icon 与按钮一样自动跟随 Card appearance，浅色背景使用对应主题色，深色渐变背景使用白色。仅保留原生多色外观时写 `color: "native"`。
+两行内容都必须能独立理解。动态值需要静态语义时，使用对应的 `primaryTextTemplate` 或 `secondaryTextTemplate`，不要只把标签写进显示 Prop；值本身已能说明语义时无需模板。状态值作为 `primaryText` 时必须用 `primaryTextTemplate` 标明所属对象；多个同类状态合并到 `secondaryText` 时，必须用索引模板逐项标明所属对象，不得只拼接无法区分对象的状态值。省略 `visual` 时，组件只显示主、副文本，不生成空视觉占位。提供 `visual` 时只接受两种结构：`{ type: "icon", icon, color?: "native" }` 用于图形识别；`{ type: "progressCircle", icon }` 用于 0–100 占比／进度，圆环使用绑定的原始数值，不解析模板文案。两者的 `icon` 均必选且必须来自语义匹配的 `assetCandidates`；单色 Icon 与按钮一样自动跟随 Card appearance，浅色背景使用对应主题色，深色渐变背景使用白色。仅保留原生多色外观时写 `color: "native"`。
 
-`secondaryText` 需要由多个短字段共同组成时，`dataIds.secondaryText` 使用有序数组，转换层会用固定的 ` ｜ ` 连接各数据路径，并保持每个字段独立响应更新。数组至少包含两个真实、非重复的 string、integer 或 number 数据 ID；只有一个字段时仍使用字符串 ID。
+`secondaryText` 需要由多个短字段共同组成时，`dataIds.secondaryText` 使用有序数组，并保持每个字段独立响应更新。自描述字段不传模板时由转换层用固定的 ` ｜ ` 连接；需要逐项标签时，`secondaryTextTemplate` 按数组顺序使用 `{0}`、`{1}`……。数组至少包含两个真实、非重复的 string、integer 或 number 数据 ID；只有一个字段时仍使用字符串 ID。
+
+```jsx
+<InfoBlock
+  primaryText="今日步数 6200"
+  primaryTextTemplate="今日步数 {value}"
+  unit="步"
+  secondaryText="距离 4.60 公里"
+  secondaryTextTemplate="距离 {value}"
+  dataIds={{ primaryText: "healthSport.dailySteps", secondaryText: "healthSport.dailyDistanceText" }}
+/>
+```
 
 ```jsx
 <InfoBlock
@@ -470,20 +545,22 @@
 
 | 占位属性 | 值 | 说明 |
 |---|---|---|
-| `size` | 父槽宽度 × 64vp | 宽度填满 Layout Pattern 分配的父槽，高度固定为 64vp；2×2“双信息块”中为 136 × 64vp，2×4 固定槽中为 144 × 64vp |
+| `size` | 父槽宽度 × 固定槽高 | 2×2“双信息块”为 134 × 63vp；2×4“四槽宫格／左内容右侧双槽／左侧双槽右内容”固定槽为 132 × 57vp |
 | `overflow` | 单行省略 | 主文本和副文本超宽时不换行，不增加组件高度 |
 
 #### 合法 JSX 示例与布局约束
 
-- `InfoBlock` 高度始终保持 64vp，宽度使用父槽的完整可用宽度；外层 `Stack` 或 `Grid` 必须按当前尺寸的 Layout Pattern 提供明确槽宽。2×2“双信息块”的 136vp 槽中组件宽为 136vp；2×4“四槽宫格”与“左内容右侧双槽”的固定槽中组件宽为 144vp。不得向 `InfoBlock` 传入 `width` Prop 覆盖父槽尺寸。
-- 在 2×2 卡片中，`InfoBlock × 2` 使用“双信息块”：`Card` 设置 `gap={8}`，每个 `InfoBlock` 分别放入一个 `<Stack direction="column" flex={0} height={64}>`。
+- `InfoBlock` 宽度使用父槽的完整可用宽度；2×2 固定高度为 63vp，2×4 固定高度为 57vp。不得向 `InfoBlock` 传入 `width` Prop 覆盖父槽尺寸。
+- 在 2×2 卡片中，`InfoBlock × 2` 使用“双信息块”：`Card` 设置 `padding={8} gap={8}`，每个 `InfoBlock` 分别放入一个 134 × 63vp 槽。
 
 ```jsx
-<Card direction="column" size="2x2" appearance="orb-purple" gap={8}>
-  <Stack direction="column" flex={0} height={64}>
+<Card direction="column" size="2x2" appearance="orb-purple" padding={8} gap={8}>
+  <Stack direction="column" flex={0} width="full" height={63}>
     <InfoBlock
       primaryText="昨夜7小时1分"
+      primaryTextTemplate="昨夜{value}"
       secondaryText="午睡0分"
+      secondaryTextTemplate="午睡{value}"
       visual={{
         type: "icon",
         icon: "moon_z_fill_1.svg",
@@ -494,10 +571,12 @@
       }}
     />
   </Stack>
-  <Stack direction="column" flex={0} height={64}>
+  <Stack direction="column" flex={0} width="full" height={63}>
     <InfoBlock
       primaryText="昨夜82分"
+      primaryTextTemplate="昨夜{value}"
       secondaryText="睡眠｜科学睡眠"
+      secondaryTextTemplate="睡眠｜{value}"
       visual={{
         type: "icon",
         icon: "moon_z_fill_1.svg",
@@ -512,10 +591,11 @@
 ```
 
 ```jsx
-<Card direction="column" size="2x2" appearance="solid-blue" gap={8}>
-  <Stack direction="column" flex={0} height={64}>
+<Card direction="column" size="2x2" appearance="solid-blue" padding={8} gap={8}>
+  <Stack direction="column" flex={0} width="full" height={63}>
     <InfoBlock
       primaryText="成都 29℃"
+      primaryTextTemplate="成都 {value}"
       secondaryText="多云"
       visual={{
         type: "icon",
@@ -526,9 +606,10 @@
         secondaryText: "weather1.current.condition"
       }} />
   </Stack>
-  <Stack direction="column" flex={0} height={64}>
+  <Stack direction="column" flex={0} width="full" height={63}>
     <InfoBlock
       primaryText="上海 29℃"
+      primaryTextTemplate="上海 {value}"
       secondaryText="多云"
       visual={{
         type: "icon",
@@ -545,16 +626,20 @@
 ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑定；输入提供的主、副文本分别通过同名 `dataIds` 绑定：
 
 ```jsx
-<Stack direction="column" flex={0} height={64}>
+<Stack direction="column" flex={0} width="full" height={63}>
   <InfoBlock
-    primaryText={68}
+    primaryText="电量 68"
+    primaryTextTemplate="电量 {value}"
     unit="%"
-    secondaryText="剩余电量"
+    secondaryText="未充电"
     visual={{
       type: "progressCircle",
       icon: "icon_charge.svg",
     }}
-    dataIds={{ primaryText: "battery.remainingPercent" }}
+    dataIds={{
+      primaryText: "battery.remainingPercent",
+      secondaryText: "battery.chargingStatusDesc",
+    }}
   />
 </Stack>
 ```
@@ -568,9 +653,9 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 | 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
 |---|---|---|---|---|
 | `items` | `Array<{ key?, label, parameter, dataIds? }>` | 必选，至少 2 项 | 默认空数组；runtime 可渲染已有的短数组，但少于 2 项不符合新生成规范 | 多组纵向排列；每项必须同时提供 `label` 和 `parameter` |
-| `items[].label` | `string` | 必选，静态 UI 文案 | 无默认值 | 左侧文本标签，不允许绑定数据 ID |
+| `items[].label` | `string` | 必选 | 无默认值 | 左侧短标识；可使用静态标签，也可绑定一个动态字段，例如星期、日期或设备名 |
 | `items[].parameter` | `string \| number` | 必选 | 无默认值 | 右侧文本或数值单位参数；来自输入数据时必须绑定 |
-| `items[].dataIds` | `{ parameter?: string \| string[] }` | `parameter` 来自输入数据时必选 | 不传时无绑定 | 单字段传一个 ID；同一参数需要组合两个或更多短字段时传有序 ID 数组；只允许绑定 `parameter` |
+| `items[].dataIds` | `{ label?: string, parameter?: string \| string[] }` | 对应字段来自输入数据时必选 | 不传时无绑定 | `label` 只绑定一个 ID；`parameter` 单字段传一个 ID，组合时传两个或更多有序 ID |
 | `items[].dataValueMaps` | `{ parameter?: { true: string, false: string } }` | 单 ID 绑定源为 Boolean 且需要显示文本时必选 | 不传时不转换 | 必须与同一 item 的单个 `dataIds.parameter` 配对；多 ID 数组不支持 Boolean 映射 |
 
 ```jsx
@@ -595,32 +680,33 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 />
 ```
 
-`label` 用于解释右侧参数的业务含义，始终由生成代码静态提供。即使输入数据中存在相同文本，也不得生成 `dataIds.label`。只有 `parameter` 会在转换后关联动态数据路径；增加绑定不会改变组件 DOM、样式或布局。
+`label` 可以是静态业务标签，也可以绑定每行的动态短标识。多日天气记录同时提供完整日期和星期时，优先把星期及其 `dataId` 放入 `label`，完整日期作为可选信息；天气、温度范围和降雨概率等详情放入 `parameter`。其他重复记录也应将日期、设备名等可区分对象的短字段放入 `label`。`parameter` 的有序数组没有数量上限，但仍应避免把彼此无关的字段堆入右列；空间不足时应按用户问题重组信息或更换布局，不用省略号隐藏超长组合。
 
-同一行参数需要跟随多个短数据源独立更新时，使用有序 ID 数组；转换后按数组顺序使用固定的 ` ｜ ` 连接。数组至少包含两个真实、不重复的 string、integer 或 number 数据 ID，不接受 Boolean，也不能与 `dataValueMaps` 同时使用：
+同一行参数需要跟随两个短数据源独立更新时，使用恰好包含两个 ID 的有序数组；转换后按数组顺序使用固定的紧凑连接符 `｜`。数组中的 ID 必须真实、不重复且为 string、integer 或 number，不接受 Boolean，也不能与 `dataValueMaps` 同时使用：
 
 ```jsx
 <TableText
   items={[
     {
-      label: "时间地点",
-      parameter: "09:00 ｜ C5会议室",
+      label: "星期四",
+      parameter: "多云｜25℃/32℃",
       dataIds: {
+        label: "weather.daily.0.weekday",
         parameter: [
-          "calendar.events.0.dtStart",
-          "calendar.events.0.eventLocation",
+          "weather.daily.0.condition",
+          "weather.daily.0.temperatureRangeText",
         ],
       },
     },
     {
-      label: "提醒",
-      parameter: "已开启",
-      dataIds: { parameter: "calendar.reminder.enabled" },
-      dataValueMaps: {
-        parameter: {
-          true: "已开启",
-          false: "未开启",
-        },
+      label: "星期五",
+      parameter: "晴｜24℃/33℃",
+      dataIds: {
+        label: "weather.daily.1.weekday",
+        parameter: [
+          "weather.daily.1.condition",
+          "weather.daily.1.temperatureRangeText",
+        ],
       },
     },
   ]}
@@ -632,8 +718,8 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 | 占位属性 | 值 | 说明 |
 |---|---|---|
 | `width` | `100%` | 每组及整个组件占满父容器分配的宽度 |
-| `height` | 两项时自然高度 34vp；三项及以上填满父槽 | 每项固定 16vp。恰好两项时组件不填满父槽，两行以固定 2vp 间距紧邻排列，由外层布局的 `justify` 决定整个组件顶部、居中或底部对齐；三项及以上均分父槽剩余高度，相邻项间距最小 2vp。父槽不足时报告溢出，不压缩行高 |
-| `row-overflow` | 单行省略 | 每项不换行，不增加单项高度 |
+| `height` | 两项时自然高度 34vp；三项及以上填满父槽 | 常规每项 16vp。恰好两项时组件不填满父槽，两行以固定 2vp 间距紧邻排列；三项及以上均分父槽剩余高度。在不超过 120vp 的窄槽内，三项及以上每项使用 24vp 紧凑双行规格 |
+| `row-overflow` | Label 完整、Parameter 自适应 | 左侧短 Label 使用自然宽度且保持单行完整；常规宽度下右侧 Parameter 单行省略，窄槽三项及以上时允许最多两行，超过两行才省略 |
 
 #### 布局约束
 
@@ -821,7 +907,7 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 | 占位属性 | 值 | 说明 |
 |---|---|---|
 | `width` | 100% | 撑满父布局分配的模块宽度；适配 2×2 与 2×4 Card |
-| `height` | `30 × N + 11 × (N − 1)vp` | `N` 为 items 数量；每项占高 30vp，相邻项间距 11vp |
+| `height` | 两项按现有 30vp 行规格；三项使用 28vp 紧凑行规格 | 两项的 Track/Bar 高 6vp、圆角 3vp；三项的 Track/Bar 高 4vp、圆角 2vp |
 | `row-overflow` | 单行省略 | 每项标签和值不换行，不增加单项高度 |
 
 布局约束：
@@ -1124,7 +1210,7 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 />
 ```
 
-2×4 中展示两条日程、普通模式总高度无法闭合时，在同一个 `EventCard` 上使用紧凑模式。它仍保留每条事件的标题、时间、地点和原始绑定；紧凑日程组优先放入 140vp 连续内容区，不放进 118vp 背板子槽，也不得为了缩小高度改用无法承载这些绑定的静态标签：
+2×4 中展示两条日程、普通模式总高度无法闭合时，在同一个 `EventCard` 上使用紧凑模式。它仍保留每条事件的标题、时间、地点和原始绑定；紧凑日程组优先放入 132vp 连续内容区，不放进 116vp 背板子槽，也不得为了缩小高度改用无法承载这些绑定的静态标签：
 
 ```jsx
 <EventCard
@@ -1162,7 +1248,7 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 |---|---|---|
 | `width` | `100%` | 占满父布局为它分配的槽位宽度 |
 | `max-width` | 2×2 为 116vp；2×4 为 `none` | 2×4 使用父槽完整可用宽度，避免右侧有空间时标题仍提前换行 |
-| `min-width` | `0` | 允许缩小到父槽位宽度，例如 2×2“标题锚点内容”的 88vp 左下区域 |
+| `min-width` | `0` | 允许缩小到父槽位宽度，例如 2×2“标题锚点内容”的 78vp 左下区域 |
 | `height` | 按内容自然撑高 | 单条普通模式 34–68vp、紧凑模式 32vp；两条日程作为一个整体按内容自然撑高，不占满父槽，由外层布局的 `justify` 决定整组的顶部、居中或底部对齐；条目间距优先为 8vp，父槽空间不足时为 4vp |
 | `title-lines` | 1–2 行 | 标题换行会增加 18vp 高度；时间和地点各固定占 16vp |
 
@@ -1178,6 +1264,8 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 ### 5.1 PillButton
 
 胶囊按钮，由必选文本、可选 Icon 和按钮容器组成，可用于 2×2 与 2×4 Card。2×2 中放入 Layout Pattern 明确提供的主要操作槽；2×4 中用于某个语义组／操作区域恰好一个 Action 的情况，并限制在半卡宽父区内。
+
+按钮 label 使用 Subtitle_S / Medium（500）。
 
 #### 组件属性
 
@@ -1204,19 +1292,18 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 
 #### 布局约束（非 PillButton Props）
 
-- runtime 默认几何规格为 136 × 36vp、圆角 30vp；组件自身不设置定位。2×4“左右双区”的 `surface="backplate"` 内使用 118 × 36vp、圆角 18vp，作为普通布局流模块；其他尺寸的旧背板上下文保持 120 × 36vp。
-- 2×2 中由对应 Layout Pattern 提供 136 × 36vp 操作槽。
-- 2×4 的单 Action 优先进入所属子布局的 `PillButton`；子布局无法安全容纳时，改用“左内容右侧双槽”的右下固定槽和 `CardButton`。按钮不得横跨 296vp 安全内容区。
-- 2×4“左右双区”的 Sub-118 按钮槽为 118 × 36vp，进入居中的 118 × 112vp 内部安全区，使用普通布局流及 6vp 纵向间距，不使用绝对定位。“左内容右侧双槽”的 Sub-140 内容区内部 `PillButton` 保持 136 × 36vp 并左对齐；不得向组件传入未知尺寸 Props。
+- 2×2 中由对应 Layout Pattern 提供 126 × 36vp 操作槽，圆角 30vp。
+- 2×4“左右双区”子布局内使用 116 × 36vp；“左内容右侧双槽／左侧双槽右内容”内容区内使用 132 × 36vp 并撑满父容器宽度，圆角 18vp。
+- 2×4 的单 Action 优先进入所属子布局的 `PillButton`；子布局无法安全容纳时，改用“左内容右侧双槽／左侧双槽右内容”固定槽中的 `CardButton`。按钮不得横跨 276vp 安全内容区。
 - 如果卡片其他组件已经使用相同 Icon，按钮内省略重复 Icon，只保留文本标签。
 
 2×4 Sub-140“标题内容单按钮”示例：
 
 ```jsx
-<Stack direction="column" width={140} height={136} gap={8}>
-  <Stack direction="column" flex={0} width={140}>{/* 局部标题 */}</Stack>
-  <Stack direction="column" flex={1} width={140}>{/* 与 Action 对应的主内容 */}</Stack>
-  <Stack direction="column" flex={0} width={136} height={36}>
+<Stack direction="column" width={132} height={126} gap={0}>
+  <Stack direction="column" flex={0} width={132} mb={6}>{/* 局部标题 */}</Stack>
+  <Stack direction="column" flex={1} width={132} mb={8}>{/* 与 Action 对应的主内容 */}</Stack>
+  <Stack direction="column" flex={0} width={132} height={36}>
     <PillButton
       label="一键清理"
       appearance="card"
@@ -1230,4 +1317,4 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 
 | 占位属性 | 值 | 说明 |
 |---|---|---|
-| `size` | 默认 136 × 36vp；2×4“左右双区”背板内 118 × 36vp | 背板内通过 runtime 上下文样式自动切换；不新增尺寸 Prop，也不拉伸为整卡宽度 |
+| `size` | 2×2 为 126 × 36vp；2×4“左右双区”为 116 × 36vp；“左内容右侧双槽／左侧双槽右内容”为 132 × 36vp | 由布局上下文确定，不新增尺寸 Prop |

@@ -13,11 +13,11 @@ from ..base.layout import row
 from ..base.text import fixed_text_line_box, text
 from ..common import palette
 
-# Bundled HarmonyOS Sans SC metrics: 38px/38px Bold has its first baseline
-# 32vp below the line-box top; 12px/18px Regular has it at 13vp. A2UI Row
+# Bundled HarmonyOS Sans SC metrics: 30fp/32vp Bold has its first baseline
+# 27vp below the line-box top; 12fp/18vp Medium has it at 13vp. A2UI Row
 # has no baseline enum. Top-align these line boxes and offset the unit's
 # first line, so wrapping units grow down instead of lifting the number.
-_VALUE_FIRST_BASELINE = 32
+_VALUE_FIRST_BASELINE = 27
 _UNIT_FIRST_BASELINE = 13
 
 
@@ -40,7 +40,7 @@ def convert_emphasized_data(
     node: JSXElement,
     ctx: ConversionContext,
     *,
-    value_height: int = 38,
+    value_height: int = 32,
     unit_height: int | None = None,
     unit_bottom_inset: int = 0,
 ) -> A2UINode:
@@ -181,7 +181,7 @@ def convert_emphasized_data(
     children = []
     for index, item in enumerate(items):
         value_styles = {
-            "fontSize": 38,
+            "fontSize": 30,
             "fontWeight": 700,
             "fontColor": palette(ctx).primary,
         }
@@ -219,7 +219,7 @@ def convert_emphasized_data(
             # line box. ProgressLine2 opts into its fixed unit geometry.
             unit_styles = {
                 "fontSize": 12,
-                "fontWeight": 400,
+                "fontWeight": 500,
                 "fontColor": palette(ctx).secondary,
                 "flexShrink": 1,
             }
@@ -249,7 +249,7 @@ def convert_emphasized_data(
             if unit_height is None:
                 # The value Text is centered in value_height. Preserve that
                 # baseline if an implementation caller supplies a taller box.
-                unit_top = _VALUE_FIRST_BASELINE - _UNIT_FIRST_BASELINE + (value_height - 38) / 2
+                unit_top = _VALUE_FIRST_BASELINE - _UNIT_FIRST_BASELINE + (value_height - 32) / 2
                 unit_node.styles["margin"] = {"top": unit_top}
             elif unit_bottom_inset:
                 unit_node.styles["margin"] = {"bottom": unit_bottom_inset}

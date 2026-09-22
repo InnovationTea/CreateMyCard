@@ -1290,22 +1290,19 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
         allowed_layout_component_ids=("SingleFocusLayout",),
     )
     action = Nested2Node(
-        "Stack",
+        "Button",
         (
+            "打开",
             {
                 "_boundTemplateAction": "event.open",
                 "onClick": [{"call": "open"}],
                 "height": 36,
                 "borderRadius": 18,
+                "fontSize": 14,
+                "fontWeight": 500,
             },
         ),
-        (
-            Nested2Node(
-                "Text",
-                ("打开", {"fontSize": 14, "fontWeight": 500}),
-                (),
-            ),
-        ),
+        (),
     )
     content = Nested2Node(
         "Column",
@@ -1345,7 +1342,9 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     assert image.values[-1]["fillColor"] == "#FF654321"
     assert progress.values[-1]["color"] == "#FFABCDEF"
     assert button.values[-1]["fontColor"] == "#E6000000"
-    assert "fontColor" not in styled_action.children[0].values[-1]
+    styled_action_options = styled_action.values[-1]
+    assert isinstance(styled_action_options, dict)
+    assert "fontColor" not in styled_action_options
 
     action_style = registry.require_theme("device-clean-blue-teal").action_style
     assert action_style is not None
@@ -1355,12 +1354,14 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
         background=action_style.background_color,
         foreground=action_style.content_color,
     )
-    assert lowered_action.values[-1]["backgroundColor"] == action_style.background_color
-    assert lowered_action.values[-1]["height"] == 36
-    assert lowered_action.values[-1]["borderRadius"] == 18
-    assert lowered_action.children[0].values[-1]["fontColor"] == action_style.content_color
-    assert lowered_action.children[0].values[-1]["fontSize"] == 14
-    assert lowered_action.children[0].values[-1]["fontWeight"] == 500
+    lowered_options = lowered_action.values[-1]
+    assert isinstance(lowered_options, dict)
+    assert lowered_options.get("backgroundColor") == action_style.background_color
+    assert lowered_options.get("height") == 36
+    assert lowered_options.get("borderRadius") == 18
+    assert lowered_options.get("fontColor") == action_style.content_color
+    assert lowered_options.get("fontSize") == 14
+    assert lowered_options.get("fontWeight") == 500
 
 
 def test_all_themes_use_fixed_root_inset_and_color_only_action_style() -> None:
@@ -3572,7 +3573,7 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
 
 
 @pytest.mark.asyncio
-async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
+async def test_calendar_dnd_action_keeps_text_only_button_and_scene_header():
     task = TaskSpec(
         userQuery="显示下一场会议的完整信息，点击进入免打扰设置",
         size="2x2",
@@ -3652,7 +3653,7 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
             'Template("ScheduleOverviewNextEventHero@1",'
             '{"headerLabel":"下一场日程"}),'
             'Template("PillAction@1",{"actionId":"event.open.settings.dnd",'
-            '"label":"免打扰","icon":"resources/base/media/icon_focus.svg"}));'
+            '"label":"免打扰"}));'
         ),
     )
 
@@ -3663,7 +3664,7 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     assert "events/0/eventLocation" in output.a2ui
     assert "免打扰" in output.a2ui
     assert "专注模式" not in output.a2ui
-    assert "resources/base/media/icon_focus.svg" in output.a2ui
+    assert "resources/base/media/icon_focus.svg" not in output.a2ui
     assert "resources/base/media/icon_schedule.svg" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
@@ -3688,12 +3689,12 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     assert hero_content.get("itemMargin") == 2
     action = next(component for component in components if component.get("onClick"))
     assert action["styles"]["backgroundColor"] == "#331F4799"
-    focus_icon = next(
-        component
-        for component in components
-        if component.get("src") == "resources/base/media/icon_focus.svg"
-    )
-    assert focus_icon["styles"]["fillColor"] == "#FF1F4799"
+    assert action.get("component") == "Button"
+    assert action.get("label") == "免打扰"
+    assert not action.get("children")
+    action_styles = action.get("styles")
+    assert isinstance(action_styles, dict)
+    assert action_styles.get("fontColor") == "#FF1F4799"
     assert model.second_layer_prompt is not None
     second_layer_rule = model.second_layer_prompt[1]["content"]
     assert "HeroActionLayout@1" in second_layer_rule
@@ -3778,8 +3779,7 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
             'Template("ScheduleOverviewReminderHero@1",'
             '{"headerLabel":"明天提醒"}),'
             'Template("PillAction@1",{"actionId":"event.open.clock.alarm",'
-            '"label":"设置闹钟",'
-            '"icon":"resources/base/media/alarm_fill_1.svg"}));'
+            '"label":"设置闹钟"}));'
         ),
     )
 
@@ -3797,7 +3797,7 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
     assert "提前" in output.a2ui
     assert "分钟提醒" in output.a2ui
     assert "设置闹钟" in output.a2ui
-    assert "resources/base/media/alarm_fill_1.svg" in output.a2ui
+    assert "resources/base/media/alarm_fill_1.svg" not in output.a2ui
     assert "resources/base/media/icon_schedule.svg" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
@@ -3840,7 +3840,7 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
     assert "ScheduleOverviewReminderHero@1" in second_layer_rule
     assert "设置闹钟" in second_layer_rule
     assert "Action 图标必须与动作语义一致" in second_layer_rule
-    assert "PillAction@1` 没有匹配素材时省略 `icon`" in second_layer_rule
+    assert "PillAction@1` 暂时禁止设置 `icon`，只展示文本" in second_layer_rule
 
 
 def test_calendar_timezone_full_keeps_reference_geometry():
@@ -5402,12 +5402,19 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
         line for line in second_layer_user.splitlines() if line.startswith("actionContracts=")
     )
     action_contracts = json.loads(action_contract_line.removeprefix("actionContracts="))
-    assert action_contracts[0]["templateId"] == "PillAction@1"
-    assert action_contracts[0]["callSyntax"] == (
+    pill_contract = next(
+        item for item in action_contracts if item.get("templateId") == "PillAction@1"
+    )
+    assert pill_contract.get("callSyntax") == (
         'Template("PillAction@1", <props matching propsSchema>)'
     )
-    assert action_contracts[0]["propsSchema"]["required"] == ["actionId", "label"]
-    assert action_contracts[0]["propsSchema"]["additionalProperties"] is False
+    pill_schema = pill_contract.get("propsSchema")
+    assert isinstance(pill_schema, dict)
+    assert pill_schema.get("required") == ["actionId", "label"]
+    assert pill_schema.get("additionalProperties") is False
+    properties = pill_schema.get("properties")
+    assert isinstance(properties, dict)
+    assert set(properties) == {"actionId", "label"}
     action_candidate_line = next(
         line
         for line in second_layer_user.splitlines()
@@ -5422,7 +5429,7 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
         line for line in second_layer_user.splitlines() if line.startswith("layoutContracts=")
     )
     layout_contracts = json.loads(layout_contract_line.removeprefix("layoutContracts="))
-    assert layout_contracts[0]["templateId"] == "HeroActionLayout@1"
+    assert any(item.get("templateId") == "HeroActionLayout@1" for item in layout_contracts)
     template_contract_line = next(
         line for line in second_layer_user.splitlines() if line.startswith("templateContracts=")
     )
@@ -5484,7 +5491,9 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     assert hero_slot["styles"] == {"width": "matchParent", "layoutWeight": 1}
     assert action_slot["styles"] == {"width": "matchParent", "height": 36}
     action = components[action_slot["children"][0]]
-    assert action["component"] == "Stack"
+    assert action.get("component") == "Button"
+    assert action.get("label") == "省电模式"
+    assert not action.get("children")
     assert action["onClick"] == [
         {
             "call": "clickToIntent",
@@ -7532,7 +7541,6 @@ async def test_calendar_event_entity_id_stays_out_of_second_layer_and_visible_te
     assert set(action_contracts[0]["propsSchema"]["properties"]) == {
         "actionId",
         "label",
-        "icon",
     }
     assert len(action_contracts) == 1
     messages = [json.loads(line) for line in output.a2ui.splitlines()]

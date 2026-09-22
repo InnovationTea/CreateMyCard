@@ -37,6 +37,7 @@ from services.multi_step_generation.jsx_runner.agent import (  # noqa: E402
     JsxA2UIAgent,
 )
 from services.multi_step_generation.jsx_runner.artifacts import (  # noqa: E402
+    build_artifact_stem,
     build_component_name,
     create_run_dir,
     load_tasks,
@@ -105,6 +106,7 @@ def _checkpoint_trace(
                 turn=int(turn_record.get("turn", 0)),
                 task=task,
                 run_dir=run_dir,
+                phase=turn_record.get("tool_result", {}).get("phase"),
             )
         except Exception as exc:
             # Preview persistence is diagnostic and must not mask the original
@@ -469,7 +471,7 @@ async def async_main(args: argparse.Namespace) -> int:
             "validation_reports": [],
         }
         traces.append(trace_entry)
-        task_trace_path = run_dir / "jsx" / f"{name}.trace.json"
+        task_trace_path = run_dir / "jsx" / f"{build_artifact_stem(name)}.trace.json"
 
         write_json(manifest_path, manifest)
         _persist_current_trace(

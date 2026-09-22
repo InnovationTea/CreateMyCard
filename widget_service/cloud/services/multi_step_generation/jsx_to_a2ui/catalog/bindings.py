@@ -27,7 +27,7 @@ _FORMATTED_PERCENTAGE = re.compile(r"^\s*\d+(?:\.\d+)?\s*[%％]\s*$")
 EVENT_TIME_RANGE_SEPARATOR = " – "
 EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " ｜ "
 INFO_BLOCK_MULTI_VALUE_SEPARATOR = " ｜ "
-TABLE_TEXT_MULTI_VALUE_SEPARATOR = " ｜ "
+TABLE_TEXT_MULTI_VALUE_SEPARATOR = "｜"
 
 # One executable source of truth for both literal Props and data bindings.
 # Booleans are intentionally excluded from visible text/value Props: Python's
@@ -43,7 +43,10 @@ BINDABLE_PROP_TYPES: dict[str, dict[str, frozenset[str]]] = {
         "secondaryText": _SCALAR_TEXT,
     },
     "TopTextBottomValue": {"items[].value": _SCALAR_TEXT},
-    "TableText": {"items[].parameter": _SCALAR_TEXT},
+    "TableText": {
+        "items[].label": _SCALAR_TEXT,
+        "items[].parameter": _SCALAR_TEXT,
+    },
     "TextBlock": {"items[].parameter": _SCALAR_TEXT},
     "EmphasizedData": {
         "value": _SCALAR_TEXT,
@@ -106,8 +109,9 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
     Most display Props bind one ID. EventCard time fields additionally accept the
     ordered pair [dtStartId, dtEndId]. EmphasisText.mainText,
     EmphasisText.secondaryText, InfoBlock.secondaryText and
-    TableText.items[].parameter accept an ordered array of two or more IDs so
+    TableText.items[].parameter accepts an ordered array of two or more IDs so
     one visible line can remain responsive to multiple short source fields.
+    TableText.items[].label uses the normal single-ID binding shape.
     """
     if isinstance(value, str):
         return (value,)
@@ -139,6 +143,30 @@ def data_binding_separator(tag: str, prop: str) -> str:
     if tag == "TableText" and prop == "items[].parameter":
         return TABLE_TEXT_MULTI_VALUE_SEPARATOR
     raise ValidationError(f"<{tag}> dataIds.{prop} does not support multiple data IDs")
+
+
+def indexed_value_template_tokens(
+    template: Any,
+    value_count: int,
+) -> tuple[str | int, ...] | None:
+    """Parse a template containing each ordered ``{0}``... placeholder once."""
+    if not isinstance(template, str) or value_count < 2:
+        return None
+    matches = list(re.finditer(r"\{(\d+)\}", template))
+    if [int(match.group(1)) for match in matches] != list(range(value_count)):
+        return None
+    if re.search(r"\{[^{}]*\}", re.sub(r"\{\d+\}", "", template)):
+        return None
+    tokens: list[str | int] = []
+    position = 0
+    for match in matches:
+        if match.start() > position:
+            tokens.append(template[position:match.start()])
+        tokens.append(int(match.group(1)))
+        position = match.end()
+    if position < len(template):
+        tokens.append(template[position:])
+    return tuple(tokens)
 
 
 _VALUE_UNIT_COMPONENTS = frozenset(
@@ -877,10 +905,11 @@ def _override_query_grounded_binding(
 
 def _value_template_parts(owner: dict[str, Any], prop: str) -> tuple[str, str] | None:
     template = owner.get(f"{prop}Template")
-    if not isinstance(template, str) or template.count("{value}") != 1:
-        return None
-    prefix, suffix = template.split("{value}")
-    return prefix, suffix
+    parts: tuple[str, str] | None = None
+    if isinstance(template, str) and template.count("{value}") == 1:
+        prefix, suffix = template.split("{value}")
+        parts = (prefix, suffix)
+    return parts
 
 
 def _template_source_value(owner: dict[str, Any], prop: str) -> Any:
@@ -1023,10 +1052,18 @@ def materialize_binding_literals(
                     bindings = [compile_context.data_binding(item) for item in binding_ids]
                 except ValidationError:
                     continue
-                separator = data_binding_separator(element.tag, prop)
-                element.props[prop] = separator.join(
-                    str(binding.value_for_prop(element.tag, prop)) for binding in bindings
+                values = [binding.value_for_prop(element.tag, prop) for binding in bindings]
+                tokens = indexed_value_template_tokens(
+                    element.props.get(f"{prop}Template"), len(values)
                 )
+                if tokens is not None:
+                    element.props[prop] = "".join(
+                        str(values[token]) if isinstance(token, int) else token
+                        for token in tokens
+                    )
+                else:
+                    separator = data_binding_separator(element.tag, prop)
+                    element.props[prop] = separator.join(str(value) for value in values)
                 continue
             try:
                 binding = compile_context.data_binding(binding_ids[0])
@@ -1169,6 +1206,8 @@ def remove_data_binding_metadata(element: JSXElement) -> None:
     element.props.pop("dataValueMaps", None)
     element.props.pop("titleTemplate", None)
     element.props.pop("secondaryInfoTemplate", None)
+    element.props.pop("primaryTextTemplate", None)
+    element.props.pop("secondaryTextTemplate", None)
     items = element.props.get("items")
     if isinstance(items, list):
         for item in items:

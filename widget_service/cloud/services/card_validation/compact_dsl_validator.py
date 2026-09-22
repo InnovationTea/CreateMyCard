@@ -18,6 +18,7 @@ from services.compact_dsl_a2ui_converter import (
     validate_timeline_unit_layout,
 )
 
+from .base import estimate_text_width
 from .compact_dual_action_validator import collect_dual_action_errors
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
@@ -40,6 +41,16 @@ _TWO_BY_FOUR_FOCUS_WIDTH = 136
 _TWO_BY_FOUR_AUX_WIDTH = 130
 _TWO_BY_FOUR_FOCUS_AUX_HEIGHT = 126
 _TWO_BY_FOUR_AUX_CELL_HEIGHT = 59
+_TWO_BY_TWO_HERO_SLOT_WIDTH = 126.0
+_TWO_BY_TWO_HERO_BOX_WIDTH = 106.0
+_TWO_BY_TWO_HERO_BOX_HEIGHT = 58.0
+_TWO_BY_TWO_HERO_FONT_TIERS = (20.0, 24.0, 30.0, 38.0)
+_TWO_BY_TWO_HERO_UNIT_MAX_FONT = {
+    20.0: 12.0,
+    24.0: 12.0,
+    30.0: 14.0,
+    38.0: 16.0,
+}
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
 _COMMON_DISPLAY_UNITS = frozenset(
     {
@@ -140,6 +151,15 @@ _AMBIGUOUS_STATUS_MARKERS = (
     "未连接", "已连接",
 )
 _FUSION_DESIGN_PREFIX = "fusion-ball-"
+_PRESERVE_ORIGINAL_COLOR_MARKERS = (
+    "不可染色",
+    "禁止染色",
+    "保留原色",
+    "多色",
+    "渐变",
+    "品牌色",
+    "插画原色",
+)
 
 
 @dataclass(frozen=True)
@@ -147,6 +167,15 @@ class CompactDslValidationResult:
     """Compact DSL validation warnings returned to the generation pipeline."""
 
     warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class _CenteredHeroContext:
+    """A sparse 2x2 title/value/action composition eligible for the safe box."""
+
+    content_area: ComponentRow
+    value: ComponentRow
+    unit: ComponentRow | None
 
 
 class CompactDslValidationError(ValueError):
@@ -176,6 +205,7 @@ def validate_compact_dsl(
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_asset_source_errors(components, task_spec, errors)
+    _collect_asset_color_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_fusion_composition_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
@@ -255,6 +285,48 @@ def _collect_asset_source_errors(
                     f"component {component.component_id}.props.{key}: "
                     "asset must use an original src from TaskSpec.assetCandidates."
                 )
+
+
+def _collect_asset_color_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """Require explicit tinting for SVG assets whose source color is not protected."""
+    candidates = task_spec.get("assetCandidates")
+    if not isinstance(candidates, list):
+        return
+
+    descriptions: dict[str, str] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        source = candidate.get("src")
+        if not isinstance(source, str):
+            continue
+        description = candidate.get("description")
+        descriptions[source] = description if isinstance(description, str) else ""
+
+    for component in components:
+        source: Any = None
+        if component.component_type == "Image":
+            source = component.props.get("src")
+        elif component.component_type == "CardHeader":
+            source = component.props.get("icon")
+        if not isinstance(source, str) or not source.casefold().endswith(".svg"):
+            continue
+        description = descriptions.get(source)
+        if description is None:
+            continue
+        preserve_original = any(
+            marker in description for marker in _PRESERVE_ORIGINAL_COLOR_MARKERS
+        )
+        if preserve_original or "fillColor" in component.props:
+            continue
+        errors.append(
+            f"component {component.component_id}: tintable SVG {source} must set "
+            "fillColor explicitly; omitting it renders the asset's default black."
+        )
 
 
 def _collect_hero_value_errors(
@@ -2020,6 +2092,259 @@ def _is_two_by_two_title_region(
     return len(profile) == 1
 
 
+def _action_control_count(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> int:
+    candidates = [component, *_descendant_components(component, components_by_id)]
+    count = 0
+    for candidate in candidates:
+        if candidate.component_type in {"ActionUnit", "Button"}:
+            count += 1
+            continue
+        if candidate.component_type == "Row" and "onClick" in candidate.props:
+            count += 1
+    return count
+
+
+def _two_by_two_centered_hero_context(
+    task_spec: dict[str, Any],
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> _CenteredHeroContext | None:
+    if task_spec.get("size") != "2x2" or len(root.children) != 3:
+        return None
+
+    title_area = components_by_id.get(root.children[0])
+    content_area = components_by_id.get(root.children[1])
+    action_area = components_by_id.get(root.children[2])
+    if title_area is None or content_area is None or action_area is None:
+        return None
+    if not _is_two_by_two_title_region(title_area, components_by_id):
+        return None
+    if _contains_action_control(content_area, components_by_id):
+        return None
+    if _action_control_count(action_area, components_by_id) != 1:
+        return None
+
+    content_components = [
+        content_area,
+        *_descendant_components(content_area, components_by_id),
+    ]
+    allowed_types = {"Column", "Row", "Stack", "Text"}
+    if any(
+        component.component_type not in allowed_types
+        for component in content_components
+    ):
+        return None
+
+    text_components = [
+        component
+        for component in content_components
+        if component.component_type == "Text"
+    ]
+    if len(text_components) not in {1, 2}:
+        return None
+
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return None
+    numeric_values: list[tuple[ComponentRow, str]] = []
+    for component in text_components:
+        path = _pure_numeric_binding_path(component.props.get("content"), schema)
+        if path is not None:
+            numeric_values.append((component, path))
+    if len(numeric_values) != 1:
+        return None
+
+    value, numeric_path = numeric_values[0]
+    unit: ComponentRow | None = None
+    for component in text_components:
+        if component.component_id == value.component_id:
+            continue
+        if not _is_allowed_display_unit(
+            component.props.get("content"),
+            numeric_path,
+            schema,
+        ):
+            return None
+        unit = component
+    return _CenteredHeroContext(
+        content_area=content_area,
+        value=value,
+        unit=unit,
+    )
+
+
+def _numeric_hero_pressure_text(schema: dict[str, Any], path: str) -> str:
+    node = _schema_node_at_path(schema, path) if path else None
+    candidates: list[int | float] = []
+    if isinstance(node, dict):
+        for key in ("sampleValue", "minimum", "maximum"):
+            value = node.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                candidates.append(value)
+    if not candidates:
+        return "999"
+
+    integer_digits = 3
+    decimal_digits = 0
+    has_negative = False
+    for candidate in candidates:
+        has_negative = has_negative or candidate < 0
+        rendered = str(abs(candidate))
+        if "e" in rendered.casefold():
+            rendered = f"{abs(candidate):f}".rstrip("0").rstrip(".")
+        integer, separator, fraction = rendered.partition(".")
+        integer_digits = max(integer_digits, len(integer))
+        if separator:
+            decimal_digits = max(decimal_digits, len(fraction))
+
+    pressure = "9" * integer_digits
+    if decimal_digits:
+        pressure += "." + "9" * decimal_digits
+    if has_negative:
+        pressure = "-" + pressure
+    return pressure
+
+
+def _text_line_pressure_height(component: ComponentRow, font_size: float) -> float:
+    natural_height = font_size * 1.4 + _vertical_padding(component.props)
+    explicit_height = _non_negative_number(component.props.get("height")) or 0.0
+    return max(natural_height, explicit_height)
+
+
+def _collect_two_by_two_centered_hero_errors(
+    task_spec: dict[str, Any],
+    root: ComponentRow | None,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    if root is None or root.component_type != "Column":
+        return
+    context = _two_by_two_centered_hero_context(
+        task_spec,
+        root,
+        components_by_id,
+    )
+    if context is None:
+        return
+
+    content_area = context.content_area
+    content_layout_is_valid = (
+        _non_negative_number(content_area.props.get("width"))
+        == _TWO_BY_TWO_HERO_SLOT_WIDTH
+        and content_area.props.get("layoutWeight") == 1
+        and content_area.props.get("justifyContent") == "center"
+        and content_area.props.get("alignItems") == "center"
+        and "height" not in content_area.props
+    )
+
+    hero_box: ComponentRow | None = None
+    value_row: ComponentRow | None = None
+    if len(content_area.children) == 1:
+        hero_box = components_by_id.get(content_area.children[0])
+    if hero_box is not None and len(hero_box.children) == 1:
+        value_row = components_by_id.get(hero_box.children[0])
+    expected_value_children = [context.value.component_id]
+    if context.unit is not None:
+        expected_value_children.append(context.unit.component_id)
+    hero_box_is_valid = (
+        hero_box is not None
+        and hero_box.component_type == "Column"
+        and _non_negative_number(hero_box.props.get("width"))
+        == _TWO_BY_TWO_HERO_BOX_WIDTH
+        and _non_negative_number(hero_box.props.get("height"))
+        == _TWO_BY_TWO_HERO_BOX_HEIGHT
+        and hero_box.props.get("justifyContent") == "center"
+        and hero_box.props.get("alignItems") == "center"
+        and hero_box.props.get("padding", 0) == 0
+    )
+    value_row_is_valid = (
+        value_row is not None
+        and value_row.component_type == "Row"
+        and list(value_row.children) == expected_value_children
+        and _non_negative_number(value_row.props.get("width"))
+        == _TWO_BY_TWO_HERO_BOX_WIDTH
+        and value_row.props.get("justifyContent") == "center"
+        and value_row.props.get("alignItems") == "bottom"
+        and value_row.props.get("padding", 0) == 0
+        and (
+            context.unit is None
+            or _non_negative_number(value_row.props.get("itemMargin")) == 2.0
+        )
+    )
+    if not content_layout_is_valid or not hero_box_is_valid or not value_row_is_valid:
+        errors.append(
+            "2x2 sparse single-value Hero with one bottom action must use a "
+            "126vp layoutWeight content_area centered on both axes, containing "
+            "one centered 106x58vp hero_box and a centered 106vp value_row."
+        )
+
+    value_font = _non_negative_number(context.value.props.get("fontSize"))
+    if value_font not in _TWO_BY_TWO_HERO_FONT_TIERS:
+        errors.append(
+            "2x2 centered single-value Hero must use one approved value font "
+            "tier: 38fp, 30fp, 24fp, or 20fp."
+        )
+        return
+
+    unit_font = 0.0
+    unit_text = ""
+    if context.unit is not None:
+        unit_font_value = _non_negative_number(context.unit.props.get("fontSize"))
+        maximum_unit_font = _TWO_BY_TWO_HERO_UNIT_MAX_FONT.get(value_font)
+        if unit_font_value is None or maximum_unit_font is None:
+            errors.append(
+                "2x2 centered single-value Hero unit must declare a fontSize."
+            )
+            return
+        if unit_font_value < 12.0 or unit_font_value > maximum_unit_font:
+            errors.append(
+                "2x2 centered single-value Hero must downgrade value and unit "
+                "together using 38/16fp, 30/14fp, 24/12fp, or 20/12fp limits."
+            )
+        unit_font = unit_font_value
+        content = context.unit.props.get("content")
+        unit_text = content.strip() if isinstance(content, str) else ""
+
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return
+    numeric_path = _pure_numeric_binding_path(
+        context.value.props.get("content"),
+        schema,
+    )
+    if numeric_path is None:
+        return
+    pressure_text = _numeric_hero_pressure_text(schema, numeric_path)
+    pressure_width = estimate_text_width(pressure_text, value_font)
+    if unit_text:
+        pressure_width += estimate_text_width(unit_text, unit_font) + 2.0
+    if pressure_width * 1.2 > _TWO_BY_TWO_HERO_BOX_WIDTH:
+        errors.append(
+            "2x2 centered single-value Hero exceeds the 106vp width pressure "
+            "budget; downgrade value/unit together through "
+            "38/16fp -> 30/14fp -> 24/12fp -> 20/12fp until it fits."
+        )
+
+    line_height = _text_line_pressure_height(context.value, value_font)
+    if context.unit is not None:
+        line_height = max(
+            line_height,
+            _text_line_pressure_height(context.unit, unit_font),
+        )
+    if value_row is not None:
+        explicit_row_height = _non_negative_number(value_row.props.get("height"))
+        if explicit_row_height is not None:
+            line_height = max(line_height, explicit_row_height)
+    if line_height > _TWO_BY_TWO_HERO_BOX_HEIGHT:
+        errors.append(
+            "2x2 centered single-value Hero exceeds the 58vp height pressure "
+            "budget; downgrade value/unit together instead of clipping it."
+        )
+
+
 def _collect_two_by_two_content_density_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -2153,6 +2478,12 @@ def _collect_layout_route_errors(
     _collect_two_by_two_content_density_errors(
         components,
         task_spec,
+        components_by_id,
+        errors,
+    )
+    _collect_two_by_two_centered_hero_errors(
+        task_spec,
+        root,
         components_by_id,
         errors,
     )

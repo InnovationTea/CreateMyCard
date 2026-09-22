@@ -13,9 +13,6 @@ from ..common import palette
 from .emphasized_data import convert_emphasized_data
 
 
-_UNIT_BASELINE_INSET = 4
-
-
 def collect_progress_line2_conversion_errors(node: JSXElement) -> list[str]:
     return []
 
@@ -115,19 +112,19 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
             if current_is_number and total_is_positive_number:
                 percent = math.trunc(max(0, min(100, current / total * 100)))
             display_node = JSXElement("EmphasizedData", {"value": percent, "unit": "%"})
-    # JSX baseline-aligns the 38vp value and 12vp unit. A2UI only bottom-aligns
-    # component boxes, so lift the smaller unit by 4vp to match the measured
-    # browser baseline while preserving the 38vp row and 56vp layout budget.
+    # Current JSX uses a 30fp/32vp value and a 12fp/18vp unit. Browser
+    # measurement places the unit box 13vp below the value box: bottom
+    # alignment needs a 1vp lift, not the old 4vp. Native metrics need device QA.
     data = convert_emphasized_data(
         display_node,
         ctx,
-        value_height=38,
-        unit_height=12,
-        unit_bottom_inset=_UNIT_BASELINE_INSET,
+        value_height=32,
+        unit_height=18,
+        unit_bottom_inset=1,
     )
     # JSX paints the whole value row 3vp lower while keeping the track at its
     # normal-flow position. A2UI has no transform primitive, so preserve the
-    # same 56vp total, 3vp visual gap and 4vp bottom inset with an equivalent
+    # same 50vp total, 3vp visual gap and 4vp bottom inset with an equivalent
     # margin/gap/padding combination.
     data.styles["margin"] = {"top": 3}
     return column(

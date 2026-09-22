@@ -129,6 +129,7 @@ _BROWSER_LAYOUT_CODES = frozenset(
         "browser-semantic-content-overflow",
         "browser-button-clipping",
         "browser-pillbutton-gap",
+        "browser-title-content-gap",
     }
 )
 

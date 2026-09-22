@@ -224,7 +224,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 [
                     "action_icon",
                     "Image",
-                    {"src": "resources/base/media/weather.svg"},
+                    {
+                        "src": "resources/base/media/weather.svg",
+                        "fillColor": "#FF1F4799",
+                    },
                 ],
             ]
         )
@@ -266,6 +269,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components[2]["src"],
             "resources/base/media/weather.svg",
         )
+        self.assertEqual(components[2]["styles"]["fillColor"], "#FF1F4799")
 
     def test_preserves_label_less_icon_round_button_image_child(self) -> None:
         event = {

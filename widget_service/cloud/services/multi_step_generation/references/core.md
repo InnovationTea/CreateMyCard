@@ -17,17 +17,20 @@
 
 ## 2. 布局原语真实 API
 
+2×4 的模型提交使用 `Card.layout + Region.slot/variant`，具体接口见布局资源中的 `semantic_layouts_2x4.md`。下述 Card 几何属性由程序展开生成，模型不直接设置；Stack/Grid API 仍适用于内容槽内的组合。2×2 提交规则不变。
+
 ### 2.1 通用数值语义
 
 - JSX 数值必须使用表达式，例如 `gap={8}`、`height={36}`；`Card.size` 是语义枚举，使用字符串 `size="2x2"` 或 `size="2x4"`。
 - 不要把 px 数值写成字符串，例如不要写 `gap="8"` 或 `height="36"`。
 - enum 和特殊关键字使用字符串，例如 `direction="row"`、`width="full"`。
 - 对布局尺寸 Props 传入数字时，React 会按 CSS px 使用；项目中 vp 与 px 使用相同数值进行 1:1 预览。
+- 规范文字统一使用：文本字号为 fp；行高、间距、圆角和宽高尺寸为 vp。HTML/CSS 预览中的 px 仅作同数值 1:1 映射。
 - `width="full"`、`height="full"` 会解析为 `100%`。
 
 ### 2.2 Card
 
-`Card` 是每张生成卡片唯一允许的根组件。
+`Card` 是每张生成卡片唯一允许的根组件。下表列出普通 runtime API；2×4 模型提交只使用语义接口的 size、appearance、layout、可选 flow 和 aria-label，不填写下表中的几何属性。2×2 仍使用普通 Card/Stack/Grid。
 
 | Prop | JSX 类型 | runtime 默认值 | 生成侧规则 |
 |---|---|---|---|
@@ -36,7 +39,7 @@
 | `appearance` | Card appearance enum | 无 | 生成卡片必选，合法值见第 3 节 |
 | `background` | CSS background string | 根据 appearance 或 surface | runtime 支持，但生成代码禁止使用 |
 | `padding` | `number \| string` | `12` | 通常省略；安全边距固定使用默认 12 |
-| `direction` | `"column" \| "row"` | `"column"` | 生成侧必选；只使用这两个值 |
+| `direction` | `"column" \| "row"` | `"column"` | 2×2 生成侧必选；2×4 由语义骨架生成 |
 | `gap` | `number` | `0` | 数字表示 px；常用 0、2、4、8 |
 | `align` | CSS `align-items` 值 | 未设置 | 推荐 `"stretch"`、`"flex-start"`、`"center"`、`"flex-end"` |
 | `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between"` | 未设置 | 使用标准 CSS Flex 对齐值 |
@@ -45,8 +48,8 @@
 
 | 输入任务 `size` | `Card.size` | Card 尺寸 | 默认 padding | 安全内容区 | 布局规范 |
 |---|---|---:|---:|---:|---|
-| `"2x2"` | `"2x2"` | 160 × 160vp | 12vp | 136 × 136vp | [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) |
-| `"2x4"` | `"2x4"` | 320 × 160vp | 12vp | 296 × 136vp | [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md) |
+| `"2x2"` | `"2x2"` | 150 × 150vp | 12vp | 126 × 126vp | [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) |
+| `"2x4"` | `"2x4"` | 300 × 150vp | 12vp | 276 × 126vp | [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md) |
 
 输入与生成链路：
 
@@ -57,7 +60,7 @@
 
 行为说明：
 
-- runtime 将 `"2x2"` 解析为 160 × 160px，将 `"2x4"` 解析为 320 × 160px。
+- runtime 将 `"2x2"` 解析为 150 × 150vp，将 `"2x4"` 解析为 300 × 150vp；浏览器预览使用相同数值的 px。
 - 为兼容旧 catalog 和历史预览，runtime 仍可容错数字 `size`，并将其解析为等宽高方形；新的生成 JSX 禁止使用该兼容路径。
 - 合法 `appearance` 会启用 20px 圆角、卡片调色板和生成卡专属组件样式。
 - 没有合法 `appearance` 时会使用 catalog／普通容器样式，不符合生成卡要求。
@@ -82,11 +85,11 @@
 | `mt` / `mb` / `ml` / `mr` | `number \| string` | 未设置 | 四方向外边距；优先使用 `gap`，必要时再使用 |
 | `position` | `"relative" \| "absolute"` | 未设置 | 建立定位上下文或锚点子项 |
 | `top` / `right` / `bottom` / `left` | `number \| string` | 未设置 | 只与定位 Stack 配合；数字表示 px |
-| `surface` | `"backplate"` | 未设置 | 为内容容器启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp、内边距 6vp |
+| `surface` | `"backplate"` | 未设置 | 为内容容器启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp；2×4 内边距为 8vp，其他兼容场景为 6vp |
 
 关键规则：
 
-- 生成 JSX 中每个 `Card` 和 `Stack` 都必须显式填写 `direction="column"` 或 `direction="row"`；runtime 的 `column` 默认值只用于兼容历史 JSX。
+- 2×2 的 `Card` 与模型编写的每个 `Stack` 必须显式填写 `direction="column"` 或 `direction="row"`；2×4 的 Card/Region 外壳方向由程序生成，以下 Stack 规则仅用于其内容槽内部组合。
 - `direction="column"` 时，`justify` 控制垂直方向，`align` 控制水平方向。例如左对齐且底端对齐写为 `align="flex-start" justify="flex-end"`。
 - 使用 `direction="row"` 时轴向互换：`justify` 控制水平方向，`align` 控制垂直方向。例如内容靠右且底端对齐写为 `justify="flex-end" align="flex-end"`。
 - 固定槽使用 `flex={0}`，并按父容器主轴显式填写尺寸：父级为 `column` 时填写 `height`，父级为 `row` 时填写 `width`。不要生成 `basis`；runtime 会让 `flex={0}` 的 `auto` basis 使用对应的显式主轴尺寸。
@@ -266,7 +269,7 @@
 
 | Card 尺寸 | 右下椭圆 | 左下椭圆 | 上方椭圆 | 背板 |
 |---|---|---|---|---|
-| `2x2` · 160×160vp | 100×100vp @ 96/80 | 160×160vp @ -40/70 | 210×210vp @ -25/-90 | 160×160vp，白色 5%，模糊 50vp |
+| `2x2` · 150×150vp | 100×100vp @ 96/80 | 160×160vp @ -40/70 | 210×210vp @ -25/-90 | 150×150vp，白色 5%，模糊 50vp |
 
 融球圆角由 `2x2` Card 规格提供，背景层不再自带圆角约束。
 
@@ -296,10 +299,10 @@
 
 | 规则类型 | JSX 责任方 | 示例 |
 |---|---|---|
-| 组件内部尺寸、字体、颜色和内部间距 | 业务组件自身 | `PillButton` 自身负责 136 × 36px、圆角 30px；`CircleButton` 自身负责 36 × 36px 和 20 × 20px Icon 居中 |
-| 组件之间的间距 | 外层 `Stack` 或 `Grid` | Badge 与标题间距 8px 使用 `Stack gap={8}` |
-| 卡片中的顶部、主内容、底部操作区 | 外层 `Card`、`Stack`、`Grid` | PillButton 放入固定 36px 高的底部操作槽；外层布局不覆盖按钮的 136px 宽度或 30px 圆角 |
-| 右下角绝对定位 | 具有 `position="relative"` 的父 `Stack` 和绝对定位子 `Stack` | CircleButton 使用 `right={0}`、`bottom={0}` 的 36 × 36px 槽位 |
+| 组件内部尺寸、字体、颜色和内部间距 | 业务组件自身 | `PillButton` 高 36vp、宽度由当前 Layout Pattern 决定；`CircleButton` 自身负责 36 × 36vp 和 20 × 20vp Icon 居中 |
+| 组件之间的间距 | 外层 `Stack` 或 `Grid` | Badge 与标题间距 8vp 使用 `Stack gap={8}` |
+| 卡片中的顶部、主内容、底部操作区 | 外层 `Card`、`Stack`、`Grid` | PillButton 放入固定 36vp 高的底部操作槽；外层布局按当前布局提供 116、126 或 132vp 宽度 |
+| 右下角绝对定位 | 具有 `position="relative"` 的父 `Stack` 和绝对定位子 `Stack` | CircleButton 使用 `right={0}`、`bottom={0}` 的 40 × 40vp 操作槽 |
 | 背景、字体和按钮／Icon 调色板 | `Card.appearance` | 业务组件使用 `appearance="card"` 消费 Card 颜色 |
 
 不要把设计构成字段直接写成未知 Props。例如 `container`、`position` 不是 `PillButton` 或 `CircleButton` 的 JSX Props；`percent`、`current`、`total` 是业务字段，也必须先映射为具体进度组件的真实 Props。

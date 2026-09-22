@@ -14,7 +14,7 @@ def convert_single_line_title(node: JSXElement, ctx: ConversionContext) -> A2UIN
         ctx.prop(node, "title"),
         styles={
             "width": "wrapContent",
-            "height": 18,
+            "height": 16,
             "flexShrink": 1,
             "constraintSize": {"minWidth": 0, "maxWidth": "100%"},
             "fontSize": 12,
@@ -31,7 +31,7 @@ def convert_single_line_title(node: JSXElement, ctx: ConversionContext) -> A2UIN
         [title],
         styles={
             "width": "wrapContent",
-            "height": 18,
+            "height": 16,
             "alignItems": "start",
             "layoutWeight": 0,
             "flexShrink": 1,
@@ -46,7 +46,7 @@ def convert_single_line_title(node: JSXElement, ctx: ConversionContext) -> A2UIN
             # Keep the whole chain intrinsic: a weighted/fill child can make
             # a native wrapContent title consume the space before a badge.
             "width": "wrapContent",
-            "height": 18,
+            "height": 16,
             "flexShrink": 1,
             "alignItems": "top",
             "constraintSize": {"minWidth": 0, "maxWidth": "100%"},

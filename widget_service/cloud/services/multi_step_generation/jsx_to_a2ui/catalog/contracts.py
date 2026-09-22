@@ -3,7 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .bindings import BINDABLE_PROP_TYPES, collect_display_prop_type_errors
+from .bindings import (
+    BINDABLE_PROP_TYPES,
+    collect_display_prop_type_errors,
+    data_binding_ids,
+    indexed_value_template_tokens,
+)
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
 
@@ -106,13 +111,16 @@ CONTRACTS = {
     "DataDisplay": contract(required=("label", "value", "supportingText"), optional=("dataIds",)),
     "InfoBlock": contract(
         required=("primaryText", "secondaryText"),
-        optional=("unit", "visual", "dataIds"),
+        optional=("primaryTextTemplate", "secondaryTextTemplate", "unit", "visual", "dataIds"),
     ),
     "TopTextBottomValue": contract(required=("items",)),
     "TableText": contract(required=("items",)),
     "TextBlock": contract(required=("items",)),
     "EmphasizedData": contract(optional=("unit", "dataIds"), required_one_of=("value", "items")),
-    "EmphasisText": contract(required=("mainText",), optional=("secondaryText", "dataIds")),
+    "EmphasisText": contract(
+        required=("mainText",),
+        optional=("secondaryText", "secondaryTextTemplate", "dataIds"),
+    ),
     "SecondaryBody": contract(required=("items",), optional=("separator",)),
     "WeatherSummaryCard": contract(
         required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
@@ -160,7 +168,11 @@ CONTRACTS = {
         size=("sm", "md"),
     ),
     "NumericRatio": contract(required=("icon", "value"), optional=("unit", "appearance", "dataIds")),
-    "NumericRatioStack": contract(required=("items",), optional=("appearance",)),
+    "NumericRatioStack": contract(
+        required=("items",),
+        optional=("appearance", "direction"),
+        direction=("column", "row"),
+    ),
     "ChecklistItem": contract(required=("title", "meta"), optional=("done", "dataIds")),
     "EventCard": contract(
         required_one_of=("items", "title"),
@@ -244,17 +256,36 @@ def collect_jsx_component_errors(
             "titleTemplate": "title",
             "secondaryInfoTemplate": "secondaryInfo",
         },
+        "InfoBlock": {
+            "primaryTextTemplate": "primaryText",
+            "secondaryTextTemplate": "secondaryText",
+        },
+        "EmphasisText": {"secondaryTextTemplate": "secondaryText"},
     }.get(node.tag, {})
     for template_prop, value_prop in template_props.items():
         if template_prop not in node.props:
             continue
         template = node.props[template_prop]
-        if not isinstance(template, str) or template.count("{value}") != 1:
+        data_ids = node.props.get("dataIds")
+        raw_binding_ids = data_ids.get(value_prop) if isinstance(data_ids, dict) else None
+        binding_ids = data_binding_ids(node.tag, value_prop, raw_binding_ids)
+        indexed_template = (
+            node.tag in {"InfoBlock", "EmphasisText"}
+            and value_prop == "secondaryText"
+            and binding_ids is not None
+            and len(binding_ids) > 1
+        )
+        if indexed_template:
+            if indexed_value_template_tokens(template, len(binding_ids)) is None:
+                placeholders = "、".join(f"{{{index}}}" for index in range(len(binding_ids)))
+                errors.append(
+                    f"<{node.tag}> prop {template_prop} must contain {placeholders} exactly once in dataIds order"
+                )
+        elif not isinstance(template, str) or template.count("{value}") != 1:
             errors.append(
                 f"<{node.tag}> prop {template_prop} must be a string containing exactly one {{value}} placeholder"
             )
-        data_ids = node.props.get("dataIds")
-        if not isinstance(data_ids, dict) or not isinstance(data_ids.get(value_prop), str) or not data_ids[value_prop]:
+        if binding_ids is None or (not indexed_template and len(binding_ids) != 1):
             errors.append(
                 f"<{node.tag}> prop {template_prop} requires dataIds.{value_prop} to bind one non-empty data ID"
             )
