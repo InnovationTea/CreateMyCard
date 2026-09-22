@@ -3330,6 +3330,73 @@ def _collect_two_by_four_weather_calendar_alignment_errors(
     )
 
 
+def _collect_two_by_four_countdown_backboard_errors(
+    backboard: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    descendants = _descendant_components(backboard, components_by_id)
+    countdown_values = []
+    for component in descendants:
+        if component.component_type != "Text":
+            continue
+        paths = _component_content_paths(component)
+        if any(path.casefold().endswith("/countdowndays") for path in paths):
+            countdown_values.append(component)
+    if not countdown_values:
+        return
+    if _descendant_on_click_count(backboard, components_by_id) > 0:
+        return
+
+    direct_children = []
+    for child_id in backboard.children:
+        child = components_by_id.get(child_id)
+        if child is not None:
+            direct_children.append(child)
+    has_three_children = len(direct_children) == 3
+    has_three_texts = has_three_children and all(
+        child.component_type == "Text" for child in direct_children
+    )
+    if not has_three_texts:
+        errors.append(
+            f"2x4 countdown backboard {backboard.component_id} without an action "
+            "must directly contain exactly three Text children: target title, "
+            "numeric countdown, and unit `天`. Do not nest a content/readout "
+            "Column or add a fourth auxiliary line."
+        )
+        return
+
+    title, value, unit = direct_children
+    value_paths = _component_content_paths(value)
+    is_countdown_value = any(
+        path.casefold().endswith("/countdowndays") for path in value_paths
+    )
+    if not is_countdown_value or unit.props.get("content") != "天":
+        errors.append(
+            f"2x4 countdown backboard {backboard.component_id} must order its "
+            "three Text children as target title, countdownDays value, and unit `天`."
+        )
+
+    has_balanced_distribution = (
+        backboard.props.get("justifyContent") == "spaceBetween"
+        and backboard.props.get("alignItems") == "center"
+    )
+    if not has_balanced_distribution:
+        errors.append(
+            f"2x4 countdown backboard {backboard.component_id} must use "
+            'justifyContent "spaceBetween" and alignItems "center" so the '
+            "title, number, and unit have balanced vertical spacing."
+        )
+
+    for child in (title, value, unit):
+        if child.props.get("width") == 114 and child.props.get("textAlign") == "center":
+            continue
+        errors.append(
+            f"2x4 countdown Text {child.component_id} must use width 114 and "
+            "textAlign center inside the balanced countdown backboard."
+        )
+
+
 def _collect_layout_route_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -3433,6 +3500,11 @@ def _collect_layout_route_errors(
         for component in components:
             if not _is_two_by_four_large_backboard(component):
                 continue
+            _collect_two_by_four_countdown_backboard_errors(
+                component,
+                components_by_id,
+                errors,
+            )
             _collect_two_by_four_action_backboard_errors(
                 component,
                 components_by_id,
