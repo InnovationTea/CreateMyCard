@@ -74,7 +74,7 @@ Column(
                 "textAlign": "start",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
-        )
+        ),
         #endif
         Text(data.mainTextValue,
             {
@@ -103,7 +103,7 @@ Column(
             "textAlign": "start",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    )
+    ),
     #elseif data.supportValues.size == 2
     Text(`${data.supportValues[0]} | ${data.supportValues[1]}`,
         {

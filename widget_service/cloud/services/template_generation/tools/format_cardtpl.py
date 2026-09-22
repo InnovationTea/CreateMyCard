@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 _TOKEN = re.compile(r"[A-Za-z_$#][\w$@-]*|\d+(?:\.\d+)?|[^\s]", re.UNICODE)
@@ -250,6 +250,39 @@ def _validate_directives(items: tuple[_Node, ...], source: str) -> None:
         raise _error(source, token.start, f"{name} 未闭合")
 
 
+def _needs_separator(items: tuple[_Node, ...], start: int) -> bool:
+    for node in items[slice(start, None)]:
+        if isinstance(node, _Directive):
+            continue
+        if isinstance(node, _Token) and node.kind == "comment":
+            continue
+        return not _is_token(node, ",")
+    return False
+
+
+def _component_separators(
+    items: tuple[_Node, ...], added: set[int], *, arguments: bool = False
+) -> tuple[_Node, ...]:
+    """仅在组件参数列表中补齐同级组件间分隔符，保留已有尾逗号。"""
+    normalized: list[_Node] = []
+    index = 0
+    while index < len(items):
+        if not _component_at(items, index):
+            normalized.append(items[index])
+            index += 1
+            continue
+        name, group = items[index], items[index + 1]
+        assert isinstance(group, _Group)
+        children = _component_separators(group.items, added, arguments=True)
+        normalized.extend((name, replace(group, items=children)))
+        index += 2
+        if arguments and _needs_separator(items, index):
+            position = group.closing.start + 1
+            normalized.append(_Token(",", position))
+            added.add(position)
+    return tuple(normalized)
+
+
 class _Printer:
     def __init__(self) -> None:
         self.lines: list[str] = []
@@ -335,11 +368,13 @@ class _Printer:
 
 
 def format_cardtpl(source: str) -> str:
-    """格式化完整 CardTpl 文件；保留所有非空白词法内容，结构错误时抛出异常。"""
+    """格式化 CardTpl 并补齐同级组件分隔符；保留其它词法内容，结构错误时抛出异常。"""
     bom = "\ufeff" if source.startswith("\ufeff") else ""
     source = source.removeprefix("\ufeff")
     items = _Parser(source).parse()
     _validate_directives(items, source)
+    added_commas: set[int] = set()
+    items = _component_separators(items, added_commas)
     printer = _Printer()
     index = 0
     in_template = False
@@ -390,7 +425,13 @@ def format_cardtpl(source: str) -> str:
     if in_template:
         raise _error(source, len(source), "模板缺少 #End")
     formatted = "\n".join(printer.lines) + ("\n" if printer.lines else "")
-    original_tokens = [token.text for token in _tokens(source) if token.kind != "newline"]
+    original_tokens: list[str] = []
+    for token in _tokens(source):
+        if token.kind == "newline":
+            continue
+        original_tokens.append(token.text)
+        if token.start + len(token.text) in added_commas:
+            original_tokens.append(",")
     formatted_tokens = [token.text for token in _tokens(formatted) if token.kind != "newline"]
     if original_tokens != formatted_tokens:
         raise _error(source, 0, "当前语法无法在保留词法内容的前提下格式化")

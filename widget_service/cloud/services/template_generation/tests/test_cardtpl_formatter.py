@@ -27,6 +27,17 @@ def _lexical_content(source: str) -> list[str]:
     return [token.text for token in _tokens(source) if token.kind != "newline"]
 
 
+def _assert_only_commas_added(source: str, formatted: str) -> None:
+    original = _lexical_content(source)
+    index = 0
+    for token in _lexical_content(formatted):
+        if index < len(original) and original[index] == token:
+            index += 1
+        else:
+            assert token == ","
+    assert index == len(original)
+
+
 def test_user_weather_example() -> None:
     source = (_FIXTURES / "weather.input.cardtpl").read_text(encoding="utf-8")
     expected = (_FIXTURES / "weather.expected.cardtpl").read_text(encoding="utf-8")
@@ -38,7 +49,7 @@ def test_user_weather_example() -> None:
 def test_repository_templates_preserve_tokens_and_are_idempotent(path: Path) -> None:
     source = path.read_text(encoding="utf-8")
     formatted = format_cardtpl(source)
-    assert _lexical_content(formatted) == _lexical_content(source)
+    _assert_only_commas_added(source, formatted)
     assert format_cardtpl(formatted) == formatted
 
 
@@ -83,8 +94,55 @@ def test_formatted_templates_compile_identically(
 def test_expressions_directives_and_comments_are_preserved(body: str) -> None:
     source = f"#Template Demo@1(props: {{}})\nColumn(\n{body}\n)\n#End\n"
     formatted = format_cardtpl(source)
-    assert _lexical_content(formatted) == _lexical_content(source)
+    _assert_only_commas_added(source, formatted)
     assert format_cardtpl(formatted) == formatted
+
+
+@pytest.mark.parametrize(
+    "body,expected",
+    (
+        ('Text("a")\nText("b")', 'Text("a"),\nText("b")'),
+        ('Text("a"),\nText("b"),', 'Text("a"),\nText("b"),'),
+        ('#if props.a\nText("a")\n#endif\nText("b")',
+         '#if props.a\nText("a"),\n#endif\nText("b")'),
+        ('#if props.a\nText("a")\n#elseif props.b\nText("b")\n#endif',
+         '#if props.a\nText("a"),\n#elseif props.b\nText("b")\n#endif'),
+        ('#if props.a\nText("a")\n#endif', '#if props.a\nText("a")\n#endif'),
+        ('Text("a") // 注释\nText("b")', 'Text("a"),\n// 注释\nText("b")'),
+        ('Text("a") // 注释\n, Text("b")', 'Text("a")\n// 注释\n,\nText("b")'),
+        ('Text("a,b")\n#if props.a\n#endif', 'Text("a,b")\n#if props.a\n#endif'),
+        ('#match present(data.a) as items\n#case 0\nText("a")\n#default\n'
+         'Text("b")\n#end',
+         '#match present(data.a) as items\n#case 0\nText("a"),\n#default\n'
+         'Text("b")\n#end'),
+    ),
+)
+def test_component_separators(body: str, expected: str) -> None:
+    source = f"#Template Demo@1(props: {{}})\nColumn(\n{body}\n)\n#End\n"
+    formatted = format_cardtpl(source)
+    indented = "\n".join("    " + line for line in expected.splitlines())
+    assert formatted == f"#Template Demo@1(props: {{}})\nColumn(\n{indented}\n)\n#End\n"
+    _assert_only_commas_added(source, formatted)
+    assert format_cardtpl(formatted) == formatted
+
+
+@pytest.mark.parametrize(
+    "body",
+    (
+        '#if props.a\nText("a")\n#endif\nText("tail")',
+        '#if props.a\nText("a")\n#elseif props.b\nText("b")\n#else\nText("c")\n#endif',
+        '#if props.a\n#if props.b\nText("inner")\n#endif\nText("a")\n#endif\nText("tail")',
+        '#if props.a\n#elseif props.b\nText("b")\n#else\n#endif\nText("tail")',
+    ),
+)
+def test_conditional_separators_keep_compiled_structure(body: str) -> None:
+    original_body = f"Column(\n{body}\n)"
+    source = f"#Template Demo@1(props: {{}})\n{original_body}\n#End\n"
+    _, formatted_body = format_cardtpl(source).split("\n", 1)
+    formatted_body = formatted_body.removesuffix("\n#End\n")
+    assert provider_bundle._parse_component_body(formatted_body) == (
+        provider_bundle._parse_component_body(original_body)
+    )
 
 
 @pytest.mark.parametrize(
