@@ -82,11 +82,17 @@ _TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK = """# 本次 2x4 倒计时双业务路�
 本次请求包含倒计时和另一个独立业务对象，外层固定使用 W9 左右两个大内容背板，
 但两个背板必须分别选择内部内容变体，禁止把整卡统一压成 dense-summary：
 
-- 倒计时背板使用 value-led：顶部 `12fp/400` 目标标题，中部居中展示
-  `30fp/38fp`、`700` 的纯倒计时数字，单位“天”作为其正下方的 `12fp` 独立一行。
+- 无动作的倒计时大背板固定只含三个直接 Text，依次为 `12fp/400` 目标标题、
+  `30fp/38fp`、`700` 的纯倒计时数字、`12fp/400` 单位“天”；背板使用
+  `justifyContent:"spaceBetween"`、`alignItems:"center"`，三个 Text 均为全宽居中，
+  让三层留白均衡。禁止再套 content/readout Column，也禁止增加第四行辅助说明。
+  整个倒计时背板只能出现一个“天”；禁止同时生成行内单位和下方单位，也禁止把
+  数字与“天”放进同一个 Row。
   不得把数字压成 `14fp` 的 `30天`，也不得从另一个业务根借字段填充本背板。
 - 另一背板按自己的业务选择变体。多日天气使用 dense-summary，每天压成一行，
-  显式天气详情动作固定沉底；日程列表使用 event-led，事项标题与时间成组排列，
+  同日同时有完整日期和星期时只保留星期；按天气、温度、降雨顺序保留能完整显示的
+  字段。显式天气详情动作以完整短标签“查看天气”固定沉底；日程列表使用 event-led，
+  事项标题与时间成组排列，
   若动作只查看第一场日程，绑定第一场事项行，不额外生成挤占列表空间的重复 CTA。
 - 每个背板只能引用一个 `/data` 一级业务根。倒计时背板只引用 `/data/countdown`，
   天气、日程等数据和动作必须留在各自背板。"""
@@ -100,27 +106,119 @@ W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或�
   `focus_zone` 和右侧 `130×126vp` `aux_column`；左侧不加内容背板。
 - `aux_column` 固定上下两个 `130×59vp`、间距 `8vp` 的白色 80% 辅助背板。
 - 左侧只建立一个主焦点，可按业务使用大数字、环形进度、最多三项的事项列表或
-  一条突出状态；Progress 不是选择本骨架的前提。
+  一条突出状态；Progress 不是选择本骨架的前提。左侧普通 value/text 焦点不添加
+  装饰性 Image；只有 Image 作为合法环形 Progress 的中心内容时才允许保留。
+- 左侧纯文字 status-focus 只有 2-4 行短文本时，全部放进一个紧凑 Column，
+  由 focus_zone 使用 justifyContent center 让整组垂直居中；三行以上保持左对齐，
+  但不得把第一行固定在顶部。只有一个主信息组、最多再加一条短辅助信息时，
+  focus_zone 和内容组同时水平居中，主值 Row 与相关 Text 居中。事项列表、长提醒
+  正文和真正的多行摘要保持左对齐。
+- Progress 不能替代主读数：左侧出现 Progress 时必须同时显示对应的可见主值 Text。
+  只有 string 格式化百分比、无法可靠绑定运行时数值与 total 时不生成 Progress，
+  直接突出显示原始值；禁止只留下标题和一条无读数进度线。
 - 右侧每个槽只承载一项辅助指标、紧密相关的一组两行状态摘要或动作。耳机左右电量
-  等成对信息可以在同一辅助槽压成两行。动作直接绑定整个辅助背板，
+  等成对信息可以在同一辅助槽压成两行，每行最多两个事实；普通槽最多引用两个动态
+  事实，禁止把三个以上字段串进一行后依赖 clip。一个普通槽保留两个动态事实时
+  必须分别使用两个单行 Text，每个 Text 各自包含完整的“短标签 + 值/状态”，禁止
+  第一行只列两个标签、第二行再集中列两个值，
+  不得用 `|` 合并成一个 Text。动作直接绑定整个辅助背板，
   不再生成满宽底部 CTA；没有动作时使用必要辅助信息，禁止留下空背板。
+- 辅助槽只有一个有效状态时只显示一行，禁止用静态文案重复动态状态，例如两行都显示
+  “未充电”；第二行只有提供独立信息时才保留。未被用户要求的 updatedAt 不得用于填满槽位。
+- 右侧槽使用图标时固定为 `Row -> [78vp 文字 Column, 20×20vp Image]`，Row
+  左右 padding 12、itemMargin 8、justifyContent start、alignItems center；文字 Column
+  最多两个单行 Text 并固定左对齐，
+  Image 必须是最后一个直接子节点并固定在右侧。动作图标也执行同一顺序，禁止
+  `Image -> Text`、图标在文字下方或依赖裁切露出蒙版。
+- 右侧槽没有图标时同样使用左右 padding 12；Row 使用 `justifyContent:"start"`，
+  Column 使用 `alignItems:"start"`，内部所有 Text 均使用 `textAlign:"start"`。
+  辅助槽只做垂直居中，禁止将“查看日程”“打开闹钟”等文字水平居中。
+- userQuery 明确要求动作时先为动作保留右侧槽，再放辅助事实；明确要求两个动作时
+  两个右侧槽都作为动作入口，不得让低优先级指标挤掉动作。一个动作时，另一槽只放
+  与主焦点最相关的一项事实或两行紧密摘要。
+- 动作槽使用一个简短、完整的命令作为主标签，例如“查看日程”“蓝牙设置”“打开歌单”；
+  第二行只允许补充真实目标或状态，禁止用“打开设置”“点击打开”“进入歌单”等同义
+  文案重复第一行。单行已经能说明动作时只保留一行并在槽内垂直居中。
 - 数据根数量只用于校验字段归属，不决定左右等权。只有两个业务确实等权且都需要
   完整内容区时才使用 W9。"""
 
 _TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK = """# 本次电池 W1 填槽约束
 
 - 左侧以剩余电量为唯一主焦点；若用户要求系统识别状态，把“识别+状态”作为左侧
-  唯一辅助行。用户没有明确要求进度图形时不生成 Progress。
+  唯一辅助行。左侧焦点区与其紧凑内容组必须同时使用水平、垂直居中；主值 Row
+  使用 `justifyContent:"center"`，辅助 Text 使用 `textAlign:"center"`，不得贴左或贴顶。
+  用户没有明确要求进度图形时不生成 Progress。
 - 右上背板显示充电电流，右下背板显示充电电压；标签与值各占一行。
 - 四项信息分别只显示一次，禁止生成“剩余电量 / 100%”等重复说明。"""
 
 _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK = """# 本次耳机 W1 填槽约束
 
-- 左侧只显示耳机名称、连接状态，以及一行“耳机仓电量 | 充电状态”，不得把左右耳
-  状态继续铺在左侧。
-- 右上背板用两行分别显示左耳和右耳的“电量 | 充电状态”。
-- 右下 `130×59vp` 背板承载音乐动作，直接绑定 onClick；禁止生成 `276vp/300vp`
-  满宽按钮，也禁止把动作移到 root 底部或画布外。"""
+- 有耳机名称、连接状态、耳机仓电量或耳机仓充电状态时，按 userQuery 顺序选最多
+  四项放进左侧同一个紧凑 Column，并由 focus_zone 使用 `justifyContent:"center"`
+  让整组垂直居中，不把名称固定在顶部。`isConnected` 必须用条件表达式显示
+  “已连接/未连接”，禁止直接显示 `true/false`；耳机仓电量和充电状态分别成行，
+  不使用 `|` 挤在一个 Text。
+- 只有左右耳电量与充电状态时，左侧用两行分别显示左右耳电量；右上背板用两行
+  分别显示左右耳充电状态。若同时存在耳机概览字段，右上背板可用两行分别显示
+  “左耳 电量 · 充电状态”和“右耳 电量 · 充电状态”，每行最多两个动态事实。
+- 音乐动作或设置动作占用右侧槽并直接绑定背板 onClick。两个明确动作占满右侧时，
+  全部必要耳机概览放在左侧最多四行；禁止生成满宽按钮或把动作移到画布外。"""
+
+_TWO_BY_FOUR_WEATHER_FOCUS_AUX_LOCK = """# 本次天气 W1 填槽约束
+
+- 天气预警与生活指数同时出现时，左侧使用纯文字 status-focus：预警是唯一突出信息，
+  空气质量和用户明确要求的提醒文字作为支撑信息，整个紧凑内容组垂直居中；提醒
+  最多两行，不把预警固定在顶部后留下大块空白。
+- 右上背板分别用两行显示紫外线和感冒指数，不使用 `|` 合并；右下背板保留明确
+  动作。拨号动作只显示一个简短命令标签，号码放在事件参数中，不把 11 位号码挤进
+  78vp 文字区。"""
+
+_TWO_BY_FOUR_HEALTH_FOCUS_AUX_LOCK = """# 本次健康运动 W1 填槽约束
+
+- 从用户最先强调的指标中选择唯一主焦点；左侧最多再用两行承载同一复盘目标的
+  相关信息，每行最多两个短事实。字段多于五项时使用三行普通字号紧凑摘要并整体
+  水平、垂直居中，不得突出其中一个同级指标，也不得把第一行悬在顶部或贴在左侧。
+  `focus_zone` 与左侧内容组都使用 `justifyContent:"center"`、`alignItems:"center"`，
+  普通摘要 Text 使用 `textAlign:"center"`。
+- 睡眠得分等场景若把 12fp 指标名与 30fp 数字放在同一个 Row，Row 必须使用
+  `alignItems:"bottom"`，12fp 指标名使用 `padding.bottom:9`；也可以改成一个完整
+  单行 Text。禁止只写 bottom 对齐而不做字号差补偿。
+- 有动作时先把右下槽保留给动作，右上槽用两个单行 Text 放最多两个剩余指标；
+  无动作时两个右侧槽各放一组最多两项的紧密信息。禁止把三项心率、热量、时长等
+  串成一行后裁切。
+- 动作槽只显示一个简短命令，例如“打开锻炼”“设置使用时长”；禁止再加“点击打开”
+  “进入设置”等同义第二行。"""
+
+_TWO_BY_FOUR_HEALTH_WEATHER_FOCUS_AUX_LOCK = """# 本次健康与天气 W1 填槽约束
+
+- 只有一个明确动作时，左侧以天气体感为唯一主值、风力为一条支撑信息；右上背板
+  用两个单行 Text 分别显示步数和心率/运动摘要，右下背板保留动作。健康指标不得
+  在左侧再制造第二个 20fp 以上主值。
+- 两个明确动作占满右侧时，左侧把全部必要事实压成最多三行普通字号摘要并整体
+  垂直居中：每行最多两个紧密事实，可把“体感 + 预警”放在同一行；不得生成孤立的
+  顶部字段、第二个 hero 或把任一动作改成提示文字。"""
+
+_TWO_BY_FOUR_PHONE_EARPHONE_FOCUS_AUX_LOCK = """# 本次手机与耳机 W1 填槽约束
+
+- 左侧以手机剩余电量为唯一主焦点。TaskSpec 同时提供可计算的 number/integer 电量值、
+  且用户要求进度图形时，使用紧凑环形 Progress 与可见电量读数，禁止改成横向线性条；
+  只有已含单位的 string 电量文本时直接显示完整读数，不得把字符串绑定给 Progress，
+  也不得编造数值路径或总量。左侧焦点区和内容组必须双轴居中。number/integer 电量
+  与静态 `%` 拆分显示时必须是同一 Row 的相邻 Text，Row 使用 `alignItems:"bottom"`
+  和 `justifyContent:"center"`；较小 Text 的 `padding.bottom` 取两者字号差的一半，
+  禁止把 `%` 放到下一行。
+- 右上背板用最多两行显示耳机连接状态和耳机仓/左右耳中最重要的一项电量信息；
+  右下背板保留用户明确要求的音乐动作。动作直接绑定背板，只显示一个简短命令。
+- `isConnected` 必须转成“已连接/未连接”，所有电量必须保留 `%`，不得用装饰图标、
+  重复状态或更新时间填满槽位。"""
+
+_TWO_BY_FOUR_WEATHER_CALENDAR_ALIGNMENT_LOCK = """# 本次天气与日程对齐约束
+
+- 天气分区同时展示当前温度与天气状态时，固定合并为同一个单行 Text，例如
+  `{{ ${/data/weather/current/temperatureC} + '° · ' + ${/data/weather/current/condition} }}`；
+  不得拆成两个不同字号或不同高度的 Text 来碰位置。若 schema 提供已含单位的格式化
+  温度字符串，直接拼接该完整字段，不得重复追加单位。
+- 日程信息留在日程分区；本规则只统一天气读数的可见基线，不改变 W9 左右分区骨架。"""
 
 _COUNTDOWN_QUERY_MARKERS = ("倒计时", "倒数", "倒计日", "天后", "countdown")
 _ACTION_QUERY_MARKERS = (
@@ -296,7 +394,10 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 `276×59vp` 业务蒙版上下排列。W8/W9/W10 均禁止公共标题、公共内容区和公共动作区，
 root padding 固定为 `8vp`，不得继续保留旧版 `12vp` 外边距。不得自由拼接骨架。
 带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
-最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。""",
+最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。数字与单位拆成同一
+Row 内的两个 Text 时，不论数字字号大小，Row 必须使用 `alignItems:"bottom"`，单位
+的 `padding.bottom` 必须取数字与单位字号差的一半，且不得与数字设置相同的固定高度。
+同一 Row 内其它不同字号 Text 也执行相同的底部对齐与字号差补偿。""",
 }
 
 _TWO_BY_FOUR_ROUTE_LOCKS = {
@@ -304,13 +405,18 @@ _TWO_BY_FOUR_ROUTE_LOCKS = {
 
 本轮固定使用 W8 四格。root padding 固定为 8vp，第一层是 2×2 网格，四个
 138×63vp 小背板分别承载一个业务数据块；禁止公共标题、公共内容区、公共动作区、
-第五个数据块和格内按钮。""",
+第五个数据块和格内按钮。天气中的温度/体感/湿度可以在一个两行背板内组成热舒适组，
+风向与风力组成一个风况组；其余格分别承载预警、电池温度、步数或心率等独立指标。
+字段多于四组时先合并天然相关字段，再删除最低优先级字段，不得退回 W1/W9。""",
     "W9-dual-backboards": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W9 左右双大背板。root 必须是 Row，padding 与两背板间距均为 8vp，
 直接且只能包含两个 138×134vp 背板；禁止上下堆叠、公共标题、公共内容区和公共动作区。
 每个业务的数据与至多一个动作只放在所属背板内；带动作时真实 content 必须使用
-layoutWeight:1，动作是最后一个直接子项。""",
+layoutWeight:1，动作是最后一个直接子项。普通 Text 最多合并两个能完整显示的动态
+事实，三个以上字段必须拆成短行或删除最低优先级项；多日天气的单日摘要除外。
+动作使用一个简短完整命令，不追加同义提示，天气详情优先使用“查看天气”。数字与
+单位同行拆分时，Row 固定底对齐，较小 Text 的底部补偿取字号差的一半。""",
     "W10-triple-backboards": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W10 左大右双小。root 必须是 Row，padding 与分区间距均为 8vp；
@@ -364,6 +470,9 @@ class PromptBuilder:
         )
         if is_countdown_target:
             return 1
+        metric_grid_count = PromptBuilder._two_by_four_metric_grid_count(task_spec)
+        if metric_grid_count >= 4:
+            return metric_grid_count
         count = len(roots)
         if task_spec.size != "2x4" or "healthSport" not in roots:
             return count
@@ -375,6 +484,50 @@ class PromptBuilder:
         has_daily = any(name.startswith("daily") for name in names)
         has_exercise = any(name.startswith("exercise") for name in names)
         return count + int(has_daily and has_exercise)
+
+    @staticmethod
+    def _two_by_four_metric_grid_count(task_spec: TaskSpec) -> int:
+        """Count independent compact metrics that should use the W8 grid."""
+        if task_spec.size != "2x4":
+            return 0
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return 0
+        normalized_roots = {str(root).casefold() for root in data_schema}
+        if "weather" not in normalized_roots:
+            return 0
+        if normalized_roots.intersection({"countdown", "calendar", "earphone"}):
+            return 0
+        if not normalized_roots.issubset(
+            {"weather", "healthsport", "phonebattery"}
+        ):
+            return 0
+
+        weather_schema = None
+        metric_count = 0
+        for root_name, root_value in data_schema.items():
+            normalized_root = str(root_name).casefold()
+            if normalized_root == "weather":
+                weather_schema = root_value
+                continue
+            metric_count += PromptBuilder._schema_leaf_count(root_value)
+        weather_fields = PromptBuilder._schema_field_names(weather_schema)
+        weather_groups = (
+            ("temperature", "feelslike", "humidity"),
+            ("winddirection", "windlevel"),
+            ("alert", "warning"),
+            ("airquality",),
+            ("rainprobability",),
+        )
+        for markers in weather_groups:
+            group_matches = False
+            for marker in markers:
+                if any(marker in field_name for field_name in weather_fields):
+                    group_matches = True
+                    break
+            if group_matches:
+                metric_count += 1
+        return metric_count
 
     @staticmethod
     def _schema_has_field(task_spec: TaskSpec, markers: tuple[str, ...]) -> bool:
@@ -563,16 +716,17 @@ class PromptBuilder:
             if PromptBuilder._query_mentions_weather(task_spec):
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
             return ()
+        block_count = PromptBuilder._data_block_count(task_spec)
+        if block_count >= 4:
+            return ("2x4-V06",)
+        if block_count == 3:
+            return ("2x4-V10",)
         if normalized_roots == {"weather", "phonebattery"}:
             return (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
         if normalized_roots == {"phonebattery", "earphone"}:
             return ("2x4-V14",)
         if normalized_roots == {"weather", "phonebattery", "earphone"}:
             return ("2x4-V10",)
-        if len(roots) == 4 and normalized_roots.issubset(
-            {"weather", "phonebattery", "earphone", "calendar"}
-        ):
-            return ("2x4-V06",)
         return ()
 
     @staticmethod
@@ -887,6 +1041,25 @@ class PromptBuilder:
             return _TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK
         if roots == {"earphone"}:
             return _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK
+        if roots == {"weather"}:
+            return _TWO_BY_FOUR_WEATHER_FOCUS_AUX_LOCK
+        if roots == {"healthsport"}:
+            return _TWO_BY_FOUR_HEALTH_FOCUS_AUX_LOCK
+        if roots == {"healthsport", "weather"}:
+            return _TWO_BY_FOUR_HEALTH_WEATHER_FOCUS_AUX_LOCK
+        if roots == {"earphone", "phonebattery"}:
+            return _TWO_BY_FOUR_PHONE_EARPHONE_FOCUS_AUX_LOCK
+        return ""
+
+    @staticmethod
+    def _two_by_four_cross_domain_lock(task_spec: TaskSpec) -> str:
+        if task_spec.size != "2x4":
+            return ""
+        roots = {
+            root.casefold() for root in PromptBuilder._data_roots(task_spec)
+        }
+        if roots == {"calendar", "weather"}:
+            return _TWO_BY_FOUR_WEATHER_CALENDAR_ALIGNMENT_LOCK
         return ""
 
     @staticmethod
@@ -963,23 +1136,91 @@ class PromptBuilder:
         data_schema = task_spec.dataModelSchema.get("data")
         if not isinstance(data_schema, dict):
             return False
+        if PromptBuilder._two_by_four_metric_grid_count(task_spec) >= 4:
+            return False
+        candidate_count = len(task_spec.eventCandidates)
 
         if len(roots) == 1:
+            root_value = next(iter(data_schema.values()))
+            leaf_count = PromptBuilder._schema_leaf_count(root_value)
+            field_names = PromptBuilder._schema_field_names(root_value)
             if "healthsport" in normalized_roots:
                 return PromptBuilder._schema_leaf_count(data_schema) >= 4
             if "phonebattery" in normalized_roots:
-                phone_battery = next(iter(data_schema.values()))
                 return PromptBuilder._is_dense_phone_battery_schema(
-                    phone_battery
+                    root_value
                 )
             if "earphone" in normalized_roots:
-                return PromptBuilder._schema_leaf_count(data_schema) >= 6
+                has_paired_charging = any(
+                    "leftcharging" in name for name in field_names
+                ) and any("rightcharging" in name for name in field_names)
+                has_two_requested_actions = candidate_count >= 2
+                return (
+                    leaf_count >= 6
+                    or (
+                        leaf_count >= 4
+                        and (has_paired_charging or has_two_requested_actions)
+                    )
+                )
+            if "calendar" in normalized_roots:
+                has_reminder = any("remind" in name for name in field_names)
+                return candidate_count > 0 and leaf_count >= 4 and has_reminder
+            if "weather" in normalized_roots:
+                advisory_groups = (
+                    ("alert", "warning"),
+                    ("airquality",),
+                    ("uv",),
+                    ("cold",),
+                )
+                advisory_count = 0
+                for markers in advisory_groups:
+                    group_matches = False
+                    for marker in markers:
+                        if any(marker in name for name in field_names):
+                            group_matches = True
+                            break
+                    if group_matches:
+                        advisory_count += 1
+                return (
+                    candidate_count > 0
+                    and leaf_count >= 4
+                    and advisory_count >= 2
+                )
             return False
 
         supported = normalized_roots == {"calendar", "phonebattery"} or (
             "healthsport" in normalized_roots
         )
-        return supported and PromptBuilder._schema_leaf_count(data_schema) >= 3
+        if supported and PromptBuilder._schema_leaf_count(data_schema) >= 3:
+            return True
+
+        if normalized_roots == {"phonebattery", "earphone"}:
+            earphone_schema = None
+            for root_name, root_value in data_schema.items():
+                if str(root_name).casefold() == "earphone":
+                    earphone_schema = root_value
+                    break
+            if (
+                candidate_count > 0
+                and earphone_schema is not None
+                and PromptBuilder._schema_leaf_count(earphone_schema) >= 4
+            ):
+                return True
+
+        fact_counts = sorted(
+            PromptBuilder._schema_leaf_count(value)
+            for value in data_schema.values()
+        )
+        has_clear_density_imbalance = (
+            fact_counts[0] <= 2
+            and fact_counts[1] >= 3
+            and fact_counts[1] - fact_counts[0] >= 2
+            and (
+                fact_counts[0] == 1
+                or len(task_spec.eventCandidates) <= 1
+            )
+        )
+        return has_clear_density_imbalance
 
     @staticmethod
     def _contains_schema_field(value: Any, field_name: str) -> bool:
@@ -1017,6 +1258,9 @@ class PromptBuilder:
             f"{PromptBuilder._visual_route_instruction(task_spec, layout_scope)}\n\n"
             f"{PromptBuilder._layout_route_lock(task_spec, layout_scope)}"
         )
+        cross_domain_lock = PromptBuilder._two_by_four_cross_domain_lock(task_spec)
+        if cross_domain_lock:
+            prompt = f"{prompt}\n\n{cross_domain_lock}"
         if PromptBuilder._uses_countdown_v01(task_spec):
             route_lock = (
                 _COUNTDOWN_V08_ROUTE_LOCK

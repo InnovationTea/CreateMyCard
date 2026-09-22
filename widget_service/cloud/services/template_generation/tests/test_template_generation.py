@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 122
+    assert len(registry.provider_template_ids) == 123
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -2218,8 +2218,8 @@ def test_workout_template_requires_one_complete_training_session():
     definition = registry.require_template("WorkoutOverviewFull@1")
 
     assert definition.primary_data == ("/exerciseDurationText",)
-    assert definition.secondary_data == ("/exerciseCalorieText", "/exerciseEndTimeText")
-    assert definition.optional_data == ("/exerciseTypeName",)
+    assert definition.secondary_data == ("/exerciseCalorieText",)
+    assert definition.optional_data == ("/exerciseEndTimeText", "/exerciseTypeName")
     assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
 
     hero = registry.require_template("WorkoutOverviewHero@1")
@@ -2343,7 +2343,6 @@ def test_first_layer_receives_workout_session_routing_rules_and_required_paths()
     assert template["requiredTaskSpecPaths"] == [
         "/data/healthSport/exerciseDurationText",
         "/data/healthSport/exerciseCalorieText",
-        "/data/healthSport/exerciseEndTimeText",
     ]
     provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
     assert "最近一次特定运动训练会话" in provider_rules

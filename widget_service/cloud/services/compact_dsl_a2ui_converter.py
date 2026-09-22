@@ -23,9 +23,6 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200B"
-_LARGE_VALUE_UNITS = frozenset(
-    {"%", "天", "℃", "°C", "步", "分", "小时", "公里", "千卡", "次/分钟", "级"}
-)
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -1241,53 +1238,52 @@ def _normalize_large_value_unit_alignment(
     for row in components:
         if row.component_type != "Row":
             continue
-        for index, value_id in enumerate(row.children[:-1]):
-            value = components_by_id.get(value_id)
-            unit = components_by_id.get(row.children[index + 1])
-            if value is None or value.component_type != "Text":
+        text_children: list[ComponentRow] = []
+        for child_id in row.children:
+            child = components_by_id.get(child_id)
+            if child is None or child.component_type != "Text":
                 continue
-            if unit is None or unit.component_type != "Text":
-                continue
-            font_size = value.props.get("fontSize")
-            if not isinstance(font_size, (int, float)) or font_size < 30:
-                continue
-            content = unit.props.get("content")
-            if not isinstance(content, str) or content.strip() not in _LARGE_VALUE_UNITS:
-                continue
+            font_size = child.props.get("fontSize")
+            if isinstance(font_size, (int, float)):
+                text_children.append(child)
+        if len(text_children) < 2:
+            continue
 
-            row_props = {**row.props, "alignItems": "bottom"}
-            replacements[row.component_id] = ComponentRow(
-                row.component_id,
-                row.component_type,
-                row_props,
-                row.children,
+        max_font_size = max(child.props["fontSize"] for child in text_children)
+        min_font_size = min(child.props["fontSize"] for child in text_children)
+        if max_font_size == min_font_size:
+            continue
+
+        row_props = {**row.props, "alignItems": "bottom"}
+        replacements[row.component_id] = ComponentRow(
+            row.component_id,
+            row.component_type,
+            row_props,
+            row.children,
+        )
+        for child in text_children:
+            child_font_size = child.props["fontSize"]
+            if child_font_size == max_font_size:
+                continue
+            bottom_padding = int(round((max_font_size - child_font_size) / 2))
+            child_props = {**child.props}
+            padding = child_props.get("padding")
+            if isinstance(padding, dict):
+                child_props["padding"] = {
+                    **padding,
+                    "bottom": bottom_padding,
+                }
+            else:
+                child_props["padding"] = {"bottom": bottom_padding}
+            height = child_props.get("height")
+            if isinstance(height, (int, float)) and height > 24:
+                child_props.pop("height")
+            replacements[child.component_id] = ComponentRow(
+                child.component_id,
+                child.component_type,
+                child_props,
+                child.children,
             )
-            for child_id in row.children:
-                child = components_by_id.get(child_id)
-                if child is None or child.component_type != "Text":
-                    continue
-                child_font_size = child.props.get("fontSize")
-                if not isinstance(child_font_size, (int, float)):
-                    continue
-                if child_font_size >= 30:
-                    continue
-
-                child_props = {**child.props}
-                padding = child_props.get("padding")
-                if isinstance(padding, dict):
-                    child_props["padding"] = {**padding, "bottom": 4}
-                else:
-                    child_props["padding"] = {"bottom": 4}
-                height = child_props.get("height")
-                if isinstance(height, (int, float)) and height > 24:
-                    child_props.pop("height")
-                replacements[child.component_id] = ComponentRow(
-                    child.component_id,
-                    child.component_type,
-                    child_props,
-                    child.children,
-                )
-            break
 
     return [replacements.get(component.component_id, component) for component in components]
 
@@ -1329,19 +1325,26 @@ def _normalize_small_backboard_icon_alignment(
     elif size == "2x4":
         candidate_ids = set()
         for component in components:
-            if component.props.get("width") != 138:
-                continue
-            if component.props.get("height") == 63:
+            dimensions = (
+                component.props.get("width"),
+                component.props.get("height"),
+            )
+            if dimensions in {(138, 63), (130, 59)}:
                 candidate_ids.add(component.component_id)
-        backboard_width = 138
-        backboard_height = 63
-        text_width = 86
     else:
         return components
 
     replacements: dict[str, ComponentRow] = {}
     for candidate_id in candidate_ids:
         backboard = components_by_id[candidate_id]
+        if size == "2x4" and backboard.props.get("width") == 130:
+            backboard_width = 130
+            backboard_height = 59
+            text_width = 78
+        elif size == "2x4":
+            backboard_width = 138
+            backboard_height = 63
+            text_width = 86
         if (
             backboard.component_type not in {"Row", "Column"}
             or not 1 <= len(backboard.children) <= 2
@@ -1397,6 +1400,9 @@ def _normalize_small_backboard_icon_alignment(
         if text.component_type == "Column":
             text_props["justifyContent"] = "center"
             text_props["alignItems"] = "start"
+        else:
+            text_props["maxLines"] = 1
+            text_props["textAlign"] = "start"
         replacements[text.component_id] = ComponentRow(
             text.component_id,
             text.component_type,
@@ -1749,6 +1755,14 @@ def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
     )
     if not is_complete:
         return rows
+    unreachable_ids = sorted(set(components_by_id) - visited)
+    if unreachable_ids:
+        unreachable_text = ", ".join(unreachable_ids)
+        raise CompactDslConversionError(
+            "Component rows must form one tree rooted at root. "
+            f"Unreachable component(s): {unreachable_text}. "
+            "Attach each component to a reachable parent's children list."
+        )
     return [*ordered_components, *data_rows]
 
 

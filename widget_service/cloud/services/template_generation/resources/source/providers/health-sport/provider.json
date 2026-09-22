@@ -94,8 +94,9 @@
       "templateId": "WorkoutOverviewFull@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示该次热量、时长和结束时间，可选展示运动类型。 组件形态：latest。",
+      "description": "最近一次单次运动训练摘要，展示该次热量和时长，可补充结束时间与运动类型。 组件形态：latest。",
       "optionalData": [
+        "/exerciseEndTimeText",
         "/exerciseTypeName"
       ],
       "entry": "templates/workout-overview.cardtpl",
@@ -103,8 +104,7 @@
         "/exerciseDurationText"
       ],
       "secondaryData": [
-        "/exerciseCalorieText",
-        "/exerciseEndTimeText"
+        "/exerciseCalorieText"
       ]
     },
     {
@@ -232,6 +232,20 @@
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率主视觉，展示平均心率，可补充更新时间，使用心率图标。 组件形态：mainHeroUpdatedIcon。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewUpdatedFull@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，展示平均心率与更新时间。 组件形态：fullUpdated。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
