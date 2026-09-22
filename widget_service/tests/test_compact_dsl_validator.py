@@ -162,6 +162,7 @@ def test_design_processor_reports_compact_contract_as_validation() -> None:
         task_spec={
             "userQuery": "生成静态天气入口卡",
             "size": "2x2",
+            "appVersion": "1.0.0",
             "eventCandidates": [],
             "dataModelSchema": {"data": {}},
             "assetCandidates": [],
@@ -182,6 +183,32 @@ def test_design_processor_reports_compact_contract_as_validation() -> None:
         item.code == "COMPACT_DSL_VALIDATION_FAILED"
         for item in result.errors
     )
+
+
+def test_design_processor_can_bypass_compact_contract_for_template_output() -> None:
+    context = DslProcessingContext(
+        size="2x2",
+        card_spec={"dataBindings": []},
+        task_spec={
+            "userQuery": "生成静态天气入口卡",
+            "size": "2x2",
+            "appVersion": "1.0.0",
+            "eventCandidates": [],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [],
+        },
+        protocol_profile={"version": "v0.9"},
+        design_profile_id="design-compact-dsl",
+        skip_compact_dsl_validation=True,
+    )
+
+    result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(
+        _INVALID_COMPACT_DSL,
+        context,
+    )
+
+    assert result.standard_dsl
+    assert result.errors == ()
 
 
 @pytest.mark.parametrize("component_type", ["Row", "Column", "List", "Stack"])
