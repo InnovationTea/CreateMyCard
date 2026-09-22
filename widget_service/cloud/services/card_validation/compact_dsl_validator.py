@@ -1001,26 +1001,11 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
     normalized_roots = {root.casefold() for root in roots}
     if "countdown" in normalized_roots or len(roots) > 2:
         return False
+    candidate_count = len(task_spec.get("eventCandidates") or [])
     if len(roots) == 1:
         root_value = next(iter(data_schema.values()))
         leaf_count = _schema_leaf_count(root_value)
         field_names = _schema_field_names(root_value)
-        query = str(task_spec.get("userQuery") or "").casefold()
-        action_markers = (
-            "打开",
-            "点击",
-            "点一下",
-            "查看",
-            "设置",
-            "导航",
-            "进入",
-            "一键",
-            "拨号",
-            "入会",
-        )
-        explicit_action = bool(task_spec.get("eventCandidates")) and any(
-            marker in query for marker in action_markers
-        )
         if "healthsport" in normalized_roots:
             return _schema_leaf_count(data_schema) >= 4
         if "phonebattery" in normalized_roots:
@@ -1029,10 +1014,7 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
             has_paired_charging = any(
                 "leftcharging" in name for name in field_names
             ) and any("rightcharging" in name for name in field_names)
-            has_two_requested_actions = (
-                explicit_action
-                and len(task_spec.get("eventCandidates") or []) >= 2
-            )
+            has_two_requested_actions = candidate_count >= 2
             return (
                 leaf_count >= 6
                 or (
@@ -1042,7 +1024,7 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
             )
         if "calendar" in normalized_roots:
             has_reminder = any("remind" in name for name in field_names)
-            return explicit_action and leaf_count >= 4 and has_reminder
+            return candidate_count > 0 and leaf_count >= 4 and has_reminder
         if "weather" in normalized_roots:
             advisory_groups = (
                 ("alert", "warning"),
@@ -1059,7 +1041,11 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
                         break
                 if group_matches:
                     advisory_count += 1
-            return explicit_action and leaf_count >= 4 and advisory_count >= 2
+            return (
+                candidate_count > 0
+                and leaf_count >= 4
+                and advisory_count >= 2
+            )
         return False
 
     supported = normalized_roots == {"calendar", "phonebattery"} or (
@@ -1068,22 +1054,6 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
     if supported and _schema_leaf_count(data_schema) >= 3:
         return True
 
-    query = str(task_spec.get("userQuery") or "").casefold()
-    action_markers = (
-        "打开",
-        "点击",
-        "点一下",
-        "查看",
-        "设置",
-        "导航",
-        "进入",
-        "一键",
-        "拨号",
-        "入会",
-    )
-    explicit_action = bool(task_spec.get("eventCandidates")) and any(
-        marker in query for marker in action_markers
-    )
     if normalized_roots == {"phonebattery", "earphone"}:
         earphone_schema = None
         for root_name, root_value in data_schema.items():
@@ -1091,7 +1061,7 @@ def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
                 earphone_schema = root_value
                 break
         if (
-            explicit_action
+            candidate_count > 0
             and earphone_schema is not None
             and _schema_leaf_count(earphone_schema) >= 4
         ):
