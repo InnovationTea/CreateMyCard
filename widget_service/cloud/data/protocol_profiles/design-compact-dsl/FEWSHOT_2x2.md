@@ -87,9 +87,9 @@
 ```
 
 
-## 示例四（2x2-V04）：天气（S2 无动作变体·蓝色微渐变）
-本例用已注册的彩色温度计建立局部视觉锚点，不染色，也不使用固定太阳图标断言动态天气。
-干扰候选示范：同时提供闹钟和日历图标，但天气含日期不构成使用它们的理由。仅选语义准确的温度计；没有合适图标时可完全不配图。
+## 示例四（2x2-V04）：天气（S2 稀疏无动作变体·蓝色微渐变）
+本例示范稀疏卡的三锚点：地点留在顶部，温度与天气现象作为连续主信息组垂直居中，温度范围沉底。
+候选中的温度计与整卡主题精确匹配、状态中性且不挤压地点标题，因此保留在 CardHeader 右上角；闹钟和日历只是干扰候选，必须舍弃。三个事实纵向都有空间时不使用 ` | ` 横向压缩；为容纳两条支撑信息，温度采用完整的 24fp 格式化主读数，而不是强行使用 38fp 数字 hero。
 ### user
 ```json
 {"userQuery":"做张深圳天气卡片，看看现在多少度、天气怎么样，还有今天最高和最低温度。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":38},"condition":{"type":"string","description":"白天天气现象","sampleValue":"晴"}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"深圳"}},"daily":[{"temperatureRangeText":{"type":"string","description":"当日温度范围文本","sampleValue":"26°C/16°C"}}]}}},"assetCandidates":[{"src":"resources/base/media/icon_weather_temperature1.svg","description":"淡黄色外壳与粉红色温度柱组成的彩色温度计，建议保留原色；用于温度概览。"},{"src":"resources/base/media/alarm_fill_1.svg","description":"样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"},{"src":"resources/base/media/calendar_fill.svg","description":"样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"}]}
@@ -98,12 +98,11 @@
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","content_area","bottom_area"]]
 ["title_area","CardHeader",{"title":{"path":"/data/weather/location/prefectureName"},"fontColor":"#FF1F4799","icon":"resources/base/media/icon_weather_temperature1.svg"}]
-["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","alignItems":"start","flexShrink":1},["value_row"]]
-["value_row","Row",{"width":126,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["value_unit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":4},"maxLines":1,"flexShrink":0}]
-["bottom_area","Column",{"width":126,"height":20,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["weather_summary"]]
-["weather_summary","Text",{"content":"{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/daily/0/temperatureRangeText} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":2,"flexShrink":1},["temperature","condition"]]
+["temperature","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '°C' }}","width":126,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
+["condition","Text",{"content":{"path":"/data/weather/current/condition"},"width":126,"height":20,"fontSize":14,"fontWeight":500,"fontColor":"#FF1F4799","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","flexShrink":0,"alignItems":"start"},["temperature_range"]]
+["temperature_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
 ["/data/weather/current/temperatureC",38]
 ["/data/weather/current/condition","晴"]
 ["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
@@ -171,7 +170,7 @@
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","content_area","bottom_area"]]
 ["title_area","CardHeader",{"title":"今日步数","fontColor":"#FF563D99","icon":"resources/base/media/emoji_run.png"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row"]]
+["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":2},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1}]
 ["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FF563D99","padding":{"bottom":4},"maxLines":1}]
@@ -219,7 +218,7 @@
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main","action_area"]]
 ["header","CardHeader",{"title":"电池温度","fontColor":"#FF1F4799"}]
-["main","Column",{"width":126,"layoutWeight":1,"justifyContent":"start","itemMargin":4},["temperature","status"]]
+["main","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","itemMargin":4},["temperature","status"]]
 ["temperature","Text",{"content":{"path":"/data/phoneBattery/batteryTemperatureText"},"width":126,"fontSize":20,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1,"height":28}]
 ["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":126,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["action_area","Column",{"width":126,"height":36,"flexShrink":0},["action"]]
@@ -251,8 +250,8 @@
 ["/data/beijing/current/condition","晴"]
 ```
 
-## 示例十一（2x2-V11）：运动三指标与歌单入口（单主值·紧凑辅助行·图文动作）
-本例展示一项明确主指标、两项辅助指标和一个显式跨业务动作。多个辅助 Text 位于同一个 Row 时只算一条视觉行，全部使用 `12fp/400`，以 ` | ` 分隔并保留自解释单位；图文动作 Row 属于动作区，不计入信息行。相同歌单事件只绑定按钮一次，不再绑定 root。
+## 示例十一（2x2-V11）：运动三指标与歌单入口（时长上下文·双指标分行·图文动作）
+本例示范“有按钮但纵向仍充足”时不把两个独立指标压进 ` | ` 单行。时长并入顶部上下文；热量和心率包含较长单位，无法在两个窄列中保留压力余量，因此在中部使用两条完整信息纵排。只有两个指标都足够短、各自的值和标签均通过独立槽位预算时，才改用等宽双列。图文动作 Row 属于动作区，不计入信息行，相同歌单事件只绑定按钮一次，不再绑定 root。
 ### user
 ```json
 {"userQuery":"帮我做个运动音乐卡片，看今天最近一次运动的时长、消耗热量和平均心率，训练时可以打开歌单。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"dataModelSchema":{"data":{"healthSport":{"exerciseDurationText":{"type":"string","description":"已包含时间单位的单次运动时长文本","sampleValue":"40分"},"exerciseCalorieText":{"type":"string","description":"已包含千卡单位的单次运动热量文本","sampleValue":"260 千卡"},"exerciseHeartRateAvg":{"type":"integer","description":"平均心率纯整数，展示时追加次/分钟","sampleValue":135}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"音乐音符单色图标；适用于用户明确要求的歌单动作入口。"}]}
@@ -260,13 +259,10 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-sport-orange"},["title_area","content_area","action_area"]]
-["title_area","CardHeader",{"title":"运动记录","fontColor":"#FFFFFFFF"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["duration","aux_metrics"]]
-["duration","Text",{"content":{"path":"/data/healthSport/exerciseDurationText"},"width":136,"fontSize":24,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
-["aux_metrics","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":4},["calorie","separator","heart_rate"]]
-["calorie","Text",{"content":{"path":"/data/healthSport/exerciseCalorieText"},"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
-["separator","Text",{"content":"|","fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","maxLines":1}]
-["heart_rate","Text",{"content":"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}","fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["title_area","CardHeader",{"title":"{{ '最近运动 · ' + ${/data/healthSport/exerciseDurationText} }}","fontColor":"#FFFFFFFF"}]
+["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":6,"flexShrink":1},["calorie","heart_rate"]]
+["calorie","Text",{"content":"{{ '热量 ' + ${/data/healthSport/exerciseCalorieText} }}","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]
+["heart_rate","Text",{"content":"{{ '心率 ' + ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["action_area","Column",{"width":136,"height":36,"flexShrink":0,"justifyContent":"start","alignItems":"center"},["music_action"]]
 ["music_action","Row",{"width":126,"height":36,"borderRadius":18,"backgroundColor":"#33FFFFFF","padding":{"left":8,"right":8,"top":0,"bottom":0},"itemMargin":8,"justifyContent":"center","alignItems":"center","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]},["music_icon","music_label"]]
 ["music_icon","Image",{"src":"resources/base/media/music_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#99FFFFFF"}]
@@ -274,4 +270,82 @@
 ["/data/healthSport/exerciseDurationText","40分"]
 ["/data/healthSport/exerciseCalorieText","260 千卡"]
 ["/data/healthSport/exerciseHeartRateAvg",135]
+```
+
+## 示例十二（2x2-V12）：睡眠时长与状态（S2 稀疏无动作变体·紫色微渐变）
+本例示范没有按钮的稀疏卡：稳定主题在顶部，时长与睡眠类型组成一个居中的主信息组，深睡时长作为独立支撑沉底。格式化时长使用全宽 24fp 单行并保留完整单位；候选月亮图标表达稳定的睡眠主题而非某个动态睡眠结论，因此保留在 CardHeader 右上角。该素材是支持 `fillColor` 的单色 SVG，CardHeader 必须显式使用紫色主内容色，不能漏写后显示默认黑色。该构图可迁移到其它“标题＋短主结果＋直接说明＋底部元数据”的单业务卡，不复制睡眠语义或素材路径。
+### user
+```json
+{"userQuery":"做张昨晚睡眠卡片，显示睡眠时长、睡眠类型和深睡时长，不要按钮。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSleep":{"sleepDurationText":{"type":"string","description":"已包含小时和分钟单位的昨晚睡眠时长","sampleValue":"7小时1分"},"sleepTypeName":{"type":"string","description":"睡眠类型","sampleValue":"科学睡眠"},"deepSleepDurationText":{"type":"string","description":"已包含小时和分钟单位的深睡时长","sampleValue":"2小时15分"}}}},"assetCandidates":[{"src":"resources/base/media/moon_circle_fill.svg","description":"样式：默认黑色的单色月亮圆形实心图标，内部通过镂空表现月牙，支持通过 fillColor 与卡片配色统一；适用：夜间模式、睡眠追踪、勿扰模式。"}]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","content_area","bottom_area"]]
+["title_area","CardHeader",{"title":"昨晚睡眠","fontColor":"#FF563D99","icon":"resources/base/media/moon_circle_fill.svg","fillColor":"#FF563D99"}]
+["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["sleep_duration","sleep_type"]]
+["sleep_duration","Text",{"content":{"path":"/data/healthSleep/sleepDurationText"},"width":126,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["sleep_type","Text",{"content":{"path":"/data/healthSleep/sleepTypeName"},"width":126,"height":24,"fontSize":18,"fontWeight":500,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"center","flexShrink":0},["deep_sleep"]]
+["deep_sleep","Text",{"content":"{{ '深睡 ' + ${/data/healthSleep/deepSleepDurationText} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#99563D99","textAlign":"center","maxLines":1}]
+["/data/healthSleep/sleepDurationText","7小时1分"]
+["/data/healthSleep/sleepTypeName","科学睡眠"]
+["/data/healthSleep/deepSleepDurationText","2小时15分"]
+```
+
+## 示例十三（2x2-V13）：双数值范围对照（S2 对称并列焦点组·紫色微渐变）
+本例示范两个天然同级、需要一起比较的短量化指标。两个值共同构成一个并列焦点组，不按字段顺序、数值
+大小或文字长短任意挑选单一 hero；共享单位进入标题，每列保持“值＋标签”成组，使用同字号、同字重、
+同宽度和同一基线。该构图可迁移到最高/最低、当前/目标、已用/剩余等成对读数；若值含长单位或任一列
+压力预算不足，则统一改成两条对齐的纵向标签—值行，不缩小其中一列、不省略标签。
+### user
+```json
+{"userQuery":"做张心率复盘卡片，同时看最高和最低心率以及更新时间。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthVitals":{"maximumHeartRate":{"type":"integer","description":"本次记录的最高心率纯整数，单位次/分钟","sampleValue":168},"minimumHeartRate":{"type":"integer","description":"本次记录的最低心率纯整数，单位次/分钟","sampleValue":96},"updatedAt":{"type":"string","description":"数据更新时间短文本","sampleValue":"更新于 09:00"}}}},"assetCandidates":[{"src":"resources/base/media/heart_fill.svg","description":"样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"}]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","metric_group","bottom_area"]]
+["title_area","CardHeader",{"title":"心率 · 次/分","fontColor":"#FF563D99","icon":"resources/base/media/heart_fill.svg","fillColor":"#FF563D99"}]
+["metric_group","Row",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":8,"flexShrink":1},["maximum_group","metric_divider","minimum_group"]]
+["maximum_group","Column",{"width":54,"justifyContent":"center","alignItems":"center","itemMargin":2},["maximum_value","maximum_label"]]
+["maximum_value","Text",{"content":{"path":"/data/healthVitals/maximumHeartRate"},"width":54,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["maximum_label","Text",{"content":"最高","width":54,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["metric_divider","Divider",{"width":1,"height":44,"vertical":true,"color":"#33563D99"}]
+["minimum_group","Column",{"width":54,"justifyContent":"center","alignItems":"center","itemMargin":2},["minimum_value","minimum_label"]]
+["minimum_value","Text",{"content":{"path":"/data/healthVitals/minimumHeartRate"},"width":54,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["minimum_label","Text",{"content":"最低","width":54,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"center","flexShrink":0},["updated_at"]]
+["updated_at","Text",{"content":{"path":"/data/healthVitals/updatedAt"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#99563D99","textAlign":"center","maxLines":1}]
+["/data/healthVitals/maximumHeartRate",168]
+["/data/healthVitals/minimumHeartRate",96]
+["/data/healthVitals/updatedAt","更新于 09:00"]
+```
+
+## 示例十四（2x2-V14）：三项同级状态概览（S2 对齐标签值列表·蓝色微渐变）
+本例示范三个没有明确主次的状态、等级或分类指标。整组是阅读焦点，不把其中某个较短 sampleValue 脱离
+标签放大；标签共享左侧对齐线，值共享右侧对齐线和统一字重，信息组在内容区垂直居中，地点等上下文沉底。
+只有 userQuery 明确指定重点，或 schema 提供真实整体结果时，才从该列表切换为单一主焦点构图。
+### user
+```json
+{"userQuery":"做张明日健康指数卡片，同时显示紫外线、空气质量、感冒指数和地点。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weatherHealth":{"ultravioletLevel":{"type":"string","description":"明日紫外线等级","sampleValue":"中等"},"airQualityLevel":{"type":"string","description":"明日空气质量等级","sampleValue":"良"},"coldRiskLevel":{"type":"string","description":"明日感冒指数等级","sampleValue":"低"},"locationName":{"type":"string","description":"指数适用地点","sampleValue":"成都公园"}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","metric_list","bottom_area"]]
+["title_area","CardHeader",{"title":"明日健康指数","fontColor":"#FF1F4799"}]
+["metric_list","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["ultraviolet_row","air_row","cold_row"]]
+["ultraviolet_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["ultraviolet_label","ultraviolet_value"]]
+["ultraviolet_label","Text",{"content":"紫外线","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["ultraviolet_value","Text",{"content":{"path":"/data/weatherHealth/ultravioletLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
+["air_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["air_label","air_value"]]
+["air_label","Text",{"content":"空气质量","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["air_value","Text",{"content":{"path":"/data/weatherHealth/airQualityLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
+["cold_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["cold_label","cold_value"]]
+["cold_label","Text",{"content":"感冒指数","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
+["cold_value","Text",{"content":{"path":"/data/weatherHealth/coldRiskLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
+["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"start","flexShrink":0},["location"]]
+["location","Text",{"content":"{{ '地点 ' + ${/data/weatherHealth/locationName} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
+["/data/weatherHealth/ultravioletLevel","中等"]
+["/data/weatherHealth/airQualityLevel","良"]
+["/data/weatherHealth/coldRiskLevel","低"]
+["/data/weatherHealth/locationName","成都公园"]
 ```

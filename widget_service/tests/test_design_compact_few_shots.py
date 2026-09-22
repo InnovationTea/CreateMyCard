@@ -758,6 +758,138 @@ def test_health_summary_with_explicit_action_uses_compact_metric_example() -> No
     assert "2x2-V07" not in selected_document
 
 
+def test_sparse_weather_gold_uses_vertical_space_and_exact_header_icon() -> None:
+    """稀疏天气卡按顶中底分配空间，并保留准确的中性主题图标。"""
+    _, _, source = next(item for item in EXAMPLES if "2x2-V04" in item[0])
+    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
+
+    assert rows["content_area"][2]["justifyContent"] == "center"
+    assert rows["temperature"][2]["fontSize"] == 24
+    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
+    assert not any(row[1] == "Image" for row in rows.values())
+    assert rows["title_area"][2]["icon"] == (
+        "resources/base/media/icon_weather_temperature1.svg"
+    )
+    assert "alarm_fill_1.svg" not in source
+    assert "calendar_fill.svg" not in source
+    assert " | " not in source
+
+
+def test_health_metric_gold_splits_long_metrics_instead_of_pipe_row() -> None:
+    """两个较长指标利用纵向空间分行，不再用分隔符挤成辅助行。"""
+    _, _, source = next(item for item in EXAMPLES if "2x2-V11" in item[0])
+    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
+
+    assert rows["content_area"][1] == "Column"
+    assert rows["content_area"][2]["justifyContent"] == "center"
+    assert rows["content_area"][3] == ["calorie", "heart_rate"]
+    assert "separator" not in rows
+    assert " | " not in source
+    assert "exerciseDurationText" in rows["title_area"][2]["title"]
+
+
+def test_sleep_summary_uses_sparse_centered_gold_example() -> None:
+    """睡眠类稀疏请求命中可迁移的居中主信息组示例。"""
+    _, task, source = next(item for item in EXAMPLES if "2x2-V12" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
+
+    assert route == "health-readout"
+    assert selected == ("2x2-V12",)
+    assert rows["content_area"][2]["justifyContent"] == "center"
+    assert rows["sleep_duration"][2]["fontSize"] == 24
+    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
+    assert rows["title_area"][2]["icon"] == (
+        "resources/base/media/moon_circle_fill.svg"
+    )
+    assert rows["title_area"][2]["fillColor"] == "#FF563D99"
+
+
+def test_paired_metric_gold_uses_one_symmetric_focus_group() -> None:
+    """两个天然同级的短数值共同构成焦点，不任意放大其中一个。"""
+    _, task, source = next(item for item in EXAMPLES if "2x2-V13" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
+
+    assert route == "health-readout"
+    assert selected == ("2x2-V07", "2x2-V13")
+    assert rows["metric_group"][1] == "Row"
+    assert rows["metric_group"][2]["justifyContent"] == "center"
+    assert rows["metric_group"][3] == [
+        "maximum_group",
+        "metric_divider",
+        "minimum_group",
+    ]
+    assert rows["maximum_group"][2]["width"] == rows["minimum_group"][2]["width"]
+    assert rows["metric_divider"][1] == "Divider"
+    assert rows["metric_divider"][2]["vertical"] is True
+    assert rows["maximum_value"][2]["fontSize"] == 20
+    assert rows["minimum_value"][2]["fontSize"] == 20
+    assert rows["maximum_label"][2]["fontSize"] == 12
+    assert rows["minimum_label"][2]["fontSize"] == 12
+    assert "次/分" in rows["title_area"][2]["title"]
+    assert rows["title_area"][2]["fillColor"] == "#FF563D99"
+
+
+def test_peer_status_gold_uses_aligned_label_value_rows() -> None:
+    """三个同级状态使用统一标签—值行，不生成无标签的任意 hero。"""
+    _, task, source = next(item for item in EXAMPLES if "2x2-V14" in item[0])
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
+
+    assert route == "weather-readout"
+    assert selected == ("2x2-V04", "2x2-V14")
+    assert rows["metric_list"][2]["justifyContent"] == "center"
+    assert rows["metric_list"][3] == ["ultraviolet_row", "air_row", "cold_row"]
+    label_widths = {
+        rows[identifier][2]["width"]
+        for identifier in ("ultraviolet_label", "air_label", "cold_label")
+    }
+    value_widths = {
+        rows[identifier][2]["width"]
+        for identifier in ("ultraviolet_value", "air_value", "cold_value")
+    }
+    value_sizes = {
+        rows[identifier][2]["fontSize"]
+        for identifier in ("ultraviolet_value", "air_value", "cold_value")
+    }
+    assert label_widths == {70}
+    assert value_widths == {56}
+    assert value_sizes == {14}
+    assert all(size < 20 for size in value_sizes)
+
+
+@pytest.mark.parametrize("example_id", ("2x2-V12", "2x2-V13"))
+def test_tintable_card_header_color_reaches_a2ui(example_id: str) -> None:
+    """可染色标题 SVG 的主题色必须完整透传到最终 Image。"""
+    _, task, source = next(item for item in EXAMPLES if example_id in item[0])
+    converted = convert_compact_dsl_to_a2ui(
+        source,
+        size="2x2",
+        protocol_profile={"version": "v0.9", "appVersion": "99.0"},
+    )
+    messages = [json.loads(line) for line in converted.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    components_by_id = {component["id"]: component for component in components}
+
+    assert components_by_id["title_area_icon"]["styles"]["fillColor"] == (
+        "#FF563D99"
+    )
+
+
+def test_two_by_two_route_summary_requires_density_adaptation() -> None:
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V04" in item[0])
+    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
+
+    assert "内容稀疏时不要全部贴顶" in instruction
+    assert "纵向仍有一行空间时，独立事实必须分行" in instruction
+    assert "默认保留一枚右上角" in instruction
+    assert "可染色 SVG必须显式写 fillColor" in instruction
+    assert "默认黑色" in instruction
+    assert "整体结果/总量/主状态" in instruction
+    assert "合法并列焦点组" in instruction
+
+
 @pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
 def test_each_gold_example_compiles_only_hard_object_count_route(
     name: str,
@@ -805,7 +937,7 @@ def test_adaptive_single_business_retains_all_single_business_skeletons(
 
     prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
     assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert "### `W1-progress-aux`" in assembled
+    assert "### `W1-focus-aux`" in assembled
     assert "### `W2-text-flow`" in assembled
     assert "### `W3-ring-detail`" in assembled
     assert "### `W4-metric-triple`" in assembled
