@@ -80,27 +80,20 @@ Column(
             )
         )
     #else
-        Column(
-            {
-                "width": "matchParent",
-                "height": "matchParent",
-                "itemMargin": 4,
-                "justifyContent": "center",
-                "alignItems": "center",
-                "constraintSize": {"minWidth": 0, "minHeight": 0}
-            },
-            Text(
-                "运动心率区间",
-                {"width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
+        Text(
+            "运动心率区间",
+            {"width": "matchParent", "margin": {"top": 8}, "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+        Row(
+            { "width": "matchParent", "itemMargin": 2, "margin": {"top": 4}, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0} },
             Text(
                 Expr(`'' + ${data.min} + '/' + ${data.max}`),
-                {"width": "matchParent", "margin": {"top": 4}, "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
-            Text(
-                "次/分钟",
-                {"fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
+        ),
+        Text(
+            "次/分钟",
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     #endif
 )
