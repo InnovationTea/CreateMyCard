@@ -342,22 +342,25 @@ data = {
 }
 
 Column(
-    { "_advancedComponent": "HeartRateOverview", "itemMargin": 0, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    { "_advancedComponent": "HeartRateOverview", "itemMargin": 8, "width": "matchParent", "height": "matchParent", "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     Text(
         "运动平均心率",
-        { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        { "width": "matchParent", "margin": { "top": 8 }, "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     ),
-    Text(
-        data.average,
-        { "width": "matchParent", "margin": { "top": 4 }, "textAlign": "center", "fontSize": 56, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    ),
-    Text(
-        "次/分钟",
-        { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    Row(
+        { "width": "matchParent", "itemMargin": 2, "margin": { "top": 4 }, "justifyContent": "center", "alignItems": "bottom", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+        Text(
+            data.average,
+            { "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        ),
+        Text(
+            "次/分钟",
+            { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        )
     ),
     Text(
         data.updatedAt,
-        { "margin": { "top": 4 }, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        { "margin": { "top": 4 }, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
 )
 #End
