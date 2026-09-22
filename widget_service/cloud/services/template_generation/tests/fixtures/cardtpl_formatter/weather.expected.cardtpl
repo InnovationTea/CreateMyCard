@@ -1,7 +1,4 @@
-#Template WeatherOverviewGeneralTextFull@1(
-    data: { location: string, mainTextValue: string, mainLabel?: string, ...supportValues: string[] },
-    props: { conditionIcon?: asset }
-)
+#Template WeatherOverviewGeneralTextFull@1(data: { location: string, mainTextValue: string, mainLabel?: string, ...supportValues: string[] }, props: { conditionIcon?: asset })
 Column(
     {
         "_advancedComponent": "WeatherOverview",

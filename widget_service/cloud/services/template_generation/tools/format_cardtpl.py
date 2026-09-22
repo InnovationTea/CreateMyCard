@@ -357,10 +357,8 @@ def format_cardtpl(source: str) -> str:
                 raise _error(source, _first(name).start, "模板声明缺少参数括号")
             if printer.lines and printer.lines[-1] == "#End":
                 printer.lines.append("")
-            printer.line(f"#Template {_inline((name,))}(", 0)
-            for chunk in _chunks(signature.items):
-                printer.line(_inline(chunk, signature=True), 1)
-            printer.line(")", 0)
+            parameters = _inline(signature.items, signature=True)
+            printer.line(f"#Template {_inline((name,))}({parameters})", 0)
             index += 3
             in_template = True
             continue

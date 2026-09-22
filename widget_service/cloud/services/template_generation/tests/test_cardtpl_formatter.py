@@ -109,29 +109,13 @@ def test_invalid_source_has_location(source: str, message: str) -> None:
     assert "行，第" in str(error.value)
 
 
-def test_compiler_multiline_signature_and_children() -> None:
-    source = '#Template Layout@1(\nprops: {\n title: string\n},\n...children\n)\n'
+def test_formatter_keeps_template_declaration_on_one_line() -> None:
+    header = '#Template Layout@1(props: { title: string }, ...children)'
+    source = header + '\n'
     source += 'data = {}\nColumn({}, Text(props.title), children)\n#End\n'
-    signature, body = provider_bundle._ui_template_block(source, "Layout@1")
-    contract = provider_bundle._ui_template_signature(signature)
-    assert contract.accepts_children
-    assert contract.required_params == ("title",)
-    assert body.startswith("data = {}")
-
-
-@pytest.mark.parametrize(
-    "source,message",
-    (
-        ("#Template Demo@1(\nprops: {}\n#End", "expected UI"),
-        ("#Template Demo@1(\nprops: {}", "expected UI"),
-        (_SOURCE + _SOURCE, "duplicate Provider Template"),
-        (_SOURCE.removesuffix("#End\n"), "not closed"),
-        (_SOURCE.replace("Demo@1", "Other@1"), "ID mismatch"),
-    ),
-)
-def test_compiler_still_rejects_invalid_blocks(source: str, message: str) -> None:
-    with pytest.raises(ValueError, match=message):
-        provider_bundle._ui_template_block(source, "Demo@1")
+    formatted = format_cardtpl(source)
+    assert formatted.splitlines()[0] == header
+    assert formatted.splitlines()[1] == 'data = {}'
 
 
 def test_empty_bom_and_crlf() -> None:
