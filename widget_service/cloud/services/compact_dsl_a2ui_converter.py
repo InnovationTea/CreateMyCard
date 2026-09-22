@@ -1325,19 +1325,26 @@ def _normalize_small_backboard_icon_alignment(
     elif size == "2x4":
         candidate_ids = set()
         for component in components:
-            if component.props.get("width") != 138:
-                continue
-            if component.props.get("height") == 63:
+            dimensions = (
+                component.props.get("width"),
+                component.props.get("height"),
+            )
+            if dimensions in {(138, 63), (130, 59)}:
                 candidate_ids.add(component.component_id)
-        backboard_width = 138
-        backboard_height = 63
-        text_width = 86
     else:
         return components
 
     replacements: dict[str, ComponentRow] = {}
     for candidate_id in candidate_ids:
         backboard = components_by_id[candidate_id]
+        if size == "2x4" and backboard.props.get("width") == 130:
+            backboard_width = 130
+            backboard_height = 59
+            text_width = 78
+        elif size == "2x4":
+            backboard_width = 138
+            backboard_height = 63
+            text_width = 86
         if (
             backboard.component_type not in {"Row", "Column"}
             or not 1 <= len(backboard.children) <= 2
@@ -1393,6 +1400,9 @@ def _normalize_small_backboard_icon_alignment(
         if text.component_type == "Column":
             text_props["justifyContent"] = "center"
             text_props["alignItems"] = "start"
+        else:
+            text_props["maxLines"] = 1
+            text_props["textAlign"] = "start"
         replacements[text.component_id] = ComponentRow(
             text.component_id,
             text.component_type,
