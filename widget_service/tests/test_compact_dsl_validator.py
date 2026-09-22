@@ -40,7 +40,7 @@ _NARROW_GRAPHICAL_ACTION_DSL = "\n".join(
         '"onClick":[{"call":"clickToIntent","args":{"intentName":"Open"}}]},'
         '["icon","label"]]',
         '["icon","Image",{"src":"resources/icon.svg","width":20,"height":20,'
-        '"objectFit":"contain"}]',
+        '"objectFit":"contain","fillColor":"#FF1F4799"}]',
         '["label","Text",{"content":"打开","fontSize":14,"maxLines":1}]',
     ]
 )
@@ -58,6 +58,101 @@ def _narrow_graphical_action_task_spec() -> dict:
         "dataModelSchema": {"data": {}},
         "assetCandidates": [{"src": "resources/icon.svg"}],
     }
+
+
+def _asset_color_task_spec(source: str, description: str) -> dict:
+    return {
+        "size": "2x4",
+        "eventCandidates": [],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [{"src": source, "description": description}],
+    }
+
+
+def _image_asset_dsl(source: str, *, fill_color: str | None = None) -> str:
+    fill_property = f',"fillColor":"{fill_color}"' if fill_color else ""
+    return "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent"},'
+            '["icon"]]',
+            f'["icon","Image",{{"src":"{source}","width":20,"height":20,'
+            f'"objectFit":"contain"{fill_property}}}]',
+        ]
+    )
+
+
+def test_rejects_tintable_svg_image_without_fill_color() -> None:
+    source = "resources/heart.svg"
+    with pytest.raises(
+        CompactDslValidationError,
+        match=r"tintable SVG resources/heart\.svg must set fillColor explicitly",
+    ):
+        validate_compact_dsl(
+            _image_asset_dsl(source),
+            task_spec=_asset_color_task_spec(
+                source,
+                "默认黑色的单色心形图标，适用于心率监测。",
+            ),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+def test_accepts_tintable_svg_image_with_fill_color() -> None:
+    source = "resources/heart.svg"
+    validate_compact_dsl(
+        _image_asset_dsl(source, fill_color="#FF563D99"),
+        task_spec=_asset_color_task_spec(
+            source,
+            "默认黑色的单色心形图标，适用于心率监测。",
+        ),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "description"),
+    [
+        ("resources/weather.svg", "多色天气图标，建议保留原色。"),
+        ("resources/brand.svg", "品牌色 Logo，禁止染色。"),
+        ("resources/runner.png", "透明背景彩色跑步素材。"),
+    ],
+)
+def test_accepts_original_color_or_bitmap_asset_without_fill_color(
+    source: str,
+    description: str,
+) -> None:
+    validate_compact_dsl(
+        _image_asset_dsl(source),
+        task_spec=_asset_color_task_spec(source, description),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+def test_rejects_tintable_card_header_svg_without_fill_color() -> None:
+    source = "resources/moon.svg"
+    dsl = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12,"justifyContent":"start"},["title_area"]]',
+            '["title_area","CardHeader",{"title":"昨晚睡眠",'
+            f'"fontColor":"#FF563D99","icon":"{source}"}}]',
+        ]
+    )
+    task_spec = _asset_color_task_spec(
+        source,
+        "默认黑色的单色月亮图标，支持通过 fillColor 与卡片配色统一。",
+    )
+    task_spec["size"] = "2x2"
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match=r"component title_area: tintable SVG .* must set fillColor explicitly",
+    ):
+        validate_compact_dsl(
+            dsl,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
 
 
 def test_design_processor_reports_compact_contract_as_validation() -> None:
@@ -416,6 +511,142 @@ def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
     assert "两者可以同时设置" in prompt
 
 
+def _centered_single_value_hero_task_spec(sample_value: int) -> dict:
+    return {
+        "size": "2x2",
+        "eventCandidates": [{"call": "openAlarm", "args": {}}],
+        "dataModelSchema": {
+            "data": {
+                "countdown": {
+                    "days": {
+                        "type": "integer",
+                        "description": "倒计时剩余天数纯整数",
+                        "sampleValue": sample_value,
+                    }
+                }
+            }
+        },
+        "assetCandidates": [],
+    }
+
+
+def _centered_single_value_hero_dsl(
+    *,
+    value_font: int,
+    unit_font: int,
+    include_safe_box: bool = True,
+    value_height: int | None = None,
+) -> str:
+    content_children = '["hero_box"]' if include_safe_box else '["value_row"]'
+    value_height_property = f',"height":{value_height}' if value_height else ""
+    rows = [
+        '["root","Column",{"width":"matchParent","height":"matchParent",'
+        '"padding":12,"itemMargin":4,"justifyContent":"start",'
+        '"alignItems":"center"},["title_area","content_area","action_area"]]',
+        '["title_area","CardHeader",{"title":"广州马拉松",'
+        '"fontColor":"#FF9A4F19"}]',
+        '["content_area","Column",{"width":126,"layoutWeight":1,'
+        '"justifyContent":"center","alignItems":"center"},'
+        f'{content_children}',
+    ]
+    if include_safe_box:
+        rows.append(
+            '["hero_box","Column",{"width":106,"height":58,'
+            '"justifyContent":"center","alignItems":"center"},["value_row"]]'
+        )
+    rows.extend(
+        [
+            '["value_row","Row",{"width":106,"itemMargin":2,'
+            '"justifyContent":"center","alignItems":"bottom"},'
+            '["value","unit"]]',
+            '["value","Text",{"content":{"path":"/data/countdown/days"},'
+            f'"fontSize":{value_font},"fontWeight":700,"maxLines":1'
+            f'{value_height_property}}}]',
+            '["unit","Text",{"content":"天",'
+            f'"fontSize":{unit_font},"fontWeight":400,'
+            '"padding":{"bottom":4},"maxLines":1}]',
+            '["action_area","Column",{"width":126,"height":36},["action"]]',
+            '["action","ActionUnit",{"state":"capsule","label":"打开闹钟",'
+            '"fontSize":14,"fontWeight":400,"onClick":'
+            '[{"call":"openAlarm","args":{}}]}]',
+            '["/data/countdown/days",30]',
+        ]
+    )
+    return "\n".join(rows)
+
+
+def test_design_prompt_defines_centered_single_value_hero_safe_box() -> None:
+    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+
+    assert "2x2 单数值 Hero 安全盒前置约束" in prompt
+    assert "`width:106`、`height:58`" in prompt
+    assert "38/16fp -> 30/14fp -> 24/12fp -> 20/12fp" in prompt
+
+
+def test_accepts_centered_single_value_hero_inside_106_by_58_safe_box() -> None:
+    result = validate_compact_dsl(
+        _centered_single_value_hero_dsl(value_font=38, unit_font=16),
+        task_spec=_centered_single_value_hero_task_spec(30),
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    assert not result.warnings
+
+
+def test_rejects_centered_single_value_hero_without_safe_box() -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match="one centered 106x58vp hero_box",
+    ):
+        validate_compact_dsl(
+            _centered_single_value_hero_dsl(
+                value_font=38,
+                unit_font=16,
+                include_safe_box=False,
+            ),
+            task_spec=_centered_single_value_hero_task_spec(30),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+
+def test_rejects_centered_single_value_hero_that_exceeds_width_pressure() -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match="exceeds the 106vp width pressure budget",
+    ):
+        validate_compact_dsl(
+            _centered_single_value_hero_dsl(value_font=38, unit_font=16),
+            task_spec=_centered_single_value_hero_task_spec(1000),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+
+def test_accepts_centered_single_value_hero_after_font_downgrade() -> None:
+    result = validate_compact_dsl(
+        _centered_single_value_hero_dsl(value_font=30, unit_font=14),
+        task_spec=_centered_single_value_hero_task_spec(1000),
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    assert not result.warnings
+
+
+def test_rejects_centered_single_value_hero_that_exceeds_height_pressure() -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match="exceeds the 58vp height pressure budget",
+    ):
+        validate_compact_dsl(
+            _centered_single_value_hero_dsl(
+                value_font=38,
+                unit_font=16,
+                value_height=64,
+            ),
+            task_spec=_centered_single_value_hero_task_spec(30),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+
 def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
     source = "\n".join(
         [
@@ -482,7 +713,8 @@ def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
             '"itemMargin":8,"justifyContent":"center","alignItems":"center",'
             '"onClick":[{"call":"openMusic","args":{}}]},["icon","label"]]',
             '["icon","Image",{"src":"resources/base/media/music_fill.svg",'
-            '"width":20,"height":20,"objectFit":"contain"}]',
+            '"width":20,"height":20,"objectFit":"contain",'
+            '"fillColor":"#FF1F4799"}]',
             '["label","Text",{"content":"打开歌单","fontSize":14,'
             '"fontWeight":400,"maxLines":1}]',
             '["/data/healthSport/steps",2319]',
