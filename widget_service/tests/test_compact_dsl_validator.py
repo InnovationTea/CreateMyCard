@@ -316,6 +316,85 @@ def test_rejects_ambiguous_index_value_without_metric_label() -> None:
         )
 
 
+def test_accepts_metric_label_embedded_in_expression() -> None:
+    dsl = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12},["metrics"]]',
+            '["metrics","Column",{"width":136,"height":64,"itemMargin":2}'
+            ',["air","cold"]]',
+            '["air","Text",{"content":"{{ \'空气质量 \' + '
+            '${/data/weather/airQuality} }}","fontSize":14,"maxLines":1}]',
+            '["cold","Text",{"content":"{{ \'感冒指数 \' + '
+            '${/data/weather/coldLevel} }}","fontSize":12,"maxLines":1}]',
+            '["/data/weather/airQuality","良"]',
+            '["/data/weather/coldLevel","低"]',
+        ]
+    )
+    result = validate_compact_dsl(
+        dsl,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [],
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "airQuality": {
+                            "type": "string",
+                            "description": "当天空气质量等级。",
+                            "sampleValue": "良",
+                        },
+                        "coldLevel": {
+                            "type": "string",
+                            "description": "感冒指数。",
+                            "sampleValue": "低",
+                        },
+                    }
+                }
+            },
+            "assetCandidates": [],
+        },
+        card_spec={"suggestSize": "2x2"},
+    )
+    assert not result.warnings
+
+
+def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
+    dsl = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12},["value"]]',
+            "[\"value\",\"Text\",{\"content\":\"{{ ${/data/weather/windLevel} + '级' }}\","
+            "\"fontSize\":14,\"maxLines\":1}]",
+            '["/data/weather/windLevel",2]',
+        ]
+    )
+    with pytest.raises(
+        CompactDslValidationError,
+        match="add a nearby metric label such as 感冒指数",
+    ):
+        validate_compact_dsl(
+            dsl,
+            task_spec={
+                "size": "2x2",
+                "eventCandidates": [],
+                "dataModelSchema": {
+                    "data": {
+                        "weather": {
+                            "windLevel": {
+                                "type": "integer",
+                                "description": "当前风力等级的纯整数。",
+                                "sampleValue": 2,
+                            }
+                        }
+                    }
+                },
+                "assetCandidates": [],
+            },
+            card_spec={"suggestSize": "2x2"},
+        )
+
+
 def test_design_prompt_contains_no_empty_container_examples() -> None:
     prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
     empty_container_lines = re.findall(
@@ -377,3 +456,61 @@ def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
             task_spec=task_spec,
             card_spec={"suggestSize": "2x2", "dataBindings": []},
         )
+
+
+def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12,"itemMargin":4},["value_row","metrics","action_area"]]',
+            '["value_row","Row",{"width":136,"height":40},["steps","unit"]]',
+            '["steps","Text",{"content":{"path":"/data/healthSport/steps"},'
+            '"fontSize":30,"fontWeight":700,"maxLines":1}]',
+            '["unit","Text",{"content":"步","fontSize":12,'
+            '"fontWeight":500,"maxLines":1}]',
+            '["metrics","Row",{"width":136,"height":18,"itemMargin":4},'
+            '["calorie","separator","heart_rate"]]',
+            '["calorie","Text",{"content":{"path":"/data/healthSport/calorieText"},'
+            '"fontSize":12,"fontWeight":400,"maxLines":1}]',
+            '["separator","Text",{"content":"|","fontSize":12,'
+            '"fontWeight":400,"maxLines":1}]',
+            '["heart_rate","Text",{"content":{"path":"/data/healthSport/heartRateText"},'
+            '"fontSize":12,"fontWeight":400,"maxLines":1}]',
+            '["action_area","Column",{"width":136,"height":36,'
+            '"alignItems":"center"},["action"]]',
+            '["action","Row",{"width":126,"height":36,"padding":8,'
+            '"itemMargin":8,"justifyContent":"center","alignItems":"center",'
+            '"onClick":[{"call":"openMusic","args":{}}]},["icon","label"]]',
+            '["icon","Image",{"src":"resources/base/media/music_fill.svg",'
+            '"width":20,"height":20,"objectFit":"contain"}]',
+            '["label","Text",{"content":"打开歌单","fontSize":14,'
+            '"fontWeight":400,"maxLines":1}]',
+            '["/data/healthSport/steps",2319]',
+            '["/data/healthSport/calorieText","260 千卡"]',
+            '["/data/healthSport/heartRateText","135次/分钟"]',
+        ]
+    )
+    result = validate_compact_dsl(
+        source,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [{"call": "openMusic", "args": {}}],
+            "dataModelSchema": {
+                "data": {
+                    "healthSport": {
+                        "steps": {"type": "integer"},
+                        "calorieText": {"type": "string"},
+                        "heartRateText": {"type": "string"},
+                    }
+                }
+            },
+            "assetCandidates": [
+                {
+                    "src": "resources/base/media/music_fill.svg",
+                    "description": "音乐入口",
+                }
+            ],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+    assert not result.warnings

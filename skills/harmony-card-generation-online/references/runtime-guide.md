@@ -130,12 +130,12 @@ dynamicArguments.path 相对 actionTemplate.args；intentName、空字符串及�
 
 | 类型 | 生成入参 | 前置步骤 |
 | --- | --- | --- |
-| 纯视觉/布局 | 本轮 userQuery + sourceArtifactUrl | 按继承数据检查权限 |
-| 文案/尺寸 | 再传明确修改的 title/description/size | 按继承数据检查权限 |
-| 删除数据/修改参数 | 再传编辑后完整 candidateDataBindings | 刷新概述，保留数据非空时加载 schema，再检查权限 |
+| 纯视觉/布局 | 本轮 userQuery + sourceArtifactUrl；若修改内容有对应工具参数则显式传入 | 按继承数据检查权限 |
+| 文案/尺寸 | 再传明确修改的 title/description；用户明确改尺寸时必须再传本轮目标 `size` | 按继承数据检查权限 |
+| 删除数据/修改参数 | 再传编辑后完整 candidateDataBindings 及本轮明确修改的其它参数 | 刷新概述，保留数据非空时加载 schema，再检查权限 |
 | 删除全部数据 | 显式 candidateDataBindings:[] | 刷新概述；不调用空 schema 或空权限请求 |
 
-省略字段由微服务从来源继承；显式数组完整替换，不是增量。保留未修改的数据调用，删除目标项或仅修改目标参数，
+省略字段由微服务从来源继承；但用户明确要求修改且生成工具声明了对应参数时不得省略，必须传入本轮修改值。用户明确修改尺寸时不得省略 `size`，必须传入本轮目标尺寸。显式数组完整替换，不是增量。保留未修改的数据调用，删除目标项或仅修改目标参数，
 并用本轮 schema 重新检查全部参数、路径及字段投影。本期不传事件/素材替换数组。
 sourceArtifactUrl 必须来自上述最近有效结果；运行时未声明该字段、来源缺失或类型错误时停止。
 

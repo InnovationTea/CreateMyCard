@@ -432,7 +432,9 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 
 融球树在模板 CardPlan/Tersel 阶段已经由标准组件组成：`Stack` 承载定位层，三球和玻璃层使用无 children
 约束的 `Divider` 视觉叶节点，并在进入 A2UI-Compact 前完成。玻璃层使用 5% 白色和
-`backdropBlur: {"radius": 120}`。融球模板路径在 `template_root` 与 `root_1` 之间注入 ID 为
+`backdropBlur: {"radius": 210}`。球体配色由各 Theme 的 `fusionBallStyle` 定义，具体色值见
+[主题说明](../resources/source/themes/README.md)；球体尺寸和定位保持不变。融球模板路径在
+`template_root` 与 `root_1` 之间注入 ID 为
 `__genui_render_component__template_root` 的标准 Stack，以启用端侧内容层防溢出能力；`root_1` 保持普通布局
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
 

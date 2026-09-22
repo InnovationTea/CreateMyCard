@@ -22,6 +22,7 @@ from .compact_dual_action_validator import collect_dual_action_errors
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
+_STRING_LITERAL_PATTERN = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
 _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
     r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
 )
@@ -35,6 +36,10 @@ _TWO_BY_FOUR_MULTI_ROOT_PADDING = 8
 _TWO_BY_FOUR_MULTI_LARGE_WIDTH = 138
 _TWO_BY_FOUR_MULTI_LARGE_HEIGHT = 134
 _TWO_BY_FOUR_MULTI_INNER_WIDTH = 114
+_TWO_BY_FOUR_FOCUS_WIDTH = 136
+_TWO_BY_FOUR_AUX_WIDTH = 130
+_TWO_BY_FOUR_FOCUS_AUX_HEIGHT = 126
+_TWO_BY_FOUR_AUX_CELL_HEIGHT = 59
 _NUMERIC_SCHEMA_TYPES = frozenset({"integer", "number"})
 _COMMON_DISPLAY_UNITS = frozenset(
     {
@@ -82,7 +87,49 @@ _COMMON_DISPLAY_UNITS = frozenset(
         "kWh",
         "bpm",
         "次/分钟",
+        "mV",
+        "μA",
+        "uA",
+        "kHz",
+        "MHz",
+        "Pa",
+        "kPa",
+        "Wh",
+        "MB",
+        "GB",
+        "TB",
+        "km/h",
+        "m/s",
     }
+)
+
+_MEASUREMENT_DESCRIPTION_MARKERS = (
+    "温度",
+    "电量",
+    "电池电量",
+    "剩余电量",
+    "占比",
+    "比例",
+    "电流",
+    "电压",
+    "功率",
+    "频率",
+    "速度",
+    "距离",
+    "容量",
+    "湿度",
+    "压力",
+    "海拔",
+    "重量",
+    "体重",
+    "长度",
+    "宽度",
+    "高度",
+)
+_MEASUREMENT_SAMPLE_PATTERN = re.compile(
+    r"[+-]?\d+(?:\.\d+)?\s*(?:°C|℃|°F|mA|μA|uA|A|mV|V|kW|W|kWh|Wh|MHz|kHz|Hz|"
+    r"km/h|m/s|km|千米|公里|m|米|cm|厘米|mm|毫米|kg|g|mg|MB|GB|TB|Pa|kPa|%|"
+    r"毫秒|小时|分钟|分|秒)$"
 )
 
 _AMBIGUOUS_METRIC_DESCRIPTION_MARKERS = (
@@ -218,19 +265,24 @@ def _collect_hero_value_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
+    # 与质量阶段使用相同的有效模板根标记，仅豁免主文字校验。
+    if len(components_by_id) == len(components) and "template_root" in components_by_id:
+        root = components_by_id.get("root")
+        if root is not None and "template_root" in root.children:
+            return
     data_model_schema = task_spec.get("dataModelSchema")
     if not isinstance(data_model_schema, dict):
         return
 
-    if task_spec.get("size") == "2x2":
-        _collect_adjacent_display_unit_errors(
-            components,
-            components_by_id,
-            data_model_schema,
-            errors,
-        )
+    _collect_adjacent_display_unit_errors(
+        components,
+        components_by_id,
+        data_model_schema,
+        errors,
+    )
 
     numeric_paths: dict[str, str | None] = {}
+    formatted_hero_ids: set[str] = set()
     for component in components:
         if component.component_type != "Text":
             continue
@@ -246,26 +298,35 @@ def _collect_hero_value_errors(
             continue
         if _is_readable_formatted_hero(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
+            formatted_hero_ids.add(component.component_id)
             continue
         if _is_adaptive_primary_text(component, components, task_spec, font_size):
             numeric_paths.pop(component.component_id)
             continue
         errors.append(
             f"component {component.component_id}: fontSize {_format_vp(font_size)} "
-            "is reserved for a pure number/integer value. Text, formatted values, "
-            "names, dates, times, and statuses must use at most 18fp on their own line; "
-            "a directly bound temperature, duration, or percentage may use 20/24fp "
-            "only in a single-business full-width column with a sufficient text budget."
+            "requires a pure number/integer or a supported primary value. "
+            "A directly bound measurement with a declared unit may use 20/24fp "
+            "in a full-width area or 2x4 large panel when its text budget fits; "
+            "ordinary names, dates, times, and statuses remain at most 18fp."
         )
 
     for component in components:
         if component.component_type != "Row":
             continue
         for index, child_id in enumerate(component.children[:-1]):
+            suffix = components_by_id.get(component.children[index + 1])
+            if child_id in formatted_hero_ids:
+                if suffix is not None and suffix.component_type == "Text":
+                    errors.append(
+                        f"component {component.component_id}: formatted value "
+                        f"{child_id} already contains its unit; do not append "
+                        f"Text {suffix.component_id} or a field label."
+                    )
+                continue
             if child_id not in numeric_paths:
                 continue
             numeric_path = numeric_paths[child_id]
-            suffix = components_by_id.get(component.children[index + 1])
             if suffix is None or suffix.component_type != "Text":
                 continue
             content = suffix.props.get("content")
@@ -337,6 +398,8 @@ def _is_adaptive_primary_text(
         return False
     parent = parents[0]
     if parent.component_type not in {"Column", "Row"} or parent.props.get("padding", 0) != 0:
+        return False
+    if parent.component_type == "Row" and len(parent.children) != 1:
         return False
     width = _non_negative_number(props.get("width"))
     parent_width = _non_negative_number(parent.props.get("width"))
@@ -447,13 +510,17 @@ def _is_readable_formatted_hero(
 def _formatted_hero_binding(content: Any) -> tuple[str | None, str | None]:
     if isinstance(content, dict) and set(content) == {"path"}:
         path = content.get("path")
-        return (path, None) if isinstance(path, str) else (None, None)
+        if isinstance(path, str):
+            return path, None
+        return None, None
     if not isinstance(content, str):
         return None, None
     match = _SIMPLE_FORMATTED_EXPRESSION_PATTERN.fullmatch(content.strip())
     if match is None:
         return None, None
-    return match.group("path"), match.group("unit")
+    path = match.group("path")
+    unit = match.group("unit")
+    return path, unit
 
 
 def _is_large_2x4_panel(
@@ -521,10 +588,12 @@ def _formatted_hero_pressure(sample: str, description: str) -> str | None:
     duration = duration and re.fullmatch(
         r"\d+小时(?:\d+分)?|\d+(?:分钟|分|秒)", sample
     ) is not None
-    percentage = any(word in description for word in ("百分比", "百分率"))
+    percentage = any(word in description for word in ("百分比", "百分率", "电量", "占比", "比例"))
     percentage = percentage and re.fullmatch(r"\d+(?:\.\d+)?%", sample) is not None
+    measurement = any(marker in description for marker in _MEASUREMENT_DESCRIPTION_MARKERS)
+    measurement = measurement and _MEASUREMENT_SAMPLE_PATTERN.fullmatch(sample) is not None
     pressure: str | None = None
-    if temperature or duration or percentage:
+    if temperature or duration or percentage or measurement:
         pressure = re.sub(r"\d+", lambda match: "9" * max(2, len(match.group())), sample)
         if temperature:
             pressure = re.sub(
@@ -588,16 +657,55 @@ def _collect_adjacent_display_unit_errors(
             suffix_content = suffix.props.get("content")
             if not isinstance(suffix_content, str):
                 continue
-            unit = suffix_content.strip()
-            if unit not in _COMMON_DISPLAY_UNITS:
-                continue
             value_path = _pure_binding_path(value.props.get("content"))
             if not value_path:
                 continue
             schema_type = _schema_type(
                 _schema_node_at_path(data_model_schema, value_path)
             )
+            value_font_size = _non_negative_number(
+                value.props.get("fontSize")
+            )
+            if (
+                value_font_size is not None
+                and value_font_size >= 30
+                and schema_type not in _NUMERIC_SCHEMA_TYPES
+            ):
+                errors.append(
+                    f"component {component.component_id}: large primary Text "
+                    f"{value.component_id} binds non-numeric field {value_path} "
+                    f"and must occupy its own row; do not append "
+                    f"{suffix.component_id} as a unit or label."
+                )
+                continue
+            unit = suffix_content.strip()
+            if unit not in _COMMON_DISPLAY_UNITS:
+                continue
             if schema_type in _NUMERIC_SCHEMA_TYPES:
+                if value_font_size is None or value_font_size < 30:
+                    continue
+                padding = suffix.props.get("padding")
+                unit_bottom_padding = None
+                if isinstance(padding, (int, float)):
+                    unit_bottom_padding = float(padding)
+                elif isinstance(padding, dict):
+                    unit_bottom_padding = _non_negative_number(
+                        padding.get("bottom")
+                    )
+                unit_height = _non_negative_number(suffix.props.get("height"))
+                has_valid_height = unit_height is None or unit_height <= 24
+                has_valid_alignment = (
+                    component.props.get("alignItems") == "bottom"
+                    and unit_bottom_padding == 4
+                    and has_valid_height
+                )
+                if not has_valid_alignment:
+                    errors.append(
+                        f"component {component.component_id}: large numeric value "
+                        f"and unit {suffix.component_id} must use Row alignItems "
+                        '"bottom"; the unit must use padding.bottom 4 and must not '
+                        "use the large value's fixed height."
+                    )
                 continue
             errors.append(
                 f"component {component.component_id}: display unit {unit!r} cannot "
@@ -653,6 +761,94 @@ def _two_by_four_data_block_count(
     if has_daily_summary and has_exercise_record:
         block_count += 1
     return block_count
+
+
+def _schema_leaf_count(value: Any) -> int:
+    if isinstance(value, dict):
+        if isinstance(value.get("type"), str):
+            return 1
+        return sum(_schema_leaf_count(child) for child in value.values())
+    if isinstance(value, list):
+        return sum(_schema_leaf_count(child) for child in value)
+    return 0
+
+
+def _schema_field_names(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        if isinstance(value.get("type"), str):
+            return set()
+        names = {str(key).casefold() for key in value}
+        for child in value.values():
+            names.update(_schema_field_names(child))
+        return names
+    if isinstance(value, list):
+        names: set[str] = set()
+        for child in value:
+            names.update(_schema_field_names(child))
+        return names
+    return set()
+
+
+def _is_dense_phone_battery_schema(value: Any) -> bool:
+    field_names = _schema_field_names(value)
+    detail_groups = (
+        ("temperature",),
+        ("health",),
+        ("plugged", "charger", "chargingtype"),
+        ("updated", "updatetime"),
+    )
+    detail_count = 0
+    for markers in detail_groups:
+        group_matches = False
+        for field_name in field_names:
+            for marker in markers:
+                if marker in field_name:
+                    group_matches = True
+                    break
+            if group_matches:
+                break
+        if group_matches:
+            detail_count += 1
+    fact_count = _schema_leaf_count(value)
+    has_raw_and_formatted_soc = {
+        "batterysoc",
+        "batterysoctext",
+    }.issubset(field_names)
+    if has_raw_and_formatted_soc:
+        fact_count -= 1
+    return detail_count >= 2 or fact_count >= 4
+
+
+def _uses_two_by_four_focus_aux_layout(task_spec: dict[str, Any]) -> bool:
+    if task_spec.get("size") != "2x4":
+        return False
+    data_model_schema = task_spec.get("dataModelSchema")
+    data_schema = (
+        data_model_schema.get("data")
+        if isinstance(data_model_schema, dict)
+        else None
+    )
+    if not isinstance(data_schema, dict) or not data_schema:
+        return False
+
+    roots = tuple(data_schema)
+    normalized_roots = {root.casefold() for root in roots}
+    if "countdown" in normalized_roots or len(roots) > 2:
+        return False
+    if len(roots) == 1:
+        if "healthsport" in normalized_roots:
+            return _schema_leaf_count(data_schema) >= 4
+        if "phonebattery" in normalized_roots:
+            phone_battery = next(iter(data_schema.values()))
+            return _is_dense_phone_battery_schema(phone_battery)
+        if "earphone" in normalized_roots:
+            return _schema_leaf_count(data_schema) >= 6
+        return False
+
+    supported = normalized_roots == {"calendar", "phonebattery"} or (
+        "healthsport" in normalized_roots
+    )
+    return supported and _schema_leaf_count(data_schema) >= 3
 
 
 def _has_stacked_two_by_four_backboards(
@@ -989,6 +1185,32 @@ def _component_content_paths(component: ComponentRow) -> list[str]:
     return paths
 
 
+def _two_by_two_s4_object_count(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> int:
+    object_ids: set[str] = set()
+    for zone_id in root.children:
+        zone = components_by_id.get(zone_id)
+        if zone is None:
+            continue
+        zone_components = [zone, *_descendant_components(zone, components_by_id)]
+        for component in zone_components:
+            if component.component_type != "Text":
+                continue
+            for path in _component_content_paths(component):
+                parts = path.strip("/").split("/")
+                if len(parts) < 2 or parts[0] != "data":
+                    continue
+                object_id = parts[1]
+                for index, part in enumerate(parts[2:], start=2):
+                    if part.isdigit():
+                        object_id = "/".join(parts[1 : index + 1])
+                        break
+                object_ids.add(object_id)
+    return len(object_ids)
+
+
 def _numeric_content_paths(
     components: list[ComponentRow],
     data_model_schema: dict[str, Any],
@@ -1173,6 +1395,13 @@ def _collect_two_by_four_w9_content_errors(
                 if len(parts) >= 2 and parts[0] == "data":
                     content_roots.add(parts[1])
 
+        if len(content_roots) > 1:
+            errors.append(
+                f"2x4 W9 backboard {zone.component_id} mixes data roots "
+                f"{sorted(content_roots)}. Each backboard must display exactly "
+                "one business object; move every field to its owning backboard."
+            )
+
         for action in actions:
             action_roots = _binding_roots(
                 action.props.get("onClick"),
@@ -1191,26 +1420,26 @@ def _collect_two_by_four_w9_content_errors(
                 )
 
         has_countdown = False
+        has_countdown_unit = False
         for component in text_components:
+            content = component.props.get("content")
+            if isinstance(content, str) and content.strip() == "天":
+                has_countdown_unit = True
             paths = paths_by_text[component.component_id]
             if not any(path.endswith("/countdownDays") for path in paths):
                 continue
             has_countdown = True
             font_size = _non_negative_number(component.props.get("fontSize"))
-            if font_size != 14 or component.props.get("fontWeight") != 700:
+            if font_size not in {30, 38} or component.props.get("fontWeight") != 700:
                 errors.append(
-                    f"2x4 W9 countdown {component.component_id} must use ordinary "
-                    "14fp/700 primary text; do not reuse the single-business hero."
+                    f"2x4 W9 countdown {component.component_id} must use a "
+                    "30fp/38fp, 700-weight numeric hero in its own backboard."
                 )
-        if has_countdown:
-            for component in text_components:
-                content = component.props.get("content")
-                if isinstance(content, str) and content.strip() == "天":
-                    errors.append(
-                        f"2x4 W9 countdown backboard {zone.component_id} must "
-                        "combine the value and unit in one Text (for example, "
-                        "`30天`); do not place `天` on a separate row."
-                    )
+        if has_countdown and not has_countdown_unit:
+            errors.append(
+                f"2x4 W9 countdown backboard {zone.component_id} must place "
+                "the unit `天` in a separate Text directly below the numeric hero."
+            )
 
         daily_texts: dict[str, set[str]] = {}
         for component in text_components:
@@ -1391,6 +1620,50 @@ def _collect_two_by_two_s4_vertical_alignment_errors(
             )
 
 
+def _collect_two_by_two_ring_group_alignment_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    parent_by_child: dict[str, ComponentRow] = {}
+    for component in components:
+        for child_id in component.children:
+            parent_by_child[child_id] = component
+
+    for stack in components:
+        if stack.component_type != "Stack":
+            continue
+        has_ring = False
+        for child_id in stack.children:
+            child = components_by_id.get(child_id)
+            if (
+                child is not None
+                and child.component_type == "Progress"
+                and child.props.get("type") == "ring"
+            ):
+                has_ring = True
+                break
+        if not has_ring:
+            continue
+        content_group = parent_by_child.get(stack.component_id)
+        if content_group is None or content_group.component_type != "Column":
+            continue
+        direct_text_count = 0
+        for child_id in content_group.children:
+            child = components_by_id.get(child_id)
+            if child is not None and child.component_type == "Text":
+                direct_text_count += 1
+        if direct_text_count > 1:
+            continue
+        if content_group.props.get("alignItems") == "center":
+            continue
+        errors.append(
+            f"2x2 compact ring group {content_group.component_id} must use "
+            'alignItems "center" so the ring and its single status line remain '
+            "horizontally centered."
+        )
+
+
 def _collect_two_by_two_s4_palette_errors(
     root: ComponentRow,
     components_by_id: dict[str, ComponentRow],
@@ -1452,6 +1725,145 @@ def _has_two_by_four_w9_backboards(
         if not _is_two_by_four_large_backboard(backboard):
             return False
     return True
+
+
+def _is_two_by_four_focus_aux_cell(component: ComponentRow | None) -> bool:
+    if component is None or component.component_type not in {"Row", "Column"}:
+        return False
+    return (
+        component.props.get("width") == _TWO_BY_FOUR_AUX_WIDTH
+        and component.props.get("height") == _TWO_BY_FOUR_AUX_CELL_HEIGHT
+        and component.props.get("borderRadius") == 12
+        and "backgroundColor" in component.props
+    )
+
+
+def _has_two_by_four_w1_focus_aux(
+    root: ComponentRow | None,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if root is None or root.component_type != "Row":
+        return False
+    if (
+        root.props.get("padding") != 12
+        or root.props.get("itemMargin") != 10
+        or len(root.children) != 2
+    ):
+        return False
+
+    focus = components_by_id.get(root.children[0])
+    aux_column = components_by_id.get(root.children[1])
+    if focus is None or focus.component_type not in {"Row", "Column"}:
+        return False
+    if (
+        focus.props.get("width") != _TWO_BY_FOUR_FOCUS_WIDTH
+        or focus.props.get("height") != _TWO_BY_FOUR_FOCUS_AUX_HEIGHT
+        or "backgroundColor" in focus.props
+    ):
+        return False
+    if aux_column is None or aux_column.component_type != "Column":
+        return False
+    if (
+        aux_column.props.get("width") != _TWO_BY_FOUR_AUX_WIDTH
+        or aux_column.props.get("height") != _TWO_BY_FOUR_FOCUS_AUX_HEIGHT
+        or aux_column.props.get("itemMargin") != 8
+        or len(aux_column.children) != 2
+    ):
+        return False
+    return all(
+        _is_two_by_four_focus_aux_cell(components_by_id.get(cell_id))
+        for cell_id in aux_column.children
+    )
+
+
+def _collect_two_by_four_w1_focus_aux_errors(
+    root: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    focus = components_by_id.get(root.children[0])
+    aux_column = components_by_id.get(root.children[1])
+    if focus is None or aux_column is None:
+        return
+
+    focus_components = [focus, *_descendant_components(focus, components_by_id)]
+    large_texts = [
+        component
+        for component in focus_components
+        if component.component_type == "Text"
+        and (_non_negative_number(component.props.get("fontSize")) or 0) >= 30
+    ]
+    if len(large_texts) > 1:
+        errors.append(
+            "2x4 W1-focus-aux may contain only one 30fp/38fp hero in the "
+            "left focus zone. Keep peer metrics as auxiliary content."
+        )
+    if any(component.props.get("onClick") for component in focus_components):
+        errors.append(
+            "2x4 W1-focus-aux actions must occupy a right auxiliary cell; "
+            "do not bind actions inside the left focus zone."
+        )
+    query = str(task_spec.get("userQuery") or "").casefold()
+    progress_requested = False
+    for marker in ("进度", "进度条", "进度环", "环形", "progress"):
+        if marker in query:
+            progress_requested = True
+            break
+    has_progress = False
+    for component in focus_components:
+        if component.component_type == "Progress":
+            has_progress = True
+            break
+    if has_progress and not progress_requested:
+        errors.append(
+            "2x4 W1-focus-aux must not add Progress unless the user explicitly "
+            "requests a progress visualization. Use the left focus for the "
+            "primary value and its necessary status instead."
+        )
+
+    for cell_id in aux_column.children:
+        cell = components_by_id.get(cell_id)
+        if cell is None:
+            continue
+        cell_components = [cell, *_descendant_components(cell, components_by_id)]
+        text_count = sum(
+            component.component_type == "Text" for component in cell_components
+        )
+        if text_count > 2:
+            errors.append(
+                f"2x4 W1-focus-aux cell {cell.component_id} may contain at most "
+                "two Text nodes. Merge its auxiliary information."
+            )
+        if any(
+            component.component_type in {"Button", "ActionUnit"}
+            for component in cell_components
+        ):
+            errors.append(
+                f"2x4 W1-focus-aux cell {cell.component_id} must bind onClick "
+                "to the auxiliary backboard itself; do not nest a Button or "
+                "ActionUnit inside it."
+            )
+
+        cell_roots: set[str] = set()
+        for component in cell_components:
+            if component.component_type == "Text":
+                for path in _component_content_paths(component):
+                    parts = path.strip("/").split("/")
+                    if len(parts) >= 2 and parts[0] == "data":
+                        cell_roots.add(parts[1])
+            cell_roots.update(
+                _binding_roots(
+                    component.props.get("onClick"),
+                    f"component {component.component_id}.props.onClick",
+                )
+            )
+        if len(cell_roots) > 1:
+            errors.append(
+                f"2x4 W1-focus-aux cell {cell.component_id} mixes data roots "
+                f"{sorted(cell_roots)}. Each auxiliary cell must belong to one "
+                "business object."
+            )
 
 
 def _is_two_by_four_small_backboard(component: ComponentRow | None) -> bool:
@@ -1584,9 +1996,13 @@ def _contains_action_control(
 ) -> bool:
     if component.component_type in {"ActionUnit", "Button"}:
         return True
+    if component.component_type == "Row" and "onClick" in component.props:
+        return True
     descendants = _descendant_components(component, components_by_id)
     for descendant in descendants:
         if descendant.component_type in {"ActionUnit", "Button"}:
+            return True
+        if descendant.component_type == "Row" and "onClick" in descendant.props:
             return True
     return False
 
@@ -1620,6 +2036,8 @@ def _collect_two_by_two_content_density_errors(
 
     root = components_by_id.get("root")
     if root is None or root.component_type != "Column":
+        return
+    if _has_two_by_two_s4_zones(root, components_by_id):
         return
 
     information_regions: list[ComponentRow] = []
@@ -1685,6 +2103,37 @@ def _collect_two_by_two_content_density_errors(
                 "may contain only the value/unit line and one 12fp/400 auxiliary "
                 "line. Merge auxiliary fields into that line with ' | '."
             )
+        return
+
+    has_action = False
+    for child_id in root.children:
+        child = components_by_id.get(child_id)
+        if child is not None and _contains_action_control(
+            child,
+            components_by_id,
+        ):
+            has_action = True
+            break
+    if has_action and len(line_profile) > 3:
+        errors.append(
+            "2x2 150vp single-business pure-text content with an action may "
+            "contain at most one prominent line and two 12fp/400 auxiliary "
+            "lines. Merge related auxiliary fields with ' | ' and remove "
+            "lower-priority update text."
+        )
+    if has_action and len(line_profile) == 3:
+        oversized_text = False
+        for component in information_components:
+            font_size = _non_negative_number(component.props.get("fontSize"))
+            if component.component_type == "Text" and (font_size or 0) > 18:
+                oversized_text = True
+                break
+        if oversized_text:
+            errors.append(
+                "2x2 150vp single-business content with an action and three "
+                "information lines must keep its prominent text at 18fp or "
+                "smaller so the 36vp action remains unobstructed."
+            )
 
 
 def _collect_layout_route_errors(
@@ -1739,6 +2188,11 @@ def _collect_layout_route_errors(
             components_by_id,
             errors,
         )
+        _collect_two_by_two_ring_group_alignment_errors(
+            components,
+            components_by_id,
+            errors,
+        )
         data_model_schema = task_spec.get("dataModelSchema")
         schema_data = (
             data_model_schema.get("data")
@@ -1776,6 +2230,16 @@ def _collect_layout_route_errors(
                 )
 
     if size == "2x2" and len(data_roots) == 1:
+        if (
+            root is not None
+            and _has_two_by_two_s4_zones(root, components_by_id)
+            and _two_by_two_s4_object_count(root, components_by_id) != 2
+        ):
+            errors.append(
+                "2x2 S4 requires exactly two independent display objects. "
+                "Fields from one object must remain in one single-business "
+                "layout instead of being split across two 134x63 backboards."
+            )
         if root is not None and len(root.children) == 1:
             only_child = components_by_id.get(root.children[0])
             if _is_2x2_small_backboard(only_child):
@@ -1790,6 +2254,26 @@ def _collect_layout_route_errors(
             visible_binding_paths,
             task_spec,
             errors,
+        )
+        return
+
+    if size == "2x4" and _uses_two_by_four_focus_aux_layout(task_spec):
+        if root is not None and _has_two_by_four_w1_focus_aux(
+            root,
+            components_by_id,
+        ):
+            _collect_two_by_four_w1_focus_aux_errors(
+                root,
+                components_by_id,
+                task_spec,
+                errors,
+            )
+            return
+        errors.append(
+            "2x4 card has one dominant focus and at most two auxiliary slots and "
+            "must use W1-focus-aux: root Row padding 12/itemMargin 10, a left "
+            "136x126 focus zone without a backboard, and a right 130x126 Column "
+            "containing two 130x59 backboards separated by itemMargin 8."
         )
         return
 
@@ -1816,6 +2300,18 @@ def _collect_layout_route_errors(
                 "138x63 backboards separated by itemMargin 8."
             )
             return
+    if (
+        size == "2x2"
+        and root is not None
+        and _has_two_by_two_s4_zones(root, components_by_id)
+        and _two_by_two_s4_object_count(root, components_by_id) != 2
+    ):
+        errors.append(
+            "2x2 S4 requires exactly two independent display objects. Fields "
+            "from one object must remain in one single-business layout instead "
+            "of being split across two 134x63 backboards."
+        )
+        return
     if data_block_count != 2:
         return
 
@@ -2171,6 +2667,26 @@ def _has_nearby_metric_label(
     parent_by_child: dict[str, str],
     components_by_id: dict[str, ComponentRow],
 ) -> bool:
+    def has_metric_label(value: Any) -> bool:
+        if not isinstance(value, str):
+            return False
+        if "{{" in value:
+            candidates = [
+                match[1:-1].strip()
+                for match in _STRING_LITERAL_PATTERN.findall(value)
+            ]
+        else:
+            candidates = [value.strip()]
+        return any(
+            len(candidate) >= 2
+            and candidate not in _AMBIGUOUS_STATUS_MARKERS
+            and candidate not in _COMMON_DISPLAY_UNITS
+            for candidate in candidates
+        )
+
+    if has_metric_label(component.props.get("content")):
+        return True
+
     current = component.component_id
     for _ in range(3):
         parent_id = parent_by_child.get(current)
@@ -2186,12 +2702,8 @@ def _has_nearby_metric_label(
                 if sibling and sibling.component_type == "Text"
                 else None
             )
-            if isinstance(text, str) and "{{" not in text and len(text.strip()) >= 2:
-                if (
-                    text.strip() not in _AMBIGUOUS_STATUS_MARKERS
-                    and text.strip() not in _COMMON_DISPLAY_UNITS
-                ):
-                    return True
+            if has_metric_label(text):
+                return True
         current = parent.component_id
     return False
 

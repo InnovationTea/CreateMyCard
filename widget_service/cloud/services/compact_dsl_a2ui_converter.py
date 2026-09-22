@@ -23,6 +23,9 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200B"
+_LARGE_VALUE_UNITS = frozenset(
+    {"%", "天", "℃", "°C", "步", "分", "小时", "公里", "千卡", "次/分钟", "级"}
+)
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -668,6 +671,9 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
+    normalized_components = _normalize_large_value_unit_alignment(
+        normalized_components
+    )
     normalized_components = _normalize_timeline_unit_spacing(normalized_components)
     normalized_components = _normalize_small_backboard_icon_alignment(
         normalized_components,
@@ -1101,6 +1107,23 @@ def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
     return None
 
 
+def _template_subtree_component_ids(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+) -> set[str]:
+    if len(components) != len(components_by_id):
+        return set()
+    root = components_by_id.get("root")
+    template = components_by_id.get("template_root")
+    if root is None or template is None:
+        return set()
+    if template.component_id not in root.children:
+        return set()
+    template_ids = {template.component_id}
+    template_ids.update(_descendant_component_ids(template_ids, components_by_id))
+    return template_ids
+
+
 def _normalize_ring_stack_children(
     components: list[ComponentRow],
     *,
@@ -1123,6 +1146,7 @@ def _normalize_ring_stack_children(
         dual_zone_ids,
         components_by_id,
     )
+    template_component_ids = _template_subtree_component_ids(components, components_by_id)
     normalized: list[ComponentRow] = []
     for component in components:
         props = component.props
@@ -1136,7 +1160,8 @@ def _normalize_ring_stack_children(
             if components_by_id[child].props.get("type") == "ring"
         ]
         is_ring = component.component_type == "Progress" and props.get("type") == "ring"
-        if size == "2x2" and (is_ring or ring_progress_ids):
+        resize_ring = size == "2x2" and (is_ring or bool(ring_progress_ids))
+        if resize_ring and component.component_id not in template_component_ids:
             ring_size = (
                 _TWO_BY_TWO_DUAL_RING_SIZE
                 if component.component_id in dual_zone_descendants
@@ -1162,7 +1187,109 @@ def _normalize_ring_stack_children(
                 tuple(children),
             )
         )
-    return normalized
+    normalized_by_id = {
+        component.component_id: component for component in normalized
+    }
+    ring_stack_ids: set[str] = set()
+    for component in normalized:
+        if component.component_type != "Stack":
+            continue
+        for child_id in component.children:
+            child = normalized_by_id.get(child_id)
+            if (
+                child is not None
+                and child.component_type == "Progress"
+                and child.props.get("type") == "ring"
+            ):
+                ring_stack_ids.add(component.component_id)
+                break
+
+    centered: list[ComponentRow] = []
+    for component in normalized:
+        if component.component_type != "Column":
+            centered.append(component)
+            continue
+        has_ring_stack = any(
+            child_id in ring_stack_ids for child_id in component.children
+        )
+        direct_text_count = 0
+        for child_id in component.children:
+            child = normalized_by_id.get(child_id)
+            if child is not None and child.component_type == "Text":
+                direct_text_count += 1
+        if not has_ring_stack or direct_text_count > 1:
+            centered.append(component)
+            continue
+        centered.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                {**component.props, "alignItems": "center"},
+                component.children,
+            )
+        )
+    return centered
+
+
+def _normalize_large_value_unit_alignment(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    components_by_id = {
+        component.component_id: component for component in components
+    }
+    replacements: dict[str, ComponentRow] = {}
+    for row in components:
+        if row.component_type != "Row":
+            continue
+        for index, value_id in enumerate(row.children[:-1]):
+            value = components_by_id.get(value_id)
+            unit = components_by_id.get(row.children[index + 1])
+            if value is None or value.component_type != "Text":
+                continue
+            if unit is None or unit.component_type != "Text":
+                continue
+            font_size = value.props.get("fontSize")
+            if not isinstance(font_size, (int, float)) or font_size < 30:
+                continue
+            content = unit.props.get("content")
+            if not isinstance(content, str) or content.strip() not in _LARGE_VALUE_UNITS:
+                continue
+
+            row_props = {**row.props, "alignItems": "bottom"}
+            replacements[row.component_id] = ComponentRow(
+                row.component_id,
+                row.component_type,
+                row_props,
+                row.children,
+            )
+            for child_id in row.children:
+                child = components_by_id.get(child_id)
+                if child is None or child.component_type != "Text":
+                    continue
+                child_font_size = child.props.get("fontSize")
+                if not isinstance(child_font_size, (int, float)):
+                    continue
+                if child_font_size >= 30:
+                    continue
+
+                child_props = {**child.props}
+                padding = child_props.get("padding")
+                if isinstance(padding, dict):
+                    child_props["padding"] = {**padding, "bottom": 4}
+                else:
+                    child_props["padding"] = {"bottom": 4}
+                height = child_props.get("height")
+                if isinstance(height, (int, float)) and height > 24:
+                    child_props.pop("height")
+                replacements[child.component_id] = ComponentRow(
+                    child.component_id,
+                    child.component_type,
+                    child_props,
+                    child.children,
+                )
+            break
+
+    return [replacements.get(component.component_id, component) for component in components]
 
 
 def _two_by_two_dual_zone_ids(
