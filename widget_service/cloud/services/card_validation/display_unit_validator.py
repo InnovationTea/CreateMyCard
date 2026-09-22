@@ -11,7 +11,6 @@ from .display_unit_rules import (
     static_text_exactly_matches_rule,
     unit_rule_for_path,
 )
-from .shared_display_unit import has_shared_title_unit
 
 
 class DisplayUnitValidator(BaseValidator):
@@ -68,8 +67,6 @@ class DisplayUnitValidator(BaseValidator):
                     fix_hint="删除表达式或相邻 Text 中重复追加的单位，仅保留字段自身内容。",
                 )
             elif not rule.unit_included and visible_unit_count == 0 and not skip_missing_unit:
-                if has_shared_title_unit(component_id, unit_rules, parents_by_child, context):
-                    continue
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_MISSING",
