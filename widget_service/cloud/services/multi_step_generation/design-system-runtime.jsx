@@ -4612,11 +4612,17 @@ a{text-decoration:none}
   }
 
   function TableText({ items = [], className, ...rest }) {
+    let spacing = "default";
+    if (items.length >= 3) {
+      spacing = "adaptive";
+    } else if (items.length === 2) {
+      spacing = "parent";
+    }
     return (
       <div
         className={cx("table-text", className)}
         {...rest}
-        data-spacing={items.length >= 3 ? "adaptive" : items.length === 2 ? "parent" : "default"}
+        data-spacing={spacing}
       >
         {items.map(({ key, label, parameter, dataIds, dataValueMaps }, index) => (
           <div className="table-text-item" key={key ?? index}>

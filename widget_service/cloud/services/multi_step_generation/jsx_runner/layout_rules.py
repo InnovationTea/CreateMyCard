@@ -242,15 +242,18 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                 node for node in descendants
                 if node.tag in {"PillButton", "CircleButton", "CardButton"}
             ]
-            if (
+            invalid_button_slot = (
                 button_slot.tag != "Stack"
                 or button_slot.props.get("flex", 0) != 0
                 or button_slot.props.get("height") != 36
-                or button_slot.props.get("width") != "full"
-                or sum(node.tag == "PillButton" for node in button_descendants) != 1
-                or len(all_buttons) != 1
-                or all_buttons[0].tag != "PillButton"
-            ):
+            )
+            if not invalid_button_slot:
+                invalid_button_slot = (
+                    button_slot.props.get("width") != "full"
+                    or sum(node.tag == "PillButton" for node in button_descendants) != 1
+                    or len(all_buttons) != 1
+                )
+            if invalid_button_slot or all_buttons[0].tag != "PillButton":
                 errors.append(
                     f'2x2 layout "{pattern_name}" requires exactly one PillButton '
                     'in the final 126 × 36vp flex={0} full-width slot'
@@ -343,14 +346,18 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
                     'width="full", align="flex-start", justify="flex-start" and Card gap={8}'
                 )
     if pattern == "12":
-        if (
+        invalid_title_slot = (
             len(title_slots) != 1
             or title_slots[0].props.get("mb") != 6
             or title_slots[0].props.get("flex", 0) != 0
-            or title_slots[0].props.get("width") != "full"
-            or not children
-            or title_slots[0] is not children[0]
-        ):
+        )
+        if not invalid_title_slot:
+            invalid_title_slot = (
+                title_slots[0].props.get("width") != "full"
+                or not children
+                or title_slots[0] is not children[0]
+            )
+        if invalid_title_slot:
             errors.append(
                 '2x2 layout "标题双列内容可选按钮" requires one leading flex={0}, '
                 'width="full" title slot with mb={6}'
@@ -379,12 +386,12 @@ def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
             errors.append('2x2 layout "标题双列内容可选按钮" allows at most one PillButton slot')
         elif button_slots:
             button_slot = button_slots[0]
-            if (
+            invalid_button_geometry = (
                 button_slot.props.get("flex", 0) != 0
                 or button_slot.props.get("height") != 36
                 or button_slot.props.get("width") != "full"
-                or button_slot is not children[-1]
-            ):
+            )
+            if invalid_button_geometry or button_slot is not children[-1]:
                 errors.append(
                     '2x2 layout "标题双列内容可选按钮" PillButton slot must be the final '
                     '126 × 36vp flex={0} block'
@@ -651,16 +658,14 @@ def _type13_parent_errors(
             if node.tag in {"SingleLineTitle", "DoubleLineTitle"}
         ]
         if local_titles:
-            title_slot = next(
-                (
-                    slot for slot in content.child_elements()
-                    if any(
-                        node.tag in {"SingleLineTitle", "DoubleLineTitle"}
-                        for node in _descendants([slot])
-                    )
-                ),
-                None,
-            )
+            title_slot = None
+            for slot in content.child_elements():
+                if any(
+                    node.tag in {"SingleLineTitle", "DoubleLineTitle"}
+                    for node in _descendants([slot])
+                ):
+                    title_slot = slot
+                    break
             if title_slot is None or title_slot.props.get("mb") != 4:
                 # Direct JSX may express the same spacing as the container gap;
                 # semantic lowering uses title-slot mb={4}.

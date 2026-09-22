@@ -766,13 +766,14 @@ def _validate_action_slot_compatibility(
                 + rendered
             )
     info_blocks = [node for node in _walk(root) if node.tag == "InfoBlock"]
-    if size == "2x2" and info_blocks and pattern is not None and pattern != "3":
-        issues.append('InfoBlock is only allowed in 2x2 layout "双信息块"')
-    if size == "2x4" and info_blocks and pattern is not None and pattern not in {"14", "15", "15-R"}:
-        issues.append(
-            'InfoBlock is only allowed in 2x4 layouts "四槽宫格", '
-            '"左内容右侧双槽", or "左侧双槽右内容" fixed slots'
-        )
+    if info_blocks and pattern is not None:
+        if size == "2x2" and pattern != "3":
+            issues.append('InfoBlock is only allowed in 2x2 layout "双信息块"')
+        if size == "2x4" and pattern not in {"14", "15", "15-R"}:
+            issues.append(
+                'InfoBlock is only allowed in 2x4 layouts "四槽宫格", '
+                '"左内容右侧双槽", or "左侧双槽右内容" fixed slots'
+            )
     if size == "2x2" and info_blocks:
         extra_business_components = [
             node.tag for node in _walk(root) if node.tag not in {"Card", "Stack", "Grid", "InfoBlock"}
@@ -2548,12 +2549,12 @@ def _validate_text_region_usage(
         re.I,
     ))
     all_business = [node for node in _walk(root) if node.tag not in ignored]
-    if (
+    table_only_layout = (
         pattern is not None
         and all_business
         and all(node.tag == "TableText" for node in all_business)
-        and not explicit_peer_table_intent
-    ):
+    )
+    if table_only_layout and not explicit_peer_table_intent:
         raise ValidationError(
             "the card cannot use TableText as its only business information for an ordinary "
             "multi-field request. Select the most relevant dynamic fact as one core EmphasisText, "
@@ -2790,12 +2791,12 @@ def _required_text_binding_conflicts(
                 # The template preserves the static text while replacing only
                 # its dynamic placeholder, so this is a legitimate mixed owner.
                 continue
-            other_owners = [
-                f"<{candidate['component']}> {candidate['prop']}"
-                for candidate in bound_owners
-                if candidate is not owner
-                and set(candidate["dataIds"]) & set(owner["dataIds"])
-            ]
+            other_owners = []
+            for candidate in bound_owners:
+                if candidate is owner:
+                    continue
+                if set(candidate["dataIds"]) & set(owner["dataIds"]):
+                    other_owners.append(f"<{candidate['component']}> {candidate['prop']}")
             requirement = str(fact.get("requirement") or text)
             ids = owner["dataIds"]
             message = (
@@ -3051,16 +3052,14 @@ def _validate_info_block_status_labels(
             except ValidationError:
                 primary_binding = None
             template = node.props.get("primaryTextTemplate")
-            if (
-                primary_binding is not None
-                and is_charging_status(primary_binding)
-                and (not isinstance(template, str) or template.count("{value}") != 1)
-            ):
-                issues.append(
-                    "<InfoBlock> primaryText binds a charging status that is not self-describing; "
-                    "add primaryTextTemplate with the object label, for example "
-                    "primaryTextTemplate=\"对象名 {value}\""
-                )
+            if primary_binding is not None and is_charging_status(primary_binding):
+                if not isinstance(template, str) or template.count("{value}") != 1:
+                    issues.append(
+                        "<InfoBlock> primaryText binds a charging status "
+                        "that is not self-describing; "
+                        "add primaryTextTemplate with the object label, for example "
+                        "primaryTextTemplate=\"对象名 {value}\""
+                    )
 
         secondary_ids = data_binding_ids(
             "InfoBlock", "secondaryText", data_ids.get("secondaryText")

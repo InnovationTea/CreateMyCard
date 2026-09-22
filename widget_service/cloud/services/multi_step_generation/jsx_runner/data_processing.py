@@ -641,13 +641,16 @@ def prepare_tasks_from_views(
         merged = copy.deepcopy(prompt_task)
         merged["data"] = copy.deepcopy(context_record.get("data", []))
         merged["actions"] = copy.deepcopy(context_record.get("actions", []))
-        remote_sources = {
-            item.get("modelSrc"): item.get("src")
-            for item in context_record.get("assets", [])
-            if isinstance(item, dict)
-            and isinstance(item.get("modelSrc"), str)
-            and isinstance(item.get("src"), str)
-        }
+        remote_sources = {}
+        for item in context_record.get("assets", []):
+            if not isinstance(item, dict):
+                continue
+            model_src = item.get("modelSrc")
+            if not isinstance(model_src, str):
+                continue
+            src = item.get("src")
+            if isinstance(src, str):
+                remote_sources[model_src] = src
         if remote_sources:
             merged["assetCandidates"] = [
                 {

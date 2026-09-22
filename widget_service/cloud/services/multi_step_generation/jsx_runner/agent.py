@@ -345,23 +345,21 @@ def _required_action_ids(
     required_facts: list[dict[str, Any]] | None,
 ) -> set[str]:
     if required_facts is not None:
-        return {
-            str(fact["actionId"])
-            for fact in required_facts
-            if isinstance(fact, dict)
-            and isinstance(fact.get("actionId"), str)
-            and fact["actionId"].strip()
-        }
-    actions = task.get("actions")
-    if not isinstance(actions, list):
-        return set()
-    return {
-        str(action["id"])
-        for action in actions
-        if isinstance(action, dict)
-        and isinstance(action.get("id"), str)
-        and action["id"].strip()
-    }
+        actions = required_facts
+        id_key = "actionId"
+    else:
+        actions = task.get("actions")
+        id_key = "id"
+        if not isinstance(actions, list):
+            actions = []
+    action_ids: set[str] = set()
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        action_id = action.get(id_key)
+        if isinstance(action_id, str) and action_id.strip():
+            action_ids.add(str(action_id))
+    return action_ids
 
 
 def _semantic_repair_scope_instruction(
@@ -1096,7 +1094,8 @@ class JsxA2UIAgent:
                     if turn + remaining_resources + 2 > self.max_turns:
                         result["retryable"] = False
                         terminal_error = RuntimeError(
-                            "workflow_budget: Info Plan could not be validated before the remaining resource/JSX turns; "
+                            "workflow_budget: Info Plan could not be validated before "
+                            "the remaining resource/JSX turns; "
                             "no JSX was accepted. Last plan error: " + str(result.get("error"))
                         )
             if function.name == "submit_card_jsx" and result.get("ok") and state.pending_submission is not None:
@@ -1277,12 +1276,12 @@ class JsxA2UIAgent:
                             )
                             if repeated_findings:
                                 result["repeatedFindings"] = repeated_findings
-                            if (
+                            can_try_anchor = (
                                 pillbutton_gap_failure
                                 and state.active_layout_fallback is None
                                 and not pillbutton_anchor_attempted
-                                and _can_try_circle_button_anchor(task)
-                            ):
+                            )
+                            if can_try_anchor and _can_try_circle_button_anchor(task):
                                 pillbutton_anchor_attempted = True
                                 result.update(
                                     repairStrategy="circle_button_anchor",
@@ -1356,15 +1355,11 @@ class JsxA2UIAgent:
                     result.update(fallbackStage=active_fallback, fallbackAttempt=attempt,
                                   fallbackAttemptLimit=limit, fallbackRemainingAttempts=max(0, limit - attempt))
                     fallback_exhausted = attempt >= limit
-                if (
-                    active_fallback == "compact_component"
-                    and (
-                        fallback_exhausted
-                        or compact_required_information_streak
-                        >= COMPACT_REQUIRED_INFORMATION_LIMIT
-                    )
-                    and not _is_missing_required_action_failure(result)
-                ):
+                compact_repair_exhausted = active_fallback == "compact_component" and (
+                    fallback_exhausted
+                    or compact_required_information_streak >= COMPACT_REQUIRED_INFORMATION_LIMIT
+                )
+                if compact_repair_exhausted and not _is_missing_required_action_failure(result):
                     state.active_layout_fallback = "drop_optional_component"
                     compact_required_information_streak = 0
                     previous_failed_submission = None
@@ -1396,10 +1391,13 @@ class JsxA2UIAgent:
                     pillbutton_gap_exhausted = browser_has_pillbutton_gap_error(report) and (
                         pillbutton_anchor_attempted or not _can_try_circle_button_anchor(task)
                     )
-                    if (
+                    needs_compact_fallback = (
                         pillbutton_gap_exhausted
                         or no_progress
                         or browser_failures >= self.max_validation_repairs
+                    )
+                    if (
+                        needs_compact_fallback
                         or post_browser_repair_failures >= POST_BROWSER_REPAIR_LIMIT
                     ):
                         # Runner-only transition: no model call just to change mode.

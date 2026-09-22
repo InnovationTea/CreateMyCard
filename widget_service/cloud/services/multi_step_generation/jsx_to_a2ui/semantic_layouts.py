@@ -81,7 +81,10 @@ def _content(node: JSXElement) -> JSXElement:
 def _one(region: JSXElement, allowed: set[str] | None = None) -> JSXElement:
     children = _children(region)
     if len(children) != 1 or (allowed is not None and children[0].tag not in allowed):
-        raise ValidationError(f"Region slot={region.props.get('slot')!r} requires one {sorted(allowed) if allowed else 'content group'}")
+        expected = sorted(allowed) if allowed else "content group"
+        raise ValidationError(
+            f"Region slot={region.props.get('slot')!r} requires one {expected}"
+        )
     return children[0]
 
 
@@ -189,7 +192,10 @@ def lower_semantic_card(card: JSXElement) -> tuple[JSXElement, dict]:
     regions = {}
     for region in _children(card):
         slot = region.props.get("slot")
-        if region.tag != "Region" or not isinstance(slot, str) or slot not in slots or slot in regions:
+        invalid_slot = region.tag != "Region" or not isinstance(slot, str)
+        if not invalid_slot:
+            invalid_slot = slot not in slots or slot in regions
+        if invalid_slot:
             raise ValidationError(f"{layout} requires unique Region slots {slots}")
         extra = set(region.props) - {"slot", "variant"}
         if extra:

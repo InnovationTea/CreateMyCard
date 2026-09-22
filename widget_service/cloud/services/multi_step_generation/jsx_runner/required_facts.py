@@ -356,12 +356,13 @@ def validate_required_facts(
     if errors:
         raise ValidationError("; ".join(dict.fromkeys(errors)))
 
-    daily_weekday_prefixes = {
-        data_id.removesuffix(".weekday")
-        for item in normalized
-        if isinstance((data_id := item.get("dataId")), str)
-        and re.fullmatch(r".+\.daily\.\d+\.weekday", data_id)
-    }
+    daily_weekday_prefixes = set()
+    for item in normalized:
+        data_id = item.get("dataId")
+        if not isinstance(data_id, str):
+            continue
+        if re.fullmatch(r".+\.daily\.\d+\.weekday", data_id):
+            daily_weekday_prefixes.add(data_id.removesuffix(".weekday"))
     if daily_weekday_prefixes:
         retained: list[dict[str, Any]] = []
         for item in normalized:

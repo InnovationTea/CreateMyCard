@@ -905,10 +905,11 @@ def _override_query_grounded_binding(
 
 def _value_template_parts(owner: dict[str, Any], prop: str) -> tuple[str, str] | None:
     template = owner.get(f"{prop}Template")
-    if not isinstance(template, str) or template.count("{value}") != 1:
-        return None
-    prefix, suffix = template.split("{value}")
-    return prefix, suffix
+    parts: tuple[str, str] | None = None
+    if isinstance(template, str) and template.count("{value}") == 1:
+        prefix, suffix = template.split("{value}")
+        parts = (prefix, suffix)
+    return parts
 
 
 def _template_source_value(owner: dict[str, Any], prop: str) -> Any:

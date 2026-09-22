@@ -141,12 +141,8 @@ def write_card(
         semantic_path = jsx_dir / f"{artifact_stem}.semantic.jsx"
         semantic_path.write_text(result["semantic_source"], encoding="utf-8")
         paths["semantic_jsx"] = semantic_path.relative_to(run_dir).as_posix()
-    if compile_context and (
-        compile_context.get("data")
-        or compile_context.get("actions")
-        or compile_context.get("assets")
-        or compile_context.get("renderedLayout")
-    ):
+    context_fields = ("data", "actions", "assets", "renderedLayout")
+    if compile_context and any(compile_context.get(key) for key in context_fields):
         context_path = run_dir / "context" / f"{name}.context.json"
         context_path.write_text(
             json.dumps(compile_context, ensure_ascii=False, indent=2) + "\n",
