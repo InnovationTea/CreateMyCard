@@ -17,19 +17,19 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 113
+    assert manifest.get("templateCount") == 114
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
         "Support": 21,
         "Compact": 12,
         "Hero": 33,
-        "Full": 36,
+        "Full": 37,
         "WideHero": 1,
         "WideFull": 8,
     }
-    assert manifest.get("countsBySize") == {"2x2": 104, "2x4": 9}
-    assert len(cases) == 113
+    assert manifest.get("countsBySize") == {"2x2": 105, "2x4": 9}
+    assert len(cases) == 114
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -38,7 +38,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 113
+    assert len(template_ids) == 114
     assert {
         "BluetoothDeviceOverviewEarbudTripleFull@1",
         "BluetoothDeviceOverviewEarbudTripleHero@1",

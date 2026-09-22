@@ -36,7 +36,7 @@
 | calendar | `GetCalendarEvents` | `/data/calendar` | 25 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 15 | 启用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 26 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 11 | 启用 |
 
@@ -151,13 +151,13 @@
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `WorkoutOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseTypeName`<br>`/exerciseDurationText` | `/exerciseCalorieText`<br>`/exerciseEndTimeText` | 无 |
+| ✅ | `WorkoutOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseDurationText` | `/exerciseCalorieText` | `/exerciseEndTimeText`<br>`/exerciseTypeName` |
 | ✅ | `WorkoutOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/exerciseCalorieText` | `/exerciseDurationText` | `/exerciseTypeName` |
 
 ## HeartRateOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：9。
+- 数据能力：`GetHealthAndSportSummary`；模板数：10。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |

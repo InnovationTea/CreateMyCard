@@ -3,7 +3,7 @@ data = {
     workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText"),
-    endTime: $path("/exerciseEndTimeText")
+    endTime: $optionalPath("/exerciseEndTimeText")
 }
 
 Column(
@@ -92,6 +92,7 @@ Column(
               "alignItems": "center",
               "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
+            #if data.endTime
             Text(
                 `${data.duration} | ${data.endTime}`,
                 {
@@ -102,7 +103,20 @@ Column(
                     "textOverflow": "ellipsis",
                     "constraintSize": {"minWidth": 0, "minHeight": 0}
                 }
+            ),
+            #else
+            Text(
+                data.duration,
+                {
+                    "fontWeight": 400,
+                    "fontColor": $theme('supportContentColor'),
+                    "fontSize": 12,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
             )
+            #endif
         )
     )
 )
