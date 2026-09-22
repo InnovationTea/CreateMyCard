@@ -18,6 +18,8 @@ _UNIT_TEXT_SUFFIXES = frozenset(
 )
 _UNIT_ALIASES = {
     "℃": {"℃", "°C", "°"},
+    "次/分钟": {"次/分钟", "次/分"},
+    "次/分": {"次/分钟", "次/分"},
 }
 
 
@@ -138,6 +140,16 @@ def static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
     return isinstance(value, str) and any(
         _normalized_unit(value) in _normalized_aliases(unit) for unit in rule.units
     )
+
+
+def title_has_display_unit(value: Any, rule: DisplayUnitRule) -> bool:
+    """只接受标题末尾以分隔符或括号标注的完整单位。"""
+    if not isinstance(value, str) or expression_references(value):
+        return False
+    match = re.fullmatch(r".+?(?:[·:：|｜]\s*([^()（）]+)|[（(]([^()（）]+)[）)])\s*", value)
+    if match is None:
+        return False
+    return static_text_exactly_matches_rule(match.group(1) or match.group(2), rule)
 
 
 def repair_repeated_display_units(
