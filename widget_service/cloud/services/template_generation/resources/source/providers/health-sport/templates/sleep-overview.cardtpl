@@ -383,27 +383,17 @@ Column(
         )
     )
     #else
-    Column(
-        {
-            "width": "matchParent",
-            "height": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "center",
-            "alignItems": "center",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        },
-        Text(
-            "睡眠监测",
-            {"width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-        Text(
-            data.duration,
-            {"width": "matchParent", "margin": {"top": 4}, "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-        Text(
-            "小睡时长",
-            {"width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
+    Text(
+        "睡眠监测",
+        {"width": "matchParent", "margin": {"top": 8}, "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+    Text(
+        data.duration,
+        {"width": "matchParent", "fontSize": 38, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+    Text(
+        "小睡时长",
+        {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
     #endif
 )
