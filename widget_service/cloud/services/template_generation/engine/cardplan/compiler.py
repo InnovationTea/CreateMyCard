@@ -93,6 +93,7 @@ _ACTION_TEMPLATE_COMPONENTS = {
     "PillAction@1": "PillAction",
     "IconAction@1": "IconAction",
 }
+_ACTION_TEMPLATE_ROOT_COMPONENTS = {"PillAction": "Button", "IconAction": "Stack"}
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
 _DANGEROUS_EVENT_KEYS = frozenset({"onClick", "call", "args", "action"})
@@ -1004,9 +1005,10 @@ def _wrap_action_template(
     action_component = _ACTION_TEMPLATE_COMPONENTS.get(wire_id)
     if action_component is None:
         raise TerselConversionError(f"Action Provider Template is unsupported: {wire_id}")
-    if root.component_type != "Stack":
+    expected_root = _ACTION_TEMPLATE_ROOT_COMPONENTS.get(action_component)
+    if root.component_type != expected_root:
         raise TerselConversionError(
-            f"Action Provider Template root must be Stack: {wire_id}"
+            f"Action Provider Template root must be {expected_root}: {wire_id}"
         )
     action_id = params.get("actionId")
     if not isinstance(action_id, str):
@@ -8690,7 +8692,8 @@ def _lower_action_template_tree(
     background: str,
     foreground: str,
 ) -> Nested2Node:
-    if len(node.children) != 1 or node.children[0].component_type != "Stack":
+    expected_root = _ACTION_TEMPLATE_ROOT_COMPONENTS.get(node.component_type)
+    if len(node.children) != 1 or node.children[0].component_type != expected_root:
         raise TerselConversionError("UX Action must contain one trusted Action Template.")
 
     def apply_foreground(
@@ -8700,7 +8703,7 @@ def _lower_action_template_tree(
         preserve_here = preserve_original or options.get("_preserveOriginalColor") is True
         children = tuple(apply_foreground(child, preserve_here) for child in current.children)
         styled = Nested2Node(current.component_type, current.values, children)
-        if current.component_type == "Text":
+        if current.component_type in {"Text", "Button"}:
             return _merge_node_options(styled, {"fontColor": foreground})
         if current.component_type == "Image":
             _validate_image_color_options(options, preserve_original=preserve_here)

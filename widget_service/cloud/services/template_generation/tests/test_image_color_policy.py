@@ -113,7 +113,7 @@ def test_action_image_respects_original_and_explicit_color(
     options: dict[str, Any], expected: str | None,
 ) -> None:
     image = Nested2Node("Image", ("resources/base/media/icon_phone.svg", options), ())
-    root = Nested2Node("Action", (), (
+    root = Nested2Node("IconAction", (), (
         Nested2Node("Stack", ({"onClick": [{"call": "open"}]},), (image,)),
     ))
     styled = _lower_action_template_tree(root, background="#FFFFFFFF", foreground="#FFABCDEF")
@@ -127,7 +127,7 @@ def test_action_image_inherits_original_color_protection(conflict: bool) -> None
     options = {"fillColor": _EXPLICIT} if conflict else {}
     image = Nested2Node("Image", ("resources/base/media/icon_phone.svg", options), ())
     action_options = {"onClick": [{"call": "open"}], "_preserveOriginalColor": True}
-    root = Nested2Node("Action", (), (Nested2Node("Stack", (action_options,), (image,)),))
+    root = Nested2Node("IconAction", (), (Nested2Node("Stack", (action_options,), (image,)),))
     if conflict:
         with pytest.raises(TerselConversionError, match="_preserveOriginalColor.*fillColor"):
             _lower_action_template_tree(root, background="#FFFFFFFF", foreground="#FFABCDEF")

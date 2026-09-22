@@ -425,7 +425,8 @@ Action 和 Layout 模板不参与业务数量计算。主题适用能力还必�
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
 `$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
-PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`；Theme 不得
+PillAction 模板直接展开为标准 Button，使用 `$theme('actionStyle.backgroundColor')` 和
+`$theme('actionStyle.contentColor')`；Theme 不得
 覆盖 Action Template 节点已经显式声明的高度、圆角、字号和字重。
 
 ### 完整 A2UI 转换
@@ -494,7 +495,9 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 确定性 `template_plan_planner.py` 在 Search 与第二层 LLM 之间重新读取 Registry 元数据，联合规划 Theme、
 Layout、业务顺序、准确模板 ID 和 Action 消费位置。每个 Plan 必须覆盖全部显式字段并消费每个已选 Action
 恰好一次；`2x2` 单业务优先让用户主焦点命中模板 `primaryData`。Action 可以由根 Action 模板消费，也可由
-声明可选 `actionId` 的垂域 Support 模板消费。Planner 稳定排序、去重后最多输出三个完整原子 Plan。
+声明可选 `actionId` 的垂域 Support 模板消费。主焦点与主数据匹配后，优先选择实际使用本轮可用数据更多的
+组合；按 Search 返回的 `availableDataFields` 完整路径并集去重，缺失或类型不匹配的数据不计入。
+再按原有次数据与可选数据匹配规则稳定排序、去重，最多输出三个完整原子 Plan，二层优先选择靠前者。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
@@ -504,7 +507,9 @@ Theme、Layout、业务顺序、模板 ID 或 Action 消费位置，也不得跨
 `dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，不得用基础组件补业务内容。编译器在展开前验证
 最终调用树与且仅与一个 Plan 完全一致，混合两个 Plan 或重复、遗漏 Action 均按契约失败。
 
-PillAction Props 包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。
+PillAction 直接使用标准 Button 的 `label` 展示文本，点击事件绑定在 Button 上；保持 36vp 高度、18vp
+圆角和 14fp 字号，不再展开 Stack、Row、Text。Props 仅包含 `actionId`、`label`；两种尺寸均禁止传入 `icon`，
+由 Props schema 拒绝并进入现有修复链路。IconAction Props 仍包含 `actionId`、`icon`。
 必选 Action CardTpl 在交互组件样式中写入 `onClick: EventAction(props.actionId)`；Support CardTpl 的可选事件
 使用 `onClick: EventAction(props?.actionId)`。微服务将受信 `actionId` 绑定到已批准事件，模型不得输出
 原始 `call`、`args` 或 `onClick`。完整模块边界见

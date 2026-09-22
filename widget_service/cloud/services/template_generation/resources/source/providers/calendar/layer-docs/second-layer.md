@@ -81,4 +81,5 @@
   `LocationDescriptionEndFull`、`LocationHero`、`TitleHero`、`TimezoneDateEndFull`、`TimezoneAllDayFull`
   的标题文字占图标以外的剩余宽度，保留 20vp 图标，兼容 150×150vp 与 160×160vp 容器；
   尺寸适配只涉及模板布局，不改变字段、可选项、模板选择或事件消费。
-- Action 图标必须与动作语义一致；`PillAction@1` 没有匹配素材时省略 `icon`，不得复用业务内容素材。
+- Action 图标必须与动作语义一致；`PillAction@1` 暂时禁止设置 `icon`，只展示文本；
+  `IconAction@1` 仍使用语义匹配的动作素材，不得复用业务内容素材。
