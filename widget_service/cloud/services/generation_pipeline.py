@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
+from app.logger import logger
 from custom.model_transport import ModelBackend
 from services.card_validation import (
     CompactDslValidationError,
@@ -20,6 +21,16 @@ from utils.trigger_mq import trigger_mq
 
 IssueStage = Literal["conversion", "validation"]
 IssueSeverity = Literal["error", "warning"]
+
+
+class GenerationOrigin(StrEnum):
+    """仅在当前请求中区分执行分支，不持久化或推断历史来源。"""
+
+    UNKNOWN = "unknown"
+    TEMPLATE = "template"
+    MODEL = "model"
+    MODEL_REPAIR = "model-repair"
+    JSX = "jsx"
 
 
 class DslProcessorKind(StrEnum):
@@ -64,6 +75,7 @@ class DslProcessingContext:
     design_profile_id: str | None = None
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
+    source_origin: GenerationOrigin = GenerationOrigin.UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -137,14 +149,19 @@ class DesignCompactProcessor:
             trigger_mq(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
-        try:
-            validation_result = validate_compact_dsl(
-                source_dsl,
-                task_spec=context.task_spec,
-                card_spec=context.card_spec,
-            )
-        except CompactDslValidationError as exc:
-            return self._validation_failure(source_dsl, exc.errors)
+        validation_warnings: tuple[str, ...] = ()
+        if context.source_origin == GenerationOrigin.TEMPLATE:
+            logger.info("compact_validation_skipped reason=trusted_template")
+        else:
+            try:
+                validation_result = validate_compact_dsl(
+                    source_dsl,
+                    task_spec=context.task_spec,
+                    card_spec=context.card_spec,
+                )
+                validation_warnings = validation_result.warnings
+            except CompactDslValidationError as exc:
+                return self._validation_failure(source_dsl, exc.errors)
 
         try:
             design_profile_id = context.design_profile_id or "design-compact-dsl"
@@ -169,7 +186,7 @@ class DesignCompactProcessor:
                     message=message,
                     severity="warning",
                 )
-                for message in validation_result.warnings
+                for message in validation_warnings
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,

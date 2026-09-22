@@ -6,6 +6,7 @@ import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 
 from anyio import to_thread
 
@@ -40,6 +41,7 @@ from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessingResult,
     DslProcessorKind,
+    GenerationOrigin,
     GenerationRoutePolicy,
     QualityIssue,
     get_dsl_processor,
@@ -590,11 +592,11 @@ class WidgetGenerationService:
             event_candidates=effective_events,
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
-        source_generated_by_jsx = False
+        source_origin = GenerationOrigin.UNKNOWN
 
         async def generate_source_dsl() -> str:
-            nonlocal source_generated_by_jsx
-            source_generated_by_jsx = False
+            nonlocal source_origin
+            source_origin = GenerationOrigin.UNKNOWN
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
@@ -608,10 +610,16 @@ class WidgetGenerationService:
                         processing_context.card_spec,
                         tuple(effective_bindings),
                     )
+                    generated_dsl = require_generated_dsl(result)
+                    source_origin = GenerationOrigin.TEMPLATE
                     trigger_mq(body={"templateProposal": 1})
-                    return require_generated_dsl(result)
+                    return generated_dsl
                 except Exception as exc:
-                    fallback = "jsx" if try_jsx else ("original_protocol_flow" if need_fallback else "none")
+                    fallback = (
+                        "jsx"
+                        if try_jsx
+                        else ("original_protocol_flow" if need_fallback else "none")
+                    )
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
@@ -634,7 +642,7 @@ class WidgetGenerationService:
                         for msg in bridge_result.a2ui_messages
                     )
                     generated_dsl = require_generated_dsl(a2ui_jsonl)
-                    source_generated_by_jsx = True
+                    source_origin = GenerationOrigin.JSX
                     logger.info(
                         f"{_MODULE} jsx_generation_completed operation={policy.operation} "
                         f"component={bridge_result.component_name} "
@@ -660,6 +668,7 @@ class WidgetGenerationService:
             result = await self._resolve_model_result(
                 model_client.generate(prompt, model_protocol_profile)
             )
+            source_origin = GenerationOrigin.MODEL
             return require_generated_dsl(result)
 
         async def repair_source_dsl(
@@ -668,7 +677,7 @@ class WidgetGenerationService:
         ) -> str:
             from services.prompt_builder import PromptBuilder
 
-            nonlocal model_call_phase, quality_repair_attempt_count
+            nonlocal model_call_phase, quality_repair_attempt_count, source_origin
             quality_repair_attempt_count += 1
             quality_error_payloads = [
                 item.to_prompt_payload() for item in latest_processing_result.errors
@@ -694,6 +703,7 @@ class WidgetGenerationService:
                 f"quality_error_count={len(quality_errors)}"
             )
             model_call_phase = "repair"
+            source_origin = GenerationOrigin.MODEL_REPAIR
             result = await self._resolve_model_result(
                 model_client.generate_repair(
                     repair_prompt,
@@ -705,7 +715,7 @@ class WidgetGenerationService:
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
             # JSX 路径：agent 内部已有编译+验证+重试，跳过工程 processor 和 validator
-            if source_generated_by_jsx:
+            if source_origin == GenerationOrigin.JSX:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=jsx_internal_validation"
@@ -714,7 +724,8 @@ class WidgetGenerationService:
                     source_dsl=source_dsl, standard_dsl=source_dsl,
                 )
                 return []
-            processing_result = processor.process(source_dsl, processing_context)
+            current_context = replace(processing_context, source_origin=source_origin)
+            processing_result = processor.process(source_dsl, current_context)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -893,6 +904,7 @@ class WidgetGenerationService:
 
         logger.info(
             f"{_MODULE} a2ui_generation_completed retry_count={total_retry_count} "
+            f"source_origin={source_origin.value} "
             f"model_failure_retry_count={model_failure_retry_count} "
             "model_failure_retry_enabled="
             f"{json_for_log(settings.enable_model_failure_retry)} "
