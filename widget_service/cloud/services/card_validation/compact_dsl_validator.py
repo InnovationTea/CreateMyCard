@@ -349,14 +349,16 @@ def _collect_hero_value_errors(
     if not isinstance(data_model_schema, dict):
         return
 
-    _collect_adjacent_display_unit_errors(
-        components,
-        components_by_id,
-        data_model_schema,
-        errors,
-        enforce_all_numeric_sizes=task_spec.get("size") == "2x4",
-    )
-    if task_spec.get("size") == "2x4":
+    size = task_spec.get("size")
+    if size in {"2x2", "2x4"}:
+        _collect_adjacent_display_unit_errors(
+            components,
+            components_by_id,
+            data_model_schema,
+            errors,
+            enforce_all_numeric_sizes=size == "2x4",
+        )
+    if size == "2x4":
         _collect_mixed_font_row_alignment_errors(
             components,
             components_by_id,
@@ -775,10 +777,7 @@ def _collect_adjacent_display_unit_errors(
                     )
                 if not is_known_unit:
                     continue
-                is_large_numeric = (
-                    value_font_size is not None and value_font_size >= 30
-                )
-                if not enforce_all_numeric_sizes and not is_large_numeric:
+                if not enforce_all_numeric_sizes:
                     continue
                 padding = suffix.props.get("padding")
                 unit_bottom_padding = None
@@ -810,13 +809,8 @@ def _collect_adjacent_display_unit_errors(
                     and has_valid_height
                 )
                 if not has_valid_alignment:
-                    value_kind = (
-                        "numeric value"
-                        if enforce_all_numeric_sizes
-                        else "large numeric value"
-                    )
                     errors.append(
-                        f"component {component.component_id}: {value_kind} "
+                        f"component {component.component_id}: numeric value "
                         f"and unit {suffix.component_id} must use Row alignItems "
                         '"bottom"; the unit must use padding.bottom '
                         f"{expected_bottom_padding}, half the font-size difference, "
