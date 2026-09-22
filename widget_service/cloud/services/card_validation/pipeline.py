@@ -73,15 +73,15 @@ def run_pipeline(
     *,
     stop_on_stage_error: bool = False,
 ) -> None:
+    if context.has_fusion_template_root():
+        _LOGGER.info("card_validation_skipped reason=template_root entry=run_pipeline")
+        return
     validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
     for current_stage in selected_stages(stage):
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
             return
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
             return
-        if current_stage == "quality" and context.has_fusion_template_root():
-            _LOGGER.info("quality_validation_skipped reason=template_root")
-            continue
         for validator in validators:
             if validator.stage == current_stage:
                 validator.validate(context, rules, reporter)
