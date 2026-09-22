@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from .base import BaseValidator, expression_references
+from .context import ValidationContext
 from .display_unit_rules import (
     collect_bound_display_unit_rules,
     matching_unit_literal_count,
     static_text_contains_rule,
+    static_text_exactly_matches_rule,
     unit_rule_for_path,
 )
 
@@ -17,7 +19,7 @@ class DisplayUnitValidator(BaseValidator):
     stage = "semantic"
     name = "display_unit"
 
-    def validate(self, context, rules, reporter) -> None:
+    def validate(self, context: ValidationContext, rules, reporter) -> None:
         del rules
         unit_rules = collect_bound_display_unit_rules(
             context.cardspec,
@@ -25,6 +27,7 @@ class DisplayUnitValidator(BaseValidator):
         )
         if not unit_rules:
             return
+        skip_missing_unit = context.has_fusion_template_root()
         parents_by_child = self._parents_by_child(context.components)
         for component in context.components:
             if component.get("component") != "Text":
@@ -63,7 +66,7 @@ class DisplayUnitValidator(BaseValidator):
                     message="动态字段已自带展示单位，不得再次拼接或另行展示相同单位。",
                     fix_hint="删除表达式或相邻 Text 中重复追加的单位，仅保留字段自身内容。",
                 )
-            elif not rule.unit_included and visible_unit_count == 0:
+            elif not rule.unit_included and visible_unit_count == 0 and not skip_missing_unit:
                 reporter.add(
                     "error",
                     "DISPLAY_UNIT_MISSING",
@@ -114,6 +117,12 @@ class DisplayUnitValidator(BaseValidator):
     ) -> int:
         sibling_ids: set[str] = set()
         for parent in parents_by_child.get(component_id, []):
+            parent_kind = parent.get("component")
+            if parent_kind not in {"Row", "Column"}:
+                continue
+            matches_unit = static_text_exactly_matches_rule
+            if parent_kind == "Row":
+                matches_unit = static_text_contains_rule
             children = parent.get("children")
             if not isinstance(children, list):
                 continue
@@ -123,10 +132,15 @@ class DisplayUnitValidator(BaseValidator):
                 child_id = children[child_index]
                 if not isinstance(child_id, str):
                     break
-                sibling_content = components_by_id.get(child_id, {}).get("content")
+                sibling = components_by_id.get(child_id)
+                if not isinstance(sibling, dict) or sibling.get("component") != "Text":
+                    break
+                sibling_content = sibling.get("content")
+                if not isinstance(sibling_content, str):
+                    break
                 if expression_references(sibling_content):
                     break
-                if not static_text_contains_rule(sibling_content, rule):
+                if not matches_unit(sibling_content, rule):
                     break
                 sibling_ids.add(child_id)
         return len(sibling_ids)

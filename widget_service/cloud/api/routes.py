@@ -45,6 +45,7 @@ from services.compact_dsl_argument_repair import (
     has_explicit_stringified_arguments,
     recover_compact_dsl_content,
 )
+from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.widget_directive import (
     WidgetDirectiveState,
     build_widget_directive_response,
@@ -828,6 +829,7 @@ async def _serve_operation_websocket(
             card_id = str(uuid.uuid4())
             directive_size = DEFAULT_WIDGET_SIZE
             widget_directive_started = False
+            widget_directive_start_attempted = False
             try:
                 raw_request_body = await websocket.receive_text()
                 payload = json.loads(raw_request_body)
@@ -966,7 +968,12 @@ async def _serve_operation_websocket(
                         current_card_id=card_id,
                     ) -> None:
                         nonlocal directive_size, widget_directive_started
+                        nonlocal widget_directive_start_attempted
                         directive_size = resolved_size
+                        if operation == COMPACT_DSL_OPERATION and widget_directive_start_attempted:
+                            return
+                        # 发送失败也不重复发送，避免接口重试产生重复开始指令。
+                        widget_directive_start_attempted = True
                         command_enabled = _widget_directive_commands_enabled()
                         command_sent = await _send_widget_directive_command(
                             websocket,
@@ -981,7 +988,19 @@ async def _serve_operation_websocket(
                         if command_enabled and command_sent:
                             widget_directive_started = True
 
-                    result = await handler(service, request, send_model_start_command)
+                    if operation == COMPACT_DSL_OPERATION:
+                        settings = get_settings()
+                        result = await run_compact_dsl_with_retry(
+                            lambda attempt_request: handler(
+                                service, attempt_request, send_model_start_command
+                            ),
+                            request,
+                            enabled=settings.enable_compact_dsl_interface_retry,
+                            retry_count=settings.compact_dsl_interface_retry_count,
+                            request_id=request_id,
+                        )
+                    else:
+                        result = await handler(service, request, send_model_start_command)
                 if content_repaired:
                     compact_dsl_argument_issue_tracker.reset(request_id)
                 result_data = result.model_dump(mode="json", exclude_none=True)

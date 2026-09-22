@@ -166,33 +166,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         }
 
-    def test_expands_only_current_prompt_design_aliases(self) -> None:
-        normalized = normalize_compact_dsl_design_tokens(self.compact_dsl)
-        rows = [json.loads(line) for line in normalized.splitlines()]
-        components = {}
-        for row in rows:
-            if len(row) >= 3:
-                components[row[0]] = row
-
-        self.assertEqual(components["root"][2]["padding"], 8)
-        self.assertEqual(components["title"][2]["fontSize"], 14)
-        self.assertEqual(components["title"][2]["fontWeight"], 500)
-        self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
-        self.assertNotIn("design", components["title"][2])
-        self.assertEqual(components["action"][2]["height"], 36)
-        self.assertEqual(components["action"][2]["borderRadius"], 20)
-        self.assertEqual(
-            components["action"][2]["padding"],
-            {"left": 8, "top": 0, "right": 8, "bottom": 0},
-        )
-        self.assertEqual(components["action"][2]["minFontSize"], 12)
-        self.assertEqual(components["action"][2]["maxFontSize"], 14)
-        self.assertEqual(components["action"][2]["fontWeight"], 500)
-        self.assertEqual(
-            components["action"][2]["backgroundColor"],
-            "#190A59F7",
-        )
-
     def test_expands_action_icon_round_design(self) -> None:
         compact_dsl = _serialize(
             [
@@ -976,7 +949,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             CompactDslValidationError,
-            "vertical layout requires at least 164vp within 136vp",
+            "vertical layout requires at least 164vp within 126vp",
         ):
             validate_compact_dsl(
                 compact_dsl,
@@ -1025,7 +998,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         message = str(raised.exception)
         self.assertIn(
-            "vertical layout requires at least 156vp within 136vp",
+            "vertical layout requires at least 156vp within 126vp",
             message,
         )
 
@@ -1073,13 +1046,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {
                         "width": "matchParent",
                         "height": "matchParent",
-                        "padding": 12,
+                        "padding": 8,
                         "itemMargin": 8,
                     },
                     ["zone_top", "zone_bottom"],
                 ],
-                ["zone_top", "Text", {"content": "上区", "height": 64}],
-                ["zone_bottom", "Text", {"content": "下区", "height": 64}],
+                ["zone_top", "Text", {"content": "上区", "height": 63}],
+                ["zone_bottom", "Text", {"content": "下区", "height": 63}],
             ]
         )
 
@@ -1202,6 +1175,100 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 },
                 card_spec={"dataBindings": []},
             )
+
+    def test_rejects_quoted_json_pointer_mixed_with_valid_binding(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["reminder"],
+                ],
+                [
+                    "reminder",
+                    "Text",
+                    {
+                        "content": (
+                            "{{ '/data/calendar/events/0/dtStart' + ' · ' + "
+                            "${/data/calendar/events/0/remindTime/0} }}"
+                        )
+                    },
+                ],
+                ["/data/calendar/events/0/dtStart", "14:00"],
+                ["/data/calendar/events/0/remindTime/0", "15"],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "calendar": {
+                        "events": [
+                            {
+                                "dtStart": {"type": "string"},
+                                "remindTime": [{"type": "string"}],
+                            }
+                        ]
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "expression wraps quoted JSON Pointer",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec=task_spec,
+                card_spec={"dataBindings": []},
+            )
+
+    def test_allows_slash_as_expression_display_separator(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["ratio"],
+                ],
+                [
+                    "ratio",
+                    "Text",
+                    {
+                        "content": (
+                            "{{ ${/data/metrics/used} + '/' + "
+                            "${/data/metrics/total} }}"
+                        )
+                    },
+                ],
+                ["/data/metrics/used", 2],
+                ["/data/metrics/total", 5],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "metrics": {
+                        "used": {"type": "integer"},
+                        "total": {"type": "integer"},
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"dataBindings": []},
+        )
+
+        self.assertEqual(result.warnings, ())
 
     def test_rejects_compact_data_path_missing_from_task_spec(self) -> None:
         compact_dsl = _serialize(

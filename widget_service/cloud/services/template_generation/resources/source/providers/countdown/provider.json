@@ -54,14 +54,11 @@
       "supportedEventIds": ["event.open.clock.alarm"],
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
-      "description": "出行倒计时 Support，在双业务布局中展示出发主题和剩余天数，可选倒计时语义的计时图标，可在胶囊内部绑定闹钟跳转。",
+      "description": "出行倒计时 Support，在双业务布局中展示出发主题和剩余天数，可在胶囊内部绑定闹钟跳转。",
       "entry": "templates/countdown-overview.cardtpl",
       "primaryData": ["/countdownDays"],
       "secondaryData": [],
-      "optionalData": [],
-      "assetParameterSemanticTags": {
-        "timerIcon": ["countdown"]
-      }
+      "optionalData": []
     }
   ],
   "compatibility": {

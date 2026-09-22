@@ -432,7 +432,9 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 
 融球树在模板 CardPlan/Tersel 阶段已经由标准组件组成：`Stack` 承载定位层，三球和玻璃层使用无 children
 约束的 `Divider` 视觉叶节点，并在进入 A2UI-Compact 前完成。玻璃层使用 5% 白色和
-`backdropBlur: {"radius": 120}`。融球模板路径在 `template_root` 与 `root_1` 之间注入 ID 为
+`backdropBlur: {"radius": 210}`。球体配色由各 Theme 的 `fusionBallStyle` 定义，具体色值见
+[主题说明](../resources/source/themes/README.md)；球体尺寸和定位保持不变。融球模板路径在
+`template_root` 与 `root_1` 之间注入 ID 为
 `__genui_render_component__template_root` 的标准 Stack，以启用端侧内容层防溢出能力；`root_1` 保持普通布局
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
 
@@ -510,10 +512,10 @@ PillAction Props 包含 `actionId`、`label` 和可选 `icon`，IconAction Props
 
 ## 当前迁移范围
 
-天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-106 个无 Variant 的业务 UI 模板，其中 18 个是 Support；当前形成 11 个业务组，且每个业务组至少有一个
+天气、日历、手机电量、耳机、健康运动、倒计时和系统内存当前共有
+108 个无 Variant 的业务 UI 模板，其中 21 个是 Support；当前形成 10 个业务组，且每个业务组至少有一个
 Support。Layout Provider 另提供 7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，
-运行时 Registry 共 115 个模板。
+运行时 Registry 共 117 个模板。应用使用时长能力已下线，对应模板不再进入运行目录。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

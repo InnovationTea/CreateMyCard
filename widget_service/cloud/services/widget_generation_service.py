@@ -6,6 +6,8 @@ import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
+from functools import partial
 
 from anyio import to_thread
 
@@ -33,6 +35,7 @@ from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, RepairArtifactRecord
+from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
@@ -277,6 +280,7 @@ class WidgetGenerationService:
         latency_by_stage: dict[str, float] = {}
         settings = get_settings()
         request_body = self._request_body_for_artifact(request)
+        asset_mapping = dict(settings.asset_src_url_mapping)
         generation_mode = (
             "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
         )
@@ -306,6 +310,14 @@ class WidgetGenerationService:
                 source_load_result = await to_thread.run_sync(
                     SourceArtifactRepository().load,
                     request.sourceArtifactUrl or "",
+                )
+                source_load_result = await to_thread.run_sync(
+                    partial(
+                        SourceArtifactRepository.restore_asset_paths,
+                        restore_genui=not policy.stores_design_token,
+                    ),
+                    source_load_result,
+                    asset_mapping,
                 )
                 if policy.stores_design_token:
                     previous_design_token = self._require_source_design_token(
@@ -425,6 +437,7 @@ class WidgetGenerationService:
         effective_data_capabilities = list(preflight.effective_data_capabilities)
         effective_events = list(preflight.effective_events)
         asset_candidates = list(preflight.effective_assets)
+        asset_mapper = AssetUrlMapper(asset_mapping, {item.src for item in asset_candidates})
         removed = list(preflight.removed_capabilities)
         card_spec = preflight.card_spec
         task_spec = preflight.task_spec
@@ -532,6 +545,7 @@ class WidgetGenerationService:
                     design_system_prompt,
                     policy.source_format,
                     previous_design_token=previous_design_token,
+                    extrainfo=request.extrainfo,
                 )
             else:
                 prompt = PromptBuilder().build(
@@ -541,6 +555,7 @@ class WidgetGenerationService:
                     previous_genui=(
                         source_load_result.artifact.genui if source_load_result else None
                     ),
+                    extrainfo=request.extrainfo,
                 )
             prompt_log_summary = build_prompt_log_summary(
                 prompt,
@@ -675,7 +690,8 @@ class WidgetGenerationService:
             nonlocal model_call_phase, quality_repair_attempt_count
             quality_repair_attempt_count += 1
             quality_error_payloads = [
-                item.to_prompt_payload() for item in latest_processing_result.errors
+                asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
+                for item in latest_processing_result.errors
             ]
             if len(quality_error_payloads) != len(quality_errors):
                 raise RuntimeError("repair quality issue state is inconsistent")
@@ -708,17 +724,34 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
-            # JSX 路径：agent 内部已有编译+验证+重试，跳过工程 processor 和 validator
+            # JSX 路径：agent 内部已有编译、验证和重试；仅映射交付资源，跳过工程质量流程。
             if source_generated_by_jsx:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=jsx_internal_validation"
                 )
                 latest_processing_result = DslProcessingResult(
-                    source_dsl=source_dsl, standard_dsl=source_dsl,
+                    source_dsl=source_dsl,
+                    standard_dsl=asset_mapper.rewrite_standard(source_dsl),
                 )
                 return []
             processing_result = processor.process(source_dsl, processing_context)
+            if not processing_result.errors:
+                try:
+                    processing_result = replace(
+                        processing_result,
+                        standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
+                    )
+                except ValueError as exc:
+                    processing_result = replace(
+                        processing_result,
+                        standard_dsl="",
+                        issues=processing_result.issues + (
+                            QualityIssue(
+                                stage="conversion", code="ASSET_MAPPING_FAILED", message=str(exc),
+                            ),
+                        ),
+                    )
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -778,7 +811,7 @@ class WidgetGenerationService:
                     source_load_result.artifact_digest if source_load_result else None
                 ),
             )
-            artifact_validator = ArtifactValidator()
+            artifact_validator = ArtifactValidator(asset_mapper.mapping)
             validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})

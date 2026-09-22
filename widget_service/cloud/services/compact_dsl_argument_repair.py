@@ -36,6 +36,7 @@ _PRESERVED_OUTER_KEYS = frozenset({"bundleName", "odid", "romVersion", "uid"})
 _BUSINESS_KEYS = frozenset(
     {
         "userQuery",
+        "extrainfo",
         "sourceArtifactUrl",
         "size",
         "title",
@@ -50,6 +51,7 @@ _TARGET_STRUCTURE = {
     "bundleName": "string, optional",
     "romVersion": "string, optional",
     "userQuery": "non-empty string, required",
+    "extrainfo": ["non-empty string, optional"],
     "sourceArtifactUrl": "non-empty string, edit only, optional",
     "size": "2x2 or 2x4, optional",
     "title": "non-empty string, required when sourceArtifactUrl is absent",
@@ -651,6 +653,13 @@ def _build_minimal_content(
     )
     user_query = user_query or "根据用户请求生成卡片"
     minimal: dict[str, Any] = {"userQuery": user_query}
+    extrainfo = _extract_json_value(raw_arguments, "extrainfo")
+    if isinstance(extrainfo, list) and all(
+        isinstance(item, str) and item.strip() for item in extrainfo
+    ):
+        normalized_extrainfo = [item.strip() for item in extrainfo]
+        if normalized_extrainfo:
+            minimal["extrainfo"] = normalized_extrainfo
     if isinstance(source_url, str) and source_url.strip():
         minimal["sourceArtifactUrl"] = source_url
         minimal["options"] = {"allowDegradation": True}

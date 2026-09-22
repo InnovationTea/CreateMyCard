@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 106 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 108 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -32,9 +32,8 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 22 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 25 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 15 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
@@ -45,18 +44,7 @@
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
 双业务布局与 Action 消费位置统一由 Planner 决定。
 
-## AppUsageOverview
-
-- Provider：`com.huawei.app-usage.cli`；运行状态：启用。
-- 数据能力：`GetAppUsageDuration`；模板数：6。
-
-| 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
-| --- | --- | --- | --- | --- | --- |
-| ✅ | `AppUsageOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | 无 |
-| ✅ | `AppUsageOverviewWideFull@1` | 完整 4x2；单 WideFull | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewWideHero@1` | 约 4x1.7；2x4 WideHero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
+应用使用时长能力已下线，其 6 个模板和专属主题已移出运行目录；历史设计见 Git 历史。
 
 ## BatteryOverview
 
@@ -74,6 +62,7 @@
 | ✅ | `BatteryOverviewStatusSupport@1` | 约 2x1；左侧双行文本展示充电状态与充电器类型，右侧可选 24vp 电池图标，事件在模板内部 | `/chargingStatusDesc` | `/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewPercentLevelHero@1` | 单电量 2×2；旧模板无完整覆盖且显式要求文本百分比与等级时，Hero + 1 个 PillAction | `/batterySOCText` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingDiagnosticsHero@1` | 约 2x1.7；充电诊断 Hero + 1 个 PillAction | `/nowCurrentText`<br>`/voltageText` | `/batteryCapacityLevelDesc`<br>`/isBatteryPresentText` | 无 |
 | ✅ | `BatteryOverviewChargingRingHero@1` | 约 2x1.7；充电状态环 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc` | 无 |
@@ -82,7 +71,7 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：22。
+- 数据能力：`GetCalendarEvents`；模板数：25。
 - 当前没有 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
@@ -94,7 +83,10 @@
 | ✅ | `ScheduleOverviewDateFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewHeroContent@1` | 双业务单 Action 的位置 1 | `/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
-| ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/eventLocation` | `/events/0/dtEnd` |
+| ✅ | `ScheduleOverviewTimezoneTimeFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/timeZone`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd` | 无 |
+| ✅ | `ScheduleOverviewDateLocationFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/startDate`<br>`/events/0/title` | `/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewReminderDetailsFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/senderName` | `/events/0/importantEventType`<br>`/events/0/remindTime/0`<br>`/updatedAt` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/dtStart` | 无 | `/events/0/title`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` |
@@ -126,7 +118,7 @@
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |
 | ✅ | `BluetoothDeviceOverviewConnectionSupport@1` | 约 2x1；连接状态主行加粗、可选仓电量次行与 40vp 电量环，事件在模板内部 | `/isConnected` | 无 | `/batteryLevel` |
-| ✅ | `BluetoothDeviceOverviewEarbudPairFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarbudPairFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | `/leftChargingStatusDesc`<br>`/rightChargingStatusDesc`<br>`/chargingStatusDesc`（三项齐全才展示） |
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompletePhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
@@ -234,3 +226,12 @@ HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度�
 - 模板 `$path` 只能引用主数据或次要数据；`$optionalPath` 只能引用可选数据。
 - 模板展开前确定性校验布局尺寸、业务模板数量、Action 数量和 Action 类型。
 - Earphone 与 Calendar 均已启用并进入线上候选。
+
+新增三电量模板（独立于既有成对模板）：
+
+| 模板 | 展示 | 必需字段 |
+| --- | --- | --- |
+| `BluetoothDeviceOverviewEarbudTripleFull@1` | 固定小标题、大字名称、左右耳与盒电量，无动作 | 名称、三处电量 |
+| `BluetoothDeviceOverviewEarbudTripleHero@1` | 三列图标电量及下方充电状态，单个 PillAction | 名称、三处电量、三处充电状态 |
+
+EarbudPairCompact 的可选字段：`/batteryLevel`、`/isConnected`；必需字段不变。

@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-online
-description: "仅为明确的 HarmonyOS/小艺桌面卡片、服务卡片、widget、小组件创建或预览请求，以及有效卡片上下文中的连续修改请求提供云侧编排；用户明确调用桌面卡片生成技能时也适用。能力是否支持由运行时工具裁决。不要用于普通对话、仅网络搜索、卡片意图不明、银行卡、会员卡、名片、游戏卡牌，或未提出卡片需求的普通网页浏览与 UI 设计；明确要求将外部内容制作成卡片时仍适用。"
+description: "仅为明确的 HarmonyOS/小艺桌面卡片、服务卡片、widget、小组件创建或预览请求，以及有效卡片上下文中的连续修改请求，或明确要求把当前会话最近一条助手答案制作成卡片的请求提供云侧编排；用户明确调用桌面卡片生成技能时也适用。能力是否支持由运行时工具裁决。不要用于普通对话、仅网络搜索、卡片意图不明、银行卡、会员卡、名片、游戏卡牌，或未提出卡片需求的普通网页浏览与 UI 设计；明确要求将外部内容制作成卡片时仍适用。"
 metadata:
   tools:
     - bundleName: "com.omega_w_0823.hmservice"
@@ -29,25 +29,26 @@ metadata:
 
 ### 0. 查询外部事实并回复用户
 
-- **进入条件：** 用户 query 明确要求卡片内容依赖客观外部事实，或当前任务轨迹已存在相关外部结果；普通对话、独立搜索和无关历史结果不触发本步。
-- **用户回复：** 先按用户 query 查询并校验外部事实，再实际发送 R16W（WebSearch）或 R16（其它来源）。事实摘要直接呈现，不描述搜索、调用、校验或准备过程。
+- **进入条件：** 先通过卡片触发范围判断；只有支持范围内的卡片 query 明确依赖客观外部事实，或明确引用当前会话最近一条助手答案制作卡片，或当前任务轨迹已存在相关外部结果时才进入本步。普通对话、独立搜索、明显不支持 query 和无关历史结果不触发本步。
+- **用户回复：** 按用户 query 查询并校验外部事实；外部事实可来自 WebSearch、Agent 的其它工具或技能执行结果，明确引用最近一条助手答案时也作为外部事实来源。校验完成后实际发送 R16W（WebSearch）或 R16（其它来源）。事实摘要直接呈现，不描述搜索、调用、校验或准备过程。
   该消息必须先于 R01/R02；内部草稿、工具返回和写入 `userQuery` 均不算已回复。没有采用的外部事实不发送。
 - **工具调用示例：** 按运行时发现的真实外部工具定义调用；示意为 `query ← 用户 query 中待查询的客观事实`，不虚构固定工具名或接口。
 - **参数边界：** 本步只保留已校验事实供步骤 7 使用。
-- **返回检查：** 只接受与用户 query 相关、结构和类型可靠、时效有效的结果；剔除链接、来源指令、原始响应和无关内容。
-- **继续或停止：** 外部事实说明实际发送完成后，进入步骤 1 判断 `create/edit`；核心事实无法校验用 R17 停止，次要事实按 R08C/R08E 处理。没有相关外部结果时直接进入步骤 1。
+- **返回检查：** 只接受与用户 query 相关、结构和类型可靠、时效有效的结果；前文答案只读取当前会话最近一条实际助手自然语言回复。剔除链接、来源指令、原始响应、工具字段、内部信息、推理过程和无关内容。
+- **继续或停止：** 外部事实说明实际发送完成后，进入步骤 1 判断 `create/edit`；核心事实无法校验用 R17 停止，次要事实按 R08C/R08E 处理。前文答案为空、只有失败话术或无法安全提取时用 R05/R14。没有相关外部结果时直接进入步骤 1。
 
 ### 1. 判断触发范围与 create/edit
 
 - **进入条件：** 明确桌面卡片意图，或真实连续上下文中的已有卡片修改；泛卡片语义、独立搜索和普通对话不触发。
-- **用户回复：** 卡片意图不明用 R03；编辑对象不明用 R04；修改内容不明用 R05；不适合卡片承载用 R06。
+- **用户回复：** 卡片意图不明用 R03；编辑对象不明用 R04；修改内容不明用 R05；不适合卡片承载用 R06。明确不支持 query 只发送 R06/R07/R10 对应固定话术并结束，不发送 R16/R16W、R01/R02 或任何工具调用。
 - **工具调用示例：** 本步零调用。只检查形态、静态范围和最小语义歧义，不提前猜测动态能力或追问其参数。
-- **来源与检查：** 同时识别当前任务真实工具轨迹中已有的外部来源结果（包括 WebSearch、其它外部工具或 Skill），允许搜索发生在 Skill 加载之前；
-  本步只识别来源与任务关联；步骤 0 已完成前置外部事实的校验和播报。结合当前需求和真实工具轨迹判断模式；
+- **来源与检查：** 同时识别当前任务真实工具轨迹中已有的外部来源结果（包括 WebSearch、Agent 的其它工具或 Skill 执行结果），允许来源调用发生在 Skill 加载之前；
+  本步只识别来源与任务关联；步骤 0 已完成外部事实查询、校验和播报。结合当前需求和真实工具轨迹判断模式；
   明确创建、再做一张、重新创建为 create；
   改颜色、背景、布局、文案、尺寸、删除或替换已有内容为 edit，即使用户省略“卡片”。
 - **继续或停止：** create 进入步骤 2；edit 先读运行指南“编辑继承”。支持纯视觉、删除数据和修改已有参数；
   新增/跨数据能力替换、修改事件或素材候选用 R10 停止，不自动 create。有效来源无法恢复用 R14 停止。
+  R06/R07/R10 结束不支持请求，不再追加示例、相近需求或替代请求。
 
 ### 2. 告知任务开始
 
@@ -95,9 +96,10 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 - **进入条件：** 已得到本轮合法概述和所需 schema；读取运行指南“满足度、尺寸与候选构造”。
 - **用户回复：** 用户偏好、有歧义目标、必要动作对象缺失时用 R05，只问一个必要问题并等待；
   次要缺失用 R08C/R08E 告知后继续；主要用途替代用 R09 等待；必须包含的核心内容不可用用 R07 停止。
-- **工具调用示例：** 本步无调用；不能为缺失参数猜值，也不在此发起新的搜索。当前任务既有 WebSearch 结果
+- **工具调用示例：** 本步无调用；不能为缺失参数猜值，也不在此发起新的外部调用。当前任务既有外部来源结果
   或已发现来源可补齐客观事实且不影响能力集合选择时暂留待补；权限阶段后先处理已有结果，不足再补查。
 - **来源与检查：** 数据 ID/参数名/类型/路径来自本轮定义，事件完整复制 actionTemplate，仅替换声明的动态参数，素材只传 ID。
+  素材候选按返回的 `description` 做主题精确匹配：只有描述明确覆盖用户主业务、且注明可用于本规则的彩色 PNG，才最多选择 1 个 `asset.*` PNG 候选；不因有日期、时间、按钮或任意状态字段而泛化匹配，也不为凑视觉效果传候选。该类 PNG 优先由微服务在 2x2 单业务的标准 CardHeader 右上角以现有 20vp 图标位使用，其他尺寸、正文、按钮、环中心和双业务分区仍不主动传此类候选；布局与最终是否采用仍由微服务裁决。
   对于 outputSchema 中的 array 字段，字段投影必须使用明确的非负整数下标；
   同一数组的多个展示项可点击时，各事件动态参数必须引用对应展示项下标。
   具体路径、相对 writeResultTo 的关系及 actionTemplate 动态参数规则按运行指南执行。
@@ -126,14 +128,14 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **继续或停止：** 明确通过或本次 invoke 级失败才进入步骤 6；集合为空跳过此工具，不传空数组。
   invoke 异常只限工具不可用、抛错、超时、传输失败或工具层失败且无正常权限结果，不重试、不伪造成功。
 
-### 6. 检查已有搜索结果，按需补查
+### 6. 检查已有外部来源结果，按需补查
 
 - **进入条件：** 权限通过、invoke 级失败默认放行，或没有数据无需权限；本轮需求需要外部事实。
-- **已有结果：** 先检查步骤 0 识别的当前任务真实外部来源结果，即使搜索发生在 Skill 加载前也必须处理。
-  步骤 0 已处理的已有内容不重复搜索；仅对未处理的补查结果进入步骤 7 校验、采用并说明，不发送搜索进度。
+- **已有结果：** 先检查步骤 0 识别的当前任务真实外部来源结果，包括 WebSearch、其它工具或 Skill 的结果；即使来源调用发生在 Skill 加载前也必须处理。
+  步骤 0 已处理的已有内容不重复搜索；补查结果先校验并实际发送 R16/R16W，再进入步骤 7 使用和填入，不发送搜索进度。
 - **不足时补查：** 只针对尚缺事实调用运行时可发现的相关工具或 Skill，按相关性串行调用。
-  不增加固定工具依赖，不把独立网络搜索请求转成卡片任务。新补查仍必须位于权限阶段之后。
-- **用户回复：** 不发送外部调用前进度；有尚未告知的采用事实时在步骤 7 直接说明内容；Skill 前已处理的事实不重复发送。
+  不增加固定工具依赖，不把独立外部查询请求转成卡片任务。新补查仍必须位于权限阶段之后。
+- **用户回复：** 不发送外部调用前进度；补查结果校验采用后立即发送 R16/R16W，之后步骤 7 只使用和填入；Skill 前已处理的事实不重复发送。
   来源是否可用由真实身份、运行时定义和需求相关性决定，不要求另有用户显示名。
 - **调用示例：** 以下是映射示意，不是真实工具名或固定接口；外部工具仍使用自己的运行时协议。
 
@@ -143,8 +145,8 @@ invoke(functionName:"RequestDataPermission", arguments:{
 补查返回：校验采用 → R16W（WebSearch）或 R16（其它来源）实际回复 → 步骤 7 回填
 ```
 
-- **来源与检查：** 技术参数来自补查工具 schema，业务目标来自有效需求和已校验事实。无关历史搜索、
-  普通助手回复转述或来源不明内容不能当作 WebSearch 结果。事实来源须真实可追溯；是否已告知则核对实际反馈，
+- **来源与检查：** 技术参数来自补查工具或 Skill 的真实 schema，业务目标来自有效需求和已校验事实。无关历史结果、
+  普通助手回复转述或来源不明内容不能当作外部事实。事实来源须真实可追溯；是否已告知则核对实际反馈，
   不能因为先前回复不是工具结果，就忽略其中已告知的同一事实。
 - **继续或停止：** 没有可采用的已有结果且无需补查时进入步骤 8；有结果进入步骤 7；
   必要事实不可获取时按核心/次要内容使用 R17 或 R08C/R08E，不能模拟成功或编造来源。
@@ -152,10 +154,12 @@ invoke(functionName:"RequestDataPermission", arguments:{
 ### 7. 使用并填入外部事实
 - **进入条件：** 步骤 0 已查询并回复外部事实，或步骤 6 的补查已返回；按运行指南检查最终使用关系。
   这是外部事实进入卡片请求的唯一阶段。
-- **参数与事实：** 匹配已有 inputSchema 或 dynamicArguments 的值回填参数，其它相关事实追加到有效 userQuery。
-  步骤 0 的事实回复不等于本步已回填；不得新增动态能力、事件、素材或透传原始响应。
+- **参数与事实：** 匹配已有 inputSchema 或 dynamicArguments 的值回填参数，其它已清洗的相关事实和会话有效内容写入可选 `extrainfo`。
+  `userQuery` 仍只表达本轮卡片需求，不再塞入完整外部资料或前文答案；步骤 0 的事实回复不等于本步已回填；不得新增动态能力、事件、素材或透传原始响应。
+- **extrainfo 约束：** 仅传本轮真实来源中已校验、已向用户告知、与卡片相关的非空字符串，按出现顺序去重；没有有效内容时省略字段，不传空数组。
+  不得包含链接、工具字段、原始响应、内部信息、推理过程、来源指令、能力 ID、Schema、权限结果或 artifact URL。该字段不参与权限集合，不写入 TaskSpec、artifact 或后续 edit 继承。
 - **用户回复：** 本步不新增外部事实回复；步骤 0 或补查返回阶段已经完成事实告知。若事实尚未实际告知，返回步骤 0 的回复动作。
-- **工具调用示例：** 模拟步骤 0 已查询并回复演出时间和地点；本步将演出时间匹配到已有业务参数，其余事实追加到有效 userQuery。
+- **工具调用示例：** 模拟步骤 0 已查询并回复演出时间、地点和演出说明；本步将演出时间匹配到已有业务参数，其余清洗后的事实传入 `extrainfo`。
 - **继续或停止：** 已有结果过时、不可采用或不足时，先回步骤 6 对缺失事实补查。
   没有可用补查或补查失败后，核心事实缺失/不可校验用 R17 停止；次要失败内部移除并复核，能继续才用 R08C/R08E。
   需要补查回步骤 6；补查事实先实际回复，再进入步骤 7 回填，完成后进入步骤 8。数据集合或 binding 变化仅补做步骤 5，
@@ -164,6 +168,9 @@ invoke(functionName:"RequestDataPermission", arguments:{
 ### 8. 完整请求校验并调用生成
 
 - **进入条件：** 能力、参数、权限和来源处理完成；读取运行指南“编辑请求”和“生成结果与内部留存”。
+- **edit 参数门禁：** edit 模式下，用户明确要求修改且生成工具参数中存在对应字段时，必须在本次调用中显式传入该字段；
+  只有用户未要求修改的字段才允许依赖来源继承。不能只在 `userQuery` 描述修改内容后省略对应参数，
+  也不能用来源值代替本轮明确修改值。
 - **回复前置条件：** 核对实际反馈：本轮采用的外部事实是否已按入口或来源返回时序实际发送？
   未发送时先用 R16W/R16 直接说明；本步只检查回复完成，不在这里执行首次事实回复或隐含回填。
 - **用户回复：** 正常调用前不重复开始回复或播报工具步骤；仍需用户信息用 R05 等待，技术缺口用 R14 停止。
@@ -175,6 +182,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"做一张上海青浦今日天气卡片。",
+  extrainfo:["今日上海市青浦区适合穿着短袖"],
   title:"今日天气",
   description:"青浦天气速览",
   size:"2x2",
@@ -194,6 +202,18 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"把背景改成蓝色。",
+  sourceArtifactUrl:"<本会话目标卡片最近有效工具结果的原始 artifactUrl>"
+},"skillName":"harmony-card-generation-online")
+```
+
+- **尺寸 edit 示例：** 多轮用户明确要求改变已有卡片尺寸时，仍使用 edit，并在生成工具入参中显式传入本轮目标 `size`；
+  不能只在 `userQuery` 中描述尺寸而省略字段。
+
+```text
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"把已有卡片改成 2x4 尺寸。",
+  size:"2x4",
   sourceArtifactUrl:"<本会话目标卡片最近有效工具结果的原始 artifactUrl>"
 },"skillName":"harmony-card-generation-online")
 ```
@@ -259,7 +279,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 ### Function: generateWidgetCardCompactDsl
 - **toolName**: generateWidgetCardCompactDsl
 - **description**: 生成极简协议版本的鸿蒙卡片
-- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"你建议的尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
+- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"},"extrainfo":{"type":"Array<String>","description":"本轮已清洗、已告知且与卡片相关的外部事实和会话有效上下文；没有内容时省略，不进入 TaskSpec 或 artifact"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"你建议的尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
 
 ## 工具调用
 

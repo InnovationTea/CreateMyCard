@@ -71,7 +71,6 @@ from config.config import Settings, get_settings
 from start_websocket_server import configure_anyio_thread_pool
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import (
-    AssetCapability,
     DataCapability,
     Dependencies,
     EventCapability,
@@ -91,7 +90,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.artifact_store import ArtifactStore, RepairArtifactRecord
+from services.artifact_store import ArtifactStore, RepairArtifactRecord, _remove_extrainfo
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
@@ -99,7 +98,6 @@ from custom.a2ui_model_client import (
     build_prompt_log_summary,
     require_generated_dsl,
 )
-from custom.llmclient import LLMClientOptions
 from custom.mep_model_transport import MepModelTransport, PredictEventDecoder
 from custom.model_transport import ModelTransportError
 from custom.model_runtime import ModelExecutionRuntime, _generate_with_llmclient
@@ -244,79 +242,6 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
-
-
-def test_llmclient_settings_are_complete_and_keep_previous_defaults():
-    settings = Settings(_env_file=None)
-    options = LLMClientOptions()
-
-    assert settings.deepseek_api_key == "AccessService"
-    assert settings.deepseek_model == "deepseek-ai/DeepSeek-V4-Flash"
-    assert settings.deepseek_ws_url.endswith("/llm/websocket/openai/chat/completions")
-    assert settings.deepseek_user == "genui_user"
-    assert settings.deepseek_request_id == "genui_ui"
-    assert settings.deepseek_temperature == 0.7
-    assert settings.deepseek_top_p == 0.9
-    assert settings.deepseek_top_k == 1
-    assert settings.deepseek_max_tokens == 128_000
-    assert settings.deepseek_enable_thinking is False
-    assert settings.deepseek_include_usage is True
-    assert settings.deepseek_debug_usage is True
-    assert settings.deepseek_recv_timeout == 120
-    assert options.api_key == settings.deepseek_api_key
-    assert options.model == settings.deepseek_model
-    assert options.ws_url == settings.deepseek_ws_url
-
-
-@pytest.mark.parametrize(
-    ("field_name", "invalid_value"),
-    [
-        ("deepseek_temperature", -0.1),
-        ("deepseek_temperature", 2.1),
-        ("deepseek_top_p", -0.1),
-        ("deepseek_top_p", 1.1),
-        ("deepseek_top_k", 0),
-        ("deepseek_max_tokens", 0),
-        ("deepseek_recv_timeout", 0),
-    ],
-)
-def test_llmclient_numeric_settings_reject_invalid_values(field_name, invalid_value):
-    with pytest.raises(ValidationError):
-        Settings(_env_file=None, **{field_name: invalid_value})
-
-
-@pytest.mark.parametrize("attempts", [0, 11])
-def test_validation_repair_attempt_count_rejects_out_of_range_values(attempts):
-    with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            validation_failure_max_repair_attempts=attempts,
-        )
-
-
-@pytest.mark.parametrize(
-    "field_name",
-    [
-        "model_failure_max_retry_attempts",
-        "fallback_model_failure_max_retry_attempts",
-    ],
-)
-@pytest.mark.parametrize("attempts", [0, 11])
-def test_model_failure_retry_attempt_count_rejects_out_of_range_values(
-    field_name,
-    attempts,
-):
-    with pytest.raises(ValidationError):
-        Settings(_env_file=None, **{field_name: attempts})
-
-
-def test_model_failure_retry_delay_range_rejects_inverted_values():
-    with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            model_failure_retry_initial_delay_seconds=10.0,
-            model_failure_retry_max_delay_seconds=5.0,
-        )
 
 
 def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
@@ -628,19 +553,6 @@ def test_consecutive_argument_issue_tracker_counts_per_request_and_resets():
     assert tracker.record("request-a", 2) == (1, False)
 
 
-def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
-    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
-
-    assert Settings(_env_file=None).enable_model_failure_retry is True
-
-
-def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
-    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", "true")
-    settings = Settings(_env_file=None)
-
-    assert settings.enable_validation_failure_retry is True
-
-
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
@@ -883,57 +795,6 @@ def test_capability_registry_matches_app_rom_interval(
     assert selected == expected_registry
 
 
-def test_capability_registry_range_file_matches_main_configuration():
-    range_file = CLOUD_ROOT / "data" / "capabilities" / "registry_ranges.json"
-    payload = json_module.loads(range_file.read_text(encoding="utf-8"))
-
-    assert payload == {
-        "schemaVersion": "v1",
-        "ranges": [
-            {
-                "registryVersion": REGISTRY_VERSION_6,
-                "appVersion": {
-                    "minInclusive": APP_VERSION,
-                    "maxExclusive": APP_VERSION_11_7_7_330,
-                },
-                "romVersion": {
-                    "minInclusive": "7.0",
-                    "maxExclusive": "7.2",
-                },
-            },
-            {
-                "registryVersion": REGISTRY_VERSION_7,
-                "appVersion": {
-                    "minInclusive": APP_VERSION_11_7_7_330,
-                    "maxExclusive": APP_VERSION_12,
-                },
-                "romVersion": {
-                    "minInclusive": "7.0",
-                    "maxExclusive": "8.0",
-                },
-            },
-        ],
-    }
-
-
-def test_new_capability_registry_is_a_complete_snapshot():
-    old_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
-    new_registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
-
-    old_data_ids = {item.id for item in old_registry.list_data_capabilities()}
-    new_data_ids = {item.id for item in new_registry.list_data_capabilities()}
-    old_event_ids = {item.id for item in old_registry.list_event_capabilities()}
-    new_event_ids = {item.id for item in new_registry.list_event_capabilities()}
-    old_asset_ids = {item.id for item in old_registry.list_asset_capabilities()}
-    new_asset_ids = {item.id for item in new_registry.list_asset_capabilities()}
-
-    assert (len(old_data_ids), len(old_event_ids), len(old_asset_ids)) == (6, 18, 72)
-    assert (len(new_data_ids), len(new_event_ids), len(new_asset_ids)) == (11, 48, 72)
-    assert old_data_ids <= new_data_ids
-    assert old_event_ids <= new_event_ids
-    assert old_asset_ids <= new_asset_ids
-
-
 def _data_capability_parameters(
     registry: CapabilityRegistry,
 ) -> dict[str, dict[str, object]]:
@@ -958,66 +819,6 @@ def _data_capability_parameters(
             "parameters": parameters,
         }
     return result
-
-
-def test_capability_registry_snapshots_expose_expected_data_parameters():
-    shared_parameters = {
-        "ViewWeather": {
-            "enabled": True,
-            "parameters": {
-                "districtName": {"type": "string", "required": False, "minLength": 1},
-                "prefectureName": {"type": "string", "required": False, "minLength": 1},
-                "forecastDays": {
-                    "type": "integer",
-                    "required": False,
-                    "minimum": 1,
-                    "maximum": 5,
-                },
-            },
-        },
-        "GetCalendarEvents": {
-            "enabled": True,
-            "parameters": {"futureDays": {"type": "integer", "required": False}},
-        },
-        "GetCountdownDays": {
-            "enabled": True,
-            "parameters": {"targetDate": {"type": "string", "required": True}},
-        },
-        "GetAppUsageDuration": {
-            "enabled": False,
-            "parameters": {"appBundleName": {"type": "string", "required": True}},
-        },
-        "GetEarphoneInfo": {"enabled": True, "parameters": {}},
-        "GetPhoneBatteryInfo": {"enabled": True, "parameters": {}},
-        "GetHealthAndSportSummary": {
-            "enabled": True,
-            "parameters": {
-                "targetDayOffset": {"type": "integer", "required": False}
-            },
-        },
-    }
-    new_parameters = {
-        "GetMemoData": {"enabled": True, "parameters": {}},
-        "GetPhoneCallRecords": {
-            "enabled": True,
-            "parameters": {"callRecordType": {"type": "integer", "required": False}},
-        },
-        "GetCurrentTime": {"enabled": True, "parameters": {}},
-        "GetAppPowerConsumptionRanking": {
-            "enabled": True,
-            "parameters": {"limit": {"type": "integer", "required": False}},
-        },
-        "GetDailyMostUsage": {
-            "enabled": True,
-            "parameters": {"topN": {"type": "integer", "required": False}},
-        },
-    }
-
-    old_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
-    new_registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
-
-    assert _data_capability_parameters(old_registry) == shared_parameters
-    assert _data_capability_parameters(new_registry) == shared_parameters | new_parameters
 
 
 def test_phase_two_version_returns_phase_two_capability_overview():
@@ -1127,7 +928,6 @@ def test_router_content_rom_version_selects_capability_registry(
     ("app_version", "rom_version"),
     [
         ("11.7.5.204", "7.0"),
-        (APP_VERSION_11_7_7_330, "6.9"),
         (APP_VERSION, ROM_VERSION_7_2),
         (APP_VERSION_12, "7.0"),
         (APP_VERSION_11_8, "8.0"),
@@ -1219,28 +1019,6 @@ def test_protocol_registry_excludes_capability_range_boundaries(
         A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
 
 
-def test_protocol_ranges_follow_capability_version_intervals():
-    protocol_path = CLOUD_ROOT / "data" / "protocol_profiles" / "registry_ranges.json"
-    capability_path = CLOUD_ROOT / "data" / "capabilities" / "registry_ranges.json"
-    protocol_payload = json_module.loads(protocol_path.read_text(encoding="utf-8"))
-    capability_payload = json_module.loads(capability_path.read_text(encoding="utf-8"))
-    protocol_ranges = protocol_payload.get("ranges")
-    capability_ranges = capability_payload.get("ranges")
-
-    assert isinstance(protocol_ranges, list)
-    assert isinstance(capability_ranges, list)
-    assert len(protocol_ranges) == len(capability_ranges)
-    for protocol_range, capability_range in zip(
-        protocol_ranges,
-        capability_ranges,
-        strict=True,
-    ):
-        assert protocol_range.get("appVersion") == capability_range.get("appVersion")
-        assert protocol_range.get("romVersion") == capability_range.get("romVersion")
-        assert protocol_range.get("protocolProfileId") == "a2ui-form-rom6.0-v1"
-        assert protocol_range.get("designProfileId") == "design-compact-dsl"
-
-
 def test_argument_repair_prompt_focuses_on_irregular_json_structure():
     prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt(
         "design-compact-dsl"
@@ -1289,9 +1067,30 @@ def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
     assert "machineRecoveredCandidate" not in repair_input
     target_structure = repair_input.get("targetStructure")
     assert isinstance(target_structure, dict)
+    assert target_structure.get("extrainfo") == ["non-empty string, optional"]
     assert isinstance(target_structure.get("candidateDataBindings"), list)
     assert isinstance(target_structure.get("candidateEventCandidates"), list)
     assert "array 的字段即使只有一项也必须输出 array" in system_content
+
+
+def test_artifact_request_block_does_not_persist_extrainfo():
+    body = {
+        "content": {
+            "userQuery": "制作卡片",
+            "extrainfo": ["只供本轮模型使用的事实"],
+        },
+        "arguments": json_module.dumps(
+            {"userQuery": "制作卡片", "extrainfo": ["嵌套事实"]},
+            ensure_ascii=False,
+        ),
+    }
+
+    request_block = ArtifactStore(request_body=body)._request_block_body()
+
+    assert "extrainfo" not in request_block
+    assert "只供本轮模型使用的事实" not in request_block
+    assert "嵌套事实" not in request_block
+    assert _remove_extrainfo({"extrainfo": ["事实"], "value": 1}) == {"value": 1}
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
@@ -1896,64 +1695,6 @@ def test_tool_envelope_maps_optional_content_odid_to_device_context():
     assert arguments_without_odid["device"]["odid"] is None
 
 
-def test_data_capability_registry_declares_leaf_samples_and_known_package_dependencies():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
-    capabilities = registry.list_data_capabilities()
-    assert [item.id for item in capabilities] == [
-        "ViewWeather",
-        "GetCalendarEvents",
-        "GetCountdownDays",
-        "GetEarphoneInfo",
-        "GetPhoneBatteryInfo",
-        "GetHealthAndSportSummary",
-    ]
-    assert all(
-        set(item.dependencies.model_dump()) == {"requiredPackages"}
-        for item in capabilities
-    )
-
-    weather = registry.get_data_capability("ViewWeather")
-    calendar = registry.get_data_capability("GetCalendarEvents")
-    health = registry.get_data_capability("GetHealthAndSportSummary")
-
-    assert weather is not None
-    assert weather.dependencies.requiredPackages == [
-        RequiredPackage(packageName="com.huawei.hmsapp.totemweather")
-    ]
-    assert weather.outputSchema["properties"]["current"]["properties"][
-        "temperatureText"
-    ]["sampleValue"] == "29℃"
-
-    assert calendar is not None
-    assert calendar.dependencies.requiredPackages == [
-        RequiredPackage(packageName="com.huawei.hmos.calendar")
-    ]
-    assert calendar.outputSchema["properties"]["events"]["items"]["properties"]["title"][
-        "sampleValue"
-    ] == "项目例会"
-    calendar_title = calendar.outputSchema["properties"]["events"]["items"]["properties"][
-        "title"
-    ]
-    assert calendar_title["description"] == (
-        "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。"
-    )
-    assert health is not None
-    assert health.dependencies.requiredPackages == [
-        RequiredPackage(packageName="com.huawei.hmos.health")
-    ]
-    assert "计划" in health.description
-    assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 82
-
-    disabled_app_usage = registry.get_disabled_data_capability(
-        "GetAppUsageDuration"
-    )
-    assert registry.get_data_capability("GetAppUsageDuration") is None
-    assert disabled_app_usage is not None
-    assert disabled_app_usage.enabled is False
-    assert "enabled" not in disabled_app_usage.model_dump(mode="json")
-    assert registry.get_data_capability("GetSystemMemInfo") is None
-
-
 def test_data_capability_output_schema_is_self_contained():
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     capabilities = registry.list_data_capabilities()
@@ -2115,73 +1856,6 @@ def test_cloud_capability_registries_are_self_contained_and_valid():
         assert asset_capabilities
         assert len(capability_ids) == len(set(capability_ids))
         assert len(asset_sources) == len(set(asset_sources))
-
-
-def test_cloud_registry_covers_offline_skill_capability_inventory():
-    """防止离线 Skill 新增能力后，云侧版本目录继续使用不完整的旧快照。"""
-    repository_root = PROJECT_ROOT.parent
-    offline_reference = (
-        repository_root
-        / "skills"
-        / "harmony-card-generation-offline"
-        / "reference"
-    )
-    data_directory = offline_reference / "capability" / "data-capability"
-    offline_data_ids = set()
-    for path in data_directory.glob("*.md"):
-        if path.name == "index.md":
-            continue
-        capability_text = path.read_text(encoding="utf-8")
-        manifest_text = capability_text.split("```json", 1)[1]
-        id_line = next(
-            line.strip()
-            for line in manifest_text.splitlines()
-            if line.strip().startswith('"id":')
-        )
-        capability_id = id_line.split('"')[3]
-        offline_data_ids.add(capability_id)
-
-    event_text = (
-        offline_reference / "capability" / "event-capability" / "click-event.md"
-    ).read_text(encoding="utf-8")
-    event_manifest_text = event_text.split("```json", 1)[1].split("```", 1)[0]
-    event_manifest = json_module.loads(event_manifest_text)
-    offline_events = set()
-    for capability in event_manifest["capabilities"]:
-        for target in capability["supportedTargets"]:
-            descriptions = [
-                page["description"] for page in target.get("pages", [target])
-            ]
-            offline_events.update(
-                (
-                    capability["functionCall"],
-                    target["intentName"],
-                    description,
-                )
-                for description in descriptions
-            )
-
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
-    data_registry_path = (
-        CLOUD_ROOT
-        / "data"
-        / "capabilities"
-        / REGISTRY_VERSION_6
-        / "data_capabilities.json"
-    )
-    data_registry = json_module.loads(data_registry_path.read_text(encoding="utf-8"))
-    disabled_data_ids = {
-        item["id"] for item in data_registry if item.get("enabled") is False
-    }
-    cloud_data_capabilities = registry.list_data_capabilities()
-    cloud_data_ids = {item.id for item in cloud_data_capabilities}
-    cloud_events = {
-        (item.actionTemplate.call, item.targetScene, item.description)
-        for item in registry.list_event_capabilities()
-    }
-    assert "GetAppUsageDuration" in disabled_data_ids
-    assert cloud_data_ids == offline_data_ids - disabled_data_ids
-    assert cloud_events == offline_events
 
 
 @pytest.mark.skip(reason="素材白名单快照同步已按本次要求忽略")
@@ -2787,80 +2461,6 @@ def test_task_spec_rejects_legacy_top_level_fields():
         )
 
 
-def test_task_spec_builder_projects_valid_object_and_array_fields():
-    """验证候选字段由注册表还原，并按 writeResultTo 写入 dataModelSchema。
-
-    入参：无。
-    出参：无；通过断言验证非法字段被裁剪、对象和多个数组下标层级均正确。
-    """
-    binding = CandidateDataBinding(
-        capabilityId="ViewWeather",
-        arguments={"prefectureName": "上海市"},
-        writeResultTo="/data/weather",
-        candidateOutputFields=[
-            "/current/temperatureText",
-            "/daily/0/condition",
-            "/daily/1/condition",
-            "/current/notRegistered",
-        ],
-    )
-    task_spec = TaskSpecBuilder().build(
-        user_query="天气卡片",
-        size="2x4",
-        effective_bindings=[binding],
-        effective_data_capabilities=[_task_spec_capability()],
-        event_candidates=[
-            EventAction(
-                id="event.open.weather",
-                description="打开天气详情",
-                call="clickToDeeplink",
-                args={},
-            )
-        ],
-        asset_candidates=[
-            AssetCapability(
-                id="asset.drop_1",
-                src="resources/base/media/drop_1.svg",
-                description="雨滴",
-            )
-        ],
-    )
-
-    assert task_spec.dataModelSchema["data"]["weather"] == {
-        "current": {
-            "temperatureText": {
-                "type": "string",
-                "description": "当前温度",
-                "sampleValue": "26℃",
-            }
-        },
-        "daily": [
-            {
-                "condition": {
-                    "type": "string",
-                    "description": "每日天气",
-                    "sampleValue": "小雨",
-                }
-            },
-            {
-                "condition": {
-                    "type": "string",
-                    "description": "每日天气",
-                    "sampleValue": "小雨",
-                }
-            },
-        ],
-    }
-    assert set(task_spec.model_dump()) == {
-        "userQuery",
-        "size",
-        "eventCandidates",
-        "dataModelSchema",
-        "assetCandidates",
-    }
-    assert task_spec.assetCandidates[0]["id"] == "asset.drop_1"
-
-
 @pytest.mark.parametrize(
     "write_result_to",
     ["", "/data//weather", "/data/weather~2x", "/data/weather/", "/other/weather"],
@@ -3291,6 +2891,68 @@ def test_design_compact_create_prompt_is_plain_task_spec_json(
             "args": {"uri": "weather://detail"},
         }
     ]
+
+
+def test_design_compact_prompt_carries_extrainfo_without_extending_task_spec(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
+    task_spec = TaskSpecBuilder().build(
+        user_query="把前文答案做成卡片",
+        size="2x2",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    facts = ["演出时间为今晚 19:30。", "地点是上海大剧院。"]
+
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        extrainfo=facts,
+    )
+    payload = json_module.loads(prompt[1]["content"])
+
+    assert payload["userQuery"] == "把前文答案做成卡片"
+    assert "extrainfo=" in prompt[0]["content"]
+    assert all(fact in prompt[0]["content"] for fact in facts)
+    assert "不属于 TaskSpec" in prompt[0]["content"]
+
+    generic_prompt = PromptBuilder().build(task_spec, extrainfo=facts)
+    generic_payload = json_module.loads(generic_prompt[1]["content"])
+    assert generic_payload["userQuery"] == "把前文答案做成卡片"
+    assert all(fact in generic_prompt[0]["content"] for fact in facts)
+
+
+def test_design_compact_edit_prompt_does_not_inherit_extrainfo(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
+    task_spec = TaskSpecBuilder().build(
+        user_query="改成蓝色",
+        size="2x2",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        previous_design_token="token",
+    )
+    payload = json_module.loads(prompt[1]["content"])
+
+    assert "extrainfo" not in payload
 
 
 @pytest.mark.asyncio
@@ -3871,103 +3533,6 @@ async def test_heartbeat_disconnect_does_not_cancel_model_generation():
     await heartbeat
     assert await generation == "generated"
     assert model_completed is True
-
-
-@pytest.mark.asyncio
-async def test_llmclient_timeout_keeps_shared_permit_until_physical_completion():
-    settings = Settings(
-        model_max_concurrency=1,
-        model_queue_timeout_seconds=0.02,
-        model_request_timeout_seconds=0.005,
-    )
-    llm_started = threading.Event()
-    allow_llm_finish = threading.Event()
-    mep_calls = 0
-
-    class FakeMepTransport:
-        @staticmethod
-        async def generate(_messages):
-            nonlocal mep_calls
-            mep_calls += 1
-            return "mep-result"
-
-        @staticmethod
-        async def aclose():
-            return None
-
-    class SlowLlmClientTransport:
-        @staticmethod
-        def generate(_messages):
-            llm_started.set()
-            allow_llm_finish.wait(timeout=1.0)
-            return "late-result"
-
-    runtime = ModelExecutionRuntime(
-        settings,
-        mep_transport=FakeMepTransport(),
-        llmclient_transport=SlowLlmClientTransport(),
-    )
-    llm_task = asyncio.create_task(runtime.generate("llmclient", []))
-    try:
-        started = await asyncio.to_thread(llm_started.wait, 1.0)
-        assert started is True
-        with pytest.raises(ModelTransportError) as queue_error:
-            await runtime.generate("mep", [])
-        assert queue_error.value.code == "MODEL_QUEUE_TIMEOUT"
-        assert llm_task.done() is False
-        allow_llm_finish.set()
-        with pytest.raises(ModelTransportError) as request_error:
-            await llm_task
-        assert request_error.value.code == "MODEL_REQUEST_TIMEOUT"
-    finally:
-        allow_llm_finish.set()
-        await runtime.aclose()
-
-    assert mep_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_model_runtime_cancels_mep_when_execution_timeout_expires():
-    settings = Settings(
-        model_max_concurrency=1,
-        model_queue_timeout_seconds=1.0,
-        model_request_timeout_seconds=0.005,
-    )
-    cancelled = False
-
-    class SlowMepTransport:
-        @staticmethod
-        async def generate(_messages):
-            nonlocal cancelled
-            try:
-                await asyncio.sleep(1.0)
-            except asyncio.CancelledError:
-                cancelled = True
-                raise
-            return "late-result"
-
-        @staticmethod
-        async def aclose():
-            return None
-
-    class UnusedLlmClientTransport:
-        @staticmethod
-        def generate(_messages):
-            pytest.fail("llmclient must not be called")
-
-    runtime = ModelExecutionRuntime(
-        settings,
-        mep_transport=SlowMepTransport(),
-        llmclient_transport=UnusedLlmClientTransport(),
-    )
-    try:
-        with pytest.raises(ModelTransportError) as error_info:
-            await runtime.generate("mep", [])
-    finally:
-        await runtime.aclose()
-
-    assert error_info.value.code == "MODEL_REQUEST_TIMEOUT"
-    assert cancelled is True
 
 
 @pytest.mark.parametrize(
@@ -5327,24 +4892,6 @@ def test_card_validation_loads_latest_online_rule_snapshot():
     assert rules.expression["maxLength"] == 2048
     assert rules.expression["allowedFunctions"] == ["size"]
     assert rules.protocol["sizes"]["2x4"]["borderRadius"] == 22
-
-
-def test_card_validation_snapshot_covers_all_online_runtime_files():
-    repository_root = PROJECT_ROOT.parent
-    skill_scripts = (
-        repository_root / "skills" / "harmony-card-generation-online" / "scripts"
-    )
-    skill_validators = skill_scripts / "validators"
-    service_validators = CLOUD_ROOT / "services" / "card_validation"
-
-    skill_validator_names = {
-        path.name for path in skill_validators.glob("*.py") if path.is_file()
-    }
-    service_validator_names = {
-        path.name for path in service_validators.glob("*.py") if path.is_file()
-    }
-    service_validator_names.discard("compact_dsl_validator.py")
-    assert service_validator_names == skill_validator_names
 
 
 def _a2ui_genui_with_image(

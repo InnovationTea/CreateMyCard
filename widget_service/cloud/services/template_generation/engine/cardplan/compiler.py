@@ -1056,6 +1056,7 @@ def _validate_provider_template_state(
             "full",
             "hero",
             "healthLevelHero",
+            "percentLevelHero",
             "percentRingHero",
             "progressCompact",
             "progressSupport",
@@ -1153,17 +1154,24 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
+        if variant_name in {"earbudPairHero", "earbudPairCompact"}:
+            if facts.earphone_name is None or not has_left or not has_right:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
+        if variant_name in {"earbudTripleFull", "earbudTripleHero"}:
+            has_three_batteries = has_left and has_right and has_case
+            if facts.earphone_name is None or not has_three_batteries:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
         if facts.is_connected is None or facts.earphone_name is None:
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone identity."
             )
         if variant_name == "hero":
-            return
-        if variant_name == "earbudPairCompact":
-            if not has_left or not has_right:
-                raise TerselConversionError(
-                    "Bluetooth Provider Template variant does not match the trusted data shape."
-                )
             return
         if variant_name == "earbudPairFull":
             if not has_case or not has_left or not has_right:
@@ -8650,6 +8658,9 @@ def _provider_layout_action_background(
 ) -> str:
     """Resolve a single-business Provider Template Action background override."""
     theme = registry.require_theme(contract.theme_profile_id)
+    business_names = _contract_ux_business_component_names(contract, registry)
+    if theme.fusion_ball_style is not None and business_names == {"BluetoothDeviceOverview"}:
+        return default
     if not theme.allow_template_action_background_override:
         return default
     if len(_contract_ux_business_component_names(contract, registry)) != 1:

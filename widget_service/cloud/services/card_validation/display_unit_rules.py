@@ -13,6 +13,9 @@ from .base import expression_body, expression_references
 
 _STRING_LITERAL_RE = re.compile(r"^'(?P<value>(?:[^'\\]|\\.)*)'$")
 _ARRAY_INDEX_RE = re.compile(r"/(?P<index>\d+)(?=/|$)")
+_UNIT_TEXT_SUFFIXES = frozenset(
+    ("", "前", "后", "前开始", "后开始", "前结束", "后结束", "已使用", "已完成", "已消耗", "剩余")
+)
 _UNIT_ALIASES = {
     "℃": {"℃", "°C", "°"},
 }
@@ -116,19 +119,22 @@ def matching_unit_literal_count(expression: Any, rule: DisplayUnitRule) -> int:
 
 
 def static_text_contains_rule(value: Any, rule: DisplayUnitRule) -> bool:
-    """判断后置静态文案是否包含任一声明单位或批准别名。"""
+    """识别后置单位及受控短后缀，不将独立指标中的单位子串归给前一数值。"""
     if not isinstance(value, str):
         return False
     normalized_value = _normalized_unit(value)
-    return any(
-        alias in normalized_value
-        for unit in rule.units
-        for alias in _normalized_aliases(unit)
-    )
+    for unit in rule.units:
+        for alias in _normalized_aliases(unit):
+            if not alias or not normalized_value.startswith(alias):
+                continue
+            suffix = normalized_value.removeprefix(alias)
+            if suffix in _UNIT_TEXT_SUFFIXES:
+                return True
+    return False
 
 
-def _static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
-    """仅供确定性去重使用，避免删除同时包含业务说明的完整 Text。"""
+def static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
+    """识别纯单位文本，不将独立业务说明归属于前面的数值。"""
     return isinstance(value, str) and any(
         _normalized_unit(value) in _normalized_aliases(unit) for unit in rule.units
     )
@@ -175,6 +181,8 @@ def repair_repeated_display_units(
 
     removed_child_ids: set[str] = set()
     for parent in by_id.values():
+        if parent.get("component") not in {"Row", "Column"}:
+            continue
         children = parent.get("children")
         if not isinstance(children, list):
             continue
@@ -188,10 +196,10 @@ def repair_repeated_display_units(
             following_indexes = range(value_index + 1, len(repaired_children))
             for sibling_index in following_indexes:
                 sibling_id = repaired_children[sibling_index]
-                if not _static_text_exactly_matches_rule(
-                    by_id.get(sibling_id, {}).get("content"),
-                    rule,
-                ):
+                sibling = by_id.get(sibling_id, {})
+                if sibling.get("component") != "Text":
+                    break
+                if not static_text_exactly_matches_rule(sibling.get("content"), rule):
                     break
                 matching_siblings.append(sibling_id)
             keep_count = 0 if rule.unit_included else 1

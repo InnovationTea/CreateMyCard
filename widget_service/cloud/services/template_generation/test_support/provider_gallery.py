@@ -60,7 +60,6 @@ def _clear_generated_gallery_files(root: Path) -> None:
         manifest_path.unlink()
 
 _PROVIDER_NAMES = {
-    "app-usage": "应用时长",
     "battery": "设备电量",
     "calendar": "日历日程",
     "countdown": "倒计时",
@@ -72,7 +71,6 @@ _PROVIDER_NAMES = {
 
 _BUSINESS_DESCRIPTIONS = {
     "ActivityOverview": ("每日活动", "展示今天的步数、热量和距离"),
-    "AppUsageOverview": ("应用时长", "展示示例应用今天的使用时长"),
     "BatteryOverview": ("设备电量", "展示手机剩余电量和充电状态"),
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
     "CalendarOverview": ("日历日程", "展示下一项日程"),
@@ -85,7 +83,6 @@ _BUSINESS_DESCRIPTIONS = {
 }
 
 _CAPABILITY_ARGUMENTS = {
-    "GetAppUsageDuration": {"appBundleName": "com.example.demo"},
     "GetCalendarEvents": {"futureDays": 7},
     "GetCountdownDays": {"targetDate": "2027-01-01"},
     "GetEarphoneInfo": {},
@@ -101,10 +98,6 @@ _CAPABILITY_ARGUMENTS = {
 
 _ACTION_IDS_BY_BUSINESS = {
     "ActivityOverview": ("event.open.health.sport", "event.open.settings.dnd"),
-    "AppUsageOverview": (
-        "event.open.settings.parentControl",
-        "event.open.settings.dnd",
-    ),
     "BatteryOverview": (
         "event.open.settings.battery",
         "event.setPowerSavingMode",
@@ -127,7 +120,6 @@ _ACTION_IDS_BY_BUSINESS = {
 
 _ACTION_QUERIES_BY_BUSINESS = {
     "ActivityOverview": ("查看运动健康详情", "打开免打扰设置"),
-    "AppUsageOverview": ("打开家长控制设置", "打开免打扰设置"),
     "BatteryOverview": ("打开电池设置", "开启省电模式"),
     "BluetoothDeviceOverview": ("打开蓝牙设置", "打开每日音乐"),
     "CalendarOverview": ("查看日程详情", "进入会议"),
@@ -186,7 +178,6 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
     "CountdownOverviewSupport@1": ("asset.icon_timing",),
-    "CountdownOverviewTravelSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),

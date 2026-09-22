@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 from config.config_helper import ConfigHelper
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
     osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
     hag_osms_ak: str = CONFIG.get("hag_osms_ak")
     capability_registry_version: str = "app-11.7.5.205_rom-6.0"
-    # src → 云侧 url 映射（JSON 字符串，缺省为空 dict）。生成 DSL 时按 src 命中替换为 url。
+    # src → 云侧 URL 映射；模型使用原始 src，标准 A2UI 生成后精确替换，未命中保留原路径。
     asset_src_url_mapping: dict = _parse_json_config(CONFIG.get("asset.src.url.mapping"), {})
     design_compact_profile_id: str = "design-compact-dsl"
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
@@ -151,6 +152,14 @@ class Settings(BaseSettings):
         "compact_dsl_argument_repair_max_attempts",
         2,
     )
+    enable_compact_dsl_interface_retry: bool = (
+        CONFIG.get("enable_compact_dsl_interface_retry", "false") == "true"
+    )
+    compact_dsl_interface_retry_count: int = Field(
+        default=CONFIG.get("compact_dsl_interface_retry_count", 1),
+        ge=0,
+    )
+
     enable_default_protocol_profile_fallback: bool = (
         CONFIG.get("enable_default_protocol_profile_fallback") == "true"
     )
@@ -193,6 +202,14 @@ class Settings(BaseSettings):
 
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
+    @field_validator("compact_dsl_interface_retry_count", mode="before")
+    @classmethod
+    def validate_interface_retry_count(cls, value: object) -> object:
+        """允许配置文件中的整数字符串，不接受布尔值或浮点数。"""
+        if isinstance(value, (bool, float)):
+            raise ValueError("compact_dsl_interface_retry_count must be a non-negative integer")
+        return value
 
     @property
     def package_root(self) -> Path:

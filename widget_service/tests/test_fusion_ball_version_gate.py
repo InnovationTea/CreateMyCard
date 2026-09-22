@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.fusion_ball_expander import (
     FUSION_BALL_MIN_PRD_VERSION_CONFIG,
     FusionBallPalette,
+    expand_fusion_ball_components,
     fusion_ball_enabled,
     fusion_ball_palette_for_root,
 )
@@ -117,55 +118,6 @@ def test_fusion_ball_gate_supplies_default_for_missing_config(
     assert fusion_ball_enabled(_DEFAULT_APP_VERSION) is False
 
 
-@pytest.mark.parametrize("previous_design_token", [None, '["/state/ready",true]'])
-def test_design_compact_prompt_appends_fusion_ball_restriction_when_disabled(
-    monkeypatch: pytest.MonkeyPatch,
-    previous_design_token: str | None,
-) -> None:
-    monkeypatch.setattr(
-        get_settings(),
-        "CONFIG",
-        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
-    )
-    task_spec = TaskSpec(
-        userQuery="生成日程卡片",
-        size="2x2",
-        appVersion="11.7.5.205",
-        dataModelSchema={"data": {}},
-    )
-
-    prompt = PromptBuilder().build_design_compact(
-        task_spec,
-        "design rules",
-        previous_design_token=previous_design_token,
-    )
-
-    system_prompt = prompt[0]["content"]
-    assert system_prompt.startswith("design rules\n\n# 本次请求运行时限制")
-    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in system_prompt
-    assert "root 必须按非融球背景规则生成" in system_prompt
-
-
-def test_design_compact_prompt_is_unchanged_when_fusion_ball_enabled(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        get_settings(),
-        "CONFIG",
-        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
-    )
-    task_spec = TaskSpec(
-        userQuery="生成日程卡片",
-        size="2x2",
-        appVersion="11.7.5.206",
-        dataModelSchema={"data": {}},
-    )
-
-    prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
-
-    assert prompt[0] == {"role": "system", "content": "design rules"}
-
-
 def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -186,12 +138,43 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     assert prompt[0] == {"role": "system", "content": "other design rules"}
 
 
+def test_enabled_simple_design_compact_prompt_appends_fusion_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.205"},
+    )
+    task_spec = TaskSpec(
+        userQuery="做张耳机连接状态卡片",
+        size="2x2",
+        appVersion=_DEFAULT_APP_VERSION,
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "isConnected": {
+                        "type": "boolean",
+                        "description": "耳机是否连接",
+                        "sampleValue": True,
+                    }
+                }
+            }
+        },
+    )
+
+    prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
+
+    assert "本次融球推荐" in prompt[0]["content"]
+    assert "本次请求未启用融球能力" not in prompt[0]["content"]
+
+
 @pytest.mark.parametrize(
     ("design_token", "expected_palette"),
     [
         (
             "fusion-ball-schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
         (
             "fusion-ball-schedule-warm",
@@ -199,11 +182,11 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
         ),
         (
             "fusion-ball-sleep-violet",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-ball-sport-orange",
-            FusionBallPalette("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+            FusionBallPalette("#FFF24131", "#FFFF8833", "#FFE68073"),
         ),
     ],
 )
@@ -294,6 +277,45 @@ def test_converter_expands_fusion_ball_with_relative_dimensions(
         "borderRadius": 20,
         "clip": True,
     }
+
+
+def test_fusion_expansion_normalizes_light_s4_surface_to_translucent_white() -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": ["zone"],
+            "styles": {"width": 160, "height": 160, "backgroundColor": "#CCFFFFFF"},
+        },
+        {
+            "id": "zone",
+            "component": "Column",
+            "children": ["label", "icon"],
+            "styles": {"backgroundColor": "#CCFFFFFF"},
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": "耳机盒",
+            "styles": {"fontColor": "#FF1F4799"},
+        },
+        {
+            "id": "icon",
+            "component": "Image",
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "styles": {"fillColor": "#FF1F4799"},
+        },
+    ]
+
+    expanded = expand_fusion_ball_components(
+        components,
+        FusionBallPalette("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
+    )
+    by_id = {component["id"]: component for component in expanded}
+
+    assert by_id["zone"]["styles"]["backgroundColor"] == "#33FFFFFF"
+    assert by_id["label"]["styles"]["fontColor"] == "#FFFFFFFF"
+    assert by_id["icon"]["styles"]["fillColor"] == "#FFFFFFFF"
 
 
 def test_design_processor_copies_task_spec_app_version_into_profile(

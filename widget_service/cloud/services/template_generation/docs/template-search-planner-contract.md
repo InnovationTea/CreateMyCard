@@ -9,6 +9,8 @@
 ```text
 第一层 LLM
   -> 数据可用性 Search
+  -> 日历默认查看动作策略（仅适用场景）
+  -> 电量默认设置动作策略（仅适用场景）
   -> 确定性 Template Planner
   -> 第二层 LLM
   -> Validator / Compiler
@@ -18,6 +20,14 @@
 不推测模型意图。
 
 ## 2. 第一层 LLM
+
+默认 Search 路线对日程提醒父路径执行受限归一化：仅 `2x2 / GetCalendarEvents` 的候选
+`/events/<原索引>/remindTime`，且所有同能力绑定根的 TaskSpec 都将该位置投影为非空标量字段数组时，
+映射为同一日程的 `/remindTime/0`。不根据样例值补造字段；空数组、对象数组、嵌套数组与缺失字段不转换。
+已显式指定提醒索引的路径不变，原始请求和 TaskSpec 不变。归一化副本用于首层候选字段及白名单；
+首层若仍返回原候选父路径，在可信模板限制和 Search 前同步归一化显式字段与主焦点，并按原顺序去重。
+Search 直接入口也使用同一规则，之后仍严格检查候选白名单、字段类型与模板覆盖。其它业务、其它字段、
+宽卡与旧 LLM 选择路线保持原行为；不将任意数组父路径与任意元素视为等价。
 
 输入包括用户描述、TaskSpec 中可展示的数据字段和 Action 候选，以及 Provider 的字段语义说明。第一层只做
 用户意图标定，输出：
@@ -42,8 +52,16 @@
 - `primaryOutputFieldByCapability` 是稀疏映射。每个业务最多一个显式主焦点；无法从描述中确定时不输出该
   capability。值必须同时存在于该 capability 的显式字段数组中。
 - `action` 只包含用户显式要求且来自 TaskSpec 候选的事件 ID。
+- `allowCalendarViewFallback` 是可选布尔值，兼容旧首层输出时默认为 `false`。仅当用户请求单日历日程
+  且未明确禁止按钮、操作或跳转时，首层标记为 `true`；它只表达用户是否允许默认查看入口，不代表已选
+  Action。首层仍不判断 Full/Hero 是否可用，也不直接把默认查看事件加入 `action`。
 - 输出不包含 `themeId`、`schemaVersion`、组件、模板、布局或 Props。服务内部仍使用严格模型校验字段、
   JSON Pointer、唯一性和关联关系。
+
+`allowBatterySettingsFallback` 同样是可选严格布尔值，旧首层输出缺省为 `false`。仅向 `2x2`、候选
+能力只有 `GetPhoneBatteryInfo` 的首层提示词暴露该字段及电量专用说明，其余业务的提示词保持不变。
+首层只标记用户是否允许默认入口：未明确禁止按钮、操作或跳转为 `true`，明确禁止为 `false`；
+`action` 仍只包含显式要求的动作，不为适配 Hero 补字段、删字段或判断模板可用性。
 
 ## 3. Search
 
@@ -92,6 +110,42 @@ Search 不读取主题、布局、Action 数量或 Action 消费位置，也不�
 不能用 `required_paths` 代替。
 
 ## 4. Template Planner
+
+进入 Planner 前，服务端仅对 `2x2`、唯一 `GetCalendarEvents / CalendarOverview` 业务、无显式已选
+Action 且 `allowCalendarViewFallback=true` 的请求应用默认查看策略：
+
+1. Search 存在能覆盖全部显式字段且必需数据齐全的 Full 时，保持无动作。
+2. 没有 Full、但有同样通过 Search 的 Hero 时，检查已批准候选中是否恰好有一个
+   `event.viewCalendarEvent`，且参数引用与所有候选 Hero 展示的日程对象一致；满足才补选该事件。
+3. 没有 Hero、动作缺失、重复或指向其他日程时不补选。禁止凭空构造事件、补数据或删除用户要求的字段。
+
+补选结果同时用于 Planner 和后续 TaskSpec 动作筛选，保证二层按钮、事件参数及最终编译一致。
+默认文案沿用已注册的“查看日程”，可信候选显式提供文案时仍优先使用该文案。显式动作请求保留原语义；
+双业务、其他业务和宽卡不使用此兜底。用户说“不要按钮”“不需要操作”“只展示不交互”等时禁止补选；
+单纯没有提到按钮不属于禁止。此策略不改变 Search 的纯数据职责。
+
+电量策略独立应用于 `2x2`、唯一 `GetPhoneBatteryInfo / BatteryOverview` 业务、无已选 Action 且
+`allowBatterySettingsFallback=true` 的请求：
+
+1. 已有可用 Full 时保持原结果；没有 Full 且有通过 Search 的 Hero 时才检查设置入口。
+2. 已批准候选中必须恰有一个 `event.open.settings.battery`，调用为 `clickToDeeplink`，参数精确为
+   `intentName=Settings`、`bundleName=com.huawei.hmos.settings`、
+   `abilityName=com.huawei.hmos.settings.MainAbility`、`uri=battery`，才补选该事件。
+3. 默认文案沿用已注册的“电池设置”，候选提供可信文案时仍沿用该文案。候选缺失、重复、参数不符、
+   只有 Compact/Support 也不触发。完全没有电池设置候选且显式字段包含 `/healthStatusDesc` 时，
+   可改为复用唯一合法的 `event.open.settings.batteryHealth` 候选，按钮文案为“电池健康”，
+   目标参数除 `uri=smart_charge_battery_health` 外与上述系统设置参数一致。
+   有电池设置候选但其重复或非法时，不用健康入口掩盖错误；省电模式不用于默认入口。
+
+显式动作和画廊指定动作保持原集合，Full 不会删除它们。禁止按钮、其他业务、混合业务、宽卡和旧 LLM
+选择路线不受此策略影响。原始 TaskSpec、候选数据和显式字段不变，仍由 Planner 校验完整字段覆盖及
+动作消费；该策略只增加此前无 Full 的合法 Hero 入口，不放宽 Search 或全局动作规则。
+
+`BatteryOverviewPercentLevelHero@1` 是 Search 专用的电量补充分支：仅单电量 `2x2`，且用户显式字段
+恰好为 `/batterySOCText` 和 `/batteryCapacityLevelDesc`，才检查该模板。在类型、必需输入和完整覆盖
+校验后，只要任一旧模板仍能完整覆盖，就移除新变体候选；旧模板无完整覆盖时才保留它。
+额外候选字段不触发此分支；混合业务、宽卡、旧检索适配器和旧 LLM 选择路线不暴露该变体。
+禁用模板与可信画廊模板限制仍生效，不能用新变体绕过；不从百分比样例反推数值绑定。
 
 Planner 是确定性服务模块，输入第一层意图、Search 结果、卡片尺寸、TaskSpec 和 Registry。它通过
 `templateId` 从 Registry 重新取得模板定义，并联合规划：

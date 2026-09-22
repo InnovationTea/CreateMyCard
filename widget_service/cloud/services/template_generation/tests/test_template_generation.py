@@ -46,7 +46,6 @@ from services.template_generation.binding_dependencies import enrich_template_bi
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine import pipeline as template_pipeline_module
 from services.template_generation.engine.advanced.content_selectors import (
-    app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     bluetooth_device_overview_is_eligible,
@@ -160,8 +159,8 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
-_WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
+_WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
+_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -258,10 +257,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 119
+    assert len(registry.provider_template_ids) == 122
     assert {
         "ActivityOverviewFull@1",
-        "AppUsageOverviewFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewChargingProgressHero@1",
@@ -271,6 +269,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudTripleFull@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneCaseCompact@1",
@@ -322,7 +322,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     }.issubset(registry.provider_template_ids)
     assert provider_directories == {
         "action",
-        "app-usage",
         "battery",
         "calendar",
         "countdown",
@@ -380,17 +379,6 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         assert set(definition.primary_data).isdisjoint(definition.optional_data)
         assert set(definition.secondary_data).isdisjoint(definition.optional_data)
         assert definition.required_data == (*definition.primary_data, *definition.secondary_data)
-
-
-def test_app_usage_compact_data_contract_matches_visible_content() -> None:
-    definition = get_cardplan_registry().require_template("AppUsageOverviewCompact@1")
-
-    assert definition.primary_data == (
-        "/appUsage/appName",
-        "/appUsage/durationText",
-    )
-    assert definition.secondary_data == ()
-    assert definition.optional_data == ()
 
 
 def test_weather_location_compile_time_conditional_has_optional_sources() -> None:
@@ -680,13 +668,13 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
 @pytest.mark.parametrize(
     ("template_id", "text_path", "font_size", "height"),
     [
-        ("WeatherOverviewDailyDateFull@1", (1, 0), 20, 28),
+        ("WeatherOverviewDailyDateFull@1", (1, 0), 18, 24),
         ("WeatherOverviewDailyDateFull@1", (1, 1), 12, 20),
-        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 32, None),
+        ("WeatherOverviewDailyRainFull@1", (0, 1, 0), 30, 40),
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
         ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 20, 28),
-        ("WeatherOverviewConditionHero@1", (1, 0), 20, 28),
+        ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 18, 24),
+        ("WeatherOverviewConditionHero@1", (1, 0), 18, 24),
         ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
     ],
 )
@@ -768,7 +756,7 @@ def test_weather_dual_city_full_matches_q034_data_contract() -> None:
         ("WeatherOverviewAirQualityHero@1", "airQuality"),
     ],
 )
-def test_weather_index_templates_use_20vp_primary_values(
+def test_weather_index_templates_use_18fp_text_values(
     template_id: str, value_binding: str,
 ) -> None:
     registry = get_cardplan_registry()
@@ -786,7 +774,7 @@ def test_weather_index_templates_use_20vp_primary_values(
     assert value.values[0] == bindings.get(value_binding)
     value_options = value.values[-1]
     assert isinstance(value_options, dict)
-    assert value_options.get("fontSize") == 20
+    assert value_options.get("fontSize") == 18
     assert value_options.get("fontWeight") == 700
     if value_binding == "uvIndex":
         options = value_column.values[-1]
@@ -794,7 +782,7 @@ def test_weather_index_templates_use_20vp_primary_values(
         assert "height" not in options
         assert "layoutWeight" not in options
         assert options.get("itemMargin") == 0
-        assert value_options.get("height") == 28
+        assert value_options.get("height") == 24
         label = value_column.children[1]
         assert label.component_type == "Text"
         assert label.values[0] == "紫外线"
@@ -1083,7 +1071,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
     source_root = tmp_path / "source"
     bundled_source_root = get_cardplan_registry().source_root
     shutil.copytree(bundled_source_root, source_root)
-    rule_path = source_root / "themes/digital-wellbeing-neutral-dark/first-layer.md"
+    rule_path = source_root / "themes/device-clean-blue-teal/first-layer.md"
     rule_path.write_text(
         rule_path.read_text(encoding="utf-8") + "\n<!-- local update -->\n",
         encoding="utf-8",
@@ -1091,7 +1079,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
 
     registry = CardPlanRegistry(source_root=source_root)
 
-    assert registry.require_theme("digital-wellbeing-neutral-dark") is not None
+    assert registry.require_theme("device-clean-blue-teal") is not None
     assert "files" not in registry.manifest
     assert "promptSha256" not in registry.manifest
 
@@ -1117,9 +1105,12 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert "layoutComponents" not in theme_base
     assert provider_business_groups == set(registry.ux_business_components)
     assert provider_layout_components == set(registry.ux_layout_components)
-    assert len(registry.ux_business_component_provider_ids) == 11
+    assert len(registry.ux_business_component_provider_ids) == 10
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 22
+    assert len(calendar.local_template_ids) == 25
+    assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -1152,7 +1143,6 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
         "battery-device-green",
         "2x2-two-support",
         "device-clean-blue-teal",
-        "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
         "fusion-battery-teal",
         "fusion-schedule-cool",
@@ -1185,7 +1175,7 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
     assert set(theme.supported_capability_ids) == support_capabilities
     assert registry.layout_theme_ids(
         "TwoSupportLayout",
-        ("ViewWeather", "GetAppUsageDuration"),
+        ("ViewWeather", "GetPhoneBatteryInfo"),
     ) == ("2x2-two-support",)
     assert registry.require_layout_theme(
         "TwoSupportLayout",
@@ -1296,7 +1286,7 @@ def test_search_layout_action_rule_omits_legacy_two_support_instruction() -> Non
 def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     registry = get_cardplan_registry()
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="digital-wellbeing-neutral-dark",
+        theme_profile_id="device-clean-blue-teal",
         allowed_layout_component_ids=("SingleFocusLayout",),
     )
     action = Nested2Node(
@@ -1357,7 +1347,7 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     assert button.values[-1]["fontColor"] == "#E6000000"
     assert "fontColor" not in styled_action.children[0].values[-1]
 
-    action_style = registry.require_theme("digital-wellbeing-neutral-dark").action_style
+    action_style = registry.require_theme("device-clean-blue-teal").action_style
     assert action_style is not None
     action_template = Nested2Node("PillAction", (), (action,))
     lowered_action = _lower_action_template_tree(
@@ -1511,7 +1501,7 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-sleep-violet",
             "sleep",
-            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+            FusionBallPalette("#FF493D99", "#FF5536B3", "#FF7D6B99"),
         ),
         (
             "fusion-sport-orange",
@@ -1521,14 +1511,14 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
         (
             "fusion-battery-teal",
             "battery",
-            FusionBallPalette("#FF17734C", "#FF26BFA6", "#FF60BF98"),
+            FusionBallPalette("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
         ),
         (
             "fusion-schedule-cool",
             "schedule-cool",
-            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+            FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
-        ("digital-wellbeing-neutral-dark", None, None),
+        ("device-clean-blue-teal", None, None),
     ],
 )
 def test_fusion_ball_palette_is_gated_by_selected_theme(
@@ -1576,20 +1566,6 @@ def test_fusion_theme_content_and_action_colors_are_exact(
         "#33CCEEFF" if theme_id == "fusion-schedule-cool" else "#33FFFFFF"
     )
     assert theme.action_style.background_color == expected_action_background
-
-
-def test_app_usage_theme_uses_the_reviewed_content_and_action_colors() -> None:
-    theme = get_cardplan_registry().require_theme("digital-wellbeing-neutral-dark")
-
-    assert theme.primary_color == "#E6000000"
-    assert theme.support_content_color == "#99000000"
-    assert theme.root_style["backgroundColor"] == "#FFFFFFFF"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#1A000000", 0],
-        ["#00FFFFFF", 1],
-    ]
-    assert theme.action_style.content_color == "#FF0A59F7"
-    assert theme.action_style.background_color == "#1A0A59F7"
 
 
 def test_non_fusion_weather_theme_uses_the_reviewed_solid_palette() -> None:
@@ -1708,7 +1684,6 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
         "audio-product-neutral-violet",
         "battery-device-green",
         "device-clean-blue-teal",
-        "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
         "meeting-paper-neutral",
         "race-night-violet",
@@ -1737,6 +1712,9 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
         "fusionBallSmallSlot",
         "fusionBallGlassLayer",
     ]
+    glass_style = background.children[-1].values[-1]
+    assert isinstance(glass_style, dict)
+    assert glass_style.get("backdropBlur") == {"radius": 210}
     ball_colors = tuple(
         child.children[0].values[-1]["backgroundColor"]
         for child in background.children[:3]
@@ -1919,7 +1897,7 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         (Nested2Node("Text", ("会议", "body"), ()),),
     )
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="digital-wellbeing-neutral-dark"
+        theme_profile_id="device-clean-blue-teal"
     )
 
     decorated = _apply_template_background(
@@ -2077,15 +2055,15 @@ def test_form_validator_rejects_empty_children_for_stack_and_column():
     assert len(column_children_errors) == 1
 
 
-def test_app_usage_template_sizes_separate_compact_and_wide_variants():
+def test_activity_template_sizes_separate_compact_and_wide_variants():
     registry = get_cardplan_registry()
     compact_ids = (
-        "AppUsageOverviewFull@1",
-        "AppUsageOverviewHero@1",
+        "ActivityOverviewFull@1",
+        "ActivityOverviewHero@1",
     )
     wide_ids = (
-        "AppUsageOverviewWideFull@1",
-        "AppUsageOverviewWideHero@1",
+        "ActivityOverviewWideFull@1",
+        "ActivityOverviewWideHero@1",
     )
 
     for template_id in compact_ids:
@@ -2098,65 +2076,140 @@ def test_app_usage_template_sizes_separate_compact_and_wide_variants():
         )
 
 
-def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
-    registry = get_cardplan_registry()
-    expected_typography = {
-        "AppUsageOverviewFull@1": (24, 10),
-        "AppUsageOverviewHero@1": (24, 10),
-        "AppUsageOverviewWideFull@1": (30, 12),
-        "AppUsageOverviewWideHero@1": (30, 12),
-    }
-
-    for template_id, (duration_size, update_size) in expected_typography.items():
-        root = registry.require_variant(template_id, "default").root
-        text_nodes = _template_nodes(root, "Text")
-        duration = None
-        update_time = None
-        for node in text_nodes:
-            value = node.values[0]
-            if value.kind == "binding" and value.name == "duration":
-                duration = node
-            if value.kind != "interpolation":
-                continue
-            has_updated_at = any(item.name == "updatedAt" for item in value.items)
-            if has_updated_at:
-                update_time = node
-        assert duration is not None
-        duration_options = _template_node_options(duration)
-        assert duration_options["fontSize"] == duration_size
-        assert "minFontSize" not in duration_options
-
-        assert update_time is not None
-        assert tuple(
-            (item.kind, item.value, item.name) for item in update_time.values[0].items
-        ) == (
-            ("literal", "更新于 ", None),
-            ("binding", None, "updatedAt"),
-        )
-        update_options = _template_node_options(update_time)
-        assert update_options["fontSize"] == update_size
-        assert "minFontSize" not in update_options
-
-
 def test_activity_daily_summary_stacks_supporting_metrics():
     registry = get_cardplan_registry()
     root = registry.require_variant("ActivityOverviewFull@1", "default").root
-    supporting_metrics = next(
-        node
-        for node in reversed(_template_nodes(root, "Column"))
-        if len(node.children) == 2 and all(child.component == "Row" for child in node.children)
+    calories_guard = next(
+        child for child in root.children if child.component == "IfBind"
     )
 
+    assert calories_guard.values[0].value == "calories"
+    # 热量分支顶部区：标题行 + 数字/万步进度块。
+    header_and_progress = calories_guard.children[0]
+    assert header_and_progress.component == "Column"
+    assert [child.component for child in header_and_progress.children] == [
+        "Row",
+        "Column",
+    ]
+    number_block = header_and_progress.children[1]
+    assert [child.component for child in number_block.children] == ["Row", "Progress"]
+    supporting_metrics = calories_guard.children[1]
     assert supporting_metrics.component == "Column"
     supporting_options = _template_node_options(supporting_metrics)
     assert supporting_options["justifyContent"] == "start"
     assert supporting_options.get("alignItems", "start") == "start"
-    assert len(supporting_metrics.children) == 2
-    assert all(child.component == "Row" for child in supporting_metrics.children)
-    assert all(
-        _template_node_options(child)["alignItems"] == "center"
-        for child in supporting_metrics.children
+    assert [child.component for child in supporting_metrics.children] == [
+        "Row",
+        "IfBind",
+    ]
+    assert supporting_metrics.children[1].values[0].value == "distance"
+    assert supporting_metrics.children[1].children[0].component == "Row"
+    assert _template_node_options(supporting_metrics.children[0])["alignItems"] == "center"
+
+    # 热量缺失时按距离回退；两者都缺失时渲染 Countdown 风格的三行居中步数卡（无进度条）。
+    distance_fallback = root.children[-1]
+    assert distance_fallback.component == "IfMissingBind"
+    assert distance_fallback.values[0].value == "calories"
+    distance_guard = distance_fallback.children[0]
+    assert distance_guard.component == "IfBind"
+    assert distance_guard.values[0].value == "distance"
+    fallback_column = distance_guard.children[1]
+    assert fallback_column.component == "Column"
+    assert [child.component for child in fallback_column.children] == ["Row"]
+
+    steps_only_guard = distance_fallback.children[1]
+    assert steps_only_guard.component == "IfMissingBind"
+    assert steps_only_guard.values[0].value == "distance"
+    steps_only_card = steps_only_guard.children[0]
+    assert steps_only_card.component == "Column"
+    card_options = _template_node_options(steps_only_card)
+    assert card_options["justifyContent"] == "center"
+    assert card_options["alignItems"] == "center"
+    # 三行均为 matchParent + textAlign center 的 Text，保证步数视觉居中。
+    assert [child.component for child in steps_only_card.children] == [
+        "Text",
+        "Text",
+        "Text",
+    ]
+    assert _template_node_options(steps_only_card.children[1])["textAlign"] == "center"
+
+
+def test_activity_full_renders_metric_rows_only_when_fields_are_advertised():
+    registry = get_cardplan_registry()
+    root = registry.require_variant("ActivityOverviewFull@1", "default").root
+    theme_values = {
+        "primaryColor": "#FF401F99",
+        "supportContentColor": "#991F4799",
+        "progressColor": "#33564AF7",
+        "progressBackgroundColor": "#1F33564A",
+    }
+    binding_paths = {
+        "steps": "${data.healthSport.dailySteps}",
+        "calories": "${data.healthSport.dailyTotalCaloriesText}",
+        "distance": "${data.healthSport.dailyDistanceText}",
+    }
+
+    def instantiate(*names: str) -> Nested2Node:
+        bindings: dict[str, str] = {}
+        for name in names:
+            path = binding_paths.get(name)
+            assert path is not None
+            bindings[name] = path
+        return _instantiate_blueprint(
+            root,
+            {},
+            bindings,
+            theme_values,
+        )
+
+    def walk(node: Nested2Node) -> list[Nested2Node]:
+        nodes = [node]
+        for child in node.children:
+            nodes.extend(walk(child))
+        return nodes
+
+    def text_values(node: Nested2Node) -> tuple[str, ...]:
+        values: list[str] = []
+        for item in walk(node):
+            if item.component_type != "Text" or not item.values:
+                continue
+            value = item.values[0]
+            if isinstance(value, str):
+                values.append(value)
+        return tuple(values)
+
+    steps_only = instantiate("steps")
+    steps_only_text = text_values(steps_only)
+    # 仅步数时渲染 Countdown 风格三行居中卡：标题/步数/单位，无进度条、无原标题。
+    assert any("今日总步数" in value for value in steps_only_text)
+    assert not any("今日活动" in value for value in steps_only_text)
+    assert not any(
+        "消耗热量" in value or "运动距离" in value for value in steps_only_text
     )
+    assert not any(node.component_type == "Progress" for node in walk(steps_only))
+    steps_only_card = steps_only.children[-1]
+    assert steps_only_card.component_type == "Column"
+    assert steps_only_card.values[0]["justifyContent"] == "center"
+    assert [child.component_type for child in steps_only_card.children] == [
+        "Text",
+        "Text",
+        "Text",
+    ]
+    assert steps_only_card.children[1].values[-1]["textAlign"] == "center"
+
+    distance_only = instantiate("steps", "distance")
+    distance_only_text = text_values(distance_only)
+    assert not any("消耗热量" in value for value in distance_only_text)
+    assert any("运动距离" in value for value in distance_only_text)
+    assert any(node.component_type == "Progress" for node in walk(distance_only))
+
+    complete = instantiate("steps", "calories", "distance")
+    complete_text = text_values(complete)
+    assert any("dailyTotalCaloriesText" in value for value in complete_text)
+    assert any("消耗热量" in value for value in complete_text)
+    assert any("dailyDistanceText" in value for value in complete_text)
+    assert any("运动距离" in value for value in complete_text)
+    assert any(node.component_type == "Progress" for node in walk(complete))
 
 
 def test_workout_template_requires_one_complete_training_session():
@@ -2716,18 +2769,21 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
 def test_sport_templates_bind_progress_color_to_dedicated_theme_tokens() -> None:
     registry = get_cardplan_registry()
 
-    for template_id in (
-        "ActivityOverviewHero@1",
-        "ActivityOverviewFull@1",
+    # ActivityOverviewFull@1 仅在补充数据（热量/距离）存在时渲染进度条，
+    # 卡片语言没有 ||，因此进度条在 #if/#elseif 两个存在分支里各有一份。
+    for template_id, expected_progress in (
+        ("ActivityOverviewHero@1", 1),
+        ("ActivityOverviewFull@1", 2),
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties["color"]
-        assert color.kind == "theme"
-        assert color.name == "progressColor"
+        assert len(progress) == expected_progress
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties["color"]
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
 
 
 def test_health_sport_templates_follow_latest_display_contract() -> None:
@@ -2741,7 +2797,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "组件形态：hero。"
         ),
         "ActivityOverviewFull@1": (
-            "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，"
+            "今日活动完整摘要，展示步数与固定万步基准进度，可补充消耗热量和运动距离，"
             "可使用步数图标。 组件形态：full。"
         ),
         "SleepOverviewFull@1": (
@@ -2851,7 +2907,6 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
     registry = get_cardplan_registry()
     original_color_props = {
-        "AppUsageOverview": {"appIcon"},
         "BluetoothDeviceOverview": {
             "sourceIcon",
             "leftEarIcon",
@@ -2868,6 +2923,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     expected_themed_assets = {
         ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"),
@@ -2876,6 +2933,13 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairCompact@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleFull@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarphoneCaseHero@1", "caseIcon"),
@@ -2943,7 +3007,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 18
+    assert len(preserved_assets) == 12
     assert themed_assets == expected_themed_assets
     assert inherited_assets == expected_inherited_assets
 
@@ -3063,16 +3127,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(countdown)["justifyContent"] == "center"
     countdown_value_row = countdown.children[2]
     assert countdown_value_row.component == "Row"
-    assert _template_node_options(countdown_value_row)["justifyContent"] == "center"
-    assert len(countdown_value_row.children) == 2
-    countdown_value, transparent_unit = countdown_value_row.children
+    assert _template_node_options(countdown_value_row).get("justifyContent") == "center"
+    assert len(countdown_value_row.children) == 1
+    countdown_value = countdown_value_row.children[0]
     assert countdown_value.component == "Text"
     assert countdown_value.values[0].kind == "binding"
     assert countdown_value.values[0].name == "days"
-    assert transparent_unit.component == "Text"
-    assert transparent_unit.values[0].value == "天"
-    assert _template_node_options(transparent_unit)["fontSize"] == 8
-    assert _template_node_options(transparent_unit)["fontColor"] == "#00000000"
     visible_unit = countdown.children[3]
     assert visible_unit.component == "Text"
     assert visible_unit.values[0].value == "天"
@@ -3080,14 +3140,6 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     visible_unit_color = visible_unit.values[-1].properties["fontColor"]
     assert visible_unit_color.kind == "theme"
     assert visible_unit_color.name == "supportContentColor"
-
-    app_usage = registry.require_variant("AppUsageOverviewFull@1", "default").root
-    assert _template_node_options(app_usage)["justifyContent"] == "start"
-    updated_at_branch = app_usage.children[1]
-    assert updated_at_branch.component == "IfBind"
-    updated_at_region = updated_at_branch.children[0]
-    assert _template_node_options(updated_at_region)["justifyContent"] == "end"
-    assert _template_node_options(updated_at_region)["itemMargin"] == 4
 
     battery = registry.require_variant("BatteryOverviewFull@1", "default").root
     battery_support_color = battery.children[1].values[-1].properties["fontColor"]
@@ -3128,14 +3180,15 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         _template_node_options(node) for node in _template_nodes(activity, "Text")
     ]
     assert all(options.get("fontColor") != "#E6000000" for options in activity_text_options)
-    assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 2
+    # 距离文本在 calories 主分支与 #else 距离兜底分支各出现一次。
+    assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 3
 
 
 def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 22
+    assert len(calendar.local_template_ids) == 25
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -3215,6 +3268,7 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewCompact@1",
         "BatteryOverviewHealthLevelHero@1",
         "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewPercentLevelHero@1",
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BatteryOverviewChargingRingHero@1",
@@ -3235,7 +3289,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
     registry = get_cardplan_registry()
     expected_supports = {
         "ActivityOverview": "ActivityOverviewSupport@1",
-        "AppUsageOverview": "AppUsageOverviewSupport@1",
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
@@ -3979,138 +4032,13 @@ def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
 
 
 @pytest.mark.asyncio
-async def test_derived_parameter_source_field_is_counted_as_template_coverage():
-    def field(value: str) -> dict[str, Any]:
-        return {
-            "type": "string",
-            "description": "trusted app usage field",
-            "sampleValue": value,
-        }
-
-    registry = get_cardplan_registry()
-    task_spec = TaskSpec(
-        userQuery="帮我做个应用时长卡片，可以查看抖音应用用了多久",
-        size="2x2",
-        eventCandidates=[],
-        assetCandidates=[],
-        dataModelSchema={
-            "data": {
-                "appUsageStats": {
-                    "appUsage": {
-                        "appName": field("示例应用"),
-                        "durationText": field("1小时20分钟"),
-                    }
-                }
-            }
-        },
-    )
-    task_spec = apply_content_selectors(task_spec, {"GetAppUsageDuration"})
-    assert app_usage_overview_is_eligible(task_spec, {"GetAppUsageDuration"})
-    for query in (
-        "帮我做个防沉迷卡片，看看抖音应用今天用了多久",
-        "帮我做个应用时长卡片，可以查看抖音应用用了多久",
-        "帮我做个应用时长卡片，可以查看抖音今天用了多久",
-    ):
-        assert app_usage_overview_is_eligible(
-            task_spec.model_copy(update={"userQuery": query}),
-            {"GetAppUsageDuration"},
-        )
-    binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
-        candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
-        ],
-    )
-    scope = AdvancedScopeBrief(
-        themeId="digital-wellbeing-neutral-dark",
-        advancedComponentIds=["AppUsageOverview"],
-    )
-    card_spec = {
-        "title": "应用时长",
-        "description": "今日使用情况",
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetAppUsageDuration",
-                "arguments": {},
-                "writeResultTo": "/data/appUsageStats",
-            }
-        ],
-    }
-
-    validate_template_request_coverage(
-        scope,
-        task_spec,
-        registry,
-        (binding,),
-        card_spec,
-    )
-
-    class AppUsageTemplateModel:
-        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
-                    ]
-                },
-                "action": None,
-            }
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{}));'
-            )
-
-    output = await generate_template_a2ui(
-        task_spec,
-        card_spec,
-        (binding,),
-        AppUsageTemplateModel(),
-    )
-    projected_data = output.projected_task_spec.dataModelSchema["data"]
-    assert "AppUsageOverview" not in projected_data
-    assert "_templateProjection" not in output.tersel
-    assert "_advancedSelectors" not in output.tersel
-    assert projected_data["appUsageStats"]["appUsage"]["durationText"]["sampleValue"] == (
-        "1小时20分钟"
-    )
-    assert "data = " in output.tersel
-    messages = [json.loads(line) for line in output.a2ui.splitlines()]
-    components = messages[1]["updateComponents"]["components"]
-    component_source = json.dumps(components, ensure_ascii=False)
-    duration_path = "/data/appUsageStats/appUsage/durationText"
-    assert f"${{{duration_path}}}" in component_source
-    assert "_templateProjection" not in component_source
-    runtime_data = {
-        "data": {
-            "appUsageStats": {
-                "appUsage": {
-                    "appName": "示例应用",
-                    "durationText": "2小时5分钟",
-                }
-            }
-        }
-    }
-    runtime_value: Any = runtime_data
-    for part in duration_path.removeprefix("/").split("/"):
-        runtime_value = runtime_value[part]
-    assert runtime_value == "2小时5分钟"
-    assert "/updatedAt" not in output.a2ui
-
-
-@pytest.mark.asyncio
 async def test_optional_empty_template_asset_is_omitted_before_expansion():
     binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
         candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
+            "/current/temperatureText",
+            "/current/condition",
         ],
     )
 
@@ -4118,9 +4046,9 @@ async def test_optional_empty_template_asset_is_omitted_before_expansion():
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
                 "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
+                    "ViewWeather": [
+                        "/current/temperatureText",
+                        "/current/condition",
                     ]
                 },
                 "action": None,
@@ -4129,17 +4057,30 @@ async def test_optional_empty_template_asset_is_omitted_before_expansion():
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{"appIcon":""}));'
+                'Template("WeatherOverviewFull@1",{"conditionIcon":""}));'
             )
 
     output = await generate_template_a2ui(
-        _app_usage_task_spec(),
-        _app_usage_card_spec(),
+        _weather_task_spec(),
+        _weather_card_spec(),
         (binding,),
         EmptyOptionalAssetModel(),
     )
 
     assert '"src":""' not in output.a2ui.replace(" ", "")
+    # 可选素材省略后仍保留真实动态路径，不把样例值固化到组件。
+    assert "${/data/weather/current/temperatureText}" in output.a2ui
+    assert "_templateProjection" not in output.tersel
+    assert "_advancedSelectors" not in output.tersel
+    data = output.projected_task_spec.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    weather = data.get("weather")
+    assert isinstance(weather, dict)
+    current = weather.get("current")
+    assert isinstance(current, dict)
+    temperature = current.get("temperatureText")
+    assert isinstance(temperature, dict)
+    assert temperature.get("sampleValue") == "29°C"
 
 
 def test_placeholder_app_name_still_rejects_an_obvious_multi_app_query():
@@ -5851,9 +5792,9 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
         "fusionBallBackground",
         "template_root",
     ]
-    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
-    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF1F9985"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF24B3B3"
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF5AB38E"
     assert components["template_root"]["children"] == [
         "__genui_render_component__template_root"
     ]
@@ -6153,7 +6094,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFB33024",
+        "fusionBallLarge": "#FFF24131",
         "fusionBallMedium": "#FFFF8833",
         "fusionBallSmall": "#FFE68073",
     }
@@ -6270,11 +6211,11 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             if selector == "llm":
                 assert phase == "template-route-decision"
                 return {
-                    "theme": "digital-wellbeing-neutral-dark",
+                    "theme": "family-weather-care-blue",
                     "componentCandidates": [
                         {
-                            "componentId": "AppUsageOverview",
-                            "availableTemplateIds": ["AppUsageOverviewFull@1"],
+                            "componentId": "WeatherOverview",
+                            "availableTemplateIds": ["WeatherOverviewFull@1"],
                         }
                     ],
                     "action": [],
@@ -6282,9 +6223,9 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             assert phase == "template-retrieval-query"
             return {
                 "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": [
-                        "/appUsage/appName",
-                        "/appUsage/durationText",
+                    "ViewWeather": [
+                        "/current/temperatureText",
+                        "/current/condition",
                     ]
                 },
                 "action": [],
@@ -6299,7 +6240,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
             self.second_layer_prompt = prompt
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("AppUsageOverviewFull@1",{}));'
+                'Template("WeatherOverviewFull@1",{}));'
             )
 
     controls = TemplateControls(
@@ -6308,18 +6249,18 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
     )
     monkeypatch.setattr(template_pipeline_module, "load_template_controls", lambda: controls)
     binding = CandidateDataBinding(
-        capabilityId="GetAppUsageDuration",
-        writeResultTo="/data/appUsageStats",
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
         candidateOutputFields=[
-            "/appUsage/appName",
-            "/appUsage/durationText",
+            "/current/temperatureText",
+            "/current/condition",
         ],
     )
     model = FusionDisabledModel()
 
     output = await generate_template_a2ui(
-        _app_usage_task_spec(),
-        _app_usage_card_spec(),
+        _weather_task_spec(),
+        _weather_card_spec(),
         (binding,),
         model,
         enable_fusion_ball=False,
@@ -6632,47 +6573,6 @@ def _weather_task_spec() -> TaskSpec:
     )
 
 
-def _app_usage_task_spec() -> TaskSpec:
-    def field(value: str) -> dict[str, Any]:
-        return {
-            "type": "string",
-            "description": "trusted app usage field",
-            "sampleValue": value,
-        }
-
-    return TaskSpec(
-        userQuery="查看应用今日使用时长",
-        size="2x2",
-        eventCandidates=[],
-        assetCandidates=[],
-        dataModelSchema={
-            "data": {
-                "appUsageStats": {
-                    "appUsage": {
-                        "appName": field("示例应用"),
-                        "durationText": field("1小时20分钟"),
-                    }
-                }
-            }
-        },
-    )
-
-
-def _app_usage_card_spec() -> dict[str, Any]:
-    return {
-        "title": "应用时长",
-        "description": "今日使用情况",
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetAppUsageDuration",
-                "arguments": {},
-                "writeResultTo": "/data/appUsageStats",
-            }
-        ],
-    }
-
-
 def _weather_card_spec() -> dict[str, Any]:
     return {
         "title": "今日天气",
@@ -6928,6 +6828,11 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert model.body_called is True
     assert model.first_layer_prompt is not None
     assert model.second_layer_prompt is not None
+    first_layer_system = model.first_layer_prompt[0]["content"]
+    assert "天气卡片的默认基础展示字段" in first_layer_system
+    assert "/location/prefectureName、/current/temperatureText 和/current/condition" in (
+        first_layer_system
+    )
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user
     candidate_line = next(
@@ -7130,7 +7035,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     )
 
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
-        "radius": 120
+        "radius": 210
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert "linearGradient" not in components[content_id]["styles"]
