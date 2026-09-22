@@ -40,6 +40,15 @@ def test_stack_allows_provably_mutually_exclusive_visibility_branches() -> None:
     assert not reporter.has_code("LAYOUT.STACK_CONTENT_FLOW")
 
 
+def test_stack_does_not_merge_whitespace_inside_visibility_string_literals() -> None:
+    first = "{{ ${/status} == 'a b' ? 'visible' : 'none' }}"
+    second = "{{ ${/status} == 'a  b' ? 'none' : 'visible' }}"
+
+    reporter = _validate([_text("first", first), _text("second", second)])
+
+    assert reporter.has_code("LAYOUT.STACK_CONTENT_FLOW")
+
+
 def test_stack_checks_checkbox_labels_for_overlapping_text_content() -> None:
     checkbox_a = {
         "id": "first",

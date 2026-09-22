@@ -71,7 +71,8 @@ def _visibility_branch(component: dict[str, Any]) -> tuple[str, bool] | None:
     when_false = match.group("when_false")
     if when_true == when_false:
         return None
-    condition = " ".join(match.group("condition").split())
+    # 只能去除表达式首尾的匹配空白，保留字符串字面量中的空白。
+    condition = match.group("condition").strip()
     return condition, when_true == "visible"
 
 
