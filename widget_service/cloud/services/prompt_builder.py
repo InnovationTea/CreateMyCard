@@ -1138,14 +1138,12 @@ class PromptBuilder:
             return False
         if PromptBuilder._two_by_four_metric_grid_count(task_spec) >= 4:
             return False
+        candidate_count = len(task_spec.eventCandidates)
 
         if len(roots) == 1:
             root_value = next(iter(data_schema.values()))
             leaf_count = PromptBuilder._schema_leaf_count(root_value)
             field_names = PromptBuilder._schema_field_names(root_value)
-            explicit_action = bool(task_spec.eventCandidates) and (
-                PromptBuilder._query_requests_action(task_spec)
-            )
             if "healthsport" in normalized_roots:
                 return PromptBuilder._schema_leaf_count(data_schema) >= 4
             if "phonebattery" in normalized_roots:
@@ -1156,9 +1154,7 @@ class PromptBuilder:
                 has_paired_charging = any(
                     "leftcharging" in name for name in field_names
                 ) and any("rightcharging" in name for name in field_names)
-                has_two_requested_actions = (
-                    explicit_action and len(task_spec.eventCandidates) >= 2
-                )
+                has_two_requested_actions = candidate_count >= 2
                 return (
                     leaf_count >= 6
                     or (
@@ -1168,7 +1164,7 @@ class PromptBuilder:
                 )
             if "calendar" in normalized_roots:
                 has_reminder = any("remind" in name for name in field_names)
-                return explicit_action and leaf_count >= 4 and has_reminder
+                return candidate_count > 0 and leaf_count >= 4 and has_reminder
             if "weather" in normalized_roots:
                 advisory_groups = (
                     ("alert", "warning"),
@@ -1185,7 +1181,11 @@ class PromptBuilder:
                             break
                     if group_matches:
                         advisory_count += 1
-                return explicit_action and leaf_count >= 4 and advisory_count >= 2
+                return (
+                    candidate_count > 0
+                    and leaf_count >= 4
+                    and advisory_count >= 2
+                )
             return False
 
         supported = normalized_roots == {"calendar", "phonebattery"} or (
@@ -1194,9 +1194,6 @@ class PromptBuilder:
         if supported and PromptBuilder._schema_leaf_count(data_schema) >= 3:
             return True
 
-        explicit_action = bool(task_spec.eventCandidates) and (
-            PromptBuilder._query_requests_action(task_spec)
-        )
         if normalized_roots == {"phonebattery", "earphone"}:
             earphone_schema = None
             for root_name, root_value in data_schema.items():
@@ -1204,7 +1201,7 @@ class PromptBuilder:
                     earphone_schema = root_value
                     break
             if (
-                explicit_action
+                candidate_count > 0
                 and earphone_schema is not None
                 and PromptBuilder._schema_leaf_count(earphone_schema) >= 4
             ):
