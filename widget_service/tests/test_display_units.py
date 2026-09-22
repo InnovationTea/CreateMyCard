@@ -243,7 +243,7 @@ def test_invalid_template_marker_keeps_missing_display_unit_check(
 
 @pytest.mark.parametrize("unit_included", [False, True])
 @pytest.mark.parametrize("fusion", [False, True])
-def test_valid_template_still_reports_duplicate_display_units(
+def test_valid_template_skips_duplicate_display_units(
     unit_included: bool, fusion: bool,
 ) -> None:
     reporter = validate_card(artifact={
@@ -254,7 +254,7 @@ def test_valid_template_still_reports_duplicate_display_units(
         },
     })
 
-    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
+    assert not reporter.has_code("DISPLAY_UNIT_DUPLICATED")
 
 
 def test_validator_reports_duplicate_unit_for_formatted_text():

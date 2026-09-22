@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -20,6 +21,7 @@ from services.compact_dsl_a2ui_converter import (
 
 from .compact_dual_action_validator import collect_dual_action_errors
 
+_LOGGER = logging.getLogger(__name__)
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
 _STRING_LITERAL_PATTERN = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
@@ -164,13 +166,16 @@ def validate_compact_dsl(
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
 ) -> CompactDslValidationResult:
-    """Validate expressions, first-frame data, and TaskSpec data boundaries."""
+    """模板解析后直接返回；普通卡片校验表达式、首帧数据及 TaskSpec 边界。"""
     try:
         rows = parse_compact_dsl_rows(compact_dsl)
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
 
     components = [row for row in rows if isinstance(row, ComponentRow)]
+    if _has_template_root(components):
+        _LOGGER.info("card_validation_skipped reason=template_root entry=validate_compact_dsl")
+        return CompactDslValidationResult()
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
@@ -257,6 +262,15 @@ def _collect_asset_source_errors(
                 )
 
 
+def _has_template_root(components: list[ComponentRow]) -> bool:
+    """只识别无重复 ID 且由 root 直接引用的精确模板根标记。"""
+    components_by_id = {component.component_id: component for component in components}
+    if len(components_by_id) != len(components) or "template_root" not in components_by_id:
+        return False
+    root = components_by_id.get("root")
+    return root is not None and "template_root" in root.children
+
+
 def _collect_hero_value_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
@@ -265,11 +279,8 @@ def _collect_hero_value_errors(
     components_by_id = {
         component.component_id: component for component in components
     }
-    # 与质量阶段使用相同的有效模板根标记，仅豁免主文字校验。
-    if len(components_by_id) == len(components) and "template_root" in components_by_id:
-        root = components_by_id.get("root")
-        if root is not None and "template_root" in root.children:
-            return
+    if _has_template_root(components):
+        return
     data_model_schema = task_spec.get("dataModelSchema")
     if not isinstance(data_model_schema, dict):
         return

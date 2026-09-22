@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""验证模板主文字豁免边界，以及普通生成和其它 Compact 检查保持生效。"""
+"""验证模板主文字豁免边界，以及公共入口跳过模板规则、保留普通生成校验。"""
 
 import json
 from typing import Any
@@ -117,7 +117,10 @@ def test_template_skips_adjacent_numeric_label_check() -> None:
     ("binding", "not declared"),
     ("empty", "non-empty"),
 ])
-def test_template_keeps_other_compact_validations(change: str, message: str) -> None:
+@pytest.mark.parametrize("template", [True, False])
+def test_compact_rules_only_run_without_template_marker(
+    change: str, message: str, template: bool,
+) -> None:
     rows, spec = _fixture()
     if change == "height":
         rows[3].props["height"] = 200
@@ -125,10 +128,18 @@ def test_template_keeps_other_compact_validations(change: str, message: str) -> 
         rows[3].props["content"] = {"path": "/data/unknown/value"}
     else:
         rows[2] = ComponentRow("reading", "Column", {}, ())
-    with pytest.raises(CompactDslValidationError, match=message):
-        validate_compact_dsl(
+    if template:
+        result = validate_compact_dsl(
             _source(rows), task_spec=spec, card_spec={"suggestSize": "2x2"}
         )
+        assert result.warnings == ()
+    else:
+        rows[0] = ComponentRow("root", "Stack", rows[0].props, ("content",))
+        rows[1] = ComponentRow("content", "Column", rows[1].props, ("reading",))
+        with pytest.raises(CompactDslValidationError, match=message):
+            validate_compact_dsl(
+                _source(rows), task_spec=spec, card_spec={"suggestSize": "2x2"}
+            )
 
 
 @pytest.mark.parametrize("change", [
