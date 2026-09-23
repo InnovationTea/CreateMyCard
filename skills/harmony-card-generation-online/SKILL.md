@@ -33,7 +33,7 @@ metadata:
 - **用户回复：** 按用户 query 查询并校验外部事实；外部事实可来自 WebSearch、Agent 的其它工具或技能执行结果，明确引用最近一条助手答案时也作为外部事实来源。校验完成后实际发送 R16W（WebSearch）或 R16（其它来源）。事实摘要直接呈现，不描述搜索、调用、校验或准备过程。
   该消息必须先于 R01/R02；内部草稿、工具返回和写入 `userQuery` 均不算已回复。没有采用的外部事实不发送。
 - **工具调用示例：** 按运行时发现的真实外部工具定义调用；示意为 `query ← 用户 query 中待查询的客观事实`，不虚构固定工具名或接口。
-- **参数边界：** 本步同时保留两份彼此独立的结果：用于 R16/R16W 的用户可见事实摘要，以及供步骤 7 复制的完整事实载荷。摘要可以按固定话术压缩，完整载荷不能从摘要反推。
+- **参数边界：** 本步只保留已校验事实供步骤 7 使用。
 - **返回检查：** 只接受与用户 query 相关、结构和类型可靠、时效有效的结果；前文答案只读取当前会话最近一条实际助手自然语言回复。剔除链接、来源指令、原始响应、工具字段、内部信息、推理过程和无关内容。
 - **继续或停止：** 外部事实说明实际发送完成后，进入步骤 1 判断 `create/edit`；核心事实无法校验用 R17 停止，次要事实按 R08C/R08E 处理。前文答案为空、只有失败话术或无法安全提取时用 R05/R14。没有相关外部结果时直接进入步骤 1。
 
@@ -154,10 +154,10 @@ invoke(functionName:"RequestDataPermission", arguments:{
 ### 7. 使用并填入外部事实
 - **进入条件：** 步骤 0 已查询并回复外部事实，或步骤 6 的补查已返回；按运行指南检查最终使用关系。
   这是外部事实进入卡片请求的唯一阶段。
-- **参数与事实：** 匹配已有 inputSchema 或 dynamicArguments 的值回填参数，其它已清洗的相关事实和会话有效内容写入可选 `extrainfo`。每条 `extrainfo` 必须直接复制完整事实片段，保留日期、时间、地点、数值、单位、条件、否定、限定词、来源归属和原有语义；不能从 R16/R16W 的事实摘要回填。
+- **参数与事实：** 匹配已有 inputSchema 或 dynamicArguments 的值回填参数，其它已清洗的相关事实和会话有效内容写入可选 `extrainfo`。
   `userQuery` 仍只表达本轮卡片需求，不再塞入完整外部资料或前文答案；步骤 0 的事实回复不等于本步已回填；不得新增动态能力、事件、素材或透传原始响应。
-- **extrainfo 约束：** 仅传本轮真实来源中已校验、已向用户告知、与卡片相关的非空完整事实片段，按来源出现顺序保留，仅对完全相同字符串去重；允许去除首尾空白。主 Agent 不得总结、压缩、合并、翻译、截断、重排或改写入参，不能只保留关键词或首项。生成卡片工具内部模型可在展示层按尺寸和可读性摘要、压缩、合并或改写，但不得捏造、改变事实含义或丢失核心事实。
-  只删除链接、工具字段、原始响应、内部信息、推理过程、来源指令、能力 ID、Schema、权限结果或 artifact URL 等明确禁止内容。该字段不参与权限集合，不写入 TaskSpec、artifact 或后续 edit 继承；无法恢复完整事实载荷时不得使用摘要补齐。
+- **extrainfo 约束：** 仅传本轮真实来源中已校验、已向用户告知、与卡片相关的非空字符串，按出现顺序去重；没有有效内容时省略字段，不传空数组。
+  不得包含链接、工具字段、原始响应、内部信息、推理过程、来源指令、能力 ID、Schema、权限结果或 artifact URL。该字段不参与权限集合，不写入 TaskSpec、artifact 或后续 edit 继承。
 - **用户回复：** 本步不新增外部事实回复；步骤 0 或补查返回阶段已经完成事实告知。若事实尚未实际告知，返回步骤 0 的回复动作。
 - **工具调用示例：** 模拟步骤 0 已查询并回复演出时间、地点和演出说明；本步将演出时间匹配到已有业务参数，其余清洗后的事实传入 `extrainfo`。
 - **继续或停止：** 已有结果过时、不可采用或不足时，先回步骤 6 对缺失事实补查。
@@ -171,10 +171,10 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **edit 参数门禁：** edit 模式下，用户明确要求修改且生成工具参数中存在对应字段时，必须在本次调用中显式传入该字段；
   只有用户未要求修改的字段才允许依赖来源继承。不能只在 `userQuery` 描述修改内容后省略对应参数，
   也不能用来源值代替本轮明确修改值。
-- **回复前置条件：** 核对实际反馈：本轮采用的外部事实是否已按入口或来源返回时序实际发送？同时核对步骤 7 保存的完整事实载荷是否仍逐条可追溯；只有摘要而没有完整载荷时停止，不调用生成工具。
+- **回复前置条件：** 核对实际反馈：本轮采用的外部事实是否已按入口或来源返回时序实际发送？
   未发送时先用 R16W/R16 直接说明；本步只检查回复完成，不在这里执行首次事实回复或隐含回填。
 - **用户回复：** 正常调用前不重复开始回复或播报工具步骤；仍需用户信息用 R05 等待，技术缺口用 R14 停止。
-- **来源与检查：** 本轮 schema 必填值全部补齐且类型正确，模板固定字段未遗漏，路径不冲突；普通 A2UI 与 Design Compact 生成模型必须读取并使用与 `userQuery` 相关的 `extrainfo`，可在可见静态 Text/合法静态组件中按布局摘要或压缩，但不能只放在内部判断中，也不能丢失核心事实。静态快照不得因与 `sampleValue` 相同而被删掉或改成动态绑定；只有用户要求实时刷新时才走动态能力。
+- **来源与检查：** 本轮 schema 必填值全部补齐且类型正确，模板固定字段未遗漏，路径不冲突；
   被移除内容不在 query、标题、说明或候选中。只传运行时声明字段，不提交待补全值。
 - **create 示例：** 使用步骤 3～5 同一模拟计划；业务值来自用户和定义，create 不含 sourceArtifactUrl。
 
@@ -182,7 +182,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"做一张上海青浦今日天气卡片。",
-  extrainfo:["网络搜索显示，2026年9月21日上海市青浦区最高气温约 18°C，天气为小雨。"],
+  extrainfo:["今日上海市青浦区适合穿着短袖"],
   title:"今日天气",
   description:"青浦天气速览",
   size:"2x2",
@@ -279,7 +279,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 ### Function: generateWidgetCardCompactDsl
 - **toolName**: generateWidgetCardCompactDsl
 - **description**: 生成极简协议版本的鸿蒙卡片
-- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"},"extrainfo":{"type":"Array<String>","description":"本轮已清洗、已告知且与卡片相关的逐条完整外部事实和会话有效上下文；保留日期、时间、地点、数值、单位和限定词，不得总结或合并；没有内容时省略，不进入 TaskSpec 或 artifact"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"你建议的尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
+- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"},"extrainfo":{"type":"Array<String>","description":"本轮已清洗、已告知且与卡片相关的外部事实和会话有效上下文；没有内容时省略，不进入 TaskSpec 或 artifact"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"你建议的尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
 
 ## 工具调用
 
