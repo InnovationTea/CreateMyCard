@@ -64,6 +64,7 @@ class DslProcessingContext:
     design_profile_id: str | None = None
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
+    skip_compact_dsl_validation: bool = False
 
 
 @dataclass(frozen=True)
@@ -137,14 +138,20 @@ class DesignCompactProcessor:
             report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
-        try:
-            validation_result = validate_compact_dsl(
-                source_dsl,
-                task_spec=context.task_spec,
-                card_spec=context.card_spec,
-            )
-        except CompactDslValidationError as exc:
-            return self._validation_failure(source_dsl, exc.errors)
+        if not context.skip_compact_dsl_validation:
+            try:
+                validation_result = validate_compact_dsl(
+                    source_dsl,
+                    task_spec=context.task_spec,
+                    card_spec=context.card_spec,
+                )
+            except CompactDslValidationError as exc:
+                return self._validation_failure(source_dsl, exc.errors)
+        else:
+            # Template output intentionally bypasses the general Compact DSL
+            # semantic rules. The converter keeps structural checks, and the
+            # generated artifact is still checked by ArtifactValidator.
+            validation_result = None
 
         try:
             design_profile_id = context.design_profile_id or "design-compact-dsl"
@@ -169,7 +176,7 @@ class DesignCompactProcessor:
                     message=message,
                     severity="warning",
                 )
-                for message in validation_result.warnings
+                for message in (validation_result.warnings if validation_result else ())
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,

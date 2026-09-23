@@ -606,10 +606,12 @@ class WidgetGenerationService:
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
+        source_generated_by_template = False
 
         async def generate_source_dsl() -> str:
-            nonlocal source_generated_by_jsx
+            nonlocal source_generated_by_jsx, source_generated_by_template
             source_generated_by_jsx = False
+            source_generated_by_template = False
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
@@ -624,7 +626,9 @@ class WidgetGenerationService:
                         tuple(effective_bindings),
                     )
                     report_ops_metrics(body={"templateProposal": 1})
-                    return require_generated_dsl(result)
+                    generated_dsl = require_generated_dsl(result)
+                    source_generated_by_template = True
+                    return generated_dsl
                 except Exception as exc:
                     fallback = (
                         "jsx"
@@ -735,7 +739,14 @@ class WidgetGenerationService:
                     standard_dsl=asset_mapper.rewrite_standard(source_dsl),
                 )
                 return []
-            processing_result = processor.process(source_dsl, processing_context)
+            processing_context_for_source = replace(
+                processing_context,
+                skip_compact_dsl_validation=source_generated_by_template,
+            )
+            processing_result = processor.process(
+                source_dsl,
+                processing_context_for_source,
+            )
             if not processing_result.errors:
                 try:
                     processing_result = replace(
