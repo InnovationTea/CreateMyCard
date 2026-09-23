@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "66267bc8a482279b787f632361cf14011b329eb93dc48206eacbdcf7debc568c",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"action\":[\"event.setPowerSavingMode\"],\"allowBatterySettingsFallback\":false}"
+      "key": "a06ddf5d10163c7db6ace4997e1b397504f5829c9db524d426694560f9625098",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.setPowerSavingMode\"],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
     },
     {
       "key": "c4d50638169f462b1b60fd18b4fdb06a1d1e29832c3467ef6cdfb053b0f84d8f",
