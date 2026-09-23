@@ -138,7 +138,7 @@ def test_new_variant_does_not_relax_required_data_or_controls(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("kind", [
-    "health", "level", "charging", "health-temperature", "charging-level",
+    "health", "level", "charging", "health-temperature", "charging-level", "charging-only-hero",
     "temperature-only", "temperature-level", "temperature-charging", "temperature-all",
 ])
 @pytest.mark.parametrize("fusion", [False, True])
@@ -156,6 +156,9 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     if kind == "health-temperature":
         fields = ("/healthStatusDesc", "/batteryTemperatureText")
         template = "BatteryOverviewHealthTemperatureHero@1"
+    if kind == "charging-only-hero":
+        fields = ("/batterySOCText", "/chargingStatusDesc")
+        template = "BatteryOverviewChargingProgressHero@1"
     if kind == "charging-level":
         fields = (*_LEVEL_FIELDS, "/chargingStatusDesc")
         template = "BatteryOverviewChargingProgressHero@1"
@@ -214,6 +217,19 @@ async def test_cases_compile_and_pass_the_production_font_validator(
         assert "batteryCapacityLevelDesc" in output.a2ui
         assert '"Progress"' not in output.a2ui
         assert "chargingStatusDesc" not in output.a2ui
+    singleton_labels = {
+        "charging-only-hero": "状态：",
+        "level": "电量等级：",
+        "temperature-only": "电池温度：",
+    }
+    expected_label = singleton_labels.get(kind)
+    if expected_label is not None:
+        assert expected_label in output.a2ui
+        assert " · " not in output.a2ui
+    if kind in {"charging-level", "temperature-level", "temperature-charging", "temperature-all"}:
+        assert " · " in output.a2ui
+        for singleton_label in singleton_labels.values():
+            assert singleton_label not in output.a2ui
     assert case.intent.required_output_fields_by_capability == {_CAPABILITY: fields}
 
 
