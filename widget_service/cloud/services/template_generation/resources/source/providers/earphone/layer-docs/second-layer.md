@@ -3,9 +3,7 @@
 - Provider：`com.huawei.earphone.cli`；业务领域为 `BluetoothDeviceOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
-  - `BluetoothDeviceOverviewEarbudTripleFull@1`：固定小标题“蓝牙耳机”、大字耳机名称，左右耳与盒电量；
-    不要求连接状态；用于无动作 SingleFocusLayout，盒与左右耳图标可选。
-  - `BluetoothDeviceOverviewEarbudTripleHero@1`：耳机名称、三处电量和充电状态；从左到右为左耳、右耳、盒，
+  - `BluetoothDeviceOverviewEarbudTripleHero@1`：耳机名称与三处电量必需；三项充电状态可选，全部提供时显示第三行，否则只显示图标和电量两行；从左到右为左耳、右耳、盒，
     每列从上到下依次为图标、电量、对应充电状态，间距分别4vp、2vp；图标可选，缺失显示左/右/盒；
     用于 HeroActionLayout 搭配一个 PillAction，不使用角落 IconAction。
   - `BluetoothDeviceOverviewEarbudPairHero@1`：主行展示耳机名称，下方 12px 左右图标与 10fp 电量百分比并排；
@@ -32,8 +30,8 @@
     可选；用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarphoneCompact@1`：展示耳机电量和耳机名称文本；`earphoneIcon`
     可选；用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
-  - `BluetoothDeviceOverviewEarbudPairFull@1`：展示连接状态、设备名、盒电量和左右耳电量；盒与左右耳
-    图标均可选；左右耳与盒充电状态为可选字段，三个字段齐全时才在电量下同时增加状态层，缺任意字段则整层隐藏；用于无 Action 的 Full，或搭配一个 `IconAction@1`。
+  - `BluetoothDeviceOverviewEarbudPairFull@1`：展示盒电量和左右耳电量；名称、连接状态可选，同时存在时名称作小标题、连接状态作主文字，只有一项时小标题用“蓝牙耳机”、主文字用已有项；盒与左右耳
+    图标均可选；左右耳与盒充电状态为可选字段，三个字段齐全时才在电量下同时增加状态层，缺任意字段则整层隐藏；用于无 Action 的 Full，或按现有布局规则搭配一个 `IconAction@1`。
   - `BluetoothDeviceOverviewEarbudPairCompact@1`：展示设备名和左右耳电量，左右耳图标可选；用于
     `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsPhoneWideFull@1`、

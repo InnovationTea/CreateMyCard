@@ -41,6 +41,10 @@ from services.template_generation.engine.cardplan.calendar_action_policy import 
     resolve_calendar_view_fallback,
 )
 from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
+from services.template_generation.engine.cardplan.earphone_action_policy import (
+    resolve_earphone_candidate_actions,
+    restrict_earphone_action_role,
+)
 from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
     TemplatePlan,
@@ -210,6 +214,15 @@ async def generate_template_a2ui(
                     f"{_MODULE} battery_settings_fallback selected=True reason=hero_without_full"
                 )
             intent = resolved_intent
+            if not trusted_template_action_ids:
+                resolved_earphone_intent = resolve_earphone_candidate_actions(
+                    intent, search_result, selected_task_spec, registry,
+                )
+                if resolved_earphone_intent.action_ids != intent.action_ids:
+                    search_result = restrict_earphone_action_role(
+                        search_result, len(resolved_earphone_intent.action_ids),
+                    )
+                intent = resolved_earphone_intent
             template_plans = plan_template_candidates(
                 intent,
                 search_result,

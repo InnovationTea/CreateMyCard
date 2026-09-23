@@ -20,7 +20,7 @@
    Hero 字段匹配但没有合法动作可选，不算可用。自动补动作严格遵守下方规则，不能凭空创造按钮。
 4. 满足明确需求的合理解释中，优先选择存在完整模板方案的一种。不得坚持某个模糊解释而回退，
    同时忽略其它同样合理且可用的解释。所有合理方案都不可用时才保留真实需求并允许报告未命中。
-5. 多个完整方案同样合理时，依次优先：不额外补动作、模板强制附带的非核心字段更少、
+5. 多个完整方案同样合理时，服务端按候选动作数量选择布局；再比较模板强制附带的非核心字段更少、
    所选辅助字段更少；仍并列按当前模板 ID 字典序。候选字段齐全本身不构成展示要求。
    不因模板需要某字段就将其抬升为用户明确需求；模板可以正常展示自身已有的必要辅助内容。
 
@@ -32,13 +32,10 @@
 - “必须显示耳机盒电量和充电状态，不要按钮”：保留 `/batteryLevel`、`/chargingStatusDesc`，
   action=[]；若没有可覆盖的 Full，允许未命中，不能套用上一例改成左右耳。
 - “显示耳机电量和连接状态”：连接状态是明确目标，必须保留；只对未指定的电量部位比较可用方案。
-- “耳机盒电量和充电状态”，Full 不可用、仓 Hero 可用且有蓝牙设置候选、未禁止按钮：
-  保留仓的两项需求，按下方规则补一个蓝牙设置动作；不能因为左右耳 Full 可用就改变明确部位。
-
 ### 三处电量的独立需求
 
 用户明确要查看左耳、右耳、耳机盒三处电量时，保留三个电量字段，不按普通概览枚举省略仓电量。
-没有动作时可用 EarbudTripleFull，无需连接状态；小标题固定，大字显示耳机名称。
+没有动作时可用 EarbudPairFull；名称、连接状态均可选。只有一项时小标题固定“蓝牙耳机”，大字显示已有项；两项都有时小标题显示名称，大字显示连接状态。
 明确有一个歌单等动作且要求三处电量与充电状态时，保留三个电量和三个充电状态字段，
 使用 EarbudTripleHero 覆盖，动作保持原有一个，不能追加蓝牙设置或改为角落图标按钮。
 这条只适用于明确的三处电量需求；候选字段齐全本身不触发，不改变仅左右耳或仅仓的选择。
@@ -49,15 +46,7 @@
 `/batteryLevel`、`/chargingStatusDesc`，不能只输出字段就结束，必须继续完成后面的动作决策。
 即使输入还提供名称、左右耳电量、左右耳充电状态，也不能转成左右耳概览。
 `EarbudsFull` 不展示仓字段；`EarbudPairFull` 仅在自身必需字段和左耳、右耳、仓三项充电状态全部可用时展示完整充电状态层，不能仅因为有左右耳电量候选就认为 Full 可用。
-以本轮启用模板参考为准；无可用 Full、仓 Hero 可用且候选包含蓝牙设置、用户未要求或禁止动作时，
-输出一个蓝牙设置动作。此条件下 `action=[]` 是遗漏，不是遵从“用户没要求操作”。
-
-同一仓电量需求的输出对照（均以本轮实际候选和启用模板为前提）：
-- 有仓电量、仓充电状态和蓝牙设置候选，仓 Hero 可用、无 Full、用户没有动作要求：
-  `{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":["/batteryLevel","/chargingStatusDesc"]},"action":["event.open.settings.bluetooth"]}`。
-- 上述输入明确追加“不要按钮、不要跳转”：
-  `{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":["/batteryLevel","/chargingStatusDesc"]},"action":[]}`。
-第二种允许后续报告无法组成布局，不能为了命中而违反否定要求；没有合法动作候选时也不能照抄第一种。
+字段需求确定后，按下方规则比较完整方案，再确定动作。
 
 1. 保留用户明确指定的部位、独立目标和动作，不要求用户必须说“必须”才算明确。
 2. 有具体问题时只保留回答该问题的核心字段和硬要求，例如“哪只耳朵没电”只需左右耳电量。
@@ -90,10 +79,9 @@
 这里的必需字段指模板自身输入依赖，不能因此加入用户需求；候选中缺少模板依赖时不得假设数据存在。
 普通辅助字段阻碍核心匹配时可从输出需求中删除，不能删除核心或硬要求。无可行模板时保留核心并允许后续报告未命中。
 
-- `BluetoothDeviceOverviewEarbudTripleFull@1`：必需名称和三处电量，不要求连接状态，不展示充电状态；无动作。
-- `BluetoothDeviceOverviewEarbudTripleHero@1`：必需名称、三处电量及三处充电状态；搭配一个动作。
+- `BluetoothDeviceOverviewEarbudTripleHero@1`：必需名称、三处电量；三处充电状态可选，三项齐全才显示第三行，缺任意一项显示两行；搭配一个动作。
 - `BluetoothDeviceOverviewEarbudsFull@1`：必需左右耳电量；可选左右耳充电状态。哪只没电对应左右耳电量，不要求名称。
-- `BluetoothDeviceOverviewEarbudPairFull@1`：必需连接状态、名称、仓电量、左右耳电量。三项充电状态均可选，但必须全部可用才同时展示。适合连接或整体概览；只问连接时需求只取连接状态，不补其余需求。
+- `BluetoothDeviceOverviewEarbudPairFull@1`：必需仓电量、左右耳电量；名称和连接状态可选，但至少提供一项，支持同时提供或仅提供其中一项。三项充电状态均可选，但必须全部可用才同时展示。适合连接或整体概览；只问连接时需求只取连接状态，不补其余需求。
 - `BluetoothDeviceOverviewHero@1`：必需连接状态、名称；可选左右耳电量。
 - `BluetoothDeviceOverviewEarbudPairHero@1`：必需名称、左右耳电量；不要求连接状态或仓电量，适合名称与左右电量的单按钮卡片。
 - `BluetoothDeviceOverviewEarphoneCaseHero@1`：必需仓电量、仓充电状态。
@@ -124,56 +112,12 @@
 用户明确请求动作时选择对应已批准动作；无动作时仅允许下面的耳机专用例外。
 只输出第一层约定的 JSON，不输出模板、布局或判断理由。
 
-### 耳机专用动作回退（比较完整方案时同步核对）
+### 耳机候选动作与服务端选择
 
-仅适用于 size 为 2x2、candidateDataBindings 只有 GetEarphoneInfo 的单业务请求。
-其它业务及混合业务不自动增加动作。优先级按顺序执行：
-
-1. 用户明确不要按钮、不要跳转、不需要入口、只展示不要操作时，action 保持空数组。
-   即使没有 Full 也不使用带动作 Hero；不能把这些否定词误识别成请求动作。
-2. 先保留用户明确请求的合法动作，不删除或替换；候选存在不表示动作已经选中。
-   已有一个动作先考虑可用 Hero，已有两个动作直接考虑双按钮 Compact，不再自动追加。
-3. 用户未请求动作时，先检查上述 Full：既能覆盖全部核心字段，又有本次候选提供的全部模板必需字段，
-   才算可用。Full 可用就输出 action=[]，即使 Hero 也匹配仍优先 Full。
-4. Full 不可用时检查 Hero。同样必须覆盖全部核心字段且其全部必需字段均在本次输入候选中。
-   若存在可用 Hero，且 actionCandidates 含 event.open.settings.bluetooth，则输出
-   action=["event.open.settings.bluetooth"]，用于生成可点击的“蓝牙设置”按钮。
-   本条是用户已授权的耳机场景自动入口规则，优先于通用“未明确请求就不能选择动作”。
-5. Full/Hero 无法形成满足核心字段、输入依赖和已选动作的可用方案时，继续判断 Compact。
-   Compact 必须覆盖全部核心字段且本次输入提供全部必需字段，不能为适配它删除核心字段。
-6. Compact 可用时，保留已选动作，按双按钮要求计算缺少的数量：
-   - 已有两个不同的合法动作：不追加。
-   - 缺一个：优先追加候选中尚未选中的 `event.open.settings.bluetooth`；如果它已经选中或不在候选中，
-     从剩余候选里选择与用户 query 和耳机场景最相关的一个动作。
-   - 缺两个：从候选中选择两个不同动作；优先尚未选中的蓝牙设置，其余按用户 query 和耳机场景相关性选择。
-   不固定第二个动作名称或 ID；相关性相同时按候选顺序选择，用户明确排除的动作不选择。
-   “已有”指 action 已选集合，不是 actionCandidates 候选集合。每个追加动作必须真实存在于 actionCandidates。
-7. 缺少任一所需候选时保持补齐前的 action，不伪造或只补一半；不补字段、不重复动作、不超过两个动作。
-   用户禁止按钮或跳转时以上所有自动补动作都禁止，包括 Compact；允许后续报告未命中。
-
-为避免误把“覆盖用户字段”当作“Full可用”，按如下字段集合逐项核对：
-- EarbudsFull：输入必须含 `/leftBatteryLevel`、`/rightBatteryLevel`，且筛选后的需求只能来自
-  `/leftBatteryLevel`、`/rightBatteryLevel`、`/leftChargingStatusDesc`、`/rightChargingStatusDesc`。
-  需求含名称、仓电量或连接状态时，此 Full 不可用。
-- EarbudPairFull：输入必须同时含 `/isConnected`、`/earphoneName`、`/batteryLevel`、
-  `/leftBatteryLevel`、`/rightBatteryLevel`；缺任何一项即不可用，即使该项不属于用户要显示的字段。
-  需求包含充电状态时，还必须同时具备 `/leftChargingStatusDesc`、`/rightChargingStatusDesc`、
-  `/chargingStatusDesc`，才可由此 Full 的完整可选状态层覆盖；缺少任意一项时不能以隐藏状态满足明确需求。
-- 上述 Full 均不可用且提供蓝牙设置候选时，以下满足条件的 Hero 回退是必须执行的规则，不是可选建议：
-  名称＋仓电量，输入含 `/earphoneName`、`/batteryLevel` → EarphoneHero，输出蓝牙设置动作；
-  仓电量＋仓充电状态，输入含 `/batteryLevel`、`/chargingStatusDesc` → EarphoneCaseHero，输出蓝牙设置动作；
-  连接状态＋名称，输入含 `/isConnected`、`/earphoneName` → Hero，输出蓝牙设置动作。
-  名称＋左右耳电量，输入含 `/earphoneName`、`/leftBatteryLevel`、`/rightBatteryLevel`
-  → EarbudPairHero，输出蓝牙设置动作；此时不因旧 Hero 缺连接状态而回退 Compact。
-  用户禁止按钮或跳转时以上规则不执行。模板仅供分析，JSON 仍只输出字段和 action。
-
-例如：输入仅有名称和仓电量且提供蓝牙设置候选，无禁用按钮要求时，EarphoneHero 可用，补一个蓝牙设置动作；
-输入有名称、连接状态、仓电量、左右耳电量且 Full 能覆盖需求时，不补动作；
-输入仅有名称和左右耳电量时，EarbudPairHero 已可覆盖，优先使用单按钮 Hero；
-已有两个明确动作则使用 EarbudPairCompact，不删除用户动作。其它仅 Compact 可用的情况仍按候选补齐规则处理。
-若此场景已经明确选择蓝牙设置，只从其余候选补一个相关动作；已有其它动作时优先补候选中的蓝牙设置。
-所选动作的含义与参数以本次候选为准，不通过按钮文案改变动作语义。
-动作参数由现有候选绑定，不在第一层生成；按钮只在用户点击后打开设置，不自动执行或连接耳机。
+仅 2×2 耳机单业务：输入中的动作全部保留为候选，第一层 action 仅填写 query 明确要求的合法动作。
+未要求动作时输出 action=[]；用户未禁止交互时 allowEarphoneCandidateActions=true，明确禁止时为 false。
+服务端没有候选动作时只尝试 Full；一个候选动作按 Hero → Full 尝试；两个及以上候选动作按 Compact → Hero → Full 尝试。保留全部候选，先比较双动作组合，Compact 均不可用时再比较单动作 Hero，仍不可用时尝试 Full，不在第一层截断候选。
+候选动作与最终动作集合不同，不在第一层为了适配模板主动加动作。明确动作、禁止项及其他业务规则不变。
 
 EarbudPairCompact 现可选展示连接状态和仓电量。双动作需求包含连接状态时，无需回退；
 输入仍只需名称和左右耳电量，连接状态或仓电量缺失不影响原模板使用。

@@ -731,151 +731,164 @@ data = {
     rightDesc: $optionalPath("/rightChargingStatusDesc")
 }
 
-Column(
-  {
-    "_advancedComponent": "BluetoothDeviceOverview",
+Stack(
+    {
+        "_advancedComponent": "BluetoothDeviceOverview",
         "_layoutActionBackgroundOpacity": 0.1,
-    "width": "matchParent",
-    "height": "matchParent",
-    "itemMargin": 4,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-    Row(
-        {
-            "layoutWeight": 1,
-            "justifyContent": "center",
-            "alignItems": "center",
-            "itemMargin": 12
-        },
-        Stack(
-            {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
-            Progress(
-                {
-                    "value": data.left,
-                    "total": 100,
-                    "type": "ring",
-                    "color": $theme('progressColor'),
-                    "backgroundColor": $theme('progressBackgroundColor'),
-                    "width": 52,
-                    "height": 52,
-                    "strokeWidth": 6
-                }
-            ),
-            Row(
-                {
-                    "alignItems": "end",
-                    "justifyContent": "center",
-                    "itemMargin": 1
-                },
-                Text(
-                    data.left,
-                    { "fontColor": $theme('primaryColor'), "fontSize": 13.71, "fontWeight": 700, "flexShrink": 0 }
+        "width": "matchParent",
+        "height": "matchParent",
+        "alignContent": "center",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+      {
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+        Row(
+            {
+                "layoutWeight": 1,
+                "justifyContent": "center",
+                "alignItems": "center",
+                "itemMargin": 12
+            },
+            Stack(
+                {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
+                Progress(
+                    {
+                        "value": data.left,
+                        "total": 100,
+                        "type": "ring",
+                        "color": $theme('progressColor'),
+                        "backgroundColor": $theme('progressBackgroundColor'),
+                        "width": 52,
+                        "height": 52,
+                        "strokeWidth": 6
+                    }
                 ),
-                Text(
-                    "%",
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 9.14, "fontWeight": 500, "flexShrink": 1, "margin": { "bottom": 2 } }
+                Row(
+                    {
+                        "alignItems": "end",
+                        "justifyContent": "center",
+                        "itemMargin": 1
+                    },
+                    Text(
+                        data.left,
+                        { "fontColor": $theme('primaryColor'), "fontSize": 13.71, "fontWeight": 700, "flexShrink": 0 }
+                    ),
+                    Text(
+                        "%",
+                        { "fontColor": $theme('supportContentColor'), "fontSize": 9.14, "fontWeight": 500, "flexShrink": 1, "margin": { "bottom": 2 } }
+                    )
                 )
+            ),
+            Column(
+                {
+                    "alignItems": "start",
+                    "itemMargin": 2
+                },
+                Row(
+                    { "itemMargin": 4, "alignItems": "center" },
+                    #if props.leftEarIcon
+                        Image(
+                            props.leftEarIcon,
+                            { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                        ),
+                    #endif
+                    Text(
+                        "左耳机",
+                        { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                    )
+                ),
+                #if data.leftDesc
+                    Text(
+                        data.leftDesc,
+                        { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
+                    )
+                #endif
             )
         ),
-        Column(
+        Row(
             {
-                "alignItems": "start",
-                "itemMargin": 2
+                "layoutWeight": 1,
+                "justifyContent": "center",
+                "alignItems": "center",
+                "itemMargin": 12
             },
-            Row(
-                { "itemMargin": 4, "alignItems": "center" },
-                #if props.leftEarIcon
-                    Image(
-                        props.leftEarIcon,
-                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+            Stack(
+                {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
+                Progress(
+                    {
+                        "value": data.right,
+                        "total": 100,
+                        "type": "ring",
+                        "color": $theme('progressColor'),
+                        "backgroundColor": $theme('progressBackgroundColor'),
+                        "width": 52,
+                        "height": 52,
+                        "strokeWidth": 6
+                    }
+                ),
+                Row(
+                    {
+                        "alignItems": "end",
+                        "justifyContent": "center",
+                        "itemMargin": 1
+                    },
+                    Text(
+                        data.right,
+                        { "fontColor": $theme('primaryColor'), "fontSize": 13.71, "fontWeight": 700, "flexShrink": 0 }
                     ),
-                #endif
-                Text(
-                    "左耳机",
-                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                    Text(
+                        "%",
+                        { "fontColor": $theme('supportContentColor'), "fontSize": 9.14, "fontWeight": 500, "flexShrink": 1, "margin": { "bottom": 2 } }
+                    )
                 )
             ),
-            #if data.leftDesc
-                Text(
-                    data.leftDesc,
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                )
-            #endif
+            Column(
+                {
+                    "alignItems": "start",
+                    "itemMargin": 2
+                },
+                Row(
+                    { "itemMargin": 4, "alignItems": "center" },
+                    #if props.rightEarIcon
+                        Image(
+                            props.rightEarIcon,
+                            { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                        ),
+                    #endif
+                    Text(
+                        "右耳机",
+                        { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                    )
+                ),
+                #if data.rightDesc
+                    Text(
+                        data.rightDesc,
+                        { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
+                    )
+                #endif
+            )
         )
     ),
     Row(
-        {
-            "layoutWeight": 1,
-            "justifyContent": "center",
-            "alignItems": "center",
-            "itemMargin": 12
-        },
-        Stack(
-            {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
-            Progress(
-                {
-                    "value": data.right,
-                    "total": 100,
-                    "type": "ring",
-                    "color": $theme('progressColor'),
-                    "backgroundColor": $theme('progressBackgroundColor'),
-                    "width": 52,
-                    "height": 52,
-                    "strokeWidth": 6
-                }
-            ),
-            Row(
-                {
-                    "alignItems": "end",
-                    "justifyContent": "center",
-                    "itemMargin": 1
-                },
-                Text(
-                    data.right,
-                    { "fontColor": $theme('primaryColor'), "fontSize": 13.71, "fontWeight": 700, "flexShrink": 0 }
-                ),
-                Text(
-                    "%",
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 9.14, "fontWeight": 500, "flexShrink": 1, "margin": { "bottom": 2 } }
-                )
-            )
-        ),
-        Column(
-            {
-                "alignItems": "start",
-                "itemMargin": 2
-            },
-            Row(
-                { "itemMargin": 4, "alignItems": "center" },
-                #if props.rightEarIcon
-                    Image(
-                        props.rightEarIcon,
-                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
-                    ),
-                #endif
-                Text(
-                    "右耳机",
-                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
-                )
-            ),
-            #if data.rightDesc
-                Text(
-                    data.rightDesc,
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                )
-            #endif
-        )
+        {"width": "matchParent", "height": 0.5, "justifyContent": "end", "alignItems": "center"},
+        Divider({"width": 62, "height": 0.5, "strokeWidth": 0.5, "color": "#19FFFFFF"})
     )
 )
 #End
 
 #Template BluetoothDeviceOverviewEarbudPairFull@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
-    connected: $path("/isConnected"),
-    name: $path("/earphoneName"),
+    connected: $optionalPath("/isConnected"),
+    name: $optionalPath("/earphoneName"),
     case: $path("/batteryLevel"),
     left: $path("/leftBatteryLevel"),
     right: $path("/rightBatteryLevel"),
@@ -900,14 +913,26 @@ Column(
   },
   Column(
     { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-    Text(
-      data.name,
-      { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    ),
+    #if data.name
+      #if data.connected
+        Text(data.name, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+      #else
+        Text("蓝牙耳机", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+      #endif
+    #else
+      Text("蓝牙耳机", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+    #endif
+    #if data.connected
     Text(
       Expr(data.connected ? '已连接' : '未连接'),
       { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
+    #elseif data.name
+    Text(
+      data.name,
+      { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    )
+    #endif
   ),
     Row({ "width": 126, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
         "justifyContent": "start", "alignItems": "start" },

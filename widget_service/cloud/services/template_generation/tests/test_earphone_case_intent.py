@@ -100,8 +100,15 @@ async def test_case_requires_action_and_compiles_without_losing_core_fields(
         requiredOutputFieldsByCapability={"GetEarphoneInfo": _CASE_FIELDS}, action=[]
     )
     search = search_template_variants(intent, task, registry, bindings, _card())
-    with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
-        plan_template_candidates(intent, search, task, registry)
+    if extra_earbuds:
+        full_plans = plan_template_candidates(intent, search, task, registry)
+        assert full_plans
+        selected_template = full_plans[0].business_slots[0].template_id
+        assert selected_template == "BluetoothDeviceOverviewEarbudPairFull@1"
+        assert not full_plans[0].action_assignments
+    else:
+        with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
+            plan_template_candidates(intent, search, task, registry)
 
     selected = intent.model_copy(update={"action_ids": (_ACTION,)})
     plans = plan_template_candidates(selected, search, task, registry)
@@ -139,6 +146,7 @@ def test_case_prompt_self_check_is_only_for_small_single_earphone_business(
     system = messages[0].get("content")
     assert isinstance(system, str)
     assert (_SELF_CHECK in system) == (size == "2x2" and not mixed)
+    assert ("输入动作全部保留为候选，不在第一层筛除" in system) == (not mixed)
 
 
 @pytest.mark.parametrize("has_action", [False, True])
@@ -151,8 +159,10 @@ def test_prompt_keeps_actual_action_candidates_and_negative_examples(has_action:
     content = messages[1].get("content")
     assert isinstance(system, str)
     assert isinstance(content, str)
-    assert "明确说不要按钮或不要跳转" in system
-    assert "缺候选或模板不可用时不能照抄正例" in system
+    assert "输入动作全部保留为候选，不在第一层筛除" in system
+    assert "一个候选动作按Hero→Full；两个及以上候选动作按Compact→Hero→Full" in system
+    assert "action只填写query明确要求的合法动作" in system
+    assert "allowEarphoneCandidateActions=true" in system
     payload = json.loads(content)
     actions = payload.get("actionCandidates")
     assert isinstance(actions, list)

@@ -1162,9 +1162,19 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
-        if variant_name in {"earbudTripleFull", "earbudTripleHero"}:
+        if variant_name == "earbudTripleHero":
             has_three_batteries = has_left and has_right and has_case
             if facts.earphone_name is None or not has_three_batteries:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
+        if variant_name == "earbudPairFull":
+            if facts.is_connected is None and facts.earphone_name is None:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template requires a name or connection state."
+                )
+            if not has_case or not has_left or not has_right:
                 raise TerselConversionError(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
@@ -1174,12 +1184,6 @@ def _validate_provider_template_state(
                 "Bluetooth Provider Template has no trusted earphone identity."
             )
         if variant_name == "hero":
-            return
-        if variant_name == "earbudPairFull":
-            if not has_case or not has_left or not has_right:
-                raise TerselConversionError(
-                    "Bluetooth Provider Template variant does not match the trusted data shape."
-                )
             return
         paired_with_phone = business_names == {
             "BatteryOverview",

@@ -5,7 +5,10 @@ import json
 import pytest
 
 from models.generation import CandidateDataBinding
-from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.engine.pipeline import (
+    TemplateGenerationError,
+    generate_template_a2ui,
+)
 from services.template_generation.tests.test_template_generation import (
     _bluetooth_card_spec,
     _bluetooth_task,
@@ -17,7 +20,10 @@ from services.template_generation.tests.test_template_generation import (
 @pytest.mark.asyncio
 @pytest.mark.parametrize("fusion", [False, True])
 @pytest.mark.parametrize("mask", range(8))
-async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bool) -> None:
+@pytest.mark.parametrize("header", ["both", "name", "connected", "none"])
+async def test_full_charging_row_requires_all_three_fields(
+    mask: int, fusion: bool, header: str,
+) -> None:
     fields = {
         "earphoneName": _provider_field("测试耳机", "string"),
         "isConnected": _provider_field(False, "boolean"),
@@ -25,6 +31,10 @@ async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bo
         "leftBatteryLevel": _provider_field(76, "integer"),
         "rightBatteryLevel": _provider_field(78, "integer"),
     }
+    if header in {"name", "none"}:
+        fields.pop("isConnected")
+    if header in {"connected", "none"}:
+        fields.pop("earphoneName")
     charge_fields = ("leftChargingStatusDesc", "rightChargingStatusDesc", "chargingStatusDesc")
     for index, field in enumerate(charge_fields):
         if mask & (1 << index):
@@ -33,6 +43,10 @@ async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bo
         update={"dataModelSchema": {"data": {"earphone": fields}}, "eventCandidates": []},
     )
     required = ["/earphoneName", "/isConnected", "/leftBatteryLevel", "/rightBatteryLevel"]
+    if header in {"name", "none"}:
+        required.remove("/isConnected")
+    if header in {"connected", "none"}:
+        required.remove("/earphoneName")
     if mask == 7:
         required.extend(f"/{field}" for field in charge_fields)
     template_id = "BluetoothDeviceOverviewEarbudPairFull@1"
@@ -49,10 +63,20 @@ async def test_full_charging_row_requires_all_three_fields(mask: int, fusion: bo
         capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
         candidateOutputFields=[f"/{field}" for field in fields],
     )
+    if header == "none":
+        with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+            await generate_template_a2ui(
+                task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
+            )
+        return
     result = await generate_template_a2ui(
         task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
     )
     assert template_id in result.template_ids
+    assert ("蓝牙耳机" in result.a2ui) == (header != "both")
+    assert ("/isConnected" in result.a2ui) == (header != "name")
+    assert ("/earphoneName" in result.a2ui) == (header != "connected")
+    assert ("未连接" in result.a2ui) == (header != "name")
     components = []
     for line in result.a2ui.splitlines():
         components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
