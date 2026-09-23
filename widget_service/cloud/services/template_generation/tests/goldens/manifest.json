@@ -1,6 +1,6 @@
 {
   "goldenVersion": "template-goldens/1",
-  "templateCount": 113,
+  "templateCount": 114,
   "templates": [
     {
       "businessId": "ActivityOverview",
@@ -393,6 +393,14 @@
       "providerId": "com.huawei.health-sport.cli",
       "size": "2x2",
       "templateId": "HeartRateOverviewSupport@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewUpdatedFull@1"
     },
     {
       "businessId": "HeartRateOverview",

@@ -1325,6 +1325,166 @@
         "SingleFocusLayout@1"
       ]
     },
+    "absent_deepDuration+endTime+napDuration+score+startTime+status": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/sleepTypeDesc} }}",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "nightSleepDurationText": "7小时1分",
+                  "sleepTypeDesc": "夜间睡眠"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
     "absent_deepDuration+endTime+napDuration+score+startTime+type": {
       "a2ui": [
         {
@@ -1522,6 +1682,327 @@
                 "healthSport": {
                   "nightSleepDurationText": "7小时1分",
                   "sleepStatus": "已入睡"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "absent_deepDuration+endTime+napDuration+score+status": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/sleepTypeDesc} }}",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "fallAsleepTimeText": "23:10",
+                  "nightSleepDurationText": "7小时1分",
+                  "sleepTypeDesc": "夜间睡眠"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "absent_deepDuration+endTime+napDuration+score+status+type": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "睡眠监测",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "fallAsleepTimeText": "23:10",
+                  "nightSleepDurationText": "7小时1分"
                 }
               }
             }
@@ -8098,6 +8579,327 @@
                   "nightSleepDurationText": "7小时1分",
                   "sleepStatus": "已入睡",
                   "sleepTypeDesc": "夜间睡眠",
+                  "wakeupTimeText": "07:00"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "absent_deepDuration+napDuration+score+startTime+status": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/sleepTypeDesc} }}",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "nightSleepDurationText": "7小时1分",
+                  "sleepTypeDesc": "夜间睡眠",
+                  "wakeupTimeText": "07:00"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "absent_deepDuration+napDuration+score+startTime+status+type": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "睡眠监测",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "nightSleepDurationText": "7小时1分",
                   "wakeupTimeText": "07:00"
                 }
               }
@@ -31870,15 +32672,166 @@
         "SleepOverviewFull@1",
         "SingleFocusLayout@1"
       ]
+    },
+    "none": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFEDE6FF",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "睡眠监测",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#FF401F99",
+                  "fontSize": 20,
+                  "fontWeight": 700,
+                  "height": 28,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "nightSleepDurationText": "7小时1分"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SingleFocusLayout@1"
+      ]
     }
-  },
-  "excludedCombinations": {
-    "absent_deepDuration+endTime+napDuration+score+startTime+status": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）",
-    "absent_deepDuration+endTime+napDuration+score+status": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）",
-    "absent_deepDuration+endTime+napDuration+score+status+type": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）",
-    "absent_deepDuration+napDuration+score+startTime+status": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）",
-    "absent_deepDuration+napDuration+score+startTime+status+type": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）",
-    "none": "缺席子集剪空仅含 napDuration/deepDuration/score/status 的 cardtpl 容器，编译期拒绝（Expanded container must contain at least one child）"
   },
   "fusionBall": false,
   "layout": "SingleFocusLayout@1",
@@ -31892,134 +32845,134 @@
     "type"
   ],
   "sampleIds": {
-    "absent_deepDuration": "C104",
-    "absent_deepDuration+endTime": "C105",
-    "absent_deepDuration+endTime+napDuration": "C106",
-    "absent_deepDuration+endTime+napDuration+score": "C107",
-    "absent_deepDuration+endTime+napDuration+score+startTime": "C108",
-    "absent_deepDuration+endTime+napDuration+score+startTime+status": "C109",
-    "absent_deepDuration+endTime+napDuration+score+startTime+type": "C110",
-    "absent_deepDuration+endTime+napDuration+score+status": "C111",
-    "absent_deepDuration+endTime+napDuration+score+status+type": "C112",
-    "absent_deepDuration+endTime+napDuration+score+type": "C113",
-    "absent_deepDuration+endTime+napDuration+startTime": "C114",
-    "absent_deepDuration+endTime+napDuration+startTime+status": "C115",
-    "absent_deepDuration+endTime+napDuration+startTime+status+type": "C116",
-    "absent_deepDuration+endTime+napDuration+startTime+type": "C117",
-    "absent_deepDuration+endTime+napDuration+status": "C118",
-    "absent_deepDuration+endTime+napDuration+status+type": "C119",
-    "absent_deepDuration+endTime+napDuration+type": "C120",
-    "absent_deepDuration+endTime+score": "C121",
-    "absent_deepDuration+endTime+score+startTime": "C122",
-    "absent_deepDuration+endTime+score+startTime+status": "C123",
-    "absent_deepDuration+endTime+score+startTime+status+type": "C124",
-    "absent_deepDuration+endTime+score+startTime+type": "C125",
-    "absent_deepDuration+endTime+score+status": "C126",
-    "absent_deepDuration+endTime+score+status+type": "C127",
-    "absent_deepDuration+endTime+score+type": "C128",
-    "absent_deepDuration+endTime+startTime": "C129",
-    "absent_deepDuration+endTime+startTime+status": "C130",
-    "absent_deepDuration+endTime+startTime+status+type": "C131",
-    "absent_deepDuration+endTime+startTime+type": "C132",
-    "absent_deepDuration+endTime+status": "C133",
-    "absent_deepDuration+endTime+status+type": "C134",
-    "absent_deepDuration+endTime+type": "C135",
-    "absent_deepDuration+napDuration": "C136",
-    "absent_deepDuration+napDuration+score": "C137",
-    "absent_deepDuration+napDuration+score+startTime": "C138",
-    "absent_deepDuration+napDuration+score+startTime+status": "C139",
-    "absent_deepDuration+napDuration+score+startTime+status+type": "C140",
-    "absent_deepDuration+napDuration+score+startTime+type": "C141",
-    "absent_deepDuration+napDuration+score+status": "C142",
-    "absent_deepDuration+napDuration+score+status+type": "C143",
-    "absent_deepDuration+napDuration+score+type": "C144",
-    "absent_deepDuration+napDuration+startTime": "C145",
-    "absent_deepDuration+napDuration+startTime+status": "C146",
-    "absent_deepDuration+napDuration+startTime+status+type": "C147",
-    "absent_deepDuration+napDuration+startTime+type": "C148",
-    "absent_deepDuration+napDuration+status": "C149",
-    "absent_deepDuration+napDuration+status+type": "C150",
-    "absent_deepDuration+napDuration+type": "C151",
-    "absent_deepDuration+score": "C152",
-    "absent_deepDuration+score+startTime": "C153",
-    "absent_deepDuration+score+startTime+status": "C154",
-    "absent_deepDuration+score+startTime+status+type": "C155",
-    "absent_deepDuration+score+startTime+type": "C156",
-    "absent_deepDuration+score+status": "C157",
-    "absent_deepDuration+score+status+type": "C158",
-    "absent_deepDuration+score+type": "C159",
-    "absent_deepDuration+startTime": "C160",
-    "absent_deepDuration+startTime+status": "C161",
-    "absent_deepDuration+startTime+status+type": "C162",
-    "absent_deepDuration+startTime+type": "C163",
-    "absent_deepDuration+status": "C164",
-    "absent_deepDuration+status+type": "C165",
-    "absent_deepDuration+type": "C166",
-    "absent_endTime": "C167",
-    "absent_endTime+napDuration": "C168",
-    "absent_endTime+napDuration+score": "C169",
-    "absent_endTime+napDuration+score+startTime": "C170",
-    "absent_endTime+napDuration+score+startTime+status": "C171",
-    "absent_endTime+napDuration+score+startTime+status+type": "C172",
-    "absent_endTime+napDuration+score+startTime+type": "C173",
-    "absent_endTime+napDuration+score+status": "C174",
-    "absent_endTime+napDuration+score+status+type": "C175",
-    "absent_endTime+napDuration+score+type": "C176",
-    "absent_endTime+napDuration+startTime": "C177",
-    "absent_endTime+napDuration+startTime+status": "C178",
-    "absent_endTime+napDuration+startTime+status+type": "C179",
-    "absent_endTime+napDuration+startTime+type": "C180",
-    "absent_endTime+napDuration+status": "C181",
-    "absent_endTime+napDuration+status+type": "C182",
-    "absent_endTime+napDuration+type": "C183",
-    "absent_endTime+score": "C184",
-    "absent_endTime+score+startTime": "C185",
-    "absent_endTime+score+startTime+status": "C186",
-    "absent_endTime+score+startTime+status+type": "C187",
-    "absent_endTime+score+startTime+type": "C188",
-    "absent_endTime+score+status": "C189",
-    "absent_endTime+score+status+type": "C190",
-    "absent_endTime+score+type": "C191",
-    "absent_endTime+startTime": "C192",
-    "absent_endTime+startTime+status": "C193",
-    "absent_endTime+startTime+status+type": "C194",
-    "absent_endTime+startTime+type": "C195",
-    "absent_endTime+status": "C196",
-    "absent_endTime+status+type": "C197",
-    "absent_endTime+type": "C198",
-    "absent_napDuration": "C199",
-    "absent_napDuration+score": "C200",
-    "absent_napDuration+score+startTime": "C201",
-    "absent_napDuration+score+startTime+status": "C202",
-    "absent_napDuration+score+startTime+status+type": "C203",
-    "absent_napDuration+score+startTime+type": "C204",
-    "absent_napDuration+score+status": "C205",
-    "absent_napDuration+score+status+type": "C206",
-    "absent_napDuration+score+type": "C207",
-    "absent_napDuration+startTime": "C208",
-    "absent_napDuration+startTime+status": "C209",
-    "absent_napDuration+startTime+status+type": "C210",
-    "absent_napDuration+startTime+type": "C211",
-    "absent_napDuration+status": "C212",
-    "absent_napDuration+status+type": "C213",
-    "absent_napDuration+type": "C214",
-    "absent_score": "C215",
-    "absent_score+startTime": "C216",
-    "absent_score+startTime+status": "C217",
-    "absent_score+startTime+status+type": "C218",
-    "absent_score+startTime+type": "C219",
-    "absent_score+status": "C220",
-    "absent_score+status+type": "C221",
-    "absent_score+type": "C222",
-    "absent_startTime": "C223",
-    "absent_startTime+status": "C224",
-    "absent_startTime+status+type": "C225",
-    "absent_startTime+type": "C226",
-    "absent_status": "C227",
-    "absent_status+type": "C228",
-    "absent_type": "C229",
-    "all": "C230",
-    "none": "C231"
+    "absent_deepDuration": "C105",
+    "absent_deepDuration+endTime": "C106",
+    "absent_deepDuration+endTime+napDuration": "C107",
+    "absent_deepDuration+endTime+napDuration+score": "C108",
+    "absent_deepDuration+endTime+napDuration+score+startTime": "C109",
+    "absent_deepDuration+endTime+napDuration+score+startTime+status": "C110",
+    "absent_deepDuration+endTime+napDuration+score+startTime+type": "C111",
+    "absent_deepDuration+endTime+napDuration+score+status": "C112",
+    "absent_deepDuration+endTime+napDuration+score+status+type": "C113",
+    "absent_deepDuration+endTime+napDuration+score+type": "C114",
+    "absent_deepDuration+endTime+napDuration+startTime": "C115",
+    "absent_deepDuration+endTime+napDuration+startTime+status": "C116",
+    "absent_deepDuration+endTime+napDuration+startTime+status+type": "C117",
+    "absent_deepDuration+endTime+napDuration+startTime+type": "C118",
+    "absent_deepDuration+endTime+napDuration+status": "C119",
+    "absent_deepDuration+endTime+napDuration+status+type": "C120",
+    "absent_deepDuration+endTime+napDuration+type": "C121",
+    "absent_deepDuration+endTime+score": "C122",
+    "absent_deepDuration+endTime+score+startTime": "C123",
+    "absent_deepDuration+endTime+score+startTime+status": "C124",
+    "absent_deepDuration+endTime+score+startTime+status+type": "C125",
+    "absent_deepDuration+endTime+score+startTime+type": "C126",
+    "absent_deepDuration+endTime+score+status": "C127",
+    "absent_deepDuration+endTime+score+status+type": "C128",
+    "absent_deepDuration+endTime+score+type": "C129",
+    "absent_deepDuration+endTime+startTime": "C130",
+    "absent_deepDuration+endTime+startTime+status": "C131",
+    "absent_deepDuration+endTime+startTime+status+type": "C132",
+    "absent_deepDuration+endTime+startTime+type": "C133",
+    "absent_deepDuration+endTime+status": "C134",
+    "absent_deepDuration+endTime+status+type": "C135",
+    "absent_deepDuration+endTime+type": "C136",
+    "absent_deepDuration+napDuration": "C137",
+    "absent_deepDuration+napDuration+score": "C138",
+    "absent_deepDuration+napDuration+score+startTime": "C139",
+    "absent_deepDuration+napDuration+score+startTime+status": "C140",
+    "absent_deepDuration+napDuration+score+startTime+status+type": "C141",
+    "absent_deepDuration+napDuration+score+startTime+type": "C142",
+    "absent_deepDuration+napDuration+score+status": "C143",
+    "absent_deepDuration+napDuration+score+status+type": "C144",
+    "absent_deepDuration+napDuration+score+type": "C145",
+    "absent_deepDuration+napDuration+startTime": "C146",
+    "absent_deepDuration+napDuration+startTime+status": "C147",
+    "absent_deepDuration+napDuration+startTime+status+type": "C148",
+    "absent_deepDuration+napDuration+startTime+type": "C149",
+    "absent_deepDuration+napDuration+status": "C150",
+    "absent_deepDuration+napDuration+status+type": "C151",
+    "absent_deepDuration+napDuration+type": "C152",
+    "absent_deepDuration+score": "C153",
+    "absent_deepDuration+score+startTime": "C154",
+    "absent_deepDuration+score+startTime+status": "C155",
+    "absent_deepDuration+score+startTime+status+type": "C156",
+    "absent_deepDuration+score+startTime+type": "C157",
+    "absent_deepDuration+score+status": "C158",
+    "absent_deepDuration+score+status+type": "C159",
+    "absent_deepDuration+score+type": "C160",
+    "absent_deepDuration+startTime": "C161",
+    "absent_deepDuration+startTime+status": "C162",
+    "absent_deepDuration+startTime+status+type": "C163",
+    "absent_deepDuration+startTime+type": "C164",
+    "absent_deepDuration+status": "C165",
+    "absent_deepDuration+status+type": "C166",
+    "absent_deepDuration+type": "C167",
+    "absent_endTime": "C168",
+    "absent_endTime+napDuration": "C169",
+    "absent_endTime+napDuration+score": "C170",
+    "absent_endTime+napDuration+score+startTime": "C171",
+    "absent_endTime+napDuration+score+startTime+status": "C172",
+    "absent_endTime+napDuration+score+startTime+status+type": "C173",
+    "absent_endTime+napDuration+score+startTime+type": "C174",
+    "absent_endTime+napDuration+score+status": "C175",
+    "absent_endTime+napDuration+score+status+type": "C176",
+    "absent_endTime+napDuration+score+type": "C177",
+    "absent_endTime+napDuration+startTime": "C178",
+    "absent_endTime+napDuration+startTime+status": "C179",
+    "absent_endTime+napDuration+startTime+status+type": "C180",
+    "absent_endTime+napDuration+startTime+type": "C181",
+    "absent_endTime+napDuration+status": "C182",
+    "absent_endTime+napDuration+status+type": "C183",
+    "absent_endTime+napDuration+type": "C184",
+    "absent_endTime+score": "C185",
+    "absent_endTime+score+startTime": "C186",
+    "absent_endTime+score+startTime+status": "C187",
+    "absent_endTime+score+startTime+status+type": "C188",
+    "absent_endTime+score+startTime+type": "C189",
+    "absent_endTime+score+status": "C190",
+    "absent_endTime+score+status+type": "C191",
+    "absent_endTime+score+type": "C192",
+    "absent_endTime+startTime": "C193",
+    "absent_endTime+startTime+status": "C194",
+    "absent_endTime+startTime+status+type": "C195",
+    "absent_endTime+startTime+type": "C196",
+    "absent_endTime+status": "C197",
+    "absent_endTime+status+type": "C198",
+    "absent_endTime+type": "C199",
+    "absent_napDuration": "C200",
+    "absent_napDuration+score": "C201",
+    "absent_napDuration+score+startTime": "C202",
+    "absent_napDuration+score+startTime+status": "C203",
+    "absent_napDuration+score+startTime+status+type": "C204",
+    "absent_napDuration+score+startTime+type": "C205",
+    "absent_napDuration+score+status": "C206",
+    "absent_napDuration+score+status+type": "C207",
+    "absent_napDuration+score+type": "C208",
+    "absent_napDuration+startTime": "C209",
+    "absent_napDuration+startTime+status": "C210",
+    "absent_napDuration+startTime+status+type": "C211",
+    "absent_napDuration+startTime+type": "C212",
+    "absent_napDuration+status": "C213",
+    "absent_napDuration+status+type": "C214",
+    "absent_napDuration+type": "C215",
+    "absent_score": "C216",
+    "absent_score+startTime": "C217",
+    "absent_score+startTime+status": "C218",
+    "absent_score+startTime+status+type": "C219",
+    "absent_score+startTime+type": "C220",
+    "absent_score+status": "C221",
+    "absent_score+status+type": "C222",
+    "absent_score+type": "C223",
+    "absent_startTime": "C224",
+    "absent_startTime+status": "C225",
+    "absent_startTime+status+type": "C226",
+    "absent_startTime+type": "C227",
+    "absent_status": "C228",
+    "absent_status+type": "C229",
+    "absent_type": "C230",
+    "all": "C231",
+    "none": "C232"
   },
   "size": "2x2",
   "templateId": "SleepOverviewFull@1"
