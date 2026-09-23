@@ -49,6 +49,9 @@
     ],
     "bundleName": "com.omega_w_0823.hmservice"
   },
+  "deviceInfo": {
+    "prdVer": "11.7.5.208"
+  },
   "session": {
     "interactionId": "082",
     "isNew": true,

@@ -38,6 +38,9 @@
       "asset.heat_generation"
     ]
   },
+  "deviceInfo": {
+    "prdVer": "11.7.5.208"
+  },
   "session": {
     "interactionId": "049",
     "isNew": true,

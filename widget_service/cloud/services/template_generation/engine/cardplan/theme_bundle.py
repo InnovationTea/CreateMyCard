@@ -108,7 +108,13 @@ def _load_rule_document(theme_root: Path, relative_path: str) -> str:
     path = (theme_root / relative).resolve()
     if theme_root not in path.parents or not path.is_file():
         raise ValueError(f"Theme first-layer rule is unavailable: {relative_path}")
-    content = _bounded_file_bytes(path).decode("utf-8").strip()
+    content = (
+        _bounded_file_bytes(path)
+        .decode("utf-8")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .strip()
+    )
     if not content:
         raise ValueError("Theme first-layer rule must not be empty")
     return content
