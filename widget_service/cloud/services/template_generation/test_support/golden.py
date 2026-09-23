@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -168,9 +169,37 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
     )
 
 
+_PydanticDocsLineRe = re.compile(
+    r"\n\s*For further information visit https://errors\.pydantic\.dev/\S+"
+)
+
+
+def _normalize_error_text(value: Any) -> Any:
+    """递归剥离 ValidationError 文案里随 pydantic 版本变化的帮助链接。
+
+    ``str(ValidationError)`` 以 ``For further information visit
+    https://errors.pydantic.dev/<版本>/v/<错误码>`` 结尾，版本号跟随当前
+    安装的 pydantic（依赖只声明 ``pydantic>=2.8.0``），属于环境差异而非
+    业务契约；字段位置、错误类型与业务错误消息全部保留。
+    """
+    if isinstance(value, str):
+        return _PydanticDocsLineRe.sub("", value)
+    if isinstance(value, dict):
+        return {key: _normalize_error_text(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return type(value)(_normalize_error_text(item) for item in value)
+    return value
+
+
 def canonicalize(payload: Any) -> str:
-    """Canonical JSON：对象键排序、数组顺序保持原样、缩进稳定。"""
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    """Canonical JSON：对象键排序、数组顺序保持原样、缩进稳定。
+
+    序列化前剥离错误文案中随依赖版本漂移的片段，使基线只固化业务契约。
+    """
+    return (
+        json.dumps(_normalize_error_text(payload), ensure_ascii=False, sort_keys=True, indent=2)
+        + "\n"
+    )
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,3 @@
 {
-  "recordings": [
-    {
-      "key": "85a48b323e57e3964305206708d7699a9f6a1ee17f42bbbae3221849ecedb9de",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\",\"/batteryCapacityLevelDesc\",\"/healthStatusDesc\",\"/batteryTemperatureText\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.settings.batteryHealth\"],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":true}"
-    }
-  ]
+  "recordings": []
 }
