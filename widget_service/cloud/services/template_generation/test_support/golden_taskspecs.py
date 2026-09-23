@@ -25,9 +25,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import hashlib
 import json
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -95,12 +98,14 @@ class ReplayingTransport:
     def __init__(self, recordings: dict[str, str]) -> None:
         self.recordings = recordings
         self.missed_keys: list[str] = []
+        self.calls = 0
 
     def generate(
         self,
         messages: list[dict[str, str]],
         request_context: Any = None,
     ) -> str:
+        self.calls += 1
         key = _messages_key(list(messages))
         if key not in self.recordings:
             self.missed_keys.append(key)
@@ -180,6 +185,52 @@ def canonical_result(
     }
 
 
+@contextlib.contextmanager
+def _golden_settings_pin(enabled: bool):
+    """离线回放期间把全局配置单例固定到录制时的路由与离线条件。
+
+    回放必须与录制走完全相同的模型路由（唯一的录制后端是注入的 llmclient
+    传输层），并保证本地联调配置或环境变量的漂移不会让请求逃逸到真实模型
+    后端。字段值必须与录制基线所用条件一致；路由类配置上游变更时需同步
+    更新这里。录制路径（RecordingTransport）不经过本固定，仍用真实配置。
+    """
+    if not enabled:
+        yield
+        return
+    workspace_root = Path(tempfile.mkdtemp(prefix="golden-taskspec-workspace-"))
+    overrides: dict[str, Any] = {
+        # 路由固定：录制/回放唯一一致的后端是注入的 llmclient 传输层。
+        "openai_master_client": "llmclient",
+        "openai_fallback_client": "llmclient",
+        "enable_openai_fallback": False,
+        "enable_model_failure_retry": False,
+        "enable_a2ui_model_mock": False,
+        "design_compact_model_backend": "openai",
+        # 凭据清空：任何绕过固定路由的路径都在本地立即失败，而非访问网络。
+        "deepseek_api_key": "",
+        "deepseek_platform_access_key": "",
+        "deepseek_platform_ws_url": "",
+        # 离线与内容确定性：阻断回放路径上的真实网络副作用。
+        "enable_artifact_download_mock": True,
+        "ai_widget_data_huashan_enable": False,
+        "asset_src_url_mapping": {},
+        # 存储隔离：artifact 落到临时目录（canonical_result 不含路径，零金样漂移）。
+        "WORKSPACE_ROOT": workspace_root,
+    }
+    settings = get_settings()
+    saved = {name: getattr(settings, name) for name in overrides}
+    for name, value in overrides.items():
+        # Settings 未开 validate_assignment：setattr 不做校验，字段名拼错会在
+        # 上一行 getattr 处直接 AttributeError。
+        setattr(settings, name, value)
+    try:
+        yield
+    finally:
+        for name, value in saved.items():
+            setattr(settings, name, value)
+        shutil.rmtree(workspace_root, ignore_errors=True)
+
+
 async def execute_case(
     case_id: str,
     payload: dict[str, Any],
@@ -189,27 +240,56 @@ async def execute_case(
 
     三种确定性基线都规范化为结果字典：成功（含 artifact）、失败
     （FAILED/UNSUPPORTED 响应）、preflight 拒绝（服务抛出异常）。
+    回放（ReplayingTransport）在整个用例（含 artifact 读取）外包一层
+    配置固定与后端护栏；录制（RecordingTransport）按原样使用真实配置。
     """
-    runtime = ModelExecutionRuntime(get_settings(), llmclient_transport=transport)
-    try:
-        service = WidgetGenerationService(model_runtime=runtime)
-        request = build_generation_request(payload)
+    replay = isinstance(transport, ReplayingTransport)
+    with _golden_settings_pin(enabled=replay):
+        runtime = ModelExecutionRuntime(get_settings(), llmclient_transport=transport)
+        if replay:
+            # 双保险：即使配置固定失效，也绝不允许路由到其他模型后端。
+            original_execute_provider = runtime._execute_provider
+
+            async def _reject_foreign_provider(
+                provider: Any,
+                messages: list[dict[str, str]],
+                request_context: Any,
+            ) -> str:
+                if provider != "llmclient":
+                    raise ModelTransportError(
+                        f"golden replay reached model provider {provider!r}; "
+                        "the offline settings pin failed",
+                        code="GOLDEN_PROVIDER_ESCAPE",
+                    )
+                return await original_execute_provider(
+                    provider,
+                    messages,
+                    request_context,
+                )
+
+            runtime._execute_provider = _reject_foreign_provider
         try:
-            response = await service.generate_widget_card_terse_dsl_nested2(request)
-        except GenerationPreflightError as exc:
-            return canonical_preflight_rejection(case_id, exc), None
-        except Exception as exc:  # 基线异常同样固化；瞬态失败会被回放自检拦截。
-            return canonical_unhandled_error(case_id, exc), None
-    finally:
-        await runtime.aclose()
-    artifact = None
-    if response.status == GenerationStatus.SUCCESS and response.artifactUrl:
-        # load() 内部使用 asyncio.run，必须放到无事件循环的工作线程执行。
-        load_result = await asyncio.to_thread(
-            SourceArtifactRepository().load,
-            response.artifactUrl,
-        )
-        artifact = load_result.artifact
+            service = WidgetGenerationService(model_runtime=runtime)
+            request = build_generation_request(payload)
+            try:
+                response = await service.generate_widget_card_terse_dsl_nested2(request)
+            except GenerationPreflightError as exc:
+                return canonical_preflight_rejection(case_id, exc), None
+            except Exception as exc:  # 基线异常同样固化；瞬态失败会被回放自检拦截。
+                return canonical_unhandled_error(case_id, exc), None
+        finally:
+            await runtime.aclose()
+        artifact = None
+        if response.status == GenerationStatus.SUCCESS and response.artifactUrl:
+            # load() 内部使用 asyncio.run，必须放到无事件循环的工作线程执行。
+            load_result = await asyncio.to_thread(
+                SourceArtifactRepository().load,
+                response.artifactUrl,
+            )
+            artifact = load_result.artifact
+    # transport.calls 供排查用：为 0 说明录制已不被当前链路消费（如第二层
+    # 转为全确定性），属可重录的陈旧录制，而非路由逃逸——后者已由上方
+    # 后端护栏与清空凭据在本地立即失败。
     return canonical_result(case_id, response, artifact), response
 
 
@@ -307,6 +387,20 @@ def capture_selected_templates(case_id: str) -> dict:
         "selected": sorted(set(captured)),
         "replayMissed": bool(transport.missed_keys),
     }
+
+
+_SELECTION_CACHE: dict[str, dict] = {}
+
+
+def capture_selected_templates_cached(case_id: str) -> dict:
+    """``capture_selected_templates`` 的进程内 memo 版本（一用例只回放一次）。
+
+    模板级 Layer B 归因需要对候选用例逐个回放取真实选中集；同一次 CLI
+    调用里多个模板/多张表共享这份缓存，避免重复回放。
+    """
+    if case_id not in _SELECTION_CACHE:
+        _SELECTION_CACHE[case_id] = capture_selected_templates(case_id)
+    return _SELECTION_CACHE[case_id]
 
 
 def record_case(corpus_dir: Path, case_id: str) -> tuple[int, str, str | None]:

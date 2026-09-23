@@ -15,7 +15,10 @@ import asyncio
 import pytest
 
 from models.generation import CandidateDataBinding
-from services.template_generation.engine.pipeline import TemplateRouteNotApplicable
+from services.template_generation.engine.pipeline import (
+    TemplateRouteNotApplicable,
+    generate_template_a2ui,
+)
 from services.template_generation.test_support.golden_scenarios import (
     a2ui_messages,
     assert_golden_scenario,
