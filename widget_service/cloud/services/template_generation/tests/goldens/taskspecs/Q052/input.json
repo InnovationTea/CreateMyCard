@@ -39,6 +39,9 @@
       "asset.bolt_fill"
     ]
   },
+  "deviceInfo": {
+    "prdVer": "11.7.5.208"
+  },
   "session": {
     "interactionId": "052",
     "isNew": true,

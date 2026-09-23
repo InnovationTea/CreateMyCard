@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "f5bdbb29a49e43fa3849920748d4da60d994276ca1e531068108704bae1b7953",
+      "key": "445bd6ee4e9d46bb94139b021728d993ccfa2cdeb1aa07fac6dc9190ae7a08db",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/earphoneName\",\"/isConnected\",\"/leftChargingStatusDesc\",\"/rightChargingStatusDesc\"]},\"action\":[\"event.open.settings.bluetooth\"],\"allowCalendarViewFallback\":false}"
     }
   ]

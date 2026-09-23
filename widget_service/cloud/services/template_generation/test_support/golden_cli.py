@@ -540,20 +540,24 @@ def _render_coverage_table(
         + [len("All templates")]
     )
     name_w = min(name_w, 52)
+    layout_w = max(
+        [len("Layout")] + [len(str(e["layoutKind"])) for e in visible] + [1]
+    )
     header = (
-        f"{'Template':<{name_w}} | Size | Opt | %Absence | "
-        f"{'Subsets':>9} | Props | Notes"
+        f"{'Template':<{name_w}} | Size | {'Layout':<{layout_w}} | Req | Opt | "
+        f"%Absence | {'Subsets':>9} | Props | Notes"
     )
     line = "-" * len(header)
     rows = [line, header, line]
 
-    def fmt_row(name, size, opt, pct, rendered, refused, total, props_text, note):
+    def fmt_row(name, size, layout, req, opt, pct, rendered, refused, total, props_text, note):
         pct_text = f"{pct:>6.1f}%" if pct is not None else "     –"
         subsets_text = (
             f"{rendered}/{refused}/{total:>3}" if total else "  – /  – /  –"
         )
         return (
-            f"{name:<{name_w}} | {size:<4} | {opt:>3} | {pct_text} | "
+            f"{name:<{name_w}} | {size:<4} | {str(layout):<{layout_w}} | {req:>3} | "
+            f"{opt:>3} | {pct_text} | "
             f"{subsets_text:>9} | {props_text:>5} | {note}"
         )
 
@@ -562,6 +566,8 @@ def _render_coverage_table(
         fmt_row(
             "All templates",
             "—",
+            "—",
+            summary["requiredFieldsTotal"],
             summary["optionalFieldsTotal"],
             summary["absencePct"],
             sum(e.get("subsetsRendered", 0) for e in optional_rows),
@@ -581,6 +587,8 @@ def _render_coverage_table(
             fmt_row(
                 entry["templateId"],
                 entry["size"],
+                entry["layoutKind"],
+                len(entry["requiredFields"]),
                 len(entry["optionalFields"]),
                 entry["absencePct"],
                 entry.get("subsetsRendered", 0),
@@ -596,6 +604,11 @@ def _render_coverage_table(
             "Props +var = explicit param-variant coverage: "
             + ", ".join(sorted(variant_ids))
         )
+    rows.append(
+        "Subsets = optional-field presence combinations through the real "
+        "pipeline, rendered/refused/total (total = 2^k; total − rendered − "
+        "refused = not run)"
+    )
     if not show_all:
         hidden = len(complete_rows) + len(vacant_rows)
         rows.append(
@@ -663,8 +676,19 @@ def _template_pipeline_outcomes(wire_id: str) -> dict:
     }
 
 
-def _template_layer_b_matches(capability_id: str) -> list[dict]:
-    """按候选能力匹配 Layer B 语料用例（含每用例提供的候选绑定数据）。"""
+def _template_layer_b_matches(
+    capability_id: str,
+    template_id: str | None = None,
+    selected_by_case: dict[str, dict] | None = None,
+) -> list[dict]:
+    """Layer B 语料用例 × 模板的精确归因。
+
+    候选召回仍按能力 ID 预筛（宽松，保证不漏），但每条用例再回放捕获
+    引擎实际选中的模板集（``capture_selected_templates_cached``，进程内
+    memo），给出 ``selected``（该模板是否被此用例最终选中）与
+    ``selectedBusiness``（该用例实际选中的业务模板）。``selected_by_case``
+    允许调用方注入已捕获的全量映射（HTML 生成路径），避免重复回放。
+    """
     matches = []
     for case_dir in sorted(golden_taskspecs.GOLDEN_ROOT.iterdir()):
         input_path = case_dir / "input.json"
@@ -685,6 +709,30 @@ def _template_layer_b_matches(capability_id: str) -> list[dict]:
             }
             for binding in payload.get("candidateDataBindings", [])
         ]
+        data_lines = [
+            f"{binding['capabilityId']} → {binding['writeResultTo']} "
+            f"[{', '.join(binding['outputFields'])}]"
+            for binding in bindings
+        ]
+        selected = False
+        selected_business: list[str] = []
+        if template_id:
+            try:
+                if selected_by_case is not None and case_dir.name in selected_by_case:
+                    info = selected_by_case[case_dir.name]
+                else:
+                    info = golden_taskspecs.capture_selected_templates_cached(
+                        case_dir.name
+                    )
+                captured = set(info.get("selected", []))
+                selected = template_id in captured
+                selected_business = sorted(
+                    item
+                    for item in captured
+                    if not item.endswith(("Layout@1", "PillAction@1", "IconAction@1"))
+                )
+            except Exception:
+                selected = False
         matches.append(
             {
                 "case": case_dir.name,
@@ -696,6 +744,9 @@ def _template_layer_b_matches(capability_id: str) -> list[dict]:
                 "size": payload.get("size")
                 or payload.get("content", {}).get("size", "?"),
                 "bindings": bindings,
+                "dataLines": data_lines,
+                "selected": selected,
+                "selectedBusiness": selected_business,
             }
         )
     return matches
@@ -738,6 +789,7 @@ _HTML_CSS = """
   .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
   .pass { background: #dcfce7; color: var(--ok); }
   .refused, .fail { background: #fee2e2; color: var(--bad); }
+  .badge.cand { background: #e4e4e7; color: #52525b; }
   code { background: #f4f4f5; padding: 0 4px; border-radius: 4px; }
   details { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; }
   summary { cursor: pointer; padding: 8px 12px; font-weight: 600; }
@@ -831,13 +883,13 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
     selected_by_case: dict[str, dict] = {}
     try:
         from services.template_generation.test_support.golden_taskspecs import (
-            capture_selected_templates,
+            capture_selected_templates_cached,
             blessed_case_ids,
         )
 
         print("HTML: replaying all Layer B cases to capture selected templates…")
         for case_id in blessed_case_ids():
-            selected_by_case[case_id] = capture_selected_templates(case_id)
+            selected_by_case[case_id] = capture_selected_templates_cached(case_id)
     except Exception as exc:
         print(f"HTML: selected-template capture skipped ({exc})")
 
@@ -881,7 +933,12 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
         '<span id="count" class="muted"></span>',
         "</div>",
         "<table><thead><tr><th>Template</th><th>Size</th><th>Layout</th><th>Req</th>"
-        "<th>Opt</th><th>%Absence</th><th>Subsets (pass/refused/Σ)</th>"
+        "<th>Opt</th><th>%Absence</th>"
+        '<th title="Every template with k optional data fields has 2^k '
+        'present/absent combinations run through the real pipeline. rendered = '
+        'golden PASS · refused = refusal frozen by design (excludedCombinations) '
+        '· total = 2^k. total − rendered − refused = combinations not run '
+        '(structural skips, 2x4 canonical-only).">Subsets (rendered/refused/total)</th>'
         "<th>Props</th><th>Notes</th></tr></thead><tbody>",
     ]
     details = []
@@ -935,12 +992,17 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
                 '<li class="refused"><span class="badge refused">NO FUSION '
                 "FAMILY</span> 融球模式家族金样缺失</li>"
             )
-        layer_b = _template_layer_b_matches(capability_id)
+        layer_b = _template_layer_b_matches(
+            capability_id, wire_id, selected_by_case=selected_by_case or None
+        )
         layer_b_rows = "".join(
-            f'<tr data-size="{esc(item["size"])}" data-status="{esc(item["status"])}">'
+            f'<tr data-size="{esc(item["size"])}" data-status="{esc(item["status"])}" '
+            f'data-selected="{1 if item["selected"] else 0}">'
             f'<td>{esc(item["case"])}</td><td>{esc(item["size"])}</td>'
             f'<td><span class="badge {"pass" if item["status"] == "success" else "fail"}">'
             f'{esc(item["status"])}</span></td>'
+            f'<td><span class="badge {"pass" if item["selected"] else "cand"}">'
+            f'{"selected" if item["selected"] else "candidate"}</span></td>'
             f'<td>{esc(item["errorCode"])}</td><td>{esc(item["query"])}</td>'
             "<td>"
             + "<br>".join(
@@ -977,19 +1039,68 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
             if skip_reason
             else ""
         )
-        field_rows = "".join(
-            f'<tr><td>required</td><td><code>{esc(path)}</code></td>'
-            f'<td><span class="badge pass">always present</span></td></tr>'
-            for path in entry["requiredFields"]
-        ) + "".join(
-            f'<tr><td>optional</td><td><code>{esc(path)}</code></td><td>'
-            + (
-                '<span class="badge pass">absence-tested</span>'
-                if path in entry["absenceTestedFields"]
-                else '<span class="badge fail">NOT tested</span>'
+        def candidate_path(name: str) -> str:
+            binding = definition.bindings.get(name)
+            if binding is None:
+                return ""
+            roots = _data_roots_safe(definition)
+            root = roots[binding.root_index] if binding.root_index < len(roots) else ""
+            return f"{root}{binding.path}"
+
+        field_rows = (
+            "<thead><tr><th>Kind</th><th>Field</th><th>Candidate data path</th>"
+            "<th>Coverage</th></tr></thead><tbody>"
+            + "".join(
+                f'<tr><td>required</td><td><code>{esc(path)}</code></td>'
+                f"<td><code>{esc(candidate_path(path))}</code></td>"
+                f'<td><span class="badge pass">always present</span></td></tr>'
+                for path in entry["requiredFields"]
             )
-            + "</td></tr>"
-            for path in entry["optionalFields"]
+            + "".join(
+                f'<tr><td>optional</td><td><code>{esc(path)}</code></td>'
+                f"<td><code>{esc(candidate_path(path))}</code></td><td>"
+                + (
+                    '<span class="badge pass">absence-tested</span>'
+                    if path in entry["absenceTestedFields"]
+                    else '<span class="badge fail">NOT tested</span>'
+                )
+                + "</td></tr>"
+                for path in entry["optionalFields"]
+            )
+            + "</tbody>"
+        )
+        raw_props = (
+            definition.variants[0].parameters_schema.get("properties") or {}
+        )
+
+        def prop_row(name: str) -> str:
+            spec = raw_props.get(name)
+            spec = spec if isinstance(spec, dict) else {}
+            extras = {k: v for k, v in spec.items() if k != "type"}
+            detail = (
+                "—" if not extras
+                else esc(json.dumps(extras, ensure_ascii=False, sort_keys=True))
+            )
+            coverage_cells = (
+                '<span class="badge pass">Layer A default</span>'
+                if entry["layerACanonical"]
+                else '<span class="badge fail">no Layer A golden</span>'
+            )
+            if entry.get("propsVariantCovered"):
+                coverage_cells += ' <span class="badge pass">variant goldens</span>'
+            return (
+                f"<tr><td><code>{esc(name)}</code></td>"
+                f"<td>{esc(str(spec.get('type', '?')))}</td>"
+                f"<td>{detail}</td><td>{coverage_cells}</td></tr>"
+            )
+
+        props_table = (
+            "<table><thead><tr><th>Prop</th><th>Type</th>"
+            "<th>Constraints / default</th><th>Coverage</th></tr></thead><tbody>"
+            + "".join(prop_row(name) for name in entry["props"])
+            + "</tbody></table>"
+            if entry["props"]
+            else "<p class='muted'>none — the template body takes no parameters</p>"
         )
         details.append(
             f'<details id="d-{esc(slug)}"><summary>'
@@ -998,16 +1109,21 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
             f'opt {len(optional)} / props {len(entry["props"])}'
             f'{(" — " + esc(notes)) if notes else ""}</summary><div class="body">'
             f"{skip_note}<h4>Data fields</h4><table>{field_rows}</table>"
+            f"<h4>Props (template parameters)</h4>{props_table}"
             "<h4>TaskSpec mock data model (pipeline matrix `all`)</h4><p>"
             + "</p><p>".join(data_model)
             + f"</p><h4>Pipeline matrix outcomes ({len(outcomes.get('rows', []))})</h4>"
             + ("<ul class='combos'>" + "".join(rows_html) + "</ul>"
                if rows_html else "<p class='muted'>no combinations</p>")
             + f"<h4>Layer B corpus cases (capability {esc(capability_id)}): "
-            f"{len(layer_b)} matched, "
+            f"{len(layer_b)} matched · "
+            f"{sum(1 for i in layer_b if i['selected'])} selected this template, "
             f"{sum(1 for i in layer_b if i['status'] == 'success')} pass</h4>"
             + ((
                 "<div class='lb-wrap'><div class='lb-controls'>"
+                "<select class='lb-filter' data-dim='selected' onchange='filterLb(this)'>"
+                "<option value='all'>all matches</option><option value='1'>selected only</option>"
+                "<option value='0'>candidates only</option></select>"
                 "<select class='lb-filter' data-dim='size' onchange='filterLb(this)'>"
                 "<option value='all'>all sizes</option><option value='2x2'>asks 2x2</option>"
                 "<option value='2x4'>asks 2x4</option></select>"
@@ -1018,6 +1134,7 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
                 "placeholder='filter case / error / query…' oninput='filterLb(this)'>"
                 "<span class='lb-count muted'></span></div>"
                 f"<table class='lb'><thead><tr><th>Case</th><th>TaskSpec size</th><th>Status</th>"
+                f"<th>Selection</th>"
                 f"<th>Error</th><th>Query</th><th>Provided data (candidate bindings)</th></tr></thead>"
                 f"<tbody>{layer_b_rows}</tbody></table></div>"
             ) if layer_b_rows else "<p class='muted'>none</p>")
@@ -1401,7 +1518,7 @@ def _report_coverage() -> dict:
         variant = definition.variants[0]
         optional = sorted(variant.optional_bindings)
         required = sorted(variant.required_bindings)
-        props = sorted(variant.parameters_schema)
+        props = sorted((variant.parameters_schema.get("properties") or {}).keys())
         size = "2x4" if layout_kind in ("WideFull", "WideHalf", "WideHero") else "2x2"
         entry: dict = {
             "templateId": wire_id,
@@ -1522,8 +1639,10 @@ _TEMPLATE_DESCRIPTION = """\
 Per-template drill-down: every golden taskspec that maps to one template, with
 its data fields and the pass/fail outcome of each generation. Combines the
 pipeline matrix (TaskSpec data-field subsets through the real pipeline with a
-stub LLM), the Layer A canonical render, Layer B corpus cases matched at
-capability level, and any other scenario families referencing the template.
+stub LLM), the Layer A canonical render, Layer B corpus attribution (cases
+that actually SELECTED this template on replay, with capability-only
+candidates listed separately), and any other scenario families referencing
+the template.
 """
 
 _TEMPLATE_EPILOG = """\
@@ -1582,12 +1701,50 @@ def _cmd_template(args) -> int:
         f" · layout {layout_kind} · capability {definition.capability_id}"
         f" · business {definition.business_id}"
     )
-    required_paths = [definition.bindings[name].path for name in variant.required_bindings]
-    optional_paths = [definition.bindings[name].path for name in optional_names]
+    data_roots = _data_roots_safe(definition)
+
+    def candidate_path(name: str) -> str:
+        binding = definition.bindings[name]
+        root = (
+            data_roots[binding.root_index]
+            if binding.root_index < len(data_roots)
+            else ""
+        )
+        return f"{root}{binding.path}"
+
+    coverage_entry = next(
+        (
+            entry
+            for entry in _report_coverage()["templates"]
+            if entry["templateId"] == wire_id
+        ),
+        None,
+    )
+    absence_tested = (
+        set(coverage_entry["absenceTestedFields"]) if coverage_entry else set()
+    )
+    required_paths = [candidate_path(name) for name in variant.required_bindings]
+    optional_paths = [
+        candidate_path(name)
+        + (" [absence-tested]" if name in absence_tested else " [NOT tested]")
+        for name in optional_names
+    ]
     print(f"  required data fields ({len(required_paths)}): {', '.join(required_paths) or '—'}")
     print(f"  optional data fields ({len(optional_paths)}): {', '.join(optional_paths) or '—'}")
-    prop_names = sorted((variant.parameters_schema.get("properties") or {}).keys())
-    print(f"  props ({len(prop_names)}): {', '.join(prop_names) or '—'}")
+    prop_items = sorted((variant.parameters_schema.get("properties") or {}).items())
+    prop_text = ", ".join(
+        f"{name}:{spec.get('type', '?')}" if isinstance(spec, dict) else name
+        for name, spec in prop_items
+    )
+    prop_note = ""
+    if prop_items and coverage_entry:
+        if not coverage_entry["layerACanonical"]:
+            prop_note = " — NO LAYER A GOLDEN"
+        elif coverage_entry.get("propsVariantCovered"):
+            prop_note = " — layer-A default + explicit variant goldens"
+        else:
+            prop_note = " — layer-A default render"
+    print(f"  props ({len(prop_items)}): {prop_text or '—'}{prop_note}")
     try:
         from services.template_generation.tests.test_template_pipeline_matrix import (
             _CONTEXT_FIELD_TYPES_BY_CAPABILITY,
@@ -1690,54 +1847,24 @@ def _cmd_template(args) -> int:
 
     print("-" * 72)
     capability = definition.capability_id or ""
-    matched: list[dict] = []
-    for case_dir in sorted(golden_taskspecs.GOLDEN_ROOT.iterdir()):
-        input_path = case_dir / "input.json"
-        golden_path = case_dir / "golden.json"
-        if not input_path.is_file() or not golden_path.is_file():
-            continue
-        input_text = input_path.read_text(encoding="utf-8")
-        if capability not in input_text:
-            continue
-        golden = json.loads(golden_path.read_text(encoding="utf-8"))
-        payload = json.loads(input_text)
-        arguments = payload.get("arguments", payload.get("content", {}))
-        query = str(arguments.get("userQuery", payload.get("userQuery", "")))[:36]
-        data_lines = []
-        for binding in payload.get("candidateDataBindings", []):
-            outputs = list(binding.get("candidateOutputFields", []))
-            shown = outputs if args.data else outputs[:6]
-            data_lines.append(
-                f"{binding.get('capabilityId')} → {binding.get('writeResultTo')} "
-                f"[{', '.join(shown)}{'…' if len(shown) < len(outputs) else ''}]"
-            )
-        matched.append(
-            {
-                "case": case_dir.name,
-                "status": golden.get("status", "?"),
-                "errorCode": golden.get("errorCode", ""),
-                "query": query,
-                "size": payload.get("size")
-                or payload.get("content", {}).get("size", "?"),
-                "dataLines": data_lines,
-            }
-        )
-    passed = sum(1 for item in matched if item["status"] == "success")
+    matched = _template_layer_b_matches(capability, wire_id)
+    selected_items = [item for item in matched if item["selected"]]
+    candidate_items = [item for item in matched if not item["selected"]]
+    passed = sum(1 for item in selected_items if item["status"] == "success")
     print(
-        f"Layer B · corpus cases with candidate capability {capability}: "
-        f"{len(matched)} (pass {passed} / fail {len(matched) - passed}) — "
-        "capability-level match: exact template selection depends on each "
-        "case's data"
+        f"Layer B · corpus cases that SELECTED {wire_id}: {len(selected_items)} "
+        f"(pass {passed} / fail {len(selected_items) - passed}) · "
+        f"{len(candidate_items)} capability candidates selected other templates"
     )
     for size in ("2x2", "2x4"):
-        items = [item for item in matched if item["size"] == size]
+        items = [item for item in selected_items if item["size"] == size]
         if items:
             size_pass = sum(1 for item in items if item["status"] == "success")
             print(
                 f"    asks {size}: {len(items)} cases, pass {size_pass} / "
                 f"fail {len(items) - size_pass}"
             )
-    for item in matched:
+    for item in selected_items:
         mark = "PASS" if item["status"] == "success" else "FAIL"
         error = f" · {item['errorCode']}" if item["errorCode"] else ""
         print(
@@ -1749,19 +1876,21 @@ def _cmd_template(args) -> int:
         hidden = len(item["dataLines"]) - (1 if item["dataLines"] else 0)
         if hidden > 0 and not args.data:
             print(f"      (+{hidden} more binding(s) — --data shows all)")
+    if candidate_items:
+        print(
+            f"  capability candidates NOT selecting this template "
+            f"({len(candidate_items)}) — what they actually selected:"
+        )
+        for item in candidate_items:
+            mark = "PASS" if item["status"] == "success" else "FAIL"
+            others = ", ".join(item["selectedBusiness"]) or "(none)"
+            print(
+                f"    {mark:<8}{item['case']:<7}[{item['size']}] → {others}"
+            )
 
     print("-" * 72)
     base = wire_id.split("@")[0]
-    referencing: dict[str, list[str]] = {}
-    for path in sorted(golden_scenarios.SCENARIOS_DIR.rglob("*.json")):
-        if path.parent.relative_to(golden_scenarios.SCENARIOS_DIR).as_posix().startswith(
-            "1_pipeline/matrix/pipeline_combo"
-        ):
-            continue
-        text = path.read_text(encoding="utf-8")
-        if base in text:
-            group = golden_scenarios.scenario_group(path.stem)
-            referencing.setdefault(group, []).append(path.stem)
+    referencing = _template_reference_groups(base)
     total_refs = sum(len(ids) for ids in referencing.values())
     print(f"Other scenario families referencing this template: {total_refs}")
     for group, ids in sorted(referencing.items()):
@@ -1770,8 +1899,8 @@ def _cmd_template(args) -> int:
     print("=" * 72)
     print(
         f"Verdict: pipeline {pipeline_pass}/{pipeline_total} pass "
-        f"({pipeline_refused} refusals frozen by design) · Layer B {passed}/"
-        f"{len(matched)} pass · Layer A "
+        f"({pipeline_refused} refusals frozen by design) · Layer B "
+        f"{passed}/{len(selected_items)} selected-cases pass · Layer A "
         + ("PASS" if layer_a_path.is_file() else "MISSING")
     )
     return 0
@@ -1851,13 +1980,13 @@ def _cmd_combo_gallery(args) -> int:
 
 def _taskspec_rows_with_selection() -> tuple[list[dict], list[str]]:
     from services.template_generation.test_support.golden_taskspecs import (
-        capture_selected_templates,
+        capture_selected_templates_cached,
     )
 
     rows = []
     selected_union: set[str] = set()
     for index, case_id in enumerate(golden_taskspecs.blessed_case_ids(), start=1):
-        info = capture_selected_templates(case_id)
+        info = capture_selected_templates_cached(case_id)
         payload = json.loads(
             (golden_taskspecs.GOLDEN_ROOT / case_id / "input.json").read_text(
                 encoding="utf-8"
@@ -1893,6 +2022,18 @@ def _taskspec_rows_with_selection() -> tuple[list[dict], list[str]]:
                     for template_id in info["selected"]
                     if template_id.endswith("Layout@1")
                 ],
+                "capabilities": sorted(
+                    {
+                        binding.get("capabilityId", "")
+                        for binding in payload.get("candidateDataBindings", [])
+                        if binding.get("capabilityId")
+                    }
+                ),
+                "query": str(
+                    payload.get("arguments", payload.get("content", {})).get(
+                        "userQuery", payload.get("userQuery", "")
+                    )
+                ),
                 "dataLines": data_lines,
                 "fieldCount": field_count,
                 "replayMissed": info["replayMissed"],
@@ -1932,10 +2073,17 @@ def _cmd_taskspec(args) -> int:
             mark = "PASS" if row["status"] == "success" else "FAIL"
             error = f" · {row['errorCode']}" if row["errorCode"] else ""
             business = ", ".join(row["business"]) or "(no business template — generation failed)"
+            layouts = "".join(
+                f" +{layout_id.split('@')[0]}" for layout_id in row["layouts"]
+            )
+            caps = "/".join(row["capabilities"]) or "—"
+            query = row["query"][:40] + ("…" if len(row["query"]) > 40 else "")
             print(
-                f"  {mark:<6}{row['case']:<7}[{row['size']}] {business}  "
-                f"{row['fieldCount']} data fields{error}"
+                f"  {mark:<6}{row['case']:<7}[{row['size']}] {business}{layouts}"
                 + ("  REPLAY MISS" if row["replayMissed"] else "")
+            )
+            print(
+                f"        {caps} · {row['fieldCount']} data fields{error}  「{query}」"
             )
         return 0
 
@@ -2116,11 +2264,11 @@ def main(argv: list[str] | None = None) -> int:
     report_parser.add_argument(
         "--html",
         nargs="?",
-        const="coverage/index.html",
+        const="coverage/template_report.html",
         default=None,
         metavar="PATH",
         help="write a self-contained browsable HTML coverage report covering "
-        "every template (default path: coverage/index.html)",
+        "every template (default path: coverage/template_report.html)",
     )
     report_parser.add_argument(
         "--fail-under",
