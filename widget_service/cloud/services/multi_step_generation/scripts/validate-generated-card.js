@@ -1716,7 +1716,10 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
     const allowedUnavailableResources = new Set((resources || []).map((resource) => (
       new URL(runtimeAssetUrl(resource.value), assetBaseUrl).href
     )));
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ 
+      headless: true,
+      executablePath,
+    });
     context = await browser.newContext({ viewport: { width: 520, height: 420 }, deviceScaleFactor: 1 });
     page = await context.newPage();
     const runtimeErrors = [];
