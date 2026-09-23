@@ -506,8 +506,8 @@
     "workoutType"
   ],
   "sampleIds": {
-    "all": "C257",
-    "none": "C258"
+    "all": "C258",
+    "none": "C259"
   },
   "size": "2x2",
   "templateId": "WorkoutOverviewCompact@1"

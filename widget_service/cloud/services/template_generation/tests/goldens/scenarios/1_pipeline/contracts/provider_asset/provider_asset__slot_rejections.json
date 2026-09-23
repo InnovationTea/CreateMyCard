@@ -13,7 +13,7 @@
   },
   "WeatherOverviewCompact@1 conditionIcon=icon_weather_temperature1.svg": {
     "errorType": "TerselConversionError",
-    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_temperature1.svg"
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
   },
   "WeatherOverviewCompact@1 conditionIcon=icon_weather_thermometer.svg": {
     "errorType": "TerselConversionError",
@@ -37,7 +37,7 @@
   },
   "WeatherOverviewFull@1 conditionIcon=icon_weather_temperature1.svg": {
     "errorType": "TerselConversionError",
-    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_temperature1.svg"
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
   },
   "WeatherOverviewFull@1 conditionIcon=icon_weather_thermometer.svg": {
     "errorType": "TerselConversionError",
@@ -57,7 +57,7 @@
   },
   "WeatherOverviewHero@1 conditionIcon=icon_weather_temperature1.svg": {
     "errorType": "TerselConversionError",
-    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_temperature1.svg"
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
   },
   "WeatherOverviewHero@1 conditionIcon=icon_weather_thermometer.svg": {
     "errorType": "TerselConversionError",
@@ -85,7 +85,7 @@
   },
   "WeatherOverviewUvCompact@1 conditionIcon=icon_weather_temperature1.svg": {
     "errorType": "TerselConversionError",
-    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_temperature1.svg"
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
   },
   "WeatherOverviewUvCompact@1 conditionIcon=icon_weather_thermometer.svg": {
     "errorType": "TerselConversionError",

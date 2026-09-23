@@ -317,7 +317,7 @@
               "component": "Row",
               "id": "root_1_0_0_0_0",
               "styles": {
-                "alignItems": "center",
+                "alignItems": "bottom",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
@@ -342,6 +342,9 @@
                 "height": 14,
                 "maxLines": 1,
                 "minFontSize": 10,
+                "padding": {
+                  "bottom": 1
+                },
                 "textOverflow": "ellipsis"
               }
             },
@@ -372,7 +375,7 @@
               "component": "Row",
               "id": "root_1_0_0_0_1",
               "styles": {
-                "alignItems": "center",
+                "alignItems": "bottom",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
@@ -397,6 +400,9 @@
                 "height": 14,
                 "maxLines": 1,
                 "minFontSize": 10,
+                "padding": {
+                  "bottom": 1
+                },
                 "textOverflow": "ellipsis"
               }
             },
@@ -427,7 +433,7 @@
               "component": "Row",
               "id": "root_1_0_0_0_2",
               "styles": {
-                "alignItems": "center",
+                "alignItems": "bottom",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
@@ -452,6 +458,9 @@
                 "height": 14,
                 "maxLines": 1,
                 "minFontSize": 10,
+                "padding": {
+                  "bottom": 1
+                },
                 "textOverflow": "ellipsis",
                 "width": 48
               }
@@ -484,7 +493,7 @@
               "component": "Row",
               "id": "root_1_0_0_0_3",
               "styles": {
-                "alignItems": "center",
+                "alignItems": "bottom",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
@@ -509,6 +518,9 @@
                 "height": 14,
                 "maxLines": 1,
                 "minFontSize": 10,
+                "padding": {
+                  "bottom": 1
+                },
                 "textOverflow": "ellipsis",
                 "width": 48
               }
@@ -616,7 +628,7 @@
           "src": "resources/base/media/bolt_fill.svg"
         },
         {
-          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
           "id": "asset.battery_leaf_fill",
           "src": "resources/base/media/battery_leaf_fill.svg"
         },

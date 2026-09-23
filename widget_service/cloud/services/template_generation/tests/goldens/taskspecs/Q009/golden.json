@@ -323,6 +323,9 @@
                   "bottom": 2
                 },
                 "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
                 "textOverflow": "clip"
               }
             },
@@ -465,6 +468,9 @@
                   "bottom": 2
                 },
                 "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
                 "textOverflow": "clip"
               }
             },

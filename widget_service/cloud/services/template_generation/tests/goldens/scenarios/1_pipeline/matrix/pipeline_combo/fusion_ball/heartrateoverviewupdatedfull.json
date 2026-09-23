@@ -62,7 +62,7 @@
                 "component": "Divider",
                 "id": "fusionBallLarge",
                 "styles": {
-                  "backgroundColor": "#FF1F1F99",
+                  "backgroundColor": "#FFF24131",
                   "borderRadius": 105,
                   "clip": true,
                   "color": "#00000000",
@@ -88,7 +88,7 @@
                 "component": "Divider",
                 "id": "fusionBallMedium",
                 "styles": {
-                  "backgroundColor": "#FF2B65D9",
+                  "backgroundColor": "#FFFF8833",
                   "borderRadius": 80,
                   "clip": true,
                   "color": "#00000000",
@@ -114,7 +114,7 @@
                 "component": "Divider",
                 "id": "fusionBallSmall",
                 "styles": {
-                  "backgroundColor": "#FF57AED9",
+                  "backgroundColor": "#FFE68073",
                   "borderRadius": 50,
                   "clip": true,
                   "color": "#00000000",
@@ -184,95 +184,108 @@
                 "id": "root_1_0",
                 "itemMargin": 8,
                 "styles": {
-                  "alignItems": "start",
-                  "clip": true,
+                  "alignItems": "center",
                   "constraintSize": {
                     "minHeight": 0,
                     "minWidth": 0
                   },
                   "height": "matchParent",
-                  "justifyContent": "start",
-                  "width": "matchParent"
-                }
-              },
-              {
-                "children": [
-                  "root_1_0_0_0"
-                ],
-                "component": "Row",
-                "id": "root_1_0_0",
-                "styles": {
-                  "alignItems": "top",
-                  "height": 20,
                   "justifyContent": "spaceBetween",
                   "width": "matchParent"
                 }
               },
               {
                 "component": "Text",
-                "content": "天气预警",
-                "id": "root_1_0_0_0",
+                "content": "运动平均心率",
+                "id": "root_1_0_0",
                 "styles": {
                   "constraintSize": {
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#99CCDDFF",
-                  "fontSize": 12,
-                  "fontWeight": 400,
-                  "maxLines": 1,
-                  "textOverflow": "ellipsis",
-                  "width": "matchParent"
-                }
-              },
-              {
-                "component": "Text",
-                "content": "{{ ${/data/weather/current/alertLevel} ? ${/data/weather/current/alertLevel} : '无预警信息' }}",
-                "id": "root_1_0_1",
-                "styles": {
-                  "constraintSize": {
-                    "minHeight": 0,
-                    "minWidth": 0
+                  "fontColor": "#99FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": 500,
+                  "margin": {
+                    "top": 8
                   },
-                  "fontColor": "#FFCCDDFF",
-                  "fontSize": 18,
-                  "fontWeight": 700,
-                  "height": 24,
-                  "layoutWeight": 1,
                   "maxLines": 1,
+                  "minFontSize": 12,
+                  "textAlign": "center",
                   "textOverflow": "ellipsis",
                   "width": "matchParent"
                 }
               },
               {
                 "children": [
-                  "root_1_0_2_0"
+                  "root_1_0_1_0",
+                  "root_1_0_1_1"
                 ],
                 "component": "Row",
-                "id": "root_1_0_2",
-                "itemMargin": 0,
+                "id": "root_1_0_1",
+                "itemMargin": 2,
                 "styles": {
-                  "alignItems": "center",
-                  "height": 20,
-                  "justifyContent": "start",
+                  "alignItems": "bottom",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "center",
+                  "margin": {
+                    "top": 4
+                  },
                   "width": "matchParent"
                 }
               },
               {
                 "component": "Text",
-                "content": "{{ ${/data/weather/updatedAt} }}",
-                "id": "root_1_0_2_0",
+                "content": "{{ ${/data/healthSport/exerciseHeartRateAvg} }}",
+                "id": "root_1_0_1_0",
                 "styles": {
                   "constraintSize": {
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#99CCDDFF",
-                  "fontSize": 10,
-                  "fontWeight": 400,
+                  "fontColor": "#FFFFFFFF",
+                  "fontSize": 30,
+                  "fontWeight": 700,
                   "maxLines": 1,
-                  "textOverflow": "ellipsis",
-                  "width": "matchParent"
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "次/分钟",
+                "id": "root_1_0_1_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#99FFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/updatedAt} }}",
+                "id": "root_1_0_2",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#99FFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "margin": {
+                    "top": 4
+                  },
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
                 }
               }
             ],
@@ -287,10 +300,8 @@
             "surfaceId": "surface_card",
             "value": {
               "data": {
-                "weather": {
-                  "current": {
-                    "alertLevel": "黄色预警"
-                  },
+                "healthSport": {
+                  "exerciseHeartRateAvg": 95,
                   "updatedAt": "2026-09-22 10:00"
                 }
               }
@@ -300,23 +311,17 @@
         }
       ],
       "templateIds": [
-        "WeatherOverviewAlertFull@1",
+        "HeartRateOverviewUpdatedFull@1",
         "SingleFocusLayout@1"
       ]
     }
   },
-  "excludedCombinations": {
-    "none": "检索判别器要求显式 /current/alertLevel（缺 alertLevel 组合不可达）；updatedAt 缺席命中 manifest 必填路径门禁"
-  },
   "fusionBall": true,
   "layout": "SingleFocusLayout@1",
-  "optionalBindings": [
-    "alertLevel"
-  ],
+  "optionalBindings": [],
   "sampleIds": {
-    "all": "C281",
-    "none": "C282"
+    "all": "C101"
   },
   "size": "2x2",
-  "templateId": "WeatherOverviewAlertFull@1"
+  "templateId": "HeartRateOverviewUpdatedFull@1"
 }

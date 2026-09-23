@@ -1952,10 +1952,10 @@
     "secondCity"
   ],
   "sampleIds": {
-    "absent_firstCity": "C299",
-    "absent_secondCity": "C300",
-    "all": "C301",
-    "none": "C302"
+    "absent_firstCity": "C302",
+    "absent_secondCity": "C303",
+    "all": "C304",
+    "none": "C305"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDualCityFull@1"

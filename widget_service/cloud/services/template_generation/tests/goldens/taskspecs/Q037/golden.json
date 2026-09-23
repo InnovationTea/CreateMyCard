@@ -346,7 +346,7 @@
                 },
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 4
+                  "bottom": 9
                 },
                 "textOverflow": "clip"
               }

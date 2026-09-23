@@ -172,15 +172,21 @@ def _public_pipeline_outcome(component: str) -> dict[str, Any]:
         size="2x2", card_spec={"dataBindings": []}, task_spec=_task(),
         protocol_profile=A2UIProtocolRegistry().get_profile(),
     )
-    # 公共转换器保持基线职责：数据契约合法，但最终 A2UI 校验拒绝未知组件。
-    compact_report = validate_compact_dsl(
+    # 上游已把 If 移出 compact DSL 契约（childrenIf 链接不再可达）：
+    # 公共校验直接抛 CompactDslValidationError，处理器则把同一拒绝原因
+    # 记入 QualityIssue issues 后返回空 DSL。
+    compact_error = _error(lambda: validate_compact_dsl(
         source, task_spec=context.task_spec, card_spec=context.card_spec,
-    )
+    ))
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     card_report = validate_card(dsl_text=result.standard_dsl)
     return {
-        "compactDslWarnings": list(compact_report.warnings),
-        "processorErrors": list(result.errors),
+        "compactDslOutcome": compact_error,
+        # 上游 DslProcessingResult.errors 已从字符串升级为 QualityIssue；
+        # 用 to_prompt_payload() 固化稳定结构。
+        "processorErrors": [
+            issue.to_prompt_payload() for issue in result.errors
+        ],
         "cardCodes": sorted({item.code for item in card_report.diagnostics}),
     }
 
@@ -230,7 +236,9 @@ def _build_expr_still_passes() -> dict[str, Any]:
         report = validate_card(dsl_text=result.standard_dsl, cardspec=context.card_spec)
         payload[key] = {
             "standardDsl": result.standard_dsl,
-            "processorErrors": list(result.errors),
+            "processorErrors": [
+                issue.to_prompt_payload() for issue in result.errors
+            ],
             "errorCodes": sorted({
                 item.code for item in report.diagnostics if item.severity == "error"
             }),

@@ -333,7 +333,7 @@
               "component": "Row",
               "id": "root_1_0_1_0_0",
               "styles": {
-                "alignItems": "top",
+                "alignItems": "bottom",
                 "justifyContent": "spaceBetween",
                 "width": "matchParent"
               }
@@ -367,6 +367,9 @@
                 "fontSize": 10,
                 "fontWeight": 500,
                 "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
                 "textOverflow": "clip"
               }
             },
@@ -438,7 +441,7 @@
               "id": "root_1_0_2_0_0",
               "itemMargin": 1,
               "styles": {
-                "alignItems": "top",
+                "alignItems": "bottom",
                 "justifyContent": "spaceBetween",
                 "width": "matchParent"
               }
@@ -472,6 +475,9 @@
                 "fontSize": 10,
                 "fontWeight": 500,
                 "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
                 "textOverflow": "clip"
               }
             },

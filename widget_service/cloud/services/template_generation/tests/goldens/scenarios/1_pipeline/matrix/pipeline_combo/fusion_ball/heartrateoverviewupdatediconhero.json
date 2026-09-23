@@ -390,7 +390,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C102"
+    "all": "C103"
   },
   "size": "2x2",
   "templateId": "HeartRateOverviewUpdatedIconHero@1"

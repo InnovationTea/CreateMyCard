@@ -370,7 +370,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C298"
+    "all": "C301"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDailyRainFull@1"

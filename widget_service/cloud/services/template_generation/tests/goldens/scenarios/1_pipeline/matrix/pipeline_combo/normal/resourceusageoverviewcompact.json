@@ -333,7 +333,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C267"
+    "all": "C270"
   },
   "size": "2x2",
   "templateId": "ResourceUsageOverviewCompact@1"

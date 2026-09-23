@@ -170,9 +170,14 @@
       null,
       null,
       null,
+      null,
       null
     ],
     "HeartRateOverviewSupport@1": [
+      null
+    ],
+    "HeartRateOverviewUpdatedFull@1": [
+      null,
       null
     ],
     "HeartRateOverviewUpdatedHero@1": [
@@ -309,6 +314,7 @@
     "SleepOverviewNapFull@1": [
       null,
       null,
+      null,
       null
     ],
     "SleepOverviewNapHero@1": [
@@ -424,6 +430,7 @@
       null
     ],
     "WorkoutOverviewFull@1": [
+      null,
       null,
       null,
       null

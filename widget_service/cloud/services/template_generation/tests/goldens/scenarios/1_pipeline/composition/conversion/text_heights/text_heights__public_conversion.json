@@ -423,6 +423,16 @@
       "before": null
     }
   },
+  "HeartRateOverviewUpdatedFull@1::2x2": {
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2": {
+      "after": null,
+      "before": null
+    }
+  },
   "HeartRateOverviewUpdatedHero@1::2x2": {
     "template_root_0_0_0": {
       "after": null,

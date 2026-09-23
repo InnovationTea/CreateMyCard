@@ -550,7 +550,7 @@
       "appVersion": "11.7.5.208",
       "assetCandidates": [
         {
-          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
           "id": "asset.battery_leaf_fill",
           "src": "resources/base/media/battery_leaf_fill.svg"
         },
@@ -564,7 +564,7 @@
         "data": {
           "phoneBattery": {
             "batterySOC": {
-              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "description": "当前手机设备剩余电量的纯整数百分比，非最大电池容量，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
               "sampleValue": 68,
               "type": "integer"
             },

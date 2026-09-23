@@ -862,10 +862,10 @@
     "workoutType"
   ],
   "sampleIds": {
-    "absent_workoutCalories": "C261",
-    "absent_workoutType": "C262",
-    "all": "C263",
-    "none": "C264"
+    "absent_workoutCalories": "C264",
+    "absent_workoutType": "C265",
+    "all": "C266",
+    "none": "C267"
   },
   "size": "2x2",
   "templateId": "WorkoutOverviewHero@1"

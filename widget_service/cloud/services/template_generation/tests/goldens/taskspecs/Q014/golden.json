@@ -1,8 +1,483 @@
 {
-  "artifact": null,
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ],
+      "description": "手机和耳机充电",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x2",
+      "title": "设备充电"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.bolt_fill",
+        "asset.icon_phone",
+        "asset.earphone_case_16644"
+      ],
+      "data": [
+        "GetPhoneBatteryInfo",
+        "GetEarphoneInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池页。",
+          "id": "event.open.settings.battery"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.bolt_fill",
+        "asset.icon_phone",
+        "asset.earphone_case_16644"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/chargingStatusDesc",
+            "/pluggedTypeDesc"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/chargingStatusDesc"
+          ],
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.settings.MainAbility",
+              "bundleName": "com.huawei.hmos.settings",
+              "intentName": "Settings",
+              "uri": "battery"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.settings.battery"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#1A0A59F7",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Column",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0",
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#1A2E529E",
+                "borderRadius": 16,
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "intentName": "Settings",
+                    "uri": "battery"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "left": 8,
+                  "right": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0_0",
+                "root_1_0_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
+              "id": "root_1_0_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#E61F4595",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/pluggedTypeDesc} }}",
+              "id": "root_1_0_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_0_1",
+              "src": "resources/base/media/bolt_fill.svg",
+              "styles": {
+                "fillColor": "#991F4595",
+                "flexShrink": 0,
+                "height": 24,
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1",
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#1A2E529E",
+                "borderRadius": 16,
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0",
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "left": 8,
+                  "right": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0",
+                "root_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/earphone/chargingStatusDesc} }}",
+              "id": "root_1_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#E61F4595",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "耳机仓",
+              "id": "root_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_1",
+              "src": "resources/base/media/earphone_case_16644.svg",
+              "styles": {
+                "fillColor": "#991F4595",
+                "flexShrink": 0,
+                "height": 24,
+                "width": 24
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "earphone": {
+                "chargingStatusDesc": "未充电"
+              },
+              "phoneBattery": {
+                "chargingStatusDesc": "未充电",
+                "pluggedTypeDesc": "未连接充电器"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色实心竖向闪电图标；适用：正在充电、快充、电能或闪电状态。",
+          "id": "asset.bolt_fill",
+          "src": "resources/base/media/bolt_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框竖向智能手机，内部有屏幕轮廓；适用：手机设备、手机状态、专注模式中的手机对象。",
+          "id": "asset.icon_phone",
+          "src": "resources/base/media/icon_phone.svg"
+        },
+        {
+          "description": "样式：耳机收纳盒实心图标，默认黑色，图形为无线耳机充电盒造型；适用：蓝牙耳机设备连接、音频设备管理。",
+          "id": "asset.earphone_case_16644",
+          "src": "resources/base/media/earphone_case_16644.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "earphone": {
+            "chargingStatusDesc": {
+              "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+              "sampleValue": "未充电",
+              "type": "string"
+            }
+          },
+          "phoneBattery": {
+            "chargingStatusDesc": {
+              "description": "当前设备电池的充电状态文本描述。",
+              "sampleValue": "未充电",
+              "type": "string"
+            },
+            "pluggedTypeDesc": {
+              "description": "当前设备连接的充电器类型文本描述。",
+              "sampleValue": "未连接充电器",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池页。",
+          "id": "event.open.settings.battery"
+        }
+      ],
+      "size": "2x2",
+      "userQuery": "帮我做个充电状态卡片，看手机是否在充电、使用的充电器类型和耳机仓是否在充电，点一下打开电池设置。"
+    }
+  },
   "caseId": "Q014",
-  "errorCode": "VALIDATION_FAILED",
-  "message": "卡片生成过程中校验失败，请稍后再试。",
-  "status": "failed",
+  "status": "success",
   "suggestSize": "2x2"
 }
