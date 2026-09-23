@@ -232,6 +232,45 @@ def test_activity_full_template_supports_steps_only_action_less_card() -> None:
     assert plans[0].business_slots[0].template_id == "ActivityOverviewFull@1"
 
 
+def test_heart_rate_updated_full_supports_update_time_action_less_card() -> None:
+    task = TaskSpec(
+        userQuery="显示运动平均心率和更新时间的卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "exerciseHeartRateAvg": _field(135, "integer"),
+                    "updatedAt": _field("2026-08-06 09:00"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=["/exerciseHeartRateAvg", "/updatedAt"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport"}
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "GetHealthAndSportSummary": ("/exerciseHeartRateAvg", "/updatedAt"),
+        },
+        primaryOutputFieldByCapability={"GetHealthAndSportSummary": "/exerciseHeartRateAvg"},
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "HeartRateOverviewUpdatedFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),

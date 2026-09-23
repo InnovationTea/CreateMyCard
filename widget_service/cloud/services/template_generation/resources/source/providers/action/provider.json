@@ -5,7 +5,7 @@
   "templates": [
     {
       "templateId": "PillAction@1",
-      "description": "胶囊动作模板，由第二层通过 actionId、label 和可选 icon Props 填充展示内容。",
+      "description": "直接使用 Button 组件的纯文本胶囊动作模板，由第二层通过 actionId、label Props 填充展示内容，禁止设置图标。",
       "entry": "templates/action.cardtpl"
     },
     {

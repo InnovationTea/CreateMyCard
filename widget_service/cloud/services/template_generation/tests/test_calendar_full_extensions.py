@@ -118,8 +118,13 @@ def test_date_location_projection_only_runs_when_existing_shapes_miss() -> None:
     assert set(existing) == {"eventLocation", "dtStart"}
 
 
-@pytest.mark.parametrize("suffix", ("TimezoneTimeFull", "DateLocationFull", "ReminderDetailsFull"))
-@pytest.mark.parametrize("header_label", [None, "我的日程详情"])
+@pytest.mark.parametrize("suffix", (
+    "TimezoneTimeFull", "DateLocationFull", "ReminderDetailsFull",
+    "LocationDescriptionEndFull", "NextEventLocationFull",
+))
+@pytest.mark.parametrize("header_label", [
+    None, "我的日程详情", "跨时区项目联合评审及下一阶段计划安排",
+])
 @pytest.mark.parametrize("with_icon", [False, True])
 def test_new_full_headers_reserve_space_for_optional_icon(
     suffix: str, header_label: str | None, with_icon: bool,
@@ -130,12 +135,20 @@ def test_new_full_headers_reserve_space_for_optional_icon(
     if with_icon:
         props["calendarIcon"] = "calendar"
     root = _expanded(f"ScheduleOverview{suffix}@1", props=props)
-    header = root.children[0]
+    if suffix == "ReminderDetailsFull":
+        header = root.children[0]
+        default_label = "日程详情"
+    else:
+        top = root.children[0]
+        assert top.component_type == "Column"
+        assert _options(top).get("itemMargin") == 8
+        header = top.children[0]
+        default_label = "下一个日程"
     assert header.component_type == "Row"
     assert _options(header).get("width") == "matchParent"
     title = header.children[0]
     assert title.component_type == "Text"
-    assert title.values[0] == (header_label or "日程详情")
+    assert title.values[0] == (header_label or default_label)
     # 150vp 卡片内宽只有 126vp；标题必须让出可选图标和间距所占的空间。
     title_options = _options(title)
     assert title_options.get("layoutWeight") == 1

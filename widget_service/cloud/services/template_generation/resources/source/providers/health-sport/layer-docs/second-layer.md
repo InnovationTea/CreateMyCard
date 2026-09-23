@@ -19,7 +19,7 @@
   - `ActivityOverviewHero@1`：今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewWideHero@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideHero。 布局场景：约 4x1.7；WideHero + 1 个 PillAction。 主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
   - `ActivityOverviewWideFull@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideFull。 布局场景：完整 4x2；单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
-  - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示该次热量、时长和结束时间，可选展示运动类型。 组件形态：latest。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseDurationText；次要数据：/exerciseCalorieText, /exerciseEndTimeText；可选数据：/exerciseTypeName。
+  - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示该次热量和时长，可补充结束时间与运动类型。 组件形态：latest。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：/exerciseEndTimeText, /exerciseTypeName。
   - `WorkoutOverviewCompact@1`：最近一次单次运动训练摘要，展示该次热量和时长，可选展示运动类型，可使用运动图标。 组件形态：latestCompact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：/exerciseTypeName。
   - `WorkoutOverviewHero@1`：最近一次单次运动训练摘要，展示该次时长，可选展示热量和运动类型，可使用运动图标。 组件形态：latestHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseDurationText；次要数据：无；可选数据：/exerciseTypeName, /exerciseCalorieText。
   - `HeartRateOverviewFull@1`：运动平均心率摘要。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
@@ -30,6 +30,7 @@
   - `HeartRateOverviewHero@1`：运动平均心率主视觉，展示平均心率。 组件形态：mainHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewUpdatedHero@1`：运动平均心率主视觉，展示平均心率，可补充更新时间。 组件形态：mainHeroUpdated。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
   - `HeartRateOverviewUpdatedIconHero@1`：运动平均心率主视觉，展示平均心率，可补充更新时间，使用心率图标。 组件形态：mainHeroUpdatedIcon。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
+  - `HeartRateOverviewUpdatedFull@1`：运动平均心率摘要，展示平均心率与更新时间。 组件形态：fullUpdated。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
   - `SleepOverviewFull@1`：睡眠情况完整摘要，展示时长和状态，可选展示得分进度、完整睡眠时段或小睡时长，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/nightSleepDurationText；次要数据：/sleepStatus；可选数据：/sleepScore, /fallAsleepTimeText, /wakeupTimeText, /totalNapDurationText。
   - `SleepOverviewNapFull@1`：作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/totalNapDurationText；次要数据：无；可选数据：/fallAsleepTimeText, /wakeupTimeText。
   - `SleepOverviewHero@1`：睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：/sleepStatus, /sleepScore, /fallAsleepTimeText, /wakeupTimeText。
