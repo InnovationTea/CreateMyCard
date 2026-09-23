@@ -211,6 +211,7 @@ def validate_compact_dsl(
     _collect_fusion_composition_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
     _collect_semantic_text_errors(components, task_spec, errors)
+    _collect_raw_boolean_text_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     _collect_hero_value_errors(components, task_spec, errors)
@@ -787,34 +788,30 @@ def _collect_adjacent_display_unit_errors(
                     unit_bottom_padding = _non_negative_number(
                         padding.get("bottom")
                     )
-                unit_font_size = _non_negative_number(
-                    suffix.props.get("fontSize")
-                )
-                expected_bottom_padding = 4
-                if (
-                    enforce_all_numeric_sizes
-                    and value_font_size is not None
-                    and unit_font_size is not None
-                ):
-                    font_size_difference = value_font_size - unit_font_size
-                    expected_bottom_padding = max(
-                        0,
-                        int(round(font_size_difference / 2)),
-                    )
                 unit_height = _non_negative_number(suffix.props.get("height"))
                 has_valid_height = unit_height is None or unit_height <= 24
+                item_margin = _non_negative_number(
+                    component.props.get("itemMargin")
+                )
+                has_compact_spacing = item_margin is None or item_margin <= 4
+                has_intrinsic_width = (
+                    value.props.get("width") is None
+                    and suffix.props.get("width") is None
+                )
                 has_valid_alignment = (
                     component.props.get("alignItems") == "bottom"
-                    and unit_bottom_padding == expected_bottom_padding
+                    and unit_bottom_padding in {None, 0}
                     and has_valid_height
+                    and has_compact_spacing
+                    and has_intrinsic_width
                 )
                 if not has_valid_alignment:
                     errors.append(
                         f"component {component.component_id}: numeric value "
                         f"and unit {suffix.component_id} must use Row alignItems "
-                        '"bottom"; the unit must use padding.bottom '
-                        f"{expected_bottom_padding}, half the font-size difference, "
-                        "and must not use the numeric value's fixed height."
+                        '"bottom"; the unit must not use bottom padding or the '
+                        "numeric value's fixed height; both Text nodes must use "
+                        "intrinsic width and their Row itemMargin must not exceed 4."
                     )
                 continue
             if unit not in _COMMON_DISPLAY_UNITS:
@@ -1122,20 +1119,19 @@ def _collect_mixed_font_row_alignment_errors(
             child_font_size = _non_negative_number(child.props.get("fontSize"))
             if child_font_size is None or child_font_size == max_font_size:
                 continue
-            expected_padding = int(round((max_font_size - child_font_size) / 2))
             padding = child.props.get("padding")
             actual_padding = None
             if isinstance(padding, (int, float)):
                 actual_padding = float(padding)
             elif isinstance(padding, dict):
                 actual_padding = _non_negative_number(padding.get("bottom"))
-            if actual_padding == expected_padding:
+            if actual_padding in {None, 0}:
                 continue
             errors.append(
                 f"component {child.component_id}: smaller Text in mixed-size Row "
-                f"{component.component_id} must use padding.bottom "
-                f"{expected_padding}, half the font-size difference, to align "
-                "its visible bottom with the largest Text."
+                f"{component.component_id} must not use bottom padding; Row "
+                'alignItems "bottom" already aligns its visible bottom with '
+                "the largest Text."
             )
 
 
@@ -1473,16 +1469,33 @@ def _component_content_paths(component: ComponentRow) -> list[str]:
     return paths
 
 
-def _uses_raw_connection_boolean(component: ComponentRow) -> bool:
-    if component.component_type != "Text":
-        return False
-    paths = _component_content_paths(component)
-    if not any(path.casefold().endswith("/isconnected") for path in paths):
-        return False
-    content = component.props.get("content")
-    if isinstance(content, dict):
-        return True
-    return isinstance(content, str) and "?" not in content
+def _collect_raw_boolean_text_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return
+    for component in components:
+        if component.component_type != "Text":
+            continue
+        boolean_paths = [
+            path
+            for path in _component_content_paths(component)
+            if _schema_type(_schema_node_at_path(data_model_schema, path))
+            == "boolean"
+        ]
+        if not boolean_paths:
+            continue
+        content = component.props.get("content")
+        if isinstance(content, str) and "?" in content:
+            continue
+        errors.append(
+            f"component {component.component_id}: boolean field(s) "
+            f"{', '.join(boolean_paths)} must be mapped to user-facing Text "
+            "with a conditional expression; do not display raw true/false."
+        )
 
 
 def _two_by_two_s4_object_count(
@@ -2334,19 +2347,6 @@ def _collect_two_by_four_w1_focus_aux_errors(
         return
 
     focus_components = [focus, *_descendant_components(focus, components_by_id)]
-    aux_components = [
-        aux_column,
-        *_descendant_components(aux_column, components_by_id),
-    ]
-    if any(
-        _uses_raw_connection_boolean(component)
-        for component in [*focus_components, *aux_components]
-    ):
-        errors.append(
-            "2x4 W1-focus-aux must render isConnected as a user-facing "
-            "conditional status such as 已连接/未连接; do not display the raw "
-            "boolean value."
-        )
     parent_by_child: dict[str, ComponentRow] = {}
     for component in focus_components:
         for child_id in component.children:
@@ -3254,8 +3254,8 @@ def _collect_two_by_four_detached_unit_errors(
         errors.append(
             f"2x4 numeric value {component.component_id} and unit "
             f"{detached_unit.component_id} must be adjacent Text children of "
-            "the same Row. Use Row alignItems bottom and set the smaller Text's "
-            "padding.bottom to half the font-size difference; do not place a "
+            "the same Row. Use Row alignItems bottom without bottom padding on "
+            "the smaller Text; do not place a "
             "non-countdown unit on the next line."
         )
 
