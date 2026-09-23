@@ -483,7 +483,7 @@
         "data": {
           "phoneBattery": {
             "batterySOC": {
-              "description": "当前手机设备剩余电量的纯整数百分比，非最大电池容量，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
               "sampleValue": 68,
               "type": "integer"
             },

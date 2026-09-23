@@ -1,16 +1,8 @@
 {
   "recordings": [
     {
-      "key": "1a105ae6368050fb1520f7ea44c255c0efdc3c0173c8ff45d41ab2993af8f1a0",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/temperatureC\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/batteryTemperatureText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
-    },
-    {
-      "key": "3d341037763d58c1b8c7a4053ffdc431cd7a134487cb9fbea73e3265f801ba41",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"深圳市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"BatteryOverviewSupport@1\", {}));"
-    },
-    {
-      "key": "d4e1518c8939bc43c3409fd8209b13ee32d2ff6cb2c1dbc5937a86451d305c55",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"深圳市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"BatteryOverviewSupport@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}));"
+      "key": "5719d0a97c8f6c8951c3563653c4de25494fe2d4a52de17adf3243b3da143abb",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/batteryTemperatureText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
     }
   ]
 }
