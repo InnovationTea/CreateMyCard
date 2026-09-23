@@ -19,7 +19,10 @@ def resolve_earphone_candidate_actions(
     registry: CardPlanRegistry,
 ) -> TemplateSearchIntent:
     """仅处理未明确选择动作且允许交互的 2×2 单耳机场景。"""
-    if task_spec.size != "2x2" or intent.action_ids:
+    if task_spec.size != "2x2":
+        return intent
+    validate_earphone_action_exclusions(intent, task_spec)
+    if intent.action_ids:
         return intent
     if not intent.allow_earphone_candidate_actions:
         return intent
@@ -27,6 +30,8 @@ def resolve_earphone_candidate_actions(
         return intent
     event_ids: list[str] = []
     for event in task_spec.eventCandidates:
+        if event.id in intent.excluded_action_ids:
+            continue
         if event.id not in event_ids:
             event_ids.append(event.id)
     if not event_ids:
@@ -60,3 +65,16 @@ def restrict_earphone_action_role(
         )
         groups.append(group.model_copy(update={"candidates": candidates}))
     return search_result.model_copy(update={"business_candidates": tuple(groups)})
+
+
+def validate_earphone_action_exclusions(intent: TemplateSearchIntent, task_spec: TaskSpec) -> None:
+    """排除项必须来自候选，且不能与显式请求动作冲突。"""
+    if tuple(intent.required_output_fields_by_capability) != ("GetEarphoneInfo",):
+        return
+    if task_spec.size != "2x2":
+        return
+    candidate_ids = {event.id for event in task_spec.eventCandidates}
+    if not set(intent.excluded_action_ids).issubset(candidate_ids):
+        raise TemplateRetrievalMiss("excluded Action is outside TaskSpec.eventCandidates")
+    if set(intent.action_ids).intersection(intent.excluded_action_ids):
+        raise TemplateRetrievalMiss("explicit Action conflicts with excluded Action")

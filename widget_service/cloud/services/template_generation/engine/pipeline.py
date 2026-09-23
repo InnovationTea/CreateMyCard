@@ -44,6 +44,7 @@ from services.template_generation.engine.cardplan.compiler import compile_ux_lay
 from services.template_generation.engine.cardplan.earphone_action_policy import (
     resolve_earphone_candidate_actions,
     restrict_earphone_action_role,
+    validate_earphone_action_exclusions,
 )
 from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
@@ -190,6 +191,7 @@ async def generate_template_a2ui(
                 f"{_MODULE} template_retrieval_intent "
                 f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
             )
+            validate_earphone_action_exclusions(intent, selected_task_spec)
             search_result = search_template_variants(
                 intent,
                 selected_task_spec,

@@ -37,8 +37,6 @@ ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
 REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
 PHASE_TWO_DATA_CAPABILITY_IDS = (
-    "GetMemoData",
-    "GetPhoneCallRecords",
     "GetCurrentTime",
     "GetAppPowerConsumptionRanking",
     "GetDailyMostUsage",
@@ -841,6 +839,7 @@ def test_phase_two_version_returns_phase_two_capability_overview():
 
     assert phase_one_ids.isdisjoint(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_ids.issuperset(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_two_ids.isdisjoint({"GetMemoData", "GetPhoneCallRecords"})
 
 
 def test_phase_two_version_returns_phase_two_capability_schemas():
@@ -874,8 +873,6 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
     assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_response.missingCapabilityIds == []
     assert returned_parameters == {
-        "GetMemoData": set(),
-        "GetPhoneCallRecords": {"callRecordType"},
         "GetCurrentTime": set(),
         "GetAppPowerConsumptionRanking": {"limit"},
         "GetDailyMostUsage": {"topN"},

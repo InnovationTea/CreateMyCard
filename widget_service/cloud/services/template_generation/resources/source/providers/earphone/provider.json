@@ -33,7 +33,18 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": ["/leftChargingStatusDesc", "/rightChargingStatusDesc", "/chargingStatusDesc"]
+      "optionalData": [
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc",
+        "/chargingStatusDesc"
+      ],
+      "displayTogether": [
+        [
+          "/leftChargingStatusDesc",
+          "/rightChargingStatusDesc",
+          "/chargingStatusDesc"
+        ]
+      ]
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
@@ -41,8 +52,13 @@
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机名称与左右电量 Hero：主行展示名称，下方左右耳图标与电量百分比并排；无需连接状态或仓电量，搭配一个操作按钮。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
-      "primaryData": ["/earphoneName"],
-      "secondaryData": ["/leftBatteryLevel", "/rightBatteryLevel"],
+      "primaryData": [
+        "/earphoneName"
+      ],
+      "secondaryData": [
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
       "optionalData": []
     },
     {
@@ -97,7 +113,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-body"
@@ -116,7 +134,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机连接 Support：主行加粗展示连接状态，可选次行展示仓电量，右侧 40vp 电量环及 16vp 耳机图标，无电量时为 24vp 耳机图标；必需耳机本体图标，根节点可绑定事件。",
@@ -136,7 +156,9 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
-      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机充电 Support：左侧两行文本展示耳机盒或整体电量、充电状态，右侧 40vp 电量环及 16vp 充电盒图标；必需充电盒图标，根节点可绑定事件。",
@@ -182,7 +204,26 @@
         "/rightBatteryLevel"
       ],
       "secondaryData": [],
-      "optionalData": ["/earphoneName", "/isConnected", "/leftChargingStatusDesc", "/rightChargingStatusDesc", "/chargingStatusDesc"]
+      "optionalData": [
+        "/earphoneName",
+        "/isConnected",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc",
+        "/chargingStatusDesc"
+      ],
+      "displayTogether": [
+        [
+          "/leftChargingStatusDesc",
+          "/rightChargingStatusDesc",
+          "/chargingStatusDesc"
+        ]
+      ],
+      "requiredAnyOf": [
+        [
+          "/earphoneName",
+          "/isConnected"
+        ]
+      ]
     },
     {
       "templateId": "BluetoothDeviceOverviewCompleteWideFull@1",
@@ -214,7 +255,10 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": ["/batteryLevel", "/isConnected"]
+      "optionalData": [
+        "/batteryLevel",
+        "/isConnected"
+      ]
     },
     {
       "templateId": "BluetoothDeviceOverviewCompletePhoneWideFull@1",

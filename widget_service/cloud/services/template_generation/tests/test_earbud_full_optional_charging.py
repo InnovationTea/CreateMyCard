@@ -6,7 +6,7 @@ import pytest
 
 from models.generation import CandidateDataBinding
 from services.template_generation.engine.pipeline import (
-    TemplateGenerationError,
+    TemplateRouteNotApplicable,
     generate_template_a2ui,
 )
 from services.template_generation.tests.test_template_generation import (
@@ -64,9 +64,10 @@ async def test_full_charging_row_requires_all_three_fields(
         candidateOutputFields=[f"/{field}" for field in fields],
     )
     if header == "none":
-        with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+        with pytest.raises(TemplateRouteNotApplicable):
             await generate_template_a2ui(
                 task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
+                trusted_template_candidate_ids=(template_id,),
             )
         return
     result = await generate_template_a2ui(
