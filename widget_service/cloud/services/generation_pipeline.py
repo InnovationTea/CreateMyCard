@@ -64,6 +64,7 @@ class DslProcessingContext:
     design_profile_id: str | None = None
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
+    skip_compact_dsl_validation: bool = False
 
 
 @dataclass(frozen=True)
@@ -137,14 +138,19 @@ class DesignCompactProcessor:
             trigger_mq(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
-        try:
-            validation_result = validate_compact_dsl(
-                source_dsl,
-                task_spec=context.task_spec,
-                card_spec=context.card_spec,
-            )
-        except CompactDslValidationError as exc:
-            return self._validation_failure(source_dsl, exc.errors)
+        if not context.skip_compact_dsl_validation:
+            try:
+                validation_result = validate_compact_dsl(
+                    source_dsl,
+                    task_spec=context.task_spec,
+                    card_spec=context.card_spec,
+                )
+            except CompactDslValidationError as exc:
+                return self._validation_failure(source_dsl, exc.errors)
+        else:
+            # 模板产物跳过通用 Compact DSL 语义规则，保留转换器结构校验，
+            # 生成的 artifact 仍由 ArtifactValidator 继续校验。
+            validation_result = None
 
         try:
             design_profile_id = context.design_profile_id or "design-compact-dsl"
@@ -169,7 +175,7 @@ class DesignCompactProcessor:
                     message=message,
                     severity="warning",
                 )
-                for message in validation_result.warnings
+                for message in (validation_result.warnings if validation_result else ())
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,
