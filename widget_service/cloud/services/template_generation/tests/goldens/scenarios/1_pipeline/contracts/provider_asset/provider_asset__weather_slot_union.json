@@ -29,7 +29,6 @@
       "resources/base/media/heat_generation.svg",
       "resources/base/media/sun_max.svg",
       "resources/base/media/typhoon_fill.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg",
       "resources/base/media/icon_weather_wind.svg"
@@ -41,9 +40,6 @@
       },
       "resources/base/media/heat_generation.svg": {
         "conditionIcon": "resources/base/media/heat_generation.svg"
-      },
-      "resources/base/media/icon_weather_temperature1.svg": {
-        "conditionIcon": "resources/base/media/icon_weather_temperature1.svg"
       },
       "resources/base/media/icon_weather_thermometer.svg": {
         "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
@@ -63,7 +59,6 @@
     },
     "temperatureOnlyAllowed": [
       "resources/base/media/heat_generation.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg"
     ]
@@ -122,7 +117,6 @@
       "resources/base/media/heat_generation.svg",
       "resources/base/media/sun_max.svg",
       "resources/base/media/typhoon_fill.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg",
       "resources/base/media/icon_weather_wind.svg"
@@ -134,9 +128,6 @@
       },
       "resources/base/media/heat_generation.svg": {
         "conditionIcon": "resources/base/media/heat_generation.svg"
-      },
-      "resources/base/media/icon_weather_temperature1.svg": {
-        "conditionIcon": "resources/base/media/icon_weather_temperature1.svg"
       },
       "resources/base/media/icon_weather_thermometer.svg": {
         "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
@@ -156,7 +147,6 @@
     },
     "temperatureOnlyAllowed": [
       "resources/base/media/heat_generation.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg"
     ]
@@ -167,7 +157,6 @@
       "resources/base/media/heat_generation.svg",
       "resources/base/media/sun_max.svg",
       "resources/base/media/typhoon_fill.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg",
       "resources/base/media/icon_weather_wind.svg"
@@ -179,9 +168,6 @@
       },
       "resources/base/media/heat_generation.svg": {
         "conditionIcon": "resources/base/media/heat_generation.svg"
-      },
-      "resources/base/media/icon_weather_temperature1.svg": {
-        "conditionIcon": "resources/base/media/icon_weather_temperature1.svg"
       },
       "resources/base/media/icon_weather_thermometer.svg": {
         "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
@@ -201,7 +187,6 @@
     },
     "temperatureOnlyAllowed": [
       "resources/base/media/heat_generation.svg",
-      "resources/base/media/icon_weather_temperature1.svg",
       "resources/base/media/icon_weather_thermometer_medium.svg",
       "resources/base/media/icon_weather_thermometer.svg"
     ]

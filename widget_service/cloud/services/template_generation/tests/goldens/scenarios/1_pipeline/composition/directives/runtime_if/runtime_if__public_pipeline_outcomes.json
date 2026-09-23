@@ -5,17 +5,31 @@
     ]
   },
   "compact:IF": {
-    "cardCodes": [
-      "DSL_COMPONENT_UNKNOWN"
-    ],
-    "compactDslWarnings": [],
-    "processorErrors": []
+    "cardCodes": [],
+    "compactDslOutcome": {
+      "errorType": "CompactDslValidationError",
+      "message": "Compact DSL validation failed:\n- Component rows must form one tree rooted at root. Unreachable component(s): text. Attach each component to a reachable parent's children list."
+    },
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "Component rows must form one tree rooted at root. Unreachable component(s): text. Attach each component to a reachable parent's children list.",
+        "stage": "validation"
+      }
+    ]
   },
   "compact:If": {
-    "cardCodes": [
-      "DSL_COMPONENT_UNKNOWN"
-    ],
-    "compactDslWarnings": [],
-    "processorErrors": []
+    "cardCodes": [],
+    "compactDslOutcome": {
+      "errorType": "CompactDslValidationError",
+      "message": "Compact DSL validation failed:\n- Component rows must form one tree rooted at root. Unreachable component(s): text. Attach each component to a reachable parent's children list."
+    },
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "Component rows must form one tree rooted at root. Unreachable component(s): text. Attach each component to a reachable parent's children list.",
+        "stage": "validation"
+      }
+    ]
   }
 }

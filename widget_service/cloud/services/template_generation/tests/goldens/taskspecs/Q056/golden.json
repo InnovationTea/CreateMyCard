@@ -1,8 +1,20 @@
 {
   "artifact": null,
+  "blockingIssues": [
+    {
+      "actualType": "string",
+      "agentAction": "REFRESH_CAPABILITIES",
+      "capabilityId": "asset.icon_weather_temperature1",
+      "code": "UNKNOWN_CAPABILITY",
+      "expected": "重新获取能力概述，并只使用本轮返回的 ID",
+      "message": "素材 ID 未在当前注册表中声明。",
+      "path": "/candidateAssetIds/0",
+      "referenceSource": "getWidgetCapabilityOverview.assetCandidates[]",
+      "repairInstruction": "重新调用本轮能力概述；只从 referenceSource 对应列表选择 ID。数据候选变化后重新加载 schema 并检查权限。",
+      "retryable": true
+    }
+  ],
   "caseId": "Q056",
-  "errorCode": "A2UI_GENERATION_FAILED",
-  "message": "卡片创建过程遇到问题了，请稍后再试。",
-  "status": "failed",
-  "suggestSize": "2x4"
+  "errorCode": "UNKNOWN_CAPABILITY",
+  "status": "preflight_rejected"
 }

@@ -522,8 +522,8 @@
     "updatedAt"
   ],
   "sampleIds": {
-    "all": "C467",
-    "none": "C468"
+    "all": "C470",
+    "none": "C471"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewWindFull@1"
