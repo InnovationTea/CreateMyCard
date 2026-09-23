@@ -69,7 +69,7 @@
     "id": "asset.battery_leaf_fill",
     "type": "asset",
     "src": "resources/base/media/battery_leaf_fill.svg",
-    "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+    "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
     "sceneTags": [
       "battery",
       "power"
@@ -684,14 +684,6 @@
     "type": "asset",
     "src": "resources/base/media/icon_right.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 R，源文件语义为右耳机，支持通过 fillColor 与卡片配色统一；适用：右耳、右声道、右侧耳机电量。",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.icon_weather_temperature1",
-    "type": "asset",
-    "src": "resources/base/media/icon_weather_temperature1.svg",
-    "description": "样式：淡黄色外壳与粉红色温度柱组成的彩色温度计，右侧带刻度，建议保留原色；适用：当前温度、最高最低温、体感温度或天气温度概览。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -1585,6 +1577,51 @@
     "sceneTags": [
       "settings",
       "switch"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_battery_leaf_color",
+    "type": "asset",
+    "src": "resources/base/media/ic_battery_leaf_color.svg",
+    "description": "样式：绿色渐变的电池叶片图标，电池轮廓内部以叶片形状表现节能语义，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：以手机剩余电量、充电状态、或省电模式为主业务的卡片，可结合 GetPhoneBatteryInfo 展示电池信息，也可配合 event.open.settings.battery 或 event.setPowerSavingMode 作为电池设置、省电模式入口或操作图标。渐变颜色不表示具体电量、正在充电或省电模式当前状态。",
+    "sceneTags": [
+      "battery",
+      "power"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_blue_teeth_color",
+    "type": "asset",
+    "src": "resources/base/media/ic_blue_teeth_color.svg",
+    "description": "样式：蓝色渐变圆角方形底上的白色蓝牙标志图标，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：蓝牙耳机或其它蓝牙设备连接卡片，可结合 GetEarphoneInfo 展示耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。渐变颜色和蓝牙标志本身不表示当前已连接、已开启或已关闭状态。",
+    "sceneTags": [
+      "bluetooth",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_nearlink_monochrome",
+    "type": "asset",
+    "src": "resources/base/media/ic_nearlink_monochrome.svg",
+    "description": "样式：黑色单色星闪（NearLink）连接标志图标，中心为竖向连接轮廓，两侧以对称波形表现近距离无线连接语义，原始尺寸为 24×24；适用：星闪连接或系统设置开关入口，可配合 event.setNearLinkMode 表达开启或关闭星闪模式。图标本身不表示星闪当前已开启、已关闭、已连接或连接成功。",
+    "sceneTags": [
+      "nearlink",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_wave_monochrome",
+    "type": "asset",
+    "src": "resources/base/media/ic_wave_monochrome.svg",
+    "description": "样式：黑色单色声音模式图标，中心为竖向设备轮廓，两侧以对称波形表现声音或振动模式语义，原始尺寸为 24×24；适用：手机声音模式设置卡片，可配合 event.setSoundMode 表达振动、响铃或静音模式切换。图标本身不表示当前声音模式，也不表示音量大小或扬声器正在播放。",
+    "sceneTags": [
+      "settings",
+      "sound"
     ],
     "minXiaoyiVersion": "1.0.0"
   }

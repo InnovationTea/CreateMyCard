@@ -69,7 +69,7 @@
     "id": "asset.battery_leaf_fill",
     "type": "asset",
     "src": "resources/base/media/battery_leaf_fill.svg",
-    "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：省电模式、节能电池、绿色用电状态。",
+    "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
     "sceneTags": [
       "battery",
       "power"
@@ -684,14 +684,6 @@
     "type": "asset",
     "src": "resources/base/media/icon_right.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 R，源文件语义为右耳机，支持通过 fillColor 与卡片配色统一；适用：右耳、右声道、右侧耳机电量。",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.icon_weather_temperature1",
-    "type": "asset",
-    "src": "resources/base/media/icon_weather_temperature1.svg",
-    "description": "样式：淡黄色外壳与粉红色温度柱组成的彩色温度计，右侧带刻度，建议保留原色；适用：当前温度、最高最低温、体感温度或天气温度概览。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
