@@ -90,6 +90,33 @@ Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返�
 
 ## 开发入口
 
+### CardTpl 格式化
+
+`tools/format_cardtpl.py` 是仅依赖 Python 3.12+ 标准库的源码格式化工具。使用 4 空格缩进，
+模板声明保持单行，展开组件参数及样式属性；嵌套属性对象保持紧凑，条件指令与分支组件同级。
+字符串（包括反引号插值）、表达式及原有逗号均保留；同一参数列表内，组件后还有同级内容时补齐
+缺失的逗号。判断会跳过条件指令和注释，逗号落在组件闭括号之后；最后一个组件不强制加尾逗号。
+工具沿用现有编译器的单行声明语法，格式化本身不执行编译或业务字段校验。
+
+在仓库根目录运行（将路径替换为实际文件）：
+
+```bash
+# 输出到标准输出，便于预览或重定向
+python3 widget_service/cloud/services/template_generation/tools/format_cardtpl.py example.cardtpl
+# 原地格式化文件，或递归处理目录中的 .cardtpl 文件
+python3 widget_service/cloud/services/template_generation/tools/format_cardtpl.py --write path/to/templates
+# 只检查格式：一致返回 0，需要格式化返回 1，输入或读写错误返回 2
+python3 widget_service/cloud/services/template_generation/tools/format_cardtpl.py --check path/to/templates
+# 从标准输入读取
+python3 widget_service/cloud/services/template_generation/tools/format_cardtpl.py - < example.cardtpl
+```
+
+支持多个文件或目录；批量处理须使用 `--write` 或 `--check`。写回前先解析全部输入，
+遇到括号、字符串或指令未闭合时报告文件及行列位置，不写回该批次。
+输出使用 LF 换行并以一个换行结束，UTF-8 BOM 保留。可导入 `format_cardtpl(source)` 处理字符串。
+
+### 修改前定位
+
 修改前建议按以下顺序定位：
 
 1. 路由差异：阅读 [architecture.md](architecture.md) 和对应接口数据流。
