@@ -94,13 +94,29 @@
       ]
     },
     {
+      "templateId": "BatteryOverviewHealthTemperatureHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池健康与电池温度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和电池温度。 组件形态：healthTemperatureHero。",
+      "optionalData": [],
+      "entry": "templates/battery-health-temperature-hero.cardtpl",
+      "primaryData": [
+        "/healthStatusDesc"
+      ],
+      "secondaryData": [
+        "/batteryTemperatureText"
+      ]
+    },
+    {
       "templateId": "BatteryOverviewChargingProgressHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
+      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康；可选电量等级、温度与充电状态以 · 拼成同一行，等级使用短文案，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
       "optionalData": [
         "/chargingStatusDesc",
-        "/healthStatusDesc"
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/batteryTemperatureText"
       ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -160,6 +176,54 @@
       "secondaryData": [
         "/batteryCapacityLevelDesc",
         "/isBatteryPresentText"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewStatusSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、健康状态和电池温度，用于第二层组合一个 PillAction。组件形态：statusSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-status-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/healthStatusDesc",
+        "/batteryTemperatureText"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewStatusLevelSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、健康状态和电量等级，用于第二层组合一个 PillAction。组件形态：statusLevelSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-status-level-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingLevelSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、充电类型和电量等级，用于第二层组合一个 PillAction。组件形态：chargingLevelSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-charging-level-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/pluggedTypeDesc",
+        "/batteryCapacityLevelDesc"
       ]
     },
     {
@@ -232,6 +296,34 @@
           "battery"
         ]
       }
+    },
+    {
+      "templateId": "BatteryOverviewPercentDetailsFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比详情 Full；2x2 无按钮，标题手机电量、大字百分比，下方充电状态、电量等级、充电类型三行，右侧字段加粗。无需健康状态或数值电量。",
+      "optionalData": [],
+      "entry": "templates/battery-percent-details-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentTextFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比 Full，无按钮，顶部手机电量、中部百分比大字、底部电量状态；仅需 batterySOCText；可选 chargingStatusDesc 替换底部电量状态文案。",
+      "optionalData": ["/chargingStatusDesc"],
+      "entry": "templates/battery-percent-text-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {

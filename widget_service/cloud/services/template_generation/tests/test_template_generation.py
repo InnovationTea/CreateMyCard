@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 123
+    assert len(registry.provider_template_ids) == 129
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -267,6 +267,12 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewHealthTemperatureHero@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewStatusSummaryHero@1",
+        "BatteryOverviewStatusLevelSummaryHero@1",
+        "BatteryOverviewChargingLevelSummaryHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
         "BluetoothDeviceOverviewEarbudTripleFull@1",
@@ -3267,6 +3273,12 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewWideFull@1",
         "BatteryOverviewCompact@1",
         "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewHealthTemperatureHero@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewStatusSummaryHero@1",
+        "BatteryOverviewStatusLevelSummaryHero@1",
+        "BatteryOverviewChargingLevelSummaryHero@1",
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewPercentLevelHero@1",
         "BatteryOverviewChargingProgressFull@1",
@@ -5591,7 +5603,9 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
 
 
 @pytest.mark.asyncio
-async def test_2x2_battery_charging_progress_hero_uses_status_fields():
+@pytest.mark.parametrize("with_level", [False, True])
+@pytest.mark.parametrize("with_temperature", [False, True])
+async def test_2x2_battery_charging_progress_hero_uses_status_fields(with_level, with_temperature):
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -5610,16 +5624,18 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     phone_battery.pop("batterySOC")
     phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
+    if with_level:
+        phone_battery["batteryCapacityLevelDesc"] = _provider_field("正常电量", "string")
+        binding.candidateOutputFields.append("/batteryCapacityLevelDesc")
+    if with_temperature:
+        phone_battery["batteryTemperatureText"] = _provider_field("29.0 ℃", "string")
+        binding.candidateOutputFields.append("/batteryTemperatureText")
     model = _FixedTemplateModel(
         theme_id="fusion-battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
-        required_fields=(
-            "/batterySOCText",
-            "/chargingStatusDesc",
-            "/healthStatusDesc",
-        ),
+        required_fields=tuple(binding.candidateOutputFields),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -5647,6 +5663,39 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     assert "healthStatusDesc" in output.a2ui
     assert "pluggedTypeDesc" not in output.a2ui
     assert '"component": "Progress"' not in output.a2ui
+
+    components = {}
+    for line in output.a2ui.splitlines():
+        update = json.loads(line).get("updateComponents", {})
+        for component in update.get("components", []):
+            components[component.get("id")] = component
+    status = next(
+        item for item in components.values() if "chargingStatusDesc" in str(item.get("content", ""))
+    )
+    body = next(
+        item for item in components.values() if status.get("id") in item.get("children", [])
+    )
+    children = body.get("children", [])
+    assert len(children) == 3
+    status_content = str(status.get("content", ""))
+    assert ("状态：" in status_content) == (not with_level and not with_temperature)
+    assert (" · " in status_content) == (with_level or with_temperature)
+    assert ("batteryTemperatureText" in status_content) == with_temperature
+    assert ("batteryCapacityLevelDesc" in status_content) == with_level
+    title = components.get(children[0])
+    readout = components.get(children[1])
+    assert isinstance(title, dict)
+    assert isinstance(readout, dict)
+    number = components.get(readout.get("children", [])[0])
+    assert isinstance(number, dict)
+    top = readout.get("styles", {}).get("margin", {}).get("top", 0)
+    height = title.get("styles", {}).get("height", 0)
+    height += number.get("styles", {}).get("height", 0)
+    height += status.get("styles", {}).get("height", 0)
+    height += top + 2 * body.get("itemMargin", 0)
+    assert top == 0
+    assert height == 80
+    assert height <= 150 - 24 - 36 - 8
 
 
 @pytest.mark.asyncio

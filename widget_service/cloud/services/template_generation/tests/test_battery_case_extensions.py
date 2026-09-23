@@ -116,7 +116,9 @@ def test_new_variant_does_not_relax_required_data_or_controls(
 ) -> None:
     case = _case(_LEVEL_FIELDS)
     if reason == "disabled":
-        registry = CardPlanRegistry(disabled_template_ids=(_FALLBACK_TEMPLATE,))
+        registry = CardPlanRegistry(disabled_template_ids=(
+            _FALLBACK_TEMPLATE, "BatteryOverviewChargingProgressHero@1",
+        ))
     else:
         task = case.task.model_copy(deep=True)
         data = task.dataModelSchema.get("data")
@@ -135,24 +137,51 @@ def test_new_variant_does_not_relax_required_data_or_controls(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kind", ["health", "level", "charging"])
+@pytest.mark.parametrize("kind", [
+    "health", "level", "charging", "health-temperature", "charging-level",
+    "temperature-only", "temperature-level", "temperature-charging", "temperature-all",
+])
 @pytest.mark.parametrize("fusion", [False, True])
 async def test_cases_compile_and_pass_the_production_font_validator(
     kind: str, fusion: bool,
 ) -> None:
     fields = _HEALTH_FIELDS if kind == "health" else _LEVEL_FIELDS
     template = "BatteryOverviewHealthLevelHero@1" if kind == "health" else _FALLBACK_TEMPLATE
+    if kind == "level":
+        template = "BatteryOverviewChargingProgressHero@1"
     event_id, label = _SETTINGS, "电池设置"
     if kind == "charging":
         fields = ("/batterySOCText", "/chargingStatusDesc")
+        template = "BatteryOverviewPercentTextFull@1"
+    if kind == "health-temperature":
+        fields = ("/healthStatusDesc", "/batteryTemperatureText")
+        template = "BatteryOverviewHealthTemperatureHero@1"
+    if kind == "charging-level":
+        fields = (*_LEVEL_FIELDS, "/chargingStatusDesc")
+        template = "BatteryOverviewChargingProgressHero@1"
+    temperature_fields = {
+        "temperature-only": ("/batterySOCText", "/batteryTemperatureText"),
+        "temperature-level": (*_LEVEL_FIELDS, "/batteryTemperatureText"),
+        "temperature-charging": (
+            "/batterySOCText", "/chargingStatusDesc", "/batteryTemperatureText",
+        ),
+        "temperature-all": (*_LEVEL_FIELDS, "/chargingStatusDesc", "/batteryTemperatureText"),
+    }
+    selected_fields = temperature_fields.get(kind)
+    if selected_fields is not None:
+        fields = selected_fields
         template = "BatteryOverviewChargingProgressHero@1"
     case = _case(fields)
     task = case.task
-    if kind == "health":
+    if kind == "charging":
+        task = task.model_copy(update={"eventCandidates": []})
+    if kind in {"health", "health-temperature"}:
         task = task.model_copy(update={"eventCandidates": [_health_event()]})
         event_id, label = _HEALTH, "电池健康"
     body = 'Template("HeroActionLayout@1",{},Template(' + json.dumps(template) + ',{}),'
     body += 'Template("PillAction@1",' + json.dumps({"actionId": event_id, "label": label}) + '));'
+    if kind == "charging":
+        body = 'Template("SingleFocusLayout@1",{},Template(' + json.dumps(template) + ',{}));'
 
     class Model:
         async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
@@ -170,9 +199,17 @@ async def test_cases_compile_and_pass_the_production_font_validator(
         task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
     )
-    assert [event.id for event in output.projected_task_spec.eventCandidates] == [event_id]
-    assert output.a2ui.count('"call":"clickToDeeplink"') == 1
-    assert label in output.a2ui
+    if kind == "charging":
+        assert not output.projected_task_spec.eventCandidates
+        assert "chargingStatusDesc" in output.a2ui
+    else:
+        assert [event.id for event in output.projected_task_spec.eventCandidates] == [event_id]
+        assert output.a2ui.count('"call":"clickToDeeplink"') == 1
+        assert label in output.a2ui
+    if kind == "health-temperature":
+        assert "healthStatusDesc" in output.a2ui
+        assert "batteryTemperatureText" in output.a2ui
+        assert "batteryCapacityLevelDesc" not in output.a2ui
     if kind == "level":
         assert "batteryCapacityLevelDesc" in output.a2ui
         assert '"Progress"' not in output.a2ui
@@ -183,6 +220,9 @@ async def test_cases_compile_and_pass_the_production_font_validator(
 def test_mixed_business_does_not_gain_the_single_battery_fallback(
     registry: CardPlanRegistry,
 ) -> None:
+    registry = CardPlanRegistry(
+        disabled_template_ids=("BatteryOverviewChargingProgressHero@1",),
+    )
     case = _case(_LEVEL_FIELDS)
     intent = case.intent.model_copy(update={"required_output_fields_by_capability": {
         _CAPABILITY: _LEVEL_FIELDS, "GetCalendarEvents": (),
@@ -205,7 +245,7 @@ def test_new_variant_cannot_bypass_a_trusted_template_restriction(
     with pytest.raises(TemplateRetrievalMiss):
         search_template_variants(
             case.intent, case.task, registry, (case.binding,), case.card,
-            preferred_template_ids=("BatteryOverviewChargingProgressHero@1",),
+            preferred_template_ids=("BatteryOverviewHealthLevelHero@1",),
         )
 
 
@@ -228,3 +268,192 @@ async def test_legacy_llm_route_does_not_receive_new_variant(
     with pytest.raises(TemplateRouteNotApplicable, match="checked legacy candidates"):
         await pipeline.generate_template_a2ui(case.task, case.card, (case.binding,), object())
     assert registry.enabled_template_ids((_FALLBACK_TEMPLATE,)) == (_FALLBACK_TEMPLATE,)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+async def test_q231_status_summary_hero_uses_only_four_text_fields(fusion: bool) -> None:
+    fields = (
+        "/batterySOCText", "/chargingStatusDesc", "/healthStatusDesc", "/batteryTemperatureText",
+    )
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "userQuery": "手机电池状态卡片，显示电量、充电状态、电池健康和温度",
+    })
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            assert "优先选择 planCandidates 第一项" in json.dumps(_args, ensure_ascii=False)
+            return ('Template("HeroActionLayout@1",{},'
+                    'Template("BatteryOverviewStatusSummaryHero@1",{}),'
+                    'Template("PillAction@1",{"actionId":"event.open.settings.battery",'
+                    '"label":"电池设置"}));')
+
+    output = await pipeline.generate_template_a2ui(
+        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    for label in ("电池电量", "充电状态", "健康状态", "电池温度"):
+        assert label in output.a2ui
+    for field in fields:
+        assert field in output.a2ui
+    for field in (
+        "nowCurrentText", "voltageText", "batteryCapacityLevelDesc", "isBatteryPresentText",
+    ):
+        assert field not in output.a2ui
+    assert [event.id for event in output.projected_task_spec.eventCandidates] == [_SETTINGS]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+async def test_percent_details_full_displays_four_fields(fusion: bool) -> None:
+    fields = (
+        "/batterySOCText", "/chargingStatusDesc", "/batteryCapacityLevelDesc", "/pluggedTypeDesc",
+    )
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "userQuery": "显示手机电量百分比、充电状态、电量等级、充电类型，不需要按钮",
+        "eventCandidates": [],
+    })
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            return ('Template("SingleFocusLayout@1",{},'
+                    'Template("BatteryOverviewPercentDetailsFull@1",{}));')
+
+    output = await pipeline.generate_template_a2ui(
+        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    assert "BatteryOverviewPercentDetailsFull@1" in output.template_ids
+    assert "healthStatusDesc" not in output.a2ui
+    assert not output.projected_task_spec.eventCandidates
+    components = {}
+    for line in output.a2ui.splitlines():
+        update = json.loads(line).get("updateComponents", {})
+        for component in update.get("components", []):
+            components[component.get("id")] = component
+    for field in fields:
+        value = next(item for item in components.values() if field in str(item.get("content", "")))
+        assert value.get("styles", {}).get("fontWeight") == 700
+        if field != "/batterySOCText":
+            assert value.get("styles", {}).get("textAlign") == "right"
+    title = next(item for item in components.values() if item.get("content") == "手机电量")
+    body = next(item for item in components.values() if title.get("id") in item.get("children", []))
+    children = body.get("children", [])
+    assert len(children) == 5
+    height = (len(children) - 1) * body.get("itemMargin", 0)
+    for child_id in children:
+        child = components.get(child_id)
+        assert isinstance(child, dict)
+        height += child.get("styles", {}).get("height", 0)
+    assert height == 112
+    assert height <= 150 - 24
+    for label in ("充电状态", "电量等级", "充电类型"):
+        assert label in output.a2ui
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+async def test_status_level_summary_hero_uses_only_four_text_fields(fusion: bool) -> None:
+    fields = (
+        "/batterySOCText", "/chargingStatusDesc", "/healthStatusDesc", "/batteryCapacityLevelDesc",
+    )
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "userQuery": "手机电池状态卡片，显示电量、充电状态、电池健康和电量等级",
+    })
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            assert "优先选择 planCandidates 第一项" in json.dumps(_args, ensure_ascii=False)
+            return ('Template("HeroActionLayout@1",{},'
+                    'Template("BatteryOverviewStatusLevelSummaryHero@1",{}),'
+                    'Template("PillAction@1",{"actionId":"event.open.settings.battery",'
+                    '"label":"电池设置"}));')
+
+    output = await pipeline.generate_template_a2ui(
+        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    for label in ("电池电量", "充电状态", "健康状态", "电量等级"):
+        assert label in output.a2ui
+    for field in fields:
+        assert field in output.a2ui
+    for field in (
+        "nowCurrentText", "voltageText", "batteryTemperatureText", "isBatteryPresentText",
+    ):
+        assert field not in output.a2ui
+    assert [event.id for event in output.projected_task_spec.eventCandidates] == [_SETTINGS]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+async def test_charging_level_summary_hero_uses_only_four_text_fields(fusion: bool) -> None:
+    fields = (
+        "/batterySOCText", "/chargingStatusDesc", "/pluggedTypeDesc", "/batteryCapacityLevelDesc",
+    )
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "userQuery": "手机电池状态卡片，显示电量、充电状态、充电类型和电量等级",
+    })
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            assert "优先选择 planCandidates 第一项" in json.dumps(_args, ensure_ascii=False)
+            return ('Template("HeroActionLayout@1",{},'
+                    'Template("BatteryOverviewChargingLevelSummaryHero@1",{}),'
+                    'Template("PillAction@1",{"actionId":"event.open.settings.battery",'
+                    '"label":"电池设置"}));')
+
+    output = await pipeline.generate_template_a2ui(
+        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    for label in ("电池电量", "充电状态", "充电类型", "电量等级"):
+        assert label in output.a2ui
+    for field in fields:
+        assert field in output.a2ui
+    for field in (
+        "nowCurrentText", "voltageText", "batteryTemperatureText", "healthStatusDesc",
+    ):
+        assert field not in output.a2ui
+    assert [event.id for event in output.projected_task_spec.eventCandidates] == [_SETTINGS]
+
+    type_row = None
+    for line in output.a2ui.splitlines():
+        for component in json.loads(line).get("updateComponents", {}).get("components", []):
+            if "pluggedTypeDesc" in str(component.get("content", "")):
+                type_row = component
+    assert isinstance(type_row, dict)
+    content = str(type_row.get("content", ""))
+    assert "未连接充电器" in content
+    assert "未连接" in content
+    assert "交流充电器" in content
+    assert "无线充电器" in content
+    assert type_row.get("styles", {}).get("maxLines") == 1
+    assert type_row.get("styles", {}).get("textOverflow") == "ellipsis"
