@@ -6,6 +6,7 @@ import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 
 from anyio import to_thread
 
@@ -591,10 +592,12 @@ class WidgetGenerationService:
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
+        source_generated_by_template = False
 
         async def generate_source_dsl() -> str:
-            nonlocal source_generated_by_jsx
+            nonlocal source_generated_by_jsx, source_generated_by_template
             source_generated_by_jsx = False
+            source_generated_by_template = False
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
@@ -609,9 +612,15 @@ class WidgetGenerationService:
                         tuple(effective_bindings),
                     )
                     trigger_mq(body={"templateProposal": 1})
-                    return require_generated_dsl(result)
+                    generated_dsl = require_generated_dsl(result)
+                    source_generated_by_template = True
+                    return generated_dsl
                 except Exception as exc:
-                    fallback = "jsx" if try_jsx else ("original_protocol_flow" if need_fallback else "none")
+                    fallback = (
+                        "jsx"
+                        if try_jsx
+                        else ("original_protocol_flow" if need_fallback else "none")
+                    )
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
@@ -714,7 +723,14 @@ class WidgetGenerationService:
                     source_dsl=source_dsl, standard_dsl=source_dsl,
                 )
                 return []
-            processing_result = processor.process(source_dsl, processing_context)
+            processing_context_for_source = replace(
+                processing_context,
+                skip_compact_dsl_validation=source_generated_by_template,
+            )
+            processing_result = processor.process(
+                source_dsl,
+                processing_context_for_source,
+            )
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
