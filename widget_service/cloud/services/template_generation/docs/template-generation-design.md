@@ -174,3 +174,57 @@ EarbudPairCompact 保持名称、左右耳电量为必需数据；仓电量和�
 优先选能完整生成的合理解释，再按额外模板依赖较少、辅助字段较少和模板 ID 顺序消除并列。
 明确部位、状态、动作和禁止项不得为命中而删除或替换；无动作候选不能凭空补按钮。
 本轮仅调整耳机提示词，不改变其它业务、模板定义、检索或布局规划代码。
+
+### 充电状态 Hero 的纵向预算
+
+Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上下各12vp内边距、36vp按钮及8vp区域间距下，业务区可用82vp。存在充电状态时，去掉数字行顶部6vp额外留白，使标题16vp、数字40vp、状态16vp及两个4vp间距合计80vp，避免状态行被父容器裁切。缺少状态时保留原6vp留白；不改变字号、按钮或主题。
+
+### 单手机电量的 query 字段筛选与模板参考
+
+2x2 单手机电量首层提示词注入当前启用、尺寸匹配的全部电量模板展示字段、必需输入、可选输入及缺失输入。只以 userQuery 确定必须展示的字段；其余输入保留为候选，不进入 requiredOutputFieldsByCapability，不新增协议字段。模糊概览优先采用能覆盖真实意图且输入齐全的模板解释，不能删除明确要求。模板可附带输入中存在的额外字段，不以未要求的候选字段拒绝模板。第一层不输出模板ID，最终选择与动作兜底仍由现有 Search/Planner 执行。明确禁止动作仍禁止补按钮。此规则不影响耳机和混合业务。
+
+### 仅百分比的手机电量 Full
+
+新增 `BatteryOverviewPercentTextFull@1`，仅依赖 `/batterySOCText`，无动作、图标及其它必需字段。按提供的 150vp UX 居中排列手机电量（16fp/400）、百分比（38fp/700）、电量状态（12fp/400），行高 24/60/16vp，间距 8vp；沿用所选主题的背景和文字配色。提示及编译均不要求数值电量或充电状态，Q160 可以直接采用 Full 布局。
+
+百分比 Full 支持可选 `/chargingStatusDesc`：提供时底部展示实际充电状态，缺失时保留“电量状态”，不增加必需字段或按钮；Q124 与 Q160 共用同一模板。
+
+### 健康状态与温度 Hero
+
+新增 `BatteryOverviewHealthTemperatureHero@1`，复用 HealthLevelHero 布局和字号，以 `/batteryTemperatureText` 替换 `/batteryCapacityLevelDesc`，保留必需 `/healthStatusDesc`。Q211/Q212 可组合输入已有的电池健康入口；不修改原模板或扩充动作兜底规则。
+
+### 电池四项状态 Hero
+
+新增 `BatteryOverviewStatusSummaryHero@1`，沿用 ChargingDiagnosticsHero 的四行布局、字号与间距。依次展示电池电量 `/batterySOCText`、充电状态 `/chargingStatusDesc`、健康状态 `/healthStatusDesc`、电池温度 `/batteryTemperatureText`，四项均必需，不依赖数值电量、充电电流、电压或电量等级。Q231 使用输入已有的电池设置入口组合 HeroActionLayout。
+
+### 电量模板候选字段优先级
+
+单手机电量 2x2：query 明确要求为必选，其余输入为候选。模板必须完整覆盖必选且必需输入齐全、动作布局合法；在完整方案中优先选择覆盖候选字段最多的方案，按实际 candidateOutputFields 与模板展示字段交集去重计数，不计算缺失字段。同分沿用主次字段排序。第二层优先采用排序首项，不跨方案组合。其它业务排序保持原样。
+
+### 电量 Full 与 Hero 平等比较
+
+没有显式动作时，有合法候选设置动作且用户未禁止交互，则同时构建无动作 Full 和 Hero+候选动作方案，按候选字段覆盖数量统一排序；无合法候选动作或禁止交互时只保留无动作 Full。不得先以存在 Full 为由淘汰 Hero。为保持二层动作契约一致，排序后仅向二层传递与首选方案动作集合相同的方案；显式动作不删除，其它业务不变。路由投影保留原候选事件 ID，不把 Planner 的同名动作区分标识（如 #1、#2）作为原始事件 ID；无动作 Full 获胜时才清空选中动作。
+
+### 手机电量百分比详情 Full
+
+新增 BatteryOverviewPercentDetailsFull@1，2×2 无按钮完整模板。必需输入 batterySOCText、chargingStatusDesc、batteryCapacityLevelDesc、pluggedTypeDesc；不需要数值 batterySOC 或 healthStatusDesc。顶部“手机电量”12fp，中间百分比 28fp 加粗；底部三行依次为充电状态、电量等级、充电类型，标签 12fp 常规、右侧字段 12fp 加粗。总内容高度 112vp，沿用当前主题文字色及融球背景。注册后参与现有必选字段覆盖及候选字段数量排序，不新增选择特例。
+
+### ChargingProgressHero 单行电量等级
+
+可选 batteryCapacityLevelDesc：未提供时保持“状态：{chargingStatusDesc}”；提供时同一行显示“{chargingStatusDesc} · {短电量等级}”，省略“状态：”，不增加行数。只有电量等级时显示“电量等级：{短电量等级}”。已知等级满电量、高电量、正常电量、低电量、告警电量、极低电量、关机电量分别显示为满电、高、正常、低、告警、极低、关机；未知值保留原文。缩写由端侧绑定表达式完成，保留原始数据并支持刷新。字号、颜色与原状态行一致。
+
+### 电量等级四项状态 Hero
+
+新增 BatteryOverviewStatusLevelSummaryHero@1，完整复用 BatteryOverviewStatusSummaryHero@1 的面板、四行排版、字号、颜色、间距和动作组合，仅将最后一行“电池温度”及 batteryTemperatureText 替换为“电量等级”及 batteryCapacityLevelDesc。四个必需字段为 batterySOCText、chargingStatusDesc、healthStatusDesc、batteryCapacityLevelDesc；不依赖温度或数值电量。沿用已有字段覆盖排序，不增加选择特例。
+
+### 充电类型与电量等级四项 Hero
+
+新增 BatteryOverviewChargingLevelSummaryHero@1，复用 StatusLevelSummaryHero 四行面板样式，将第三行“健康状态”/healthStatusDesc 替换为“充电类型”/pluggedTypeDesc。必需字段为 batterySOCText、chargingStatusDesc、pluggedTypeDesc、batteryCapacityLevelDesc，依次展示电池电量、充电状态、充电类型、电量等级。保持 Hero+PillAction 组合，保留既有 PercentDetailsFull 大字百分比无按钮模板；使用现有字段覆盖排序，不新增选择优先级规则。
+
+### ChargingLevelSummaryHero 充电类型短文案
+
+仅该模板的充电类型值使用动态表达式缩写：未连接充电器→未连接，交流充电器→交流，无线充电器→无线，USB 保持 USB；兼容 USB充电器、USB充电→USB、交流充电→交流、无线充电→无线。其它类型保留原文，沿用单行省略边界。保留原始 pluggedTypeDesc，不改数据接口、其它模板或布局。
+
+### ChargingProgressHero 可选温度
+
+新增可选 batteryTemperatureText，底部仍占一行，按充电状态、短电量等级、温度的顺序以“ · ”连接已有字段。只显示存在的字段，不出现多余分隔符；只有一项时按字段显示“状态：{充电状态}”“电量等级：{短电量等级}”或“电池温度：{温度}”；两项及以上不显示标签，以点号分隔。带温度时字号默认12fp、允许缩至10fp，行高16vp、单行省略；整体高度及百分比字号不变。字段覆盖排序自动计入温度，不新增排序特例。

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import permutations, product
 
-from models.generation import TaskSpec
+from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,
     TemplateComponentCandidate,
@@ -58,6 +58,9 @@ def plan_template_candidates(
     search_result: TemplateSearchResult,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
+    *,
+    candidate_bindings: tuple[CandidateDataBinding, ...] = (),
+    allow_battery_no_action_plan: bool = False,
 ) -> tuple[TemplatePlan, ...]:
     """Build at most three complete, atomic UI plans from Search candidates."""
     if search_result.card_size != task_spec.size:
@@ -79,6 +82,11 @@ def plan_template_candidates(
                 task_spec,
                 registry,
             )
+            if allow_battery_no_action_plan and requested_capabilities == ("GetPhoneBatteryInfo",):
+                no_action_intent = intent.model_copy(update={"action_ids": ()})
+                new_drafts += _single_business_drafts(
+                    selected_groups[0], (), no_action_intent, task_spec, registry,
+                )
         elif len(selected_groups) == 2:
             new_drafts = _dual_business_drafts(
                 selected_groups,
@@ -95,7 +103,16 @@ def plan_template_candidates(
     if not drafts:
         raise TemplateRetrievalMiss("Search candidates cannot form a supported atomic plan")
 
-    if len(requested_capabilities) == 1:
+    battery_ranking = (
+        requested_capabilities == ("GetPhoneBatteryInfo",) and bool(candidate_bindings)
+    )
+    if battery_ranking:
+        ranked_drafts: list[_PlanDraft] = []
+        for draft in drafts:
+            coverage = _battery_candidate_coverage(draft.plan, intent, registry, candidate_bindings)
+            ranked_drafts.append(replace(draft, score=(coverage, *draft.score)))
+        drafts = ranked_drafts
+    if len(requested_capabilities) == 1 and not battery_ranking:
         focus = intent.primary_output_field_by_capability.get(requested_capabilities[0])
         focused = [
             draft
@@ -107,11 +124,40 @@ def plan_template_candidates(
     drafts.sort(key=lambda item: (*tuple(-value for value in item.score), item.sequence))
     deduplicated = _deduplicate_drafts(drafts)
     top_theme = deduplicated[0].plan.theme_id
-    same_theme = [item for item in deduplicated if item.plan.theme_id == top_theme]
+    top_actions = tuple(item.action_id for item in deduplicated[0].plan.action_assignments)
+    same_theme = []
+    for item in deduplicated:
+        if item.plan.theme_id != top_theme:
+            continue
+        actions = tuple(action.action_id for action in item.plan.action_assignments)
+        if allow_battery_no_action_plan and actions != top_actions:
+            continue
+        same_theme.append(item)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
         for index, item in enumerate(same_theme[:_MAX_PLANS])
     )
+
+
+def _battery_candidate_coverage(
+    plan: TemplatePlan,
+    intent: TemplateSearchIntent,
+    registry: CardPlanRegistry,
+    bindings: tuple[CandidateDataBinding, ...],
+) -> int:
+    available: set[str] = set()
+    for binding in bindings:
+        if binding.capabilityId == "GetPhoneBatteryInfo":
+            available.update(binding.candidateOutputFields)
+    required = intent.required_output_fields_by_capability.get("GetPhoneBatteryInfo", ())
+    available.difference_update(required)
+    displayed: set[str] = set()
+    for slot in plan.business_slots:
+        definition = registry.require_template(slot.template_id)
+        displayed.update(definition.primary_data)
+        displayed.update(definition.secondary_data)
+        displayed.update(definition.optional_data)
+    return len(available.intersection(displayed))
 
 
 def planner_scope(plans: tuple[TemplatePlan, ...]) -> AdvancedScopeBrief:

@@ -1,0 +1,45 @@
+#Template BatteryOverviewChargingLevelSummaryHero@1(props: {})
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    pluggedType: $path("/pluggedTypeDesc"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Column(
+  {
+    "_advancedComponent": "BatteryOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Column(
+    {"width": "matchParent", "padding": {"left": 8, "top": 4, "right": 8, "bottom": 4}, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "backgroundColor": $theme('actionStyle.backgroundColor'), "borderRadius": 12, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+      {"width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text("电池电量", {"height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
+      Text(data.percentText, {"height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+    ),
+    Row(
+      {"width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text("充电状态", {"height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
+      Text(data.charging, {"height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+    ),
+    Row(
+      {"width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text("充电类型", {"width": 48, "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
+      Text(Expr(data.pluggedType == '未连接充电器' ? '未连接' : (data.pluggedType == '交流充电器' ? '交流' : (data.pluggedType == '无线充电器' ? '无线' : (data.pluggedType == 'USB充电器' ? 'USB' : (data.pluggedType == 'USB充电' ? 'USB' : (data.pluggedType == '交流充电' ? '交流' : (data.pluggedType == '无线充电' ? '无线' : (data.pluggedType)))))))), {"width": 56, "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+    ),
+    Row(
+      {"width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text("电量等级", {"width": 48, "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
+      Text(data.level, {"width": 56, "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}})
+    )
+  )
+)
+#End

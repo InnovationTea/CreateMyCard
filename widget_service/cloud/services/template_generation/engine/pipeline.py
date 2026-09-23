@@ -202,12 +202,17 @@ async def generate_template_a2ui(
                     f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
                 )
             intent = resolved_intent
+            battery_action_is_optional = (
+                tuple(intent.required_output_fields_by_capability) == ("GetPhoneBatteryInfo",)
+                and not intent.action_ids
+            )
             resolved_intent = resolve_battery_settings_fallback(
                 intent, search_result, selected_task_spec,
             )
             if resolved_intent.action_ids != intent.action_ids:
                 logger.info(
-                    f"{_MODULE} battery_settings_fallback selected=True reason=hero_without_full"
+                    f"{_MODULE} battery_settings_fallback selected=True "
+                    "reason=legal_hero_action_candidate"
                 )
             intent = resolved_intent
             template_plans = plan_template_candidates(
@@ -215,11 +220,13 @@ async def generate_template_a2ui(
                 search_result,
                 selected_task_spec,
                 registry,
+                candidate_bindings=coverage_bindings,
+                allow_battery_no_action_plan=battery_action_is_optional,
             )
             selection = TemplateRouteSelection(
                 scope=planner_scope(template_plans),
                 componentCandidates=planner_component_candidates(template_plans),
-                actionIds=intent.action_ids,
+                actionIds=intent.action_ids if template_plans[0].action_assignments else (),
                 requiredTemplateGroups=planner_required_template_groups(template_plans),
             )
             logger.info(

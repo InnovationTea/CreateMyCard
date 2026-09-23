@@ -203,14 +203,17 @@ def build_template_retrieval_prompt(
     battery_only = set(capability_ids) == {"GetPhoneBatteryInfo"} and task_spec.size == "2x2"
     battery_rule = ""
     if battery_only:
+        payload["batteryTemplateReference"] = _battery_template_reference(
+            registry, coverage_bindings,
+        )
         battery_rule = (
             "allowBatterySettingsFallback 仅标记单手机电量用户是否允许默认电池设置入口："
             "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
             "只展示不交互等时为 false；其他业务或多个业务也为 false。"
             "没有提到按钮不等于禁止按钮。action 仍只含显式需求，不直接选择默认入口。"
-            "服务端在 Search 后优先使用匹配的 Full；只有没有 Full 而有可用 Hero，"
-            "且没有已选动作、候选中存在唯一合法电池设置入口时，才补选该入口。"
-            "不得自行判断模板条件，也不得为兜底补字段、删用户要求的字段或编造事件。"
+            "服务端在 Search 后没有合法候选动作时只采用 Full；有唯一合法候选设置入口且允许交互时，"
+            "Full 与 Hero 加该入口平等参与比较，优先可展示候选字段更多的方案，不设 Full 优先。"
+            "可参考实际模板字段判断覆盖，但最终选择仍由服务端执行；也不得为兜底补字段、删用户要求的字段或编造事件。"
             "没有电池设置候选且用户明确要求电池健康时，服务端可补选唯一合法电池健康入口，"
             "按钮仍为电池健康；不得把省电模式作为默认入口。"
         )
@@ -332,6 +335,22 @@ def build_template_retrieval_prompt(
             "但'名称和左右耳电量'是简短独立目标，必须保留名称与左右电量。"
             "用户强调全部、必须或不能省略时保留所有硬要求，即使无法匹配模板。"
         )
+    if battery_only:
+        system = (
+            "\n【单手机电量字段筛选优先规则】本规则优先于通用的不得参考模板反推字段规则。"
+            "只以userQuery确定必须展示字段；title、description和候选字段不能扩大需求。"
+            "未明确要求的输入字段仅为可选候选，保留原输入但不要放入requiredOutputFieldsByCapability；"
+            "模板有该字段且输入存在可以附带展示，模板没有就不展示。"
+            "batteryTemplateReference提供当前启用模板的真实字段；比较displayFields覆盖需求、"
+            "missingInputFields为空且动作数量合适的完整方案，优先采用可被模板满足的合理概览解释。"
+            "所有必选字段被覆盖且输入齐全后，优先匹配可展示候选字段更多的模板；"
+            "仅统计本次输入实际提供且模板能够展示的不同字段，不为提高数量把候选变为必选。"
+            "不得删除用户明确要求，也不得把/batterySOCText当作缺失的/batterySOC。"
+            "例如query为充电状态和电池情况且提供文本电量时，必须字段通常为"
+            "/batterySOCText和/chargingStatusDesc；未明确要求的健康、充电类型、温度只作候选。"
+            "明确要求充电类型时仍必须保留/pluggedTypeDesc，即使没有模板覆盖。"
+            "动作沿用allowBatterySettingsFallback规则，不直接输出模板ID或布局，不新增JSON字段。"
+        ) + "\n" + system
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -387,6 +406,31 @@ def _earphone_template_reference(
             "roles": [role],
             "displayFields": sorted(record.available_paths),
             "requiredInputFields": sorted(record.required_paths),
+            "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
+        })
+    return references
+
+
+def _battery_template_reference(
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> list[dict[str, Any]]:
+    """Expose enabled battery template inputs without promoting candidate fields to requirements."""
+    candidate_paths = _candidate_paths(coverage_bindings, "GetPhoneBatteryInfo")
+    references: list[dict[str, Any]] = []
+    for record in registry.template_variant_search_records:
+        if record.capability_id != "GetPhoneBatteryInfo":
+            continue
+        if "2x2" not in record.supported_card_sizes:
+            continue
+        if not registry.template_is_enabled(record.template_id):
+            continue
+        references.append({
+            "templateId": record.template_id,
+            "roles": [provider_template_layout_kind(record.template_id)],
+            "displayFields": sorted(record.available_paths),
+            "requiredInputFields": sorted(record.required_paths),
+            "optionalInputFields": sorted(record.available_paths.difference(record.required_paths)),
             "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
         })
     return references
