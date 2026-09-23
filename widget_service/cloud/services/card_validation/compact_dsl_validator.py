@@ -212,6 +212,7 @@ def validate_compact_dsl(
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
     _collect_semantic_text_errors(components, task_spec, errors)
     _collect_raw_boolean_text_errors(components, task_spec, errors)
+    _collect_progress_value_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     _collect_hero_value_errors(components, task_spec, errors)
@@ -798,9 +799,21 @@ def _collect_adjacent_display_unit_errors(
                     value.props.get("width") is None
                     and suffix.props.get("width") is None
                 )
+                suffix_font_size = _non_negative_number(
+                    suffix.props.get("fontSize")
+                )
+                expected_unit_padding = 0
+                if value_font_size is not None and suffix_font_size is not None:
+                    expected_unit_padding = min(
+                        4,
+                        max(
+                            0,
+                            int(round((value_font_size - suffix_font_size) / 2)),
+                        ),
+                    )
                 has_valid_alignment = (
                     component.props.get("alignItems") == "bottom"
-                    and unit_bottom_padding in {None, 0}
+                    and unit_bottom_padding == expected_unit_padding
                     and has_valid_height
                     and has_compact_spacing
                     and has_intrinsic_width
@@ -809,7 +822,8 @@ def _collect_adjacent_display_unit_errors(
                     errors.append(
                         f"component {component.component_id}: numeric value "
                         f"and unit {suffix.component_id} must use Row alignItems "
-                        '"bottom"; the unit must not use bottom padding or the '
+                        '"bottom"; the unit must use capped visual bottom padding '
+                        "for its font-size difference and must not use the "
                         "numeric value's fixed height; both Text nodes must use "
                         "intrinsic width and their Row itemMargin must not exceed 4."
                     )
@@ -1125,13 +1139,17 @@ def _collect_mixed_font_row_alignment_errors(
                 actual_padding = float(padding)
             elif isinstance(padding, dict):
                 actual_padding = _non_negative_number(padding.get("bottom"))
-            if actual_padding in {None, 0}:
+            expected_padding = min(
+                4,
+                max(0, int(round((max_font_size - child_font_size) / 2))),
+            )
+            if actual_padding == expected_padding:
                 continue
             errors.append(
                 f"component {child.component_id}: smaller Text in mixed-size Row "
-                f"{component.component_id} must not use bottom padding; Row "
-                'alignItems "bottom" already aligns its visible bottom with '
-                "the largest Text."
+                f"{component.component_id} must use padding.bottom "
+                f"{expected_padding} to compensate the visible glyph baseline "
+                'after Row alignItems "bottom" aligns the Text boxes.'
             )
 
 
@@ -1157,6 +1175,53 @@ def _has_stacked_two_by_four_backboards(
         if full_width_backboard_count >= 2:
             return True
     return False
+
+
+def _collect_two_by_four_small_backboard_errors(
+    components: list[ComponentRow],
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    for backboard in components:
+        dimensions = (
+            backboard.props.get("width"),
+            backboard.props.get("height"),
+        )
+        if dimensions != (138, 63):
+            continue
+        descendants = _descendant_components(backboard, components_by_id)
+        text_count = sum(
+            component.component_type == "Text" for component in descendants
+        )
+        if text_count > 2:
+            errors.append(
+                f"2x4 small backboard {backboard.component_id} may contain at "
+                "most two Text nodes. Keep one primary line and one supporting "
+                "line instead of clipping a third line."
+            )
+        has_visual = any(
+            component.component_type in {"Image", "Progress", "Stack"}
+            for component in descendants
+        )
+        if has_visual:
+            if backboard.component_type != "Row":
+                errors.append(
+                    f"2x4 small backboard {backboard.component_id} with a visual "
+                    "must use Row so its text stays on the left and the visual "
+                    "stays on the right."
+                )
+            continue
+        if backboard.component_type != "Column":
+            errors.append(
+                f"2x4 small backboard {backboard.component_id} without a visual "
+                "must use Column; do not place two Text nodes side by side where "
+                "the second line can be clipped."
+            )
+        elif backboard.props.get("justifyContent") != "center":
+            errors.append(
+                f"2x4 small backboard {backboard.component_id} without a visual "
+                "must vertically center its one or two Text lines."
+            )
 
 
 def _is_two_by_four_large_backboard(component: ComponentRow | None) -> bool:
@@ -1495,6 +1560,34 @@ def _collect_raw_boolean_text_errors(
             f"component {component.component_id}: boolean field(s) "
             f"{', '.join(boolean_paths)} must be mapped to user-facing Text "
             "with a conditional expression; do not display raw true/false."
+        )
+
+
+def _collect_progress_value_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    data_model_schema = task_spec.get("dataModelSchema")
+    if not isinstance(data_model_schema, dict):
+        return
+    for component in components:
+        if component.component_type != "Progress":
+            continue
+        value_path = _pure_binding_path(component.props.get("value"))
+        if not value_path:
+            continue
+        schema_type = _schema_type(
+            _schema_node_at_path(data_model_schema, value_path)
+        )
+        if schema_type in _NUMERIC_SCHEMA_TYPES:
+            continue
+        errors.append(
+            f"component {component.component_id}: Progress.value path "
+            f"{value_path} has schema type {schema_type or 'unknown'}; bind a "
+            "number/integer field such as 68, not formatted text such as "
+            "'68%'. If only formatted text exists, remove Progress and show "
+            "the complete value with Text."
         )
 
 
@@ -2274,36 +2367,43 @@ def _has_two_by_four_w1_focus_aux(
 def _collect_two_by_four_w1_focus_alignment_errors(
     focus: ComponentRow,
     focus_components: list[ComponentRow],
-    normalized_roots: set[str],
+    _normalized_roots: set[str],
     components_by_id: dict[str, ComponentRow],
     errors: list[str],
 ) -> None:
-    centered_domains = (
-        {"phonebattery"},
-        {"healthsport"},
-        {"earphone", "phonebattery"},
-    )
-    if normalized_roots not in centered_domains:
-        return
-
     text_count = 0
+    has_large_focus = False
     for component in focus_components:
         if component.component_type == "Text":
             text_count += 1
+            font_size = _non_negative_number(component.props.get("fontSize")) or 0
+            if font_size >= 20:
+                has_large_focus = True
         if component.component_type in {"List", "TimelineUnit"}:
             return
-    if text_count == 0 or text_count > 4:
+    if text_count == 0:
+        return
+    if text_count > 4:
+        errors.append(
+            "2x4 W1-focus-aux left focus may contain at most four Text nodes. "
+            "Use at most three visual layers for value-led content, merge a "
+            "closely related pair, or move one necessary fact to an auxiliary "
+            "cell instead of filling the left zone with a dense list."
+        )
         return
 
-    focus_is_centered = (
-        focus.props.get("justifyContent") == "center"
-        and focus.props.get("alignItems") == "center"
-    )
-    if not focus_is_centered:
+    if focus.props.get("justifyContent") != "center":
         errors.append(
-            "2x4 W1-focus-aux compact battery or health focus must center its "
-            "content group on both axes. Set focus_zone justifyContent and "
-            "alignItems to center; do not pin sparse content to the top-left."
+            "2x4 W1-focus-aux compact left content must use justifyContent "
+            "center so its information group is vertically centered instead "
+            "of being pinned to the top."
+        )
+    requires_horizontal_center = has_large_focus or text_count <= 2
+    if requires_horizontal_center and focus.props.get("alignItems") != "center":
+        errors.append(
+            "2x4 W1-focus-aux sparse or value-led left content must use "
+            "alignItems center. Event lists and dense summaries may remain "
+            "left-aligned, but their full group must still be vertically centered."
         )
 
     for child_id in focus.children:
@@ -2327,7 +2427,7 @@ def _collect_two_by_four_w1_focus_alignment_errors(
                 "use justifyContent center so its compact text group is not "
                 "pinned to the top or left."
             )
-        if child.component_type == "Column":
+        if child.component_type == "Column" and requires_horizontal_center:
             if child.props.get("alignItems") != "center":
                 errors.append(
                     f"2x4 W1-focus-aux left content Column "
@@ -2347,6 +2447,25 @@ def _collect_two_by_four_w1_focus_aux_errors(
         return
 
     focus_components = [focus, *_descendant_components(focus, components_by_id)]
+    focus_text_paths: set[str] = set()
+    for component in focus_components:
+        if component.component_type == "Text":
+            focus_text_paths.update(_component_content_paths(component))
+    aux_components = [
+        aux_column,
+        *_descendant_components(aux_column, components_by_id),
+    ]
+    aux_text_paths: set[str] = set()
+    for component in aux_components:
+        if component.component_type == "Text":
+            aux_text_paths.update(_component_content_paths(component))
+    duplicate_text_paths = sorted(focus_text_paths & aux_text_paths)
+    if duplicate_text_paths:
+        errors.append(
+            "2x4 W1-focus-aux must not repeat the same visible fact in the left "
+            "focus and a right auxiliary cell. Reassign each requested field "
+            f"to one region only; duplicated paths: {duplicate_text_paths}."
+        )
     parent_by_child: dict[str, ComponentRow] = {}
     for component in focus_components:
         for child_id in component.children:
@@ -3381,6 +3500,12 @@ def _collect_layout_route_errors(
         component.component_id: component for component in components
     }
     root = components_by_id.get("root")
+    if size == "2x4":
+        _collect_two_by_four_small_backboard_errors(
+            components,
+            components_by_id,
+            errors,
+        )
     _collect_two_by_two_content_density_errors(
         components,
         task_spec,

@@ -729,6 +729,10 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
+    normalized_components = _normalize_two_by_four_white_backboards(
+        normalized_components,
+        size=size,
+    )
     normalized_components = _normalize_large_value_unit_alignment(
         normalized_components
     )
@@ -1289,6 +1293,33 @@ def _normalize_ring_stack_children(
     return centered
 
 
+def _normalize_two_by_four_white_backboards(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    if size != "2x4":
+        return components
+
+    normalized: list[ComponentRow] = []
+    for component in components:
+        if (
+            component.component_id == "root"
+            or component.props.get("backgroundColor") != "#CCFFFFFF"
+        ):
+            normalized.append(component)
+            continue
+        normalized.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                {**component.props, "backgroundColor": "#99FFFFFF"},
+                component.children,
+            )
+        )
+    return normalized
+
+
 def _normalize_large_value_unit_alignment(
     components: list[ComponentRow],
 ) -> list[ComponentRow]:
@@ -1342,19 +1373,18 @@ def _normalize_large_value_unit_alignment(
             if child.component_id in compact_readout_ids:
                 child_props.pop("width", None)
             if child_font_size != max_font_size:
+                bottom_padding = min(
+                    4,
+                    max(0, int(round((max_font_size - child_font_size) / 2))),
+                )
                 padding = child_props.get("padding")
                 if isinstance(padding, dict):
-                    normalized_padding = {
-                        key: value
-                        for key, value in padding.items()
-                        if key != "bottom"
+                    child_props["padding"] = {
+                        **padding,
+                        "bottom": bottom_padding,
                     }
-                    if normalized_padding:
-                        child_props["padding"] = normalized_padding
-                    else:
-                        child_props.pop("padding")
-                elif isinstance(padding, (int, float)):
-                    child_props.pop("padding")
+                else:
+                    child_props["padding"] = {"bottom": bottom_padding}
                 height = child_props.get("height")
                 if isinstance(height, (int, float)) and height > 24:
                     child_props.pop("height")
