@@ -58,9 +58,8 @@ flowchart TD
     A2UI --> COMPACT[A2UI -> Design Compact DSL]
     COMPACT --> PROCESS[DesignCompactProcessor]
     PROCESS --> VALIDATE[ArtifactValidator]
-    VALIDATE -->|error + 允许修复| REPAIR[Compact repair]
-    REPAIR --> PROCESS
-    VALIDATE -->|pass| SAVE[ArtifactStore]
+    VALIDATE -->|error| INVALID[VALIDATION_FAILED]
+    VALIDATE -->|通过或仅 warning| SAVE[ArtifactStore]
     TEMPLATE -->|不匹配或异常| FAIL[A2UI_GENERATION_FAILED]
 ```
 
@@ -127,8 +126,9 @@ Tersel 入口传入 `need_fallback=false`。因此以下异常都在 source DSL 
 这些情况不调用原 Tersel 模型，也不调用原 Compact 首次生成，最终转为
 `A2UI_GENERATION_FAILED`。
 
-只有模板已成功返回 Design Compact DSL 后，公共 Processor 或 Validator 发现的质量错误才能进入
-Compact repair。repair 不重跑首层、Search、二层或 CardTpl 展开。
+模板成功返回后仍执行公共解析、转换与最终 Artifact 校验，但跳过 Compact 校验 API。
+当前 Tersel 模板入口不构造原协议 Prompt，不进入公共 Compact repair；最终 error 直接按严格路由失败。
+模板内部二层修复仍独立执行。完整规则见 [模板后处理与校验说明](post-processing-validation.md)。
 
 ## 8. Artifact 和响应
 

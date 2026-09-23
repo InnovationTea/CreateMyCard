@@ -537,6 +537,22 @@ def _event_candidate(
     return {"capabilityId": capability_id, "action": action}
 
 
+def _gallery_data_arguments(capability_id: str, fields: tuple[str, ...]) -> dict[str, Any]:
+    """按已声明的预报索引请求足够天数，不改变共享默认参数。"""
+    configured = _CAPABILITY_ARGUMENTS.get(capability_id)
+    if configured is None:
+        raise KeyError(capability_id)
+    arguments = deepcopy(configured)
+    if capability_id == "ViewWeather":
+        forecast_days = 1
+        for field in fields:
+            match = re.fullmatch(r"/daily/(0|[1-9][0-9]*)/[^/]+", field)
+            if match is not None:
+                forecast_days = max(forecast_days, int(match.group(1)) + 1)
+        arguments["forecastDays"] = forecast_days
+    return arguments
+
+
 def _data_binding(
     definition: BusinessDefinition,
     template: ProviderTemplateDefinition | None,
@@ -561,7 +577,7 @@ def _data_binding(
     if definition.business_id == "BluetoothDeviceOverview":
         fields = _ordered_unique([*fields, "/isConnected", "/earphoneName"])
     return {
-        "arguments": deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id]),
+        "arguments": _gallery_data_arguments(definition.capability_id, fields),
         "candidateOutputFields": list(fields),
         "capabilityId": definition.capability_id,
         "writeResultTo": definition.data_domain,
@@ -683,7 +699,11 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        for field in weather_template.fields:
+            is_condition = field == "/current/condition"
+            is_daily_condition = re.fullmatch(r"/daily/(0|[1-9][0-9]*)/condition", field)
+            if is_condition or is_daily_condition is not None:
+                sample_overrides[f"/data/weather{field}"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
         (
             template

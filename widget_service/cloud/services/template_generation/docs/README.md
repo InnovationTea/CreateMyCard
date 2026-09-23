@@ -17,6 +17,7 @@ Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最�
 | [modules.md](modules.md) | 目录、类、函数和代码责任索引 | 否，实现说明 |
 | [tersel-protocol.md](tersel-protocol.md) | Tersel 语法、DesignToken、内联样式和安全边界 | 否，模块内协议说明 |
 | [compact-dsl-data-flow.md](compact-dsl-data-flow.md) | Compact 入口的数据流和回退策略 | 否，接口实现说明 |
+| [post-processing-validation.md](post-processing-validation.md) | 模板来源、后处理校验、失败边界和画廊注入规则 | 否，实现与排障说明 |
 | [tersel-data-flow.md](tersel-data-flow.md) | Tersel 入口的数据流和严格失败策略 | 否，接口实现说明 |
 | [provider-template-contract.md](provider-template-contract.md) | Provider Bundle、CardTpl、Layout 与 Action 接入规则 | 否，模块内契约 |
 | [template-search-planner-contract.md](template-search-planner-contract.md) | 第一层、Search、Planner、第二层及验证器的职责与输入输出 | 否，模块内契约 |

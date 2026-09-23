@@ -7,7 +7,11 @@ from typing import Any
 
 import pytest
 
-from services.card_validation import validate_card, validate_compact_dsl
+from services.card_validation import (
+    CompactDslValidationError,
+    validate_card,
+    validate_compact_dsl,
+)
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
@@ -148,12 +152,14 @@ def test_public_compact_pipeline_rejects_deferred_runtime_if(component: str) -> 
         size="2x2", card_spec={"dataBindings": []}, task_spec=_task(),
         protocol_profile=A2UIProtocolRegistry().get_profile(),
     )
-    # 公共转换器保持基线职责：数据契约合法，但最终 A2UI 校验拒绝未知组件。
-    validate_compact_dsl(source, task_spec=context.task_spec, card_spec=context.card_spec)
+    # childrenIf 不是公共树边；当前解析器先拒绝不可达分支，不能等到最终组件准入。
+    with pytest.raises(CompactDslValidationError, match=r"Unreachable component\(s\): text"):
+        validate_compact_dsl(source, task_spec=context.task_spec, card_spec=context.card_spec)
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
-    assert not result.errors
-    report = validate_card(dsl_text=result.standard_dsl)
-    assert any(item.code == "DSL_COMPONENT_UNKNOWN" for item in report.diagnostics)
+    assert not result.standard_dsl
+    assert len(result.errors) == 1
+    assert result.errors[0].code == "COMPACT_DSL_VALIDATION_FAILED"
+    assert "Unreachable component(s): text" in result.errors[0].message
 
 
 def test_public_a2ui_validator_rejects_deferred_runtime_if() -> None:
@@ -193,6 +199,7 @@ def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
         size="2x2",
         card_spec={"title": "日程", "description": "日程状态", "suggestSize": "2x2"},
         task_spec=_task(sample), protocol_profile=profile, design_profile_id="design-compact-dsl",
+        skip_compact_dsl_validation=True,
     )
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     assert not result.errors
