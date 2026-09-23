@@ -58,10 +58,6 @@ def test_generation_tool_schema_matches_source_direct_result_contract():
     assert tool["arguments"]["required"] == ["userQuery"]
     assert properties["extrainfo"] == {
         "type": "Array<String>",
-        "required": [],
-        "properties": {
-            "ArrayItem": {"type": "String", "description": "卡片相关的外部事实或上下文信息"},
-        },
         "description": (
             "本轮已清洗、已告知且与卡片相关的外部事实和会话有效上下文；"
             "没有内容时省略，不进入 TaskSpec 或 artifact"

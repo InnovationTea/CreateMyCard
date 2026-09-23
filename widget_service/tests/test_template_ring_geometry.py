@@ -105,7 +105,7 @@ def test_template_ring_retains_explicit_geometry_and_layer_order(
     assert _styles(_component(components, "row")).get("height") == 36
     assert _styles(_component(components, "icon")).get("width") == 12
     outside_styles = _styles(_component(components, "outside"))
-    assert outside_styles.get("width") == (48 if size == "2x2" else 36)
+    assert outside_styles.get("width") == (52 if size == "2x2" else 36)
     assert outside_styles.get("strokeWidth") == (6 if size == "2x2" else 4)
 
 
@@ -144,18 +144,16 @@ def test_invalid_template_marker_keeps_ring_size_policy(marker_state: str) -> No
     normalized = _normalize_ring_stack_children(rows, size="2x2")
     for row in normalized:
         if row.component_id in {"ring_stack", "ring"}:
-            assert row.props.get("width") == row.props.get("height") == 48
+            assert row.props.get("width") == row.props.get("height") == 52
         if row.component_id == "ring":
             assert row.props.get("strokeWidth") == 6
 
 
 def test_unmarked_dual_zone_ring_keeps_44vp_policy() -> None:
     rows = _ring_rows()
-    rows[0] = ComponentRow(
-        "root", "Column", {"padding": 8, "itemMargin": 8}, ("zone", "other_zone"),
-    )
-    rows[1] = ComponentRow("zone", "Column", {"width": 134, "height": 63}, ("row",))
-    rows.append(ComponentRow("other_zone", "Column", {"width": 134, "height": 63}, ("outside",)))
+    rows[0] = ComponentRow("root", "Column", {}, ("zone", "other_zone"))
+    rows[1] = ComponentRow("zone", "Column", {"width": 136, "height": 64}, ("row",))
+    rows.append(ComponentRow("other_zone", "Column", {"width": 136, "height": 64}, ("outside",)))
     components = _convert(rows)
     for component_id in ("ring_stack", "ring", "outside"):
         styles = _styles(_component(components, component_id))

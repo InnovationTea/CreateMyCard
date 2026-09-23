@@ -694,10 +694,10 @@ def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
             '"padding":12,"itemMargin":4},["value_row","metrics","action_area"]]',
-            '["value_row","Row",{"width":136,"height":40,"alignItems":"bottom"},["steps","unit"]]',
+            '["value_row","Row",{"width":136,"height":40},["steps","unit"]]',
             '["steps","Text",{"content":{"path":"/data/healthSport/steps"},'
             '"fontSize":30,"fontWeight":700,"maxLines":1}]',
-            '["unit","Text",{"content":"步","fontSize":12,"padding":{"bottom":4},'
+            '["unit","Text",{"content":"步","fontSize":12,'
             '"fontWeight":500,"maxLines":1}]',
             '["metrics","Row",{"width":136,"height":18,"itemMargin":4},'
             '["calorie","separator","heart_rate"]]',
