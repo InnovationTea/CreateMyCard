@@ -31,7 +31,12 @@ from .calendar_field_paths import (
 from .models import TemplateDefinition
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
-from .retrieval_index import FieldToken, TemplateVariantSearchRecord
+from .retrieval_index import (
+    FieldToken,
+    TemplateVariantSearchRecord,
+    effective_display_record,
+    missing_any_of_groups,
+)
 
 _MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
 BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE = "BatteryOverviewPercentLevelHero@1"
@@ -57,6 +62,10 @@ class TemplateSearchIntent(BaseModel):
         alias="primaryOutputFieldByCapability",
     )
     action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+    excluded_action_ids: tuple[str, ...] = Field(default=(), alias="excludedActionIds")
+    allow_earphone_candidate_actions: bool = Field(
+        default=True, alias="allowEarphoneCandidateActions", strict=True,
+    )
     allow_calendar_view_fallback: bool = Field(
         default=False, alias="allowCalendarViewFallback", strict=True,
     )
@@ -70,7 +79,7 @@ class TemplateSearchIntent(BaseModel):
         _validate_output_fields(values)
         return values
 
-    @field_validator("action_ids", mode="before")
+    @field_validator("action_ids", "excluded_action_ids", mode="before")
     @classmethod
     def normalized_actions(cls, value: Any) -> tuple[str, ...]:
         return _normalized_action_ids(value)
@@ -197,9 +206,14 @@ def build_template_retrieval_prompt(
     earphone_only = set(capability_ids) == {"GetEarphoneInfo"} and task_spec.size == "2x2"
     if earphone_only:
         payload["earphoneTemplateReference"] = _earphone_template_reference(
-            registry, coverage_bindings,
+            registry, coverage_bindings, task_spec,
         )
     schema = TemplateSearchIntent.model_json_schema(by_alias=True)
+    if not earphone_only:
+        properties = schema.get("properties")
+        if isinstance(properties, dict):
+            properties.pop("allowEarphoneCandidateActions", None)
+            properties.pop("excludedActionIds", None)
     battery_only = set(capability_ids) == {"GetPhoneBatteryInfo"} and task_spec.size == "2x2"
     battery_rule = ""
     if battery_only:
@@ -229,17 +243,20 @@ def build_template_retrieval_prompt(
     )
     if earphone_only:
         action_rule = (
-            "必须输出action字段。用户禁止按钮/跳转时action=[]；明确要求动作时选合法候选。"
-            "用户未请求动作时根据earphoneTemplateReference检查：存在missingInputFields=[]且displayFields"
-            "包含全部筛选后需求的Full时action=[]；无这种Full但有这种Hero且候选含"
-            "event.open.settings.bluetooth时，必须action=[\"event.open.settings.bluetooth\"]；"
-            "Full/Hero不可用时再检查Compact；字段覆盖且必需输入齐全则保留已有合法动作，"
-            "仅从actionCandidates补齐到两个不同动作：优先未选中的event.open.settings.bluetooth；"
-            "蓝牙设置已选或不在候选中时，按query及耳机场景相关性选择剩余候选，"
-            "相关性相同按候选顺序，不选用户明确排除的动作，不固定第二个动作。缺一个补一个，缺两个补两个。"
-            "缺任一候选则保持补齐前的action，不部分补齐、不重复、不删用户要求的动作。"
-            "已有一个动作先考虑Hero，已有两个动作使用Compact，不追加。"
-            "这是耳机专用入口授权，不要求query另外请求这些候选入口。"
+            "必须输出action、excludedActionIds和allowEarphoneCandidateActions。"
+            "excludedActionIds列出用户局部禁止的所有输入候选动作ID；例如禁止音乐入口时排除所有音乐类候选。"
+            "排除集合只能引用输入候选，不能与action重叠；候选原始列表仍全部保留。"
+            "无法确定局部禁止项对应哪些候选时，allowEarphoneCandidateActions=false，禁止自动补动作。"
+            "布局按排除后可用候选数量选择。"
+            "仅2x2耳机单业务：输入动作全部保留为候选，不在第一层筛除。"
+            "action只填写query明确要求的合法动作；未要求动作时action=[]，"
+            "这不表示没有候选动作，也不代表排除Hero。"
+            "用户允许交互且局部禁止范围已完整映射时allowEarphoneCandidateActions=true；"
+            "整体禁止或局部限制无法可靠映射时为false。"
+            "服务端按候选动作数量选择：没有候选动作时只尝试Full；一个候选动作按Hero→Full；两个及以上候选动作按Compact→Hero→Full。"
+            "保留全部候选，先比较双动作Compact组合，均不可用时再比较单动作Hero，仍不可用时尝试Full。"
+            "不在第一层为了匹配模板自动添加动作，不固定候选动作名称或ID。"
+            "用户明确要求的合法动作必须保留；两个明确动作继续按既有规则处理。"
         )
         layout_rule = "按耳机专用规则内部比较Full/Hero/Compact，最终布局仍由服务端Planner校验。"
     system = (
@@ -265,6 +282,7 @@ def build_template_retrieval_prompt(
         "无法判断时省略该 capability，不能按模板或领域常识猜测。"
         + action_rule
         +
+        "以下allowCalendarViewFallback及其动作限制仅适用于日历兜底，不适用于耳机："
         "allowCalendarViewFallback 仅标记单日历日程用户是否允许默认查看入口："
         "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
         "只展示不交互等时为 false；其他业务或多个业务也为 false。"
@@ -285,22 +303,9 @@ def build_template_retrieval_prompt(
             "不得参考模板筛选字段的规则。允许参考耳机规则中的模板覆盖选择最小核心字段，"
             "普通并列项可按耳机规则降为辅助并省略；明确强调必须保留的字段不能省略。"
             "其它业务规则不变，不为匹配模板补字段。"
-            "仅2x2耳机单业务允许按耳机专用动作回退规则选择输入中的候选动作："
-            "未请求动作时先检查Full的核心覆盖和全部必需输入，Full可用则action为空；"
-            "Full不可用而Hero覆盖核心且必需输入齐全时，才补候选中的蓝牙设置动作。"
-            "Full/Hero不可用时允许按耳机规则回退Compact并补齐两个候选动作，"
-            "优先未选中的蓝牙设置，再按相关性选择剩余候选，不固定其它动作；"
-            "候选不足以补齐时保持原动作集合。"
-            "用户明确不要按钮或跳转时禁止所有自动补动作。"
-            "此例外优先于通用的仅明确请求才选动作及不得判断布局规则；"
-            "只在内部核对Full/Hero/Compact可用性，仍不得输出模板或布局；其它业务及混合业务不适用。"
-            "必须逐项核对耳机规则中Full的必需输入清单；覆盖用户字段但缺模板依赖不算可用。"
-            "当上述Hero回退条件满足时必须输出action=[\"event.open.settings.bluetooth\"]，"
-            "不能再以用户未明确请求动作为由输出空数组。"
             "earphoneTemplateReference是当前启用模板的真实字段参考；"
-            "用户未请求动作且missingInputFields为空、displayFields覆盖筛选后需求的Full存在时，"
-            "必须action=[]；用户已选动作不能为优先Full而删除。"
-            "优先依据此参考核对，不得因Full附带其它展示字段就认定Full不可用。"
+            "核对模板覆盖及自身输入依赖，不能把覆盖需求等同于模板可用。"
+            "耳机单业务按上述完整方案比较规则确定动作；其它业务和混合业务不自动增加动作。"
         )
     if earphone_only:
         system += (
@@ -308,29 +313,10 @@ def build_template_retrieval_prompt(
             "仓电量是/batteryLevel，仓充电状态是/chargingStatusDesc，"
             "与左右耳字段不同。query明确要求这两项时同时保留，"
             "不能因候选还有左右耳数据就改成左右耳概览。"
-            "EarbudsFull不覆盖仓字段，EarbudPairFull不覆盖仓充电状态；"
-            "不能把任何一个当成该需求的可用Full。以本轮启用模板参考为准。"
-            "仅当用户未明确要求动作也未禁止按钮/跳转、没有完整可用Full、"
-            "参考中存在missingInputFields为空且displayFields覆盖这两项的Hero、"
-            "actionCandidates含event.open.settings.bluetooth时："
-            "必须输出一个蓝牙设置动作，action=[]为遗漏。"
-            "正确输出示例："
-            '{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":'
-            '["/batteryLevel","/chargingStatusDesc"]},'
-            '"action":["event.open.settings.bluetooth"]}。'
-            "同一需求明确说不要按钮或不要跳转时，字段不变，action=[]，"
-            "允许后续报告未命中；缺候选或模板不可用时不能照抄正例。"
-            "已有明确动作时保留合法动作并执行前述规则，不强行替换。"
-            "\n【不要把仓场景规则套到普通耳机概览】"
-            "没有必须/全部保留等硬要求时，"
-            "'创建蓝牙耳机卡片，查看耳机名称、左右耳机电量和充电状态'"
-            "属于三类普通概览，按耳机规则收敛为左右耳电量；"
-            "EarbudsFull输入齐全且可覆盖时，正确输出为"
-            '{"requiredOutputFieldsByCapability":{"GetEarphoneInfo":'
-            '["/leftBatteryLevel","/rightBatteryLevel"]},"action":[]}。'
-            "不要保留无关名称和充电字段后再补蓝牙设置。"
-            "但'名称和左右耳电量'是简短独立目标，必须保留名称与左右电量。"
-            "用户强调全部、必须或不能省略时保留所有硬要求，即使无法匹配模板。"
+            "以本轮模板参考及可选字段的展示条件判断覆盖，不根据旧模板名称推断不可用。"
+            "EarbudPairFull的左右耳与仓三项充电状态全部可用时展示状态层，"
+            "缺任意一项则整层隐藏；必须核对该条件才能认定覆盖充电状态需求。"
+            "字段筛选遵守明确需求和核心辅助字段规则，动作统一按完整方案比较规则决定。"
         )
     return [
         {"role": "system", "content": system},
@@ -368,6 +354,7 @@ def normalize_calendar_reminder_intent(
 def _earphone_template_reference(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
+    task_spec: TaskSpec | None = None,
 ) -> list[dict[str, Any]]:
     """Supply current earphone template facts to the prompt, without choosing actions."""
     candidate_paths = _candidate_paths(coverage_bindings, "GetEarphoneInfo")
@@ -382,10 +369,21 @@ def _earphone_template_reference(
         role = provider_template_layout_kind(record.template_id)
         if role not in {"Full", "Hero", "Compact"}:
             continue
+        available = candidate_paths
+        if task_spec is not None:
+            definition = registry.require_template(record.template_id)
+            available = candidate_paths.intersection(
+                _record_typed_input_paths(record, task_spec, definition.data_domain)
+            )
         references.append({
             "templateId": record.template_id,
             "roles": [role],
-            "displayFields": sorted(record.available_paths),
+            "displayFields": sorted(
+                effective_display_record(record, available).available_paths
+            ),
+            "requiredAnyOf": record.required_any_of,
+            "missingAnyOfGroups": missing_any_of_groups(record, available),
+            "displayTogether": record.display_together,
             "requiredInputFields": sorted(record.required_paths),
             "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
         })
@@ -974,6 +972,8 @@ def _component_templates_for_capability(
             if record.template_id == BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE:
                 if not allow_battery_text_level_fallback:
                     continue
+            available = _record_typed_input_paths(record, task_spec, data_root)
+            record = effective_display_record(record, available)
             evaluations.append(
                 _template_record_evaluation(
                     record,
@@ -1136,12 +1136,17 @@ def _template_record_evaluation(
         rejection_reasons.append("card_size_not_supported")
     if not _template_query_discriminator_is_requested(record, query_tokens):
         rejection_reasons.append("template_query_discriminator_not_requested")
+    missing_groups = missing_any_of_groups(
+        record, _record_typed_input_paths(record, task_spec, data_root),
+    )
+    if missing_groups:
+        rejection_reasons.append("template_any_of_requirement_unsatisfied")
+    if unmatched_user_fields:
+        rejection_reasons.append("user_required_data_not_covered")
     if missing_required_fields:
         rejection_reasons.append("user_provided_data_missing_template_required_fields")
     if required_type_mismatches:
         rejection_reasons.append("user_provided_data_type_mismatch")
-    if query_tokens and not matched_user_fields:
-        rejection_reasons.append("user_required_data_not_covered")
 
     return {
         "templateId": record.template_id,
@@ -1150,11 +1155,12 @@ def _template_record_evaluation(
         "matchedUserRequiredFields": sorted(matched_user_fields),
         "unmatchedUserRequiredFields": unmatched_user_fields,
         "missingTemplateRequiredFields": missing_required_fields,
+        "missingAnyOfGroups": missing_groups,
         "templateRequiredFieldTypeMismatches": required_type_mismatches,
         "userRequiredFieldTypeMismatches": user_type_mismatches,
         "userRequiredDataFullyCovered": not unmatched_user_fields,
         "userProvidedDataSatisfiesTemplateRequirements": (
-            not missing_required_fields and not required_type_mismatches
+            not missing_required_fields and not required_type_mismatches and not missing_groups
         ),
         "rejectionReasons": rejection_reasons,
     }
@@ -1492,6 +1498,9 @@ def _template_required_fields_are_available(
     if len(data_roots) != record.binding_count:
         return False
     for data_root in data_roots:
+        available = _record_typed_input_paths(record, task_spec, data_root)
+        if missing_any_of_groups(record, available):
+            return False
         for path in record.required_paths:
             pointer = f"{data_root.rstrip('/')}{path}"
             if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
@@ -1502,3 +1511,15 @@ def _template_required_fields_are_available(
             if leaf is None or leaf.get("type") != token.data_type:
                 return False
     return True
+
+
+def _record_typed_input_paths(
+    record: TemplateVariantSearchRecord, task_spec: TaskSpec, data_root: str,
+) -> set[str]:
+    available: set[str] = set()
+    for token in record.field_tokens:
+        pointer = f"{data_root.rstrip('/')}{token.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is not None and leaf.get("type") == token.data_type:
+            available.add(token.path)
+    return available
