@@ -5,8 +5,8 @@
       "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"发布会提醒\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"ScheduleOverviewStartTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
     },
     {
-      "key": "61aebbb8872b039c97c9baedd8a02fd67d6e4766ec24ee4d92ccbdbf86024478",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":false}"
+      "key": "2c769baa1f3ddf060db9a23030ccfcbe3da705b4ffa44239092f6d3b84ee480e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "17e47b754d844099cab63cf0251c357c30d335a0f12bba1de7e464b862013ce7",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/nowCurrentText\",\"/voltageText\",\"/batteryCapacityLevelDesc\",\"/isBatteryPresentText\"]},\"action\":[\"event.open.settings.battery\"],\"allowBatterySettingsFallback\":true}"
-    },
-    {
       "key": "5664382c8186b611d8c943913658baf24c35d2bb7a9491cdda5df2ee6357513a",
       "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BatteryOverviewChargingDiagnosticsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
+    },
+    {
+      "key": "5a00ef1ed54ec03aae713ad2696289e278e4eb9cc46ee14c3c2812c454e6a4d2",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"GetPhoneBatteryInfo\": [\"/nowCurrentText\", \"/voltageText\", \"/batteryCapacityLevelDesc\", \"/isBatteryPresentText\"]}, \"action\": [\"event.open.settings.battery\"], \"allowBatterySettingsFallback\": false}"
     }
   ]
 }

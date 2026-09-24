@@ -5,8 +5,8 @@
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTimezoneAllDayFull@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"日程详情\"}));"
     },
     {
-      "key": "41a63964704e0c65e21433d171b498c23340ce25dd2b60e26047b835ac11b5da",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/timeZone\",\"/events/0/isAllDay\",\"/events/0/eventLocation\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":true}"
+      "key": "9aab2ef77aa7a420c53380d216a087d7abbc851ef9ac805c68a3cf634c943c62",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/timeZone\",\"/events/0/isAllDay\",\"/events/0/eventLocation\"]},\"allowCalendarViewFallback\":true}"
     }
   ]
 }

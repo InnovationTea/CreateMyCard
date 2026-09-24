@@ -315,7 +315,7 @@
             },
             {
               "component": "Text",
-              "content": "日程详情",
+              "content": "发布排期",
               "id": "root_1_0_0_0_0",
               "styles": {
                 "constraintSize": {
@@ -332,7 +332,7 @@
             {
               "component": "Image",
               "id": "root_1_0_0_0_1",
-              "src": "resources/base/media/clock_fill.svg",
+              "src": "resources/base/media/icon_meeting.svg",
               "styles": {
                 "fillColor": "#B3CCEEFF",
                 "flexShrink": 0,

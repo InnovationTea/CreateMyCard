@@ -5,8 +5,8 @@
       "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WeatherOverviewConditionHero@1\", {\"location\": \"杭州市\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
     },
     {
-      "key": "9c53b034531ca0a8250d08eb1592904651ef4e83ac008b82e6118274273b7b80",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/condition\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+      "key": "f846e27dcef556ba0b5c3af09e88204d3b3c9cf2579342faadf92f884e27dadf",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/condition\"]},\"action\":[\"event.open.weather\"]}"
     }
   ]
 }

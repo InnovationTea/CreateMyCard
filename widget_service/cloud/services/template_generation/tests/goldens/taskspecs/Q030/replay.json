@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "33e653cdcfbd7d1e3a281b92a5a30d0fceefff60c28cdb3a7c8a0e003755e0b2",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/dtEnd\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.enter.meeting\"],\"allowCalendarViewFallback\":false}"
+      "key": "2db550157a2907cf96b9e8ec4c1b68d3880b00b6f8ea55f3596e9ce3fcfb3b6d",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"GetCalendarEvents\": [\"/events/0/title\", \"/events/0/dtStart\", \"/events/0/dtEnd\"]}, \"primaryOutputFieldByCapability\": {}, \"action\": [\"event.enter.meeting\"], \"allowCalendarViewFallback\": false}"
     },
     {
       "key": "4e7bf5bf92a06e2bfed9ad4120d4134350695755b8ffb73051d91fe935b35a53",

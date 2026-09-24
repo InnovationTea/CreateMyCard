@@ -1,8 +1,12 @@
 {
   "recordings": [
     {
-      "key": "4af45a65d43b353265050438a2ad221537babd84c26ba810d58d06d2d5f442ce",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+      "key": "7c4ae776541cdb29ca4f85061a7dd88bc53695b0eaf383119a1229dbcf457cad",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/current/temperatureC\",\"/current/condition\",\"/location/cityCode\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "8320fb511df94de5ebc035e42c96d3ffaf58708c2ae332a66dcbc07eb4f57830",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"出差倒计时\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"北京市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\", \"actionId\": \"event.open.weather\"}));"
     }
   ]
 }

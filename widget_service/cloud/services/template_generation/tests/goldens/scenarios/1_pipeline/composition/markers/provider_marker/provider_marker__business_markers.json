@@ -242,15 +242,6 @@
       }
     ]
   },
-  "BluetoothDeviceOverviewEarbudTripleFull@1": {
-    "expectedFamily": "BluetoothDeviceOverview",
-    "markers": [
-      {
-        "kind": "literal",
-        "value": "BluetoothDeviceOverview"
-      }
-    ]
-  },
   "BluetoothDeviceOverviewEarbudTripleHero@1": {
     "expectedFamily": "BluetoothDeviceOverview",
     "markers": [

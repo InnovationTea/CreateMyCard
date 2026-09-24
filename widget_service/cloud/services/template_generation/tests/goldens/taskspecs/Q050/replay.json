@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "d57547fb326633cfe67fa6c2340eb61a30de04d8c21fcbe47e110d99bf9da3a0",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/dtStart\",\"/events/0/countdownDays\"]},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":false}"
+      "key": "54ff11b0269fb4b3f11a8463603d3507a950400ebb2ecbf7490a87ab6adfcaf5",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/dtStart\",\"/events/0/countdownDays\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

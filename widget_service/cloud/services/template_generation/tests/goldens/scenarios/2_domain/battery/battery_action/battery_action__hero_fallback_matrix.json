@@ -6,6 +6,8 @@
       "action": [],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -30,6 +32,8 @@
       ],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -46,6 +50,8 @@
       "action": [],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -71,6 +77,8 @@
       ],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -88,6 +96,8 @@
       "action": [],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -114,6 +124,8 @@
       ],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -132,6 +144,8 @@
       "action": [],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -157,6 +171,8 @@
       ],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -174,6 +190,8 @@
       "action": [],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [
@@ -201,6 +219,8 @@
       ],
       "allowBatterySettingsFallback": true,
       "allowCalendarViewFallback": false,
+      "allowEarphoneCandidateActions": true,
+      "excludedActionIds": [],
       "primaryOutputFieldByCapability": {},
       "requiredOutputFieldsByCapability": {
         "GetPhoneBatteryInfo": [

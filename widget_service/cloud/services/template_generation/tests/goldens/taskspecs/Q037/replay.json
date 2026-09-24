@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "e4863f55d11246fcc9f5a60878ad98b6bb6c9c854b6ecb79580ef45d3aa4743a",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}));"
+      "key": "b68eeac0df6b43586142e4ad8ab76162f8c5452d2ec626882ce1a079a92a5abd",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyTotalCaloriesText\",\"/dailyDistanceText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/dailySteps\"},\"action\":[],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "fcf311275df30e098eb6fefcb95eaebb69d5a666afcbbd59c80b7fab8d4ed950",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyTotalCaloriesText\",\"/dailyDistanceText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+      "key": "e4863f55d11246fcc9f5a60878ad98b6bb6c9c854b6ecb79580ef45d3aa4743a",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}));"
     }
   ]
 }

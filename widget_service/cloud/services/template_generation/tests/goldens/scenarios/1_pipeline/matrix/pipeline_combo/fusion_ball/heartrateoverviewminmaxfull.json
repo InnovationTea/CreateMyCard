@@ -657,8 +657,8 @@
     "updatedAt"
   ],
   "sampleIds": {
-    "all": "C098",
-    "none": "C099"
+    "all": "C128",
+    "none": "C129"
   },
   "size": "2x2",
   "templateId": "HeartRateOverviewMinMaxFull@1"

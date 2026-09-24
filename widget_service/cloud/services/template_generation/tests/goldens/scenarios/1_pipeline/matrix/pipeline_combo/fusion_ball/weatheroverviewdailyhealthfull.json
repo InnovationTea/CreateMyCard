@@ -370,7 +370,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C300"
+    "all": "C330"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDailyHealthFull@1"

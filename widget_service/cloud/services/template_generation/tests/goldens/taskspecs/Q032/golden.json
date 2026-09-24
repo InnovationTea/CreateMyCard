@@ -322,7 +322,7 @@
               ],
               "component": "Row",
               "id": "root_1_0_0_0_1",
-              "itemMargin": 0,
+              "itemMargin": 2,
               "styles": {
                 "alignItems": "bottom",
                 "constraintSize": {
@@ -366,7 +366,7 @@
                 "fontWeight": 500,
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 3
+                  "bottom": 2
                 },
                 "textOverflow": "ellipsis"
               }

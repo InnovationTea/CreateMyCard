@@ -5,7 +5,7 @@
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewTemperatureFull@1\", {\"temperatureIcon\": \"resources/base/media/heat_generation.svg\"}));"
     },
     {
-      "key": "f1e280394d43ae6bae5397e86c717db259773bef1049d01f36f1942a285516c5",
+      "key": "c025c174ace989eb68bf9bceca3c8bb3db3998a92b7cf88260139da972e32f68",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\",\"/pluggedTypeDesc\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batteryTemperatureText\"},\"action\":[],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
     }
   ]
