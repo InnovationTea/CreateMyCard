@@ -253,12 +253,6 @@
       "before": 16
     }
   },
-  "BluetoothDeviceOverviewEarbudTripleFull@1::2x2": {
-    "template_root_0_0_0": {
-      "after": 18,
-      "before": 18
-    }
-  },
   "BluetoothDeviceOverviewEarbudTripleHero@1::2x2": {
     "template_root_0_1_0_1": {
       "after": 16,
@@ -288,11 +282,11 @@
     }
   },
   "BluetoothDeviceOverviewEarbudsFull@1::2x2": {
-    "template_root_0_0_1_1": {
+    "template_root_0_0_0_1_1": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_1_1": {
+    "template_root_0_0_1_1_1": {
       "after": null,
       "before": null
     }

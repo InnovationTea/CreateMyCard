@@ -40,27 +40,33 @@
           },
           {
             "children": [
-              "root_1_0",
-              "root_1_1"
+              "root_1_0"
             ],
-            "component": "Column",
+            "component": "Stack",
             "id": "__genui_render_component__root_1",
-            "itemMargin": 8,
             "styles": {
-              "alignItems": "center",
+              "alignContent": "topStart",
               "height": "matchParent",
-              "justifyContent": "start",
               "width": "matchParent"
             }
           },
           {
             "children": [
-              "root_1_0_0"
+              "root_1_0_0",
+              "root_1_0_1"
             ],
             "component": "Column",
             "id": "root_1_0",
+            "itemMargin": 4,
             "styles": {
-              "layoutWeight": 1,
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
               "width": "matchParent"
             }
           },
@@ -74,20 +80,35 @@
             "itemMargin": 4,
             "styles": {
               "alignItems": "start",
-              "clip": true,
               "constraintSize": {
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "height": "matchParent",
               "justifyContent": "start",
               "width": "matchParent"
             }
           },
           {
             "component": "Text",
-            "content": "{{ ${/data/earphone/earphoneName} }}",
+            "content": "蓝牙耳机",
             "id": "root_1_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9952991F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "height": 18,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/earphone/earphoneName} }}",
+            "id": "root_1_0_0_1",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -96,55 +117,48 @@
               "fontColor": "#FF52991F",
               "fontSize": 18,
               "fontWeight": 700,
-              "margin": {
-                "bottom": 4,
-                "left": 0,
-                "right": 0,
-                "top": 0
-              },
+              "height": 26,
               "maxLines": 1,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "textOverflow": "ellipsis"
             }
           },
           {
             "children": [
-              "root_1_0_0_1_0",
-              "root_1_0_0_1_1",
-              "root_1_0_0_1_2"
+              "root_1_0_1_0",
+              "root_1_0_1_1",
+              "root_1_0_1_2"
             ],
             "component": "Row",
-            "id": "root_1_0_0_1",
+            "id": "root_1_0_1",
             "itemMargin": 9,
             "styles": {
               "alignItems": "start",
-              "height": 50,
+              "height": 34,
               "justifyContent": "start",
               "width": 126
             }
           },
           {
             "children": [
-              "root_1_0_0_1_0_0",
-              "root_1_0_0_1_0_1",
-              "root_1_0_0_1_0_2"
+              "root_1_0_1_0_0",
+              "root_1_0_1_0_1"
             ],
             "component": "Column",
-            "id": "root_1_0_0_1_0",
+            "id": "root_1_0_1_0",
             "itemMargin": 2,
             "styles": {
               "alignItems": "start",
-              "height": 50,
+              "height": 34,
               "justifyContent": "start",
               "width": 36
             }
           },
           {
             "children": [
-              "root_1_0_0_1_0_0_0"
+              "root_1_0_1_0_0_0"
             ],
             "component": "Stack",
-            "id": "root_1_0_0_1_0_0",
+            "id": "root_1_0_1_0_0",
             "styles": {
               "alignContent": "center",
               "height": 16,
@@ -154,7 +168,7 @@
           {
             "component": "Text",
             "content": "左",
-            "id": "root_1_0_0_1_0_0_0",
+            "id": "root_1_0_1_0_0_0",
             "styles": {
               "fontColor": "#99FFFFFF",
               "fontSize": 10,
@@ -167,7 +181,7 @@
           {
             "component": "Text",
             "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
-            "id": "root_1_0_0_1_0_1",
+            "id": "root_1_0_1_0_1",
             "styles": {
               "fontColor": "#FFFFFFFF",
               "fontSize": 12,
@@ -180,42 +194,26 @@
             }
           },
           {
-            "component": "Text",
-            "content": "{{ ${/data/earphone/leftChargingStatusDesc} }}",
-            "id": "root_1_0_0_1_0_2",
-            "styles": {
-              "fontColor": "#99FFFFFF",
-              "fontSize": 10,
-              "fontWeight": 400,
-              "height": 14,
-              "maxLines": 1,
-              "textAlign": "start",
-              "textOverflow": "ellipsis",
-              "width": 36
-            }
-          },
-          {
             "children": [
-              "root_1_0_0_1_1_0",
-              "root_1_0_0_1_1_1",
-              "root_1_0_0_1_1_2"
+              "root_1_0_1_1_0",
+              "root_1_0_1_1_1"
             ],
             "component": "Column",
-            "id": "root_1_0_0_1_1",
+            "id": "root_1_0_1_1",
             "itemMargin": 2,
             "styles": {
               "alignItems": "start",
-              "height": 50,
+              "height": 34,
               "justifyContent": "start",
               "width": 36
             }
           },
           {
             "children": [
-              "root_1_0_0_1_1_0_0"
+              "root_1_0_1_1_0_0"
             ],
             "component": "Stack",
-            "id": "root_1_0_0_1_1_0",
+            "id": "root_1_0_1_1_0",
             "styles": {
               "alignContent": "center",
               "height": 16,
@@ -225,7 +223,7 @@
           {
             "component": "Text",
             "content": "右",
-            "id": "root_1_0_0_1_1_0_0",
+            "id": "root_1_0_1_1_0_0",
             "styles": {
               "fontColor": "#99FFFFFF",
               "fontSize": 10,
@@ -238,7 +236,7 @@
           {
             "component": "Text",
             "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
-            "id": "root_1_0_0_1_1_1",
+            "id": "root_1_0_1_1_1",
             "styles": {
               "fontColor": "#FFFFFFFF",
               "fontSize": 12,
@@ -251,42 +249,26 @@
             }
           },
           {
-            "component": "Text",
-            "content": "{{ ${/data/earphone/rightChargingStatusDesc} }}",
-            "id": "root_1_0_0_1_1_2",
-            "styles": {
-              "fontColor": "#99FFFFFF",
-              "fontSize": 10,
-              "fontWeight": 400,
-              "height": 14,
-              "maxLines": 1,
-              "textAlign": "start",
-              "textOverflow": "ellipsis",
-              "width": 36
-            }
-          },
-          {
             "children": [
-              "root_1_0_0_1_2_0",
-              "root_1_0_0_1_2_1",
-              "root_1_0_0_1_2_2"
+              "root_1_0_1_2_0",
+              "root_1_0_1_2_1"
             ],
             "component": "Column",
-            "id": "root_1_0_0_1_2",
+            "id": "root_1_0_1_2",
             "itemMargin": 2,
             "styles": {
               "alignItems": "start",
-              "height": 50,
+              "height": 34,
               "justifyContent": "start",
               "width": 36
             }
           },
           {
             "children": [
-              "root_1_0_0_1_2_0_0"
+              "root_1_0_1_2_0_0"
             ],
             "component": "Stack",
-            "id": "root_1_0_0_1_2_0",
+            "id": "root_1_0_1_2_0",
             "styles": {
               "alignContent": "center",
               "height": 16,
@@ -296,7 +278,7 @@
           {
             "component": "Text",
             "content": "盒",
-            "id": "root_1_0_0_1_2_0_0",
+            "id": "root_1_0_1_2_0_0",
             "styles": {
               "fontColor": "#99FFFFFF",
               "fontSize": 10,
@@ -309,7 +291,7 @@
           {
             "component": "Text",
             "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
-            "id": "root_1_0_0_1_2_1",
+            "id": "root_1_0_1_2_1",
             "styles": {
               "fontColor": "#FFFFFFFF",
               "fontSize": 12,
@@ -319,54 +301,6 @@
               "textAlign": "start",
               "textOverflow": "ellipsis",
               "width": 36
-            }
-          },
-          {
-            "component": "Text",
-            "content": "{{ ${/data/earphone/chargingStatusDesc} }}",
-            "id": "root_1_0_0_1_2_2",
-            "styles": {
-              "fontColor": "#99FFFFFF",
-              "fontSize": 10,
-              "fontWeight": 400,
-              "height": 14,
-              "maxLines": 1,
-              "textAlign": "start",
-              "textOverflow": "ellipsis",
-              "width": 36
-            }
-          },
-          {
-            "children": [
-              "root_1_1_0"
-            ],
-            "component": "Column",
-            "id": "root_1_1",
-            "styles": {
-              "height": 36,
-              "width": "matchParent"
-            }
-          },
-          {
-            "component": "Button",
-            "id": "root_1_1_0",
-            "label": "心动歌单",
-            "onClick": [
-              {
-                "args": {
-                  "intentName": "event.open.music.favorite"
-                },
-                "call": "clickToIntent"
-              }
-            ],
-            "styles": {
-              "backgroundColor": "#1952991F",
-              "borderRadius": 18,
-              "fontColor": "#FF52991F",
-              "fontSize": 14,
-              "fontWeight": 500,
-              "height": 36,
-              "width": "matchParent"
             }
           }
         ],
@@ -382,13 +316,12 @@
         "value": {
           "data": {
             "earphone": {
-              "batteryLevel": 80,
-              "chargingStatusDesc": "充电中",
+              "batteryLevel": 0,
+              "chargingStatusDesc": "未充电",
               "earphoneName": "测试耳机",
               "leftBatteryLevel": 76,
-              "leftChargingStatusDesc": "未充电",
               "rightBatteryLevel": 78,
-              "rightChargingStatusDesc": "充电中"
+              "rightChargingStatusDesc": "未充电"
             }
           }
         }
@@ -397,8 +330,7 @@
     }
   ],
   "templateIds": [
-    "BluetoothDeviceOverviewEarbudTripleHero@1",
-    "PillAction@1",
-    "HeroActionLayout@1"
+    "BluetoothDeviceOverviewEarbudPairFull@1",
+    "SingleFocusLayout@1"
   ]
 }

@@ -5,8 +5,8 @@
       "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewNapHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
     },
     {
-      "key": "45b510cf3fb1f492dfa46c8f7fd23dc75025310ac81c1ef6d2125686fd584e40",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/fallAsleepTimeText\",\"/wakeupTimeText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+      "key": "e82674b343ed0ce6df8324f726c9500236151123a14237628c8eecd1a1c13e4d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/fallAsleepTimeText\",\"/wakeupTimeText\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

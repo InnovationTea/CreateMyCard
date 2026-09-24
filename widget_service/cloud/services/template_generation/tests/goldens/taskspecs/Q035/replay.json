@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "238541914573cbecbe6ad006f4b8863f1877c5dca4b40815b520ee12edb1439a",
+      "key": "2fc656007ac794e4f470cd8ce2099f2d068bdbaf377a3627ab5d0e14a209cd4f",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/eventCount\",\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/description\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":true}"
     },
     {

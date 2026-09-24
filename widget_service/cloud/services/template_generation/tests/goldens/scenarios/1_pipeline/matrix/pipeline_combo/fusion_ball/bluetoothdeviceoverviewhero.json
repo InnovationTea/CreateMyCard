@@ -1395,10 +1395,10 @@
     "right"
   ],
   "sampleIds": {
-    "absent_left": "C082",
-    "absent_right": "C083",
-    "all": "C084",
-    "none": "C085"
+    "absent_left": "C112",
+    "absent_right": "C113",
+    "all": "C114",
+    "none": "C115"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewHero@1"

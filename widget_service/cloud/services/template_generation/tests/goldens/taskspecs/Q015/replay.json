@@ -5,7 +5,7 @@
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"HeartRateOverviewMinMaxFull@1\", {}));"
     },
     {
-      "key": "7780bdbb8c4d220ea92ca5d44206b85517847dab1b8f20116f611a70d497acd6",
+      "key": "7fc3537f6382891ae846e569bfbebe7c7f1d078b71f824e941c935616ce48708",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseHeartRateMax\",\"/exerciseHeartRateMin\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
     }
   ]

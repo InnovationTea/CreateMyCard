@@ -3209,14 +3209,14 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C284",
-    "absent_city+coldLevel": "C285",
-    "absent_city+district": "C286",
-    "absent_coldLevel": "C287",
-    "absent_coldLevel+district": "C288",
-    "absent_district": "C289",
-    "all": "C290",
-    "none": "C291"
+    "absent_city": "C314",
+    "absent_city+coldLevel": "C315",
+    "absent_city+district": "C316",
+    "absent_coldLevel": "C317",
+    "absent_coldLevel+district": "C318",
+    "absent_district": "C319",
+    "all": "C320",
+    "none": "C321"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewCompact@1"

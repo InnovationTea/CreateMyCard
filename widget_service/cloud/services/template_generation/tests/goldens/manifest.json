@@ -1,6 +1,6 @@
 {
   "goldenVersion": "template-goldens/1",
-  "templateCount": 114,
+  "templateCount": 113,
   "templates": [
     {
       "businessId": "ActivityOverview",
@@ -217,14 +217,6 @@
       "providerId": "com.huawei.earphone.cli",
       "size": "2x2",
       "templateId": "BluetoothDeviceOverviewEarbudPairHero@1"
-    },
-    {
-      "businessId": "BluetoothDeviceOverview",
-      "capabilityId": "GetEarphoneInfo",
-      "layoutKind": "Full",
-      "providerId": "com.huawei.earphone.cli",
-      "size": "2x2",
-      "templateId": "BluetoothDeviceOverviewEarbudTripleFull@1"
     },
     {
       "businessId": "BluetoothDeviceOverview",

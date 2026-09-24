@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "69211884d880129b0fc3820fc9ec138988075a60bb6a7598b542075f0647d9f2",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDailyCompareFull@1\", {}));"
+      "key": "2719300ee98dac9d9362cc3062c4325fe8aa4558ac752b6642a08fa9f62ced63",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/daily/0/condition\", \"/daily/0/airQuality\", \"/daily/1/condition\", \"/daily/1/airQuality\"]}, \"action\": [], \"allowCalendarViewFallback\": false}"
     },
     {
-      "key": "a9cf47f333afa3bc48192c76a76fa48cf744172db4b568f4a2ca93b5be14382a",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/daily/0/condition\",\"/daily/0/airQuality\",\"/daily/1/condition\",\"/daily/1/airQuality\"]},\"allowCalendarViewFallback\":false}"
+      "key": "69211884d880129b0fc3820fc9ec138988075a60bb6a7598b542075f0647d9f2",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDailyCompareFull@1\", {}));"
     }
   ]
 }

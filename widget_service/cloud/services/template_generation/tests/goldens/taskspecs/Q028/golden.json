@@ -355,7 +355,7 @@
                 },
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 15
+                  "bottom": 8
                 },
                 "textOverflow": "ellipsis"
               }

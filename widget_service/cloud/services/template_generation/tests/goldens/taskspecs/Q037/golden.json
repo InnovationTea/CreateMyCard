@@ -314,7 +314,7 @@
               ],
               "component": "Row",
               "id": "root_1_0_0_1_0",
-              "itemMargin": 4,
+              "itemMargin": 2,
               "styles": {
                 "alignItems": "bottom",
                 "justifyContent": "start",
@@ -346,7 +346,7 @@
                 },
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 9
+                  "bottom": 5
                 },
                 "textOverflow": "clip"
               }

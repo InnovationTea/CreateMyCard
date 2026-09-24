@@ -368,7 +368,7 @@
                 "fontWeight": 500,
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 2
+                  "bottom": 1
                 },
                 "textOverflow": "clip"
               }
@@ -476,7 +476,7 @@
                 "fontWeight": 500,
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 2
+                  "bottom": 1
                 },
                 "textOverflow": "clip"
               }

@@ -320,7 +320,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C101"
+    "all": "C131"
   },
   "size": "2x2",
   "templateId": "HeartRateOverviewUpdatedFull@1"

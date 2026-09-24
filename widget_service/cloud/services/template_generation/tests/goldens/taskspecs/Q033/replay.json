@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "1c10d447f493696e03bb3545d13838df23b78799318f83c47a348c220bb0af00",
+      "key": "1efbf2e3ef49b3a359aff10c0745886f7391447ada76e48acb8143dc2683cdb6",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":true}"
     },
     {

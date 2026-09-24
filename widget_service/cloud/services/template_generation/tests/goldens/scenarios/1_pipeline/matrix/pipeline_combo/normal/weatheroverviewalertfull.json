@@ -192,8 +192,8 @@
     "alertLevel"
   ],
   "sampleIds": {
-    "all": "C281",
-    "none": "C282"
+    "all": "C311",
+    "none": "C312"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewAlertFull@1"

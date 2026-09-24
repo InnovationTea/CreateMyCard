@@ -1,11 +1,11 @@
 {
   "recordings": [
     {
-      "key": "2e304330e5866173e61b0c09f2f4d7a18cf494b0c3c5515334e506cd3bb8ba9a",
+      "key": "94f812240e5e063c82d056e6c783faeafd99de26290a8a873d9793b2faa8938d",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.enter.meeting\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "860f0944a0d1dcb6355e798f439ac64154995d7db57ad825866da697d5036cf6",
+      "key": "a61880769eea0d8754efc100fff7fb0726ba0a0543bd11ba9df146e4e40ca8a7",
       "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"ScheduleOverviewTimeSupport@1\", {\"meetingIcon\": \"resources/base/media/icon_meeting.svg\", \"actionId\": \"event.enter.meeting\"}), Template(\"BluetoothDeviceOverviewConnectionSupport@1\", {\"deviceIcon\": \"resources/base/media/icon_earphone.svg\"}));"
     }
   ]
