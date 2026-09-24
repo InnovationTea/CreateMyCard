@@ -1,0 +1,165 @@
+{
+  "ActivityOverviewSupport@1.stepsIcon": [
+    "resources/base/media/figure_run.svg"
+  ],
+  "BatteryOverviewCompact@1.batteryIcon": [
+    "resources/base/media/air_fill.svg",
+    "resources/base/media/air_open_fill.svg",
+    "resources/base/media/airplane_departure.svg",
+    "resources/base/media/airplane_fill_1.svg",
+    "resources/base/media/alarm_fill_1.svg",
+    "resources/base/media/backward_fill.svg",
+    "resources/base/media/battery_leaf_fill.svg",
+    "resources/base/media/bell_fill.svg",
+    "resources/base/media/bell_slash_fill.svg",
+    "resources/base/media/bolt_fill.svg",
+    "resources/base/media/bus_fill.svg",
+    "resources/base/media/calendar_fill.svg",
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/clean_fill.svg",
+    "resources/base/media/clock.svg",
+    "resources/base/media/clock_fill.svg",
+    "resources/base/media/cold.svg",
+    "resources/base/media/drop_1.svg",
+    "resources/base/media/earphone_case_16644.svg",
+    "resources/base/media/externaldrive_fill.svg",
+    "resources/base/media/face.svg",
+    "resources/base/media/fast_forward.svg",
+    "resources/base/media/figure_pool_swim.svg",
+    "resources/base/media/figure_run.svg",
+    "resources/base/media/flame_fill.svg",
+    "resources/base/media/heart_fill.svg",
+    "resources/base/media/heat_generation.svg",
+    "resources/base/media/house_fill.svg",
+    "resources/base/media/hourglass_fill.svg",
+    "resources/base/media/id_fill.svg",
+    "resources/base/media/kidswatch_fill.svg",
+    "resources/base/media/l_circle_fill.svg",
+    "resources/base/media/lamp_ceiling.svg",
+    "resources/base/media/lamp_ceiling_light.svg",
+    "resources/base/media/local_fill.svg",
+    "resources/base/media/location_north_up_right_fill.svg",
+    "resources/base/media/moon_circle_fill.svg",
+    "resources/base/media/moon_z_fill_1.svg",
+    "resources/base/media/music_fill.svg",
+    "resources/base/media/pause_fill.svg",
+    "resources/base/media/person_3_fill.svg",
+    "resources/base/media/phone_fill.svg",
+    "resources/base/media/play_fill.svg",
+    "resources/base/media/qrcode.svg",
+    "resources/base/media/r_circle_fill.svg",
+    "resources/base/media/stopwatch_fill.svg",
+    "resources/base/media/sun_max.svg",
+    "resources/base/media/sun_min.svg",
+    "resources/base/media/tram_fill.svg",
+    "resources/base/media/typhoon_fill.svg",
+    "resources/base/media/z_alarm_fill.svg",
+    "resources/base/media/icon_id.svg",
+    "resources/base/media/icon_meeting.svg",
+    "resources/base/media/icon_watermark.svg",
+    "resources/base/media/icon_allergy.svg",
+    "resources/base/media/icon_high_temperature.svg",
+    "resources/base/media/icon_tiktok.png",
+    "resources/base/media/icon_timing.svg",
+    "resources/base/media/icon_earphone.svg",
+    "resources/base/media/icon_phone.svg",
+    "resources/base/media/icon_car.svg",
+    "resources/base/media/icon_focus.svg",
+    "resources/base/media/icon_schedule.svg",
+    "resources/base/media/icon_save_power.svg",
+    "resources/base/media/icon_run.svg",
+    "resources/base/media/icon_left.svg",
+    "resources/base/media/icon_music.svg",
+    "resources/base/media/icon_right.svg",
+    "resources/base/media/icon_weather_thermometer_medium.svg",
+    "resources/base/media/icon_weather_thermometer.svg",
+    "resources/base/media/icon_weather_wind.svg"
+  ],
+  "BatteryOverviewStatusSupport@1.batteryIcon": [
+    "resources/base/media/battery_leaf_fill.svg",
+    "resources/base/media/bolt_fill.svg",
+    "resources/base/media/earphone_case_16644.svg",
+    "resources/base/media/icon_save_power.svg",
+    "resources/base/media/icon_left.svg",
+    "resources/base/media/icon_right.svg"
+  ],
+  "BatteryOverviewSupport@1.batteryIcon": [
+    "resources/base/media/icon_phone.svg"
+  ],
+  "BluetoothDeviceOverviewChargeSupport@1.deviceIcon": [
+    "resources/base/media/earphone_case_16644.svg"
+  ],
+  "BluetoothDeviceOverviewConnectionSupport@1.deviceIcon": [
+    "resources/base/media/icon_earphone.svg"
+  ],
+  "BluetoothDeviceOverviewEarbudsSupport@1.deviceIcon": [
+    "resources/base/media/icon_earphone.svg"
+  ],
+  "CountdownOverviewSupport@1.timerIcon": [
+    "resources/base/media/hourglass_fill.svg",
+    "resources/base/media/stopwatch_fill.svg",
+    "resources/base/media/icon_timing.svg"
+  ],
+  "HeartRateOverviewSupport@1.heartIcon": [
+    "resources/base/media/heart_fill.svg"
+  ],
+  "ScheduleOverviewDateSupport@1.calendarIcon": [
+    "resources/base/media/airplane_departure.svg",
+    "resources/base/media/alarm_fill_1.svg",
+    "resources/base/media/bell_fill.svg",
+    "resources/base/media/calendar_fill.svg",
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/icon_id.svg",
+    "resources/base/media/icon_watermark.svg",
+    "resources/base/media/icon_schedule.svg",
+    "resources/base/media/icon_run.svg"
+  ],
+  "ScheduleOverviewLocationSupport@1.calendarIcon": [
+    "resources/base/media/airplane_departure.svg",
+    "resources/base/media/alarm_fill_1.svg",
+    "resources/base/media/bell_fill.svg",
+    "resources/base/media/calendar_fill.svg",
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/icon_id.svg",
+    "resources/base/media/icon_watermark.svg",
+    "resources/base/media/icon_schedule.svg",
+    "resources/base/media/icon_run.svg"
+  ],
+  "ScheduleOverviewStartTimeSupport@1.calendarIcon": [
+    "resources/base/media/airplane_departure.svg",
+    "resources/base/media/alarm_fill_1.svg",
+    "resources/base/media/bell_fill.svg",
+    "resources/base/media/calendar_fill.svg",
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/icon_id.svg",
+    "resources/base/media/icon_watermark.svg",
+    "resources/base/media/icon_schedule.svg",
+    "resources/base/media/icon_run.svg"
+  ],
+  "ScheduleOverviewTimeSupport@1.calendarIcon": [
+    "resources/base/media/airplane_departure.svg",
+    "resources/base/media/alarm_fill_1.svg",
+    "resources/base/media/bell_fill.svg",
+    "resources/base/media/calendar_fill.svg",
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/icon_id.svg",
+    "resources/base/media/icon_watermark.svg",
+    "resources/base/media/icon_schedule.svg",
+    "resources/base/media/icon_run.svg"
+  ],
+  "SleepOverviewSupport@1.sourceIcon": [
+    "resources/base/media/moon_circle_fill.svg",
+    "resources/base/media/moon_z_fill_1.svg",
+    "resources/base/media/z_alarm_fill.svg",
+    "resources/base/media/icon_focus.svg"
+  ],
+  "WorkoutOverviewSupport@1.sourceIcon": [
+    "resources/base/media/checkmark_calendar_fill.svg",
+    "resources/base/media/clock_fill.svg",
+    "resources/base/media/figure_pool_swim.svg",
+    "resources/base/media/figure_run.svg",
+    "resources/base/media/flame_fill.svg",
+    "resources/base/media/stopwatch_fill.svg",
+    "resources/base/media/icon_run.svg"
+  ]
+}

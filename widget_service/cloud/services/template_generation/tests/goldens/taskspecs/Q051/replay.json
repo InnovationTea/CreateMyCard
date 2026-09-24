@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "d053b1ff7be545ebe84188fdd8156d5dd8c04d78ecc956674e60dfb14f52077e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/districtName\",\"/daily/4/airQuality\",\"/daily/4/uvIndex\",\"/daily/4/coldLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

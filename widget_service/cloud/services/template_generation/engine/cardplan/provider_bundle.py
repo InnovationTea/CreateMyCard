@@ -2397,7 +2397,13 @@ def _load_rule_document(
         raise ValueError(f"Provider {layer} rule must be a Markdown file")
     path = _bundle_file(root, reference.path)
     try:
-        content = _bounded_file_bytes(path).decode("utf-8").strip()
+        content = (
+            _bounded_file_bytes(path)
+            .decode("utf-8")
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+            .strip()
+        )
     except UnicodeDecodeError as exc:
         raise ValueError(f"Provider {layer} rule must be UTF-8") from exc
     if not content:

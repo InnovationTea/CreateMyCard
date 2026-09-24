@@ -1,0 +1,85 @@
+{
+  "Q006": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/dtStart",
+      "/data/calendar/events/0/title",
+      "/data/calendar/events/1/dtStart",
+      "/data/calendar/events/1/title"
+    ],
+    "templateId": "ScheduleOverviewTwoEventsFull@1"
+  },
+  "Q007": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/description",
+      "/data/calendar/events/0/dtEnd",
+      "/data/calendar/events/0/eventLocation"
+    ],
+    "templateId": "ScheduleOverviewLocationDescriptionEndFull@1"
+  },
+  "Q017": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/isAllDay",
+      "/data/calendar/events/0/startDate",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewDatedAllDayHero@1"
+  },
+  "Q018": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/dtStart",
+      "/data/calendar/events/0/eventLocation"
+    ],
+    "templateId": "ScheduleOverviewLocationHero@1"
+  },
+  "Q023": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/dtEnd",
+      "/data/calendar/events/0/startDate",
+      "/data/calendar/events/0/timeZone",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewTimezoneDateEndFull@1"
+  },
+  "Q024": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/importantEventType",
+      "/data/calendar/events/0/remindTime/0",
+      "/data/calendar/events/0/senderName",
+      "/data/calendar/updatedAt"
+    ],
+    "templateId": "ScheduleOverviewReminderDetailsHero@1"
+  },
+  "Q030": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/dtEnd",
+      "/data/calendar/events/0/dtStart",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewTitleHero@1"
+  },
+  "Q033": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/dtStart",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewTitleHero@1"
+  },
+  "Q035": {
+    "runtimeBindings": [
+      "/data/calendar/eventCount",
+      "/data/calendar/events/0/description",
+      "/data/calendar/events/0/dtStart",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewEventCountDetailsHero@1"
+  },
+  "Q041": {
+    "runtimeBindings": [
+      "/data/calendar/events/0/eventLocation",
+      "/data/calendar/events/0/isAllDay",
+      "/data/calendar/events/0/timeZone",
+      "/data/calendar/events/0/title"
+    ],
+    "templateId": "ScheduleOverviewTimezoneAllDayFull@1"
+  }
+}

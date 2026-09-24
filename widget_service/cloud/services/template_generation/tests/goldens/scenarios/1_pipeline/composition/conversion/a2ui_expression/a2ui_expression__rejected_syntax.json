@@ -1,0 +1,26 @@
+{
+  "already_wrapped": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expr body must not contain the outer {{ }} wrapper."
+  },
+  "fetch_call": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression identifier \"fetch\" is not supported."
+  },
+  "method_call": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 13."
+  },
+  "object_literal": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 16."
+  },
+  "size_two_args": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 18."
+  },
+  "static_ternary": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expr must reference at least one DataModel path."
+  }
+}

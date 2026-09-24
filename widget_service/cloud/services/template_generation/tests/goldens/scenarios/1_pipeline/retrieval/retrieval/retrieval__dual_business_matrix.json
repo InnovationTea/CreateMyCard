@@ -1,0 +1,802 @@
+{
+  "title_default__fusion__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__fusion__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__fusion__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__fusion__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__plain__both": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__plain__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__plain__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__plain__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_default__plain__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_gallery__fusion__both": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__fusion__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__fusion__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__fusion__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__fusion__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__plain__both": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__plain__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__plain__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__plain__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_gallery__plain__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气 + 日历日程组合画廊",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__fusion__both": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__fusion__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__fusion__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__fusion__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__fusion__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": true,
+    "rootBackground": "#00000000",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "fusion-schedule-cool",
+    "themeProfileId": "fusion-schedule-cool",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FFCCEEFF",
+      "{{ ${/data/weather/current/temperatureText} }}": "#B3CCEEFF",
+      "{{ ${/data/weather/location/districtName} }}": "#B3CCEEFF",
+      "打开详情": "#FFCCEEFF"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__plain__both": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__plain__condition": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__plain__empty": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__plain__neither": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  },
+  "title_weather_schedule__plain__temperature": {
+    "a2uiDigestTexts": [
+      "{{ ${/data/weather/location/districtName} }}",
+      "{{ ${/data/weather/current/temperatureText} }}",
+      "{{ ${/data/calendar/events/0/title} }}",
+      "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+      "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+      "打开详情"
+    ],
+    "fusionBallBackground": false,
+    "rootBackground": "#FFE5EDFE",
+    "templateIds": [
+      "WeatherOverviewHeroTitle@1",
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "themeId": "meeting-paper-neutral",
+    "themeProfileId": "meeting-paper-neutral",
+    "themedFontColors": {
+      "{{ ${/data/calendar/events/0/title} }}": "#FF1F4799",
+      "{{ ${/data/weather/current/temperatureText} }}": "#991F4799",
+      "{{ ${/data/weather/location/districtName} }}": "#991F4799",
+      "打开详情": "#FF1F4799"
+    },
+    "trustedLiterals": [
+      "天气和日程",
+      "打开详情"
+    ]
+  }
+}

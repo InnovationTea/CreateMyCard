@@ -1,0 +1,117 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下一场日程是下午三点的版本发布排期会，帮我做个卡片，看会议开始时间和地点，点击导航去公司。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ]
+      }
+    ],
+    "title": "发布排期",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "company",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "会议时间和导航",
+    "candidateAssetIds": [
+      "asset.icon_meeting",
+      "asset.location_north_up_right_fill",
+      "asset.clock_fill",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "018",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "下一场日程是下午三点的版本发布排期会，帮我做个卡片，看会议开始时间和地点，点击导航去公司。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下一场日程是下午三点的版本发布排期会，帮我做个卡片，看会议开始时间和地点，点击导航去公司。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/dtStart",
+        "/events/0/eventLocation"
+      ]
+    }
+  ],
+  "title": "发布排期",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.startNavigate",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "company",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "会议时间和导航",
+  "candidateAssetIds": [
+    "asset.icon_meeting",
+    "asset.location_north_up_right_fill",
+    "asset.clock_fill",
+    "asset.local_fill"
+  ]
+}

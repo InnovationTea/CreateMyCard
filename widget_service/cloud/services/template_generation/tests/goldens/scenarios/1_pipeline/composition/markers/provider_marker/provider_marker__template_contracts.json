@@ -1,0 +1,43 @@
+{
+  "BatteryOverviewChargingProgressHero@1": {
+    "nodeComponents": [
+      "Column",
+      "IfBind",
+      "Text",
+      "IfMissingBind",
+      "Text",
+      "Row",
+      "Text",
+      "IfBind",
+      "Text"
+    ],
+    "primaryData": [
+      "/batterySOCText"
+    ],
+    "textBindings": [
+      "percentText"
+    ],
+    "textFirstValues": [
+      {
+        "kind": "interpolation"
+      },
+      {
+        "kind": "literal",
+        "value": "手机电量"
+      },
+      {
+        "kind": "binding",
+        "name": "percentText"
+      },
+      {
+        "kind": "interpolation"
+      }
+    ]
+  },
+  "ScheduleOverviewReminderHero@1": {
+    "secondaryData": [
+      "/events/0/dtStart",
+      "/events/0/remindTime/0"
+    ]
+  }
+}

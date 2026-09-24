@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "a06ddf5d10163c7db6ace4997e1b397504f5829c9db524d426694560f9625098",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.setPowerSavingMode\"],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
+    },
+    {
+      "key": "c4d50638169f462b1b60fd18b4fdb06a1d1e29832c3467ef6cdfb053b0f84d8f",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BatteryOverviewChargingRingHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.setPowerSavingMode\", \"label\": \"省电模式\"}));"
+    }
+  ]
+}

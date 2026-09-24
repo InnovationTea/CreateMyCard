@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "6f44a83ccbd6cc474ac79c31fc559fd050cffeb8ae30168afe0bc8b341e919b8",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/eventLocation\",\"/events/0/description\",\"/events/0/dtEnd\"]},\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "aab96ab1a8ad4160f674de7a65e1a4be962dcb9260c257a5e211b931a97643fe",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewLocationDescriptionEndFull@1\", {\"calendarIcon\": \"resources/base/media/icon_schedule.svg\", \"headerLabel\": \"客户交流\"}));"
+    }
+  ]
+}

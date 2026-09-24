@@ -1,0 +1,10 @@
+{
+  "length": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression exceeds the 2048-character limit."
+  },
+  "nesting": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression nesting exceeds the 20-level limit."
+  }
+}

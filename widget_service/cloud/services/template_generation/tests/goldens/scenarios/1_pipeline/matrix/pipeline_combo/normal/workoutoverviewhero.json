@@ -1,0 +1,872 @@
+{
+  "combinations": {
+    "absent_workoutCalories": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFFFF0E6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "fontColor": "#FF99521F",
+                  "fontSize": 24,
+                  "fontWeight": 700,
+                  "height": 34,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 4,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动时长",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "今日训练",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.health.sport"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "borderRadius": 18,
+                  "fontColor": "#FF99521F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "exerciseDurationText": "45分钟",
+                  "exerciseTypeName": "户外跑步"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WorkoutOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    },
+    "absent_workoutType": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFFFF0E6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动记录",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseCalorieText} }}",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "fontColor": "#FF99521F",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0",
+                  "root_1_0_0_2_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 4,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动时长",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
+                "id": "root_1_0_0_2_1",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "今日训练",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.health.sport"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "borderRadius": 18,
+                  "fontColor": "#FF99521F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "exerciseCalorieText": "320 千卡",
+                  "exerciseDurationText": "45分钟"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WorkoutOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    },
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFFFF0E6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseCalorieText} }}",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "fontColor": "#FF99521F",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0",
+                  "root_1_0_0_2_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 4,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动时长",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
+                "id": "root_1_0_0_2_1",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "今日训练",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.health.sport"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "borderRadius": 18,
+                  "fontColor": "#FF99521F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "exerciseCalorieText": "320 千卡",
+                  "exerciseDurationText": "45分钟",
+                  "exerciseTypeName": "户外跑步"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WorkoutOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    },
+    "none": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFFFF0E6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动记录",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "fontColor": "#FF99521F",
+                  "fontSize": 24,
+                  "fontWeight": 700,
+                  "height": 34,
+                  "maxLines": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 4,
+                "styles": {
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "运动时长",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "今日训练",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.health.sport"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "borderRadius": 18,
+                  "fontColor": "#FF99521F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "exerciseDurationText": "45分钟"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WorkoutOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "HeroActionLayout@1",
+  "optionalBindings": [
+    "workoutCalories",
+    "workoutType"
+  ],
+  "sampleIds": {
+    "absent_workoutCalories": "C264",
+    "absent_workoutType": "C265",
+    "all": "C266",
+    "none": "C267"
+  },
+  "size": "2x2",
+  "templateId": "WorkoutOverviewHero@1"
+}

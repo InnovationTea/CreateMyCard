@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "5cd9c460601e56dadf3192caf7862e502ddba983e9eba7b8cf0d26bac77cc11a",
+      "response": "Template(\"WideTwoFullLayout@1\", {}, Template(\"CountdownOverviewTargetDetailFull@1\", {\"title\": \"上线准备\", \"targetDate\": \"2026-09-30\"}), Template(\"ScheduleOverviewEventCountTwoEventsFull@1\", {\"headerLabel\": \"日程详情\", \"actionId\": \"event.viewCalendarEvent\"}));"
+    },
+    {
+      "key": "adcac73d2993742b9089792bb441ef0045e9310279bfa55d8009a6cf47ebab9f",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCountdownDays\": [\"/countdownDays\"],\n    \"GetCalendarEvents\": [\n      \"/eventCount\",\n      \"/events/0/title\",\n      \"/events/0/dtStart\",\n      \"/events/1/title\",\n      \"/events/1/dtStart\"\n    ]\n  },\n  \"primaryOutputFieldByCapability\": {\n    \"GetCountdownDays\": \"/countdownDays\"\n  },\n  \"action\": [\"event.viewCalendarEvent\"]\n}"
+    }
+  ]
+}

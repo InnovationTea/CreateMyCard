@@ -1,0 +1,10 @@
+{
+  "flagAbsent": {
+    "errorType": "TemplateRouteNotApplicable",
+    "message": "Search candidates cannot form a supported atomic plan"
+  },
+  "flagFalse": {
+    "errorType": "TemplateRouteNotApplicable",
+    "message": "Search candidates cannot form a supported atomic plan"
+  }
+}

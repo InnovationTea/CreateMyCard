@@ -1,0 +1,66 @@
+{
+  "bundleName": "com.huawei.genui.evaluation",
+  "content": {
+    "bundleName": "com.huawei.genui.evaluation",
+    "candidateAssetIds": [],
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName",
+          "/current/airQuality",
+          "/current/coldLevel"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "description": "天气模板画廊端到端验证",
+    "size": "2x2",
+    "title": "天气模板画廊",
+    "userQuery": "生成一个2×2完整信息卡片，按“温度天气 Full，展示城市、温度、天气现象、空气质量和感冒指数。”展示，不显示操作按钮。"
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "Tablet",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "GENUI-GALLERY",
+    "prdVer": "11.7.5.206",
+    "romVersion": "6.0",
+    "sysVer": "HarmonyOS NEXT",
+    "time": "20260826000000000"
+  },
+  "galleryTest": {
+    "sampleOverrides": {
+      "/data/weather/current/temperatureText": "29°"
+    }
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": true,
+    "sessionId": "gallery-weather-weather-overview-weather-overview-full-single_content-fusion"
+  },
+  "userAuth": {
+    "user": {
+      "userId": "template-gallery"
+    }
+  },
+  "utterance": {
+    "original": "生成一个2×2完整信息卡片，按“温度天气 Full，展示城市、温度、天气现象、空气质量和感冒指数。”展示，不显示操作按钮。",
+    "type": "text"
+  },
+  "version": "1.0"
+}

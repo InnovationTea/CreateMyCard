@@ -1,0 +1,34 @@
+{
+  "single_earphone": {
+    "dataPaths": [
+      "/data/earphone/batteryLevel",
+      "/data/earphone/chargingStatusDesc"
+    ],
+    "retrievalMissWithoutAction": {
+      "errorType": "TemplateRetrievalMiss",
+      "message": "Search candidates cannot form a supported atomic plan"
+    },
+    "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1",
+    "templateIds": [
+      "BluetoothDeviceOverviewEarphoneCaseHero@1",
+      "HeroActionLayout@1",
+      "PillAction@1"
+    ]
+  },
+  "with_earbud_pair_fields": {
+    "dataPaths": [
+      "/data/earphone/batteryLevel",
+      "/data/earphone/chargingStatusDesc"
+    ],
+    "retrievalMissWithoutAction": {
+      "errorType": "TemplateRetrievalMiss",
+      "message": "Search candidates cannot form a supported atomic plan"
+    },
+    "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1",
+    "templateIds": [
+      "BluetoothDeviceOverviewEarphoneCaseHero@1",
+      "HeroActionLayout@1",
+      "PillAction@1"
+    ]
+  }
+}

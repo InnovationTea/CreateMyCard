@@ -1,0 +1,98 @@
+{
+  "CountdownOverviewSupport@1 timerIcon=clock.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match timerIcon: resources/base/media/clock.svg"
+  },
+  "WeatherOverviewCompact@1 conditionIcon=heat_generation.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/heat_generation.svg"
+  },
+  "WeatherOverviewCompact@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewCompact@1 conditionIcon=icon_weather_temperature1.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
+  },
+  "WeatherOverviewCompact@1 conditionIcon=icon_weather_thermometer.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer.svg"
+  },
+  "WeatherOverviewCompact@1 conditionIcon=icon_weather_thermometer_medium.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer_medium.svg"
+  },
+  "WeatherOverviewDaily2TravelSupport@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewFull@1 conditionIcon=heat_generation.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/heat_generation.svg"
+  },
+  "WeatherOverviewFull@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewFull@1 conditionIcon=icon_weather_temperature1.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
+  },
+  "WeatherOverviewFull@1 conditionIcon=icon_weather_thermometer.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer.svg"
+  },
+  "WeatherOverviewFull@1 conditionIcon=icon_weather_thermometer_medium.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer_medium.svg"
+  },
+  "WeatherOverviewHero@1 conditionIcon=heat_generation.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/heat_generation.svg"
+  },
+  "WeatherOverviewHero@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewHero@1 conditionIcon=icon_weather_temperature1.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
+  },
+  "WeatherOverviewHero@1 conditionIcon=icon_weather_thermometer.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer.svg"
+  },
+  "WeatherOverviewHero@1 conditionIcon=icon_weather_thermometer_medium.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer_medium.svg"
+  },
+  "WeatherOverviewTemperatureSupport@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewTravelSupport@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewUvCompact@1 conditionIcon=heat_generation.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/heat_generation.svg"
+  },
+  "WeatherOverviewUvCompact@1 conditionIcon=icon_high_temperature.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_high_temperature.svg"
+  },
+  "WeatherOverviewUvCompact@1 conditionIcon=icon_weather_temperature1.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset is not approved: resources/base/media/icon_weather_temperature1.svg"
+  },
+  "WeatherOverviewUvCompact@1 conditionIcon=icon_weather_thermometer.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer.svg"
+  },
+  "WeatherOverviewUvCompact@1 conditionIcon=icon_weather_thermometer_medium.svg": {
+    "errorType": "TerselConversionError",
+    "message": "Template asset semantics do not match conditionIcon: resources/base/media/icon_weather_thermometer_medium.svg"
+  }
+}

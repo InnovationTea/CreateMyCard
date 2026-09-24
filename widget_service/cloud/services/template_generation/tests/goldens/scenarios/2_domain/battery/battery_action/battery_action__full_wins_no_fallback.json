@@ -1,0 +1,17 @@
+{
+  "candidates": [
+    "BatteryOverviewChargingProgressHero@1",
+    "BatteryOverviewFull@1",
+    "BatteryOverviewSupport@1"
+  ],
+  "fallbackApplied": false,
+  "plans": [
+    {
+      "actionIds": [],
+      "businessTemplateIds": [
+        "BatteryOverviewFull@1"
+      ],
+      "layoutTemplateId": "SingleFocusLayout@1"
+    }
+  ]
+}

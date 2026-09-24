@@ -1,0 +1,98 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Text",
+          "values": [
+            "今日总步数",
+            {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 16,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textAlign": "center",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          ]
+        },
+        {
+          "children": [],
+          "component": "Text",
+          "values": [
+            "${data.healthSport.dailySteps}",
+            {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF401F99",
+              "fontSize": 40,
+              "fontWeight": 800,
+              "margin": {
+                "top": 4
+              },
+              "maxLines": 1,
+              "textAlign": "center",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          ]
+        },
+        {
+          "children": [],
+          "component": "Text",
+          "values": [
+            "步",
+            {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 16,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          ]
+        }
+      ],
+      "component": "Column",
+      "values": [
+        {
+          "alignItems": "center",
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "height": "matchParent",
+          "itemMargin": 4,
+          "justifyContent": "center",
+          "width": "matchParent"
+        }
+      ]
+    }
+  ],
+  "component": "Column",
+  "values": [
+    {
+      "_advancedComponent": "ActivityOverview",
+      "alignItems": "start",
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": "matchParent",
+      "itemMargin": 4,
+      "justifyContent": "spaceBetween",
+      "width": "matchParent"
+    }
+  ]
+}

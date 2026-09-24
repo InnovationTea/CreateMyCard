@@ -1,0 +1,25 @@
+{
+  "children": [],
+  "component": "Button",
+  "values": [
+    "省电模式",
+    {
+      "_boundTemplateAction": "event.setPowerSavingMode",
+      "backgroundColor": "#331F4799",
+      "borderRadius": 18,
+      "fontColor": "#FF1F4799",
+      "fontSize": 14,
+      "fontWeight": 500,
+      "height": 36,
+      "onClick": [
+        {
+          "args": {
+            "intentName": "SetPowerSavingMode"
+          },
+          "call": "clickToIntent"
+        }
+      ],
+      "width": "matchParent"
+    }
+  ]
+}

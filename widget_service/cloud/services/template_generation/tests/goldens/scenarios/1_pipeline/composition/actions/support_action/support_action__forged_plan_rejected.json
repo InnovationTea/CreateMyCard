@@ -1,0 +1,4 @@
+{
+  "errorType": "TerselConversionError",
+  "message": "Business Template Action does not match supported events or data context: BatteryOverviewSupport@1/event.open.weather"
+}

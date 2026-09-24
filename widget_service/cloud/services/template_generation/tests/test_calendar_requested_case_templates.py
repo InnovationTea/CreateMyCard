@@ -1,8 +1,17 @@
-"""十个日历用例的模板检索、编译期分支和核心渲染回归。"""
+"""十个日历用例的模板检索、编译期分支和核心渲染回归。
+
+十个用例最终 A2UI 中出现的日历运行时绑定引用矩阵，以及 Q024 参考几何
+蓝图、Q035 角标 action 配色、Q041 全天三元表达的渲染已固化为场景金样
+（Layer C，``calendar_reqcase__*``）：引擎或模板改动后按 golden 工作流
+``check --diff`` / ``bless --declared`` 复核。检索命中与字段投影、
+provider 数据契约、可选 end 分支展开、标题/地点互斥选择与 Q006 双事件
+索引仍为内联精度断言，保持不变。
+"""
 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
@@ -30,6 +39,10 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 from services.template_generation.engine.tersel_converter import (
     Nested2Node,
     convert_tersel_to_a2ui,
+)
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
 )
 from services.template_generation.profile import read_tersel_protocol_profile
 
@@ -138,9 +151,6 @@ _SAMPLES: dict[str, tuple[Any, str]] = {
     "/events/1/title": ("客户交流会", "string"),
     "/events/1/dtStart": ("15:00", "string"),
 }
-
-_ACTION_ONLY_FIELDS = {"Q017": {"/events/0/entityId"}, "Q035": {"/events/0/entityId"}}
-_ACTION_ONLY_FIELDS["Q030"] = {"/events/0/oneClickServiceLink"}
 
 _QUERIES = {
     "Q006": (
@@ -287,6 +297,28 @@ def _options(node: Nested2Node) -> dict[str, Any]:
     return next((value for value in node.values if isinstance(value, dict)), {})
 
 
+def _node_payload(node: Nested2Node) -> dict[str, Any]:
+    """把 Nested2Node 蓝图树转成可冻结的 canonical JSON 结构。"""
+    return {
+        "component": node.component_type,
+        "values": [
+            json.loads(json.dumps(value, ensure_ascii=False, default=str))
+            for value in node.values
+        ],
+        "children": [_node_payload(child) for child in node.children],
+    }
+
+
+def _template_slug(template_id: str) -> str:
+    """模板 ID（或其后缀）转 snake_case 场景键；ScheduleOverview 前缀可缺省。"""
+    name = template_id.split("@", 1)[0].removeprefix("ScheduleOverview")
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _case_by_id(case_id: str) -> CalendarCase:
+    return next(case for case in _CASES if case.case_id == case_id)
+
+
 def _a2ui(case: CalendarCase) -> str:
     definition = _registry().require_template(case.template_id)
     available = set(case.fields)
@@ -316,6 +348,59 @@ def _components(a2ui: str) -> list[dict[str, Any]]:
             return components
     raise AssertionError("A2UI 缺少 updateComponents")
 
+
+_BINDING_REF_PATTERNS = (
+    re.compile(r"/data/calendar(?:/[A-Za-z0-9_]+)*"),
+    re.compile(r"data\.calendar(?:\.[A-Za-z0-9_]+)*"),
+)
+
+
+@scenario("calendar_reqcase__a2ui_bindings")
+def _build_case_a2ui_bindings() -> dict[str, Any]:
+    """十个用例最终 A2UI 中实际出现的全部日历运行时绑定引用矩阵。"""
+    payload: dict[str, Any] = {}
+    for case in _CASES:
+        rendered = json.dumps(_components(_a2ui(case)), ensure_ascii=False)
+        refs = {
+            match.group(0)
+            for pattern in _BINDING_REF_PATTERNS
+            for match in pattern.finditer(rendered)
+        }
+        payload[case.case_id] = {
+            "templateId": case.template_id,
+            "runtimeBindings": sorted(refs),
+        }
+    return payload
+
+
+@scenario("calendar_reqcase__q024_blueprint")
+def _build_q024_blueprint() -> dict[str, Any]:
+    """Q024 ReminderDetailsHero 无缺省绑定的完整参考几何蓝图。"""
+    return {"root": _node_payload(_expanded("ScheduleOverviewReminderDetailsHero@1"))}
+
+
+@scenario("calendar_reqcase__q035_badge")
+def _build_q035_badge() -> dict[str, Any]:
+    """Q035 事件数角标的完整 A2UI 组件列表（含 action 主题配色）。"""
+    return {"components": _components(_a2ui(_case_by_id("Q035")))}
+
+
+@scenario("calendar_reqcase__q041_allday")
+def _build_q041_allday() -> dict[str, Any]:
+    """Q041 全天行的行高选项与运行时三元表达 A2UI 组件。"""
+    case = _case_by_id("Q041")
+    return {
+        "secondRowOptions": _options(_expanded(case.template_id).children[1]),
+        "components": _components(_a2ui(case)),
+    }
+
+
+_GOLDEN_SCENARIOS = (
+    "calendar_reqcase__a2ui_bindings",
+    "calendar_reqcase__q024_blueprint",
+    "calendar_reqcase__q035_badge",
+    "calendar_reqcase__q041_allday",
+)
 
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
 def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) -> None:
@@ -451,76 +536,6 @@ def test_q006_keeps_two_event_indices_distinct_and_rejects_short_array() -> None
         _selection(case, task=short_task)
 
 
-@pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
-def test_case_a2ui_keeps_all_visible_fields_as_runtime_bindings(case: CalendarCase) -> None:
-    payload = json.dumps(_components(_a2ui(case)), ensure_ascii=False)
-    hidden = _ACTION_ONLY_FIELDS.get(case.case_id, frozenset())
-
-    for path in case.fields:
-        absolute_path = _DATA_ROOT + path
-        assert (absolute_path in payload) is (path not in hidden)
-
-
-def test_q024_renders_all_four_requested_values_in_reference_geometry() -> None:
-    root = _expanded("ScheduleOverviewReminderDetailsHero@1")
-    assert (
-        _options(root).items()
-        >= {
-            "height": 78,
-            "margin": {"top": -2},
-            "itemMargin": 8,
-            "clip": False,
-        }.items()
-    )
-    texts = [node.values[0] for node in _walk(root) if node.component_type == "Text"]
-    joined = json.dumps(texts, ensure_ascii=False)
-    assert "data.calendar.updatedAt" in joined
-    assert "/data/calendar/events/0/senderName" in joined
-    assert "data.calendar.events.0.importantEventType" in joined
-    assert "/data/calendar/events/0/remindTime/0" in joined
-    assert "发起人" in joined
-    assert "提前" in joined and "分钟提醒" in joined
-
-
-def test_q035_badge_uses_action_theme_colors_and_reference_geometry() -> None:
-    case = _CASES[8]
-    components = _components(_a2ui(case))
-    theme = _registry().theme_reference_values(_THEME_ID)
-    count = next(
-        item for item in components if item.get("content") == "{{ ${/data/calendar/eventCount} }}"
-    )
-    assert any(
-        item.get("styles", {}).items()
-        >= {
-            "width": 16,
-            "height": 16,
-            "borderRadius": 8,
-            "backgroundColor": theme["actionStyle.backgroundColor"],
-        }.items()
-        for item in components
-    )
-    assert (
-        count["styles"].items()
-        >= {
-            "width": 16,
-            "height": 14,
-            "fontSize": 10,
-            "fontWeight": 500,
-            "fontColor": theme["actionStyle.contentColor"],
-        }.items()
-    )
-    assert not any(item.get("component") == "Image" for item in components)
-
-
-def test_q041_keeps_all_day_as_runtime_expression_in_full_geometry() -> None:
-    case = _CASES[9]
-    root = _expanded(case.template_id)
-    assert _options(root.children[1]).get("height") == 70
-
-    a2ui = _a2ui(case)
-    all_day = next(
-        item
-        for item in _components(a2ui)
-        if "/data/calendar/events/0/isAllDay" in str(item.get("content", ""))
-    )
-    assert all_day["content"] == ("{{ ${/data/calendar/events/0/isAllDay} ? '全天' : '非全天' }}")
+@pytest.mark.parametrize("scenario_id", _GOLDEN_SCENARIOS)
+def test_case_renderings_match_golden_scenarios(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)

@@ -1,0 +1,7 @@
+{
+  "artifact": null,
+  "caseId": "Q052",
+  "exceptionType": "ValidationError",
+  "message": "1 validation error for TaskSpec\nappVersion\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]",
+  "status": "unhandled_error"
+}

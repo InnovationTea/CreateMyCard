@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4f4790c1939c4b247e4e84ae87c592bef7bdb8b018d0e23f12f4242d5e0b02cc",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseTypeName\",\"/exerciseDurationText\"]},\"action\":[\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "e906984a4c3800d572653e1065433deab05b7d5f371be17560c54c400f98bd70",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WorkoutOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.health.sport\", \"label\": \"今日训练\"}));"
+    }
+  ]
+}

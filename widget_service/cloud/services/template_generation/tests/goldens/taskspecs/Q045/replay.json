@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "5719d0a97c8f6c8951c3563653c4de25494fe2d4a52de17adf3243b3da143abb",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/batteryTemperatureText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

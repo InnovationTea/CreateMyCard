@@ -1,0 +1,5 @@
+{
+  "bundleRoundTripSourceFormat": "cardtpl/2",
+  "sourceFormat": "cardtpl/2",
+  "transformedValue": "{{ '紫外线等级' + ${/data/context/uv} }}"
+}

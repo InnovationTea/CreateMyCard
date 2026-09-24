@@ -1,0 +1,242 @@
+{
+  "activity_full_steps_only": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "ActivityOverview",
+            "primaryMatched": [
+              "/dailySteps"
+            ],
+            "template": "ActivityOverviewFull@1"
+          }
+        ]
+      }
+    ]
+  },
+  "optional_only_weather": {
+    "coverage": {
+      "candidates": {
+        "WeatherOverviewCompact@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewFull@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewHero@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewHeroTitle@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewHumidityFull@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewTemperatureSupport@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewTemperatureUvSupport@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewTemperaturecoldLevelSupport@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewUpdatedAtFull@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewUvCompact@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewUvFull@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ]
+      },
+      "explicitFields": [
+        "/current/condition",
+        "/current/temperatureText",
+        "/location/districtName"
+      ],
+      "resultKeys": [
+        "businessCandidates",
+        "cardSize"
+      ]
+    }
+  },
+  "support_action_vertical": {
+    "plans": [
+      {
+        "actions": [
+          {
+            "action": "event.open.weather",
+            "businessPosition": 0,
+            "consumer": "business-template"
+          }
+        ],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [],
+            "template": "WeatherOverviewTemperatureSupport@1"
+          },
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          }
+        ]
+      },
+      {
+        "actions": [
+          {
+            "action": "event.open.weather",
+            "businessPosition": 1,
+            "consumer": "business-template"
+          }
+        ],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          },
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [],
+            "template": "WeatherOverviewTemperatureSupport@1"
+          }
+        ]
+      }
+    ]
+  },
+  "support_two_actions": {
+    "plans": [
+      {
+        "actions": [
+          {
+            "action": "event.open.settings.battery",
+            "businessPosition": 0,
+            "consumer": "business-template"
+          },
+          {
+            "action": "event.viewCalendarEvent",
+            "businessPosition": 1,
+            "consumer": "business-template"
+          }
+        ],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          },
+          {
+            "business": "CalendarOverview",
+            "primaryMatched": [
+              "/events/0/dtStart"
+            ],
+            "template": "ScheduleOverviewTimeSupport@1"
+          }
+        ]
+      },
+      {
+        "actions": [
+          {
+            "action": "event.open.settings.battery",
+            "businessPosition": 1,
+            "consumer": "business-template"
+          },
+          {
+            "action": "event.viewCalendarEvent",
+            "businessPosition": 0,
+            "consumer": "business-template"
+          }
+        ],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "CalendarOverview",
+            "primaryMatched": [
+              "/events/0/dtStart"
+            ],
+            "template": "ScheduleOverviewTimeSupport@1"
+          },
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          }
+        ]
+      }
+    ]
+  },
+  "weather_primary_temperature": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewFull@1"
+          }
+        ]
+      }
+    ]
+  },
+  "wind_full_no_action": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/windDirection",
+              "/current/windLevel"
+            ],
+            "template": "WeatherOverviewWindFull@1"
+          }
+        ]
+      }
+    ]
+  }
+}

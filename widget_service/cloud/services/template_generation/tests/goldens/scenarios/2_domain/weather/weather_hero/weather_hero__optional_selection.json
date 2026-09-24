@@ -1,0 +1,618 @@
+{
+  "loc_city_district__weather_both": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.prefectureName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_city_district__weather_condition": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.prefectureName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.condition}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_city_district__weather_none": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.prefectureName}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_city_district__weather_temperature": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.prefectureName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.temperatureText}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_default_text__weather_both": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "当前城市"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_default_text__weather_condition": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "当前城市"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.condition}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_default_text__weather_none": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "当前城市"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_default_text__weather_temperature": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "当前城市"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.temperatureText}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_district_only__weather_both": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.districtName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_district_only__weather_condition": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.districtName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.condition}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_district_only__weather_none": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.districtName}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_district_only__weather_temperature": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "${data.weather.location.districtName}"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.temperatureText}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_props_fallback__weather_both": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "受信兜底"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "{{ ${/data/weather/current/condition} + ' | ' + ${/data/weather/current/temperatureText} }}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_props_fallback__weather_condition": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "受信兜底"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.condition}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_props_fallback__weather_none": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "受信兜底"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  },
+  "loc_props_fallback__weather_temperature": {
+    "children": [
+      {
+        "options": {
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        },
+        "text": "受信兜底"
+      },
+      {
+        "options": {
+          "flexShrink": 0,
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 700,
+          "maxLines": 1
+        },
+        "text": "${data.weather.current.temperatureText}"
+      }
+    ],
+    "rowOptions": {
+      "_advancedComponent": "WeatherOverview",
+      "alignItems": "top",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": 18,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "今天目标走8000步，帮我做个活动卡片，用进度条看步数完成情况，再看走了多远、消耗多少热量和健康数据更新时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailySteps",
+          "/dailyDistanceText",
+          "/dailyTotalCaloriesText",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "今日活动",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "步数目标进度条",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.flame_fill",
+      "asset.clock"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "055",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "今天目标走8000步，帮我做个活动卡片，用进度条看步数完成情况，再看走了多远、消耗多少热量和健康数据更新时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "今天目标走8000步，帮我做个活动卡片，用进度条看步数完成情况，再看走了多远、消耗多少热量和健康数据更新时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/dailySteps",
+        "/dailyDistanceText",
+        "/dailyTotalCaloriesText",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "今日活动",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "步数目标进度条",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.flame_fill",
+    "asset.clock"
+  ]
+}

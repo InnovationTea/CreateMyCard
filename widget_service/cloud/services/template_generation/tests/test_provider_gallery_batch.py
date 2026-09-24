@@ -1,8 +1,21 @@
-"""Provider 模板画廊批跑测试。"""
+"""Provider 模板画廊批跑测试。
+
+三个画廊输入 JSON 契约已固化为场景金样（Layer C）：
+``gallery_input__dual_city``（双城天气按序独立绑定）、
+``gallery_input__single_city``（单城基线不被双城化）与
+``gallery_input__paired_cross_business``（跨业务 HeroTitle+HeroContent
+配对的用例元数据与请求载荷）。生成请求 dict 原样冻结——canonicalize
+仅排序键便于评审，列表顺序（即绑定/事件顺序）仍是敏感差异。
+清单计数钉（146 全量 / 143 定向 / 61 Support）、场景集合、缺失家族
+标记、仅高版本融球与全部 runner/进程测试（公共服务调用、dry-run、
+禁用模板成员、重叠业务拒绝）保持普通测试。Provider/能力/主题配置
+改动后按 golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
 
 from __future__ import annotations
 
 import json
+import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -20,6 +33,10 @@ from services.template_generation.test_support.provider_gallery import (
     ProviderGalleryBatchRunner,
     load_gallery_input_manifest,
     write_gallery_input_dataset,
+)
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
 )
 
 _WEATHER_ASSET_IDS: list[str] = []
@@ -379,67 +396,6 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert calendar_date_request["content"]["candidateAssetIds"] == []
 
 
-def test_dual_city_gallery_inputs_keep_ordered_independent_weather_bindings(
-    tmp_path: Path,
-) -> None:
-    manifest = write_gallery_input_dataset(tmp_path)
-    case = _find_case(
-        manifest, "WeatherOverview", "single-content", "WeatherOverviewDualCityFull@1"
-    )
-    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
-    content = payload.get("content")
-    assert isinstance(content, dict)
-    bindings = content.get("candidateDataBindings")
-    assert isinstance(bindings, list)
-    assert len(bindings) == 2
-    expected_fields = [
-        "/current/temperatureC", "/current/condition", "/location/prefectureName"
-    ]
-    for index, city in enumerate(("成都市", "上海市"), start=1):
-        assert bindings[index - 1] == {
-            "capabilityId": "ViewWeather",
-            "arguments": {"prefectureName": city, "forecastDays": 1},
-            "writeResultTo": f"/data/weather{index}",
-            "candidateOutputFields": expected_fields,
-        }
-    query = content.get("userQuery")
-    assert isinstance(query, str)
-    assert "成都市和上海市" in query
-    assert content.get("candidateEventCandidates") == []
-    gallery_test = payload.get("galleryTest")
-    assert isinstance(gallery_test, dict)
-    assert gallery_test.get("sampleOverrides") == {
-        "/data/weather1/location/prefectureName": "成都市",
-        "/data/weather1/current/temperatureC": 26,
-        "/data/weather1/current/condition": "多云",
-        "/data/weather2/location/prefectureName": "上海市",
-        "/data/weather2/current/temperatureC": 29,
-        "/data/weather2/current/condition": "晴",
-    }
-
-
-def test_dual_city_gallery_does_not_change_single_city_inputs(tmp_path: Path) -> None:
-    manifest = write_gallery_input_dataset(tmp_path)
-    case = _find_case(
-        manifest, "WeatherOverview", "single-content", "WeatherOverviewFull@1"
-    )
-    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
-    content = payload.get("content")
-    assert isinstance(content, dict)
-    bindings = content.get("candidateDataBindings")
-    assert isinstance(bindings, list)
-    assert len(bindings) == 1
-    assert bindings[0].get("writeResultTo") == "/data/weather"
-    assert bindings[0].get("arguments") == {
-        "prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1
-    }
-    gallery_test = payload.get("galleryTest")
-    assert isinstance(gallery_test, dict)
-    assert gallery_test.get("sampleOverrides") == {
-        "/data/weather/current/temperatureText": "29°"
-    }
-
-
 @pytest.mark.asyncio
 async def test_dual_city_gallery_runner_passes_both_bindings_to_service(tmp_path: Path) -> None:
     input_root = tmp_path / "inputs"
@@ -640,51 +596,6 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
     assert len(reloaded.providers) == 9
 
 
-def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path: Path) -> None:
-    manifest = write_gallery_input_dataset(tmp_path)
-    paired = next(item for item in manifest.providers if item.providerSlug == "cross-business")
-    assert paired.providerName == "跨业务组合"
-    assert len(paired.cases) == 1
-    assert all(case.prdVer == FUSION_PRD_VERSION for case in paired.cases)
-    case = next(
-        item
-        for item in paired.cases
-        if item.targetTemplateId == "WeatherOverviewHeroTitle@1"
-    )
-    assert case.partnerTemplateId == "ScheduleOverviewHeroContent@1"
-    assert case.expectedLayout == "HeroTitle + HeroContent + PillAction"
-    assert case.missingReason == ""
-    assert case.expectsFusionBall
-    assert case.appearanceName == "高版本（融球）"
-    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
-    content = payload.get("content")
-    assert isinstance(content, dict)
-    bindings = content.get("candidateDataBindings")
-    assert isinstance(bindings, list)
-    assert [binding.get("capabilityId") for binding in bindings] == [
-        "ViewWeather", "GetCalendarEvents"
-    ]
-    assert bindings[0].get("candidateOutputFields") == [
-        "/location/prefectureName", "/location/districtName",
-        "/current/temperatureText", "/current/condition"
-    ]
-    assert bindings[1].get("candidateOutputFields") == [
-        "/events/0/title", "/events/0/dtStart", "/events/0/dtEnd",
-        "/events/0/eventLocation"
-    ]
-    events = content.get("candidateEventCandidates")
-    assert isinstance(events, list)
-    assert len(events) == 1
-    assert events[0].get("capabilityId") == "event.viewCalendarEvent"
-    query = content.get("userQuery")
-    assert isinstance(query, str)
-    assert "查看日程详情" in query
-    assert payload.get("utterance") == {"original": query, "type": "text"}
-    assert payload.get("galleryTest") == {
-        "sampleOverrides": {"/data/weather/current/temperatureText": "29°"}
-    }
-
-
 @pytest.mark.asyncio
 async def test_gallery_paired_runner_passes_ordered_templates_to_public_service(
     tmp_path: Path,
@@ -821,3 +732,71 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
         path = case.get("a2uiFile")
         assert isinstance(path, str)
         assert (summary.manifest_path.parent / path).is_file()
+
+
+def _gallery_request_payload(
+    business_id: str,
+    scenario_id: str,
+    target_template_id: str,
+    appearance_id: str | None = None,
+) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        manifest = write_gallery_input_dataset(root)
+        case = _find_case(
+            manifest, business_id, scenario_id, target_template_id, appearance_id
+        )
+        return json.loads((root / case.requestFile).read_text(encoding="utf-8"))
+
+
+@scenario("gallery_input__single_city")
+def _build_single_city_input() -> dict[str, Any]:
+    return _gallery_request_payload(
+        "WeatherOverview", "single-content", "WeatherOverviewFull@1"
+    )
+
+
+@scenario("gallery_input__dual_city")
+def _build_dual_city_input() -> dict[str, Any]:
+    return _gallery_request_payload(
+        "WeatherOverview", "single-content", "WeatherOverviewDualCityFull@1"
+    )
+
+
+@scenario("gallery_input__paired_cross_business")
+def _build_paired_input() -> dict[str, Any]:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        manifest = write_gallery_input_dataset(root)
+        paired = next(
+            item for item in manifest.providers if item.providerSlug == "cross-business"
+        )
+        case = next(
+            item
+            for item in paired.cases
+            if item.targetTemplateId == "WeatherOverviewHeroTitle@1"
+        )
+        request = json.loads((root / case.requestFile).read_text(encoding="utf-8"))
+    return {
+        "provider": {
+            "providerName": paired.providerName,
+            "caseCount": len(paired.cases),
+        },
+        "case": {
+            "targetTemplateId": case.targetTemplateId,
+            "partnerTemplateId": case.partnerTemplateId,
+            "expectedLayout": case.expectedLayout,
+            "appearanceId": case.appearanceId,
+            "appearanceName": case.appearanceName,
+            "prdVer": case.prdVer,
+            "expectsFusionBall": case.expectsFusionBall,
+            "missingReason": case.missingReason,
+        },
+        "request": request,
+    }
+
+
+def test_gallery_input_scenarios_match_goldens() -> None:
+    assert_golden_scenario("gallery_input__single_city")
+    assert_golden_scenario("gallery_input__dual_city")
+    assert_golden_scenario("gallery_input__paired_cross_business")

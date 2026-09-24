@@ -1,0 +1,103 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "2026年11月15日参加广州马拉松，帮我做个卡片，看还有几天，点一下打开闹钟应用。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-11-15"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "马拉松倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "比赛倒计时和闹钟",
+    "candidateAssetIds": [
+      "asset.stopwatch_fill",
+      "asset.alarm_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "028",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "2026年11月15日参加广州马拉松，帮我做个卡片，看还有几天，点一下打开闹钟应用。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "2026年11月15日参加广州马拉松，帮我做个卡片，看还有几天，点一下打开闹钟应用。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-11-15"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "马拉松倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "比赛倒计时和闹钟",
+  "candidateAssetIds": [
+    "asset.stopwatch_fill",
+    "asset.alarm_fill_1"
+  ]
+}

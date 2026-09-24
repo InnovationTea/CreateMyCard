@@ -1,0 +1,112 @@
+{
+  "a2uiMessages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Stack",
+            "id": "root",
+            "styles": {
+              "alignContent": "topStart",
+              "backgroundColor": "#FFF0FFE6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#FFF0FFE6",
+                    0
+                  ],
+                  [
+                    "#FFFFFFFF",
+                    1
+                  ]
+                ]
+              },
+              "padding": 0,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "__genui_render_component__root_1"
+            ],
+            "component": "Stack",
+            "id": "template_root",
+            "styles": {
+              "height": "matchParent",
+              "padding": {
+                "bottom": 12,
+                "left": 8,
+                "right": 8,
+                "top": 12
+              },
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "business_title",
+              "root_1_1"
+            ],
+            "component": "Stack",
+            "id": "__genui_render_component__root_1",
+            "styles": {
+              "clip": true,
+              "height": "matchParent",
+              "padding": 4,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "示例",
+            "id": "business_title",
+            "styles": {
+              "fontSize": 14
+            }
+          },
+          {
+            "children": [
+              "root_1_1_0"
+            ],
+            "component": "Column",
+            "id": "root_1_1"
+          },
+          {
+            "component": "Text",
+            "content": "辅助",
+            "id": "root_1_1_0"
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "ui": {
+            "state": "ready"
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "terselTree": "Stack(\"card\", {\"_id\":\"root\",\"backgroundColor\":\"#FFF0FFE6\",\"linearGradient\":{\"colors\":[[\"#FFF0FFE6\",0],[\"#FFFFFFFF\",1]]},\"borderRadius\":20,\"clip\":true,\"padding\":0,\"alignContent\":\"topStart\"}, Stack(\"overlay\", {\"_id\":\"template_root\",\"padding\":{\"left\":8,\"right\":8,\"top\":12,\"bottom\":12}}, Stack({\"_id\":\"__genui_render_component__root_1\",\"width\":\"matchParent\",\"height\":\"matchParent\",\"clip\":true,\"padding\":4}, Text(\"示例\", {\"_id\":\"business_title\",\"fontSize\":14}), Column(Text(\"辅助\")))));"
+}

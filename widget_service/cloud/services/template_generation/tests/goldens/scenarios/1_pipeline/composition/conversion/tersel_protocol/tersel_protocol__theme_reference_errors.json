@@ -1,0 +1,14 @@
+{
+  "reserved_internal_name": {
+    "errorType": "TerselConversionError",
+    "message": "Theme reference uses a reserved internal name"
+  },
+  "theme_not_selected": {
+    "errorType": "TerselConversionError",
+    "message": "Theme reference is unavailable: primaryColor."
+  },
+  "unapproved_path": {
+    "errorType": "TerselConversionError",
+    "message": "$theme requires exactly one approved Theme path."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "escapeSequences": "{{ ${/data/calendar/value} ? ('${data.private} `文本`') : '' }}",
+  "optionalLiteral": "{{ ${/data/calendar/value} + 'props?.label' }}",
+  "quotedLiterals": "{{ ${/data/calendar/value} + 'Expr(fake) data.start ${data.end} ) #Expr(' + 'a\"b\\\\c\\n' }}",
+  "templateCoercion": "{{ size(('数值 ' + ${/data/calendar/value} + '')) > 0 ? ('' + ${/data/calendar/value} + '' + ${/data/calendar/value} + '') : '' }}"
+}

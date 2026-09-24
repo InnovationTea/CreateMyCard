@@ -1,0 +1,47 @@
+{
+  "IconAction@1": {
+    "hasInternalActionIdOption": false,
+    "onClick": {
+      "kind": "event-action",
+      "parameterKind": "parameter",
+      "parameterName": "actionId"
+    },
+    "properties": [
+      "actionId",
+      "icon"
+    ],
+    "providerId": "com.huawei.action.cli",
+    "required": [
+      "actionId",
+      "icon"
+    ],
+    "root": "Stack"
+  },
+  "PillAction@1": {
+    "hasInternalActionIdOption": false,
+    "onClick": {
+      "kind": "event-action",
+      "parameterKind": "parameter",
+      "parameterName": "actionId"
+    },
+    "properties": [
+      "actionId",
+      "label"
+    ],
+    "providerId": "com.huawei.action.cli",
+    "required": [
+      "actionId",
+      "label"
+    ],
+    "root": "Button"
+  },
+  "WeatherOverviewTemperatureSupport@1": {
+    "actionIdRequired": false,
+    "actionIdType": "string",
+    "onClick": {
+      "kind": "event-action",
+      "parameterKind": "optional-parameter",
+      "parameterName": "actionId"
+    }
+  }
+}

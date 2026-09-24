@@ -1,0 +1,1064 @@
+{
+  "ActivityOverviewCompact@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "ActivityOverviewFull@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "ActivityOverviewHero@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "ActivityOverviewSupport@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "ActivityOverviewWideFull@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "ActivityOverviewWideHero@1": {
+    "expectedFamily": "ActivityOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ActivityOverview"
+      }
+    ]
+  },
+  "BatteryOverviewChargingDiagnosticsHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewChargingProgressFull@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewChargingProgressHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewChargingRingHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewCompact@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewFull@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewHealthLevelHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewPercentLevelHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewPercentRingHero@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewStatusSupport@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewSupport@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewTemperatureFull@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BatteryOverviewWideFull@1": {
+    "expectedFamily": "BatteryOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BatteryOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewChargeSupport@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewCompletePhoneWideFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewCompleteWideFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewConnectionSupport@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudPairCompact@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudPairFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudPairHero@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudTripleFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudTripleHero@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudsDynamicWideFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudsFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarbudsSupport@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarphoneCaseCompact@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarphoneCaseHero@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarphoneCompact@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewEarphoneHero@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "BluetoothDeviceOverviewHero@1": {
+    "expectedFamily": "BluetoothDeviceOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "BluetoothDeviceOverview"
+      }
+    ]
+  },
+  "CompactTwoActionLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "CountdownOverviewFull@1": {
+    "expectedFamily": "CountdownOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "CountdownOverview"
+      }
+    ]
+  },
+  "CountdownOverviewHero@1": {
+    "expectedFamily": "CountdownOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "CountdownOverview"
+      }
+    ]
+  },
+  "CountdownOverviewSupport@1": {
+    "expectedFamily": "CountdownOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "CountdownOverview"
+      }
+    ]
+  },
+  "CountdownOverviewTravelSupport@1": {
+    "expectedFamily": "CountdownOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "CountdownOverview"
+      }
+    ]
+  },
+  "FullIconActionLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "HeartRateOverviewCompact@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewFull@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewHero@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewIconCompact@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewIconHero@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewMinMaxFull@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewSupport@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewUpdatedFull@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewUpdatedHero@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeartRateOverviewUpdatedIconHero@1": {
+    "expectedFamily": "HeartRateOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "HeartRateOverview"
+      }
+    ]
+  },
+  "HeroActionLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "HeroTitleContentActionLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "IconAction@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "PillAction@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "ResourceUsageOverviewCompact@1": {
+    "expectedFamily": "ResourceUsageOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ResourceUsageOverview"
+      }
+    ]
+  },
+  "ResourceUsageOverviewFull@1": {
+    "expectedFamily": "ResourceUsageOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ResourceUsageOverview"
+      }
+    ]
+  },
+  "ResourceUsageOverviewSupport@1": {
+    "expectedFamily": "ResourceUsageOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ResourceUsageOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewDateFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewDateLocationFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewDateSupport@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewDatedAllDayHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewDatedMeetingHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewEventCountDetailsHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewHeroContent@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewLocationDescriptionEndFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewLocationHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewLocationSupport@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewMeetingSourceWideFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewMeetingWideFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewNextEventHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewNextEventLocationFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewReminderDetailsFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewReminderDetailsHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewReminderHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewStartTimeSupport@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTimeSupport@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTimezoneAllDayFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTimezoneDateEndFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTimezoneFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTimezoneTimeFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTitleHero@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "ScheduleOverviewTwoEventsFull@1": {
+    "expectedFamily": "ScheduleOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "ScheduleOverview"
+      }
+    ]
+  },
+  "SingleFocusLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "SleepOverviewCompact@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "SleepOverviewFull@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "SleepOverviewHero@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "SleepOverviewNapFull@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "SleepOverviewNapHero@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "SleepOverviewSupport@1": {
+    "expectedFamily": "SleepOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "SleepOverview"
+      }
+    ]
+  },
+  "TwoSupportLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "WeatherOverviewAirQualityHero@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewAlertFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewCareAlertFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewCompact@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewConditionHero@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDaily2TravelSupport@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDailyCompareFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDailyDateFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDailyHealthFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDailyRainFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewDualCityFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewHero@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewHeroTitle@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewHumidityFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewTemperatureSupport@1": {
+    "expectedFamily": "WeatherOverviewTemperatureSupport",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverviewTemperatureSupport"
+      }
+    ]
+  },
+  "WeatherOverviewTemperatureUvSupport@1": {
+    "expectedFamily": "WeatherOverviewTemperatureSupport",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverviewTemperatureSupport"
+      }
+    ]
+  },
+  "WeatherOverviewTemperaturecoldLevelSupport@1": {
+    "expectedFamily": "WeatherOverviewTemperatureSupport",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverviewTemperatureSupport"
+      }
+    ]
+  },
+  "WeatherOverviewTravelSupport@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewUpdatedAtFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewUvCompact@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewUvFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewWindFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewWindHero@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WideSingleFocusLayout@1": {
+    "expectedFamily": null,
+    "markers": []
+  },
+  "WorkoutOverviewCompact@1": {
+    "expectedFamily": "WorkoutOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WorkoutOverview"
+      }
+    ]
+  },
+  "WorkoutOverviewFull@1": {
+    "expectedFamily": "WorkoutOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WorkoutOverview"
+      }
+    ]
+  },
+  "WorkoutOverviewHero@1": {
+    "expectedFamily": "WorkoutOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WorkoutOverview"
+      }
+    ]
+  },
+  "WorkoutOverviewSupport@1": {
+    "expectedFamily": "WorkoutOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WorkoutOverview"
+      }
+    ]
+  }
+}

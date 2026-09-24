@@ -1,5 +1,14 @@
-"""手机电量非融球配色与耳机一致，同时隔离内存、融球和双业务主题。"""
+"""手机电量非融球配色与耳机一致，同时隔离内存、融球和双业务主题。
 
+电池绿色主题的三种渲染（Full×SingleFocus、Full×FullIconAction+IconAction、
+ChargingRingHero×Hero+PillAction）已固化为场景金样（Layer C）：完整 A2UI
+产物连同根背景色、Progress 前景/背景、点击态背景、融球缺省（fusionBall
+不得出现）与橙/蓝主题残留色的排除都由快照整体冻结。引擎或模板改动后按
+golden 工作流 `check --diff` / `bless --declared` 复核；主题注册表与动作
+背景覆盖规则的行为断言保留为普通测试。
+"""
+
+import asyncio
 import json
 
 import pytest
@@ -12,6 +21,11 @@ from services.template_generation.engine.cardplan.models import (
 )
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_template_generation import (
     _battery_card_spec,
     _battery_task,
@@ -110,15 +124,9 @@ async def test_battery_green_keeps_fusion_a2ui_unchanged(
     assert current.a2ui == previous.a2ui
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(("template_id", "layout_id", "action_template"), [
-    ("BatteryOverviewFull@1", "SingleFocusLayout@1", None),
-    ("BatteryOverviewFull@1", "FullIconActionLayout@1", "IconAction@1"),
-    ("BatteryOverviewChargingRingHero@1", "HeroActionLayout@1", "PillAction@1"),
-])
-async def test_battery_compiles_green_full_and_hero(
+async def _render_battery_palette(
     template_id: str, layout_id: str, action_template: str | None,
-) -> None:
+) -> dict:
     fields = ("/batterySOC", "/batterySOCText", "/batteryCapacityLevelDesc", "/chargingStatusDesc")
     action_id = "event.setPowerSavingMode" if action_template is not None else None
     body = f'Template("{layout_id}",{{}},Template("{template_id}",{{}})'
@@ -143,30 +151,35 @@ async def test_battery_compiles_green_full_and_hero(
         _battery_task(), _battery_card_spec(), (binding,), model,
         enable_fusion_ball=False, trusted_template_candidate_ids=(template_id,),
     )
-    messages = [json.loads(line) for line in output.a2ui.splitlines()]
-    components = messages[1].get("updateComponents", {}).get("components")
-    assert isinstance(components, list)
-    root = next(component for component in components if component.get("id") == "root")
-    styles = root.get("styles")
-    assert isinstance(styles, dict)
-    assert styles.get("backgroundColor") == "#FFF0FFE6"
-    assert "linearGradient" not in styles
-    assert "fusionBall" not in output.a2ui
-    marked_ids = []
-    for component in components:
-        component_id = component.get("id")
-        assert isinstance(component_id, str)
-        if component_id.startswith("__genui_render_component__"):
-            marked_ids.append(component_id)
-        if component_id == "template_root":
-            assert component.get("children") == ["__genui_render_component__root_1"]
-    assert marked_ids == ["__genui_render_component__root_1"]
-    assert "#FFF9A01E" not in output.a2ui
-    assert "0A59F7" not in output.a2ui
-    for component in components:
-        component_styles = component.get("styles", {})
-        if component.get("component") == "Progress":
-            assert component_styles.get("color") == "#FF52991F"
-            assert component_styles.get("backgroundColor") == "#3364BB5C"
-        if component.get("onClick"):
-            assert component_styles.get("backgroundColor") == "#3364BB5C"
+    return a2ui_messages(output)
+
+
+@scenario("battery_palette__full_single_focus")
+def _build_full_single_focus() -> dict:
+    return asyncio.run(
+        _render_battery_palette("BatteryOverviewFull@1", "SingleFocusLayout@1", None)
+    )
+
+
+@scenario("battery_palette__full_icon_action")
+def _build_full_icon_action() -> dict:
+    return asyncio.run(
+        _render_battery_palette(
+            "BatteryOverviewFull@1", "FullIconActionLayout@1", "IconAction@1",
+        )
+    )
+
+
+@scenario("battery_palette__charging_ring_hero")
+def _build_charging_ring_hero() -> dict:
+    return asyncio.run(
+        _render_battery_palette(
+            "BatteryOverviewChargingRingHero@1", "HeroActionLayout@1", "PillAction@1",
+        )
+    )
+
+
+def test_battery_compiles_green_full_and_hero() -> None:
+    assert_golden_scenario("battery_palette__full_single_focus")
+    assert_golden_scenario("battery_palette__full_icon_action")
+    assert_golden_scenario("battery_palette__charging_ring_hero")

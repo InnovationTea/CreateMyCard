@@ -1,0 +1,345 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "fusionBallBackground",
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#00000000",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "fusionBallLargeSlot",
+                  "fusionBallMediumSlot",
+                  "fusionBallSmallSlot",
+                  "fusionBallGlassLayer"
+                ],
+                "component": "Stack",
+                "id": "fusionBallBackground",
+                "styles": {
+                  "alignContent": "topStart",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "100%",
+                  "width": "100%"
+                }
+              },
+              {
+                "children": [
+                  "fusionBallLarge"
+                ],
+                "component": "Stack",
+                "id": "fusionBallLargeSlot",
+                "styles": {
+                  "alignContent": "center",
+                  "height": "27.5%",
+                  "width": "112.5%"
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "fusionBallLarge",
+                "styles": {
+                  "backgroundColor": "#FF1F9985",
+                  "borderRadius": 105,
+                  "clip": true,
+                  "color": "#00000000",
+                  "height": "477.272727%",
+                  "strokeWidth": 0,
+                  "vertical": false,
+                  "width": "116.666667%"
+                }
+              },
+              {
+                "children": [
+                  "fusionBallMedium"
+                ],
+                "component": "Stack",
+                "id": "fusionBallMediumSlot",
+                "styles": {
+                  "alignContent": "bottom",
+                  "height": "137.5%",
+                  "width": "50%"
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "fusionBallMedium",
+                "styles": {
+                  "backgroundColor": "#FF24B3B3",
+                  "borderRadius": 80,
+                  "clip": true,
+                  "color": "#00000000",
+                  "height": "72.727273%",
+                  "strokeWidth": 0,
+                  "vertical": false,
+                  "width": "200%"
+                }
+              },
+              {
+                "children": [
+                  "fusionBallSmall"
+                ],
+                "component": "Stack",
+                "id": "fusionBallSmallSlot",
+                "styles": {
+                  "alignContent": "bottomEnd",
+                  "height": "118.75%",
+                  "width": "121.875%"
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "fusionBallSmall",
+                "styles": {
+                  "backgroundColor": "#FF5AB38E",
+                  "borderRadius": 50,
+                  "clip": true,
+                  "color": "#00000000",
+                  "height": "52.631579%",
+                  "strokeWidth": 0,
+                  "vertical": false,
+                  "width": "51.282051%"
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "fusionBallGlassLayer",
+                "styles": {
+                  "backdropBlur": {
+                    "radius": 210
+                  },
+                  "backgroundColor": "#0DFFFFFF",
+                  "color": "#00000000",
+                  "height": "100%",
+                  "strokeWidth": 0,
+                  "vertical": false,
+                  "width": "100%"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__template_root"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "padding": {
+                    "bottom": 0,
+                    "left": 0,
+                    "right": 0,
+                    "top": 8
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0",
+                  "root_1_0_0_0_1"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "flexShrink": 0,
+                  "height": 52,
+                  "width": 52
+                }
+              },
+              {
+                "component": "Progress",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "backgroundColor": "#33FFFFFF",
+                  "color": "#FFCCFFF6",
+                  "height": 52,
+                  "strokeWidth": 6,
+                  "type": "ring",
+                  "width": 52
+                },
+                "total": 100,
+                "value": "{{ ${/data/phoneBattery/batterySOC} }}"
+              },
+              {
+                "component": "Image",
+                "id": "root_1_0_0_0_1",
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "styles": {
+                  "fillColor": "#99CCFFF6",
+                  "height": 20,
+                  "objectFit": "contain",
+                  "width": 20
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ '手机电量剩余' + ${/data/phoneBattery/batterySOC} + '%' }}",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 28,
+                  "maxLines": 1,
+                  "minFontSize": 12,
+                  "textAlign": "center",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "省电模式",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.setPowerSavingMode"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#33CCFFF6",
+                  "borderRadius": 18,
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "phoneBattery": {
+                  "batterySOC": 80
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BatteryOverviewPercentRingHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    }
+  },
+  "fusionBall": true,
+  "layout": "HeroActionLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C013"
+  },
+  "size": "2x2",
+  "templateId": "BatteryOverviewPercentRingHero@1"
+}
