@@ -14,8 +14,12 @@ from services.generation_pipeline import (
 )
 from services.template_generation.engine.cardplan.earphone_action_policy import (
     resolve_earphone_candidate_actions,
+    restrict_earphone_action_role,
 )
-from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
 from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
 )
@@ -266,10 +270,6 @@ def test_all_input_candidates_reach_planning_without_two_action_limit(monkeypatc
 
 @pytest.mark.parametrize("candidate_count", [1, 2])
 def test_missing_preferred_role_preserves_available_full(candidate_count):
-    from services.template_generation.engine.cardplan.template_plan_planner import (
-        plan_template_candidates,
-    )
-
     task = _task(True)
     data = task.dataModelSchema.get("data")
     assert isinstance(data, dict)
@@ -294,14 +294,6 @@ def test_missing_preferred_role_preserves_available_full(candidate_count):
 
 @pytest.mark.parametrize("candidate_count", [2, 3])
 def test_unavailable_compact_tries_single_action_hero_before_full(candidate_count):
-    from services.template_generation.engine.cardplan.earphone_action_policy import (
-        restrict_earphone_action_role,
-    )
-    from services.template_generation.engine.cardplan.registry import CardPlanRegistry
-    from services.template_generation.engine.cardplan.template_plan_planner import (
-        plan_template_candidates,
-    )
-
     task = _task(True)
     event = task.eventCandidates[0]
     ids = (_ACTION, "event.open.music.favorite", "event.open.music.daily")
