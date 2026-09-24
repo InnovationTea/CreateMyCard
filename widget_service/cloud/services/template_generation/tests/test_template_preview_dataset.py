@@ -17,19 +17,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 113
+    assert manifest.get("templateCount") == 173
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 21,
-        "Compact": 12,
-        "Hero": 33,
-        "Full": 36,
-        "WideHero": 1,
-        "WideFull": 8,
+        "Support": 22,
+        "Compact": 24,
+        "Hero": 47,
+        "Full": 53,
+        "WideHero": 4,
+        "WideFull": 18,
+        "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 104, "2x4": 9}
-    assert len(cases) == 113
+    assert manifest.get("countsBySize") == {"2x2": 148, "2x4": 25}
+    assert len(cases) == 173
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -38,7 +39,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 113
+    assert len(template_ids) == 173
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -66,6 +67,30 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert slot["styles"]["height"] == case.content_height_vp
 
 
+def test_weather_wide_previews_use_the_weather_theme_background():
+    weather_wide_ids = {
+        "WeatherOverviewWideHero@1",
+        "WeatherOverviewWideFull@1",
+        "WeatherOverviewWideHalf@1",
+    }
+
+    cases = {
+        case.template_id: case
+        for case in build_template_preview_cases()
+        if case.template_id in weather_wide_ids
+    }
+
+    assert set(cases) == weather_wide_ids
+    for case in cases.values():
+        components = case.messages[1]["updateComponents"]["components"]
+        root = next(component for component in components if component["id"] == "root")
+        assert root["styles"]["backgroundColor"] == "#FF121259"
+        assert root["styles"]["linearGradient"]["colors"] == [
+            ["#FF121259", 0],
+            ["#FF2B65D9", 1],
+        ]
+
+
 def test_template_preview_assets_are_bundled_by_genui_evaluation():
     cases = build_template_preview_cases()
     paths = validate_preview_asset_paths(cases)
@@ -88,6 +113,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
+        "music_fill.svg",
         "r_circle_fill.svg",
     }
 
@@ -148,6 +174,23 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/feelsLikeC",
                 "/location/prefectureName", "/location/districtName",
             )
+        elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
+            # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == ()
+        elif case.business_id == "GenericMetricOverview":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            model = case.messages[2].get("updateDataModel")
+            assert isinstance(model, dict)
+            value = model.get("value")
+            assert isinstance(value, dict)
+            data = value.get("data")
+            assert isinstance(data, dict)
+            health = data.get("healthSport")
+            assert isinstance(health, dict)
+            assert health.get("dailySteps") == 6200
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)

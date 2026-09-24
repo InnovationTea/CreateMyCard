@@ -139,7 +139,7 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 ### 模板后缀与布局
 
 业务模板 ID 必须以 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、
-`WideFull` 之一结束。八类后缀分别表示：
+`WideFull`、`WideHalf` 之一结束。九类后缀分别表示：
 
 - `HeroTitle`：双业务单 Action 的位置 0，后接一个 HeroContent；
 - `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
@@ -150,6 +150,7 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 - `Full`：完整 `2x2`，无 Action 时单独使用，或在存在语义匹配图标素材时加一个 IconAction；
 - `WideHero`：约 `4x1.7`，用于 `2x4` 的 WideHero 加一个 PillAction；
 - `WideFull`：完整 `4x2`，单独使用。
+- `WideHalf`：约 `4x1`，用于 `2x4` 的半高组合布局。
 
 业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
 需要区分的状态写在后缀前，例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用
@@ -263,6 +264,9 @@ Column({"width": "matchParent", "itemMargin": 4},
 - 两个可选数据字段必须同时存在时，可写 `#if data.first && data.second`。仅当两个字段都存在时展开
   存在分支；任一字段缺失时进入 `#else`。`&&` 只允许连接两个直接的 `data.xxx`，表示编译期存在性
   “与”，不表示运行时逻辑表达式。存在分支可以安全引用这两个字段，缺失分支不得引用它们。
+- `#if data.first || data.second` 与对应 `#elseif` 保留横版模板的编译期存在性“或”：
+  允许两个及以上互不重复的直接 `data.xxx`，任一字段存在时命中，全部缺失时进入 `#else`。
+  命中分支不保证每个字段存在，引用具体可选字段仍需单独保护；不得混入 `props` 或其它表达式。
 - `#if` 和 `#elseif` 也支持 `!data.xxx`、`!props.xxx`，表示编译期不存在，而非运行时值为假；
   `!` 后允许空格。否定分支不得直接引用缺失字段；对应 `#else` 可以引用该字段。
   混合数据与参数的条件使用嵌套指令，例如 `#if !data.feelsLikeC` 内再写 `#if props.conditionIcon`；
@@ -382,8 +386,10 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 - `"_preserveOriginalColor": true` 表示保留素材原色，不自动注入 `fillColor`。
 - 未开启原色保护时，保留模板显式声明的 `fillColor`（包括 `$theme(...)` 引用）；未声明颜色时
   沿用当前内容或动作主题的默认补色规则。太阳、云雨及温度计不再被编译器强制改为黄色、白色或原色。
-- 原色保护与 `fillColor` 不得同时声明；模板加载时检查静态冲突，运行时编译复核展开后的冲突。
-  继承原色保护的 Image 也不能声明 `fillColor`。失败沿用现有模板配置或编译错误，不静默删除任一声明。
+- 原色保护与 `fillColor` 不得在同一 `Image` 上同时声明；模板加载时检查静态冲突，运行时编译复核
+  展开后的冲突。继承原色保护的 `Image` 可以显式声明 `fillColor`（例如双行动作模板在保留文字与
+  底板主题色的同时，把图标着色为 `supportContentColor`）；未声明时继承现有动作前景补色规则。
+  失败沿用现有模板配置或编译错误，不静默删除任一声明。
 - `_preserveOriginalColor` 是模板编译私有标记，在最终 Tersel/A2UI 输出前移除，不扩展端侧协议。
 - 需要原色的应用图标、天气插画由模板作者显式声明保护；模型不能根据文件名自行添加原色保护，
   也不能改变模板内部着色。基础温度 Support 已声明 `supportContentColor`，温度计直接使用该颜色。
@@ -402,8 +408,9 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 `fusionBallStyle` 的 Theme 在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能
 再查找或接受这些 Theme。
 
-模板 Search 当前整体不支持 `2x4`，此尺寸在任何首层 Prompt 或模型调用前直接判定模板不适用。Wide
-Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板链。
+`2x4` 沿用 Search → Planner → FillData 的宽版规划链路，具体组合规则见
+[模板生成专项方案](template-generation-design.md#横版规划与字段填充)。内容根包装不改变布局准入规则，
+也不扩展融球背景的启用尺寸。
 
 融球背景由模板可信编译器展开为标准 Tersel 组件树，不属于业务 Provider，也不交给二层模型选择。每套融球 Theme
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
@@ -442,15 +449,18 @@ PillAction 模板直接展开为标准 Button，使用 `$theme('actionStyle.back
 `__genui_render_component__template_root` 的标准 Stack，以启用端侧内容层防溢出能力；`root_1` 保持普通布局
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
 
-非融球 `2x2` 固定布局模板使用
+非融球 `2x2`、`2x4` 固定布局模板使用
 `root → template_root → __genui_render_component__root_1`。防溢出标识直接放在原布局骨架
-（Column、Row 或 Stack）上，不额外插入防溢出 Stack，适用于单业务和双业务布局，不按主题筛选。
+（Column、Row 或 Stack）上，不额外插入防溢出 Stack，适用于单业务和多业务布局，不按主题筛选。
 根节点保留 Theme 原有背景，`padding` 调整为 `0`，原安全边距移动到 `template_root`，避免重复留白；
 骨架自身的布局属性、业务数据绑定及事件保持不变。融球结构不受此调整影响。
 自动生成的子节点 ID 使用去掉防溢出前缀后的骨架 ID 编号，显式子节点 ID 保持不变；防溢出标识不传播到
 文本、图标和业务容器。外层转换为 Stack 时移除 Column 专用的间距与对齐属性。
-不含单一布局骨架的旧 CardPlan shell、非 `2x2` 产物和独立模板预览不应用此包装；预览数据集仍为
-`root → template_root`，不以本规则开放生产 `2x4` 场景。公共校验根始终为 `root`。
+`2x4` 保留 300×150vp 画布及 276×126vp 内容预算，不改变业务、动作的尺寸、次序或绑定。
+融球启用范围仍限于既有 `2x2` 场景；选中融球 Theme 的 `2x4` 使用该 Theme 原有纯色或渐变背景，
+内容层同样使用上述非融球结构。
+不含单一布局骨架的旧 CardPlan shell 和独立模板预览不应用此包装；预览数据集仍为
+`root → template_root`。公共校验根始终为 `root`。
 `template_root` 是模板内容层的固定标识：公共根 `root` 的 `children` 数组直接引用该真实节点，
 且组件 ID 无重复时，即跳过整卡 quality 阶段，不再要求存在 `fusionBallBackground`。
 非融球、融球和预览使用同一规则；hard、semantic 和转换前校验不变。
@@ -458,6 +468,11 @@ PillAction 模板直接展开为标准 Button，使用 `$theme('actionStyle.back
 组件、表达式、数据、事件和素材校验不受影响。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
+
+模板编译产物转为 A2UI-Compact 后，使用模板引擎的 `validate_compact_dsl_context` 检查组件树、
+数据绑定、数据类型、动作及素材。公共 Compact 校验沿用对比度校验的有效 `template_root` 判定，
+仅跳过 W9 固定骨架、大字号及其相邻标签限制；展示单位校验复用同一判定并跳过。
+其它检查、现有高度检查及单位后处理保持不变；无有效标记时执行原规则。
 
 当前默认配置 `firstLayerComponentSelector: "search"`。第一层模型不直接选择业务组件或模板，只输出
 `TemplateSearchIntent`，顶层字段为 `requiredOutputFieldsByCapability`、
@@ -518,12 +533,17 @@ PillAction 直接使用标准 Button 的 `label` 展示文本，点击事件绑�
 原始 `call`、`args` 或 `onClick`。完整模块边界见
 [Search 与 Planner 交互契约](template-search-planner-contract.md)。
 
+2x4 默认同样使用 Search → Planner → FillData：Planner 固定布局、每个业务实例、字段路径及动作归属，
+第二层只能完整选择一个计划。组合布局支持 PillAction、CompactAction；用户明确要求四个快捷入口时，
+仅允许单业务加四个 LargeIconAction 的专用布局。重复通用指标按实例计数并锁定不同字段，不能替代其它
+业务的槽位；具体容量与排序见 [Search 与 Planner 交互契约](template-search-planner-contract.md)。
+
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、倒计时和系统内存当前共有
-112 个无 Variant 的业务 UI 模板，其中 21 个是 Support；当前形成 10 个业务组，且每个业务组至少有一个
-Support。Layout Provider 另提供 7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，
-运行时 Registry 共 121 个模板。应用使用时长能力已下线，对应模板不再进入运行目录。
+174 个无 Variant 的业务 UI 模板，其中 22 个是 Support，另保留通用指标模板。
+Layout Provider 提供 24 个支持 `...children` 的布局模板，Action Provider 提供 6 个动作模板，
+运行时 Registry 共 204 个模板。应用使用时长能力已下线，对应模板不再进入运行目录。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

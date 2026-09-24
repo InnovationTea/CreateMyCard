@@ -805,7 +805,7 @@ def _container_props(
     if component_id == "root":
         dimensions = {
             "2x2": {"width": 160, "height": 160},
-            "2x4": {"width": 320, "height": 160},
+            "2x4": {"width": 300, "height": 150},
         }.get(size)
         if node.component_type not in {"Column", "Stack"} or dimensions is None:
             raise TerselConversionError(

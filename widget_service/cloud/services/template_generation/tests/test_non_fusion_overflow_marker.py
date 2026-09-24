@@ -1,4 +1,4 @@
-"""非融球固定布局的防溢出标识、安全边距和双业务编译回归。"""
+"""两种卡片尺寸的内容根、防溢出标识、安全边距和多业务编译回归。"""
 
 import json
 from copy import deepcopy
@@ -12,20 +12,31 @@ from services.template_generation.engine.cardplan.compiler import _serialize_nod
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     apply_content_safe_inset,
 )
+from services.template_generation.engine.cardplan.prompt import action_bindings
+from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.template_retrieval import TemplateSearchIntent
 from services.template_generation.engine.pipeline import generate_template_a2ui
 from services.template_generation.engine.tersel_converter import Nested2Node, convert_tersel_to_a2ui
 from services.template_generation.tests.test_template_generation import (
     _FixedTemplateModel,
     _provider_field,
 )
+from services.template_generation.tests.test_template_retrieval import (
+    _WEATHER_BATTERY_BINDINGS,
+    _field,
+    _weather_battery_card_spec,
+    _weather_battery_task,
+)
+from services.template_generation.tests.test_wide_template_planner import _PlanModel
 
 _SKELETON_ID = "__genui_render_component__root_1"
 
 
 @pytest.mark.parametrize("component_type", ["Column", "Row", "Stack"])
 @pytest.mark.parametrize("padding", [None, 12, {"left": 8, "right": 8, "top": 12, "bottom": 12}])
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
-    component_type: str, padding: int | dict[str, int] | None,
+    component_type: str, padding: int | dict[str, int] | None, size: str,
 ) -> None:
     skeleton_options = {
         "_id": "template_root",
@@ -52,7 +63,7 @@ def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
     original = Nested2Node("Column", ("card", column_options), (skeleton,))
     snapshot = deepcopy(original)
 
-    wrapped = apply_content_safe_inset(original, size="2x2")
+    wrapped = apply_content_safe_inset(original, size=size)
 
     assert original == snapshot
     assert wrapped.component_type == "Stack"
@@ -72,7 +83,7 @@ def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
     assert marked.children == skeleton.children
     assert "__genui_render_component__template_root" not in str(wrapped)
     a2ui = convert_tersel_to_a2ui(
-        _serialize_node(wrapped) + ";", size="2x2",
+        _serialize_node(wrapped) + ";", size=size,
         protocol_profile=A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile(),
     )
     messages = [json.loads(line) for line in a2ui.splitlines()]
@@ -91,18 +102,107 @@ def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
 @pytest.mark.parametrize("children", [(), (Nested2Node("Text", ("正文",), ()),), (
     Nested2Node("Text", ("标题",), ()), Nested2Node("Column", (), ()),
 )])
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_legacy_shell_without_single_layout_skeleton_is_unchanged(
-    children: tuple[Nested2Node, ...],
+    children: tuple[Nested2Node, ...], size: str,
 ) -> None:
     card = Nested2Node("Column", ("card", {"_id": "root", "padding": 12}), children)
-    assert apply_content_safe_inset(card, size="2x2") is card
+    assert apply_content_safe_inset(card, size=size) is card
 
 
-def test_non_2x2_layout_is_unchanged() -> None:
+def test_unsupported_size_layout_is_unchanged() -> None:
     card = Nested2Node("Column", ("card", {"_id": "root"}), (
         Nested2Node("Column", ({"_id": "template_root"},), ()),
     ))
-    assert apply_content_safe_inset(card, size="2x4") is card
+    assert apply_content_safe_inset(card, size="4x4") is card
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_fusion_ball", [False, True])
+@pytest.mark.parametrize("scenario", ["single", "two_businesses", "two_actions"])
+async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
+    enable_fusion_ball: bool, scenario: str,
+) -> None:
+    task = _weather_battery_task(scenario == "two_actions")
+    data = task.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    battery = data.get("phoneBattery")
+    assert isinstance(battery, dict)
+    battery.update(batterySOCText=_field("68%"), batteryCapacityLevelDesc=_field("正常电量"))
+    required = {"GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc")}
+    if scenario != "single":
+        required["ViewWeather"] = ("/current/condition",)
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability=required,
+        action=tuple(event.id for event in task.eventCandidates),
+    )
+    model = _PlanModel(intent, actions=action_bindings(task))
+    output = await generate_template_a2ui(
+        task, _weather_battery_card_spec(), _WEATHER_BATTERY_BINDINGS, model,
+        enable_fusion_ball=enable_fusion_ball,
+    )
+
+    assert model.calls == 1
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {}
+    actual_events = []
+    for component in components:
+        component_id = component.get("id")
+        assert isinstance(component_id, str)
+        assert component_id not in by_id
+        by_id[component_id] = component
+        actual_events.extend(component.get("onClick", []))
+    root = by_id.get("root")
+    foreground = by_id.get("template_root")
+    assert isinstance(root, dict)
+    assert isinstance(foreground, dict)
+    assert root.get("component") == "Stack"
+    assert root.get("styles", {}).get("padding") == 0
+    assert foreground.get("styles", {}).get("padding") == 12
+    if enable_fusion_ball and scenario == "single":
+        # 方案允许单业务 2x4 WideFull 在版本门禁开启时展开融球背景；
+        # 内容根同步标记保留为 template_root 的前缀包装，不承载防溢出骨架标记。
+        assert root.get("children") == ["fusionBallBackground", "template_root"]
+        assert "fusionBallBackground" in by_id
+        wrapped_skeleton = by_id.get("__genui_render_component__template_root")
+        assert isinstance(wrapped_skeleton, dict)
+        assert [key for key in by_id if key.startswith("__genui_render_component__")] == [
+            "__genui_render_component__template_root",
+        ]
+    else:
+        assert root.get("children") == ["template_root"]
+        skeleton = by_id.get(_SKELETON_ID)
+        assert isinstance(skeleton, dict)
+        assert foreground.get("children") == [_SKELETON_ID]
+        assert skeleton.get("component") in {"Column", "Row", "Stack"}
+        assert [key for key in by_id if key.startswith("__genui_render_component__")] == [
+            _SKELETON_ID,
+        ]
+        assert "fusionBallBackground" not in by_id
+    theme = get_cardplan_registry(enable_fusion_ball).require_theme(output.theme_id)
+    assert (theme.fusion_ball_style is not None) is enable_fusion_ball
+    if enable_fusion_ball and scenario == "single":
+        # 融球模式下 root 背景让位给融球背景层，使用透明底色。
+        assert root.get("styles", {}).get("backgroundColor") == "#00000000"
+        assert "linearGradient" not in root.get("styles", {})
+    else:
+        assert root.get("styles", {}).get("backgroundColor") == theme.root_style.get(
+            "backgroundColor"
+        )
+        assert root.get("styles", {}).get("linearGradient") == theme.root_style.get(
+            "linearGradient"
+        )
+    assert "/data/phoneBattery/batterySOC" in output.a2ui
+    assert "/data/phoneBattery/chargingStatusDesc" in output.a2ui
+    if scenario != "single":
+        assert "/data/weather/current/condition" in output.a2ui
+    expected_events = []
+    for event in task.eventCandidates:
+        expected_events.append({"call": event.call, "args": event.args})
+    assert len(actual_events) == len(expected_events)
+    assert all(event in actual_events for event in expected_events)
 
 
 @pytest.mark.asyncio

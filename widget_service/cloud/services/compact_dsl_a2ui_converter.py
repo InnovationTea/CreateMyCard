@@ -761,6 +761,7 @@ def convert_compact_dsl_to_a2ui(
             converted_components = expand_fusion_ball_components(
                 converted_components,
                 fusion_palette,
+                size=size,
             )
         except FusionBallExpansionError as exc:
             raise CompactDslConversionError(str(exc)) from exc

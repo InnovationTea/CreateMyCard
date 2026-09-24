@@ -28,6 +28,7 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WeatherOverviewTravelSupport@1 | event.open.weather |
 | BatteryOverviewSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | BatteryOverviewStatusSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
+| BatteryOverviewStatusWideFull@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | ScheduleOverviewTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewLocationSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewStartTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
@@ -47,6 +48,9 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 不得宣称直达步数、心率或某次训练详情。睡眠不能复用锻炼事件；耳机不能绑定手机电池设置或音乐歌单。
 运行内存清理不是存储空间设置；通用倒计时不使用闹钟替代，只有出行倒计时 Support 可以消费用户明确要求的
 闹钟跳转。应用时长及系统内存仍受原数据能力门禁约束。
+健身准备组合卡片（课程信息加昨日步数、昨晚睡眠）的打开收藏歌单动作由根 `CompactAction@1` 承载，
+不属于业务模板内嵌事件；动作固定为 `event.open.music.favorite` 的注册 deeplink，不得宣称直达具体
+歌曲、歌手或播放控制。
 
 ## 分配和校验
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from itertools import permutations, product
+from typing import NamedTuple
 
 from models.generation import TaskSpec
 from services.template_generation.engine.advanced.models import (
@@ -19,8 +21,8 @@ from .models import (
     TemplatePlanActionAssignment,
     TemplatePlanBusinessSlot,
 )
-from .prompt import _asset_semantic_tags, action_bindings
-from .provider_bundle import provider_template_layout_kind
+from .prompt import action_bindings
+from .provider_bundle import asset_semantic_tags, provider_template_layout_kind
 from .registry import CardPlanRegistry
 from .template_retrieval import (
     TemplateBusinessCandidates,
@@ -28,10 +30,38 @@ from .template_retrieval import (
     TemplateSearchIntent,
     TemplateSearchResult,
 )
+from .wide_template_planner import wide_plan_compositions
 
 _MAX_PLANS = 3
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
+_COUNTDOWN_DATE_PATTERN = re.compile(r"(?:\d{4}\s*[年/-]\s*)?\d{1,2}\s*[月/-]\s*\d{1,2}\s*[日号]?")
+_COUNTDOWN_HOLIDAY_TERMS = (
+    "元旦",
+    "春节",
+    "清明",
+    "劳动节",
+    "端午",
+    "中秋",
+    "国庆",
+    "节日",
+    "festival",
+    "holiday",
+)
+_COUNTDOWN_DEPARTURE_TERMS = (
+    "出发",
+    "启程",
+    "返乡",
+    "回家",
+    "回老家",
+    "旅行",
+    "旅游",
+    "探亲",
+    "departure",
+    "depart",
+    "travel",
+    "trip",
+)
 _THEME_TERMS_BY_BUSINESS = {
     "ActivityOverview": ("sport", "activity", "运动", "步数"),
     "BatteryOverview": ("battery", "device", "电量", "设备"),
@@ -70,6 +100,23 @@ def plan_template_candidates(
     drafts: list[_PlanDraft] = []
     sequence = 0
     group_options = tuple(groups_by_capability[item] for item in requested_capabilities)
+    if task_spec.size == "2x4":
+        for composition in wide_plan_compositions(intent, search_result, task_spec, registry):
+            plan = _make_plan(
+                composition.layout_template_id,
+                composition.slots,
+                composition.assignments,
+                registry,
+            )
+            if plan is not None:
+                # 同分时按 _WIDE_LAYOUTS 位次决胜，业务覆盖组合的枚举顺序只作最后兜底。
+                score = (
+                    *_wide_plan_score(plan, intent, registry, search_result.business_candidates),
+                    -composition.layout_rank,
+                )
+                drafts.append(_PlanDraft(plan=plan, score=score, sequence=sequence))
+                sequence += 1
+        group_options = ()
     for selected_groups in product(*group_options):
         if len(selected_groups) == 1:
             new_drafts = _single_business_drafts(
@@ -95,6 +142,16 @@ def plan_template_candidates(
     if not drafts:
         raise TemplateRetrievalMiss("Search candidates cannot form a supported atomic plan")
 
+    # These six designs encode more than generic Full/Hero/Compact roles. Keep
+    # their semantic preference local to the exact business/template pairing;
+    # other wide plans retain the ordinary coverage-based ordering.
+    if task_spec.size == "2x4":
+        preferred = [
+            draft for draft in drafts if _is_preferred_countdown_plan(draft.plan, intent, task_spec)
+        ]
+        if preferred:
+            drafts = preferred
+
     if len(requested_capabilities) == 1:
         focus = intent.primary_output_field_by_capability.get(requested_capabilities[0])
         focused = [
@@ -107,11 +164,43 @@ def plan_template_candidates(
     drafts.sort(key=lambda item: (*tuple(-value for value in item.score), item.sequence))
     deduplicated = _deduplicate_drafts(drafts)
     top_theme = deduplicated[0].plan.theme_id
-    same_theme = [item for item in deduplicated if item.plan.theme_id == top_theme]
+    top_businesses = _plan_business_ids(deduplicated[0].plan)
+    same_theme = []
+    for item in deduplicated:
+        if item.plan.theme_id != top_theme:
+            continue
+        if _plan_business_ids(item.plan) == top_businesses:
+            same_theme.append(item)
+    selected = list(same_theme[:_MAX_PLANS])
+    _verify_plans_cover_request(selected, intent)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
-        for index, item in enumerate(same_theme[:_MAX_PLANS])
+        for index, item in enumerate(selected)
     )
+
+
+def _verify_plans_cover_request(
+    drafts: list[_PlanDraft],
+    intent: TemplateSearchIntent,
+) -> None:
+    """每个输出计划都必须覆盖全部请求业务和显式展示字段，禁止部分覆盖成卡。"""
+    requested_fields = {
+        path for paths in intent.required_output_fields_by_capability.values() for path in paths
+    }
+    requested_businesses = set(intent.required_output_fields_by_capability)
+    for item in drafts:
+        plan = item.plan
+        covered_fields = {
+            path for slot in plan.business_slots for path in slot.covered_explicit_fields
+        }
+        if not requested_fields <= covered_fields:
+            raise TemplateRetrievalMiss(
+                "Template Plan does not cover every requested explicit output field"
+            )
+        if not requested_businesses <= {slot.capability_id for slot in plan.business_slots}:
+            raise TemplateRetrievalMiss(
+                "Template Plan does not cover every requested business capability"
+            )
 
 
 def planner_scope(plans: tuple[TemplatePlan, ...]) -> AdvancedScopeBrief:
@@ -119,22 +208,99 @@ def planner_scope(plans: tuple[TemplatePlan, ...]) -> AdvancedScopeBrief:
     if not plans:
         raise ValueError("Template Planner produced no plan")
     first = plans[0]
-    business_ids = tuple(slot.business_id for slot in first.business_slots)
-    plans_cover_same_businesses = all(
-        _plan_business_ids(plan) == set(business_ids) for plan in plans
+    merged_business_ids = tuple(
+        dict.fromkeys(slot.business_id for plan in plans for slot in plan.business_slots)
     )
-    if not plans_cover_same_businesses:
-        raise ValueError("Template Plans must cover the same businesses")
+    merged_set = set(merged_business_ids)
+    for plan in plans:
+        if _plan_business_ids(plan) != merged_set:
+            raise ValueError("Template Plans must cover the same businesses")
     if any(plan.theme_id != first.theme_id for plan in plans):
         raise ValueError("Template Plans must share one trusted Theme contract")
     return AdvancedScopeBrief(
         themeId=first.theme_id,
-        advancedComponentIds=business_ids,
+        advancedComponentIds=merged_business_ids,
     )
 
 
 def _plan_business_ids(plan: TemplatePlan) -> set[str]:
     return {slot.business_id for slot in plan.business_slots}
+
+
+def _is_preferred_countdown_plan(
+    plan: TemplatePlan,
+    intent: TemplateSearchIntent,
+    task_spec: TaskSpec,
+) -> bool:
+    template_ids = tuple(slot.template_id for slot in plan.business_slots)
+    assignments = plan.action_assignments
+    if template_ids == ("ScheduleOverviewMeetingSenderFull@1",):
+        return (
+            len(assignments) == 2
+            and plan.layout_template_id == "WideFullTwoCompactLayout@1"
+            and all(
+                item.consumer == "root-action" and item.action_template_id == "CompactAction@1"
+                for item in assignments
+            )
+            and {item.action_id for item in assignments}
+            == {"event.open.settings.dnd", "event.enter.meeting"}
+        )
+    if len(intent.required_output_fields_by_capability) != 2:
+        return False
+    if len(intent.action_ids) != 1 or len(plan.business_slots) != 2 or len(assignments) != 1:
+        return False
+    assignment = assignments[0]
+    query = task_spec.userQuery.casefold()
+    if template_ids == (
+        "CountdownOverviewTargetDetailFull@1",
+        "ScheduleOverviewEventCountTwoEventsFull@1",
+    ):
+        return (
+            plan.layout_template_id == "WideTwoFullLayout@1"
+            and assignment.consumer == "business-template"
+            and assignment.business_position == 1
+            and _COUNTDOWN_DATE_PATTERN.search(query) is not None
+        )
+    if template_ids == (
+        "WeatherOverviewThreeDayForecastFull@1",
+        "CountdownOverviewEventHero@1",
+    ):
+        return (
+            plan.layout_template_id == "WideHeroActionFullLayout@1"
+            and assignment.consumer == "root-action"
+            and assignment.action_template_id == _PILL_ACTION_TEMPLATE_ID
+            and any(term in query for term in _COUNTDOWN_HOLIDAY_TERMS)
+        )
+    if template_ids == (
+        "WeatherOverviewDestinationDayFull@1",
+        "CountdownOverviewDepartureHero@1",
+    ):
+        return (
+            plan.layout_template_id == "WideHeroActionFullLayout@1"
+            and assignment.consumer == "root-action"
+            and assignment.action_template_id == _PILL_ACTION_TEMPLATE_ID
+            and any(term in query for term in _COUNTDOWN_DEPARTURE_TERMS)
+        )
+    if template_ids == (
+        "ScheduleOverviewMeetingSenderFull@1",
+        "ActivityOverviewYesterdayStepsSleepCompact@1",
+    ):
+        return (
+            plan.layout_template_id == "WideFullTwoCompactLayout@1"
+            and assignment.consumer == "root-action"
+            and assignment.action_template_id in {"CompactAction@1", "CompactSubtitleAction@1"}
+            and intent.action_ids == ("event.open.music.favorite",)
+        )
+    return (
+        template_ids
+        == (
+            "ActivityOverviewTrainingSummaryFull@1",
+            "CountdownOverviewTargetCompact@1",
+        )
+        and plan.layout_template_id == "WideFullTwoCompactLayout@1"
+        and assignment.consumer == "root-action"
+        and assignment.action_template_id == "CompactAction@1"
+    )
 
 
 def planner_component_candidates(
@@ -188,14 +354,15 @@ def _selected_action_ids(
     intent: TemplateSearchIntent,
     task_spec: TaskSpec,
 ) -> tuple[str, ...]:
+    limit = 4 if task_spec.size == "2x4" else 2
+    if len(intent.action_ids) > limit:
+        raise TemplateRetrievalMiss("Planner Action count exceeds the card size budget")
     available_ids = {event.id for event in task_spec.eventCandidates if event.id}
     if not set(intent.action_ids).issubset(available_ids):
         raise TemplateRetrievalMiss("Planner Action is outside TaskSpec.eventCandidates")
     selected_ids = set(intent.action_ids)
     return tuple(
-        action.action_id
-        for action in action_bindings(task_spec)
-        if action.event_id in selected_ids
+        action.action_id for action in action_bindings(task_spec) if action.event_id in selected_ids
     )
 
 
@@ -339,9 +506,7 @@ def _business_slot(
     candidate = next(item for item in group.candidates if item.template_id == template_id)
     focus = intent.primary_output_field_by_capability.get(group.capability_id)
     primary_matches = tuple(
-        path
-        for path in definition.primary_data
-        if path in group.explicit_fields or path == focus
+        path for path in definition.primary_data if path in group.explicit_fields or path == focus
     )
     return TemplatePlanBusinessSlot(
         position=position,
@@ -480,7 +645,9 @@ def _plan_score(
     registry: CardPlanRegistry,
     groups: tuple[TemplateBusinessCandidates, ...],
 ) -> tuple[int, ...]:
-    explicit_primary_matches = 0
+    # 主焦点匹配按 capability 去重：同业务 Full + Compact 拆槽覆盖同一个焦点字段
+    # 只计一次，避免组合计划凭重复计分压过覆盖更完整的单槽 WideFull 计划。
+    focus_matched_capabilities: set[str] = set()
     primary_matches = 0
     secondary_matches = 0
     optional_only_matches = 0
@@ -495,12 +662,12 @@ def _plan_score(
         explicit = set(slot.covered_explicit_fields)
         focus = intent.primary_output_field_by_capability.get(slot.capability_id)
         if focus is not None and focus in definition.primary_data:
-            explicit_primary_matches += 1
+            focus_matched_capabilities.add(slot.capability_id)
         primary_matches += len(explicit.intersection(definition.primary_data))
         secondary_matches += len(explicit.intersection(definition.secondary_data))
         optional_only_matches += len(explicit.intersection(definition.optional_data))
     return (
-        explicit_primary_matches,
+        len(focus_matched_capabilities),
         primary_matches,
         len(available_data_fields),
         secondary_matches,
@@ -516,7 +683,10 @@ def _deduplicate_drafts(drafts: list[_PlanDraft]) -> list[_PlanDraft]:
         signature = (
             plan.theme_id,
             plan.layout_template_id,
-            tuple(slot.template_id for slot in plan.business_slots),
+            tuple(
+                (slot.template_id, tuple(slot.field_bindings.items()))
+                for slot in plan.business_slots
+            ),
             tuple(
                 (
                     item.action_id,
@@ -543,7 +713,7 @@ def _has_semantic_action_icon(task_spec: TaskSpec, action_ids: tuple[str, ...]) 
     for candidate in task_spec.assetCandidates:
         if not isinstance(candidate, dict) or not isinstance(candidate.get("src"), str):
             continue
-        if power_saving_selected and "power-saving" in _asset_semantic_tags(candidate):
+        if power_saving_selected and "power-saving" in asset_semantic_tags(candidate):
             return True
         text_values = [str(candidate.get("description", ""))]
         for key in ("sceneTags", "semanticTags", "tags"):
@@ -554,3 +724,42 @@ def _has_semantic_action_icon(task_spec: TaskSpec, action_ids: tuple[str, ...]) 
         if any(keyword in normalized for keyword in keywords):
             return True
     return False
+
+
+class _WidePlanScore(NamedTuple):
+    """Wide 组合计划的排序分值，各字段按字典序参与比较。"""
+
+    embedded_action_count: int
+    focus_match_count: int
+    generic_slot_penalty: int
+    slot_count_penalty: int
+    primary_match_count: int
+    available_data_field_count: int
+    secondary_match_count: int
+    optional_only_match_penalty: int
+    capability_order_match: int
+
+
+def _wide_plan_score(
+    plan: TemplatePlan,
+    intent: TemplateSearchIntent,
+    registry: CardPlanRegistry,
+    groups: tuple[TemplateBusinessCandidates, ...],
+) -> _WidePlanScore:
+    base = _plan_score(plan, intent, registry, groups)
+    generic_count = sum(bool(slot.field_bindings) for slot in plan.business_slots)
+    embedded_count = sum(item.consumer == "business-template" for item in plan.action_assignments)
+    requested_order = tuple(intent.required_output_fields_by_capability)
+    actual_order = tuple(dict.fromkeys(slot.capability_id for slot in plan.business_slots))
+    order_matches = int(actual_order == requested_order)
+    return _WidePlanScore(
+        embedded_action_count=embedded_count,
+        focus_match_count=base[0],
+        generic_slot_penalty=-generic_count,
+        slot_count_penalty=-len(plan.business_slots),
+        primary_match_count=base[1],
+        available_data_field_count=base[2],
+        secondary_match_count=base[3],
+        optional_only_match_penalty=base[4],
+        capability_order_match=order_matches,
+    )

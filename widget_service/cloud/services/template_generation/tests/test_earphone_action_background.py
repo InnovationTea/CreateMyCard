@@ -30,7 +30,7 @@ def test_earphone_white_buttons_apply_only_to_fusion(fusion: bool) -> None:
         definition = registry.templates.get(record.template_id)
         assert definition is not None
         if not fusion and definition.layout_action_style is not None:
-            expected = "#1952991F"
+            expected = "#1934651F"
         assert background == expected, record.template_id
         checked += 1
     assert checked > 0

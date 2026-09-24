@@ -14,6 +14,11 @@
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
     数值电量必需且 0% 合法；不得用文本、异常提示或零值伪造缺失的数值电量。
     充电状态为可选辅行：存在时左侧双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行，电量环不受辅行影响。
+  - `BatteryOverviewSupportHero@1`：约 1.5x2 的竖版电量面板，内部元素与 `BatteryOverviewSupport@1` 一致；
+    左侧展示电量主行，充电状态为可选辅行（存在时双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行），
+    右侧 40vp 电量环，环内可选 16vp 手机设备图标，可在根节点绑定事件。
+    主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
+    数值电量必需且 0% 合法，不得伪造缺失的数值电量；预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不得选择。
   - `BatteryOverviewStatusSupport@1`：约 2x1 的双业务充电状态摘要；左侧两行文本展示充电状态和充电器类型，
     右侧可选 24vp 电池图标。
     主数据：/chargingStatusDesc；次要数据：/pluggedTypeDesc；可选数据：无。
@@ -31,13 +36,19 @@
     不按样例值选择分支。
   - `BatteryOverviewChargingProgressFull@1`：手机电量充电进度 Full；顶部为标题，中部以 44vp 环形进度和电量图标展示 `/batterySOC` 与 `/chargingStatusDesc`，底部以两行相邻 key-value 展示 `/healthStatusDesc` 和 `/pluggedTypeDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc, /healthStatusDesc, /pluggedTypeDesc；可选数据：无。
   - `BatteryOverviewChargingDiagnosticsHero@1`：充电诊断 Hero，只表达顶部英雄内容；以两个圆角信息面板、每个面板两行 key-value 展示 `/nowCurrentText`、`/voltageText`、`/batteryCapacityLevelDesc` 和 `/isBatteryPresentText`；底部按钮必须由第二层组合 `PillAction@1`。主数据：/nowCurrentText, /voltageText；次要数据：/batteryCapacityLevelDesc, /isBatteryPresentText；可选数据：无。
+  - `BatteryOverviewChargingDiagnosticsWideFull@1`：充电诊断 WideFull（2x4）；安全边距 12vp；标题“电池诊断”10vp，标题区右侧可选 20vp 电量素材图标；中部以 20vp 主数值展示 `/batterySOC` 加百分号和“剩余电量”辅标签；下方通栏线性进度条；底部横向均匀排布三个胶囊，分别展示 `/nowCurrentText`、`/voltageText` 和 `/isBatteryPresentText`；自身不含按钮，无需组合 PillAction。主数据：/batterySOC；次要数据：/nowCurrentText, /voltageText, /isBatteryPresentText；可选数据：无。
   - `BatteryOverviewHealthLevelHero@1`：电池健康与当前电量等级 Hero，只表达顶部英雄内容，展示“电池体检”、`/healthStatusDesc` 和 `/batteryCapacityLevelDesc`；底部按钮必须由第二层组合 `PillAction@1`。主数据：/healthStatusDesc；次要数据：/batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewTemperatureFull@1`：电池温度 Full，顶部展示“电池温度”和右侧温度图标，中部依次展示 `/batteryTemperatureText` 与 `/pluggedTypeDesc`，底部两行展示“更新时间：”和 `/updatedAt`。主数据：/batteryTemperatureText；次要数据：/pluggedTypeDesc, /updatedAt；可选数据：无。
+  - `BatteryOverviewStatusHero@1`：手机电量状态 Hero，只表达单个焦点面板内容；顶部为“手机电量”标签行，右侧可选 20vp 电量图标，下方以 20vp 大字展示 `/batterySOC` 加百分号，辅行展示 `/chargingStatusDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
+  - `BatteryOverviewPhoneTextCompact@1`：手机电量文本 Compact；左侧以 20vp 大字展示 `/batterySOCText` 并配“手机”辅标签，右侧为纯装饰电池造型色块；不接收素材参数，不含动作。主数据：/batterySOCText；次要数据：无；可选数据：无。
+  - `BatteryOverviewPercentStatusCompact@1`：手机电量与充电状态 Compact；左侧以 20vp 大字展示 `/batterySOC` 加百分号，辅行展示 `/chargingStatusDesc`，右侧 40vp 电量环，环内可选电量图标，不展示标题与动作，用于宽版右列 2x1 组合槽位。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
 - props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - 除下述 Support 设备标识规则外，`batteryIcon` 表达电池、电量或当前充电状态，不得使用动作图标或其他设备品类图标替代；它不绑定固定素材 ID，只在本轮素材候选中匹配。模板将该参数声明为必选时必须传入匹配素材；声明为可选时仅在存在匹配素材时传入，否则省略。
 - 通用 Full、Hero、WideFull 和 Compact 同时覆盖普通、充电中和低电量状态，不再根据状态选择重复模板 ID。
 - 选择 `BatteryOverviewCompact@1` 时，必须同时具备 `/batterySOC` 与 `/chargingStatusDesc`；`batteryIcon` 为可选参数，仅在本轮存在匹配的电量素材时传入。
+- 选择 `BatteryOverviewPercentStatusCompact@1` 时，必须同时具备 `/batterySOC` 与 `/chargingStatusDesc`；
+  用于宽版右列组合槽位中用户同时要求电量百分比和充电状态的场景；`batteryIcon` 为可选参数，仅在本轮存在匹配的电量素材时传入。
 - 选择 `BatteryOverviewSupport@1` 时，`/batterySOC` 必需；`/chargingStatusDesc` 可用则作为辅行，
   缺失时回退展示可选 `/batteryTemperatureText`，都缺失时省略辅行。
   接收可选 `batteryIcon` 与 Planner 分配的 `actionId`，仅用于双业务布局。
@@ -60,6 +71,37 @@
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求充电电流、充电电压、电量等级和电池识别状态，且
   `/nowCurrentText`、`/voltageText`、`/batteryCapacityLevelDesc`、`/isBatteryPresentText` 均可用时，优先选择
   `BatteryOverviewChargingDiagnosticsHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。
+- 当目标尺寸为 `2x4`、没有动作，用户显式要求剩余电量、充电电流、充电电压和电池识别状态，且
+  `/batterySOC`、`/nowCurrentText`、`/voltageText`、`/isBatteryPresentText` 均可用时，选择
+  `BatteryOverviewChargingDiagnosticsWideFull@1`；标题图标 `batteryIcon` 为可选参数，仅在本轮存在匹配的电量或充电素材（优先 `asset.bolt_fill`）时传入。
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求电池健康和当前电量等级，且
   `/healthStatusDesc`、`/batteryCapacityLevelDesc` 均可用时，优先选择
   `BatteryOverviewHealthLevelHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。
+- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+  `WideTwoFocusTwoActionLayout@1` 左右双焦点布局，且用户显式要求手机电量和充电状态（`/batterySOC`、
+  `/chargingStatusDesc` 均可用）时，优先选择 `BatteryOverviewStatusHero@1` 占据一个 Hero 槽位；
+  `batteryIcon` 为可选参数，仅在本轮存在匹配的电量素材时传入。
+  - `BatteryOverviewChargeStatusHero@1`：手机电量三段式 Hero，只表达单个焦点面板内容；顶部标题
+    默认为“手机”，`/batteryTemperatureText` 可用时替换为“电池 + 电池温度”文本；中间为 44vp 电量圆环
+    （`/batterySOC` 驱动，环内可选 20vp 手机设备图标）加右侧 20vp 电量百分比大字和“手机电量”副标题，
+    底部按钮由布局 PillAction 槽位提供，不展示 `/chargingStatusDesc` 与 `/pluggedTypeDesc`
+    （两个字段为可选数据，仅进入数据契约以保证字段覆盖）。
+    主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /pluggedTypeDesc, /batteryTemperatureText。
+- 当目标尺寸为 `2x4`、与耳机仓等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+  `WideTwoFocusTwoActionLayout@1` 左右双焦点布局，且用户显式要求手机电量、充电状态和充电器类型
+  （`/batterySOC` 可用即可选择，`/chargingStatusDesc`、`/pluggedTypeDesc` 可用时进入可选数据契约）时，
+  优先选择 `BatteryOverviewChargeStatusHero@1` 占据一个 Hero 槽位；`batteryIcon` 为可选参数，仅在本轮
+  存在匹配的手机设备素材时传入，用手机图标标识电量所属设备，不得用耳机或动作图标替代。
+  用户只显式要求手机电量（仅 `/batterySOC` 可用）时同样可以选择该模板，两个字段缺失不阻塞选择。
+  `/batteryTemperatureText` 可用时替换顶部标题为电池温度文本，缺失时保留“手机”标题。
+- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+  `WideTwoFocusTwoActionLayout@1` 左右双焦点布局，且用户显式要求手机电量和充电状态（`/batterySOC`、
+  `/chargingStatusDesc` 均可用）时，优先选择 `BatteryOverviewStatusRingHero@1` 占据一个 Hero 槽位；
+  `batteryIcon` 为可选参数，仅在本轮存在匹配的手机设备素材时传入，用手机图标标识电量所属设备，
+  不得用耳机或动作图标替代。
+  - `BatteryOverviewStatusRingHero@1`：手机电量状态环形 Hero，只表达单个焦点面板内容；顶部固定
+    “手机电量”标题，中部 40vp 电量圆环（`/batterySOC` 驱动，环内可选 16vp 手机设备图标）加右侧
+    20vp 电量百分比大字和充电状态辅行，底部按钮由布局 PillAction 槽位提供，不展示
+    `/pluggedTypeDesc` 与 `/batteryTemperatureText`（两个字段为可选数据，仅进入数据契约以保证
+    字段覆盖）。
+    主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：/pluggedTypeDesc, /batteryTemperatureText。

@@ -44,38 +44,73 @@ _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_cap
 
 def _template_source(options: str) -> str:
     return (
-        '#Template ImagePolicy@1(props: {})\ndata = {}\n'
+        "#Template ImagePolicy@1(props: {})\ndata = {}\n"
         'Column(Image("resources/base/media/icon_weather_thermometer.svg", {'
-        + options + '}))\n#End\n'
+        + options
+        + "}))\n#End\n"
     )
 
 
 @pytest.mark.parametrize("color", ('"#FF123456"', "$theme('supportContentColor')"))
-@pytest.mark.parametrize("inherited", (False, True))
-def test_template_rejects_original_color_and_explicit_fill(color: str, inherited: bool) -> None:
+def test_template_rejects_original_color_and_explicit_fill(color: str) -> None:
+    """Image 自身声明原色保护时禁止 fillColor（语义冲突：既要原色又要着色）。"""
     source = _template_source('"_preserveOriginalColor": true, "fillColor": ' + color)
-    if inherited:
-        source = _template_source('"fillColor": ' + color).replace(
-            "Column(", 'Column({"_preserveOriginalColor": true},',
-        )
     with pytest.raises(ValueError, match="_preserveOriginalColor.*fillColor"):
         compile_card_template(
-            source, provider_id="example.image", business_id=None,
-            expected_wire_id="ImagePolicy@1", expected_capability_id=None,
-            data_domain=None, description="Image 着色冲突", supported_card_sizes=("2x2",),
-            primary_data=(), secondary_data=(), optional_data=(),
+            source,
+            provider_id="example.image",
+            business_id=None,
+            expected_wire_id="ImagePolicy@1",
+            expected_capability_id=None,
+            data_domain=None,
+            description="Image 着色冲突",
+            supported_card_sizes=("2x2",),
+            primary_data=(),
+            secondary_data=(),
+            optional_data=(),
             output_schema={"type": "object", "properties": {}},
         )
 
 
-@pytest.mark.parametrize(("options", "expected"), (
-    ({"_preserveOriginalColor": True}, None),
-    ({"fillColor": _EXPLICIT}, _EXPLICIT),
-    ({"_preserveOriginalColor": False, "fillColor": _EXPLICIT}, _EXPLICIT),
-    ({}, "#E61F4595"),
-))
+@pytest.mark.parametrize("color", ('"#FF123456"', "$theme('supportContentColor')"))
+def test_template_allows_inherited_original_color_with_explicit_fill(color: str) -> None:
+    """继承的原色保护只代表动作区文字与底板沿用模板主题色，Image 可显式声明
+    fillColor 覆盖默认的动作前景补色（例如双行动作的辅助内容色图标）。
+    """
+    source = _template_source('"fillColor": ' + color).replace(
+        "Column(",
+        'Column({"_preserveOriginalColor": true},',
+    )
+    definition = compile_card_template(
+        source,
+        provider_id="example.image",
+        business_id=None,
+        expected_wire_id="ImagePolicy@1",
+        expected_capability_id=None,
+        data_domain=None,
+        description="继承保护下允许显式着色",
+        supported_card_sizes=("2x2",),
+        primary_data=(),
+        secondary_data=(),
+        optional_data=(),
+        output_schema={"type": "object", "properties": {}},
+    )
+    variants = getattr(definition, "variants", ())
+    assert variants
+
+
+@pytest.mark.parametrize(
+    ("options", "expected"),
+    (
+        ({"_preserveOriginalColor": True}, None),
+        ({"fillColor": _EXPLICIT}, _EXPLICIT),
+        ({"_preserveOriginalColor": False, "fillColor": _EXPLICIT}, _EXPLICIT),
+        ({}, "#E61F4595"),
+    ),
+)
 def test_image_uses_only_declared_color_policy(
-    options: dict[str, Any], expected: str | None,
+    options: dict[str, Any],
+    expected: str | None,
 ) -> None:
     node = Nested2Node("Image", ("resources/base/media/icon_weather1.svg", options), ())
     contract = HybridBodyContract.model_construct(theme_profile_id="2x2-two-support")
@@ -96,57 +131,74 @@ def test_runtime_rejects_conflicting_image_color_even_in_action(inherited: bool)
         parent_options["_preserveOriginalColor"] = True
     else:
         image_options["_preserveOriginalColor"] = True
-    root = Nested2Node("Row", (parent_options,), (
-        Nested2Node("Image", ("resources/base/media/icon_phone.svg", image_options), ()),
-    ))
+    root = Nested2Node(
+        "Row",
+        (parent_options,),
+        (Nested2Node("Image", ("resources/base/media/icon_phone.svg", image_options), ()),),
+    )
     contract = HybridBodyContract.model_construct(theme_profile_id="2x2-two-support")
     with pytest.raises(TerselConversionError, match="_preserveOriginalColor.*fillColor"):
         _apply_theme_content_color(root, contract, get_cardplan_registry())
 
 
-@pytest.mark.parametrize(("options", "expected"), (
-    ({"_preserveOriginalColor": True}, None),
-    ({"fillColor": _EXPLICIT}, _EXPLICIT),
-    ({}, "#FFABCDEF"),
-))
+@pytest.mark.parametrize(
+    ("options", "expected"),
+    (
+        ({"_preserveOriginalColor": True}, None),
+        ({"fillColor": _EXPLICIT}, _EXPLICIT),
+        ({}, "#FFABCDEF"),
+    ),
+)
 def test_action_image_respects_original_and_explicit_color(
-    options: dict[str, Any], expected: str | None,
+    options: dict[str, Any],
+    expected: str | None,
 ) -> None:
     image = Nested2Node("Image", ("resources/base/media/icon_phone.svg", options), ())
-    root = Nested2Node("IconAction", (), (
-        Nested2Node("Stack", ({"onClick": [{"call": "open"}]},), (image,)),
-    ))
+    root = Nested2Node(
+        "IconAction", (), (Nested2Node("Stack", ({"onClick": [{"call": "open"}]},), (image,)),)
+    )
     styled = _lower_action_template_tree(root, background="#FFFFFFFF", foreground="#FFABCDEF")
     final_options = styled.children[0].values[-1]
     assert isinstance(final_options, dict)
     assert final_options.get("fillColor") == expected
 
 
-@pytest.mark.parametrize("conflict", (False, True))
-def test_action_image_inherits_original_color_protection(conflict: bool) -> None:
+@pytest.mark.parametrize(
+    ("conflict", "expected"),
+    (
+        (False, "#FFABCDEF"),
+        (True, _EXPLICIT),
+    ),
+)
+def test_action_image_inherits_original_color_protection(conflict: bool, expected: str) -> None:
+    """动作级 _preserveOriginalColor 保留模板声明的主题颜色；图标仍补动作前景色，
+    已显式声明 fillColor 的图标保持原值不报错。
+    """
     options = {"fillColor": _EXPLICIT} if conflict else {}
     image = Nested2Node("Image", ("resources/base/media/icon_phone.svg", options), ())
     action_options = {"onClick": [{"call": "open"}], "_preserveOriginalColor": True}
     root = Nested2Node("IconAction", (), (Nested2Node("Stack", (action_options,), (image,)),))
-    if conflict:
-        with pytest.raises(TerselConversionError, match="_preserveOriginalColor.*fillColor"):
-            _lower_action_template_tree(root, background="#FFFFFFFF", foreground="#FFABCDEF")
-    else:
-        styled = _lower_action_template_tree(
-            root, background="#FFFFFFFF", foreground="#FFABCDEF",
-        )
-        final_options = styled.children[0].values[-1]
-        assert isinstance(final_options, dict)
-        assert "fillColor" not in final_options
+    styled = _lower_action_template_tree(
+        root,
+        background="#FFFFFFFF",
+        foreground="#FFABCDEF",
+    )
+    final_options = styled.children[0].values[-1]
+    assert isinstance(final_options, dict)
+    assert final_options.get("fillColor") == expected
 
 
-@pytest.mark.parametrize(("filename", "tags"), (
-    ("icon_weather_thermometer.svg", ("temperature",)),
-    ("sun_max.svg", ("sun", "sunny")),
-    ("rain.svg", ("cloud", "rain")),
-))
+@pytest.mark.parametrize(
+    ("filename", "tags"),
+    (
+        ("icon_weather_thermometer.svg", ("temperature",)),
+        ("sun_max.svg", ("sun", "sunny")),
+        ("rain.svg", ("cloud", "rain")),
+    ),
+)
 def test_legacy_weather_entry_does_not_infer_image_color(
-    filename: str, tags: tuple[str, ...],
+    filename: str,
+    tags: tuple[str, ...],
 ) -> None:
     registry = get_cardplan_registry()
     source = "resources/base/media/" + filename
@@ -156,18 +208,28 @@ def test_legacy_weather_entry_does_not_infer_image_color(
         asset_semantic_tags_by_source={source: tags},
     )
     samples = {
-        "city": "深圳", "temperature": "29°C", "condition": "多云",
-        "airQuality": "良", "coldLevel": "低", "temperatureRange": "25° / 32°",
+        "city": "深圳",
+        "temperature": "29°C",
+        "condition": "多云",
+        "airQuality": "良",
+        "coldLevel": "低",
+        "temperatureRange": "25° / 32°",
     }
     schema = {key: {"type": "string", "sampleValue": value} for key, value in samples.items()}
     task = TaskSpec(userQuery="天气", size="2x2", dataModelSchema=schema)
     call = ParsedCall(
-        kind="component", name="WeatherOverview",
-        values=({"role": "support", "conditionIcon": source},), children=(),
+        kind="component",
+        name="WeatherOverview",
+        values=({"role": "support", "conditionIcon": source},),
+        children=(),
         span=SourceSpan(start=0, end=1),
     )
     root = _expand_weather_overview_call(
-        call, task_spec=task, contract=contract, registry=registry, layout_id=None,
+        call,
+        task_spec=task,
+        contract=contract,
+        registry=registry,
+        layout_id=None,
     )
     styled = _apply_theme_content_color(root, contract, registry)
     pending = [styled]
@@ -184,13 +246,19 @@ def test_legacy_weather_entry_does_not_infer_image_color(
     assert "_preserveOriginalColor" not in options
 
 
-@pytest.mark.parametrize("filename", (
-    "icon_weather_thermometer.svg", "icon_weather_thermometer_medium.svg",
-    "sun_max.svg", "icon_weather_wind.svg",
-))
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "icon_weather_thermometer.svg",
+        "icon_weather_thermometer_medium.svg",
+        "sun_max.svg",
+        "icon_weather_wind.svg",
+    ),
+)
 @pytest.mark.parametrize("has_feels_like", (False, True))
 def test_two_support_final_a2ui_preserves_weather_template_fill(
-    filename: str, has_feels_like: bool,
+    filename: str,
+    has_feels_like: bool,
 ) -> None:
     registry = get_cardplan_registry()
     catalog = json.loads(_ASSETS.read_text(encoding="utf-8"))
@@ -213,13 +281,19 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(
         assert domain is not None
         bindings.append({"capabilityId": capability_id, "writeResultTo": domain})
         required[capability_id] = definition.required_data
-        groups.append(TemplateBusinessCandidates(
-            capabilityId=capability_id, businessId=business_id,
-            explicitFields=definition.required_data,
-            candidates=(TemplateSearchCandidate(
-                templateId=template_id, coveredExplicitFields=definition.required_data,
-            ),),
-        ))
+        groups.append(
+            TemplateBusinessCandidates(
+                capabilityId=capability_id,
+                businessId=business_id,
+                explicitFields=definition.required_data,
+                candidates=(
+                    TemplateSearchCandidate(
+                        templateId=template_id,
+                        coveredExplicitFields=definition.required_data,
+                    ),
+                ),
+            )
+        )
     weather = data.get("weather")
     assert isinstance(weather, dict)
     location = weather.get("location")
@@ -230,15 +304,22 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(
     if not has_feels_like:
         current.pop("feelsLikeC", None)
     task = TaskSpec(
-        userQuery="展示手机电量与天气", size="2x2", dataModelSchema={"data": data},
+        userQuery="展示手机电量与天气",
+        size="2x2",
+        dataModelSchema={"data": data},
         assetCandidates=[asset],
-        eventCandidates=[EventAction(
-            id="event.open.weather", call="clickToDeeplink",
-            args={"uri": (
-                "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
-                "+ ${/data/weather/location/cityCode} }}"
-            )},
-        )],
+        eventCandidates=[
+            EventAction(
+                id="event.open.weather",
+                call="clickToDeeplink",
+                args={
+                    "uri": (
+                        "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                        "+ ${/data/weather/location/cityCode} }}"
+                    )
+                },
+            )
+        ],
     )
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability=required,
@@ -248,27 +329,37 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(
     plans = plan_template_candidates(intent, search, task, registry)
     assert plans
     card_spec = {
-        "title": "电量与天气", "description": "Image 着色回归",
-        "suggestSize": "2x2", "dataBindings": bindings,
+        "title": "电量与天气",
+        "description": "Image 着色回归",
+        "suggestSize": "2x2",
+        "dataBindings": bindings,
     }
     projection = build_ux_mixed_prompt(
-        task_spec=task, card_spec=card_spec, scope=planner_scope(plans),
+        task_spec=task,
+        card_spec=card_spec,
+        scope=planner_scope(plans),
         component_candidates=planner_component_candidates(plans),
         required_template_groups=planner_required_template_groups(plans),
-        template_plans=plans, registry=registry,
+        template_plans=plans,
+        registry=registry,
     )
     children: list[str] = []
     for slot in plans[0].business_slots:
         params = (
             {"conditionIcon": source, "actionId": "event.open.weather"}
-            if slot.business_id == "WeatherOverview" else {}
+            if slot.business_id == "WeatherOverview"
+            else {}
         )
         children.append(f'Template("{slot.template_id}",{json.dumps(params)})')
     composition = 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
     result = compile_ux_layout_card(
-        composition, task_spec=task, contract=projection.contract,
+        composition,
+        task_spec=task,
+        contract=projection.contract,
         protocol_profile=A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile(),
-        registry=registry, card_spec=card_spec, enable_data_bindings=True,
+        registry=registry,
+        card_spec=card_spec,
+        enable_data_bindings=True,
     )
     messages = [json.loads(line) for line in result.a2ui.splitlines() if line.strip()]
     update = messages[1].get("updateComponents")

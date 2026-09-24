@@ -13,10 +13,10 @@ from services.template_generation.engine.cardplan.models import (
     TemplateDefinition,
 )
 from services.template_generation.engine.cardplan.prompt import (
-    _asset_semantic_tags,
     _parameter_allowed_asset_sources,
 )
 from services.template_generation.engine.cardplan.provider_bundle import (
+    asset_semantic_tags,
     load_provider_bundle,
     load_provider_templates,
 )
@@ -56,7 +56,7 @@ def catalog_contract() -> HybridBodyContract:
     for asset in assets:
         source = asset.get("src")
         assert isinstance(source, str)
-        tags_by_source[source] = _asset_semantic_tags(asset)
+        tags_by_source[source] = asset_semantic_tags(asset)
     return HybridBodyContract.model_construct(
         allowed_asset_sources=tuple(tags_by_source),
         asset_semantic_tags_by_source=tags_by_source,
@@ -73,9 +73,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    # CountdownOverviewTravelSupport@1 不再声明 timerIcon 槽位（出行 Support 仅
-    # 展示主题与剩余天数），支持模板的可执行素材槽位从 20 收敛为 19。
-    assert slot_count == 19
+    assert slot_count == 20
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -326,7 +324,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 61
+    assert len(provider.cases) == 63
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

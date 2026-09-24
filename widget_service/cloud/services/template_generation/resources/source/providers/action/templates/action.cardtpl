@@ -14,6 +14,178 @@ Button(props.label, {
 })
 #End
 
+#Template CompactAction@1(props: { actionId: string, label: string, icon?: asset, subtitle?: string, prominent?: boolean })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "borderRadius": $theme('supportContentStyle.borderRadius'),
+  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+#if props.prominent
+  Row({
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+    "justifyContent": "spaceBetween",
+    "alignItems": "center"
+  },
+    Column({
+      "layoutWeight": 1,
+      "justifyContent": "center",
+      "alignItems": "start",
+      "itemMargin": 1
+    },
+      Text(props.label, {
+        "width": "matchParent",
+        "height": 21,
+        "fontSize": 16,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "textAlign": "start"
+      }),
+      #if props.subtitle
+        Text(props.subtitle, {
+          "width": "matchParent",
+          "height": 14,
+          "fontSize": 10,
+          "fontWeight": 500,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "textAlign": "start",
+          "_preserveOriginalColor": true
+        })
+      #endif
+    ),
+    #if props.icon
+    Image(props.icon, {
+      "width": 24,
+      "height": 24,
+      "objectFit": "contain",
+      "flexShrink": 0,
+      "fillColor": $theme("supportContentColor")
+    })
+    #endif
+  )
+#else
+  Row({
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
+    "justifyContent": "spaceBetween",
+    "alignItems": "center"
+  },
+    Column({
+      "layoutWeight": 1,
+      "justifyContent": "center",
+      "alignItems": "start",
+      "itemMargin": 1
+    },
+      Text(props.label, {
+        "width": "matchParent",
+        "height": 19,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "textAlign": "start"
+      }),
+      #if props.subtitle
+        Text(props.subtitle, {
+          "width": "matchParent",
+          "height": 14,
+          "fontSize": 10,
+          "fontWeight": 500,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "textAlign": "start",
+          "_preserveOriginalColor": true
+        })
+      #endif
+    ),
+    #if props.icon
+    Image(props.icon, {
+      "width": 24,
+      "height": 24,
+      "objectFit": "contain",
+      "flexShrink": 0,
+      "fillColor": $theme("supportContentColor")
+    })
+    #endif
+  )
+#endif
+)
+#End
+
+#Template CompactSubtitleAction@1(props: { actionId: string, label: string, subtitle: string, icon: asset })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "borderRadius": $theme('supportContentStyle.borderRadius'),
+  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId),
+  "_preserveOriginalColor": true
+},
+  Row({
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "padding": { "left": 12, "top": 8, "right": 12, "bottom": 8 },
+    "justifyContent": "spaceBetween",
+    "alignItems": "center"
+  },
+    Column({
+      "layoutWeight": 1,
+      "itemMargin": 2,
+      "justifyContent": "center",
+      "alignItems": "start",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+      Text(props.label, {
+        "fontSize": 16,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "textAlign": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }),
+      Text(props.subtitle, {
+        "fontSize": 12,
+        "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "textAlign": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      })
+    ),
+    #if props.icon
+    Image(props.icon, {
+      "width": 24,
+      "height": 24,
+      "objectFit": "contain",
+      "flexShrink": 0,
+      "fillColor": $theme('supportContentColor')
+    })
+    #endif
+  )
+)
+#End
+
 #Template IconAction@1(props: { actionId: string, icon: asset })
 data = {
 }
@@ -29,6 +201,28 @@ Stack({
   Image(props.icon, {
     "width": 16,
     "height": 16,
+    "objectFit": "contain",
+    "fillColor": $theme('actionStyle.contentColor')
+  })
+)
+#End
+
+
+#Template LargeIconAction@1(props: { actionId: string, icon: asset })
+data = {
+}
+
+Stack({
+  "width": 59,
+  "height": 59,
+  "borderRadius": 16,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Image(props.icon, {
+    "width": 28,
+    "height": 28,
     "objectFit": "contain",
     "fillColor": $theme('actionStyle.contentColor')
   })

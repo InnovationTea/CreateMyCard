@@ -705,3 +705,96 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
             contract,
             get_cardplan_registry(),
         )
+
+
+def test_wide_plan_tie_prefers_two_compact_over_hero_action_layout() -> None:
+    task_spec = TaskSpec(
+        userQuery="今晚骑车回家，看当前天气、体感温度、天气预警和手机剩余电量，点击导航回家",
+        size="2x4",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {
+                        "condition": _field("多云"),
+                        "feelsLikeC": _field(26.0, "number"),
+                        "alertLevel": _field("黄色"),
+                    }
+                },
+                "phoneBattery": {"batterySOC": _field(63, "integer")},
+            }
+        },
+        eventCandidates=[
+            EventAction(
+                id="event.startNavigate",
+                displayLabel="开始导航",
+                call="clickToIntent",
+                args={
+                    "intentName": "StartNavigate",
+                    "params": {"dstLocation": {"location": "home"}},
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/icon_weather_temperature1.svg",
+                "description": "温度计图标",
+            },
+            {
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "description": "电池图标",
+            },
+            {
+                "src": "resources/base/media/location_north_up_right_fill.svg",
+                "description": "导航图标",
+            },
+        ],
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather",
+            candidateOutputFields=[
+                "/current/condition",
+                "/current/feelsLikeC",
+                "/current/alertLevel",
+            ],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=["/batterySOC"],
+        ),
+    )
+    card = {
+        "title": "骑车回家",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {"capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery"},
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/alertLevel", "/current/condition", "/current/feelsLikeC"),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
+        },
+        action=("event.startNavigate",),
+    )
+
+    registry = get_cardplan_registry()
+    found = search_template_variants(intent, task_spec, registry, bindings, card)
+    plans = plan_template_candidates(intent, found, task_spec, registry)
+
+    assert plans
+    # 与 Q083 评审骨架一致：同分时“Full + 业务 Compact + 动作 Compact”按 _WIDE_LAYOUTS
+    # 位次优先于“Full + Hero + PillAction”，不受业务覆盖组合枚举顺序影响。
+    first = plans[0]
+    assert first.layout_template_id == "WideFullTwoCompactLayout@1"
+    assert [slot.template_id for slot in first.business_slots] == [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "BatteryOverviewPercentRingCompact@1",
+    ]
+    assignment = first.action_assignments[0]
+    assert assignment.action_id == "event.startNavigate"
+    assert assignment.consumer == "root-action"
+    assert assignment.action_template_id == "CompactSubtitleAction@1"
