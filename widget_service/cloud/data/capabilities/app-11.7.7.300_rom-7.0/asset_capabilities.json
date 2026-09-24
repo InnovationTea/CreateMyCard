@@ -1624,5 +1624,16 @@
       "sound"
     ],
     "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_purification",
+    "type": "asset",
+    "src": "resources/base/media/ic_purification.svg",
+    "description": "样式：默认黑色的单色实心净化叶片图标，主体为向上舒展的叶片轮廓；适用：天气卡片中的空气质量指标，可结合 ViewWeather 的 current.airQuality 或 daily.airQuality 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示空气质量主题，不代表具体空气质量等级、污染程度或空气净化器正在运行。",
+    "sceneTags": [
+      "weather",
+      "air-quality"
+    ],
+    "minXiaoyiVersion": "1.0.0"
   }
 ]
