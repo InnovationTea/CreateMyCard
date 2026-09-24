@@ -7,8 +7,8 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings
+from pydantic import AliasChoices, AliasGenerator, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from config.config_helper import ConfigHelper
 
@@ -29,6 +29,20 @@ def _parse_json_config(value: str, fallback):
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_prefix="",
+        case_sensitive=False,
+        extra="ignore",
+        populate_by_name=True,
+        alias_generator=AliasGenerator(
+            validation_alias=lambda field_name: AliasChoices(
+                f"WIDGET_SERVICE_{field_name.upper()}",
+                field_name.upper(),
+            )
+        ),
+    )
+
     container_ip: str = get_container_ip()
     if platform.system() == "Windows":
         LOCAL_FLAG: bool = True
@@ -88,9 +102,33 @@ class Settings(BaseSettings):
     model_flow_id: str = CONFIG.get("model_flow_id")
     model_temperature: float = 0.4
     model_top_k: int = 1
-    system_prompt: str = CONFIG.get("system.prompt")
-    edit_system_prompt: str = CONFIG.get("edit.system.prompt")
-    repair_system_prompt: str = CONFIG.get("repair.system.prompt")
+    system_prompt: str = Field(
+        default=CONFIG.get("system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_SYSTEM_PROMPT",
+            "SYSTEM_PROMPT_FILE",
+            "SYSTEM_PROMPT",
+        ),
+    )
+    edit_system_prompt: str = Field(
+        default=CONFIG.get("edit.system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_EDIT_SYSTEM_PROMPT",
+            "EDIT_SYSTEM_PROMPT_FILE",
+            "EDIT_SYSTEM_PROMPT",
+        ),
+    )
+    repair_system_prompt: str = Field(
+        default=CONFIG.get("repair.system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT",
+            "REPAIR_SYSTEM_PROMPT_FILE",
+            "REPAIR_SYSTEM_PROMPT",
+        ),
+    )
     a2ui_form_model_backend: str = CONFIG.get("a2ui_form_model_backend")
     design_compact_model_backend: str = CONFIG.get("design_compact_model_backend")
     validation_failure_max_repair_attempts: int = CONFIG.get(
@@ -103,6 +141,33 @@ class Settings(BaseSettings):
     # 模型降级配置
     openai_master_client: str = CONFIG.get("openai_master_client")
     openai_fallback_client: str = CONFIG.get("openai_fallback_client")
+    deepseek_official_http_url: str = CONFIG.get(
+        "deepseek_official_http_url",
+        "https://api.deepseek.com/chat/completions",
+    )
+    deepseek_official_http_api_key: str = CONFIG.get(
+        "deepseek_official_http_api_key",
+        "",
+    )
+    deepseek_official_http_model: str = CONFIG.get(
+        "deepseek_official_http_model",
+        "deepseek-flash",
+    )
+    deepseek_official_http_temperature: float = CONFIG.get(
+        "deepseek_official_http_temperature",
+        0.7,
+    )
+    deepseek_official_http_top_p: float = CONFIG.get(
+        "deepseek_official_http_top_p",
+        0.9,
+    )
+    deepseek_official_http_max_tokens: int = CONFIG.get(
+        "deepseek_official_http_max_tokens",
+        8192,
+    )
+    deepseek_official_http_enable_thinking: bool = (
+        CONFIG.get("deepseek_official_http_enable_thinking", "false") == "true"
+    )
     # DeepSeekPlatform 配置
     deepseek_platform_access_key: str = CONFIG.get("deepseek_platform_access_key")
     deepseek_platform_secret_key_sts_config_key: str = CONFIG.get(
@@ -209,6 +274,41 @@ class Settings(BaseSettings):
         """允许配置文件中的整数字符串，不接受布尔值或浮点数。"""
         if isinstance(value, (bool, float)):
             raise ValueError("compact_dsl_interface_retry_count must be a non-negative integer")
+        return value
+
+    @field_validator("system_prompt", "edit_system_prompt", "repair_system_prompt", mode="before")
+    @classmethod
+    def load_prompt_file_alias(cls, value: object) -> object:
+        """兼容 .env.example 中的 prompt 文件路径配置。"""
+        if not isinstance(value, str):
+            return value
+        candidate = Path(value).expanduser()
+        roots = (
+            Path.cwd(),
+            Path(__file__).resolve().parents[2],
+            Path(__file__).resolve().parents[3],
+        )
+        candidates = (
+            [candidate]
+            if candidate.is_absolute()
+            else [root / candidate for root in roots]
+        )
+        for path in candidates:
+            if path.is_file():
+                return path.read_text(encoding="utf-8")
+        return value
+
+    @field_validator("openai_master_client", "openai_fallback_client")
+    @classmethod
+    def validate_model_provider(cls, value: str) -> str:
+        allowed = {
+            "mep",
+            "deepseek_platform",
+            "llmclient",
+            "deepseek_official_http",
+        }
+        if value not in allowed:
+            raise ValueError(f"unsupported model provider: {value}")
         return value
 
     @property
