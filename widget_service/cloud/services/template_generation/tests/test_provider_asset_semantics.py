@@ -130,7 +130,7 @@ def test_weather_slot_separates_single_and_dual_business_assets(
         _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
     }
     temperature_sources = {
-        _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
+        _SOURCE + "heat_generation.svg",
         _SOURCE + "icon_weather_thermometer_medium.svg",
         _SOURCE + "icon_weather_thermometer.svg",
     }
@@ -343,4 +343,8 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         assert isinstance(gallery_test, dict)
         overrides = gallery_test.get("sampleOverrides")
         assert isinstance(overrides, dict)
-        assert overrides.get("/data/weather/current/condition") == "多云"
+        weather_path = "/data/weather/current/condition"
+        if case.targetTemplateId == "WeatherOverviewDaily2TravelSupport@1":
+            weather_path = "/data/weather/daily/2/condition"
+            assert "/data/weather/current/condition" not in overrides, case.caseId
+        assert overrides.get(weather_path) == "多云", case.caseId

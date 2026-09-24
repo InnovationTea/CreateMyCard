@@ -136,9 +136,10 @@ Compact 的 `need_fallback=true`，因此公共 source generator 记录异常类
 
 ```text
 repair_compact_dsl_binding_paths
-  -> validate_compact_dsl_context
+  -> validate_compact_dsl（普通来源执行；正式模板来源跳过）
   -> read_design_protocol_profile
   -> convert_compact_dsl_to_a2ui
+  -> repair_repeated_display_units
 ```
 
 Template 命中融球 Theme 时，进入 A2UI-Compact 前已经是标准 `Stack` 球体树，且前景内容根 ID 已带
@@ -148,7 +149,11 @@ A2UI-Compact 组件，输入包含该类型时直接按不支持组件拒绝。
 公共转换器确认组件 ID 无重复、`root` 直接引用真实存在的 `template_root` 后，仅对该模板子树绕过
 2x2 环形 Progress 及其直接容器的尺寸重写，保留模板声明的 `width`、`height`、`strokeWidth`。
 例如 `BatteryOverviewCompact@1` 的 36×36vp 环形进度回转后仍为 36×36vp。模板子树外以及未命中有效
-标记的卡片沿用 44/52vp 规则；图标层级排序、绑定、事件、其它样式处理和校验不因该绕过而改变。
+标记的卡片沿用 44/48vp 规则；图标层级排序、绑定、事件、其它样式处理不因该几何保留规则而改变。
+
+Compact 是否跳过校验由服务来源标志决定，不由上述模板根决定。模板来源跳过整个校验 API，
+包括其高度预算及首帧检查；最终 Artifact 校验并未提供等价高度检查。普通来源仍执行该 API。
+当前解析去重、最终告警、素材清单和回归边界见 [模板后处理与校验说明](post-processing-validation.md)。
 
 转换成功后，`ArtifactValidator` 校验完整 artifact 候选。转换或校验 error 会进入
 `RetryController`；是否修复及最大次数由公共配置控制。修复模型必须重新输出完整 Design Compact DSL。

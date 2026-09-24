@@ -2963,8 +2963,18 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
     }
+    expected_literal_assets = {
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
+    }
+    expected_themed_assets.difference_update(expected_literal_assets)
     themed_assets: set[tuple[str, str]] = set()
     inherited_assets: set[tuple[str, str]] = set()
+    literal_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
         asset_props = original_color_props.get(definition.business_id or "")
@@ -2978,6 +2988,14 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             options = image.values[-1]
             assert options.kind == "object"
             asset_key = (template_id, source.name)
+            if asset_key in expected_literal_assets:
+                color = options.properties.get("fillColor")
+                assert color is not None
+                assert color.kind == "literal"
+                assert color.value == "#99FFFFFF"
+                assert "_preserveOriginalColor" not in options.properties
+                literal_assets.add(asset_key)
+                continue
             if asset_key in expected_themed_assets:
                 color = options.properties.get("fillColor")
                 assert color is not None
@@ -3010,6 +3028,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     assert len(preserved_assets) == 12
     assert themed_assets == expected_themed_assets
     assert inherited_assets == expected_inherited_assets
+    assert literal_assets == expected_literal_assets
 
 
 def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
@@ -6846,7 +6865,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     candidate_line = next(
         line for line in second_layer_user.splitlines() if line.startswith("componentCandidates=")
     )
-    weather_full_candidates = ["WeatherOverviewFull@1"]
+    weather_full_candidates = ["WeatherOverviewFull@1", "WeatherOverviewUpdatedAtFull@1"]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
             "componentId": "WeatherOverview",

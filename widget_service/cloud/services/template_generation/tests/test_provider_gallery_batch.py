@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,11 @@ from api.schemas import GenerateWidgetCardResponse
 from core.errors import GenerationStatus
 from models.artifact import WidgetArtifact
 from services.artifact_store import ArtifactStore
+from services.capability_registry import CapabilityRegistry
+from services.card_validation.base import read_pointer
+from services.task_spec_builder import TaskSpecBuilder
 from services.template_generation.controls import TemplateControls
+from services.template_generation.engine.pipeline import _with_trusted_sample_overrides
 from services.template_generation.test_support import provider_gallery
 from services.template_generation.test_support.provider_gallery import (
     FUSION_PRD_VERSION,
@@ -377,6 +382,66 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / calendar_date.requestFile).read_text(encoding="utf-8")
     )
     assert calendar_date_request["content"]["candidateAssetIds"] == []
+
+
+@pytest.mark.parametrize("scenario_id", ("dual-support-content", "dual-support-one-action"))
+def test_daily2_weather_gallery_injects_only_declared_forecast_data(
+    tmp_path: Path, scenario_id: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = _find_case(
+        manifest, "WeatherOverview--ActivityOverview", scenario_id,
+        "WeatherOverviewDaily2TravelSupport@1",
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    request = provider_gallery._request_from_envelope(payload)
+    bindings = request.candidateDataBindings
+    assert bindings is not None
+    weather = next(binding for binding in bindings if binding.capabilityId == "ViewWeather")
+    assert weather.arguments.get("forecastDays") == 3
+    assert weather.candidateOutputFields == ["/daily/2/condition", "/daily/2/temperatureRangeText"]
+    overrides = provider_gallery._gallery_sample_overrides_from_envelope(payload)
+    assert overrides == {"/data/weather/daily/2/condition": "多云"}
+    registry = CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    task = TaskSpecBuilder().build(
+        request.userQuery, "2x2", bindings, registry.list_data_capabilities(), [], [],
+    )
+    original_schema = deepcopy(task.dataModelSchema)
+    selected = _with_trusted_sample_overrides(task, overrides)
+    exists, sample = read_pointer(
+        selected.dataModelSchema, "/data/weather/daily/2/condition/sampleValue",
+    )
+    assert exists and sample == "多云"
+    assert not read_pointer(selected.dataModelSchema, "/data/weather/current")[0]
+    assert task.dataModelSchema == original_schema
+    with pytest.raises(ValueError, match="trusted sample override path is unavailable"):
+        _with_trusted_sample_overrides(task, {"/data/weather/current/condition": "多云"})
+
+
+def test_all_gallery_sample_overrides_match_projected_schema(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    registry = CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    capabilities = registry.list_data_capabilities()
+    checked = 0
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.missingReason:
+                continue
+            payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+            request = provider_gallery._request_from_envelope(payload)
+            bindings = request.candidateDataBindings
+            assert bindings is not None
+            task = TaskSpecBuilder().build(request.userQuery, "2x2", bindings, capabilities, [], [])
+            overrides = provider_gallery._gallery_sample_overrides_from_envelope(payload)
+            selected = _with_trusted_sample_overrides(task, overrides)
+            for pointer, expected in overrides.items():
+                exists, actual = read_pointer(selected.dataModelSchema, pointer + "/sampleValue")
+                assert exists and actual == expected, case.caseId
+            checked += 1
+    assert checked == 139
+    defaults = provider_gallery._CAPABILITY_ARGUMENTS.get("ViewWeather")
+    assert defaults is not None
+    assert defaults.get("forecastDays") == 1
 
 
 def test_dual_city_gallery_inputs_keep_ordered_independent_weather_bindings(

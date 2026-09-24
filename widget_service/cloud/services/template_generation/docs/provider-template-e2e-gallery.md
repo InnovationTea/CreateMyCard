@@ -68,6 +68,14 @@ Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还�
 其它单业务天气模板仍使用 `/data/weather`。批跑前的输入测试校验绑定数量、顺序、参数、独立数据根与样例，
 编译测试校验最终 A2UI 保留两份运行时路径。
 
+天气预报参数按模板声明的 `/daily/N/...` 字段计算：`forecastDays` 至少为最大索引加一，
+没有逐日字段时保持 1。Support 的天气现象样例只覆盖声明的 `/current/condition` 或
+`/daily/N/condition`；后天天气 `WeatherOverviewDaily2TravelSupport@1` 请求 3 天预报，
+注入 `/data/weather/daily/2/condition`，不注入该模板未声明的当前天气字段。
+否则投影后的 schema 不包含覆盖目标，可信注入器会拒绝请求。修复应在输入生成器完成并重建输入，
+不能扩展投影或只修改生成目录中的 JSON。注入失败、生成失败与最终校验告警应分别记录；
+后处理执行范围见 [模板后处理与校验说明](post-processing-validation.md)。
+
 排版回归同时检查：双城市 Full 的两个内容区使用相同 `layoutWeight: 1` 分配高度，不锁定为 60vp；
 紫外线 Full 将 20vp 指标值与 12vp 指标说明纵向排列，分别使用 28vp、20vp 行高，主值容器不锁定高度；
 空气质量 Hero 使用 20vp 主值。心率 IconCompact 为图标标题行保留 20vp 高度，平均心率值使用 20vp，
@@ -195,8 +203,9 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-当前应生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 141 个用例；
-其中 61 个 Support 配对用例。无模型 dry-run 中 8 个状态为 `missing`，133 个状态为 `not_generated`。
+2026-09-23 的模板清单生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 147 个用例；
+其中 61 个 Support 配对用例。无模型 dry-run 中 8 个状态为 `missing`，139 个状态为 `not_generated`。
+追加 8 个模板场景示例后共 155 个用例，其中 147 个待生成、8 个缺失。
 应用使用时长能力已下线，其单业务和配对场景不再生成；系统内存等其它缺失场景仍独立记录。
 Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
 与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
@@ -224,7 +233,7 @@ widget_service/.venv312/bin/python \
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--provider gallery.cross-business`：只批跑双业务组合；该 ID 仅为画廊分组标识，不是生产能力。
-- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 19 种 Support 模板的 56 个可行场景。
+- `--provider gallery.two-support`：只批跑双业务段落；当前共 61 个场景，包含 58 个可生成场景和 3 个能力缺失占位。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
@@ -293,10 +302,9 @@ HeroTitle + HeroContent 组合不受影响。
 
 如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步不修改来源目录，
 端侧 manifest 的 `counts` 按显示子集重新计算，不能再与完整自动化结果的总数直接比较。
-当前输入规模：自动化 135 个场景；能力齐备的 121 项需实际生成后才能计为成功，不将 dry-run 当作成功。
-每组一张的端侧筛选策略不变，显示画廊预计 98 项，其中 10 个既有缺失占位；启用示例后额外增加 8 项。
-双业务段落由 56 个自动化场景缩减为 19 张显示卡（17 组数据可用、2 组缺失）。每份入选 A2UI 应与源文件
-逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
+自动化规模以上述当前输入清单为准；能力齐备的场景需实际生成后才能计为成功，不将 dry-run 当作成功。
+每组一张的端侧筛选策略不变，显示数量、成功和缺失数量由同步后的 manifest 重新统计；启用示例后额外
+增加 8 项。每份入选 A2UI 应与源文件逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
 
 场景同步脚本只复制 A2UI，不复制 SVG 素材。构建前应核对每个 `Image.src` 均已注册，且存在于
 端侧 `entry/src/main/resources/base/media/`。双业务天气样例使用 `icon_weather_thermometer.svg`；

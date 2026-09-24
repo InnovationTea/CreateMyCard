@@ -16,8 +16,10 @@ flowchart LR
     GEN -->|Compact 回退或 edit| MODEL[原 Compact 模型]
     MODEL --> PROC
     PROC --> VAL[ArtifactValidator]
-    VAL --> RETRY[RetryController / Compact repair]
-    RETRY --> STORE[ArtifactStore]
+    VAL -->|通过或仅 warning| STORE[ArtifactStore]
+    VAL -->|失败且 Compact 路由允许修复| RETRY[RetryController / Compact repair]
+    RETRY --> PROC
+    VAL -->|失败且不可修复或已耗尽| FAIL[VALIDATION_FAILED]
     STORE --> RESP[ResponsePlanner]
 ```
 
@@ -46,7 +48,7 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 | create | 先尝试 Template | 只允许 Template |
 | edit | 跳过 Template，进入原 Compact edit | 入口直接 `failed` |
 | Template 不匹配或模块异常 | 同一次 `generate_source_dsl` 回退原 Compact 模型 | 不回退，转为生成失败 |
-| Template 已返回，Processor/Validator 失败 | 进入公共 Compact repair | 进入公共 Compact repair |
+| Template 已返回，Processor/Validator 失败 | 配置允许时进入公共 Compact repair | 不进入公共 repair，直接 `VALIDATION_FAILED` |
 | repair 最终失败 | `VALIDATION_FAILED`，不保存 | 同左 |
 | ArtifactStore 失败 | 不回退 Template 或模型 | 同左 |
 
@@ -190,11 +192,13 @@ Plan，只能补全开放 Props 与可信素材，不得跨 Plan 混用 Layout�
 7. 仅当实际产物为单业务 `Full`、`Hero` 或 `Compact` 时，按 Theme 三色在模板内部直接展开标准 `Stack` 球体树，
    同时给前景内容根 ID 增加 `__genui_render_component__` 前缀；不猜测或覆写主辅内容色。
 8. 将已经展开的标准组件树序列化为 Tersel，再确定性转换为三段 A2UI。
-9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。A2UI-Compact 不接受
-   或保留 `FusionBall` 云端组件。
+9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。正式模板来源跳过
+   整个 Compact 校验 API，解析、转换及最终校验仍执行；详见
+   [模板后处理与校验说明](post-processing-validation.md)。A2UI-Compact 不接受或保留 `FusionBall` 云端组件。
 
 二层输出发生 `TerselConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
-这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
+这与模块返回后的公共 Compact repair 是两套不同的质量阶段；公共 repair 还要求允许回退的路由已构造
+原协议 Prompt，Tersel 模板入口不满足该条件。
 
 ## 4. 数据形态变换
 
@@ -233,7 +237,8 @@ repair 和 artifact 格式，并在 `designcompactdsl` 中保留可回放的源 
 - `before_model_call` 在公共 `generate_source_dsl()` 进入 Template 或原模型前统一执行。
 - Template 首层和二层通过 `TemplateModelClient` 复用同一 `ModelExecutionRuntime`。
 - Compact 的 Template 尝试失败后转原模型，仍属于同一次 source generation，不重复下发开始通知。
-- 模板内部的二层修复最多 2 次；公共 Compact repair 由服务配置和 `RetryController` 控制。
+- 模板内部的二层修复最多 2 次；公共 Compact repair 由服务配置和 `RetryController` 控制，
+  且要求入口构造原协议 Prompt。当前 Tersel 模板入口不满足这一条件。
 - source DSL 一旦成功返回，后续 Processor、Validator、repair 或保存失败都不会重跑 Template。
 
 ## 7. 安全和可维护性不变量

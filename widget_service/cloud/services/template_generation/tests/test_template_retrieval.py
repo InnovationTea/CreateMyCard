@@ -1399,7 +1399,7 @@ def test_q004_weather_alert_fields_match_alert_full() -> None:
     )
 
 
-def test_q025_weather_wind_fields_match_wind_hero() -> None:
+def test_q025_weather_wind_fields_match_wind_candidates() -> None:
     task = TaskSpec(
         userQuery="查看厦门当地风向、风力和天气更新时间，点一下查看详情",
         size="2x2",
@@ -1459,6 +1459,7 @@ def test_q025_weather_wind_fields_match_wind_hero() -> None:
     )
 
     assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewWindFull@1",
         "WeatherOverviewWindHero@1",
     )
 
@@ -1879,7 +1880,7 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     )
 
     template_ids = set(result.component_candidates[0].available_template_ids)
-    assert template_ids == {"WeatherOverviewFull@1"}
+    assert template_ids == {"WeatherOverviewFull@1", "WeatherOverviewUpdatedAtFull@1"}
 
 
 def test_search_index_reports_per_field_matches_before_route_intersection() -> None:
