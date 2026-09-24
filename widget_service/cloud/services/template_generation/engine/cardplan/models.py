@@ -276,6 +276,8 @@ class TemplateDefinition(StrictModel):
         alias="secondaryDataFields",
     )
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    required_any_of: tuple[tuple[str, ...], ...] = Field(default=(), alias="requiredAnyOf")
+    display_together: tuple[tuple[str, ...], ...] = Field(default=(), alias="displayTogether")
     optional_data_fields: tuple[TemplateBinding, ...] = Field(
         default=(),
         alias="optionalDataFields",

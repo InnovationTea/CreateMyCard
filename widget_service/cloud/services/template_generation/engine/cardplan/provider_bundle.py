@@ -172,6 +172,8 @@ class ProviderTemplateEntry(StrictModel):
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    required_any_of: tuple[tuple[str, ...], ...] = Field(default=(), alias="requiredAnyOf")
+    display_together: tuple[tuple[str, ...], ...] = Field(default=(), alias="displayTogether")
     asset_parameter_semantic_tags: dict[str, tuple[str, ...]] = Field(
         default_factory=dict, alias="assetParameterSemanticTags"
     )
@@ -201,6 +203,12 @@ class ProviderTemplateEntry(StrictModel):
         )
         if not paths_are_unique:
             raise ValueError("Provider Template data paths must be unique")
+        declared = primary | secondary | optional
+        for group in (*self.required_any_of, *self.display_together):
+            if not group or len(group) != len(set(group)):
+                raise ValueError("Template condition groups must be non-empty and unique")
+            if not set(group).issubset(declared):
+                raise ValueError("Template condition fields must be declared data paths")
         if primary & secondary or primary & optional or secondary & optional:
             raise ValueError(
                 "Provider Template primaryData, secondaryData and optionalData must be disjoint"
@@ -439,6 +447,8 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             "requires_layout_action": entry.requires_layout_action,
             "asset_parameter_semantic_tags": asset_tags,
             "supported_event_ids": entry.supported_event_ids,
+            "required_any_of": entry.required_any_of,
+            "display_together": entry.display_together,
         })
         if entry.supported_event_ids:
             for variant in definition.variants:

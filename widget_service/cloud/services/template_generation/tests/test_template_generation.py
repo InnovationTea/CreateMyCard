@@ -257,7 +257,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 123
+    assert len(registry.provider_template_ids) == 122
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -269,7 +269,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
-        "BluetoothDeviceOverviewEarbudTripleFull@1",
         "BluetoothDeviceOverviewEarbudTripleHero@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
@@ -2934,9 +2933,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "caseIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleFull@1", "leftEarIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleFull@1", "rightEarIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleFull@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
