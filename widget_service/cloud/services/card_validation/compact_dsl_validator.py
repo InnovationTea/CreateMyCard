@@ -1553,12 +1553,11 @@ def _collect_raw_boolean_text_errors(
     for component in components:
         if component.component_type != "Text":
             continue
-        boolean_paths = [
-            path
-            for path in _component_content_paths(component)
-            if _schema_type(_schema_node_at_path(data_model_schema, path))
-            == "boolean"
-        ]
+        boolean_paths: list[str] = []
+        for path in _component_content_paths(component):
+            schema_node = _schema_node_at_path(data_model_schema, path)
+            if _schema_type(schema_node) == "boolean":
+                boolean_paths.append(path)
         if not boolean_paths:
             continue
         content = component.props.get("content")
