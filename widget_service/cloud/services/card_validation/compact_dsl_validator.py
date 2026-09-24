@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -805,10 +806,14 @@ def _collect_adjacent_display_unit_errors(
                 expected_unit_padding = 0
                 if value_font_size is not None and suffix_font_size is not None:
                     expected_unit_padding = min(
-                        4,
+                        8,
                         max(
                             0,
-                            int(round((value_font_size - suffix_font_size) / 2)),
+                            int(
+                                math.ceil(
+                                    (value_font_size - suffix_font_size) / 4
+                                )
+                            ),
                         ),
                     )
                 has_valid_alignment = (
@@ -1140,8 +1145,11 @@ def _collect_mixed_font_row_alignment_errors(
             elif isinstance(padding, dict):
                 actual_padding = _non_negative_number(padding.get("bottom"))
             expected_padding = min(
-                4,
-                max(0, int(round((max_font_size - child_font_size) / 2))),
+                8,
+                max(
+                    0,
+                    int(math.ceil((max_font_size - child_font_size) / 4)),
+                ),
             )
             if actual_padding == expected_padding:
                 continue

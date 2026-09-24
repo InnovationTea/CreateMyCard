@@ -4,9 +4,9 @@
 
 2x4 最终恰好两个业务数据块时先判断主次：存在一个明确主焦点、其余必要内容能压入两个辅助槽时使用 V04 的 W1-focus-aux；只有两个业务等权且都需要完整内容区时才使用 W9。W9 若业务组合与 V09 的天气+手机电量一致，可以参考 V09 的内容组织；其它等权组合只参考 W9 结构硬约束，不复制 V09 的业务语义。W9 root 必须是 Row、`padding:8`，并直接使用左右两个 `138×134vp` 大内容背板，不生成公共标题、公共内容区或公共按钮行，每个业务的数据和按钮只放在所属背板内。禁止复用 2x2 S4，禁止 `root Stack -> content Column`，禁止生成上下两个全宽背板或任何其它上下双业务布局。
 
-2x4 的外框固定不等于内部内容固定。先为每个背板选择一个主焦点变体：`value-led` 让数值占据第一视觉位置，使用纯数字与小号单位；`status-led` 让核心状态句成为最大文字；`event-led` 让事项标题与时间形成连续信息组；`action-led` 让唯一明确动作沉底但不压过主状态；字段较多时使用 `dense-summary`，只保留一项主值和必要辅助。除 W8/W9/W10 的固定区域边界外，允许改变内部顺序、对齐、留白和是否保留弱字段，禁止每个分区机械复用“标题 + 两行 14/12fp”。普通窄行最多合并两个能完整显示的短事实，三个以上动态字段必须拆行或删去最低优先级字段；多日天气的单日摘要除外。同一 Row 内存在不同字号 Text 时，Row 一律使用 `alignItems:"bottom"`，较小 Text 不设置 `padding.bottom`，由 Row 直接统一文字底边。
+2x4 的外框固定不等于内部内容固定。先为每个背板选择一个主焦点变体：`value-led` 让数值占据第一视觉位置，使用纯数字与小号单位；`status-led` 让核心状态句成为最大文字；`event-led` 让事项标题与时间形成连续信息组；`action-led` 让唯一明确动作沉底但不压过主状态；字段较多时使用 `dense-summary`，只保留一项主值和必要辅助。除 W8/W9/W10 的固定区域边界外，允许改变内部顺序、对齐、留白和是否保留弱字段，禁止每个分区机械复用“标题 + 两行 14/12fp”。普通窄行最多合并两个能完整显示的短事实，三个以上动态字段必须拆行或删去最低优先级字段；多日天气的单日摘要除外。同一 Row 内存在不同字号 Text 时，Row 一律使用 `alignItems:"bottom"`，较小 Text 按下条规则设置 `padding.bottom`，校正可见字底。
 
-同行不同字号 Text 的可见字底统一使用封顶补偿：Row 写 `alignItems:"bottom"`，较小 Text 的 `padding.bottom` 使用 `min(4, round((最大字号-自身字号)/2))`，最多 `4vp`；数字与单位 Row 另写 `itemMargin:2` 并移除二者固定宽度。本条覆盖上文“不设置 padding.bottom”的旧描述。
+同行不同字号 Text 的可见字底统一使用封顶补偿：Row 写 `alignItems:"bottom"`，较小 Text 的 `padding.bottom` 使用 `min(8, ceil((最大字号-自身字号)/4))`，最多 `8vp`；数字与单位 Row 另写 `itemMargin:2` 并移除二者固定宽度。
 
 2x4 单业务不要默认把内容平均摊满高度：先让主值或主状态占据连续的视觉区域，再把单位、状态和辅助指标贴近主焦点。只有用户明确要求多个并列指标时才使用等权布局；如果一个字段能回答主要问题，宁可保留稳定留白，也不要添加重复标签、空背板或弱装饰。
 
@@ -89,7 +89,7 @@
 ["progressSlot","Column",{"width":276,"height":45,"itemMargin":4,"justifyContent":"center","alignItems":"start"},["progressText","progress"]]
 ["progressText","Row",{"width":276,"alignItems":"bottom","itemMargin":6},["score","scoreLabel"]]
 ["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":18,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1}]
-["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","padding":{"bottom":3},"maxLines":1}]
+["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","padding":{"bottom":2},"maxLines":1}]
 ["progress","Progress",{"type":"linear","width":276,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF563D99","backgroundColor":"#33563D99"}]
 ["details","Row",{"width":276,"height":45,"itemMargin":8},["night","deep"]]
 ["night","Column",{"width":134,"height":45,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#99FFFFFF","itemMargin":2,"justifyContent":"center"},["nightLabel","nightValue"]]
@@ -121,7 +121,7 @@ W1 的左侧与右侧必须先分配字段再生成，禁止同一路径或同�
 ["label","Text",{"content":"睡眠得分 / 100分","width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
 ["bar","Progress",{"type":"linear","width":136,"height":8,"strokeWidth":8,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF563D99","backgroundColor":"#33563D99"}]
 ["details","Column",{"width":130,"height":126,"itemMargin":8},["night","deep"]]
-["unit","Text",{"content":"分","fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","padding":{"bottom":4},"maxLines":1}]
+["unit","Text",{"content":"分","fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","padding":{"bottom":7},"maxLines":1}]
 ["night","Column",{"width":130,"height":59,"padding":10,"borderRadius":12,"backgroundColor":"#99FFFFFF","itemMargin":4,"justifyContent":"center"},["nightLabel","nightValue"]]
 ["nightLabel","Text",{"content":"夜间睡眠","width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1}]
 ["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":110,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1}]
@@ -273,7 +273,7 @@ W9 先按对象合并字段再布局：同一耳机的连接状态、耳机仓�
 ["weatherContent","Column",{"width":114,"layoutWeight":1,"itemMargin":2,"justifyContent":"center"},["weatherLabel","weatherReadout","weatherStatus"]]
 ["weatherReadout","Row",{"width":114,"height":42,"alignItems":"bottom","itemMargin":2},["weatherValue","weatherUnit"]]
 ["weatherValue","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":30,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["weatherUnit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":4},"maxLines":1}]
+["weatherUnit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FF1F4799","padding":{"bottom":5},"maxLines":1}]
 ["weatherStatus","Text",{"content":{"path":"/data/weather/current/condition"},"width":114,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["weatherButton","Button",{"label":"查看天气","width":114,"height":36,"borderRadius":18,"backgroundColor":"#331F4799","fontColor":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
 ["secondaryColumn","Column",{"width":138,"height":134,"itemMargin":8},["batteryZone","earphoneZone"]]
