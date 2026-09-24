@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -1374,8 +1375,11 @@ def _normalize_large_value_unit_alignment(
                 child_props.pop("width", None)
             if child_font_size != max_font_size:
                 bottom_padding = min(
-                    4,
-                    max(0, int(round((max_font_size - child_font_size) / 2))),
+                    8,
+                    max(
+                        0,
+                        int(math.ceil((max_font_size - child_font_size) / 4)),
+                    ),
                 )
                 padding = child_props.get("padding")
                 if isinstance(padding, dict):
