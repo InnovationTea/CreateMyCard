@@ -1079,8 +1079,9 @@ async generate(
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
 - 第三接口读取 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`；第四、第五接口读取
   `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`。两项均可配置 `mep` 或 `openai`。
-- `A2UIModelClient` 通过 `UnifiedModelClient` 调用物理模型。`mep` 路由直接使用 MEP；`openai` 路由默认
-  使用 DeepSeek Platform master，模型异常重试耗尽后切换到 llmclient fallback。
+- `A2UIModelClient` 通过 `UnifiedModelClient` 调用物理模型。`mep` 路由直接使用 MEP；`openai` 路由通过
+  `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` 选择 `deepseek_platform`、`llmclient` 或独立的
+  `deepseek_official_http`，模型异常重试耗尽后按 fallback 配置切换。
 - MEP 使用应用生命周期共享的异步 HTTP 连接池，DeepSeek Platform 使用异步 WebSocket；
   `cloud/custom/llmclient.py` 本体保持同步且不修改，通过模型 Runtime 的专用线程池适配。
 - 模型调用边界内的请求异常、未规范化内部异常、流式响应显式错误或最终没有非空 DSL，统一按模型
@@ -1289,6 +1290,13 @@ WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND
 WIDGET_SERVICE_OPENAI_MASTER_CLIENT
 WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT
 WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_URL
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_API_KEY
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_MODEL
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_TEMPERATURE
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_TOP_P
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_MAX_TOKENS
+WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_ENABLE_THINKING
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_ACCESS_KEY
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_WS_URL
@@ -1366,13 +1374,15 @@ N 个字符、system prompt 总字符数和消息数量，不记录完整 system
 提示词正文。repair 请求继续保持完整载荷不落日志。
 
 `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY` 默认 `20`，由应用生命周期唯一模型 Runtime 的共享 Semaphore
-执行。MEP、DeepSeek Platform、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次
+执行。MEP、DeepSeek Platform、llmclient、DeepSeek 官方 HTTP、三个生成接口、create/edit、模型失败重试和 repair 的每一次
 真实模型调用都要单独获取令牌；mock 不占令牌。排队和执行分别由
 `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS` 与 `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS` 控制，
 默认均为 120 秒。llmclient 超时后令牌保留到同步后台调用真正结束，避免物理并发超限。
 
-`WIDGET_SERVICE_OPENAI_MASTER_CLIENT` 和 `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT` 只允许配置
-`deepseek_platform` 或 `llmclient`，并且不能相同。DeepSeek Platform 的 SK 只从
+`WIDGET_SERVICE_OPENAI_MASTER_CLIENT` 和 `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT` 允许配置
+`deepseek_platform`、`llmclient` 或 `deepseek_official_http`。官方 HTTP 使用独立的
+`WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_URL`、`_API_KEY`、`_MODEL`、`_TEMPERATURE`、`_TOP_P`、
+`_MAX_TOKENS` 和 `_ENABLE_THINKING` 配置，不读取旧 WebSocket 或 AccessService 字段。DeepSeek Platform 的 SK 只从
 `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY` 指定的 STS key 读取，默认 key 为
 `genui.deepseek.platform.secret.key`；普通配置和日志中不保存 SK。AK、WebSocket URL、模型名、业务 API
 Key、sender、receiver、messageName、默认国家和默认 App 使用 `WIDGET_SERVICE_DEEPSEEK_PLATFORM_*`
