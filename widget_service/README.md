@@ -67,10 +67,12 @@ The service follows `docs/AGENTS.md`:
   dynamic values are retained. If all model outputs fail, a minimal static request keeps recoverable user text and
   continues through the normal generation flow.
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
-  `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
-  `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and
-  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`, and control fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool
-  callers cannot select a backend or physical client directly.
+  `UnifiedModelClient.generate()` entry. The `openai` route selects its physical master and fallback through
+  `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`; supported values are
+  `deepseek_platform`, `llmclient`, and `deepseek_official_http`. The official HTTP transport uses the dedicated
+  `WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_*` settings and the existing `httpx` runtime connection pool. Control
+  fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool callers cannot select a backend or physical client
+  directly.
 - DeepSeek Platform reads its SK only from the STS key configured by
   `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
   `genui.deepseek.platform.secret.key`. Its remaining static request fields use the
