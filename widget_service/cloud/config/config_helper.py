@@ -8,8 +8,11 @@ from typing import Any
 
 import yaml
 
+from services.compact_prompt_loader import read_prompt
+
 _logger = logging.getLogger(__name__)
 _FILE_REFERENCE_PREFIX = "@file:"
+_PROMPT_REFERENCE_PREFIX = "@prompt:"
 _MISSING = object()
 
 
@@ -98,6 +101,12 @@ class ConfigHelper:
             return [self._normalize_config_value(item, config_dir) for item in value]
         if isinstance(value, bool):
             return "true" if value else "false"
+        if isinstance(value, str) and value.startswith(_PROMPT_REFERENCE_PREFIX):
+            reference = value.removeprefix(_PROMPT_REFERENCE_PREFIX).strip()
+            directory, separator, name = reference.partition("#")
+            if not directory or not separator or not name:
+                raise ValueError("提示词配置必须为 @prompt:源目录#名称")
+            return read_prompt(config_dir / directory, name)
         if isinstance(value, str) and value.startswith(_FILE_REFERENCE_PREFIX):
             referenced_path = value.removeprefix(_FILE_REFERENCE_PREFIX).strip()
             return (config_dir / referenced_path).resolve().read_text(encoding="utf-8")

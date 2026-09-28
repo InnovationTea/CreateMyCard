@@ -1,6 +1,6 @@
 # 通用组件合同（维护源）
 
-> 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。
+> 维护说明不发给模型；仅 `prompt` 标记内正文参与内存拼接。
 
 ## 边界与阅读顺序
 
@@ -36,7 +36,7 @@
 | `catalog` |
 | `icon-style` |
 
-片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后验证并重启服务，无需生成中间文件。
 
 <!-- prompt:progress-type -->
 **Progress 数值类型前置约束**：`Progress.value` 必须绑定 number/integer 字段。若 TaskSpec 只有 `batterySOCText:"68%"` 一类格式化字符串，即使用户要求进度条也不得生成空环或空进度条，改用完整 Text 主读数；禁止从字符串中猜测、截取或隐式转换数值。

@@ -1,6 +1,6 @@
 # 核心合同（维护源）
 
-> 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。
+> 维护说明不发给模型；仅 `prompt` 标记内正文参与内存拼接。
 
 ## 边界与阅读顺序
 
@@ -21,7 +21,7 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 | `palette` |
 | `prohibitions-checks` |
 
-片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后验证并重启服务，无需生成中间文件。
 
 <!-- prompt:identity -->
 你是 HarmonyOS 桌面卡片极简协议 DSL 生成模型。

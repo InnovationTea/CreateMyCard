@@ -11,6 +11,7 @@ from packaging.version import InvalidVersion, Version
 from app.logger import logger
 from config.config import get_settings
 from services.capability_registry import CapabilityRegistry
+from services.compact_prompt_loader import read_prompt
 from services.json_loader import load_json
 
 _MODULE = "[Protocol Registry]"
@@ -174,11 +175,9 @@ class A2UIProtocolRegistry:
         profiles_root: Path | None = None,
     ) -> str:
         """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
-        root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = cls.design_prompt_directory(design_profile_id, root) / _DESIGN_PROMPT_FILE
-        if not prompt_path.is_file():
-            raise ValueError(f"Design Compact prompt not found: {prompt_path}")
-        return prompt_path.read_text(encoding="utf-8")
+        return cls._read_design_text(
+            design_profile_id, profiles_root, "create", _DESIGN_PROMPT_FILE, "prompt"
+        )
 
     @classmethod
     def read_design_edit_prompt(
@@ -187,13 +186,9 @@ class A2UIProtocolRegistry:
         profiles_root: Path | None = None,
     ) -> str:
         """读取 Design Compact 多轮编辑系统提示词。"""
-        root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = (
-            cls.design_prompt_directory(design_profile_id, root) / _DESIGN_EDIT_PROMPT_FILE
+        return cls._read_design_text(
+            design_profile_id, profiles_root, "edit", _DESIGN_EDIT_PROMPT_FILE, "edit prompt"
         )
-        if not prompt_path.is_file():
-            raise ValueError(f"Design Compact edit prompt not found: {prompt_path}")
-        return prompt_path.read_text(encoding="utf-8")
 
     @classmethod
     def read_design_repair_prompt(
@@ -202,13 +197,9 @@ class A2UIProtocolRegistry:
         profiles_root: Path | None = None,
     ) -> str:
         """读取 Design Compact 修复系统提示词。"""
-        root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = (
-            cls.design_prompt_directory(design_profile_id, root) / _DESIGN_REPAIR_PROMPT_FILE
+        return cls._read_design_text(
+            design_profile_id, profiles_root, "repair", _DESIGN_REPAIR_PROMPT_FILE, "repair prompt"
         )
-        if not prompt_path.is_file():
-            raise ValueError(f"Design Compact repair prompt not found: {prompt_path}")
-        return prompt_path.read_text(encoding="utf-8")
 
     @classmethod
     def read_design_argument_repair_prompt(
@@ -217,16 +208,30 @@ class A2UIProtocolRegistry:
         profiles_root: Path | None = None,
     ) -> str:
         """读取 Design Compact 工具入参修复系统提示词。"""
-        root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = (
-            cls.design_prompt_directory(design_profile_id, root)
-            / _DESIGN_ARGUMENT_REPAIR_PROMPT_FILE
+        return cls._read_design_text(
+            design_profile_id,
+            profiles_root,
+            "argument_repair",
+            _DESIGN_ARGUMENT_REPAIR_PROMPT_FILE,
+            "argument repair prompt",
         )
-        if not prompt_path.is_file():
-            raise ValueError(
-                f"Design Compact argument repair prompt not found: {prompt_path}"
-            )
-        return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def _read_design_text(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None,
+        name: str,
+        filename: str,
+        label: str,
+    ) -> str:
+        directory = cls.design_prompt_directory(design_profile_id, profiles_root)
+        if design_profile_id == DESIGN_COMPACT_PROFILE_ID:
+            return read_prompt(directory, name)
+        path = directory / filename
+        if not path.is_file():
+            raise ValueError(f"Design Compact {label} not found: {path}")
+        return path.read_text(encoding="utf-8")
 
     @classmethod
     def design_prompt_directory(
@@ -234,10 +239,10 @@ class A2UIProtocolRegistry:
         design_profile_id: str,
         profiles_root: Path | None = None,
     ) -> Path:
-        """协议身份不变；正式 Compact 提示词只路由到模块化构建产物，不回退旧文件。"""
+        """返回提示词源目录；Compact 直接加载模块，不回退其它文件。"""
         root = profiles_root or get_settings().data_root / "protocol_profiles"
         if design_profile_id == DESIGN_COMPACT_PROFILE_ID:
-            return root / DESIGN_COMPACT_PROMPT_BUNDLE / "generated"
+            return root / DESIGN_COMPACT_PROMPT_BUNDLE / "prompt_source"
         return root / design_profile_id
 
     @classmethod
@@ -250,11 +255,9 @@ class A2UIProtocolRegistry:
         """尺寸案例与主提示词共用路由；案例筛选仍交给 PromptBuilder。"""
         if size not in {"2x2", "2x4"}:
             raise ValueError(f"Unsupported Design Compact few-shot size: {size}")
-        directory = cls.design_prompt_directory(design_profile_id, profiles_root)
-        path = directory / f"FEWSHOT_{size}.md"
-        if not path.is_file():
-            raise ValueError(f"Design Compact few-shot not found: {path}")
-        return path.read_text(encoding="utf-8")
+        return cls._read_design_text(
+            design_profile_id, profiles_root, f"fewshot_{size}", f"FEWSHOT_{size}.md", "few-shot"
+        )
 
     @classmethod
     def read_design_protocol_profile(
@@ -337,11 +340,7 @@ class A2UIProtocolRegistry:
             profile_file = protocol_dir / filename
             if not profile_file.is_file():
                 raise ValueError(f"Protocol profile file not found: {profile_file}")
-        design_prompt = (
-            cls.design_prompt_directory(design_profile_id, profiles_root) / _DESIGN_PROMPT_FILE
-        )
-        if not design_prompt.is_file():
-            raise ValueError(f"Design Compact prompt not found: {design_prompt}")
+        cls.read_design_prompt(design_profile_id, profiles_root)
         cls.read_design_protocol_profile(design_profile_id, profiles_root)
 
     @staticmethod

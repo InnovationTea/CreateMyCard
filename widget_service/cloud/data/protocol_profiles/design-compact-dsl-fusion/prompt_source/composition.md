@@ -1,6 +1,6 @@
 # 单次生成编排（维护源）
 
-> 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。
+> 维护说明不发给模型；仅 `prompt` 标记内正文参与内存拼接。
 
 ## 边界与阅读顺序
 
@@ -13,7 +13,7 @@
 | `precedence` |
 | `single-call-decisions` |
 
-片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后验证并重启服务，无需生成中间文件。
 
 <!-- prompt:precedence -->
 ## 2.7 输入优先级与信任边界

@@ -374,28 +374,28 @@ writeResultTo + candidateOutputFields
 PromptBuilder.build_design_compact()
 ```
 
-创建模式的 System 消息完整读取：
+创建模式的 System 消息通过模块加载器组装：
 
 ```text
-cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/PROMPT.md
+cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/manifest.yaml → prompts.create
 ```
 
-编辑模式的 System 消息读取：
+编辑模式通过同一加载器提取包装正文：
 
 ```text
-cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/EDIT_SYSTEM_PROMPT.md
+cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/edit.md → prompts.edit
 ```
 
-上述文件由同级 `prompt_source/manifest.yaml` 索引的模块构建，禁止直接修改 generated；
-模块边界和构建命令见提示词包 README。原协议标识保持不变，旧提示词路径不再回退。
-其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮实际的 `PROMPT.md` 内容及运行时限制。编辑附加规则只约束
+服务直接读取 manifest 索引的源模块，在内存中拼接并缓存，没有中间生成文件或构建步骤；
+模块边界和加载约定见提示词包 README。协议标识保持不变，不回退到其它提示词。
+其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮完整创建提示词及运行时限制。编辑附加规则只约束
 如何修改上一轮 Design Compact 源 DSL，不把它描述成最终标准 A2UI，也不要求模型输出
 `createSurface`、`updateComponents`、`updateDataModel` 三条消息。Compact DSL 的组件行和数据行数量由
 卡片结构决定，随后统一交给 Processor 转换。
 
 微服务再使用 `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 裁决本轮融球能力。裁决关闭时，
-在上述文件化 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
-`fusion-ball-*` Design Token；裁决开启时 system prompt 保持文件原文不变。转换器仍执行同一版本门禁。
+在上述内存组装的 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
+`fusion-ball-*` Design Token；裁决开启时 system prompt 保持组装正文不变。转换器仍执行同一版本门禁。
 
 `PromptBuilder` 不再把整份尺寸 Few-shot 默认注入每次 2x4 请求。它先根据数据根、用户语义、事件数量和
 主焦点选择视觉路由，再从对应文件中提取一个主示例或一对互补示例：天气主读数、电量/耳机状态、日程事项、
