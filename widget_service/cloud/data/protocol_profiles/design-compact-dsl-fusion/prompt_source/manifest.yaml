@@ -2,7 +2,7 @@
   "version": 1,
   "protocol_id": "design-compact-dsl",
   "description": "YAML 1.2 JSON 子集；维护配置，不发送模型。products 数组顺序即唯一拼接顺序。",
-  "size_policy": "sizes 为维护归属与案例尺寸索引；本期保持完整正文，运行时仍仅裁剪第九节与选择同尺寸案例，不新增整文件过滤。",
+  "size_policy": "sizes 为模块归属与案例尺寸索引；构建完整正文，运行时裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
   "modules": [
     {
       "file": "core.md",

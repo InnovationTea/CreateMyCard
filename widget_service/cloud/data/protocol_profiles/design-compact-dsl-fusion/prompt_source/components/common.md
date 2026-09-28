@@ -24,19 +24,19 @@
 | CardHeader | 稳定卡片主题 | 5.15；title/fontColor/icon/fillColor | 不接受任意几何覆盖；本节单组件示例 |
 | TimelineUnit | 小卡单会议 | 转至 components/2x2.md | 2x2 V06；宽卡禁止 |
 
-每个组件以正文原有合同为准，单组件的绑定支持不能推导到其它 Props。
+每个组件以正文合同为准，单组件的绑定支持不能推导到其它 Props。
 完整案例在 `../fewshots/`，组合条件在 `../combinations/`，不把示例中的属性自动扩展为通用合同。
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `progress-type` | `PROMPT.md` |
-| `progress-trigger` | `PROMPT.md` |
-| `catalog` | `PROMPT.md` |
-| `icon-style` | `PROMPT.md` |
+| 片段 |
+|---|
+| `progress-type` |
+| `progress-trigger` |
+| `catalog` |
+| `icon-style` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:progress-type -->
 **Progress 数值类型前置约束**：`Progress.value` 必须绑定 number/integer 字段。若 TaskSpec 只有 `batterySOCText:"68%"` 一类格式化字符串，即使用户要求进度条也不得生成空环或空进度条，改用完整 Text 主读数；禁止从字符串中猜测、截取或隐式转换数值。

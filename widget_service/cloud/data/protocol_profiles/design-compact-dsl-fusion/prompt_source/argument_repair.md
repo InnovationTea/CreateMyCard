@@ -8,11 +8,11 @@
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `contract` | `ARGUMENT_REPAIR_SYSTEM_PROMPT.md` |
+| 片段 |
+|---|
+| `contract` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:contract -->
 # JSON 结构恢复

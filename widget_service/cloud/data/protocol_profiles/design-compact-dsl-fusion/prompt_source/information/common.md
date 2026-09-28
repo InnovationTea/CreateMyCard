@@ -8,17 +8,17 @@
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `ownership-gate` | `PROMPT.md` |
-| `hierarchy` | `PROMPT.md` |
-| `focus` | `PROMPT.md` |
-| `rhythm` | `PROMPT.md` |
-| `context` | `PROMPT.md` |
-| `selection` | `PROMPT.md` |
-| `metric-labels` | `PROMPT.md` |
+| 片段 |
+|---|
+| `ownership-gate` |
+| `hierarchy` |
+| `focus` |
+| `rhythm` |
+| `context` |
+| `selection` |
+| `metric-labels` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:ownership-gate -->
 **图标与动作生成前置约束**：先按 2.6.1 确定“对象、用户意图、实际目标、图标职责”，再选骨架和填槽。候选数量不决定按钮数量，分区数量不决定动作数量。单业务 S2 已有稳定 CardHeader，且存在与整卡主题精确匹配、状态中性、扣除图标槽后标题仍能完整显示的候选素材时，默认保留一枚右上角标题图标；纯文字也能理解不构成删除理由。CardHeader.icon 仍执行 SVG 颜色硬规则：候选描述未明确要求不可染色、禁止染色、保留原色、多色、渐变或品牌原色时，CardHeader 必须显式写 `fillColor`；浅色卡使用与 `fontColor` 相同的主内容色，深色或融球卡使用白色或对应图标角色色，禁止遗漏后显示素材默认黑色。明确保留原色的 SVG 和所有 PNG 不写 `fillColor`。无准确图标时省略且回收图标槽；有合法显式动作时保留纯文字入口。场景路由、示例和布局对称均不得把无关候选变成必须显示的按钮。

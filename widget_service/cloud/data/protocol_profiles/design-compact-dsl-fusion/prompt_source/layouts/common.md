@@ -8,16 +8,16 @@
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `height-gate` | `PROMPT.md` |
-| `canvas-heading` | `PROMPT.md` |
-| `canvas-budget` | `PROMPT.md` |
-| `surface-budget` | `PROMPT.md` |
-| `routing` | `PROMPT.md` |
-| `layout-check` | `PROMPT.md` |
+| 片段 |
+|---|
+| `height-gate` |
+| `canvas-heading` |
+| `canvas-budget` |
+| `surface-budget` |
+| `routing` |
+| `layout-check` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:height-gate -->
 ## 3.1 一级高度算账硬门禁

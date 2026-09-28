@@ -8,20 +8,20 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `identity` | `PROMPT.md` |
-| `goal` | `PROMPT.md` |
-| `taskspec` | `PROMPT.md` |
-| `input-candidates` | `PROMPT.md` |
-| `output` | `PROMPT.md` |
-| `jsonl` | `PROMPT.md` |
-| `binding-events` | `PROMPT.md` |
-| `typography` | `PROMPT.md` |
-| `palette` | `PROMPT.md` |
-| `prohibitions-checks` | `PROMPT.md` |
+| 片段 |
+|---|
+| `identity` |
+| `goal` |
+| `taskspec` |
+| `input-candidates` |
+| `output` |
+| `jsonl` |
+| `binding-events` |
+| `typography` |
+| `palette` |
+| `prohibitions-checks` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:identity -->
 你是 HarmonyOS 桌面卡片极简协议 DSL 生成模型。

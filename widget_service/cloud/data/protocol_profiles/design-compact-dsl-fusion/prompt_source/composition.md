@@ -4,16 +4,16 @@
 
 ## 边界与阅读顺序
 
-冲突优先级 → 内部信息分析 → 组件/组合与布局适配 → 输出检查。这里是未来 Plan 的集成边界，本期无 Plan schema 或额外调用。
+冲突优先级 → 内部信息分析 → 组件/组合与布局适配 → 输出检查。这里是 Plan 的集成边界；当前不要求独立 Plan 输出或额外调用。
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `precedence` | `PROMPT.md` |
-| `single-call-decisions` | `PROMPT.md` |
+| 片段 |
+|---|
+| `precedence` |
+| `single-call-decisions` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:precedence -->
 ## 2.7 输入优先级与信任边界

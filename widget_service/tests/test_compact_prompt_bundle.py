@@ -33,7 +33,7 @@ def _digest(value: str) -> str:
 
 
 @pytest.mark.parametrize("filename,expected", PRODUCT_HASHES.items())
-def test_compiled_prompt_equals_reviewed_baseline(filename: str, expected: str) -> None:
+def test_compiled_prompt_equals_pre_migration_text(filename: str, expected: str) -> None:
     content = compile_bundle().get(filename)
     assert isinstance(content, str)
     assert _digest(content) == expected
