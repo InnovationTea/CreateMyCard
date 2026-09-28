@@ -255,14 +255,14 @@
         "value": {
           "data": {
             "healthSport": {
-              "deepSleepDurationText": "示例数据",
-              "fallAsleepTimeText": "示例数据",
+              "deepSleepDurationText": "1小时42分",
+              "fallAsleepTimeText": "23:15",
               "nightSleepDurationText": "7小时1分",
               "sleepScore": 82,
               "sleepStatus": "良好",
-              "sleepTypeDesc": "示例数据",
-              "totalNapDurationText": "示例数据",
-              "wakeupTimeText": "示例数据"
+              "sleepTypeDesc": "夜间睡眠",
+              "totalNapDurationText": "26分",
+              "wakeupTimeText": "07:30"
             }
           }
         }

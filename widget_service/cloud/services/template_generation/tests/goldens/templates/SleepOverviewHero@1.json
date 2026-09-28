@@ -157,11 +157,11 @@
         "value": {
           "data": {
             "healthSport": {
-              "fallAsleepTimeText": "示例数据",
+              "fallAsleepTimeText": "23:15",
               "nightSleepDurationText": "7小时1分",
               "sleepScore": 82,
               "sleepStatus": "良好",
-              "wakeupTimeText": "示例数据"
+              "wakeupTimeText": "07:30"
             }
           }
         }

@@ -188,7 +188,7 @@
           "data": {
             "phoneBattery": {
               "batterySOC": 84,
-              "chargingStatusDesc": "示例数据"
+              "chargingStatusDesc": "正在充电"
             }
           }
         }

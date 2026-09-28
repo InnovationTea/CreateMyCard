@@ -207,9 +207,9 @@
         "value": {
           "data": {
             "healthSport": {
-              "fallAsleepTimeText": "示例数据",
+              "fallAsleepTimeText": "23:15",
               "totalNapDurationText": "7小时1分",
-              "wakeupTimeText": "示例数据"
+              "wakeupTimeText": "07:30"
             }
           }
         }

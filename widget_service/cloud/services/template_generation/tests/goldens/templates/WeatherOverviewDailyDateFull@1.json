@@ -174,12 +174,12 @@
                 {},
                 {
                   "condition": "多云",
-                  "date": "示例数据",
-                  "weekday": "示例数据"
+                  "date": "8月20日",
+                  "weekday": "周四"
                 }
               ],
               "location": {
-                "districtName": "示例数据"
+                "districtName": "青浦区"
               }
             }
           }

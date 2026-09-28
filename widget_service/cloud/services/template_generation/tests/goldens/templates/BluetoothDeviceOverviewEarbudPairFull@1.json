@@ -300,16 +300,13 @@
             }
           },
           {
-            "component": "Text",
-            "content": "盒",
+            "component": "Image",
             "id": "template_root_0_1_2_0_0",
+            "src": "resources/base/media/earphone_case_16644.svg",
             "styles": {
-              "fontColor": "#99FFFFFF",
-              "fontSize": 10,
-              "fontWeight": 400,
-              "height": 16,
-              "maxLines": 1,
-              "width": 16
+              "fillColor": "#99FFFFFF",
+              "height": 10,
+              "width": 13.73
             }
           },
           {
@@ -355,14 +352,14 @@
         "value": {
           "data": {
             "earphone": {
-              "batteryLevel": 68,
-              "chargingStatusDesc": "示例数据",
+              "batteryLevel": 65,
+              "chargingStatusDesc": "充电中",
               "earphoneName": "FreeBuds Pro",
               "isConnected": true,
               "leftBatteryLevel": 76,
-              "leftChargingStatusDesc": "示例数据",
+              "leftChargingStatusDesc": "未充电",
               "rightBatteryLevel": 78,
-              "rightChargingStatusDesc": "示例数据"
+              "rightChargingStatusDesc": "充电中"
             }
           }
         }

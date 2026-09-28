@@ -332,13 +332,13 @@
             "weather": {
               "current": {
                 "condition": "多云",
-                "feelsLikeC": 68.0,
-                "temperatureC": 68.0,
-                "temperatureText": "示例数据"
+                "feelsLikeC": 31.0,
+                "temperatureC": 29.0,
+                "temperatureText": "29°C"
               },
               "location": {
                 "cityCode": "021",
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

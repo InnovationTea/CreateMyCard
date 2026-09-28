@@ -256,12 +256,12 @@
           "data": {
             "weather": {
               "current": {
-                "alertLevel": "示例数据",
-                "feelsLikeC": 68.0,
+                "alertLevel": "黄色",
+                "feelsLikeC": 31.0,
                 "temperatureText": "29°C"
               },
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

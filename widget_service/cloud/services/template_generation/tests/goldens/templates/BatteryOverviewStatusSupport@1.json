@@ -53,6 +53,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.battery"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,
@@ -161,7 +169,7 @@
           "data": {
             "phoneBattery": {
               "chargingStatusDesc": "未充电",
-              "pluggedTypeDesc": "示例数据"
+              "pluggedTypeDesc": "普通充电器"
             }
           }
         }

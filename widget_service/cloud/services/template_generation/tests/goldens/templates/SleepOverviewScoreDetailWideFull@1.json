@@ -428,11 +428,11 @@
         "value": {
           "data": {
             "healthSport": {
-              "deepSleepDurationText": "示例数据",
+              "deepSleepDurationText": "1小时42分",
               "nightSleepDurationText": "7小时1分",
               "sleepScore": 82,
               "sleepStatus": "良好",
-              "totalNapDurationText": "示例数据"
+              "totalNapDurationText": "26分"
             }
           }
         }

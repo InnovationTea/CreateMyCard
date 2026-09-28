@@ -170,7 +170,7 @@
           "data": {
             "phoneBattery": {
               "batterySOC": 68,
-              "chargingStatusDesc": "示例数据"
+              "chargingStatusDesc": "未充电"
             }
           }
         }

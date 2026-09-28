@@ -557,19 +557,19 @@
             "calendar": {
               "events": [
                 {
-                  "dtStart": "示例数据",
-                  "eventLocation": "示例数据",
-                  "title": "示例数据"
+                  "dtStart": "14:00",
+                  "eventLocation": "深圳市龙岗区五和大道",
+                  "title": "UI需求评审会"
                 },
                 {
-                  "dtStart": "示例数据",
-                  "eventLocation": "示例数据",
-                  "title": "示例数据"
+                  "dtStart": "16:30",
+                  "eventLocation": "A3会议室",
+                  "title": "华东渠道策略会"
                 },
                 {
-                  "dtStart": "示例数据",
-                  "eventLocation": "示例数据",
-                  "title": "示例数据"
+                  "dtStart": "19:00",
+                  "eventLocation": "B1会议室",
+                  "title": "版本交付排期会"
                 }
               ]
             }

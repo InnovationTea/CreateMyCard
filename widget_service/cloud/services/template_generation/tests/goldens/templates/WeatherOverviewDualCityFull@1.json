@@ -348,11 +348,11 @@
           "data": {
             "weather": {
               "current": {
-                "condition": "示例数据",
-                "temperatureC": 68.0
+                "condition": "晴",
+                "temperatureC": 32.0
               },
               "location": {
-                "prefectureName": "示例数据"
+                "prefectureName": "上海市"
               }
             }
           }

@@ -226,13 +226,13 @@
             }
           },
           {
-            "component": "Text",
-            "content": "盒",
+            "component": "Image",
             "id": "template_root_0_1_2_0",
+            "src": "resources/base/media/earphone_case_16644.svg",
             "styles": {
-              "fontColor": "#FF456A35",
-              "fontSize": 10,
-              "fontWeight": 400
+              "fillColor": "#FF456A35",
+              "height": 12,
+              "width": 12
             }
           },
           {
@@ -258,7 +258,7 @@
         "value": {
           "data": {
             "earphone": {
-              "batteryLevel": 68,
+              "batteryLevel": 65,
               "earphoneName": "FreeBuds Pro",
               "isConnected": true,
               "leftBatteryLevel": 76,

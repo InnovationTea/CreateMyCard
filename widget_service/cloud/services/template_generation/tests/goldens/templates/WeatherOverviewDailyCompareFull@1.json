@@ -334,12 +334,12 @@
             "weather": {
               "daily": [
                 {
-                  "airQuality": "示例数据",
-                  "condition": "示例数据"
+                  "airQuality": "良",
+                  "condition": "多云"
                 },
                 {
-                  "airQuality": "示例数据",
-                  "condition": "示例数据"
+                  "airQuality": "优",
+                  "condition": "阴"
                 }
               ]
             }

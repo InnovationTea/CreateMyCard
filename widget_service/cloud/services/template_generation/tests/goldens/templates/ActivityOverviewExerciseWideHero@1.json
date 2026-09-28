@@ -340,10 +340,10 @@
               "dailyDistanceText": "4.6 公里",
               "dailySteps": 6200,
               "exerciseCalorieText": "420 千卡",
-              "exerciseDurationText": "示例数据",
-              "exerciseHeartRateAvg": 68,
-              "exerciseHeartRateMin": 68,
-              "exerciseTypeName": "示例数据"
+              "exerciseDurationText": "40分",
+              "exerciseHeartRateAvg": 135,
+              "exerciseHeartRateMin": 112,
+              "exerciseTypeName": "户外跑步"
             }
           }
         }

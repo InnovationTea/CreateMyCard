@@ -395,7 +395,8 @@
           },
           {
             "children": [
-              "template_root_0_1_1_0"
+              "template_root_0_1_1_0",
+              "template_root_0_1_1_1"
             ],
             "component": "Stack",
             "id": "template_root_0_1_1",
@@ -408,7 +409,8 @@
           },
           {
             "children": [
-              "template_root_0_1_1_0_0"
+              "template_root_0_1_1_0_0",
+              "template_root_0_1_1_0_1"
             ],
             "component": "Row",
             "id": "template_root_0_1_1_0",
@@ -454,6 +456,46 @@
               "fontSize": 10,
               "height": 14,
               "maxLines": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_1_1_0_1",
+            "src": "resources/base/media/music_fill.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "flexShrink": 0,
+              "height": 24,
+              "objectFit": "contain",
+              "width": 24
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_1_1_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_1_1_1",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.bluetooth"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
+            "styles": {
+              "height": "matchParent",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "",
+            "id": "template_root_0_1_1_1_0",
+            "styles": {
+              "height": "matchParent",
               "width": "matchParent"
             }
           }

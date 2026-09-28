@@ -54,6 +54,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.viewCalendarEvent"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,

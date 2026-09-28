@@ -93,13 +93,13 @@
             }
           },
           {
-            "component": "Text",
-            "content": "耳机仓",
+            "component": "Image",
             "id": "template_root_0_1_0",
+            "src": "resources/base/media/earphone_case_16644.svg",
             "styles": {
-              "fontColor": "#FF456A35",
-              "fontSize": 10,
-              "fontWeight": 400
+              "fillColor": "#FF456A35",
+              "height": 12,
+              "width": 12
             }
           },
           {
@@ -126,7 +126,7 @@
           "data": {
             "earphone": {
               "batteryLevel": 80,
-              "chargingStatusDesc": "示例数据"
+              "chargingStatusDesc": "充电中"
             }
           }
         }

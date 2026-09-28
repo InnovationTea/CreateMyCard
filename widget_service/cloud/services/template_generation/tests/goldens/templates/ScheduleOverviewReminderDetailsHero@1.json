@@ -297,14 +297,14 @@
             "calendar": {
               "events": [
                 {
-                  "importantEventType": 68,
+                  "importantEventType": 2,
                   "remindTime": [
                     "15"
                   ],
-                  "senderName": "示例数据"
+                  "senderName": "李娜"
                 }
               ],
-              "updatedAt": "示例数据"
+              "updatedAt": "今天 09:00"
             }
           }
         }

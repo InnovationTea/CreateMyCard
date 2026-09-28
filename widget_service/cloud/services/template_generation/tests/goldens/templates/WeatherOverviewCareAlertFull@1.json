@@ -96,7 +96,8 @@
           },
           {
             "children": [
-              "template_root_0_0_0_0"
+              "template_root_0_0_0_0",
+              "template_root_0_0_0_1"
             ],
             "component": "Row",
             "id": "template_root_0_0_0",
@@ -122,6 +123,18 @@
               "maxLines": 1,
               "textOverflow": "ellipsis",
               "width": "matchParent"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_0_1",
+            "src": "resources/base/media/sun_max.svg",
+            "styles": {
+              "fillColor": "#99CCDDFF",
+              "flexShrink": 0,
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
             }
           },
           {
@@ -236,7 +249,7 @@
             "weather": {
               "current": {
                 "airQuality": "良",
-                "alertLevel": "示例数据",
+                "alertLevel": "黄色",
                 "uvIndex": "中等"
               },
               "location": {

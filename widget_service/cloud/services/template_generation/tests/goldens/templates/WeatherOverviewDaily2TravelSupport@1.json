@@ -66,6 +66,14 @@
             ],
             "component": "Column",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.weather"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "borderRadius": 12,

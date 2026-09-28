@@ -246,17 +246,17 @@
             "weather": {
               "current": {
                 "condition": "多云",
-                "feelsLikeC": 68.0,
+                "feelsLikeC": 31.0,
                 "temperatureText": "29°C"
               },
               "daily": [
                 {
-                  "rainProbabilityPercent": "示例数据",
+                  "rainProbabilityPercent": "30%",
                   "temperatureRangeText": "25° / 32°"
                 }
               ],
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

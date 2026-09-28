@@ -118,7 +118,8 @@
           },
           {
             "children": [
-              "template_root_0_0_1_0"
+              "template_root_0_0_1_0",
+              "template_root_0_0_1_1"
             ],
             "component": "Stack",
             "id": "template_root_0_0_1",
@@ -142,6 +143,34 @@
               "maxLines": 1,
               "textAlign": "center",
               "width": 84
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_1_1_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_0_1_1",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.bluetooth"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
+            "styles": {
+              "height": "matchParent",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "",
+            "id": "template_root_0_0_1_1_0",
+            "styles": {
+              "height": "matchParent",
+              "width": "matchParent"
             }
           },
           {

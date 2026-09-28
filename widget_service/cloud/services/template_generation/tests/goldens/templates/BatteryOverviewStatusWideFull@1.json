@@ -54,6 +54,14 @@
             "component": "Column",
             "id": "template_root_0",
             "itemMargin": 4,
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.battery"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "start",
               "clip": true,
@@ -421,7 +429,8 @@
           },
           {
             "children": [
-              "template_root_0_0_1_1_0_0"
+              "template_root_0_0_1_1_0_0",
+              "template_root_0_0_1_1_0_1"
             ],
             "component": "Row",
             "id": "template_root_0_0_1_1_0",
@@ -489,6 +498,18 @@
               "textOverflow": "ellipsis",
               "width": "matchParent"
             }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1_1_0_1",
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "flexShrink": 0,
+              "height": 24,
+              "objectFit": "contain",
+              "width": 24
+            }
           }
         ],
         "root": "root",
@@ -506,8 +527,8 @@
               "batterySOC": 68,
               "batteryTemperatureText": "29.0 ℃",
               "chargingStatusDesc": "未充电",
-              "healthStatusDesc": "示例数据",
-              "pluggedTypeDesc": "示例数据"
+              "healthStatusDesc": "良好",
+              "pluggedTypeDesc": "普通充电器"
             }
           }
         }

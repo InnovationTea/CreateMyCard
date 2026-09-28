@@ -89,7 +89,7 @@
           },
           {
             "component": "Text",
-            "content": "日程详情",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {

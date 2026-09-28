@@ -87,7 +87,7 @@
           },
           {
             "component": "Text",
-            "content": "日程提醒",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {

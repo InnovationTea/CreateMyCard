@@ -227,12 +227,12 @@
             "weather": {
               "current": {
                 "airQuality": "良",
-                "alertLevel": "示例数据",
+                "alertLevel": "黄色",
                 "condition": "多云",
                 "temperatureText": "29°C"
               },
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

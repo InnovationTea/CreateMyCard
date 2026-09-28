@@ -62,7 +62,8 @@
           },
           {
             "children": [
-              "template_root_0_0"
+              "template_root_0_0",
+              "template_root_0_1"
             ],
             "component": "Stack",
             "id": "template_root_0",
@@ -224,6 +225,35 @@
               "minFontSize": 12,
               "textAlign": "center",
               "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0"
+            ],
+            "component": "Stack",
+            "id": "template_root_0_1",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.storage"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
+            "styles": {
+              "alignContent": "center",
+              "height": "matchParent",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "",
+            "id": "template_root_0_1_0",
+            "styles": {
+              "height": "matchParent",
               "width": "matchParent"
             }
           }

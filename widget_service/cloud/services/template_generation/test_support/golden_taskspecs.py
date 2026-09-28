@@ -341,16 +341,6 @@ def blessed_case_ids() -> list[str]:
     )
 
 
-def blessed_case_ids() -> list[str]:
-    if not GOLDEN_ROOT.is_dir():
-        return []
-    return sorted(
-        path.name
-        for path in GOLDEN_ROOT.iterdir()
-        if (path / "golden.json").is_file()
-    )
-
-
 def capture_selected_templates(case_id: str) -> dict:
     """离线回放单个用例并捕获实际选中的模板（不修改任何金样文件）。
 
@@ -401,6 +391,117 @@ def capture_selected_templates_cached(case_id: str) -> dict:
     if case_id not in _SELECTION_CACHE:
         _SELECTION_CACHE[case_id] = capture_selected_templates(case_id)
     return _SELECTION_CACHE[case_id]
+
+
+# 生成管线的阶段顺序（报告/诊断里的失败定位展示顺序）。
+_PIPELINE_STAGES: tuple[tuple[str, str], ...] = (
+    ("preflight", "preflight（请求预检）"),
+    ("routing", "first-layer routing（首层路由：Search 不适用该请求）"),
+    ("retrieval", "template retrieval（模板检索：无候选覆盖所需数据）"),
+    ("composition", "second-layer composition（二层组合/转换）"),
+    ("expansion", "template expansion（cardtpl 模板展开）"),
+    ("model", "model generation（二层模型生成）"),
+    ("validation", "A2UI validation（产物校验）"),
+    ("artifact", "artifact（产物落盘）"),
+)
+
+# 异常类型 → 阶段。异常在引擎入口（facade）被服务层折叠成 FAILED 响应，
+# 这里按类型把失败映射回管线阶段。
+_STAGE_BY_EXCEPTION: dict[str, str] = {
+    "TemplateRouteNotApplicable": "routing",
+    "TemplateRetrievalMiss": "retrieval",
+    "TemplateRouteError": "routing",
+    "TerselConversionError": "composition",
+    "A2UIModelGenerationError": "model",
+    "ModelTransportError": "model",
+}
+
+_STAGE_BY_ERROR_CODE: dict[str, str] = {
+    "VALIDATION_FAILED": "validation",
+    "A2UI_GENERATION_FAILED": "composition",
+    "GENERATION_UNSUPPORTED": "preflight",
+}
+
+
+def _classify_stage(error_code: str, exception: BaseException | None) -> str:
+    """把失败归类到管线阶段；返回阶段键（_PIPELINE_STAGES 的第一列）。"""
+    if exception is not None:
+        by_type = _STAGE_BY_EXCEPTION.get(type(exception).__name__)
+        if by_type:
+            return by_type
+    return _STAGE_BY_ERROR_CODE.get(error_code or "", "composition")
+
+
+def diagnose_case(case_id: str) -> dict:
+    """离线回放单个用例并给出失败诊断（不修改任何金样文件）。
+
+    对 ``status=failed`` 的基线，服务层把引擎异常折叠成带通用文案的
+    FAILED 响应；这里在 facade 的引擎入口包一层捕获原始异常类型与文案，
+    映射回管线阶段，供报告展示「失败发生在哪一段」。成功用例
+    ``stage`` 为 None。回放走 ReplayingTransport + 设置固定，全程离线。
+    """
+    import services.template_generation.facade as facade_module
+
+    case_dir = GOLDEN_ROOT / case_id
+    payload = json.loads((case_dir / "input.json").read_text(encoding="utf-8"))
+    replay_payload = json.loads((case_dir / "replay.json").read_text(encoding="utf-8"))
+    recordings = {
+        item["key"]: item["response"] for item in replay_payload["recordings"]
+    }
+    transport = ReplayingTransport(recordings)
+    captured_exc: BaseException | None = None
+    original = facade_module.generate_template_engine_a2ui
+
+    async def capture(*args: Any, **kwargs: Any):
+        nonlocal captured_exc
+        try:
+            return await original(*args, **kwargs)
+        except BaseException as exc:  # 服务层随后折叠为 FAILED 响应
+            captured_exc = exc
+            raise
+
+    facade_module.generate_template_engine_a2ui = capture
+    try:
+        result, _response = asyncio.run(execute_case(case_id, payload, transport))
+    finally:
+        facade_module.generate_template_engine_a2ui = original
+
+    status = str(result.get("status"))
+    error_code = str(result.get("errorCode", "") or "")
+    stage: str | None = None
+    error_type = ""
+    failure_message = ""
+    if status == "preflight_rejected":
+        stage = "preflight"
+        issues = result.get("blockingIssues") or []
+        if issues:
+            first = issues[0]
+            error_type = str(first.get("code") or first.get("type") or "blocking_issue")
+            failure_message = str(first.get("message") or "")[:300]
+    elif status == "failed":
+        stage = _classify_stage(error_code, captured_exc)
+        error_type = type(captured_exc).__name__ if captured_exc else ""
+        failure_message = (str(captured_exc) if captured_exc else str(result.get("message", "")))[:300]
+    return {
+        "case": case_id,
+        "status": status,
+        "errorCode": error_code,
+        "stage": stage,
+        "stageLabel": dict(_PIPELINE_STAGES).get(stage, "") if stage else "",
+        "errorType": error_type,
+        "message": failure_message,
+        "replayMissed": bool(transport.missed_keys),
+    }
+
+
+_DIAGNOSE_CACHE: dict[str, dict] = {}
+
+
+def diagnose_case_cached(case_id: str) -> dict:
+    """``diagnose_case`` 的进程内 memo 版本（一用例只回放一次）。"""
+    if case_id not in _DIAGNOSE_CACHE:
+        _DIAGNOSE_CACHE[case_id] = diagnose_case(case_id)
+    return _DIAGNOSE_CACHE[case_id]
 
 
 def record_case(corpus_dir: Path, case_id: str) -> tuple[int, str, str | None]:

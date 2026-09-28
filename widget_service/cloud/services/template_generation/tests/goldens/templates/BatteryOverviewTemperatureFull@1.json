@@ -254,8 +254,8 @@
           "data": {
             "phoneBattery": {
               "batteryTemperatureText": "29.0 ℃",
-              "pluggedTypeDesc": "示例数据",
-              "updatedAt": "示例数据"
+              "pluggedTypeDesc": "普通充电器",
+              "updatedAt": "今天 09:00"
             }
           }
         }

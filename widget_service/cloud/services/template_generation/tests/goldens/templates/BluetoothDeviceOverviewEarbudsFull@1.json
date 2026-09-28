@@ -391,9 +391,9 @@
           "data": {
             "earphone": {
               "leftBatteryLevel": 76,
-              "leftChargingStatusDesc": "示例数据",
+              "leftChargingStatusDesc": "未充电",
               "rightBatteryLevel": 78,
-              "rightChargingStatusDesc": "示例数据"
+              "rightChargingStatusDesc": "充电中"
             }
           }
         }

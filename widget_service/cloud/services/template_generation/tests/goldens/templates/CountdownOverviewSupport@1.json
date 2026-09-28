@@ -54,6 +54,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.clock.alarm"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,
@@ -120,7 +128,7 @@
           },
           {
             "component": "Text",
-            "content": "倒计时",
+            "content": "产品发布会",
             "id": "template_root_0_0_1",
             "styles": {
               "constraintSize": {

@@ -88,7 +88,7 @@
           },
           {
             "component": "Text",
-            "content": "下一个日程",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {

@@ -265,13 +265,13 @@
           "data": {
             "weather": {
               "current": {
-                "windDirection": "示例数据",
-                "windLevel": 68
+                "windDirection": "东南风",
+                "windLevel": 3
               },
               "location": {
                 "prefectureName": "青浦区"
               },
-              "updatedAt": "示例数据"
+              "updatedAt": "今天 09:00"
             }
           }
         }
