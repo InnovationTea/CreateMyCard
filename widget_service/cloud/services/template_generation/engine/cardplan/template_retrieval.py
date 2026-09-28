@@ -28,6 +28,7 @@ from .calendar_field_paths import (
     calendar_reminder_aliases,
     normalize_calendar_reminder_bindings,
 )
+from .field_type_compatibility import field_types_are_compatible
 from .models import TemplateDefinition
 from .provider_bundle import (
     asset_semantic_tags,
@@ -1490,7 +1491,11 @@ def _template_record_evaluation(
             continue
         expected_type = required_types.get(path)
         actual_type = leaf.get("type")
-        if expected_type is None or actual_type == expected_type:
+        if expected_type is None or field_types_are_compatible(
+            path,
+            expected_type,
+            actual_type,
+        ):
             continue
         required_type_mismatches.append(
             {
@@ -1585,7 +1590,11 @@ def _user_required_type_mismatches(
     mismatches: list[dict[str, str]] = []
     for token in sorted(query_tokens):
         expected_type = template_types.get(token.path)
-        if expected_type is None or expected_type == token.data_type:
+        if expected_type is None or field_types_are_compatible(
+            token.path,
+            expected_type,
+            token.data_type,
+        ):
             continue
         mismatches.append(
             {
@@ -1873,7 +1882,11 @@ def _record_available_query_paths(
         if token.path not in record.available_paths:
             continue
         expected_type = typed_by_path.get(token.path, token.data_type)
-        if expected_type == token.data_type:
+        if field_types_are_compatible(
+            token.path,
+            expected_type,
+            token.data_type,
+        ):
             available_paths.add(token.path)
     return frozenset(available_paths)
 
@@ -1912,7 +1925,11 @@ def _template_required_fields_are_available(
         for token in record.required_field_tokens:
             pointer = f"{data_root.rstrip('/')}{token.path}"
             leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-            if leaf is None or leaf.get("type") != token.data_type:
+            if leaf is None or not field_types_are_compatible(
+                token.path,
+                token.data_type,
+                leaf.get("type"),
+            ):
                 return False
     return True
 
@@ -1924,6 +1941,10 @@ def _record_typed_input_paths(
     for token in record.field_tokens:
         pointer = f"{data_root.rstrip('/')}{token.path}"
         leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-        if leaf is not None and leaf.get("type") == token.data_type:
+        if leaf is not None and field_types_are_compatible(
+            token.path,
+            token.data_type,
+            leaf.get("type"),
+        ):
             available.add(token.path)
     return available

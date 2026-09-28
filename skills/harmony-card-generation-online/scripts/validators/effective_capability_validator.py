@@ -11,6 +11,19 @@ from .base import (
     static_expression_value,
 )
 
+_TOGGLE_INTENTS_BY_CALL = {
+    "clickToApi": frozenset({"SetMobileData"}),
+    "clickToIntent": frozenset(
+        {
+            "SetLocationSettingSwicth",
+            "SetMicSettingSwicth",
+            "SetScreenUseTimeManageSwitch",
+            "SetSettingSwitch",
+        }
+    ),
+}
+_MISSING = object()
+
 
 class EffectiveCapabilityValidator(BaseValidator):
     stage = "semantic"
@@ -275,8 +288,53 @@ class EffectiveCapabilityValidator(BaseValidator):
             return False
         if not isinstance(args, dict):
             args = {}
-        expected = self._stable_json({"call": call, "args": args})
-        return any(self._stable_json(item) == expected for item in allowed_actions)
+        action = {"call": call, "args": args}
+        expected = self._stable_json(action)
+        for item in allowed_actions:
+            if self._stable_json(item) == expected:
+                return True
+            if self._toggle_actions_equivalent(action, item):
+                return True
+        return False
+
+    def _toggle_actions_equivalent(
+        self,
+        action: dict[str, Any],
+        allowed_action: dict[str, Any],
+    ) -> bool:
+        normalized_action = self._toggle_action_without_switch_flag(action)
+        normalized_allowed = self._toggle_action_without_switch_flag(allowed_action)
+        if normalized_action is None or normalized_allowed is None:
+            return False
+        return self._stable_json(normalized_action) == self._stable_json(normalized_allowed)
+
+    def _toggle_action_without_switch_flag(
+        self,
+        action: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        call = action.get("call")
+        args = action.get("args")
+        if not isinstance(call, str) or not isinstance(args, dict):
+            return None
+        intent_name = args.get("intentName")
+        allowed_intents = _TOGGLE_INTENTS_BY_CALL.get(call, frozenset())
+        if intent_name not in allowed_intents:
+            return None
+        params = args.get("params")
+        if not isinstance(params, dict):
+            return None
+
+        normalized_params = dict(params)
+        switch_flag = normalized_params.pop("switchFlag", _MISSING)
+        has_invalid_flag = switch_flag is not _MISSING and (
+            isinstance(switch_flag, bool) or switch_flag not in {0, 1}
+        )
+        if has_invalid_flag:
+            return None
+
+        normalized_args = dict(args)
+        normalized_args["params"] = normalized_params
+        return {"call": call, "args": normalized_args}
 
     def _stable_json(self, value: Any) -> str:
         return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

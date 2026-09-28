@@ -289,8 +289,7 @@
           "intentName": "SetSettingSwitch",
           "params": {
             "appBundleName": "com.huawei.hmos.settings",
-            "itemName": "battery_saving_mode",
-            "switchFlag": 0
+            "itemName": "battery_saving_mode"
           }
         }
       }
@@ -358,7 +357,7 @@
               "weekday": { "type": "string", "description": "星期文本", "sampleValue": "星期六" },
               "condition": { "type": "string", "description": "白天天气现象", "sampleValue": "阵雨" },
               "temperatureRangeText": { "type": "string", "description": "当天温度范围", "sampleValue": "25° / 32°" },
-              "rainProbabilityPercent": { "type": "string", "description": "白天降雨概率", "sampleValue": "70%" },
+              "rainProbabilityPercent": { "type": "number", "description": "白天降雨概率数值，不包含百分号", "sampleValue": 70 },
               "airQuality": { "type": "string", "description": "当天空气质量等级", "sampleValue": "良" }
             }
           ]

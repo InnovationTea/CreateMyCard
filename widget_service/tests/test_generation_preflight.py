@@ -15,6 +15,7 @@ from services.generation_preflight import GenerationPreflight
 from services.widget_generation_service import WidgetGenerationService
 
 REGISTRY_VERSION = "app-11.7.5.205_rom-6.0"
+REGISTRY_VERSION_7 = "app-11.7.7.300_rom-7.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -38,6 +39,12 @@ def _request(**updates) -> GenerateWidgetCardRequest:
 def _run(request: GenerateWidgetCardRequest):
     normalized = EditRequestNormalizer.normalize_create(request)
     registry = CapabilityRegistry(version=REGISTRY_VERSION)
+    return GenerationPreflight(registry).run(normalized)
+
+
+def _run_with_registry(request: GenerateWidgetCardRequest, version: str):
+    normalized = EditRequestNormalizer.normalize_create(request)
+    registry = CapabilityRegistry(version=version)
     return GenerationPreflight(registry).run(normalized)
 
 
@@ -240,6 +247,58 @@ def test_preflight_accepts_weather_output_fields_without_layout_count_limit():
     weather = result.task_spec.dataModelSchema["data"]["weather"]
     assert weather["current"]["temperatureText"]
     assert weather["daily"][0]["rainProbabilityPercent"]
+
+
+def test_preflight_projects_numeric_rain_probability_for_new_registry():
+    request = _request(
+        candidateDataBindings=[
+            _weather_binding(output_fields=["/daily/0/rainProbabilityPercent"])
+        ],
+    )
+
+    result = _run_with_registry(request, REGISTRY_VERSION_7)
+
+    assert result.blocking_issues == ()
+    assert result.task_spec is not None
+    rain_probability = result.task_spec.dataModelSchema["data"]["weather"]["daily"][0][
+        "rainProbabilityPercent"
+    ]
+    assert rain_probability["type"] == "number"
+    assert rain_probability["sampleValue"] == 20
+
+
+def test_preflight_accepts_new_toggle_action_and_rejects_legacy_switch_flag():
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
+    event = registry.get_event_capability("event.setPowerSavingMode")
+    assert event is not None
+    action = event.actionTemplate.model_dump(mode="json")
+    request = _request(
+        candidateEventCandidates=[{"capabilityId": event.id, "action": action}]
+    )
+
+    result = _run_with_registry(request, REGISTRY_VERSION_7)
+
+    assert result.blocking_issues == ()
+    assert result.task_spec is not None
+    task_event = result.task_spec.eventCandidates[0]
+    assert task_event.args["params"] == {
+        "appBundleName": "com.huawei.hmos.settings",
+        "itemName": "battery_saving_mode",
+    }
+
+    legacy_action = json.loads(json.dumps(action))
+    legacy_action["args"]["params"]["switchFlag"] = 0
+    legacy_request = _request(
+        candidateEventCandidates=[
+            {"capabilityId": event.id, "action": legacy_action}
+        ]
+    )
+
+    legacy_result = _run_with_registry(legacy_request, REGISTRY_VERSION_7)
+
+    issue = legacy_result.blocking_issues[0]
+    assert issue.code == "EVENT_ARGUMENT_SCHEMA_INVALID"
+    assert issue.path.endswith("/action/args/params/switchFlag")
 
 
 def test_preflight_accepts_calendar_array_indices_and_scalar_array_field():
