@@ -393,7 +393,11 @@ def _collect_hero_value_errors(
             "requires a pure number/integer or a supported primary value. "
             "A directly bound measurement with a declared unit may use 20/24fp "
             "in a full-width area or 2x4 large panel when its text budget fits; "
-            "ordinary names, dates, times, and statuses remain at most 18fp."
+            "ordinary names, dates, times, and statuses remain at most 18fp. "
+            "For formatted strings in a W1 136vp focus, use one complete Text "
+            "at 18fp or below; changing 24fp to 20fp alone does not fix the slot. "
+            "Keep the declared binding and included unit; never invent a numeric "
+            "field or parse a string for Progress."
         )
 
     for component in components:
@@ -1336,7 +1340,10 @@ def _collect_two_by_four_action_backboard_errors(
     if len(content_ids) != 1:
         errors.append(
             f"2x4 large backboard {backboard.component_id} with a Button must "
-            "have exactly [content, Button] as direct children."
+            "have exactly [content, Button] as direct children. Move every "
+            "header/title into the content Column with layoutWeight 1; the "
+            "Button must remain outside that Column as the last direct child. "
+            "Do not keep [header, content, Button] or delete required title/data."
         )
         return
     content = components_by_id.get(content_ids[0])
@@ -1354,7 +1361,10 @@ def _collect_two_by_four_action_backboard_errors(
         errors.append(
             f"2x4 large backboard {backboard.component_id} with a Button may "
             "contain at most four Text nodes across no more than three visual "
-            "rows. Merge or remove lower-priority fields."
+            "rows. Count labels, values and units as separate Text nodes even "
+            "inside a Row. Merge each ordinary label/value/unit into one complete "
+            "12/14/18fp Text; keep required facts and remove only redundant labels "
+            "or optional fields. Do not move the title outside the content Column."
         )
 
 
@@ -1813,8 +1823,14 @@ def _collect_two_by_four_w9_content_errors(
         if len(text_components) > 4:
             errors.append(
                 f"2x4 W9 backboard {zone.component_id} may contain at most four "
-                "content Text rows. Merge same-object fields instead of stacking "
-                "additional rows."
+                f"content Text nodes (found {len(text_components)}: "
+                f"{', '.join(item.component_id for item in text_components)}). "
+                "A Row does not merge its child Text nodes. Combine each ordinary "
+                "label/value/unit in one complete Text at 12/14/18fp, including "
+                "units in the expression only when the source lacks them. Keep "
+                "all explicitly requested facts; remove duplicate headings first. "
+                "Replace the old split label/value/unit subtree and its child "
+                "references, not merely its font sizes or spacing."
             )
 
         content_roots: set[str] = set()
@@ -2393,7 +2409,10 @@ def _collect_two_by_four_w1_focus_alignment_errors(
             "2x4 W1-focus-aux left focus may contain at most four Text nodes. "
             "Use at most three visual layers for value-led content, merge a "
             "closely related pair, or move one necessary fact to an auxiliary "
-            "cell instead of filling the left zone with a dense list."
+            "cell instead of filling the left zone with a dense list. "
+            f"Found {text_count} Text nodes including labels and units. If both "
+            "auxiliary cells are required actions, keep them and use complete "
+            "ordinary-size label/value lines in the left focus, not a second hero."
         )
         return
 
@@ -2608,8 +2627,13 @@ def _collect_two_by_four_w1_focus_aux_errors(
     if actual_action_cells < expected_action_cells:
         errors.append(
             "2x4 W1-focus-aux must reserve right auxiliary cells for explicit "
-            f"actions ({actual_action_cells}/{expected_action_cells}). Drop or "
-            "merge lower-priority facts instead of omitting the requested action."
+            f"actions ({actual_action_cells}/{expected_action_cells}). Bind each "
+            "required candidate exactly once to an entire right cell and use its "
+            "short action label. Reserve these cells before arranging data. When "
+            "both cells are actions, move required facts into at most three "
+            "ordinary-size summary lines in the left focus (combine label, value "
+            "and unit), removing duplicate headings instead of requested facts. "
+            "Do not mix data roots in an auxiliary cell or add a third cell."
         )
 
     for cell_id in aux_column.children:
@@ -3011,6 +3035,12 @@ def _two_by_two_centered_hero_context(
         return None
 
     value, numeric_path = numeric_values[0]
+    if (
+        numeric_path.endswith("/countdownDays")
+        and _uses_2x2_v01_countdown_layout(task_spec)
+    ):
+        # 倒计时有动作时由 V08 检查左对齐，不能再要求通用 Hero 双轴居中。
+        return None
     unit: ComponentRow | None = None
     for component in text_components:
         if component.component_id == value.component_id:
@@ -3424,22 +3454,29 @@ def _collect_two_by_four_weather_calendar_alignment_errors(
     )
 
 
+def _is_actionless_countdown_backboard(
+    backboard: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if _descendant_on_click_count(backboard, components_by_id) > 0:
+        return False
+    for component in _descendant_components(backboard, components_by_id):
+        if component.component_type != "Text":
+            continue
+        if any(
+            path.casefold().endswith("/countdowndays")
+            for path in _component_content_paths(component)
+        ):
+            return True
+    return False
+
+
 def _collect_two_by_four_countdown_backboard_errors(
     backboard: ComponentRow,
     components_by_id: dict[str, ComponentRow],
     errors: list[str],
 ) -> None:
-    descendants = _descendant_components(backboard, components_by_id)
-    countdown_values = []
-    for component in descendants:
-        if component.component_type != "Text":
-            continue
-        paths = _component_content_paths(component)
-        if any(path.casefold().endswith("/countdowndays") for path in paths):
-            countdown_values.append(component)
-    if not countdown_values:
-        return
-    if _descendant_on_click_count(backboard, components_by_id) > 0:
+    if not _is_actionless_countdown_backboard(backboard, components_by_id):
         return
 
     direct_children = []
@@ -3897,6 +3934,9 @@ def _collect_two_by_four_w9_sparse_layout_errors(
     actions: list[ComponentRow],
     errors: list[str],
 ) -> None:
+    if _is_actionless_countdown_backboard(zone, components_by_id):
+        # 专用检查仍验证三个直接 Text 的顺序、宽度与分布，不能嵌套 content。
+        return
     if len(text_components) > 3:
         return
     for child_id in zone.children:

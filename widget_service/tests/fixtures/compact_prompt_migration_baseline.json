@@ -2,12 +2,12 @@
   "commit": "81c64b843bf957e878a846bfdc498e09c7242b36",
   "normalization": "UTF-8 + LF；与 Path.read_text 的模型输入保持一致",
   "products": {
-    "ARGUMENT_REPAIR_SYSTEM_PROMPT.md": "9b7be3e30be6d403a44e51343dce294b0be9f77512967be341028a6ced2e826e",
-    "EDIT_SYSTEM_PROMPT.md": "d08a27541a0479a0b48a528254318ffb834b77dfe5fa87486c4085bba378f1bb",
-    "FEWSHOT_2x2.md": "7dece607b0397840c3e02305dbf543bbff148c72f397543d77155e670754d97d",
-    "FEWSHOT_2x4.md": "645fbb0b1d8e9bf6909e6f2c28203a3eb68aafbab7731890ad4d7c173072f51e",
     "PROMPT.md": "6844c0731ffb0795d3a79bd86aa52d04674f947e903c2ec37195838514e10fe9",
-    "REPAIR_SYSTEM_PROMPT.md": "44bd3a413773c7de2d20d5cd90b5b61bb3696818c6b7a56f68a73e9b59d28558"
+    "EDIT_SYSTEM_PROMPT.md": "d08a27541a0479a0b48a528254318ffb834b77dfe5fa87486c4085bba378f1bb",
+    "REPAIR_SYSTEM_PROMPT.md": "ea733342ad9dd74db7253907efbd38fa71038d53dfb195f9b64b1a3b65e0e0fb",
+    "ARGUMENT_REPAIR_SYSTEM_PROMPT.md": "9b7be3e30be6d403a44e51343dce294b0be9f77512967be341028a6ced2e826e",
+    "FEWSHOT_2x2.md": "7dece607b0397840c3e02305dbf543bbff148c72f397543d77155e670754d97d",
+    "FEWSHOT_2x4.md": "645fbb0b1d8e9bf6909e6f2c28203a3eb68aafbab7731890ad4d7c173072f51e"
   },
   "messages": [
     {
@@ -26,7 +26,7 @@
       "id": "2x2-V00",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "c263e70adf441d2e628e7e5d3d4e2f4b2592c4708f2f67d5ad9578db3326e9b1"
+      "sha256": "8adf52e3b7332d049bb857f6f52202229dd7baaa22da2fd1dfe9ad14aff9d987"
     },
     {
       "id": "2x2-V00",
@@ -44,7 +44,7 @@
       "id": "2x2-V00",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "b462a819d2642cf70ecc61dfbae7d0d409a01e300ea63634381a1434284e31f7"
+      "sha256": "7c97041a53099ff3f0d6d03044874ba43de5198be8bcdb7a79dde82110db90be"
     },
     {
       "id": "2x2-V01",
@@ -62,7 +62,7 @@
       "id": "2x2-V01",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "0c37d8943d59f43bd588f1a39c73fb72a3a0843f63ebff657ed98ed6005f23f9"
+      "sha256": "d288226b6cdb9e6a366be8d675fc2c1ef14f0c6fb5a056d913728407b77ab70c"
     },
     {
       "id": "2x2-V01",
@@ -80,7 +80,7 @@
       "id": "2x2-V01",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "5bacb8af679357480344d56e0068f86c2587f2068be3f13464850ab703918047"
+      "sha256": "9271910c3fc022d7bb6d3294717bd66bd694f5a50d2071c04719273387a101fb"
     },
     {
       "id": "2x2-V02",
@@ -98,7 +98,7 @@
       "id": "2x2-V02",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "887b1d8d5892962e0c5bc24c59df06c3ca46aaea8f8fd0cae76fd6b7998cfa78"
+      "sha256": "b4135d81bc1349391781cec52b52932a506cb97196a62340da323ee31b696060"
     },
     {
       "id": "2x2-V02",
@@ -116,7 +116,7 @@
       "id": "2x2-V02",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "371d5a558811d736f5ef2126b1443e62a8c4032a7a60fb4c4565eecbd1020b76"
+      "sha256": "e256a6b388b3bb3f32a910ee0bca98b7c42efd387397fc107dcfbc9b793b4ed6"
     },
     {
       "id": "2x2-V03",
@@ -134,7 +134,7 @@
       "id": "2x2-V03",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "a531f5e90200d3059613fa7e96f41680af2e9ee176aeb6aa285b68bc5dd99bdc"
+      "sha256": "a7e0bce1f622d0c7a854b7f0ea1beed41eb604f8baa8010ae0f3d05c7d8c3466"
     },
     {
       "id": "2x2-V03",
@@ -152,7 +152,7 @@
       "id": "2x2-V03",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "b2965af73cbd58e17529c2f3fcd2b04ca6bd33e8aeadefcc972422cd3b537ebd"
+      "sha256": "e768596944397fca53a9d2ca173cdf693d52e32b0ced02e576a23c5f8a7be8f8"
     },
     {
       "id": "2x2-V04",
@@ -170,7 +170,7 @@
       "id": "2x2-V04",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "31bca5ed64a72fb599662af157a9318609a1dffa64d31eb839d7361f5b9c9a2f"
+      "sha256": "47e5b00c271c35ca1d1cd33de2d95f4cbb11f34a8bc94d2b52b61d92c310266b"
     },
     {
       "id": "2x2-V04",
@@ -188,7 +188,7 @@
       "id": "2x2-V04",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "644f4d03a3aa1506d8a9d35c65015a846358c1512e31f7e0480b02e155b59521"
+      "sha256": "eac7578fb8ca6fb9171d1c80e2afb58563cd28f20f4caa1b58e729d6594da181"
     },
     {
       "id": "2x2-V05",
@@ -206,7 +206,7 @@
       "id": "2x2-V05",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "b998e7b8221ecad2a48b78fa23563fcf8aef442df3f2a7fb329f663b1188ce5a"
+      "sha256": "d6dad3a5bb24ab9d81f2d96d504cf628aa72d17d4f928ab3e454d5e32476f9d1"
     },
     {
       "id": "2x2-V05",
@@ -224,7 +224,7 @@
       "id": "2x2-V05",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "670d1b8612895a4cfda749d3a23888a45446c6b95430eb463bee4c63eb962447"
+      "sha256": "8bae929317d4622e07cba05d842605f2329b0b4605e20934b8ee2e7936f0fb97"
     },
     {
       "id": "2x2-V06",
@@ -242,7 +242,7 @@
       "id": "2x2-V06",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "3247406ef35a9dc9581a7d4b89153002657de9da8cda3bfc17b819b58f33c4df"
+      "sha256": "e80a898a28126456952bdbc859578195e29b1ec9bbddbfc668b94d5f22d6a8e7"
     },
     {
       "id": "2x2-V06",
@@ -260,7 +260,7 @@
       "id": "2x2-V06",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "ffe76abae32765d42dab3bd654e95a91e42003357f0c07ecdc49a23837353fbd"
+      "sha256": "2c8340f6f874c02bd623bf3796f512b5e128ec0d35548cc584764f52b5bc23c5"
     },
     {
       "id": "2x2-V07",
@@ -278,7 +278,7 @@
       "id": "2x2-V07",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "c808d84f6a29144b4a3b3a9d97c794f99e091d8250e6068e0179d1c33065d964"
+      "sha256": "4f7970179b12d9ddf8daa655db886bb1a407ec5a6d20e45aec476d2b14491346"
     },
     {
       "id": "2x2-V07",
@@ -296,7 +296,7 @@
       "id": "2x2-V07",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "46ae31de14de77f0925c1e9b626f2389dd4cd66ad37e9f86136d6b5b30e1b66b"
+      "sha256": "77127b4af94b75457fdbac21e3762f3a2782ff301e0eedff5f185fb75f8b963c"
     },
     {
       "id": "2x2-V08",
@@ -314,7 +314,7 @@
       "id": "2x2-V08",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "04be403bec0704a00b158363d787a31f4611b412e99ec4828d68c12ec6bef22d"
+      "sha256": "9d64c5a6472600402d33241cdfe87f5ed01aca5be5130e14d3a7db29e077818a"
     },
     {
       "id": "2x2-V08",
@@ -332,7 +332,7 @@
       "id": "2x2-V08",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "ec64acaff008cb77d58c5b282e137f7190b509136784a456fba0ab65fd4db802"
+      "sha256": "5e93f6f0fb09c3c0dfd10a2700389d5bd6ccb2d0c2bd8a943b3ee7ff126af183"
     },
     {
       "id": "2x2-V09",
@@ -350,7 +350,7 @@
       "id": "2x2-V09",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "7a5a444eaa3d6086980937543e2c40369ee7ba4389953e2746a738210027ec8f"
+      "sha256": "a140af8ddfe3ee52bf29214b2ae03298e57278785586af6a322df8b7a10f0566"
     },
     {
       "id": "2x2-V09",
@@ -368,7 +368,7 @@
       "id": "2x2-V09",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "1c25b61453e024031aca993957c494d894ce38192769ff98d74d5b773fafffff"
+      "sha256": "4ba38d44165af13adf9731adadee0f8cef9235731ec6f7d0f4f26065264d8070"
     },
     {
       "id": "2x2-V10",
@@ -386,7 +386,7 @@
       "id": "2x2-V10",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "32859ff1265a3ee32be2ab14347685f66bf17ca30a0425e6743fc673e8fdff33"
+      "sha256": "d88c18c4c2607749016ef9a71c78e9408d36165249a44b9caa36b038136b395c"
     },
     {
       "id": "2x2-V10",
@@ -404,7 +404,7 @@
       "id": "2x2-V10",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "c67377e2b2ab09fa389a4feec90446a15ac680515a748c18cb0ff816f5399300"
+      "sha256": "cfdb42e28584852b4cb0927122d3346d03df6d52fcea81798b9d36c1043e6e28"
     },
     {
       "id": "2x2-V11",
@@ -422,7 +422,7 @@
       "id": "2x2-V11",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "4aef1f669361cace10d4cb58205f3c695cec1411312a39726222c6371ae791fd"
+      "sha256": "a108bd7537a4114a3537e7bbb64eb161413dd08dd9b935b57f683134e3bfaa2d"
     },
     {
       "id": "2x2-V11",
@@ -440,7 +440,7 @@
       "id": "2x2-V11",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "660fcf4e263e186eab0c3c1e666f2710a6cb303044f08326b2cee5b49e3367c0"
+      "sha256": "e3c6a86a5c566cbba1adde27ea6b26c8fb83269ee387144037dfd41f92cde23b"
     },
     {
       "id": "2x2-V12",
@@ -458,7 +458,7 @@
       "id": "2x2-V12",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "c4453b7226a983b52c167f9d3654370d7559800670be9f3f31b08028ed987717"
+      "sha256": "444218bec43e2b655f271c48b233542fd5e23e419c9f1d3e5b0a675a8eef9363"
     },
     {
       "id": "2x2-V12",
@@ -476,7 +476,7 @@
       "id": "2x2-V12",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "3a5408b3864dc0b015a54f8bfa736bf9c26b676c66a718c6c0bc73c195fda005"
+      "sha256": "bdc55b1c58a38d426d62ef4beaeeee071bda66375b0d6fe1e6e3d20bf8b0b0e2"
     },
     {
       "id": "2x2-V13",
@@ -494,7 +494,7 @@
       "id": "2x2-V13",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "a3b52c246c9b1ae20aaf8f7d16d67f8e4242de6616838adb10aff1fdad897c6b"
+      "sha256": "2e8504c591a6f819d0475a63ca52d4f703fec2800cd5f4d9626abcfd9e67dfe2"
     },
     {
       "id": "2x2-V13",
@@ -512,7 +512,7 @@
       "id": "2x2-V13",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "5c22a44143c75f893ff9515476a9541d3d0627331032745f1ccb2416b7bd5cd8"
+      "sha256": "dc325a87ff0acb7fb5ca896f3f46ca3ec36dc4c4452e04fc1c688f12cf78f943"
     },
     {
       "id": "2x2-V14",
@@ -530,7 +530,7 @@
       "id": "2x2-V14",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "78d994514525b46d9f1a686ad0c0e5a2c496930d26fef0a432c9c5e70b58732f"
+      "sha256": "7768dcf8dcab54a38b92d4765e2dc9fe5ca5ccb3cc667488c398c0220860f30a"
     },
     {
       "id": "2x2-V14",
@@ -548,7 +548,7 @@
       "id": "2x2-V14",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "a6698897aedec141597ff7a2a7c1c43ca41c9b220b06488bda82e6d994f2d9db"
+      "sha256": "1f6c53b3e8bc77088daa41089a9edd8cc508b9a5897591751ee6df4071b6e636"
     },
     {
       "id": "2x4-V00",
@@ -566,7 +566,7 @@
       "id": "2x4-V00",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "050f28c86f083a82fbff90f92e647715a4c92a7d432107e1323068cedc268a74"
+      "sha256": "de432a27dfe2c938304edc45a742d354c93a9ed86dbb2c7851e1cc6bb89578dc"
     },
     {
       "id": "2x4-V00",
@@ -584,7 +584,7 @@
       "id": "2x4-V00",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "564da0d6fabb4bacd6bbf05e98ae6ebb872c86f119389d175d3b7baf0aa2bdd1"
+      "sha256": "f7e26f2e4249858ab4b2ff68884f3b34cc3b9b2007b528919b44d35e2648f3c8"
     },
     {
       "id": "2x4-V01",
@@ -602,7 +602,7 @@
       "id": "2x4-V01",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "44a2761813adbfd883fa1337b15b4cd8dfb3e1e344549ebcd1895e21a2dbed0e"
+      "sha256": "20215dcda47c429143c562470c107beb4c9ebe15e172b6b96edbbd4737cf3c36"
     },
     {
       "id": "2x4-V01",
@@ -620,7 +620,7 @@
       "id": "2x4-V01",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "b18a3c689de04d33d8a022f10605407d2509aec708b6da0da1819d56c81901a8"
+      "sha256": "603dda0a102c93195de23f0b0a557ce01c3e13066d4b7bba213fba1ccecdba62"
     },
     {
       "id": "2x4-V02",
@@ -638,7 +638,7 @@
       "id": "2x4-V02",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "8fa5d607be257495b629e3a39c08c4a6bdea747f6d6d720cc21f5bafb9af5bcc"
+      "sha256": "77dcb9082eb232fba40be1864e067785a545a6b2e48035980f71d479bae286a5"
     },
     {
       "id": "2x4-V02",
@@ -656,7 +656,7 @@
       "id": "2x4-V02",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "01a8f670ee4e5e06c1488b914278d798f87a26ec143da9291c83abbe54ad554f"
+      "sha256": "c5d3f94af7e0b468270082fe29ffaa68423c7a51adc2ae61ac3be64e4524ed40"
     },
     {
       "id": "2x4-V03",
@@ -674,7 +674,7 @@
       "id": "2x4-V03",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "39b119b4ed800d52c93d44fc30ecce374232026f73f43c3093c8d41ac8af9837"
+      "sha256": "fd5c3a19ba5c84ffeb8e49f0cc6197ce5dc09ae3f5e379ccff67519f5f190e00"
     },
     {
       "id": "2x4-V03",
@@ -692,7 +692,7 @@
       "id": "2x4-V03",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "83a268809ddca9f818ff1e6db2f511fcaca0a2cf1b79a5f04783878a11d51fa4"
+      "sha256": "1e896788717bdf21caf627a1972a135e574a248974d9a1770517779b4d493a94"
     },
     {
       "id": "2x4-V04",
@@ -710,7 +710,7 @@
       "id": "2x4-V04",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "c71622bc1984f642ae44932eaf5731ae300056f9e655400612f7d0831b636dcc"
+      "sha256": "02fe78bd55569487e714ab4ae0e3faeeb02da9304080f98dfbd733efd5192c76"
     },
     {
       "id": "2x4-V04",
@@ -728,7 +728,7 @@
       "id": "2x4-V04",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "c4902d2a5162f3b7b530d4cb9eb2affacc5a1c69d8aa20215780cc8454bd4b81"
+      "sha256": "1809ce6125b0a1bdad182ce8438e6ba690c14cd221c65022abe6aee68aacdc9b"
     },
     {
       "id": "2x4-V05",
@@ -746,7 +746,7 @@
       "id": "2x4-V05",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "34bd9c1567576481897f027e25d524ae7eeff3b960536753306143af3cf78f77"
+      "sha256": "a093daf3a94ab297737cdae54f2a6aa43e06b702ec37deb77b02ed976b04cd17"
     },
     {
       "id": "2x4-V05",
@@ -764,7 +764,7 @@
       "id": "2x4-V05",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "ef2986526515a1268bab7d63939fe13a12b2b3c2ed5681be45ee9a1f0c373e47"
+      "sha256": "596ec4564ca7daa1164b30ae451007785c792886881ab3cf74f6ce9e3b510242"
     },
     {
       "id": "2x4-V06",
@@ -782,7 +782,7 @@
       "id": "2x4-V06",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "cbe7f6985521a7350ab7727c07ff7d804236711800c6ab61f124f006029a8c64"
+      "sha256": "f4387a216a0197785563a9c9acce540fa4b06a8d4c2685d4de4c918d0e96d20e"
     },
     {
       "id": "2x4-V06",
@@ -800,7 +800,7 @@
       "id": "2x4-V06",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "78350cb11dfc3677d9d1f0d0505cd1edc90d31a70826b9b4b3230463e3f5ab69"
+      "sha256": "b8abf6709307e98a57c972785ac69144d55c8494315df5b53e42e22893ff7cd7"
     },
     {
       "id": "2x4-V07",
@@ -818,7 +818,7 @@
       "id": "2x4-V07",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "6fdff4d17e25474322206fc968aed86e55c359d1e32e591d2c75f09048117e4b"
+      "sha256": "0f410b94338e695ecc7ede7d5c1633fba44149434dabd89cf6ffaf0536eb31d8"
     },
     {
       "id": "2x4-V07",
@@ -836,7 +836,7 @@
       "id": "2x4-V07",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "8677969e05aeda2c5211cc8955e564f29e6d166aa5b4fe3a62f2ba6856e0fbe8"
+      "sha256": "a8411374bfbdf2ec6b92746ebb9129d5f992a102889a7ef4e4322f242f4c960f"
     },
     {
       "id": "2x4-V08",
@@ -854,7 +854,7 @@
       "id": "2x4-V08",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "8819f59ad67c79d43ae4cbb881690e0126de72a62a669ada6ad3dd439c6e6fe5"
+      "sha256": "afb309b3291591ad2f7001f82f7a161484a97a2e6943cca21d7cef5de826a86c"
     },
     {
       "id": "2x4-V08",
@@ -872,7 +872,7 @@
       "id": "2x4-V08",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "e2bfa9afb53f981203ba57557ba5598b4ee30d1f0cca05a67b5fd90b696410c4"
+      "sha256": "43e4d654076554463e20c36d9972628bf8b3d260c9f4d8ea7bd4edf99c97dd3d"
     },
     {
       "id": "2x4-V09",
@@ -890,7 +890,7 @@
       "id": "2x4-V09",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "dd01999ce3c9f80e98a69d58c75c216659029f3499a3a0ddf1b072ed5c3193b8"
+      "sha256": "0f7ac80b1b85f154fab613e90281d3ca93ccf48144ca312a8239ed64ef42f2ff"
     },
     {
       "id": "2x4-V09",
@@ -908,7 +908,7 @@
       "id": "2x4-V09",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "e3668ff1d0ff6c7a36120df571c8e209e825a71dfeb2d6375900eaae7deaacb1"
+      "sha256": "9a62e4a87113cb3cce7f73bdac02a5989810e806b311086ba87d1493e780baf1"
     },
     {
       "id": "2x4-V10",
@@ -926,7 +926,7 @@
       "id": "2x4-V10",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "52899282b478a4cd8654c1e0232dca19d3911d14e756ff7c9ab35458fbf5934a"
+      "sha256": "4028ad8f88a363a5df6fcc826fc5b999c4c438fd52b71de149a81315360c00ae"
     },
     {
       "id": "2x4-V10",
@@ -944,7 +944,7 @@
       "id": "2x4-V10",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "c87317ff3c730bc0dcc571869eed78063a7020ee6d3ca3df5f5f1ebb2e6f20f8"
+      "sha256": "21ab5b9323bf650df6039172d9b55250cde4f659368e3b7b056136334dd84dc8"
     },
     {
       "id": "2x4-V11",
@@ -962,7 +962,7 @@
       "id": "2x4-V11",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "d3278ed5e4b38e36763022b1a28c05d057a078dc559c9201b9d69ced828f8ea3"
+      "sha256": "37283e24a95d0fc2d1278761ead767cd9e147e6ec85a28722bae958bc845a2ea"
     },
     {
       "id": "2x4-V11",
@@ -980,7 +980,7 @@
       "id": "2x4-V11",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "f42b9a852c634d02ceaf74727d65990f3fa2d8e4b296dea6bd158a6f798d8774"
+      "sha256": "90ae8b3b1a14f753f8abdb6c9fd38cee809611d41990ff78c70f5fd6877f8a6c"
     },
     {
       "id": "2x4-V12",
@@ -998,7 +998,7 @@
       "id": "2x4-V12",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "ff94a2fed300d0161257404de48d10654e1e8862a82e9ebb11c6f2f874e93de6"
+      "sha256": "55bff2a1ca513e1639e38fda56c54cb1d1049d65e7807cc20996c37f11a41fd9"
     },
     {
       "id": "2x4-V12",
@@ -1016,7 +1016,7 @@
       "id": "2x4-V12",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "f5a1414bca05d238da2a9a33bb7eaa32f66e028fb7674188e50f359720bc633e"
+      "sha256": "402d820dbb11e9ecc398dc786ee43bc7947ea8d460c7dcc6e9062ddf9331e0e2"
     },
     {
       "id": "2x4-V13",
@@ -1034,7 +1034,7 @@
       "id": "2x4-V13",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "85c636ad148ce70722db489d4b200874e58483253b45bb6d2036f1aaa0aea196"
+      "sha256": "98eafc4a53cc66fc5abf04644bfc412a2ecec1e1be462f50046302657f0998b1"
     },
     {
       "id": "2x4-V13",
@@ -1052,7 +1052,7 @@
       "id": "2x4-V13",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "723ba86e271a96c5b325b23bb6169cf82161643513b9a11b1133b9277d977855"
+      "sha256": "33adba233c8ba1e2298e53a24a3f53b4332968a0e1791fbd0bf0800575658e6e"
     },
     {
       "id": "2x4-V14",
@@ -1070,7 +1070,7 @@
       "id": "2x4-V14",
       "appVersion": "11.7.5.205",
       "mode": "repair",
-      "sha256": "2f8b85a67c12a635f88263e269c8bc57f58562e39a96a9d2d75246f2120309c6"
+      "sha256": "0887e36e6ebf98a58d4199c264e027671b9aab9402a827175c03875323ffbe1e"
     },
     {
       "id": "2x4-V14",
@@ -1088,7 +1088,8 @@
       "id": "2x4-V14",
       "appVersion": "11.7.7.300",
       "mode": "repair",
-      "sha256": "8bda455daf659112650d0539718b63a1e9672b35dbb0959f461da4920f31ce2e"
+      "sha256": "e064409e88fc239d61521eb2247d73ca75d87b3ec4af15df5fc9f9e62e35b18e"
     }
-  ]
+  ],
+  "revisionReason": "2026-09-28 失败用例修复：细化结构化 repair 提示，保留创建和编辑正文基线"
 }

@@ -340,7 +340,8 @@ def test_w9_allows_battery_percentage_formatted_hero(font_size: int, height: int
             '["earphone","Column",{"width":138,"height":134,"padding":12},["earphoneContent"]]',
             '["earphoneContent","Column",{"width":114,"layoutWeight":1,'
             '"justifyContent":"center"},["status"]]',
-            '["status","Text",{"content":{"path":"/data/earphone/isConnected"},'
+            '["status","Text",{"content":"{{ ${/data/earphone/isConnected} '
+            '? \'已连接\' : \'未连接\' }}",'
             '"width":114,"fontSize":14,"maxLines":1}]',
             '["/data/phoneBattery/batterySOCText","68%"]',
             '["/data/earphone/isConnected",true]',
@@ -514,6 +515,39 @@ def test_countdown_with_action_rejects_centered_value_row() -> None:
             task_spec=task,
             card_spec={"suggestSize": "2x2"},
         )
+
+
+@pytest.mark.parametrize("centered", [False, True])
+def test_countdown_with_only_value_and_action_keeps_v08_contract(centered: bool) -> None:
+    """Q028：没有开始时间时不能同时要求 V08 左对齐与通用 Hero 居中。"""
+    _, original_task, source = next(item for item in EXAMPLES if "2x2-V08" in item[0])
+    task = deepcopy(original_task)
+    task["userQuery"] = "显示马拉松倒计时，点击打开闹钟。"
+    action = {"call": "openAlarm", "args": {}}
+    task["eventCandidates"] = [action]
+    task["dataModelSchema"]["data"].pop("calendar")
+    rows = []
+    for line in source.splitlines():
+        row = json.loads(line)
+        if row[0] == "start_time" or row[0].startswith("/data/calendar/"):
+            continue
+        if row[0] == "title_text":
+            row[2]["content"] = "马拉松"
+        elif row[0] == "value_group":
+            row[3] = ["value_row"]
+            row[2]["alignItems"] = "center" if centered else "start"
+        elif row[0] == "value_row":
+            row[2]["justifyContent"] = "center" if centered else "start"
+        elif row[0] == "action":
+            row[2]["onClick"] = [action]
+            row[2]["label"] = "打开闹钟"
+        rows.append(row)
+    changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    if centered:
+        with pytest.raises(CompactDslValidationError, match="left-align"):
+            validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
+    else:
+        validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
 
 
 @pytest.mark.parametrize(

@@ -14,6 +14,9 @@ def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> Non
     assert "TaskSpec 是值语义的唯一依据" in REPAIR_SYSTEM_PROMPT
     assert "已经包含单位的" in REPAIR_SYSTEM_PROMPT
     assert "不得追加或拆出单位" in REPAIR_SYSTEM_PROMPT
+    assert "放进同一个 Row 不会减少节点数" in REPAIR_SYSTEM_PROMPT
+    assert "把原来独立的 header/title 移入 content" in REPAIR_SYSTEM_PROMPT
+    assert "先固定两个动作槽" in REPAIR_SYSTEM_PROMPT
 
 
 def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None:
