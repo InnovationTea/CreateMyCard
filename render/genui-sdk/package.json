@@ -1,0 +1,28 @@
+{
+  "name": "genui-sdk",
+  "private": true,
+  "workspaces": [
+    "prompt",
+    "parser",
+    "graph",
+    "llm-client",
+    "components",
+    "interactions",
+    "renderer",
+    "test-renderer"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test:llm": "npm run test --workspace=llm-client",
+    "test:parser": "npm run test --workspace=parser",
+    "test:graph": "npm run test --workspace=graph",
+    "test:v09": "npm run test:v09 --workspace=parser"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^18.3.28",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

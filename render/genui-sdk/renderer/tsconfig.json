@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@genui-sdk/graph": ["../graph/dist/index.d.ts"],
+      "@genui-sdk/components": ["../components/dist/index.d.ts"],
+      "@genui-sdk/interactions": ["../interactions/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

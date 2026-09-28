@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "prompt/src/**/*.ts",
+    "parser/src/**/*.ts",
+    "graph/src/**/*.ts",
+    "llm-client/src/**/*.ts",
+    "components/src/**/*.ts",
+    "components/src/**/*.tsx",
+    "renderer/src/**/*.ts",
+    "renderer/src/**/*.tsx",
+    "*/test.ts"
+  ],
+  "exclude": ["**/node_modules/**", "**/dist/**", "**/tsup.config.ts"]
+}

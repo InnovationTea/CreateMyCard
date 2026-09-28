@@ -1,0 +1,40 @@
+# Dependencies (any depth)
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+*.log
+.cache/
+.turbo/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local archives and OS metadata
+*.zip
+*.7z
+*.tar.gz
+.DS_Store
+__MACOSX/
+._*
+Thumbs.db
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Local notes (not for repo)
+todo.md
+
+# Reference assets (optional local)
+
+# Output
+genui-sdk/test-renderer/output

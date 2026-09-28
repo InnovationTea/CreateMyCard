@@ -1,0 +1,28 @@
+{
+  "name": "@genui-sdk/parser",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "tsx test.ts",
+    "test:parser": "tsx test.ts",
+    "test:compact": "tsx test-compact.ts",
+    "test:v09": "tsx test-v09.ts"
+  },
+  "devDependencies": {
+    "tsup": "*",
+    "typescript": "*",
+    "@genui-sdk/graph": "*",
+    "@genui-sdk/llm-client": "*"
+  }
+}

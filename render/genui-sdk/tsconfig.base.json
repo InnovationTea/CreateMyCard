@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@genui-sdk/prompt": ["./prompt/src/index.ts"],
+      "@genui-sdk/parser": ["./parser/src/index.ts"],
+      "@genui-sdk/graph": ["./graph/src/index.ts"],
+      "@genui-sdk/llm-client": ["./llm-client/src/index.ts"],
+      "@genui-sdk/components": ["./components/src/index.ts"],
+      "@genui-sdk/interactions": ["./interactions/src/index.ts"],
+      "@genui-sdk/renderer": ["./renderer/src/index.ts"]
+    }
+  }
+}
