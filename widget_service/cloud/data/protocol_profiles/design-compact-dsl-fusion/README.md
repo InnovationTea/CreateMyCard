@@ -28,9 +28,8 @@
 | `repair.md` | 反馈定位、共同根因、最小修复及子树重算 | 创建约束继承 |
 | `edit.md` | 编辑包装与稳定性规则 | 原始 DSL 编辑 |
 | `argument_repair.md` | 参数 JSON 结构恢复 | 不补造业务值 |
-| `fewshots/2x2/2x2-V00.md` 至 `2x2-V14.md` | 15 个独立完整输入→输出案例 | 每例校验、转换 |
-| `fewshots/2x4/2x4-V00.md` 至 `2x4-V14.md` | 15 个独立完整输入→输出案例 | 每例校验、转换 |
-| `fewshots/2x2/preamble.md`、`fewshots/2x4/preamble.md` | 原尺寸案例共用说明 | 不丢失前置覆盖 |
+| `fewshots/2x2.md` | 小卡共用前言与 V00–V14 全部 15 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
+| `fewshots/2x4.md` | 宽卡共用前言与 V00–V14 全部 15 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
 | `fewshots/repair/` | 修复案例维护入口；本步不增加在线 few-shot | 先验证再启用 |
 | `generated/*.md` | 6 份可复现拼接产物；禁止人工修改 | `--check` |
 
@@ -46,6 +45,8 @@ python -m pytest tests/test_compact_prompt_bundle.py -q
 
 `manifest.yaml` 使用 YAML 1.2 的 JSON 子集，由标准库解析，不新增部署依赖。
 `products` 的数组顺序是唯一拼接顺序，引用格式为 `文件#片段`。
+每种尺寸的 Few-shot 只维护一个文档，前言使用 `preamble`，案例使用 `example-v00` 至
+`example-v14` 片段；manifest 保留逐案例索引，构建器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
 同一模块可有多个片段，构建时回到原来的优先级位置，避免改变前置覆盖与原章节裁剪。

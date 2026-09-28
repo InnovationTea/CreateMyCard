@@ -11,7 +11,8 @@
 
 ## 验证方法与结果
 
-测试环境：Python 3.12，独立测试 venv；未调用线上生成模型。
+测试环境：Python 3.12，独立测试 venv；未调用线上生成模型。下表为首次模块化时的验证记录，
+后续 Few-shot 合并的复验结果单独记录在下一节，不把历史全量结果当作本次复跑结果。
 
 | 验证 | 结果 |
 |---|---|
@@ -73,6 +74,34 @@ git diff --check
 本次没有进行线上随机模型生成质量测试或真实端侧截图验收。等价输入和确定性转换回归证明拆分没有
 改变这些受测链路，不能代替后续规则变化的端侧视觉验收。
 
+## Few-shot 按尺寸合并（2026-09-28）
+
+每种尺寸将共用前言与 V00–V14 全部 15 个案例合并到一个维护文档；保留逐案例片段、原编号、
+原内容和原顺序，删除原 30 个案例文件和 2 个前言文件，可从 Git 历史恢复。构建器按索引对应的
+具体片段检查输入/输出，避免同文档内其它完整案例掩盖单个案例缺失。
+
+本次修改文件及用途（提示词源路径均相对 `design-compact-dsl-fusion/prompt_source/`）：
+
+| 文件 | 用途 |
+|---|---|
+| `fewshots/2x2.md` | 合并原 `fewshots/2x2/preamble.md` 及 `2x2-V00.md` 至 `2x2-V14.md` |
+| `fewshots/2x4.md` | 合并原 `fewshots/2x4/preamble.md` 及 `2x4-V00.md` 至 `2x4-V14.md` |
+| `manifest.yaml` | 由 49 个源文件调整为 19 个；保留 30 个案例的片段索引与顺序 |
+| `layouts/2x2.md`、`layouts/2x4.md` | 案例导航改指向合并文档内的案例锚点；不修改入模正文 |
+| 提示词包 `README.md` | 更新维护分工与单文档编辑说明 |
+| `widget_service/scripts/build_compact_prompts.py` | 从对应片段而非整个文件验证单个案例 |
+| `widget_service/tests/test_compact_prompt_bundle.py` | 适配合并源；增加单文档结构、单案例输入/输出/编号损坏回归 |
+| `docs/云侧方案设计.md` | 同步按尺寸合并的维护约定 |
+| `docs/Compact提示词模块化验收.md` | 本次文件清单与复验记录 |
+
+复验结果：
+
+- 迁移/加载/构建测试及全部正式案例转换：242 通过（其中迁移回归 212 项，含新增 8 项）。
+- 从仓库根目录单独运行迁移回归：212 通过。
+- 6 份生成产物与基线文本、180 组完整模型消息摘要全部一致，未更新基线摘要或生成产物。
+- 修改的两个 Python 文件 Ruff、构建器 `--check`、Git 差异空白检查通过。
+- 本次仅合并维护源，未重跑全量服务/模板测试，也未调用线上模型或执行真实端侧截图验收。
+
 ## 修改文件及用途
 
 ### 加载、构建与测试
@@ -104,7 +133,7 @@ git diff --check
 
 - `.gitattributes`：固定 LF，避免 Windows checkout 改写换行导致产物漂移。
 - `README.md`：分工、构建、维护说明不入模、兼容与演进边界。
-- `prompt_source/manifest.yaml`：全部 49 个入模源文件、尺寸范围、片段加载顺序、案例索引。
+- `prompt_source/manifest.yaml`：全部 19 个入模源文件、尺寸范围、片段加载顺序、案例索引。
 - `prompt_source/core.md`：全局输入输出、绑定/数据/事件/资源、视觉参数和禁止检查。
 - `prompt_source/information/common.md`、`information/2x2.md`、`information/2x4.md`：信息归属、取舍及尺寸密度。
 - `prompt_source/components/common.md`、`components/2x2.md`、`components/2x4.md`：组件 Props、绑定与尺寸限制。
@@ -114,9 +143,8 @@ git diff --check
 - `prompt_source/repair.md`：DSL 修复合同。
 - `prompt_source/edit.md`：编辑包装合同。
 - `prompt_source/argument_repair.md`：JSON 参数恢复及其原有案例。
-- `prompt_source/fewshots/2x2/preamble.md` 与 `fewshots/2x4/preamble.md`：保留原尺寸共用说明。
-- `prompt_source/fewshots/2x2/2x2-V00.md` 至 `2x2-V14.md`：15 个各自完整的原小卡案例。
-- `prompt_source/fewshots/2x4/2x4-V00.md` 至 `2x4-V14.md`：15 个各自完整的原宽卡案例。
+- `prompt_source/fewshots/2x2.md`：原小卡共用前言与 V00–V14 全部 15 个完整案例。
+- `prompt_source/fewshots/2x4.md`：原宽卡共用前言与 V00–V14 全部 15 个完整案例。
 - `prompt_source/fewshots/repair/README.md`：修复案例准入；基线没有独立 DSL 修复案例，本步不增加在线案例。
 - `generated/PROMPT.md`、`EDIT_SYSTEM_PROMPT.md`、`REPAIR_SYSTEM_PROMPT.md`、
   `ARGUMENT_REPAIR_SYSTEM_PROMPT.md`、`FEWSHOT_2x2.md`、`FEWSHOT_2x4.md`：6 个自动产物。

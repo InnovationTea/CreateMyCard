@@ -91,11 +91,11 @@ def compile_bundle(bundle: Path = DEFAULT_BUNDLE) -> dict[str, str]:
             declared.add(f"{file}#{name}")
     if declared != used:
         raise ValueError(f"未加载的源片段：{sorted(declared - used)}")
-    _check_fewshots(manifest, source_root, products)
+    _check_fewshots(manifest, sources, products)
     return result
 
 
-def _check_fewshots(manifest: dict, source_root: Path, products: dict) -> None:
+def _check_fewshots(manifest: dict, sources: dict[str, dict[str, str]], products: dict) -> None:
     index = _required(manifest, "fewshots", dict)
     for size in ("2x2", "2x4"):
         entries = _required(index, size, list)
@@ -111,8 +111,13 @@ def _check_fewshots(manifest: dict, source_root: Path, products: dict) -> None:
                 raise ValueError(f"案例编号错误：{identifier}")
             seen.add(identifier)
             expected.append(reference)
-            filename = reference.partition("#")[0]
-            content = _inside(source_root, filename).read_text(encoding="utf-8")
+            filename, separator, fragment = reference.partition("#")
+            source = sources.get(filename)
+            if not separator or source is None:
+                raise ValueError(f"不存在的案例源：{reference}")
+            content = source.get(fragment)
+            if content is None:
+                raise ValueError(f"不存在的案例片段：{reference}")
             if identifier not in content or "```json" not in content or "```genui" not in content:
                 raise ValueError(f"案例缺少完整输入/输出：{identifier}")
         if references[1:] != expected:

@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 import pytest
-from scripts.build_compact_prompts import DEFAULT_BUNDLE, build, compile_bundle
+from scripts.build_compact_prompts import DEFAULT_BUNDLE, FRAGMENT, build, compile_bundle
 
 from config.config import get_settings
 from models.generation import TaskSpec
@@ -45,14 +45,59 @@ def test_generated_files_are_current() -> None:
     assert build(check=True) == []
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_fewshot_source_is_one_document_per_size(size: str) -> None:
+    root = DEFAULT_BUNDLE / "prompt_source"
+    source = root / "fewshots" / f"{size}.md"
+    assert not list((root / "fewshots" / size).rglob("*.md"))
+    fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
+    expected = ["preamble"]
+    expected.extend(f"example-v{index:02d}" for index in range(15))
+    assert list(fragments) == expected
+    manifest = json.loads((root / "manifest.yaml").read_text(encoding="utf-8"))
+    modules = manifest.get("modules")
+    assert isinstance(modules, list)
+    size_sources = []
+    for module in modules:
+        filename = module.get("file")
+        assert isinstance(filename, str)
+        if filename.startswith(f"fewshots/{size}"):
+            size_sources.append(filename)
+    assert size_sources == [f"fewshots/{size}.md"]
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("mutation", ["input", "output", "identifier"])
+def test_merged_fewshot_checks_each_fragment(tmp_path: Path, size: str, mutation: str) -> None:
+    bundle = tmp_path / "bundle"
+    shutil.copytree(DEFAULT_BUNDLE, bundle)
+    source = bundle / "prompt_source/fewshots" / f"{size}.md"
+    original = source.read_text(encoding="utf-8")
+    fragments = dict(FRAGMENT.findall(original))
+    body = fragments.get("example-v00")
+    assert isinstance(body, str)
+    if mutation == "input":
+        broken = body.replace("```json", "```text")
+    elif mutation == "output":
+        broken = body.replace("```genui", "```text")
+    else:
+        broken = body.replace(f"{size}-V00", f"{size}-V99")
+    assert broken != body
+    source.write_text(original.replace(body, broken, 1), encoding="utf-8")
+    with pytest.raises(ValueError, match=f"案例缺少完整输入/输出：{size}-V00"):
+        compile_bundle(bundle)
+
+
 @pytest.mark.parametrize("record", MESSAGE_HASHES)
 def test_actual_model_messages_equal_baseline(record: dict, monkeypatch) -> None:
     monkeypatch.setattr(get_settings(), "CONFIG", {"fusion_ball_min_prd_version": "11.7.7.300"})
     identifier = record.get("id")
     assert isinstance(identifier, str)
     size = identifier.split("-")[0]
-    source = DEFAULT_BUNDLE / "prompt_source/fewshots" / size / f"{identifier}.md"
-    content = source.read_text(encoding="utf-8")
+    source = DEFAULT_BUNDLE / "prompt_source/fewshots" / f"{size}.md"
+    fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
+    content = fragments.get(f"example-{identifier.split('-')[1].lower()}")
+    assert isinstance(content, str)
     task_match = re.search(r"```json\s*\n(.*?)\n```", content, re.S)
     dsl_match = re.search(r"```genui\s*\n(.*?)\n```", content, re.S)
     assert task_match is not None and dsl_match is not None
