@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "8e4b4de4d5774b26e95553c4d54d2749b5e51f596f097ca65c2807cd9c31e1ce",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\",\"/sleepStatus\",\"/totalNapDurationText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+      "key": "ce73682f9e0384bc2b867fb7307dbd1acb9fe0554d21306ffd812a5d45b82c49",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
     },
     {
-      "key": "91fa567dd3b72e56bb5349b0044661ccd1d0b1b84c7dbc811961bdd7dcf74dc2",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
+      "key": "d999d35d5c2446303d1848791baf8a8d43d2ac0522ed6cefb777a0c6cb454798",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\",\"/sleepStatus\",\"/totalNapDurationText\"]},\"allowCalendarViewFallback\":false}"
     }
   ]
 }

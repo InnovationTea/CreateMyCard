@@ -293,7 +293,7 @@
   "layout": "TwoSupportLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C014"
+    "all": "C021"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewStatusSupport@1"

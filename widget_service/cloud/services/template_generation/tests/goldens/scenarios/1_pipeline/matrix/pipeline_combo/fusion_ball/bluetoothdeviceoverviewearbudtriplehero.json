@@ -1018,14 +1018,14 @@
     "rightCharge"
   ],
   "sampleIds": {
-    "absent_caseCharge": "C095",
-    "absent_caseCharge+leftCharge": "C096",
-    "absent_caseCharge+rightCharge": "C097",
-    "absent_leftCharge": "C098",
-    "absent_leftCharge+rightCharge": "C099",
-    "absent_rightCharge": "C100",
-    "all": "C101",
-    "none": "C102"
+    "absent_caseCharge": "C133",
+    "absent_caseCharge+leftCharge": "C134",
+    "absent_caseCharge+rightCharge": "C135",
+    "absent_leftCharge": "C136",
+    "absent_leftCharge+rightCharge": "C137",
+    "absent_rightCharge": "C138",
+    "all": "C139",
+    "none": "C140"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudTripleHero@1"

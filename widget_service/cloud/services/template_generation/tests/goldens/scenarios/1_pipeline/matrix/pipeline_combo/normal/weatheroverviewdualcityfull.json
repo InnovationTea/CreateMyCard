@@ -1464,10 +1464,10 @@
     "secondCity"
   ],
   "sampleIds": {
-    "absent_firstCity": "C332",
-    "absent_secondCity": "C333",
-    "all": "C334",
-    "none": "C335"
+    "absent_firstCity": "C436",
+    "absent_secondCity": "C437",
+    "all": "C438",
+    "none": "C439"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDualCityFull@1"

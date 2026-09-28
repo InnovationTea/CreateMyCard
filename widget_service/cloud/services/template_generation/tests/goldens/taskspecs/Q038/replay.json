@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "05cf35c364bab460e661a68cd1e8ab63e30081250d7ef43530c93bc7575c95b2",
-      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\"}));"
+      "key": "3d7dd57cf803f1662ff6c03fbe254849ce115810e89954a31ed745c72fc2a494",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/nightSleepDurationText\"]},\"action\":[\"event.open.settings.parentControl\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "dd31715676453d2195fd0918d4c9ca8ee624a6ea28d771320e95565719a37b2d",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/nightSleepDurationText\"]},\"action\":[\"event.open.settings.parentControl\"],\"allowCalendarViewFallback\":false}"
+      "key": "5e7f0c390a16da000709134b059a2afee4c5c158acd4a6e63895b826148aef64",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\"}));"
     }
   ]
 }

@@ -60,9 +60,12 @@
   },
   "WideSingleFocusLayout@1": {
     "height": "matchParent",
-    "root": "Stack",
-    "slotIndexes": [],
-    "spreadChildren": true,
+    "root": "Column",
+    "slotIndexes": [
+      0,
+      1
+    ],
+    "spreadChildren": false,
     "width": "matchParent"
   }
 }

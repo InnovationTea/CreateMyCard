@@ -1,3 +1,12 @@
 {
-  "recordings": []
+  "recordings": [
+    {
+      "key": "33ca047d72ad35943b880b82be1c2a90f3481fe4af5a04754c68c99782b1f955",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"BatteryOverviewStatusWideFull@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\", \"temperatureIcon\": \"resources/base/media/heat_generation.svg\", \"healthIcon\": \"resources/base/media/battery_leaf_fill.svg\", \"actionId\": \"event.open.settings.batteryHealth\"}));"
+    },
+    {
+      "key": "6beb6be5985fc00fdd7f44636ebc42a8280643819333b8d5d6eef98d4ace3bbb",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/healthStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batterySOC\"},\"action\":[\"event.open.settings.batteryHealth\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
 }

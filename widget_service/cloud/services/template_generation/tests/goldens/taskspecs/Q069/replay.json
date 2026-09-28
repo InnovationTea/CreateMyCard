@@ -1,16 +1,12 @@
 {
   "recordings": [
     {
-      "key": "726cbb1a75b9a4a4465fc2f32acf9a4b6070c6a70a9c7df18d50612bfc3f67d8",
-      "response": "Template(\"WideHeroCompactLayout@1\", {}, \n  Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), \n  Template(\"GenericMetricOverviewDualCompact@1\", {\"firstTitle\": \"深睡\", \"firstValuePath\": \"/deepSleepDurationText\", \"secondTitle\": \"小睡\", \"secondValuePath\": \"/totalNapDurationText\"})\n);"
+      "key": "78094aecc5e3a495ae367623a17b727e754f62430425ccae4209806dbc51a0e2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/deepSleepDurationText\",\"/totalNapDurationText\",\"/nightSleepDurationText\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "85db5c4f12435d87855bc19c8961c1e251b6a2f4b56a124963ce9abd5d21fe8a",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/deepSleepDurationText\",\"/totalNapDurationText\",\"/nightSleepDurationText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[]}"
-    },
-    {
-      "key": "a1acfd6345908febc551442fd5d240dfedb7972ebb6d0870ae025183b8455dbd",
-      "response": "Template(\"WideHeroCompactLayout@1\", {}, \n  Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), \n  Template(\"GenericMetricOverviewDualCompact@1\", {\"firstTitle\": \"深睡\", \"firstValuePath\": \"/deepSleepDurationText\", \"secondTitle\": \"睡眠分析\", \"secondValuePath\": \"/totalNapDurationText\"})\n);"
+      "key": "a6b5627ce57743ecacc7e035f03c73faec9d4b30bc12b4e3654f6a02e8f8e7c8",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"SleepOverviewScoreDetailWideFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
     }
   ]
 }

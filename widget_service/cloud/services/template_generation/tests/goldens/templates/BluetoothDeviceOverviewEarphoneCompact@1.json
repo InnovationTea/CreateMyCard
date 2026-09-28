@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -72,7 +72,7 @@
             "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
             "id": "template_root_0_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 18,
               "fontWeight": 700,
               "height": 24,
@@ -97,8 +97,8 @@
             "content": "耳机",
             "id": "template_root_0_1_0",
             "styles": {
-              "fontColor": "#991F4595",
-              "fontSize": 12,
+              "fontColor": "#FF456A35",
+              "fontSize": 10,
               "fontWeight": 400
             }
           },
@@ -107,8 +107,8 @@
             "content": "{{ ${/data/earphone/earphoneName} }}",
             "id": "template_root_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
-              "fontSize": 12,
+              "fontColor": "#FF456A35",
+              "fontSize": 10,
               "fontWeight": 400
             }
           }

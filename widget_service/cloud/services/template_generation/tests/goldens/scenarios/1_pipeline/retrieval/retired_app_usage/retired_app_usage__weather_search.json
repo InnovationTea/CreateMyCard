@@ -2,6 +2,8 @@
   "fusion_off": {
     "componentCandidates": {
       "WeatherOverview": [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]
@@ -17,6 +19,8 @@
   "fusion_on": {
     "componentCandidates": {
       "WeatherOverview": [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]

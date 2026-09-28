@@ -103,7 +103,7 @@
             "content": "睡眠监测",
             "id": "root_1_0_0_0_0",
             "styles": {
-              "fontColor": "#991F4799",
+              "fontColor": "#99401F99",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1
@@ -140,7 +140,7 @@
             "content": "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
             "id": "root_1_0_0_2",
             "styles": {
-              "fontColor": "#991F4799",
+              "fontColor": "#99401F99",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1

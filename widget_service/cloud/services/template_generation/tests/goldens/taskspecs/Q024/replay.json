@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "1ad2cc127d7a67f08ebcb12edbc09d70e8bff26876e8c575d8241e6fa1fa48f4",
-      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewReminderDetailsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰\"}));"
+      "key": "a380e9ec2ea8f94958c02716b0e1cda8aee1efd11de0bd6a5a4a39239c60a23c",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/senderName\",\"/events/0/importantEventType\",\"/events/0/remindTime/0\",\"/updatedAt\"]},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":true}"
     },
     {
-      "key": "ab8b230d64f544ff9ba3dbb249d00f3c35f22f77b6122291aca67ef43edbc617",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/senderName\",\"/events/0/importantEventType\",\"/events/0/remindTime/0\",\"/updatedAt\"]},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":false}"
+      "key": "b6036edb1d3df65b8c7430baecf25d206dc8e81d7a4f8984eef73b8febd22235",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewReminderDetailsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰设置\"}));"
     }
   ]
 }

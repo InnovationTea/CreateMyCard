@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -96,7 +96,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 400,
               "layoutWeight": 1,
@@ -175,7 +175,7 @@
             "id": "template_root_0_1_0_0_0",
             "styles": {
               "backgroundColor": "#1A000000",
-              "color": "#991F4595",
+              "color": "#FF456A35",
               "height": 40,
               "strokeWidth": 6,
               "type": "ring",
@@ -203,7 +203,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1,
@@ -250,7 +250,7 @@
             "id": "template_root_0_1_1_0_0",
             "styles": {
               "backgroundColor": "#1A000000",
-              "color": "#991F4595",
+              "color": "#FF456A35",
               "height": 40,
               "strokeWidth": 6,
               "type": "ring",
@@ -278,7 +278,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1,
@@ -296,7 +296,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 11,
               "fontWeight": 400,
               "maxLines": 1,

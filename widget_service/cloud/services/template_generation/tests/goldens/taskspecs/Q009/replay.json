@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "3eb4a0f86aceaca56334cafd13d2c216f2eb44fe1424882791b7b139e8ba0dc1",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarbudsFull@1\", {\"leftEarIcon\": \"resources/base/media/icon_left.svg\", \"rightEarIcon\": \"resources/base/media/icon_right.svg\"}));"
+      "key": "9ed7ea5104032209dd5a9d297f1a7100beb4f9dd5eeef6a150ad22a2508a23d2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/leftBatteryLevel\",\"/leftChargingStatusDesc\",\"/rightBatteryLevel\",\"/rightChargingStatusDesc\"]},\"action\":[],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "5fb225157cc589c8f2f25d279675a918706c9b335ed9b89c9c26254537155ed1",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/leftBatteryLevel\",\"/leftChargingStatusDesc\",\"/rightBatteryLevel\",\"/rightChargingStatusDesc\"]},\"action\":[],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
+      "key": "c1de90c3d739124ce19cf6e55b2d59031033dc83974e0b028b66a4a31a1fb9c7",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarbudsFull@1\", {\"leftEarIcon\": \"resources/base/media/icon_left.svg\", \"rightEarIcon\": \"resources/base/media/icon_right.svg\"}));"
     }
   ]
 }

@@ -87,7 +87,7 @@
             "primaryMatched": [
               "/current/temperatureText"
             ],
-            "template": "WeatherOverviewUpdatedAtFull@1"
+            "template": "WeatherOverviewAlertInfoFull@1"
           }
         ]
       },
@@ -97,8 +97,10 @@
         "slots": [
           {
             "business": "WeatherOverview",
-            "primaryMatched": [],
-            "template": "WeatherOverviewHumidityFull@1"
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewUvColdFull@1"
           }
         ]
       }
@@ -128,7 +130,20 @@
             "primaryMatched": [
               "/current/temperatureText"
             ],
-            "template": "WeatherOverviewUpdatedAtFull@1"
+            "template": "WeatherOverviewAlertInfoFull@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewUvColdFull@1"
           }
         ]
       }
@@ -136,9 +151,9 @@
   },
   "usage_ranking_condition": {
     "orderedPlanTemplates": [
+      "WeatherOverviewConditionFeelsLikeAlertFull@1",
       "WeatherOverviewHumidityFull@1",
-      "WeatherOverviewUvFull@1",
-      "WeatherOverviewFull@1"
+      "WeatherOverviewUvFull@1"
     ]
   }
 }

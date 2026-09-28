@@ -1,11 +1,11 @@
 {
   "recordings": [
     {
-      "key": "b68eeac0df6b43586142e4ad8ab76162f8c5452d2ec626882ce1a079a92a5abd",
+      "key": "4991ccd096e30fe41d144b8371f0f67ef4740e10e5894958d1907fda888d5a36",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyTotalCaloriesText\",\"/dailyDistanceText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/dailySteps\"},\"action\":[],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "e4863f55d11246fcc9f5a60878ad98b6bb6c9c854b6ecb79580ef45d3aa4743a",
+      "key": "c39f264316c3beb87353bb37749a5c69e4c5d973cf26e4c525c3c8e57509e4ee",
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}));"
     }
   ]

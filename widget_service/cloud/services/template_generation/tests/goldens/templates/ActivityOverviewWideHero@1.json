@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFFFF0E6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -116,7 +116,7 @@
             "content": "今日活动",
             "id": "template_root_0_0_0_0_0",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1
@@ -142,7 +142,7 @@
             "content": "{{ ${/data/healthSport/dailySteps} }}",
             "id": "template_root_0_0_0_1_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 30,
               "fontWeight": 700,
               "maxLines": 1
@@ -153,7 +153,7 @@
             "content": "总步数",
             "id": "template_root_0_0_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1
@@ -164,7 +164,7 @@
             "content": "{{ ${/data/healthSport/targetDateText} }}",
             "id": "template_root_0_0_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 10,
               "fontWeight": 400,
               "maxLines": 1
@@ -274,7 +274,7 @@
             "content": "{{ ${/data/healthSport/dailyTotalCaloriesText} }}",
             "id": "template_root_0_1_1_0_0_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 18,
               "fontWeight": 700,
               "maxLines": 1
@@ -285,7 +285,7 @@
             "content": "千卡",
             "id": "template_root_0_1_1_0_0_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 10,
               "fontWeight": 500,
               "maxLines": 1
@@ -296,7 +296,7 @@
             "content": "消耗热量",
             "id": "template_root_0_1_1_0_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1
@@ -374,7 +374,7 @@
             "content": "{{ ${/data/healthSport/dailyDistanceText} }}",
             "id": "template_root_0_1_2_0_0_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 18,
               "fontWeight": 700,
               "maxLines": 1
@@ -385,7 +385,7 @@
             "content": "千里",
             "id": "template_root_0_1_2_0_0_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 10,
               "fontWeight": 500,
               "maxLines": 1
@@ -396,7 +396,7 @@
             "content": "运动距离",
             "id": "template_root_0_1_2_0_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1

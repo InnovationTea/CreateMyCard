@@ -35,9 +35,13 @@ from typing import Any
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.cardplan.models import TemplateDefinition
-from services.template_generation.engine.cardplan.preview_dataset import _set_path
+from services.template_generation.engine.cardplan.preview_dataset import (
+    _TEXT_BY_TEMPLATE_PARAMETER,
+    _set_path,
+)
 from services.template_generation.engine.cardplan.provider_bundle import (
     asset_semantic_tags,
+    parameter_value_kind,
     provider_template_layout_kind,
 )
 from services.template_generation.engine.cardplan.prompt import (
@@ -135,12 +139,38 @@ _ASSET_FIXTURES_BY_BUSINESS = {
             "description": "左右分体耳机本体图标",
             "sceneTags": ["device", "audio"],
         },
+        {
+            "src": "resources/base/media/icon_music.svg",
+            "description": "双音符音乐图标（音乐/歌单/音频内容）",
+            "sceneTags": ["music"],
+        },
     ),
     "HeartRateOverview": (
         {
             "src": "resources/base/media/figure_run.svg",
             "description": "运动心率跑步图标",
             "sceneTags": ["sport", "heart"],
+        },
+    ),
+    "GenericMetricOverview": (
+        {
+            "src": "resources/base/media/figure_run.svg",
+            "description": "运动指标跑步图标",
+            "sceneTags": ["sport"],
+        },
+    ),
+    "CalendarOverview": (
+        {
+            "src": "resources/base/media/calendar_fill.svg",
+            "description": "日程日历图标",
+            "sceneTags": ["calendar", "schedule"],
+        },
+    ),
+    "WeatherOverview": (
+        {
+            "src": "resources/base/media/icon_weather_thermometer.svg",
+            "description": "天气温度温度计图标",
+            "sceneTags": ["weather"],
         },
     ),
 }
@@ -343,6 +373,20 @@ _CONTEXT_FIELD_TYPES_BY_CAPABILITY = {
     },
 }
 
+# 模板级上下文字段：单绑定新模板（仅声明一个字段）不足以让 content_selectors
+# 的事实抽取器产出 facts（睡眠抽取器要求 nightSleepDurationText/totalNapDurationText，
+# 日程抽取器要求首事件 title+dtStart）。仅补齐抽取器下限，不进入
+# candidateOutputFields，不改变「模板 optional 绑定缺席」这一被冻结的维度。
+_TEMPLATE_CONTEXT_FIELD_TYPES: dict[str, dict[str, str]] = {
+    "SleepOverviewScoreCompact@1": {
+        "/nightSleepDurationText": "string",
+    },
+    "ScheduleOverviewReminderCompact@1": {
+        "/events/0/title": "string",
+        "/events/0/dtStart": "string",
+    },
+}
+
 # 双数据源模板（bindingCount=2）的两个 TaskSpec 数据根（与 q034 语料一致）。
 _DUAL_SOURCE_ROOTS = ("/data/weather1", "/data/weather2")
 
@@ -395,6 +439,49 @@ def _schema_and_bindings(
                             ),
                         },
                     )
+            for path, data_type in _TEMPLATE_CONTEXT_FIELD_TYPES.get(
+                definition.wire_id, {}
+            ).items():
+                if root_index == 0:
+                    _set_path(
+                        schema,
+                        f"{domain}{path}",
+                        {
+                            "type": data_type,
+                            "description": "trusted provider field",
+                            "sampleValue": _SAMPLE_BY_PATH.get(
+                                (capability_id, path),
+                                _FALLBACK_SAMPLE_BY_TYPE[data_type],
+                            ),
+                        },
+                    )
+            if not fields and capability_id:
+                # 无声明绑定的 props 驱动泛型模板（GenericMetricOverview* 等）：
+                # 数据路径来自必填 data-path 型 props，取值用预览数据集的同源
+                # 字面量表，据此合成数据根与 candidateOutputFields。
+                prop_schema = definition.variants[0].parameters_schema
+                for name in prop_schema.get("required", ()):
+                    if parameter_value_kind(name, prop_schema.get("properties", {}).get(name, {})) != "data-path":
+                        continue
+                    path = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+                    if not isinstance(path, str) or not path.startswith("/"):
+                        continue
+                    sample = _SAMPLE_BY_PATH.get((capability_id, path))
+                    if isinstance(sample, bool):
+                        data_type = "boolean"
+                    elif isinstance(sample, int):
+                        data_type = "integer"
+                    elif isinstance(sample, float):
+                        data_type = "number"
+                    else:
+                        data_type = "string"
+                    leaf = {
+                        "type": data_type,
+                        "description": "trusted provider field",
+                        "sampleValue": sample if sample is not None else "",
+                    }
+                    _set_path(schema, f"{domain}{path}", leaf)
+                    fields[path.lstrip("/")] = leaf
             bindings.append(
                 CandidateDataBinding(
                     capabilityId=capability_id,
@@ -420,28 +507,33 @@ def _template_asset_params(
     definition: TemplateDefinition,
     asset_pool: tuple[dict[str, Any], ...],
 ) -> dict[str, str]:
-    """只填必填资产参数；可选资产参数留给模板 ``#if`` 条件剪枝。
+    """只填必填资产参数与必填字面量参数；可选参数留给模板 ``#if`` 条件剪枝。
 
     每个必填资产参数按其语义标签要求从资产池中确定性挑选（与引擎
-    ``asset_semantic_tags`` 同源的标签推导）。
+    ``asset_semantic_tags`` 同源的标签推导）；必填非资产参数取预览数据集的
+    同源字面量取值（``_TEXT_BY_TEMPLATE_PARAMETER``）。
     """
     schema = definition.variants[0].parameters_schema
     asset_tags = definition.asset_parameter_semantic_tags
     params: dict[str, str] = {}
     for name in schema.get("required", ()):
-        if name not in asset_tags and not any(
+        if name in asset_tags or any(
             token in name.casefold() for token in ("icon", "image", "asset", "source", "src")
         ):
+            required_tags = set(asset_tags.get(name, ()))
+            for source in asset_pool:
+                if required_tags.issubset(set(asset_semantic_tags(source))):
+                    params[name] = source["src"]
+                    break
+            else:
+                raise ValueError(
+                    f"no asset fixture matches {definition.wire_id}/{name} tags={sorted(required_tags)}"
+                )
+            continue
+        override = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+        if override is None:
             raise ValueError(f"unfilled non-asset required param: {definition.wire_id}/{name}")
-        required_tags = set(asset_tags.get(name, ()))
-        for source in asset_pool:
-            if required_tags.issubset(set(asset_semantic_tags(source))):
-                params[name] = source["src"]
-                break
-        else:
-            raise ValueError(
-                f"no asset fixture matches {definition.wire_id}/{name} tags={sorted(required_tags)}"
-            )
+        params[name] = override
     return params
 
 
@@ -650,6 +742,16 @@ _SKIPPED_TEMPLATES: dict[str, str] = {
         "双业务第二业务无法单独构成 atomic plan（Search: candidates cannot form "
         "a supported atomic plan）；其 DSL 渲染已由 HeroTitle 配对家族 "
         "(pipeline_combo__weatheroverviewherotitle) 冻结"
+    ),
+    "GenericMetricOverviewCompact@1": (
+        "props 驱动泛型模板无声明绑定，检索无法从输出字段覆盖角度选中它；"
+        "上游仅在 2x4 残差组合白名单（GenericMetricOverview + 2x4）路由该业务，"
+        "2x2 确定性 Search 无路由；其 DSL/props 契约由 internal_contracts 与 "
+        "wide_template_planner 用例固化"
+    ),
+    "GenericMetricOverviewDualCompact@1": (
+        "同 GenericMetricOverviewCompact@1：无声明绑定的 props 驱动泛型模板，"
+        "2x2 确定性 Search 无路由"
     ),
 }
 

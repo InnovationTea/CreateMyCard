@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -83,7 +83,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16,
@@ -102,7 +102,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 18,
               "fontWeight": 800,
               "height": 24,
@@ -121,7 +121,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 14,
               "fontWeight": 500,
               "height": 18,

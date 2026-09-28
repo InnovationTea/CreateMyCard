@@ -3,6 +3,10 @@
     "IfBind(\"first\",",
     "IfMissingBind(\"first\","
   ],
+  "elseif__disjunction_first_second": [
+    "IfAnyBind([\"first\",\"second\"],",
+    "IfAllMissingBind([\"first\",\"second\"],"
+  ],
   "elseif__grouped_first_second": [
     "IfAllBind([\"first\",\"second\"],",
     "IfAnyMissingBind([\"first\",\"second\"],"
@@ -22,6 +26,10 @@
   "if__bind_first": [
     "IfBind(\"first\",",
     "IfMissingBind(\"first\","
+  ],
+  "if__disjunction_first_second": [
+    "IfAnyBind([\"first\",\"second\"],",
+    "IfAllMissingBind([\"first\",\"second\"],"
   ],
   "if__grouped_first_second": [
     "IfAllBind([\"first\",\"second\"],",

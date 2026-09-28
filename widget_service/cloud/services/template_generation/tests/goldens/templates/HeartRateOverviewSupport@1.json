@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFFFF0E6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -91,7 +91,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 14,
               "fontWeight": 700,
               "maxLines": 1,
@@ -107,7 +107,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1,
@@ -119,7 +119,7 @@
             "id": "template_root_0_1",
             "src": "resources/base/media/heart_fill.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#9999521F",
               "flexShrink": 0,
               "height": 24,
               "width": 24

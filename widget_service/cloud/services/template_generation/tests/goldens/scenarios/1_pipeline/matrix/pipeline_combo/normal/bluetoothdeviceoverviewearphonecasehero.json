@@ -110,7 +110,7 @@
                 "id": "root_1_0_0_0_0",
                 "styles": {
                   "backgroundColor": "#3364BB5C",
-                  "color": "#FF52991F",
+                  "color": "#FF34651F",
                   "height": 52,
                   "strokeWidth": 6,
                   "type": "ring",
@@ -128,7 +128,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 28,
@@ -163,9 +163,9 @@
                   }
                 ],
                 "styles": {
-                  "backgroundColor": "#1952991F",
+                  "backgroundColor": "#1934651F",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -205,7 +205,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C109"
+    "all": "C147"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1"

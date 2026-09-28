@@ -1,12 +1,8 @@
 {
   "recordings": [
     {
-      "key": "7c4ae776541cdb29ca4f85061a7dd88bc53695b0eaf383119a1229dbcf457cad",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/current/temperatureC\",\"/current/condition\",\"/location/cityCode\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
-    },
-    {
-      "key": "8320fb511df94de5ebc035e42c96d3ffaf58708c2ae332a66dcbc07eb4f57830",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"出差倒计时\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"北京市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\", \"actionId\": \"event.open.weather\"}));"
+      "key": "9817b4b7d9c1c52cd31dd816def71c48e694ff143b087dbd488138ecd93e2b0c",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCountdownDays\": [\n      \"/countdownDays\"\n    ],\n    \"ViewWeather\": [\n      \"/current/condition\",\n      \"/current/temperatureC\",\n      \"/location/cityCode\"\n    ]\n  },\n  \"action\": [\n    \"event.open.weather\"\n  ]\n}"
     }
   ]
 }

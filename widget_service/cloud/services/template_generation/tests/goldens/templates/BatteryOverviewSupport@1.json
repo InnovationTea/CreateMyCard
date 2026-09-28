@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -113,7 +113,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700,
               "maxLines": 1,
@@ -129,7 +129,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1,
@@ -154,8 +154,8 @@
             "component": "Progress",
             "id": "template_root_0_0_1_0",
             "styles": {
-              "backgroundColor": "#330A59F7",
-              "color": "#E61F4595",
+              "backgroundColor": "#3364BB5C",
+              "color": "#FF34651F",
               "height": 40,
               "strokeWidth": 6,
               "type": "ring",
@@ -169,7 +169,7 @@
             "id": "template_root_0_0_1_1",
             "src": "resources/base/media/icon_phone.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#FF456A35",
               "height": 16,
               "objectFit": "contain",
               "width": 16

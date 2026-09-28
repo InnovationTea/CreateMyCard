@@ -95,7 +95,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "margin": {
@@ -362,9 +362,9 @@
                   }
                 ],
                 "styles": {
-                  "backgroundColor": "#1952991F",
+                  "backgroundColor": "#1934651F",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -499,7 +499,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "margin": {
@@ -718,9 +718,9 @@
                   }
                 ],
                 "styles": {
-                  "backgroundColor": "#1952991F",
+                  "backgroundColor": "#1934651F",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -774,14 +774,14 @@
     "rightCharge"
   ],
   "sampleIds": {
-    "absent_caseCharge": "C095",
-    "absent_caseCharge+leftCharge": "C096",
-    "absent_caseCharge+rightCharge": "C097",
-    "absent_leftCharge": "C098",
-    "absent_leftCharge+rightCharge": "C099",
-    "absent_rightCharge": "C100",
-    "all": "C101",
-    "none": "C102"
+    "absent_caseCharge": "C133",
+    "absent_caseCharge+leftCharge": "C134",
+    "absent_caseCharge+rightCharge": "C135",
+    "absent_leftCharge": "C136",
+    "absent_leftCharge+rightCharge": "C137",
+    "absent_rightCharge": "C138",
+    "all": "C139",
+    "none": "C140"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudTripleHero@1"

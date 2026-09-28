@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "476ce8f81dd12b366675e693dd3510227895b44ddb8d6b88654ed7d5f4a77cf2",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/districtName\",\"/daily/4/airQuality\",\"/daily/4/uvIndex\",\"/daily/4/coldLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+      "key": "ffb9cb3e9937122e28fbdae7de5e5f648b5eefb8ea8661c0a415b3f173ff353e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/districtName\",\"/daily/4/airQuality\",\"/daily/4/uvIndex\",\"/daily/4/coldLevel\"]}}"
     }
   ]
 }

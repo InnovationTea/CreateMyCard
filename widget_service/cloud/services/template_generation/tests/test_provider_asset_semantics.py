@@ -192,11 +192,38 @@ def _build_unique_match_repair() -> dict[str, dict[str, Any]]:
         pair = contract.model_copy(update={"allowed_asset_sources": (wrong, expected)})
         original: dict[str, Any] = {parameter: wrong}
         input_before = dict(original)
+        missing = contract.model_copy(update={"allowed_asset_sources": (wrong,)})
+        # BatteryOverviewSupport@1 的 batteryIcon 在 2x4 使能改版后仅允许
+        # icon_phone（phone-device 语义）：范围外资产直接报错，不再修复为
+        # 范围内唯一匹配；其余槽位保持「误用资产修复到唯一匹配」行为。
+        if (template_id, parameter) == ("BatteryOverviewSupport@1", "batteryIcon"):
+            payload[f"{template_id}.{parameter}"] = {
+                "input": input_before,
+                "repaired": _capture(
+                    lambda d=definition, o=dict(original), p=pair:
+                        _normalize_template_asset_params(
+                            o, d.asset_parameter_semantic_tags, p,
+                            required_parameters=frozenset(),
+                        )
+                ),
+                "inputPreserved": dict(original),
+                "emptyInput": _normalize_template_asset_params(
+                    {}, definition.asset_parameter_semantic_tags, pair,
+                    required_parameters=frozenset(),
+                ),
+                "missingMatch": _capture(
+                    lambda d=definition, o=dict(original), m=missing:
+                        _normalize_template_asset_params(
+                            o, d.asset_parameter_semantic_tags, m,
+                            required_parameters=frozenset(),
+                        )
+                ),
+            }
+            continue
         result = _normalize_template_asset_params(
             original, definition.asset_parameter_semantic_tags, pair,
             required_parameters=frozenset(),
         )
-        missing = contract.model_copy(update={"allowed_asset_sources": (wrong,)})
         payload[f"{template_id}.{parameter}"] = {
             "input": input_before,
             "repaired": result,

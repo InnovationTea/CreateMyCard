@@ -14,7 +14,8 @@
         "candidateOutputFields": [
           "/current/condition",
           "/current/feelsLikeC",
-          "/current/alertLevel"
+          "/current/alertLevel",
+          "/current/temperatureText"
         ]
       },
       {

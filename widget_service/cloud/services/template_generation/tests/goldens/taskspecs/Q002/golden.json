@@ -249,8 +249,7 @@
             },
             {
               "children": [
-                "root_1_0_0_0",
-                "root_1_0_0_1"
+                "root_1_0_0_0"
               ],
               "component": "Row",
               "id": "root_1_0_0",
@@ -276,18 +275,6 @@
                 "maxLines": 1,
                 "textOverflow": "ellipsis",
                 "width": "matchParent"
-              }
-            },
-            {
-              "component": "Image",
-              "id": "root_1_0_0_1",
-              "src": "resources/base/media/icon_weather_thermometer.svg",
-              "styles": {
-                "fillColor": "#99CCDDFF",
-                "flexShrink": 0,
-                "height": 20,
-                "objectFit": "contain",
-                "width": 20
               }
             },
             {

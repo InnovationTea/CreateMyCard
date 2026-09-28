@@ -93,7 +93,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 18,
               "fontWeight": 700,
               "margin": {
@@ -360,9 +360,9 @@
               }
             ],
             "styles": {
-              "backgroundColor": "#1952991F",
+              "backgroundColor": "#1934651F",
               "borderRadius": 18,
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 500,
               "height": 36,

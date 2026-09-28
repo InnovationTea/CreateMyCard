@@ -255,6 +255,7 @@
               "itemMargin": 8,
               "styles": {
                 "justifyContent": "start",
+                "layoutWeight": 1,
                 "width": "matchParent"
               }
             },
@@ -324,23 +325,11 @@
             },
             {
               "children": [
-                "root_1_0_1_0"
-              ],
-              "component": "Column",
-              "id": "root_1_0_1",
-              "itemMargin": 4,
-              "styles": {
-                "justifyContent": "start",
-                "width": "matchParent"
-              }
-            },
-            {
-              "children": [
-                "root_1_0_1_0_0",
-                "root_1_0_1_0_1"
+                "root_1_0_1_0",
+                "root_1_0_1_1"
               ],
               "component": "Row",
-              "id": "root_1_0_1_0",
+              "id": "root_1_0_1",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "center",
@@ -351,7 +340,7 @@
             {
               "component": "Text",
               "content": "深度睡眠",
-              "id": "root_1_0_1_0_0",
+              "id": "root_1_0_1_0",
               "styles": {
                 "fontColor": "#99D9CCFF",
                 "fontSize": 12,
@@ -363,7 +352,7 @@
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/deepSleepDurationText} }}",
-              "id": "root_1_0_1_0_1",
+              "id": "root_1_0_1_1",
               "styles": {
                 "fontColor": "#E6FFFFFF",
                 "fontSize": 12,

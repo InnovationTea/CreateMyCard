@@ -19,11 +19,24 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FF121259",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
               "justifyContent": "start",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#FF121259",
+                    0
+                  ],
+                  [
+                    "#FF2B65D9",
+                    1
+                  ]
+                ],
+                "direction": "RightBottom"
+              },
               "padding": 12,
               "width": "matchParent"
             }
@@ -103,7 +116,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1,
@@ -139,7 +152,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FFCCDDFF",
               "fontSize": 18,
               "fontWeight": 700,
               "height": 24,
@@ -153,7 +166,7 @@
             "content": "天气预警",
             "id": "template_root_0_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,
@@ -185,7 +198,7 @@
             "content": "{{ '紫外线 ' + ${/data/weather/current/uvIndex} }}",
             "id": "template_root_0_1_0",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,
@@ -199,7 +212,7 @@
             "content": "{{ '空气质量 ' + ${/data/weather/current/airQuality} }}",
             "id": "template_root_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,

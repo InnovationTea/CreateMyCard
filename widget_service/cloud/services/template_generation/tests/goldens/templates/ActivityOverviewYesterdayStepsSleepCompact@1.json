@@ -1,0 +1,192 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFF0E6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 68,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0",
+              "template_root_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#3399521F",
+              "borderRadius": 16,
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "center",
+              "padding": {
+                "bottom": 8,
+                "left": 12,
+                "right": 12,
+                "top": 8
+              },
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "昨日步数",
+            "id": "template_root_0_0_0",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/dailySteps} + '步' }}",
+            "id": "template_root_0_0_1",
+            "styles": {
+              "fontColor": "#FF99521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0",
+              "template_root_0_1_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "昨晚睡眠",
+            "id": "template_root_0_1_0",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/sleepScore} + '分' }}",
+            "id": "template_root_0_1_1",
+            "styles": {
+              "fontColor": "#FF99521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "healthSport": {
+              "dailySteps": 6200,
+              "sleepScore": 68
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "ActivityOverview",
+    "capabilityId": "GetHealthAndSportSummary",
+    "layoutKind": "Compact",
+    "providerId": "com.huawei.health-sport.cli",
+    "size": "2x2"
+  },
+  "templateId": "ActivityOverviewYesterdayStepsSleepCompact@1"
+}

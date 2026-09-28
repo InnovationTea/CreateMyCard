@@ -413,8 +413,8 @@
     "updatedAt"
   ],
   "sampleIds": {
-    "all": "C128",
-    "none": "C129"
+    "all": "C173",
+    "none": "C174"
   },
   "size": "2x2",
   "templateId": "HeartRateOverviewMinMaxFull@1"

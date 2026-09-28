@@ -1350,10 +1350,10 @@
     "workoutType"
   ],
   "sampleIds": {
-    "absent_workoutCalories": "C294",
-    "absent_workoutType": "C295",
-    "all": "C296",
-    "none": "C297"
+    "absent_workoutCalories": "C344",
+    "absent_workoutType": "C345",
+    "all": "C346",
+    "none": "C347"
   },
   "size": "2x2",
   "templateId": "WorkoutOverviewHero@1"

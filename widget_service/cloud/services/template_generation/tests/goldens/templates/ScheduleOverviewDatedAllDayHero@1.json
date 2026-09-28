@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFE5EDFE",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -94,7 +94,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16,
@@ -153,7 +153,7 @@
             "id": "template_root_0_1_0_0",
             "styles": {
               "alignContent": "center",
-              "borderColor": "#E61F4595",
+              "borderColor": "#FF1F4799",
               "borderRadius": 4,
               "borderWidth": 1.5,
               "flexShrink": 0,
@@ -165,7 +165,7 @@
             "component": "Divider",
             "id": "template_root_0_1_0_0_0",
             "styles": {
-              "color": "#E61F4595",
+              "color": "#FF1F4799",
               "height": 0,
               "strokeWidth": 0,
               "vertical": false,
@@ -176,7 +176,7 @@
             "component": "Divider",
             "id": "template_root_0_1_0_1",
             "styles": {
-              "color": "#330A59F7",
+              "color": "#331F4799",
               "height": 34,
               "strokeWidth": 1,
               "vertical": true,
@@ -212,7 +212,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF1F4799",
               "fontSize": 14,
               "fontWeight": 500,
               "height": 20,
@@ -232,7 +232,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,
@@ -249,7 +249,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,

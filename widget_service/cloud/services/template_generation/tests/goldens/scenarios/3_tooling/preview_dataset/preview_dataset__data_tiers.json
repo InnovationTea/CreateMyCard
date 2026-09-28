@@ -28,6 +28,21 @@
     ],
     "secondary": []
   },
+  "BluetoothDeviceOverviewMusicCompact@1": {
+    "optional": [],
+    "primary": [],
+    "secondary": []
+  },
+  "GenericMetricOverviewCompact@1": {
+    "optional": [],
+    "primary": [],
+    "secondary": []
+  },
+  "GenericMetricOverviewDualCompact@1": {
+    "optional": [],
+    "primary": [],
+    "secondary": []
+  },
   "HeartRateOverviewMinMaxFull@1": {
     "optional": [
       "/updatedAt"

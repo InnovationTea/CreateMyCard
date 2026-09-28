@@ -131,7 +131,7 @@
                 "content": "睡眠监测时长",
                 "id": "root_1_0_0_0_0_1",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 10,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -248,7 +248,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C134"
+    "all": "C179"
   },
   "size": "2x2",
   "templateId": "SleepOverviewCompact@1"

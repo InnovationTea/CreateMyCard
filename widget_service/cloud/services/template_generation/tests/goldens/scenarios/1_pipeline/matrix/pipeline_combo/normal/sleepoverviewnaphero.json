@@ -104,7 +104,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -301,7 +301,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -499,7 +499,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -550,7 +550,7 @@
                 "content": "睡眠时段",
                 "id": "root_1_0_0_2_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -561,7 +561,7 @@
                 "content": "{{ ${/data/healthSport/fallAsleepTimeText} + '-' + ${/data/healthSport/wakeupTimeText} }}",
                 "id": "root_1_0_0_2_1",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -733,7 +733,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -833,10 +833,10 @@
     "startTime"
   ],
   "sampleIds": {
-    "absent_endTime": "C283",
-    "absent_startTime": "C284",
-    "all": "C285",
-    "none": "C286"
+    "absent_endTime": "C328",
+    "absent_startTime": "C329",
+    "all": "C330",
+    "none": "C331"
   },
   "size": "2x2",
   "templateId": "SleepOverviewNapHero@1"

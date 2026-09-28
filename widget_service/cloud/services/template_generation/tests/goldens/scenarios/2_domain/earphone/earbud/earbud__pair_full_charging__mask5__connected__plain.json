@@ -97,7 +97,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 18,
@@ -114,7 +114,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 18,
               "fontWeight": 700,
               "height": 26,

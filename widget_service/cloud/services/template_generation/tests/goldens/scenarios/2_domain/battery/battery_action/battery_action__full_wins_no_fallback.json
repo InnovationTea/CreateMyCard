@@ -2,7 +2,8 @@
   "candidates": [
     "BatteryOverviewChargingProgressHero@1",
     "BatteryOverviewFull@1",
-    "BatteryOverviewSupport@1"
+    "BatteryOverviewSupport@1",
+    "BatteryOverviewSupportHero@1"
   ],
   "fallbackApplied": false,
   "plans": [

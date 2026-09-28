@@ -24,6 +24,19 @@
               "clip": true,
               "height": "matchParent",
               "justifyContent": "start",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#1AF9A01E",
+                    0
+                  ],
+                  [
+                    "#00FFFFFF",
+                    1
+                  ]
+                ],
+                "direction": "Bottom"
+              },
               "padding": 12,
               "width": "matchParent"
             }
@@ -76,7 +89,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#E6000000",
               "fontSize": 12,
               "fontWeight": 600,
               "maxLines": 1,
@@ -123,7 +136,7 @@
             "id": "template_root_0_1_0_0",
             "styles": {
               "backgroundColor": "#1A000000",
-              "color": "#E61F4595",
+              "color": "#FFF9A01E",
               "height": 52,
               "strokeWidth": 6,
               "type": "ring",
@@ -137,7 +150,7 @@
             "id": "template_root_0_1_0_1",
             "src": "resources/base/media/externaldrive_fill.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#99000000",
               "height": 24,
               "objectFit": "contain",
               "width": 24
@@ -171,7 +184,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#E6000000",
               "fontSize": 14,
               "fontWeight": 500,
               "maxLines": 1,
@@ -188,7 +201,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#99000000",
               "fontSize": 10,
               "fontWeight": 400,
               "maxLines": 1,

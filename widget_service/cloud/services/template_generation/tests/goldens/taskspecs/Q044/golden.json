@@ -295,20 +295,29 @@
             },
             {
               "children": [
-                "root_1_0_0_0"
+                "root_1_0_0_0",
+                "root_1_0_0_1"
               ],
-              "component": "Column",
+              "component": "Row",
               "id": "root_1_0_0",
-              "itemMargin": 0,
+              "itemMargin": 4,
               "styles": {
-                "alignItems": "start",
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 20,
                 "clip": true,
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
                 "height": "matchParent",
-                "justifyContent": "start",
+                "justifyContent": "spaceBetween",
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
                 "width": "matchParent"
               }
             },
@@ -317,67 +326,9 @@
                 "root_1_0_0_0_0",
                 "root_1_0_0_0_1"
               ],
-              "component": "Row",
-              "id": "root_1_0_0_0",
-              "itemMargin": 8,
-              "styles": {
-                "alignItems": "center",
-                "constraintSize": {
-                  "minHeight": 0,
-                  "minWidth": 0
-                },
-                "height": 36,
-                "justifyContent": "start",
-                "width": "matchParent"
-              }
-            },
-            {
-              "children": [
-                "root_1_0_0_0_0_1",
-                "root_1_0_0_0_0_0"
-              ],
-              "component": "Stack",
-              "id": "root_1_0_0_0_0",
-              "styles": {
-                "alignContent": "center",
-                "flexShrink": 0,
-                "height": 36,
-                "width": 36
-              }
-            },
-            {
-              "component": "Progress",
-              "id": "root_1_0_0_0_0_0",
-              "styles": {
-                "backgroundColor": "#33FFFFFF",
-                "color": "#FFCCFFF6",
-                "height": 36,
-                "strokeWidth": 6,
-                "type": "ring",
-                "width": 36
-              },
-              "total": 100,
-              "value": "{{ ${/data/phoneBattery/batterySOC} }}"
-            },
-            {
-              "component": "Image",
-              "id": "root_1_0_0_0_0_1",
-              "src": "resources/base/media/battery_leaf_fill.svg",
-              "styles": {
-                "fillColor": "#99CCFFF6",
-                "height": 12,
-                "objectFit": "contain",
-                "width": 12
-              }
-            },
-            {
-              "children": [
-                "root_1_0_0_0_1_0",
-                "root_1_0_0_0_1_1"
-              ],
               "component": "Column",
-              "id": "root_1_0_0_0_1",
-              "itemMargin": 4,
+              "id": "root_1_0_0_0",
+              "itemMargin": 2,
               "styles": {
                 "alignItems": "start",
                 "constraintSize": {
@@ -389,15 +340,15 @@
             },
             {
               "component": "Text",
-              "content": "{{ '电量 ' + ${/data/phoneBattery/batterySOC} + '%' }}",
-              "id": "root_1_0_0_0_1_0",
+              "content": "{{ ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "root_1_0_0_0_0",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
                 "fontColor": "#FFCCFFF6",
-                "fontSize": 14,
+                "fontSize": 16,
                 "fontWeight": 700,
                 "maxLines": 1,
                 "textOverflow": "ellipsis"
@@ -406,7 +357,7 @@
             {
               "component": "Text",
               "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
-              "id": "root_1_0_0_0_1_1",
+              "id": "root_1_0_0_0_1",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
@@ -414,9 +365,20 @@
                 },
                 "fontColor": "#99CCFFF6",
                 "fontSize": 12,
-                "fontWeight": 400,
+                "fontWeight": 500,
                 "maxLines": 1,
                 "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
               }
             },
             {

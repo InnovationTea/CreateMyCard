@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "adb7d7efb4432bdda69dd0d5550a430474613809a85e745441ff46d0aab0df8e",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"深圳市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"ScheduleOverviewTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
+      "key": "159f9a4af87fac8353c8671eec7d3204764f0b4513a2cd1281e4858e35acd62c",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/temperatureC\",\"/current/feelsLikeC\",\"/current/condition\"],\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"primaryOutputFieldByCapability\":{\"ViewWeather\":\"/current/feelsLikeC\",\"GetCalendarEvents\":\"/events/0/dtStart\"},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "bb2382a7ed991c24b096ea79d40d500cc151eb92dd62dd372f25bdd51a01544d",
-      "response": "{\"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/current/condition\", \"/current/temperatureC\", \"/current/feelsLikeC\"], \"GetCalendarEvents\": [\"/events/0/dtStart\", \"/events/0/eventLocation\"]}, \"primaryOutputFieldByCapability\": {}, \"action\": [\"event.viewCalendarEvent\"], \"allowCalendarViewFallback\": false}"
+      "key": "5a9d848d23566bf4aecfe02be2fccacb514b1b26ae0a3df7b49cdafd545ac91c",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"深圳市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"ScheduleOverviewTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
     }
   ]
 }

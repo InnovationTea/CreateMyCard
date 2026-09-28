@@ -516,7 +516,7 @@
             {
               "component": "Button",
               "id": "root_1_1_0",
-              "label": "免打扰",
+              "label": "免打扰设置",
               "onClick": [
                 {
                   "args": {

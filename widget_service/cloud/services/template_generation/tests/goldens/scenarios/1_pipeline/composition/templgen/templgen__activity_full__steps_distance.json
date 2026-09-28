@@ -39,7 +39,7 @@
                     "${data.healthSport.dailySteps}",
                     {
                       "fontColor": "#FF401F99",
-                      "fontSize": 38,
+                      "fontSize": 24,
                       "fontWeight": 800,
                       "maxLines": 1
                     }

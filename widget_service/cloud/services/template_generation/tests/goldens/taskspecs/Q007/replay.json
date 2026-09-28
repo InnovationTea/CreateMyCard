@@ -1,11 +1,11 @@
 {
   "recordings": [
     {
-      "key": "aab96ab1a8ad4160f674de7a65e1a4be962dcb9260c257a5e211b931a97643fe",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewLocationDescriptionEndFull@1\", {\"calendarIcon\": \"resources/base/media/icon_schedule.svg\"}));"
+      "key": "27438a784f95ae850e7a9d1a588a2ff59384733ebe66eda4c9d7b34c43d40646",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewLocationDescriptionEndFull@1\", {\"calendarIcon\": \"resources/base/media/icon_schedule.svg\", \"headerLabel\": \"客户交流\"}));"
     },
     {
-      "key": "f73538bf6243b91d9f88f0a596c17b9a7e0b0b9dc5aec3a2598fc20c5805de84",
+      "key": "e06adfff54953e9298fe475418f60f1bc6da453818a608ffe38dc21ab8ab1803",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/eventLocation\",\"/events/0/description\",\"/events/0/dtEnd\"]},\"action\":[],\"allowCalendarViewFallback\":true}"
     }
   ]

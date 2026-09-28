@@ -9,6 +9,8 @@
   "text-only": [
     "BatteryOverviewChargingProgressHero@1",
     "BatteryOverviewFull@1",
-    "BatteryOverviewSupport@1"
+    "BatteryOverviewPhoneTextCompact@1",
+    "BatteryOverviewSupport@1",
+    "BatteryOverviewSupportHero@1"
   ]
 }

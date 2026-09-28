@@ -1,12 +1,16 @@
 {
   "recordings": [
     {
-      "key": "14c726ed7219c992135d94c9cdac7baf822e582033e5d44fd1e02d83dec747d3",
-      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewNextEventLocationFull@1\", {\"calendarIcon\": \"resources/base/media/location_north_up_right_fill.svg\"}), Template(\"ScheduleOverviewReminderCompact@1\", {\"bellIcon\": \"resources/base/media/bell_fill.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\", \"icon\": \"resources/base/media/location_north_up_right_fill.svg\"}));"
+      "key": "51559750cda15235d0ec022394b031cf7f3b1820821e4052d24637730071a248",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewNextEventLocationFull@1\", {\"headerLabel\": \"公司会议\", \"calendarIcon\": \"resources/base/media/icon_meeting.svg\"}), Template(\"ScheduleOverviewReminderCompact@1\", {\"bellIcon\": \"resources/base/media/bell_fill.svg\"}), Template(\"CompactSubtitleAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\", \"subtitle\": \"前往公司\", \"icon\": \"resources/base/media/location_north_up_right_fill.svg\"}));"
     },
     {
-      "key": "8fa1343edb4067db83fc9bb3cb00dd6433e2983dbc1b6bad4e6da1774fbd0515",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/0/remindTime/0\"]},\"action\":[\"event.startNavigate\"]}"
+      "key": "99dbe8e3702966357ec53a2f4809b5e0f2db83bacf1b812f77c731994df0521b",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewNextEventLocationFull@1\", {\"headerLabel\": \"公司会议\", \"calendarIcon\": \"resources/base/media/icon_meeting.svg\"}), Template(\"ScheduleOverviewReminderCompact@1\", {\"bellIcon\": \"resources/base/media/bell_fill.svg\"}), Template(\"CompactSubtitleAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\", \"subtitle\": \"前往公司\", \"icon\": \"resources/base/media/location_north_up_right_fill.svg\"}));"
+    },
+    {
+      "key": "f437627da63061555c0793921d999c8f7244528053d05472217a10f7dc7f19bf",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/0/remindTime/0\"]},\"action\":[\"event.startNavigate\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

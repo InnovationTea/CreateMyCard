@@ -141,7 +141,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400,
                   "height": 14,
@@ -159,7 +159,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "height": 16,
@@ -196,7 +196,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400,
                   "height": 14,
@@ -214,7 +214,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "height": 16,
@@ -251,7 +251,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400,
                   "height": 14,
@@ -270,7 +270,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "height": 16,
@@ -308,7 +308,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400,
                   "height": 14,
@@ -327,7 +327,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "height": 16,
@@ -364,7 +364,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -406,7 +406,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C001"
+    "all": "C003"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewChargingDiagnosticsHero@1"

@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "29b97cc76734a310eb2420627329b63b5bdbdca18ea6e8eca5c7c50be357c68a",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"发布会提醒\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"ScheduleOverviewStartTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
+      "key": "5cf517ac2986278514dd0737e95c1b6c929464fd72b4b472a902f305f69200ed",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":true}"
     },
     {
-      "key": "2c769baa1f3ddf060db9a23030ccfcbe3da705b4ffa44239092f6d3b84ee480e",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":false}"
+      "key": "7cc2e1f367d8d5ce978634fa91d9035727362ab5496699047707ca9f40d4d5f0",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"发布会提醒\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"ScheduleOverviewStartTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
     }
   ]
 }

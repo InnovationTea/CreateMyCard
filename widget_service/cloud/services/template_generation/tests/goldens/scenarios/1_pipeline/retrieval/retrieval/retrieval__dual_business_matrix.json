@@ -24,7 +24,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__fusion__empty": {
@@ -52,7 +57,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__fusion__neither": {
@@ -78,7 +88,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__fusion__temperature": {
@@ -106,7 +121,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__plain__both": {
@@ -134,7 +154,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__plain__condition": {
@@ -162,7 +187,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__plain__empty": {
@@ -190,7 +220,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__plain__neither": {
@@ -216,7 +251,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_default__plain__temperature": {
@@ -244,7 +284,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__fusion__both": {
@@ -272,7 +317,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__fusion__condition": {
@@ -300,7 +350,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__fusion__empty": {
@@ -328,7 +383,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__fusion__neither": {
@@ -354,7 +414,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__fusion__temperature": {
@@ -382,7 +447,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__plain__both": {
@@ -410,7 +480,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__plain__condition": {
@@ -438,7 +513,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__plain__empty": {
@@ -466,7 +546,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__plain__neither": {
@@ -492,7 +577,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_gallery__plain__temperature": {
@@ -520,7 +610,12 @@
     },
     "trustedLiterals": [
       "天气 + 日历日程组合画廊",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__fusion__both": {
@@ -548,7 +643,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__fusion__condition": {
@@ -576,7 +676,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__fusion__empty": {
@@ -604,7 +709,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__fusion__neither": {
@@ -630,7 +740,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__fusion__temperature": {
@@ -658,7 +773,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__plain__both": {
@@ -686,7 +806,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__plain__condition": {
@@ -714,7 +839,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__plain__empty": {
@@ -742,7 +872,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__plain__neither": {
@@ -768,7 +903,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   },
   "title_weather_schedule__plain__temperature": {
@@ -796,7 +936,12 @@
     },
     "trustedLiterals": [
       "天气和日程",
-      "打开详情"
+      "平均心率",
+      "打开详情",
+      "最低心率",
+      "步数",
+      "深睡",
+      "运动时长"
     ]
   }
 }

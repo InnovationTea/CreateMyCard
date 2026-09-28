@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -117,8 +117,8 @@
             "component": "Progress",
             "id": "template_root_0_0_0_0_0",
             "styles": {
-              "backgroundColor": "#330A59F7",
-              "color": "#E61F4595",
+              "backgroundColor": "#3364BB5C",
+              "color": "#FF34651F",
               "height": 52,
               "strokeWidth": 6,
               "type": "ring",
@@ -146,7 +146,7 @@
             "id": "template_root_0_0_0_0_1_0",
             "styles": {
               "flexShrink": 0,
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 13.71,
               "fontWeight": 700
             }
@@ -157,7 +157,7 @@
             "id": "template_root_0_0_0_0_1_1",
             "styles": {
               "flexShrink": 1,
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 9.14,
               "fontWeight": 500,
               "margin": {
@@ -194,7 +194,7 @@
             "id": "template_root_0_0_0_1_0_0",
             "src": "resources/base/media/l_circle_fill.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#FF456A35",
               "height": 16,
               "width": 16
             }
@@ -204,7 +204,7 @@
             "content": "左耳机",
             "id": "template_root_0_0_0_1_0_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700
             }
@@ -214,7 +214,7 @@
             "content": "{{ ${/data/earphone/leftChargingStatusDesc} }}",
             "id": "template_root_0_0_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500
             }
@@ -251,8 +251,8 @@
             "component": "Progress",
             "id": "template_root_0_0_1_0_0",
             "styles": {
-              "backgroundColor": "#330A59F7",
-              "color": "#E61F4595",
+              "backgroundColor": "#3364BB5C",
+              "color": "#FF34651F",
               "height": 52,
               "strokeWidth": 6,
               "type": "ring",
@@ -280,7 +280,7 @@
             "id": "template_root_0_0_1_0_1_0",
             "styles": {
               "flexShrink": 0,
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 13.71,
               "fontWeight": 700
             }
@@ -291,7 +291,7 @@
             "id": "template_root_0_0_1_0_1_1",
             "styles": {
               "flexShrink": 1,
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 9.14,
               "fontWeight": 500,
               "margin": {
@@ -328,7 +328,7 @@
             "id": "template_root_0_0_1_1_0_0",
             "src": "resources/base/media/r_circle_fill.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#FF456A35",
               "height": 16,
               "width": 16
             }
@@ -338,7 +338,7 @@
             "content": "右耳机",
             "id": "template_root_0_0_1_1_0_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700
             }
@@ -348,7 +348,7 @@
             "content": "{{ ${/data/earphone/rightChargingStatusDesc} }}",
             "id": "template_root_0_0_1_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500
             }

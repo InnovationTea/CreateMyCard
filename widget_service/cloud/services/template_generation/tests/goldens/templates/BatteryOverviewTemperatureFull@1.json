@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -115,7 +115,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500,
               "maxLines": 1,
@@ -161,7 +161,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 20,
               "fontWeight": 700,
               "height": 28,
@@ -179,7 +179,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1,
@@ -215,7 +215,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "maxLines": 1,
@@ -232,7 +232,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "maxLines": 1,
