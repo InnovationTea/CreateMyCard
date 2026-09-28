@@ -2,7 +2,7 @@
   "schemaVersion": "v1",
   "ranges": [
     {
-      "registryVersion": "app-11.7.5.205_rom-6.0-assets-r1",
+      "registryVersion": "app-11.7.5.205_rom-6.0",
       "appVersion": {
         "minInclusive": "11.7.5.205",
         "maxExclusive": "11.7.7.330"
@@ -13,7 +13,7 @@
       }
     },
     {
-      "registryVersion": "app-11.7.7.300_rom-7.0-assets-r1",
+      "registryVersion": "app-11.7.7.300_rom-7.0",
       "appVersion": {
         "minInclusive": "11.7.7.330",
         "maxExclusive": "12.0.0.0"        

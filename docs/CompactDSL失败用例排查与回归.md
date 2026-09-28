@@ -8,7 +8,7 @@
 
 | 用例 | 原因 | 本次处理 |
 |---|---|---|
-| Q008/Q026/Q056/Q062 | 原 SVG 在 `resources/base/media` 存在，但云侧漏登记，模型调用前即失败 | 新增 `-assets-r1` 完整快照补回原 ID/路径及原色；不替换图标、不改输入、不开放其它未登记素材 |
+| Q008/Q026/Q056/Q062 | 原 SVG 在 `resources/base/media` 存在，但云侧漏登记，模型调用前即失败 | 按用户要求仅在本地补登记；素材配置、测试及版本路由均不进入本 PR |
 | Q028 | V08 要求左对齐，通用单数字规则又强制居中安全盒 | 专用倒计时路由优先；非倒计时安全盒规则不变 |
 | Q068/Q072/Q088 | 无动作倒计时要求三个直接 Text，通用稀疏 W9 又要求嵌套 content Column | 统一专用规则判定，保留顺序、单位、宽度、分布与高度检查；Q068 同时有日程内容过密 |
 | Q053 | W1 两个大读数以及左侧 Text 过多 | 保留拦截，补充节点计数与普通字号摘要的修复反馈 |
@@ -37,6 +37,8 @@
 - 最新独立批次 `806_fix_r5` 用**原始输入**复测 Q008/Q026/Q056/Q062/Q079，**5/5 生成通过**；
   runner 每条只发一次请求，服务内部仍最多两次修复，不将请求次数解释为模型一次直出。
   原素材文件、原输入及旧能力快照均未修改；删除先前未执行的换图标迁移工具及对应测试。
+  **其中四条图标请求依赖本地未提交的素材配置，不代表干净 PR 检出即可复现。** 本 PR
+  不包含图标注册、能力快照、默认版本或版本路由的任何净改动。
 - 设备 `3DK0224B01003123` 对该批次完成 **5/5 真机截图与裁图**，保存在独立目录
   `Fusion/autoNew/auto/output/806_fix_review_r5`。已逐张查看：Q079 左右耳读数及标签完整，
   连接、仓电量和歌单入口保留；Q008/Q026/Q056 实际使用原彩色温度计，Q062 按原规则
@@ -44,17 +46,19 @@
 - **DSL 通过不等于全量视觉验收**：前一批 Q053 缺少左右读数的对象标签，Q060 充电器
   文本截断，Q072 三日天气长行温度裁切。这些未在本轮顺带优化，保留记录；不宣称 88 张
   卡片均已完整验收，PR 仍为草稿。
-- 相关离线测试 **489 通过**；能力路由/素材相关服务测试 **49 通过 / 1 跳过**。
-  全量测试：本分支 **1273 通过 / 22 失败 / 16 跳过**；
+- 保留本地素材适配时，相关离线测试 **489 通过**；能力路由/素材服务测试
+  **49 通过 / 1 跳过**。本地全量 **1273 通过 / 22 失败 / 16 跳过**；
   在独立干净基线、相同环境和未监听端口复测为 **1242 通过 / 24 失败 / 16 跳过**。
-  本分支失败集合没有新增项；基线中的两个格式化电量测试使用原始 Boolean 文案，已将
+  本地失败集合没有新增项；基线中的两个格式化电量测试使用原始 Boolean 文案，已将
   测试夹具改成原规范要求的条件表达式。其余存量失败涉及旧能力预期、SVG 着色、模板
   环尺寸、模型配置等，不在本补丁中顺手修改，不能宣称全量测试全绿。
+- 从暂存区导出不含任何本地图标适配的独立检出，验证 PR 实际交付内容：相关测试
+  **484 通过**，全量 **1268 通过 / 22 失败 / 16 跳过**，与干净基线相比无新增失败；
+  Ruff、构建同步检查和差异空白检查通过。原本地 10 个图标相关文件的 Git 内容摘要
+  与已实跑版本逐个相同，另复验本地图标及信息完整性测试 **8 通过**。
 - 第一笔改变 repair 文本，快照仅更新 repair 产物及 60 条 repair 消息。后续只修正
   运行时手机＋耳机 W1 提示，另补创建/编辑/修复三种模式的回归，不刷新快照掩盖差异。
   主提示源、全部 few-shot 和已有模型消息快照保持不变，构建源与产物一致。
-- 本轮仓库媒体目录共 154 个文件，原默认注册表 71 项、均有对应文件；缺登记的 83 个文件
-  不自动视为已支持。只恢复这四条请求共同引用的彩色温度计，其余登记留待独立审查。
 
 ## 复现命令
 
@@ -62,7 +66,7 @@
 
 ```powershell
 python scripts/build_compact_prompts.py --check
-python -m pytest tests/test_asset_registry_revision.py tests/test_phone_earphone_information.py tests/test_compact_countdown_backboard.py tests/test_compact_dsl_validator.py tests/test_design_compact_few_shots.py tests/test_compact_prompt_bundle.py tests/test_design_compact_repair_prompt.py tests/test_deepseek_official_http_transport.py -q
+python -m pytest tests/test_phone_earphone_information.py tests/test_compact_countdown_backboard.py tests/test_compact_dsl_validator.py tests/test_design_compact_few_shots.py tests/test_compact_prompt_bundle.py tests/test_design_compact_repair_prompt.py tests/test_deepseek_official_http_transport.py -q
 ```
 
 确需变更提示词基线时，先审查源文件、构建产物，再显式刷新并检查 diff；不要用刷新快照掩盖意外变更：
@@ -79,7 +83,7 @@ python -m scripts.refresh_compact_prompt_baseline --reason "具体的已评审�
 以下为本次提交的全部文件；本地输入、密钥、模型日志、DSL、截图、runCard 复测脚本和 workspace
 产物不提交到仓库。
 
-- `docs/云侧方案设计.md`：专用规则优先级、信息完整性及不可变快照补登记边界。
+- `docs/云侧方案设计.md`：专用规则优先级、信息完整性及错误诊断边界；不改变素材版本策略。
 - `docs/CompactDSL失败用例排查与回归.md`：原因、证据、未闭环项与复现说明。
 - `widget_service/cloud/services/card_validation/compact_dsl_validator.py`：消除两处冲突，细化反馈。
 - `widget_service/cloud/custom/deepseek_official_http_transport.py`：截断分类与安全元数据诊断。
@@ -93,17 +97,7 @@ python -m scripts.refresh_compact_prompt_baseline --reason "具体的已评审�
 - `widget_service/tests/test_design_compact_repair_prompt.py`：结构修复指令断言。
 - `widget_service/tests/test_compact_prompt_bundle.py`：将迁移基线测试名称更新为已评审基线。
 - `widget_service/cloud/services/prompt_builder.py`：修正手机＋耳机填槽提示，恢复左右耳电量。
-- `widget_service/cloud/config/config.py`：默认回退使用新素材快照。
-- `widget_service/cloud/data/capabilities/registry_ranges.json`：原版本区间切换到新快照，边界不变。
-- `widget_service/cloud/data/capabilities/app-11.7.5.205_rom-6.0-assets-r1/asset_capabilities.json`：补原温度计。
-- `widget_service/cloud/data/capabilities/app-11.7.5.205_rom-6.0-assets-r1/data_capabilities.json`：原数据快照原样副本。
-- `widget_service/cloud/data/capabilities/app-11.7.5.205_rom-6.0-assets-r1/event_capabilities.json`：原事件快照原样副本。
-- `widget_service/cloud/data/capabilities/app-11.7.7.300_rom-7.0-assets-r1/asset_capabilities.json`：补原温度计。
-- `widget_service/cloud/data/capabilities/app-11.7.7.300_rom-7.0-assets-r1/data_capabilities.json`：原数据完整副本，仅清理两处行尾空格。
-- `widget_service/cloud/data/capabilities/app-11.7.7.300_rom-7.0-assets-r1/event_capabilities.json`：原事件快照原样副本。
-- `widget_service/tests/test_asset_registry_revision.py`：原图注册、历史兼容、区间/回退及快照内容一致。
 - `widget_service/tests/test_phone_earphone_information.py`：创建/编辑/修复均保留全部所需信息的指令。
-- `widget_service/tests/test_service_units.py`：能力路由预期升级到新快照，业务预期不变。
 
 后续提交另删除 `widget_service/scripts/migrate_card_asset_candidates.py` 和
 `widget_service/tests/test_migrate_card_asset_candidates.py`：均为上一笔新增且尚未使用的迁移方案，
