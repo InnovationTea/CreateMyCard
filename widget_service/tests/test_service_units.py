@@ -244,6 +244,12 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
 
 
+def test_settings_keeps_inline_multiline_prompt_without_path_probe() -> None:
+    prompt = "第一行\n第二行"
+
+    assert Settings.load_prompt_file_alias(prompt) == prompt
+
+
 def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
     system_prompt = "系统提示词" * 10
     prompt = [
@@ -3218,8 +3224,8 @@ def test_design_converter_expands_latest_design_tokens():
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
     assert component_by_id["title"]["styles"]["fontSize"] == 36
-    assert component_by_id["button"]["styles"]["width"] == 30
-    assert component_by_id["button"]["styles"]["borderRadius"] == 15
+    assert component_by_id["button"]["styles"]["width"] == 36
+    assert component_by_id["button"]["styles"]["borderRadius"] == 18
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"

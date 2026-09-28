@@ -17,12 +17,17 @@ PROFILE = (
     Path(__file__).resolve().parents[1]
     / "cloud/data/protocol_profiles/design-compact-dsl-fusion/generated"
 )
+PROMPTS = {
+    "create": (PROFILE / "PROMPT.md").read_text(encoding="utf-8"),
+    "fewshot_2x2": (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8"),
+    "fewshot_2x4": (PROFILE / "FEWSHOT_2x4.md").read_text(encoding="utf-8"),
+}
 
 
 def _examples() -> list[tuple[str, dict, str]]:
     examples = []
     for size in ("2x2", "2x4"):
-        document = (PROFILE / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
+        document = PROMPTS[f"fewshot_{size}"]
         for section in re.split(r"(?m)^## ", document)[1:]:
             task_match = re.search(r"```json\s*\n(.*?)\n```", section, re.S)
             source_match = re.search(r"```genui\s*\n(.*?)\n```", section, re.S)
@@ -78,7 +83,7 @@ def test_few_shot_has_readable_nonempty_content(name: str, task: dict, source: s
 
 def _palette_rows() -> list[list[str]]:
     palettes = []
-    for line in (PROFILE / "PROMPT.md").read_text(encoding="utf-8").splitlines():
+    for line in PROMPTS["create"].splitlines():
         if not line.startswith("|"):
             continue
         colors = re.findall(r"#[A-F0-9]{8}", line)
@@ -156,7 +161,7 @@ def test_explicit_music_pair_preserves_distinct_targets() -> None:
         if len(row) < 3:
             continue
         if row[2].get("icon"):
-            assert row[1] == "ActionUnit"
+            assert row[1] == "PillButton"
         actual.extend(row[2].get("onClick", []))
     assert actual == expected
 
@@ -170,9 +175,81 @@ def test_countdown_with_unrelated_event_keeps_display_only() -> None:
         row = json.loads(line)
         if len(row) < 3:
             continue
-        assert row[1] not in ("Button", "ActionUnit", "Image")
+        assert row[1] not in ("Button", "PillButton", "CircleButton", "Image")
         assert not row[2].get("onClick")
         assert not row[2].get("icon")
+
+
+@pytest.mark.parametrize(
+    ("example_id", "component_id", "component_type"),
+    (
+        ("2x2-V06", "content_area", "EventCard"),
+        ("2x4-V01", "list", "SummaryList"),
+        ("2x4-V02", "main", "ProgressCircleSingle"),
+        ("2x4-V05", "metrics", "TopTextBottomValue"),
+    ),
+)
+def test_second_batch_examples_use_high_level_components(
+    example_id: str,
+    component_id: str,
+    component_type: str,
+) -> None:
+    """第二批正式案例只保留高阶调用，不同时维护旧的手写子树。"""
+    _, _, source = next(item for item in EXAMPLES if example_id in item[0])
+    rows = {row[0]: row for row in map(json.loads, source.splitlines())}
+
+    assert rows[component_id][1] == component_type
+    legacy_ids = {
+        "title_area",
+        "value_group",
+        "timeline",
+        "meeting_texts",
+        "ringArea",
+        "ringStack",
+        "metric0",
+        "item0",
+    }
+    if example_id == "2x2-V01":
+        legacy_ids.discard("title_area")
+    assert not legacy_ids.intersection(rows)
+
+
+def test_timeline_unit_is_removed_from_the_model_component_catalog() -> None:
+    """EventCard 已替代旧组件，目录不得继续把 TimelineUnit 声明为可生成类型。"""
+    catalog = PROMPTS["create"]
+    allowed_section = catalog.split("# 五、组件协议", maxsplit=1)[1]
+    allowed_section = allowed_section.split("## 5.1", maxsplit=1)[0]
+
+    for component_type in (
+        "ProgressCircleSingle",
+        "EventCard",
+        "DataDisplay",
+        "TopTextBottomValue",
+        "SummaryList",
+        "PillButton",
+        "CircleButton",
+    ):
+        assert f"`{component_type}`" in allowed_section
+    assert "`TimelineUnit`" not in allowed_section
+    assert "`ActionUnit`" not in allowed_section
+
+
+def test_split_action_components_are_used_by_formal_examples() -> None:
+    """模型侧只生成拆分后的按钮，历史 ActionUnit 不再进入正式示例。"""
+    two_by_two = PROMPTS["fewshot_2x2"]
+    assert '"PillButton"' in two_by_two
+    assert '"CircleButton"' in two_by_two
+    assert '"ActionUnit"' not in two_by_two
+
+
+def test_explicit_right_anchor_action_selects_circle_button_example() -> None:
+    """明确要求右下图标入口时，选择包含 CircleButton 合同的正式示例。"""
+    _, task, _ = next(item for item in EXAMPLES if "2x2-V15" in item[0])
+
+    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
+
+    assert route == "earphone-status"
+    assert selected == ("2x2-V15",)
 
 
 UX_GRADIENTS = (
@@ -191,7 +268,7 @@ def test_palette_matches_exact_ux_specification() -> None:
 
 def test_default_palette_is_limited_to_blue_purple_and_warm() -> None:
     """默认 root 背景收敛为三套，避免分区卡继续放大高饱和青绿粉。"""
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     deprecated_background_starts = ("#FFCCFCFF", "#FFCCFFDD", "#FFFFCCD5")
     for color in deprecated_background_starts:
         assert color not in prompt
@@ -255,14 +332,17 @@ def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -
     row[2].update(
         {
             "content": "{{ " + "$" + "{/data/weather/current/temperatureC}" + " + '°C' }}",
-            "width": 114,
+            "width": 116,
             "height": 28,
             "fontSize": 20,
         }
     )
     rows = [item for item in rows if item[0] != "weatherUnit"]
     readout = next(item for item in rows if item[0] == "weatherReadout")
+    readout[2]["width"] = 116
     readout[3] = [item for item in readout[3] if item != "weatherUnit"]
+    weather_content = next(item for item in rows if item[0] == "weatherContent")
+    weather_content[2]["width"] = 116
     changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     result = validate_compact_dsl(
         changed_source,
@@ -331,17 +411,17 @@ def test_w9_allows_battery_percentage_formatted_hero(font_size: int, height: int
     source = "\n".join(
         [
             '["root","Row",{"width":"matchParent","height":"matchParent",'
-            '"padding":8,"itemMargin":8},["phone","earphone"]]',
-            '["phone","Column",{"width":138,"height":134,"padding":12},["phoneContent"]]',
-            '["phoneContent","Column",{"width":114,"layoutWeight":1,'
+            '"padding":12,"itemMargin":12},["phone","earphone"]]',
+            '["phone","Column",{"width":132,"height":126,"padding":8},["phoneContent"]]',
+            '["phoneContent","Column",{"width":116,"layoutWeight":1,'
             '"justifyContent":"center"},["value"]]',
             '["value","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},'
-            f'"width":114,"height":{height},"fontSize":{font_size},"maxLines":1}}]',
-            '["earphone","Column",{"width":138,"height":134,"padding":12},["earphoneContent"]]',
-            '["earphoneContent","Column",{"width":114,"layoutWeight":1,'
+            f'"width":116,"height":{height},"fontSize":{font_size},"maxLines":1}}]',
+            '["earphone","Column",{"width":132,"height":126,"padding":8},["earphoneContent"]]',
+            '["earphoneContent","Column",{"width":116,"layoutWeight":1,'
             '"justifyContent":"center"},["status"]]',
-            '["status","Text",{"content":{"path":"/data/earphone/isConnected"},'
-            '"width":114,"fontSize":14,"maxLines":1}]',
+            '["status","Text",{"content":"{{ ${/data/earphone/isConnected} ? '
+            "'已连接' : '未连接' }}\",\"width\":116,\"fontSize\":14,\"maxLines\":1}]",
             '["/data/phoneBattery/batterySOCText","68%"]',
             '["/data/earphone/isConnected",true]',
         ]
@@ -477,7 +557,7 @@ def test_adaptive_primary_percentage_allows_renderer_sized_font() -> None:
 @pytest.mark.parametrize("identifier", ["2x2-V09", "2x2-V10", "2x2-V01"])
 def test_new_examples_reach_their_generation_route(identifier: str) -> None:
     _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
-    document = (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8")
+    document = PROMPTS["fewshot_2x2"]
     selected = PromptBuilder._select_few_shot(document, SimpleNamespace(**task))
     assert identifier in selected
     if identifier == "2x2-V09":
@@ -533,7 +613,7 @@ def test_few_shot_selection_uses_visual_route(
 ) -> None:
     """按业务和主焦点选择少量互补示例，避免 2x4 注入整份示例集。"""
     size = identifier[:3]
-    document = (PROFILE / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
+    document = PROMPTS[f"fewshot_{size}"]
     _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
     selected = PromptBuilder._select_few_shot(document, SimpleNamespace(**task))
     for expected_id in expected_ids:
@@ -586,8 +666,12 @@ def test_custom_color_or_dense_query_does_not_recommend_fusion_ball(query: str) 
 def test_s4_example_uses_available_business_icons() -> None:
     _, _, source = next(item for item in EXAMPLES if "2x2-V05" in item[0])
     rows = [json.loads(line) for line in source.splitlines()]
-    icons = [row for row in rows if len(row) >= 3 and row[1] == "Image"]
-    assert [row[0] for row in icons] == ["phone_icon", "ear_icon"]
+    info_blocks = [row for row in rows if len(row) >= 3 and row[1] == "InfoBlock"]
+    assert [row[0] for row in info_blocks] == ["phone_row", "ear_row"]
+    assert [row[2].get("icon") for row in info_blocks] == [
+        "resources/base/media/phone_fill.svg",
+        "resources/base/media/earphone_case_16644.svg",
+    ]
 
 
 def test_calendar_route_does_not_promote_candidate_actions_without_user_intent() -> None:
@@ -638,9 +722,7 @@ def test_short_query_keeps_read_only_earphone_entry() -> None:
     _, original_task, _ = next(item for item in EXAMPLES if "2x4-V12" in item[0])
     task = deepcopy(original_task)
     task["userQuery"] = "做一张耳机卡片"
-    task["eventCandidates"] = [
-        {"call": "viewEarphoneStatus", "args": {"uri": "earphone"}}
-    ]
+    task["eventCandidates"] = [{"call": "viewEarphoneStatus", "args": {"uri": "earphone"}}]
     instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
     assert "唯一点击入口" in instruction
     assert "不要为了显示入口额外增加按钮" in instruction
@@ -682,14 +764,14 @@ def test_phone_and_earphone_use_sparse_device_gold_example() -> None:
     assert selected == ("2x4-V14",)
 
     layout_scope = PromptBuilder._layout_scope(SimpleNamespace(**task))
-    assert layout_scope == "W9-dual-backboards"
+    assert layout_scope == "W-split-panels"
 
 
 def test_compiled_focus_instruction_is_concrete_for_sparse_w9() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
     instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
     assert "本轮路由摘要" in instruction
-    assert "W9-dual-backboards" in instruction
+    assert "W-split-panels" in instruction
     assert "2x4-V14" in instruction
 
 
@@ -697,53 +779,51 @@ def test_route_pruning_keeps_only_w9_layout_contract_for_sparse_dual() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
     assert len(pruned) < len(prompt)
-    assert "### `W9-dual-backboards`" in pruned
-    assert "### `W8-quad-cells`" not in pruned
-    assert "### `W10-triple-backboards`" not in pruned
+    assert "### `W-split-panels`" in pruned
+    assert "### `W-four-slots`" not in pruned
+    assert "### `W-content-side-slots`" not in pruned
     assert "## 9.1 2x2" not in pruned
     assert "# 十、文字与信息适配" in pruned
-    assert "**2x4 双业务生成前置约束**" in pruned
+    assert "**2x4 左右双区前置约束**" in pruned
 
     lock = PromptBuilder._layout_route_lock(task_spec, layout_scope)
-    assert "W9 左右双大背板" in lock
-    assert "W8" not in lock
-    assert "W10" not in lock
+    assert "W9 左右双内容父区" in lock
 
     assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
     assert "2x4-V14" in assembled
     assert "2x4-V13" not in assembled
-    assert "### `W9-dual-backboards`" in assembled
-    assert "### `W8-quad-cells`" not in assembled
+    assert "### `W-split-panels`" in assembled
+    assert "### `W-four-slots`" not in assembled
 
 
 def test_route_pruning_keeps_single_business_skeleton_range_for_weather() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x2-V04" in item[0])
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
-    assert layout_scope == "S1-S3 adaptive-single-business"
-    assert "### `S2-info-pair-action`" in pruned
-    assert "### `S1-single-info`" in pruned
-    assert "### `S3-info-dual-action`" in pruned
-    assert "### `S4-stacked-zones`" not in pruned
+    assert layout_scope == "S-adaptive-single-business"
+    assert "### `S-center`" in pruned
+    assert "### `S-title-content`" in pruned
+    assert "### `S-content-dual-action`" in pruned
+    assert "### `S-dual-info`" not in pruned
     assert "## 9.2 2x4" not in pruned
-    assert "**2x2 单业务多字段生成前置约束**" in pruned
+    assert "**2x2 双动作前置约束**" in pruned
 
 
 def test_single_business_range_preserves_dual_action_constraint() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x2-V03" in item[0])
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
-    assert layout_scope == "S1-S3 adaptive-single-business"
-    assert "**2x2 双按钮前置约束**" in pruned
-    assert "### `S3-info-dual-action`" in pruned
-    assert "### `S2-info-pair-action`" in pruned
+    assert layout_scope == "S-adaptive-single-business"
+    assert "**2x2 双动作前置约束**" in pruned
+    assert "### `S-content-dual-action`" in pruned
+    assert "### `S-title-content-action`" in pruned
 
 
 def test_health_summary_with_explicit_action_uses_compact_metric_example() -> None:
@@ -752,7 +832,7 @@ def test_health_summary_with_explicit_action_uses_compact_metric_example() -> No
     assert route == "health-readout"
     assert selected == ("2x2-V11",)
 
-    document = (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8")
+    document = PROMPTS["fewshot_2x2"]
     selected_document = PromptBuilder._select_few_shot(
         document,
         SimpleNamespace(**task),
@@ -766,13 +846,11 @@ def test_sparse_weather_gold_uses_vertical_space_and_exact_header_icon() -> None
     _, _, source = next(item for item in EXAMPLES if "2x2-V04" in item[0])
     rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
 
-    assert rows["content_area"][2]["justifyContent"] == "center"
+    assert rows["content_area"][2]["justifyContent"] == "start"
     assert rows["temperature"][2]["fontSize"] == 24
-    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
+    assert rows["root"][3] == ["title_area", "body"]
     assert not any(row[1] == "Image" for row in rows.values())
-    assert rows["title_area"][2]["icon"] == (
-        "resources/base/media/icon_weather_temperature1.svg"
-    )
+    assert rows["title_area"][2]["icon"] == ("resources/base/media/icon_weather_temperature1.svg")
     assert "alarm_fill_1.svg" not in source
     assert "calendar_fill.svg" not in source
     assert " | " not in source
@@ -791,20 +869,18 @@ def test_health_metric_gold_splits_long_metrics_instead_of_pipe_row() -> None:
     assert "exerciseDurationText" in rows["title_area"][2]["title"]
 
 
-def test_sleep_summary_uses_sparse_centered_gold_example() -> None:
-    """睡眠类稀疏请求命中可迁移的居中主信息组示例。"""
+def test_sleep_summary_uses_sparse_gold_example() -> None:
+    """睡眠类稀疏请求命中可迁移的主信息组示例。"""
     _, task, source = next(item for item in EXAMPLES if "2x2-V12" in item[0])
     route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
     rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
 
     assert route == "health-readout"
     assert selected == ("2x2-V12",)
-    assert rows["content_area"][2]["justifyContent"] == "center"
+    assert rows["content_area"][2]["justifyContent"] == "start"
     assert rows["sleep_duration"][2]["fontSize"] == 24
-    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
-    assert rows["title_area"][2]["icon"] == (
-        "resources/base/media/moon_circle_fill.svg"
-    )
+    assert rows["root"][3] == ["title_area", "body"]
+    assert rows["title_area"][2]["icon"] == ("resources/base/media/moon_circle_fill.svg")
     assert rows["title_area"][2]["fillColor"] == "#FF563D99"
 
 
@@ -842,19 +918,30 @@ def test_peer_status_gold_uses_aligned_label_value_rows() -> None:
 
     assert route == "weather-readout"
     assert selected == ("2x2-V04", "2x2-V14")
-    assert rows["metric_list"][2]["justifyContent"] == "center"
-    assert rows["metric_list"][3] == ["ultraviolet_row", "air_row", "cold_row"]
+    assert rows["metric_list"][1] == "TableText"
+    assert len(rows["metric_list"][2]["items"]) == 3
+
+    converted = convert_compact_dsl_to_a2ui(
+        source,
+        size="2x2",
+        protocol_profile={"version": "v0.9"},
+    )
+    update = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {component["id"]: component for component in update["components"]}
+    assert components["metric_list"]["styles"]["justifyContent"] == "center"
+    assert components["metric_list"]["children"] == [
+        "metric_list_row0",
+        "metric_list_row1",
+        "metric_list_row2",
+    ]
     label_widths = {
-        rows[identifier][2]["width"]
-        for identifier in ("ultraviolet_label", "air_label", "cold_label")
+        components[f"metric_list_row{index}_label"]["styles"]["width"] for index in range(3)
     }
     value_widths = {
-        rows[identifier][2]["width"]
-        for identifier in ("ultraviolet_value", "air_value", "cold_value")
+        components[f"metric_list_row{index}_value"]["styles"]["width"] for index in range(3)
     }
     value_sizes = {
-        rows[identifier][2]["fontSize"]
-        for identifier in ("ultraviolet_value", "air_value", "cold_value")
+        components[f"metric_list_row{index}_value"]["styles"]["fontSize"] for index in range(3)
     }
     assert label_widths == {70}
     assert value_widths == {56}
@@ -875,9 +962,7 @@ def test_tintable_card_header_color_reaches_a2ui(example_id: str) -> None:
     components = messages[1]["updateComponents"]["components"]
     components_by_id = {component["id"]: component for component in components}
 
-    assert components_by_id["title_area_icon"]["styles"]["fillColor"] == (
-        "#FF563D99"
-    )
+    assert components_by_id["title_area_icon"]["styles"]["fillColor"] == ("#FF563D99")
 
 
 def test_two_by_two_route_summary_requires_density_adaptation() -> None:
@@ -904,23 +989,25 @@ def test_each_gold_example_compiles_only_hard_object_count_route(
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
     block_count = PromptBuilder._data_block_count(task_spec)
-    if task_spec.size == "2x2":
-        expected = (
-            "S4-stacked-zones"
-            if block_count >= 2
-            else "S1-S3 adaptive-single-business"
-        )
+    if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
+        expected = "W-content-side-slots"
+    elif task_spec.size == "2x2" and block_count >= 4:
+        expected = "S-quad-content"
+    elif task_spec.size == "2x2" and block_count >= 2:
+        expected = "S-dual-info"
+    elif task_spec.size == "2x2":
+        expected = "S-adaptive-single-business"
     elif block_count >= 4:
-        expected = "W8-quad-cells"
+        expected = "W-four-slots"
     elif block_count == 3:
-        expected = "W10-triple-backboards"
+        expected = "W-content-side-slots"
     elif block_count == 2:
-        expected = "W9-dual-backboards"
+        expected = "W-split-panels"
     else:
-        expected = "W1-W7 adaptive-single-business"
+        expected = "W-adaptive-single-business"
     assert layout_scope == expected, name
 
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
     _, selected_ids = PromptBuilder._visual_route(task_spec)
     assert selected_ids[0] in assembled, name
@@ -936,17 +1023,17 @@ def test_adaptive_single_business_retains_all_single_business_skeletons(
     _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
-    assert layout_scope == "W1-W7 adaptive-single-business"
+    assert layout_scope in {"W-adaptive-single-business", "W-content-side-slots"}
 
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert "### `W1-focus-aux`" in assembled
-    assert "### `W2-text-flow`" in assembled
-    assert "### `W3-ring-detail`" in assembled
-    assert "### `W4-metric-triple`" in assembled
-    assert "### `W5-progress-detail`" in assembled
-    assert "### `W6-agenda-cta`" in assembled
-    assert "### `W7-list-rows`" in assembled
+    if layout_scope == "W-content-side-slots":
+        assert "### `W-content-side-slots`" in assembled
+    else:
+        assert "### `W-top-bottom`" in assembled
+        assert "### `W-split-panels`" in assembled
+        assert "### `W-content-side-slots`" in assembled
+    assert "### `W-four-slots`" not in assembled
 
 
 def test_sparse_w9_asymmetric_hierarchy_stays_in_prompt_policy() -> None:
@@ -954,7 +1041,7 @@ def test_sparse_w9_asymmetric_hierarchy_stays_in_prompt_policy() -> None:
     _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
     task_spec = SimpleNamespace(**task)
     layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
+    prompt = PROMPTS["create"]
     assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert layout_scope == "W9-dual-backboards"
-    assert "不得镜像复制相同的标题、主值、辅助行模板" in assembled
+    assert layout_scope == "W-split-panels"
+    assert "两个需要完整内容区的对象" in assembled

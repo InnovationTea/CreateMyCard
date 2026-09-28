@@ -165,10 +165,10 @@
       "layouts/common.md#height-gate",
       "core.md#jsonl",
       "components/common.md#catalog",
-      "components/2x2.md#timeline",
+      "components/2x2.md#size-components",
+      "components/2x4.md#wide-components",
       "core.md#binding-events",
       "layouts/common.md#canvas-heading",
-      "components/2x4.md#fixed-slot-modules",
       "components/2x4.md#backboard-alpha",
       "layouts/common.md#canvas-budget",
       "combinations/common.md#small-panel",
@@ -215,7 +215,8 @@
       "fewshots/2x2.md#example-v11",
       "fewshots/2x2.md#example-v12",
       "fewshots/2x2.md#example-v13",
-      "fewshots/2x2.md#example-v14"
+      "fewshots/2x2.md#example-v14",
+      "fewshots/2x2.md#example-v15"
     ],
     "FEWSHOT_2x4.md": [
       "fewshots/2x4.md#preamble",
@@ -298,6 +299,10 @@
       {
         "id": "2x2-V14",
         "source": "fewshots/2x2.md#example-v14"
+      },
+      {
+        "id": "2x2-V15",
+        "source": "fewshots/2x2.md#example-v15"
       }
     ],
     "2x4": [

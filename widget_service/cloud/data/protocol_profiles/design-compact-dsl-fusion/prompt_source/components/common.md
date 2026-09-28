@@ -4,39 +4,70 @@
 
 ## 边界与阅读顺序
 
-基础组件总表 → Props/绑定/样式 → ActionUnit / CardHeader → 图标规范。组件边界不等于组合边界。
+基础组件总表 → 高阶组件摘要 → Props/绑定/样式 → 操作组件 / CardHeader → 图标规范。组件边界不等于组合边界。
 
 ## 组件总表（维护导航，不发模型）
 
-| 组件 | 用途 / 触发 | Props 与绑定入口 | 容量 / 样式及示例入口 |
-|---|---|---|---|
-| Text | 真实文本/读数 | 5.3、5.13；content | core typography；fewshots 各例 |
-| Image | 语义准确且状态安全的素材 | 5.4；src/fillColor/objectFit | 11.1 与尺寸限制；2x2 V07 |
-| Divider | 真实分隔 | 5.5；vertical/color/strokeWidth | 2x4 V05 |
-| Progress | 真实比例且有数值与可靠范围 | 前置门禁、5.6/5.13；value/total/type | combinations 环图；2x4 V02/V03 |
-| Button | 纯文字合法动作 | 5.7/5.13；label/enabled/onClick | combinations 动作；2x4 V09 |
-| Checkbox | 用户明确的选择/完成状态 | 5.8；静态 label/value/select | 不推断动态绑定；不替代 Toggle |
-| Row | 横向真实内容 | 5.9；children/轴向对齐/itemMargin | layouts 预算；各案例 |
-| Column | 纵向真实内容 | 5.10；children/轴向对齐/itemMargin | layouts 预算；各案例 |
-| List | 少量摘要列表 | 5.11；children/listDirection | 2–3 条，不使用动态模板 |
-| Stack | 合法叠放 | 5.12；children/alignContent | combinations 环心；2x4 V02 |
-| ActionUnit | 卡级 CTA 封装 | 5.14；state/label/icon/onClick/配色 | 转换器展开；2x2 V03 |
-| CardHeader | 稳定卡片主题 | 5.15；title/fontColor/icon/fillColor | 不接受任意几何覆盖；本节单组件示例 |
-| TimelineUnit | 小卡单会议 | 转至 components/2x2.md | 2x2 V06；宽卡禁止 |
+| 类型 | 名称 | 内容结构 | 适用场景 | 容量与约束 |
+|---|---|---|---|---|
+| 基础文本 | `Text` | 单段文本或读数 | 展示真实文本、数值和格式化内容 | 必须有 `content`；行数与字号服从当前槽位 |
+| 基础视觉 | `Image` | 单个本地素材 | 存在语义准确且状态安全的素材 | 固定使用当前素材候选；不使用网络图或 emoji |
+| 基础分隔 | `Divider` | 水平或竖直分隔线 | 确有分组关系的内容之间 | 不作为装饰填空 |
+| 基础进度 | `Progress` | 线性或环形进度 | 有真实比例值和可靠范围 | `value/total` 必须表达同一事实 |
+| 基础操作 | `Button` | 纯文字操作 | 有真实事件且当前骨架允许基础按钮 | 一个按钮绑定一个事件 |
+| 基础布局 | `Row` | 横向子节点 | 横向排列真实内容 | 子节点与轴向属性必须满足布局预算 |
+| 基础布局 | `Column` | 纵向子节点 | 纵向排列真实内容 | 子节点与轴向属性必须满足布局预算 |
+| 基础布局 | `List` | 少量同级条目 | 2–3 条静态结构摘要 | 不使用动态模板 |
+| 基础布局 | `Stack` | 合法叠放子节点 | 环心读数、图标等明确叠放 | 不承担普通流式排列 |
+| 标题 | `CardHeader` | 标题 + 可选主题图标 | 需要稳定卡片主题的单业务骨架 | 单行标题；不接受任意几何覆盖 |
+| 核心信息 | `EmphasizedData` | 核心数值 + 可选单位 | 突出唯一量化主值 | 一个核心值；不吸收辅助信息 |
+| 核心信息 | `DataDisplay` | 标签 + 主值 + 支撑文本 | 2x2 单一量化焦点 | 三项各一行；不吸收动作或第二指标 |
+| 紧凑信息 | `InfoBlock` | 主信息 + 辅助信息 + 可选图标 | 固定小槽中的完整主辅信息 | 每槽一个；两行文字保持单行可读 |
+| 多项属性 | `TableText` | 多行标签—值 | 同一主题的 2–3 项属性 | 当前只进入 2x2 紧凑明细区 |
+| 明细信息 | `TextBlock` | 两组标签—值背板 | 2x4 双详情 | 恰好两项；只进入 `W-top-bottom` 的 progress-detail 预设 |
+| 摘要列表 | `SummaryList` | 2–3 条同级摘要 | 2x4 短列表 | 每项固定为单行背板 |
+| 线性进度 | `ProgressLine2` | 可见读数 + 线性进度 | 当前值相对明确总量 | 只进入 `W-top-bottom` 的 progress-detail 预设 |
+| 环形进度 | `ProgressCircleSingle` | 单环主指标 + 右侧说明 | 单个真实比例及同对象说明 | 只进入 `W-split-panels` 的 ring-detail 预设 |
+| 日程 | `EventCard` | 时间线 + 标题 + 时间 + 可选地点 | 2x2 单会议 | 单事件；只用于 calendar 唯一业务 |
+| 等权指标 | `TopTextBottomValue` | 三组标签—值 | 2x4 三个同级指标 | 恰好三项；只进入 `W-top-bottom` 的 metric-triple 预设 |
+| 操作 | `PillButton` | 操作文案 + 可选图标 | 2x2 底部卡级 CTA | 一个实例绑定一个真实动作 |
+| 操作 | `CircleButton` | 纯图标操作 | 2x2 右下锚点 CTA | `36×36vp` 按钮进入 `40×40vp` 槽 |
+| 操作 | `CardButton` | 文案 + 可选图标 | 2x4 固定动作槽 | 一个实例绑定一个真实动作 |
 
-每个组件以正文原有合同为准，单组件的绑定支持不能推导到其它 Props。
+每个组件以正文合同为准，单组件的绑定支持不能推导到其它 Props。
 完整案例在 `../fewshots/`，组合条件在 `../combinations/`，不把示例中的属性自动扩展为通用合同。
+
+## 通用高阶组件摘要（维护导航，不发模型）
+
+| 组件 | 语义合同 | Props | 正式 Few-shot |
+|---|---|---|---|
+| `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x4 V04 |
+| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x4 V04/V06/V10 |
+| `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`label`、`fontColor`、`color`、`backgroundColor` 必填 | 2x4 V03 |
+| `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | 2x2 V14 |
+| `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V03 |
+| `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V08/V12 |
+| `ProgressCircleSingle` | 一个真实环形比例、环心读数和右侧说明 | `value`、`total`、`displayValue`、`label`、`details` 与配色必填 | 2x4 V02 |
+| `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor`、`lineColor` 必填；`location` 可选 | 2x2 V06 |
+| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor`、`secondaryColor` 必填 | `S-center` |
+| `TopTextBottomValue` | 三项等权的标签和值 | `items`、`fontColor`、`dividerColor` 必填 | 2x4 V05 |
+| `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V01 |
+
+共同约束：组件只输出一行且不带 children；内容字段支持 Text.content 已允许的静态值、Expression 或
+PathBinding。宽高、字号、对齐、间距和子节点 ID 由转换器按尺寸及合法槽位固定展开，不作为 Props。
+`InfoBlock.onClick` 必须逐字使用当前事件候选；无图标时不生成图标节点或空槽。环形 Progress、完整业务
+父级完整内容区不属于 `InfoBlock`。
 
 ## 片段索引
 
-| 片段 | 基线来源 |
-|---|---|
-| `progress-type` | `PROMPT.md` |
-| `progress-trigger` | `PROMPT.md` |
-| `catalog` | `PROMPT.md` |
-| `icon-style` | `PROMPT.md` |
+| 片段 |
+|---|
+| `progress-type` |
+| `progress-trigger` |
+| `catalog` |
+| `icon-style` |
 
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
+片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:progress-type -->
 **Progress 数值类型前置约束**：`Progress.value` 必须绑定 number/integer 字段。若 TaskSpec 只有 `batterySOCText:"68%"` 一类格式化字符串，即使用户要求进度条也不得生成空环或空进度条，改用完整 Text 主读数；禁止从字符串中猜测、截取或隐式转换数值。
@@ -51,11 +82,14 @@
 <!-- prompt:catalog -->
 # 五、组件协议
 
-只允许以下十种基础组件：
+只允许以下九种基础组件：
 
-`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`
+`Text`、`Image`、`Divider`、`Progress`、`Button`、`Row`、`Column`、`List`、`Stack`
 
-此外只允许使用 5.14 的 `ActionUnit`、5.15 的 `CardHeader` 和 5.16 的 `TimelineUnit`，均由转换器展开为基础组件，不是新增端侧组件；禁止自造其它高级组件。
+此外只允许使用 `EmphasizedData`、`InfoBlock`、`ProgressLine2`、`TableText`、`TextBlock`、
+`CardButton`、`ProgressCircleSingle`、`EventCard`、`DataDisplay`、`TopTextBottomValue`、
+`SummaryList`，以及 5.13 的 `PillButton`、`CircleButton` 和 5.14 的 `CardHeader`。这些组件均由转换器展开为基础组件，
+不是新增端侧组件；禁止自造其它高级组件。
 
 禁止：
 
@@ -185,16 +219,7 @@ props 可用文字样式和通用布局与样式字段。
 - `2x2` 的 Button/图文按钮文案优先为 2 至 4 个汉字，最多 6 个汉字；`2x4` 优先不超过 6 个汉字，最多 8 个汉字。确需更长且不能等义缩短时，必须使用更宽按钮或降低到批准字号，不能裁切。
 - Button 的最小内容宽度按 `压力文本宽度 × 1.2 + 左右 padding` 计算；先精简文案，再调整宽度，最后才允许降到 `12fp`。不得通过 `ellipsis`、`clip`、极窄宽度或低于 `12fp` 的按钮文字解决溢出。
 
-## 5.8 Checkbox
-
-顶层可用 `label`、`value`、`select` 和合法 `onClick`。
-
-- `label/value` 只能是静态字符串。
-- `select` 只能是静态 boolean 初始状态，不支持 Expression 或 PathBinding。
-- props `selectedColor` 为颜色，`shape` 只取 `circle|rounded_square`。
-- 只在用户明确需要完成状态或选择状态且事件能力可用时使用；不要用 Checkbox 伪造 Toggle 或 Radio。
-
-## 5.9 Row
+## 5.8 Row
 
 顶层：
 
@@ -207,7 +232,7 @@ props 可用样式字段：
 - `alignItems`：`top|center|bottom`。
 - `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍作为相邻子项之间必须保留的最小间距；扣除该间距后，只能将非负剩余空间交给分布式对齐。两者可以同时设置，但不能依赖分布式对齐消除负剩余空间。
 
-## 5.10 Column
+## 5.9 Column
 
 顶层：
 
@@ -220,7 +245,7 @@ props 可用样式字段：
 - `alignItems`：`start|center|end`。
 - `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍作为相邻子项之间必须保留的最小间距；扣除该间距后，只能将非负剩余空间交给分布式对齐。两者可以同时设置，但不能依赖分布式对齐消除负剩余空间。
 
-## 5.11 List
+## 5.10 List
 
 顶层：
 
@@ -234,7 +259,7 @@ props 可用样式字段：
 
 只展示 2 至 3 条短摘要；不生成长滚动列表。
 
-## 5.12 Stack
+## 5.11 Stack
 
 顶层：
 
@@ -246,7 +271,7 @@ props 可用样式字段：
 
 只用于真实叠加，例如 Progress 环与中心数值、背景与前景或图标底板；不得覆盖受保护文本和动作。
 
-## 5.13 生成时的动态绑定边界
+## 5.12 生成时的动态绑定边界
 
 属性是否支持动态值必须逐项判断。本服务为稳定布局采用以下受控子集：
 
@@ -258,25 +283,431 @@ props 可用样式字段：
 | Button.label / Button.enabled | Expression、PathBinding | 分别返回 string 和 boolean |
 | 事件参数 | 仅复用候选中已有的动态值 | 不自行新增、改写或移动绑定 |
 | Row/Column/List.children | 不允许动态模板 | 只能使用组件 id 字符串数组 |
-| Checkbox.label / value / select、Progress.total、Stack.children | 不允许 | 只能使用对应的静态合法值 |
+| Progress.total、Stack.children | 不允许 | 只能使用对应的静态合法值 |
 
 为减少布局漂移，生成新卡片时所有布局样式 props 默认使用静态合法值，不动态绑定尺寸、间距、圆角、排版、背景或对齐。不要因为组件的某个属性支持 Expression，就推断其它属性也支持。
 
-## 5.14 高级组件（ActionUnit）
+## 5.12.1 高阶组件共同规则
 
-ActionUnit 是对卡级 CTA 的受控封装，只输出一行且不带 children，由转换器展开为完整结构；2x2 的卡级 CTA 优先使用它。
+先按信息语义保留可行组件，再结合尺寸文件中的合法槽位决定是否使用。不要为了套用高阶组件而补造字段、
+合并无关事实或改变主次关系。每个组件只输出一行且不带 children；只允许使用该组件属性表列出的 Props，
+不传 width、height、padding、圆角、字号或对齐，转换器按尺寸固定展开。内容字段支持静态值、完整
+Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
-ActionUnit——卡级 CTA：
+### 5.12.2 `EmphasizedData`
 
-- `state:"capsule"`：底部通栏文字胶囊（126x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标且已按 2.5 节分配名额时可写 `icon`，转换器展开为图标+文字整体居中，图标与文字间距固定 `8vp`，配色按第十二节浅色微渐变、融球两种按钮规则执行。
-- `state:"icon-round"`：仅用于 2x2 `S-title-anchor`；外层操作槽为 40×40vp，内部圆钮为 36×36vp，中心图标为 20×20vp。必须有 `icon` 和 `onClick`，禁止 `label`；按钮背景和单色图标按第十二节按钮规则取色，不另设白底模式。
-- 可用字段：`state`、`label`、`icon`、`actionInk`、`actionSurface`、`fontSize`、`fontWeight`、`onClick`、`flexShrink`。
-- `actionSurface` 是按钮背景色，`actionInk` 是按钮文字色，必须成对显式写 `#AARRGGBB`，按第十二节固定配对；浅色按钮使用第十二节按钮背景与主文字色，融球为白色 20% 按钮背景和 90% 文字，图标由转换器使用白色 60%。按钮文字使用 14/400-500。
-- capsule 只能放在 root 最后一个 `action_area Column` 内且是其唯一子节点；双按钮（`S-content-dual-action` 骨架）在该 Column 内纵排两张 capsule。不要用基础 `Button` 手写 CTA 皮，也不要再额外输出 action_icon Image 行。
+#### 选择条件
 
-## 5.15 高级组件（CardHeader，2x2/2x4）
+用于一个内容区中唯一需要突出的核心数值或完整格式化数值。没有真实主次时保持并列；真实进度、多个同级
+指标和普通文本结论不使用该组件。
 
-- CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；标题必须是稳定的业务、对象或事项主题，禁止把 `eventCount`、电量、温度、状态等数值或业务数据冒充标题。日期、时间、时长和倒计时短语只能放在内容区，`明天上午10点`、`14:00`、`还有3天` 等即使出现在 userQuery 中也绝对不能作为 CardHeader；存在对应动态字段时更禁止把 userQuery 中的时间硬编码为标题。日程、会议或提醒优先使用真实事项名称或用户明确主题（如“医院复查”）；没有可用事项主题时固定使用默认标题“日程”，不得省略标题。2x2 仅用于 带标题布局 有独立标题的布局，`S-center`、`S-content-dual-action`、`S-dual-info` 不使用；2x4 仅允许单数据块布局按骨架使用，2-4 个数据块的 `W-four-slots`/`W-split-panels`/`W-content-side-slots` 不使用，无标题布局和作为正文上下文的 kicker 不使用，也不预留空标题位。
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `value` | 显示值 | 必填；静态值、Expression 或 PathBinding |
+| `unit` | string | 可选；仅用于静态单位 |
+| `fontColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只承载一个核心值；合法槽位和固定宽度由当前尺寸文件规定。组件不吸收标题、辅助信息或第二个指标。
+
+#### 示例
+
+```genui
+["reading","EmphasizedData",{"value":{"path":"/data/healthSport/sleepScore"},"unit":"分","fontColor":"#FF563D99"}]
+```
+
+#### 注意事项
+
+值已经包含单位时原样放入 `value`，不再传 `unit`。不要为缩短 DSL 而把多个同级值拼进一个 `value`。
+
+### 5.12.3 `InfoBlock`
+
+#### 选择条件
+
+用于固定小槽中天然属于同一对象或指标的一组“主信息 + 辅助信息”。可附加一个语义匹配图标或一个真实
+点击动作；完整业务区、两个同级指标以及无主辅关系的字段不使用该组件。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `primaryText` | 显示值 | 必填；静态值、Expression 或 PathBinding |
+| `secondaryText` | 显示值 | 必填；与主信息属于同一对象或指标 |
+| `fontColor` | `#AARRGGBB` | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 必填 |
+| `variant` | string | 按尺寸文件填写；2x2 可省略，2x4 必填 |
+| `icon` | string | 可选；逐字使用当前素材候选的本地路径 |
+| `fillColor` | `#AARRGGBB` | 可选；仅在传入可着色 `icon` 时使用 |
+| `onClick` | EventHandler[] | 可选；必须恰好一个当前事件候选中的 handler |
+
+#### 槽位与容量
+
+每个合法固定槽只放一个 `InfoBlock`，两行文字都必须保持单行可读。尺寸、variant 和具体槽位由 2x2/2x4
+组件文件规定。
+
+#### 示例
+
+```genui
+["battery","InfoBlock",{"variant":"small","primaryText":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF"}]
+```
+
+#### 注意事项
+
+无图标时不生成图标节点或空槽。`fillColor` 不能脱离 `icon` 单独出现；`onClick` 不得新增、拼接或改写候选
+动作。环形 Progress 和 `W-split-panels` 的完整父区不属于 `InfoBlock`。
+
+### 5.12.4 `ProgressLine2`
+
+#### 选择条件
+
+用于一个当前数值相对明确总量的真实线性进度，并同时展示该进度的可见读数。没有真实分母、总量或比例
+关系时不使用；普通数值和仅因包含 `%` 的属性不自动成为进度。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `value` | number 绑定 | 必填；绑定 number/integer 字段并驱动进度条 |
+| `total` | number | 必填；静态正数 |
+| `displayValue` | 显示值 | 必填；与 `value/total` 表达同一进度关系 |
+| `label` | string | 必填；静态非空说明 |
+| `fontColor` | `#AARRGGBB` | 必填 |
+| `color` | `#AARRGGBB` | 必填；进度色 |
+| `backgroundColor` | `#AARRGGBB` | 必填；轨道色 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-top-bottom` 的 progress-detail 整宽进度槽；不用于 2x2，也不与另一个进度合并进同一实例。
+
+#### 示例
+
+```genui
+["score","ProgressLine2",{"value":{"path":"/data/healthSport/sleepScore"},"total":100,"displayValue":"{{ ${/data/healthSport/sleepScore} + '分' }}","label":"睡眠综合得分","fontColor":"#FF563D99","color":"#FF563D99","backgroundColor":"#33563D99"}]
+```
+
+#### 注意事项
+
+`value`、`total` 和 `displayValue` 必须属于同一事实，不能用一个字段驱动进度、另一个无关字段充当读数。
+格式化字符串不能直接绑定给 `value`。
+
+### 5.12.5 `TableText`
+
+#### 选择条件
+
+用于同一主题下 2–3 项同级“标签—值”。单项信息、存在唯一核心值的内容、事件时间线和需要表达比例
+关系的内容不使用该组件。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `items` | Array | 必填；2–3 项，每项只能包含 `label`、`value` |
+| `items[].label` | string | 必填；静态非空标签 |
+| `items[].value` | 显示值 | 必填；静态值、Expression 或 PathBinding |
+| `fontColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x2 `S-title-dual-content` 的紧凑明细区。卡级标题、沉底上下文和动作不进入 `items`。
+
+#### 示例
+
+```genui
+["metrics","TableText",{"items":[{"label":"紫外线","value":{"path":"/data/weatherHealth/ultravioletLevel"}},{"label":"空气质量","value":{"path":"/data/weatherHealth/airQualityLevel"}}],"fontColor":"#FF1F4799"}]
+```
+
+#### 注意事项
+
+标签和值分别对齐，每项只表达一个事实。不要将同一个值同时作为核心读数和表格项重复展示。
+
+### 5.12.6 `TextBlock`
+
+#### 选择条件
+
+用于两个同级详情，每项由一个静态标签和一个值组成。只有当前布局需要一对等权详情背板时使用，不承担
+主进度、卡级标题或动作。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `items` | Array | 必填；恰好 2 项，每项只能包含 `label`、`value` |
+| `items[].label` | string | 必填；静态非空标签 |
+| `items[].value` | 显示值 | 必填；静态值、Expression 或 PathBinding |
+| `fontColor` | `#AARRGGBB` | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-top-bottom` 的 progress-detail 双详情槽，转换器固定生成两个并列背板；不用于 2x2。
+
+#### 示例
+
+```genui
+["details","TextBlock",{"items":[{"label":"睡眠时长","value":{"path":"/data/healthSport/nightSleepDurationText"}},{"label":"深睡时长","value":{"path":"/data/healthSport/deepSleepDurationText"}}],"fontColor":"#FF563D99","backgroundColor":"#99FFFFFF"}]
+```
+
+#### 注意事项
+
+两项必须同级且同属当前主题。不要把主指标或两个无关业务为了凑数放入同一个 `TextBlock`。
+
+### 5.12.7 `CardButton`
+
+#### 选择条件
+
+用于 2x4 固定动作槽中的单个真实动作。只有当前事件候选提供匹配动作时使用；纯信息背板和没有候选的
+操作文案不使用该组件。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `label` | 显示值 | 必填；静态值、Expression 或 PathBinding |
+| `onClick` | EventHandler[] | 必填；恰好一个当前事件候选中的 handler |
+| `fontColor` | `#AARRGGBB` | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 必填 |
+| `icon` | string | 可选；逐字使用当前素材候选的本地路径 |
+| `fillColor` | `#AARRGGBB` | 可选；仅在传入可着色 `icon` 时使用 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-content-side-slots` 或 `W-four-slots` 的 `132×57vp` 固定动作槽；一个实例只绑定一个动作，不用于 2x2。
+
+#### 示例
+
+```genui
+["settings","CardButton",{"label":"蓝牙设置","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+```
+
+#### 注意事项
+
+事件必须逐字复用当前候选。无图标时文字占满可用区域且不留空槽；`fillColor` 不能脱离 `icon` 使用。
+
+### 5.12.8 `ProgressCircleSingle`
+
+#### 选择条件
+
+用于一个具有真实比例范围的环形主指标，并在右侧展示 1–2 条同一对象的说明。普通数值、温度、时间和
+无可靠总量的数据不使用。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `value` | number 绑定 | 必填；绑定 number/integer 字段 |
+| `total` | number | 必填；静态正数 |
+| `displayValue` | 显示值 | 必填；与环形进度表达同一数值 |
+| `label` | string | 必填；静态非空说明 |
+| `details` | Array | 必填；1–2 条显示值 |
+| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-split-panels` 的 ring-detail 预设，环形主指标和右侧说明各占一个 `132×126vp` 父区。
+
+#### 示例
+
+```genui
+["main","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"当前电量","details":[{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},{"path":"/data/phoneBattery/chargingStatusDesc"}],"fontColor":"#FF1F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+```
+
+#### 注意事项
+
+`value`、`displayValue` 与 `details` 必须属于同一对象；环形进度不能代替可见读数。
+
+### 5.12.9 `EventCard`
+
+#### 选择条件
+
+只用于 2x2 整卡唯一业务为 calendar 的单会议；多会议或混合其它业务时不使用。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `title` | 显示值 | 必填；会议标题 |
+| `time` | 显示值 | 必填；会议时间 |
+| `location` | 显示值 | 可选；用户要求且有合法字段时使用 |
+| `fontColor`、`lineColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+固定作为 2x2 `S-title-content-action` root 的第二个直接子组件，前一项必须是日期上下文；最多显示标题、时间和地点三行。
+
+#### 示例
+
+```genui
+["content_area","EventCard",{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"},"fontColor":"#FF8C4B1C","lineColor":"#1A8C4B1C"}]
+```
+
+#### 注意事项
+
+组件已包含时间线轨道和文字列，不再手写轨道 Divider 或重复的标题、时间 Text。
+
+### 5.12.10 `DataDisplay`
+
+#### 选择条件
+
+用于 2x2 中一个短标签、一个唯一核心数值和一条短支撑文本，例如倒计时名称、天数与静态单位。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `label`、`supportingText` | string | 必填；静态非空短文本 |
+| `value` | 显示值 | 必填；唯一核心值 |
+| `fontColor`、`secondaryColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x2 `S-center` 的唯一内容区；三项各占一行，不吸收动作或第二个指标。
+
+#### 示例
+
+```genui
+["display","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天","fontColor":"#FFFFFFFF","secondaryColor":"#CCFFFFFF"}]
+```
+
+#### 注意事项
+
+`supportingText` 是静态单位或短说明；值已含完整单位时改用其它合适组件，不重复单位。
+
+### 5.12.11 `TopTextBottomValue`
+
+#### 选择条件
+
+用于 2x4 中恰好三个同级指标。存在唯一主指标、项目不足三项或字段不是同级关系时不使用。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `items` | Array | 必填；恰好 3 项，每项只含 `label`、`value` |
+| `items[].label` | string | 必填；静态非空标签 |
+| `items[].value` | 显示值 | 必填 |
+| `fontColor`、`dividerColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-top-bottom` 的 metric-triple 预设；转换器固定生成三个等宽指标区和两个分隔线。
+
+#### 示例
+
+```genui
+["metrics","TopTextBottomValue",{"items":[{"label":"睡眠得分","value":"80分"},{"label":"消耗热量","value":"92 千卡"},{"label":"今日步数","value":"2031步"}],"fontColor":"#FF563D99","dividerColor":"#33563D99"}]
+```
+
+#### 注意事项
+
+组件名沿用现有命名；Fusion 的固定视觉顺序仍是主值在上、标签在下，不能借名称改变 Few-shot 视觉。
+
+### 5.12.12 `SummaryList`
+
+#### 选择条件
+
+用于 2–3 条同级、可单行完整显示的短摘要；长正文、标签—值或存在主次关系的内容不使用。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `items` | Array | 必填；2–3 条显示值 |
+| `fontColor`、`backgroundColor` | `#AARRGGBB` | 必填 |
+
+#### 槽位与容量
+
+只进入 2x4 `W-top-bottom` 的 list-rows 预设；每项固定为一个 `276×28vp` 单行背板。
+
+#### 示例
+
+```genui
+["list","SummaryList",{"items":[{"path":"/data/calendar/events/0/title"},{"path":"/data/calendar/events/1/title"},{"path":"/data/calendar/events/2/title"}],"fontColor":"#FF8C4B1C","backgroundColor":"#99FFFFFF"}]
+```
+
+#### 注意事项
+
+不使用动态模板，不在条目中再嵌套标签、按钮或图标；超出三条时切换布局或删去低优先级项。
+
+### 5.12.13 选择检查
+
+- 组件内容结构与真实信息关系一致，没有为了使用组件而合并无关字段或补造信息。
+- 每个组件只使用自身属性表中的 Props，必填字段、绑定、素材和事件均来自当前输入。
+- 组件进入当前尺寸文件允许的槽位，`InfoBlock.variant` 与槽位严格对应。
+- 同一事实没有在高阶组件和其他 Text、Progress 或 Button 中重复展示。
+- 内容超出固定容量时更换组件或布局，不通过缩字号、增加行数或传入几何 Props 改写组件合同。
+
+## 5.13 操作组件（PillButton / CircleButton）
+
+两种操作组件都只输出一行且不带 children，由转换器展开为基础组件；事件必须逐字使用当前候选。
+
+### 5.13.1 `PillButton`
+
+#### 选择条件
+
+用于需要显示明确动作文字的 2x2 卡级 CTA。只有当前事件候选提供匹配动作时使用；能显示动作文字时优先于 `CircleButton`。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `label` | string | 必填；静态非空动作文字 |
+| `onClick` | EventHandler[] | 必填；恰好一个当前事件候选中的 handler |
+| `actionSurface` | `#AARRGGBB` | 必填；按钮背景色 |
+| `actionInk` | `#AARRGGBB` | 必填；文字及单色图标前景色 |
+| `icon` | string | 可选；逐字使用当前素材候选路径 |
+| `fontSize` | number | 可选；只允许 `14` |
+| `fontWeight` | number | 可选；只允许 `400` 或 `500` |
+
+#### 槽位与容量
+
+固定为底部胶囊按钮，高 `36vp`、圆角 `20vp`。单动作放在带动作布局的末尾 `action_area Column` 内；`S-content-dual-action` 直接纵排两个实例。
+
+#### 示例
+
+```genui
+["cta","PillButton",{"label":"蓝牙设置","actionSurface":"#331F4799","actionInk":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+```
+
+#### 注意事项
+
+有 icon 时转换器固定生成 `20×20vp` 图标与文字、间距 `8vp` 并整体居中。浅色与融球配色按第十二节成对填写；不要再手写相同的 Button 或 Row 皮肤。
+
+### 5.13.2 `CircleButton`
+
+#### 选择条件
+
+仅用于 2x2 右下锚点的纯图标动作。只有正文无法容纳底部 `PillButton`、图标语义明确且存在准确素材时使用。
+
+#### 组件属性
+
+| Prop | 类型 | 要求 |
+|---|---|---|
+| `icon` | string | 必填；逐字使用当前素材候选路径 |
+| `accessibility` | object | 必填；必须包含静态非空 `label`，可选静态 `description` |
+| `onClick` | EventHandler[] | 必填；恰好一个当前事件候选中的 handler |
+| `actionSurface` | `#AARRGGBB` | 必填；按钮背景色 |
+| `actionInk` | `#AARRGGBB` | 必填；单色图标前景色 |
+
+#### 槽位与容量
+
+按钮本体固定 `36×36vp`、圆角 `18vp`，中心图标固定 `20×20vp`；外层必须使用当前尺寸文件规定的 `40×40vp` 右下锚点槽。
+
+#### 示例
+
+```genui
+["play_action","CircleButton",{"icon":"resources/base/media/play_fill.svg","accessibility":{"label":"播放音乐"},"actionSurface":"#331F4799","actionInk":"#FF1F4799","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://play"}}]}]
+```
+
+#### 注意事项
+
+禁止 `label`，也不传 width、height、position、边距或排版属性。`accessibility.label` 写完整动作名称；同一动作不得同时生成 `CircleButton` 和 `PillButton`。
+
+## 5.14 高级组件（CardHeader，2x2/2x4）
+
+- CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；标题必须是稳定的业务、对象或事项主题，禁止把 `eventCount`、电量、温度、状态等数值或业务数据冒充标题。日期、时间、时长和倒计时短语只能放在内容区，`明天上午10点`、`14:00`、`还有3天` 等即使出现在 userQuery 中也绝对不能作为 CardHeader；存在对应动态字段时更禁止把 userQuery 中的时间硬编码为标题。日程、会议或提醒优先使用真实事项名称或用户明确主题（如“医院复查”）；没有可用事项主题时固定使用默认标题“日程”，不得省略标题。2x2 仅用于正式名称以 `S-title-` 开头的带标题布局；`S-center`、`S-content-dual-action`、`S-dual-info` 不使用。2x4 仅允许 `W-top-bottom` 按预设使用；`W-split-panels`、`W-content-side-slots`、`W-four-slots` 不使用卡级 CardHeader。
 - 必填 `title`（非空文字、完整 Expression 或 PathBinding）、`fontColor`（本卡标题色）；可选 `icon`（候选原始 src）、`fillColor`（单色图标与标题完全同色，多色/品牌图标及位图省略）。不传 icon 就只显示标题，是否传入在布局前按 2.5 节决定，CardHeader 不自行增加图标。
 - 每卡最多一个。2x2 中必须是 root 的第一个且唯一父级的直接子组件，root 必须为 Column；2x4 中必须是 `root Stack` 下全尺寸前景 Column 的第一个且唯一父级的直接子组件。承载 CardHeader 的 Column 必须显式 `width:"matchParent"`、`height:"matchParent"`（2x4）、`padding:12`，并显式使用 `justifyContent:"start"` 或保证首项贴顶的 `"spaceBetween"`，不加 borderWidth。其他内容在标题下方布局，不得嵌套、重复、错序或用 center/spaceAround/spaceEvenly 移动标题。
 - 转换器固定标题行高度 `20vp`、不可收缩，2x2/2x4 宽度分别为 `126/276vp`，左上角均为 `(12,12)`。文字左对齐、垂直居中、`12fp/400`；有图标时文字槽宽分别为 `98/248vp`、间距 8vp，图标固定 20×20vp，左上角分别为 `(118,12)`/`(268,12)`；无图标时文字槽占满，不留空槽。

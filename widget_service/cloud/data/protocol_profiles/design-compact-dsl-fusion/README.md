@@ -13,22 +13,22 @@
 | `manifest.yaml` | 模块、适用尺寸、片段顺序、案例索引；不发模型 | 构建、来源完整性 |
 | `core.md` | 输入/输出、绑定、数据、事件/资源、单位/字号/颜色、全局禁止和检查 | 协议与绑定测试 |
 | `information/common.md` | 对象、事实、主次并列、去重、取舍、反例 | 用户意图与归属 |
-| `information/2x2.md` | 密度容量、单对象多字段、日期去重 | 小卡密度、W9 单侧继承 |
-| `information/2x4.md` | 主辅、等权、分区变体、W1 密度 | 数据块计数和范围 |
-| `components/common.md` | 基础组件、ActionUnit/CardHeader 合同与绑定 | 组件转换/校验 |
-| `components/2x2.md` | 小卡图标限制、TimelineUnit | 标题/图标/时间线 |
-| `components/2x4.md` | 宽卡背板透明度覆盖；共用组件不重复定义 | 色板与尺寸 |
+| `information/2x2.md` | 密度容量、单对象多字段、日期去重 | 小卡密度与双对象关系 |
+| `information/2x4.md` | 主辅、等权、分区变体 | 数据块计数和范围 |
+| `components/common.md` | 基础组件、Compact 高阶组件与 CardHeader 合同 | 组件转换/校验 |
+| `components/2x2.md` | 小卡图标限制、EventCard、PillButton、CircleButton 等尺寸适配 | 标题/图标/时间线 |
+| `components/2x4.md` | 宽卡高阶组件、固定槽与背板透明度 | 色板与尺寸 |
 | `combinations/common.md` | 数字单位、并列指标、小背板、图文按钮、Progress 组合 | 标签、单位、事件归属 |
 | `combinations/2x2.md` | Hero 盒、成对状态、倒计时、融球组合 | 压力宽度/高度 |
 | `combinations/2x4.md` | 同行读数、主焦点居中与天气读数组合 | 基线与信息分组 |
 | `layouts/common.md` | 画布、预算、区域槽位、路由总则 | 一级高度、非负空间 |
-| `layouts/2x2.md` | S1–S4；保留前置覆盖和各骨架条件/预算 | 小卡路由 |
-| `layouts/2x4.md` | W1–W10；主辅与多对象骨架 | 宽卡路由 |
+| `layouts/2x2.md` | 十个正式语义布局；S1–S4 仅作为输入别名 | 小卡路由 |
+| `layouts/2x4.md` | 四个正式顶层布局；W1–W10 仅作为输入别名 | 宽卡路由 |
 | `composition.md` | 内部决策顺序、冲突优先级；未来 Plan 接入边界 | 模型消息合同 |
 | `repair.md` | 反馈定位、共同根因、最小修复及子树重算 | 创建约束继承 |
 | `edit.md` | 编辑包装与稳定性规则 | 原始 DSL 编辑 |
 | `argument_repair.md` | 参数 JSON 结构恢复 | 不补造业务值 |
-| `fewshots/2x2.md` | 小卡共用前言与 V00–V14 全部 15 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
+| `fewshots/2x2.md` | 小卡共用前言与 V00–V15 全部 16 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
 | `fewshots/2x4.md` | 宽卡共用前言与 V00–V14 全部 15 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
 | `fewshots/repair/` | 修复案例维护入口；本步不增加在线 few-shot | 先验证再启用 |
 | `generated/*.md` | 6 份可复现拼接产物；禁止人工修改 | `--check` |
@@ -45,8 +45,8 @@ python -m pytest tests/test_compact_prompt_bundle.py -q
 
 `manifest.yaml` 使用 YAML 1.2 的 JSON 子集，由标准库解析，不新增部署依赖。
 `products` 的数组顺序是唯一拼接顺序，引用格式为 `文件#片段`。
-每种尺寸的 Few-shot 只维护一个文档，前言使用 `preamble`，案例使用 `example-v00` 至
-`example-v14` 片段；manifest 保留逐案例索引，构建器逐片段检查完整输入/输出，不按整文件放行。
+每种尺寸的 Few-shot 只维护一个文档，前言使用 `preamble`；2x2 使用 `example-v00` 至
+`example-v15`，2x4 使用 `example-v00` 至 `example-v14`。manifest 保留逐案例索引，构建器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
 同一模块可有多个片段，构建时回到原来的优先级位置，避免改变前置覆盖与原章节裁剪。
@@ -58,7 +58,7 @@ manifest 和标记本身不发。不要把要生效的规则写到标记外。
 
 ## 与 Multi-step 的融合边界
 
-吸收信息处理、单组件、组件组合、布局与编排分层的维护方式，当前规则文字不新增、不删减、不重排。
+吸收信息处理、单组件、组件组合、布局与编排分层的维护方式，并在 PR 416 的语义布局骨架内维护 Compact 高阶组件。
 后续可以在 information/composition 中完善 Plan，或在 components 增加受控高阶组件；但必须同时
 验证 Compact 编译/校验支持，不能仅把 JSX 名称和 Props 粘进提示词。
 
@@ -68,7 +68,6 @@ manifest 和标记本身不发。不要把要生效的规则写到标记外。
 
 ## 显示回归保障
 
-6 份生成文本按 UTF-8/LF 与基线完全一致；30 例 × 两种融球版本 × 创建/编辑/修复 = 180 组
-完整模型消息的 SHA-256 保持一致。摘要在 `tests/fixtures/compact_prompt_migration_baseline.json`，
-不是运行时依赖。后续有意改规则时，需解释并评审摘要变化，不能直接重录来掩盖回归。
+6 份生成文本继续由维护源确定性构建，并由 `--check` 保证源与产物一致。高阶组件替换属于有意的协议演进，
+不再要求与迁移前文本摘要完全一致；转换测试应证明高阶调用展开后保持对应 Few-shot 的布局与视觉属性。
 案例另经 Compact 上下文校验和 A2UI 转换。这里不声称完成真实端侧截图验收或线上随机模型质量验收。

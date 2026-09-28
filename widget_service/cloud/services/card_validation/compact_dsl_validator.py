@@ -15,9 +15,12 @@ from services.compact_dsl_a2ui_converter import (
     ComponentRow,
     DataRow,
     build_compact_data_model,
+    expand_high_level_component_rows,
     parse_compact_dsl_rows,
     validate_card_header_layout,
-    validate_timeline_unit_layout,
+    validate_circle_button_layout,
+    validate_event_card_layout,
+    validate_event_card_scope,
 )
 
 from .base import estimate_text_width
@@ -204,6 +207,14 @@ def validate_compact_dsl(
 
     components = [row for row in rows if isinstance(row, ComponentRow)]
     data_rows = [row for row in rows if isinstance(row, DataRow)]
+    size = card_spec.get("suggestSize") or task_spec.get("size")
+    try:
+        validate_event_card_scope(components)
+        validate_event_card_layout(components, size=size)
+        validate_circle_button_layout(components, size=size)
+        components = expand_high_level_component_rows(components, size=size)
+    except CompactDslConversionError as exc:
+        raise CompactDslValidationError([str(exc)]) from exc
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
@@ -219,7 +230,6 @@ def validate_compact_dsl(
     _collect_two_by_two_weather_date_errors(components, task_spec, errors)
     _collect_hero_value_errors(components, task_spec, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors)
-    size = card_spec.get("suggestSize") or task_spec.get("size")
     collect_dual_action_errors(components, size, errors)
     for component in components:
         location = f"component {component.component_id}.props"
@@ -2873,11 +2883,9 @@ def _has_two_by_four_w10_backboards(
     if first is None or second is None:
         return False
     if _is_two_by_four_aux_column(first, components_by_id):
-        side = first
         content = second
     elif _is_two_by_four_aux_column(second, components_by_id):
         content = first
-        side = second
     else:
         return False
     return (
@@ -3782,7 +3790,8 @@ def _collect_layout_route_errors(
     errors.append(
         f"2x4 card displays two semantic data blocks ({roots}) and must use W9: "
         "root must be a Row with padding 12 and exactly two direct 132x126 "
-        "Column parent zones with itemMargin 12. Do not use a shared title, a shared action area, or "
+        "Column parent zones with itemMargin 12. Do not use a shared title, "
+        "a shared action area, or "
         "stacked full-width business rows."
     )
 
@@ -4316,10 +4325,6 @@ def _collect_component_contract_errors(
     _collect_component_parent_errors(components, errors)
     try:
         validate_card_header_layout(components, size=task_spec.get("size"))
-    except CompactDslConversionError as exc:
-        errors.append(str(exc))
-    try:
-        validate_timeline_unit_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)

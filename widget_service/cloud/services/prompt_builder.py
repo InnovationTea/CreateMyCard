@@ -37,7 +37,7 @@ _COUNTDOWN_V01_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先�
 - 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
   “天后开始”“天后参加”等长后缀。
 - 先按主提示词判定事件意图和对象归属；只有用户明确要求、且候选实际目标匹配的动作，
-  才映射为底部胶囊 ActionUnit。action_area 必须是 root 最后一项并固定沉底。
+  才映射为底部 PillButton。action_area 必须是 root 最后一项并固定沉底。
   候选恰好一个也不代表必须使用；无关或未被要求的动作不生成按钮，合法隐式入口按主规则处理。
   不得把标题、时间和数字重组为 countdown_group 或其它自由布局。
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
@@ -56,7 +56,7 @@ FEWSHOT_2x2 的 V08，不得重新套用普通 S1/S2/S3/S4，也不得按 `/data
 - `value_group` 第一行必须是左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的
   12-16fp 单位“天”；第二行仅在确有另一类展示数据时使用 12fp/400 Text。
   禁止把“天”和辅助时间拆成数字下方的两行，禁止生成第三行。
-- 只有用户明确要求且候选目标匹配时才生成底部胶囊 ActionUnit；`action_area` 必须是 root
+- 只有用户明确要求且候选目标匹配时才生成底部 PillButton；`action_area` 必须是 root
   最后一项并固定沉底。显式“查看/打开”动作不得改绑 root，也不得用普通 Text 模拟按钮。
 - 顶部标题只能是活动、事件等倒计时目标名称；存在可用动态标题且用户要求展示时优先绑定，
   禁止使用日期或时间作为标题，无法提取目标名称时固定使用“倒计时”。
@@ -327,7 +327,10 @@ _GENERIC_MULTI_FEW_SHOT_IDS = {
 }
 _VISUAL_ROUTE_INSTRUCTIONS = {
     "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
-    "earphone-status": "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。",
+    "earphone-status": (
+        "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。"
+        "用户明确要求右下图标入口且具备准确素材时参考 V15；否则优先使用带文字的 PillButton。"
+    ),
     "battery-readout": (
         "本卡是量化主值路由：电量、温度、电流、电压、功率等测量值中只选择一个主读数使用最大安全字号，"
         "其余同级测量值降为紧邻的辅助信息；schema 已包含单位的字符串整体绑定，"
@@ -400,29 +403,31 @@ Text 也只依赖 Row 底对齐，禁止用底部 padding 抬高小字号文字�
 }
 
 _TWO_BY_FOUR_ROUTE_LOCKS = {
-    "W8-quad-cells": """# 本次尺寸骨架硬约束（高优先级）
+    "W-four-slots": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W8 四槽宫格。root padding 固定为 12vp，第一层是 2×2 槽位，四个
-132×57vp 固定槽分别承载一个业务数据块或动作模块，横纵间距均为 12vp；禁止公共标题、公共内容区、公共动作区、
+132×57vp 固定槽分别承载一个业务数据块或动作模块，横纵间距均为 12vp；
+禁止公共标题、公共内容区、公共动作区、
 第五个数据块和格内按钮。天气中的温度/体感/湿度可以在一个两行背板内组成热舒适组，
 风向与风力组成一个风况组；其余格分别承载预警、电池温度、步数或心率等独立指标。
 字段多于四组时先合并天然相关字段，再删除最低优先级字段，不得退回 W1/W9。""",
-    "W9-dual-backboards": """# 本次尺寸骨架硬约束（高优先级）
+    "W-split-panels": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W9 左右双内容父区。root 必须是 Row，padding 与两父区间距均为 12vp，
-直接且只能包含两个 132×126vp 父区；每区 padding 8，内部为 116×110vp Sub-118。禁止上下堆叠、公共标题、公共内容区和公共动作区。
+直接且只能包含两个 132×126vp 父区；每区 padding 8，内部为 116×110vp Sub-118。
+禁止上下堆叠、公共标题、公共内容区和公共动作区。
 每个业务的数据与至多一个动作只放在所属背板内；带动作时真实 content 必须使用
 layoutWeight:1，动作是最后一个直接子项。普通 Text 最多合并两个能完整显示的动态
 事实，三个以上字段必须拆成短行或删除最低优先级项；多日天气的单日摘要除外。
 动作使用一个简短完整命令，不追加同义提示，天气详情优先使用“查看天气”。数字与
 单位同行拆分时，Row 固定底对齐且 `itemMargin:2`，数字与单位 Text 不设置固定宽度，
 较小 Text 不设置底部 padding。""",
-    "W10-triple-backboards": """# 本次尺寸骨架硬约束（高优先级）
+    "W-content-side-slots": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W10 非对称双槽。root 必须是 Row，padding 与分区间距均为 12vp；
 一侧是 132×126vp 内容区，另一侧是两个 132×57vp 固定槽，整体允许镜像。禁止公共标题、公共动作区、
 三个等宽栏和第四个数据块。""",
-    "W1-W7 adaptive-single-business": """# 本次尺寸骨架硬约束（高优先级）
+    "W-adaptive-single-business": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮只有一个业务数据块，只能在当前第九节保留的 W1-W7 单业务骨架中选择，
 禁止生成 W8/W9/W10 多业务背板。围绕编译简报指定的第一焦点组织连续内容组，
@@ -584,7 +589,8 @@ class PromptBuilder:
         ):
             return (
                 "用户要求点按查看天气详情；把匹配的只读天气动作绑定到整卡，"
-                "不生成 Button、ActionUnit，也不生成‘点击查看详情’‘查看天气’等可见提示 Text。"
+                "不生成 Button、PillButton、CircleButton，也不生成‘点击查看详情’"
+                "‘查看天气’等可见提示 Text。"
             )
         if PromptBuilder._query_requests_action(task_spec):
             return (
@@ -632,9 +638,13 @@ class PromptBuilder:
 
         normalized_roots = {root.casefold() for root in roots}
         if "earphone" in normalized_roots:
-            return "earphone-status", (
-                ("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",)
-            )
+            if (
+                task_spec.size == "2x2"
+                and event_count == 1
+                and _contains_any(query, ("右下", "图标按钮", "圆形按钮", "圆钮"))
+            ):
+                return "earphone-status", ("2x2-V15",)
+            return "earphone-status", (("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",))
         if "phonebattery" in normalized_roots:
             return "battery-readout", (("2x2-V09",) if task_spec.size == "2x2" else ("2x4-V02",))
         if "weather" in normalized_roots or any(
@@ -733,20 +743,22 @@ class PromptBuilder:
     def _layout_scope(task_spec: TaskSpec) -> str:
         """只返回由尺寸和数据块数量确定的骨架范围。"""
         if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
-            return "W1-focus-aux"
+            return "W-content-side-slots"
         block_count = PromptBuilder._data_block_count(task_spec)
         if task_spec.size == "2x2":
+            if block_count >= 4:
+                return "S-quad-content"
             if block_count >= 2:
-                return "S4-stacked-zones"
-            return "S1-S3 adaptive-single-business"
+                return "S-dual-info"
+            return "S-adaptive-single-business"
 
         if block_count >= 4:
-            return "W8-quad-cells"
+            return "W-four-slots"
         if block_count == 3:
-            return "W10-triple-backboards"
+            return "W-content-side-slots"
         if block_count == 2:
-            return "W9-dual-backboards"
-        return "W1-W7 adaptive-single-business"
+            return "W-split-panels"
+        return "W-adaptive-single-business"
 
     @staticmethod
     def _query_mentions_weather(task_spec: TaskSpec) -> bool:
@@ -785,21 +797,26 @@ class PromptBuilder:
         """仅按尺寸和数据块数量裁剪第九节布局骨架。"""
         lines = system_prompt.splitlines()
         try:
-            chapter_start = lines.index("# 九、固定布局骨架路由")
+            chapter_start = lines.index("# 九、固定布局路由")
             chapter_end = lines.index("# 十、文字与信息适配")
-            two_by_two_start = lines.index("## 9.1 2x2 固定骨架（v0.2 四分法）")
-            two_by_four_start = lines.index("## 9.2 2x4 固定骨架（v0.4 W 骨架 · W1→W10）")
+            two_by_two_start = lines.index("## 9.1 2x2 固定语义布局")
+            two_by_four_start = lines.index("## 9.2 2x4 固定语义布局")
         except ValueError:
             return system_prompt
 
         chapter_intro = lines[chapter_start:two_by_two_start]
         if task_spec.size == "2x2":
             layout_lines = lines[two_by_two_start:two_by_four_start]
-            if layout_scope == "S1-S3 adaptive-single-business":
+            if layout_scope == "S-adaptive-single-business":
                 allowed = (
-                    "S1-single-info",
-                    "S2-info-pair-action",
-                    "S3-info-dual-action",
+                    "S-center",
+                    "S-title-content",
+                    "S-title-dual-content",
+                    "S-title-content-action",
+                    "S-title-primary-secondary-action",
+                    "S-title-dual-column-action",
+                    "S-title-anchor",
+                    "S-content-dual-action",
                 )
             else:
                 allowed = (layout_scope,)
@@ -809,24 +826,17 @@ class PromptBuilder:
                 (
                     index
                     for index, line in enumerate(layout_lines)
-                    if line.startswith("骨架落地时还必须满足：")
+                    if line.startswith("以上布局按业务对象")
                 ),
                 len(layout_lines),
             )
             tail = layout_lines[tail_start:]
             layout_lines = layout_lines[:tail_start]
-            if layout_scope == "W1-W7 adaptive-single-business":
-                allowed = tuple(
-                    name
-                    for name in (
-                        "W1-focus-aux",
-                        "W2-text-flow",
-                        "W3-ring-detail",
-                        "W4-metric-triple",
-                        "W5-progress-detail",
-                        "W6-agenda-cta",
-                        "W7-list-rows",
-                    )
+            if layout_scope == "W-adaptive-single-business":
+                allowed = (
+                    "W-top-bottom",
+                    "W-split-panels",
+                    "W-content-side-slots",
                 )
             else:
                 allowed = (layout_scope,)
@@ -928,12 +938,12 @@ class PromptBuilder:
     @staticmethod
     def _layout_route_lock(task_spec: TaskSpec, layout_scope: str) -> str:
         if task_spec.size == "2x2":
-            if layout_scope == "S4-stacked-zones":
+            if layout_scope in {"S-dual-info", "S-quad-content"}:
                 return _SIZE_LAYOUT_ROUTE_LOCKS["2x2"]
             return (
                 "# 本次尺寸骨架硬约束（高优先级）\n\n"
-                "本轮只有一个业务对象，只能在 S1、S2、S3 中按字段关系选择；"
-                "不得生成 S4 双业务背板。root 使用单业务安全区，全部内容围绕"
+                "本轮只有一个业务对象，只能在已保留的单业务语义布局中按字段关系选择；"
+                "不得生成 S-dual-info 或 S-quad-content。root 使用单业务安全区，全部内容围绕"
                 "userQuery 指定的第一焦点组织，动作与信息区域遵守所选骨架的容量。"
             )
 

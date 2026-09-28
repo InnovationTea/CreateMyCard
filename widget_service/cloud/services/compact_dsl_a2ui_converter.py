@@ -23,7 +23,7 @@ from services.fusion_ball_expander import (
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
-_A2UI_ICON_BUTTON_LABEL = "\u200B"
+_A2UI_ICON_BUTTON_LABEL = "\u200b"
 _INLINE_DISPLAY_UNITS = frozenset(
     {
         "%",
@@ -96,9 +96,21 @@ _COMPONENT_TYPES = frozenset(
         "Divider",
         "Progress",
         "Button",
+        "PillButton",
+        "CircleButton",
         "ActionUnit",
         "CardHeader",
-        "TimelineUnit",
+        "EmphasizedData",
+        "InfoBlock",
+        "ProgressLine2",
+        "TableText",
+        "TextBlock",
+        "CardButton",
+        "ProgressCircleSingle",
+        "EventCard",
+        "DataDisplay",
+        "TopTextBottomValue",
+        "SummaryList",
         "Checkbox",
     }
 )
@@ -185,9 +197,7 @@ _COMPONENT_STYLE_PROPERTIES = {
     "List": frozenset({"listDirection", "scrollBar", "space"}),
     "Stack": frozenset({"alignContent"}),
 }
-_COMMON_COMPACT_PROPERTIES = frozenset(
-    {"design", "onClick", "accessibility", "accessibily"}
-)
+_COMMON_COMPACT_PROPERTIES = frozenset({"design", "onClick", "accessibility", "accessibily"})
 _COMMON_COMPACT_ONLY_PROPERTIES = frozenset({"accessibility", "accessibily"})
 _ACTION_UNIT_PROPERTIES = frozenset(
     {
@@ -425,9 +435,9 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "flexShrink": 0,
     },
     "action-icon-round": {
-        "width": 30,
-        "height": 30,
-        "borderRadius": 15,
+        "width": 36,
+        "height": 36,
+        "borderRadius": 18,
         "padding": 0,
         "backgroundColor": "comp_background_tertiary",
         "flexShrink": 0,
@@ -581,6 +591,49 @@ def build_compact_data_model(data_rows: list[DataRow]) -> dict[str, Any]:
     return _build_data_model(data_rows)
 
 
+def expand_high_level_component_rows(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    """Expand Fusion high-level rows into the existing base Compact components."""
+    existing_ids = {component.component_id for component in components}
+    generated_ids: set[str] = set()
+    expanded: list[ComponentRow] = []
+    expanders = {
+        "PillButton": _expand_pill_button,
+        "CircleButton": _expand_circle_button,
+        "EmphasizedData": _expand_emphasized_data,
+        "InfoBlock": _expand_info_block,
+        "ProgressLine2": _expand_progress_line_two,
+        "TableText": _expand_table_text,
+        "TextBlock": _expand_text_block,
+        "CardButton": _expand_card_button,
+        "ProgressCircleSingle": _expand_progress_circle_single,
+        "EventCard": _expand_event_card,
+        "DataDisplay": _expand_data_display,
+        "TopTextBottomValue": _expand_top_text_bottom_value,
+        "SummaryList": _expand_summary_list,
+    }
+    for component in components:
+        expander = expanders.get(component.component_type)
+        rows = [component] if expander is None else expander(component, size)
+        for index, row in enumerate(rows):
+            is_original_root = index == 0 and row.component_id == component.component_id
+            if not is_original_root and row.component_id in existing_ids:
+                raise CompactDslConversionError(
+                    f"{component.component_type} generated id {row.component_id} collides "
+                    "with an existing component."
+                )
+            if row.component_id in generated_ids:
+                raise CompactDslConversionError(
+                    f"High-level component generated duplicate id {row.component_id}."
+                )
+            generated_ids.add(row.component_id)
+            expanded.append(row)
+    return expanded
+
+
 def normalize_compact_dsl_design_tokens(
     compact_dsl: str,
     *,
@@ -631,7 +684,7 @@ def repair_compact_dsl_binding_paths(
             continue
         suffix = path
         if path == "/data" or path.startswith("/data/"):
-            suffix = path[len("/data"):]
+            suffix = path[len("/data") :]
         candidates: set[str] = set()
         for root in roots:
             candidate = f"{root.rstrip('/')}{suffix}"
@@ -712,9 +765,11 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    validate_event_card_scope(components)
+    validate_event_card_layout(components, size=size)
+    validate_circle_button_layout(components, size=size)
+    components = expand_high_level_component_rows(components, size=size)
     validate_card_header_layout(components, size=size)
-    validate_timeline_unit_scope(components)
-    validate_timeline_unit_layout(components, size=size)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -734,10 +789,7 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
-    normalized_components = _normalize_large_value_unit_alignment(
-        normalized_components
-    )
-    normalized_components = _normalize_timeline_unit_spacing(normalized_components)
+    normalized_components = _normalize_large_value_unit_alignment(normalized_components)
     normalized_components = _normalize_small_backboard_icon_alignment(
         normalized_components,
         size=size,
@@ -822,16 +874,15 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         is_root_level_column = (
             container.component_type == "Column" and container.component_id in root.children
         )
-        has_header_first = (
-            bool(container.children) and container.children[0] == header.component_id
-        )
+        has_header_first = bool(container.children) and container.children[0] == header.component_id
         if not is_root_level_column or not has_header_first:
             raise CompactDslConversionError(
                 "2x4 CardHeader must be the first child of a root-level foreground Column."
             )
-        if container.props.get("width") != "matchParent" or container.props.get(
-            "height"
-        ) != "matchParent":
+        if (
+            container.props.get("width") != "matchParent"
+            or container.props.get("height") != "matchParent"
+        ):
             raise CompactDslConversionError(
                 "2x4 CardHeader foreground Column requires matchParent width and height."
             )
@@ -840,17 +891,17 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
 
     padding = container.props.get("padding")
     valid_padding = padding == 12 or padding == {
-        "left": 12, "right": 12, "top": 12, "bottom": 12,
+        "left": 12,
+        "right": 12,
+        "top": 12,
+        "bottom": 12,
     }
-    if size == "2x2" and (
-        not valid_padding or container.props.get("justifyContent") != "start"
-    ):
+    if size == "2x2" and (not valid_padding or container.props.get("justifyContent") != "start"):
         raise CompactDslConversionError(
             "CardHeader requires root padding:12 and justifyContent:start."
         )
     if size == "2x4" and (
-        not valid_padding
-        or container.props.get("justifyContent") not in {"start", "spaceBetween"}
+        not valid_padding or container.props.get("justifyContent") not in {"start", "spaceBetween"}
     ):
         raise CompactDslConversionError(
             "CardHeader container requires padding:12 and start/spaceBetween alignment."
@@ -889,28 +940,34 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
 
 
-def validate_timeline_unit_scope(components: list[ComponentRow]) -> None:
-    if not any(item.component_type == "TimelineUnit" for item in components):
+def validate_event_card_scope(components: list[ComponentRow]) -> None:
+    if not any(item.component_type == "EventCard" for item in components):
         return
     if any(_has_non_calendar_data_binding(item.props) for item in components):
         raise CompactDslConversionError(
-            "TimelineUnit requires a calendar-only card; dual-business cards must use S4."
+            "EventCard requires a calendar-only card; dual-business cards must use S-dual-info."
         )
 
 
-def validate_timeline_unit_layout(
-    components: list[ComponentRow], *, size: str
-) -> None:
-    if not any(item.component_type == "TimelineUnit" for item in components):
+def validate_event_card_layout(components: list[ComponentRow], *, size: str) -> None:
+    event_cards = [item for item in components if item.component_type == "EventCard"]
+    if not event_cards:
         return
+    if len(event_cards) != 1:
+        raise CompactDslConversionError("EventCard currently supports exactly one event.")
     if size != "2x2":
-        raise CompactDslConversionError("TimelineUnit requires a 2x2 card.")
+        raise CompactDslConversionError("EventCard currently requires a 2x2 card.")
 
     components_by_id = {item.component_id: item for item in components}
     root = components_by_id.get("root")
     if root is None or root.component_type != "Column" or not root.children:
         raise CompactDslConversionError(
-            "TimelineUnit requires a root Column with a left-aligned date row."
+            "EventCard requires a root Column with a left-aligned date row."
+        )
+    event_card = event_cards[0]
+    if len(root.children) < 2 or root.children[1] != event_card.component_id:
+        raise CompactDslConversionError(
+            "EventCard must be the second direct child of the root Column."
         )
 
     day_area = components_by_id.get(root.children[0])
@@ -922,56 +979,23 @@ def validate_timeline_unit_layout(
         "flexShrink": 0,
     }
     has_expected_layout = day_area is not None and all(
-        day_area.props.get(name) == value
-        for name, value in expected_layout.items()
+        day_area.props.get(name) == value for name, value in expected_layout.items()
     )
     is_expected_row = day_area is not None and day_area.component_type == "Row"
     has_single_child = day_area is not None and len(day_area.children) == 1
     if not all((is_expected_row, has_expected_layout, has_single_child)):
         raise CompactDslConversionError(
-            "TimelineUnit date context must be the first root child and use a "
+            "EventCard date context must be the first root child and use a "
             "left-aligned 126x16 Row with exactly one Text child."
         )
 
     day_text = components_by_id.get(day_area.children[0])
     if day_text is None or day_text.component_type != "Text":
         raise CompactDslConversionError(
-            "TimelineUnit date context Row must contain exactly one Text child."
+            "EventCard date context Row must contain exactly one Text child."
         )
     if day_text.props.get("textAlign", "start") != "start":
-        raise CompactDslConversionError(
-            "TimelineUnit date context Text must be left-aligned."
-        )
-
-
-def _normalize_timeline_unit_spacing(
-    components: list[ComponentRow],
-) -> list[ComponentRow]:
-    timeline_ids = {
-        component.component_id
-        for component in components
-        if component.component_type == "TimelineUnit"
-    }
-    parent_ids = set()
-    for component in components:
-        if component.component_type != "Row":
-            continue
-        if any(child_id in timeline_ids for child_id in component.children):
-            parent_ids.add(component.component_id)
-    normalized = []
-    for component in components:
-        props = copy.deepcopy(component.props)
-        if component.component_id in parent_ids:
-            props["itemMargin"] = 8
-        normalized.append(
-            ComponentRow(
-                component.component_id,
-                component.component_type,
-                props,
-                component.children,
-            )
-        )
-    return normalized
+        raise CompactDslConversionError("EventCard date context Text must be left-aligned.")
 
 
 def _has_non_calendar_data_binding(value: Any) -> bool:
@@ -991,6 +1015,1409 @@ def _is_non_calendar_data_path(value: Any) -> bool:
     if not isinstance(value, str) or not value.startswith("/data/"):
         return False
     return value != "/data/calendar" and not value.startswith("/data/calendar/")
+
+
+def validate_circle_button_layout(components: list[ComponentRow], *, size: str) -> None:
+    circle_buttons = [item for item in components if item.component_type == "CircleButton"]
+    if not circle_buttons:
+        return
+    if size != "2x2":
+        raise CompactDslConversionError("CircleButton requires a 2x2 card.")
+
+    components_by_id = {item.component_id: item for item in components}
+    root = components_by_id.get("root")
+    parent_by_child: dict[str, ComponentRow] = {}
+    for parent in components:
+        for child_id in parent.children:
+            parent_by_child[child_id] = parent
+
+    for button in circle_buttons:
+        slot = parent_by_child.get(button.component_id)
+        valid_slot = (
+            slot is not None
+            and slot.component_type == "Stack"
+            and slot.children == (button.component_id,)
+            and slot.props.get("width") == 40
+            and slot.props.get("height") == 40
+            and slot.props.get("alignContent") == "center"
+        )
+        if not valid_slot:
+            raise CompactDslConversionError(
+                f"{button.component_id}: CircleButton requires a centered 40x40 Stack slot."
+            )
+        anchor = parent_by_child.get(slot.component_id)
+        valid_anchor = (
+            anchor is not None
+            and anchor.component_type == "Row"
+            and anchor.children[-1:] == (slot.component_id,)
+            and anchor.props.get("width") == 126
+            and anchor.props.get("height") == 40
+            and anchor.props.get("justifyContent") == "spaceBetween"
+            and anchor.props.get("alignItems") == "center"
+        )
+        if not valid_anchor:
+            raise CompactDslConversionError(
+                f"{button.component_id}: CircleButton slot must be the last child of a "
+                "126x40 right-anchor Row."
+            )
+        anchor_parent = parent_by_child.get(anchor.component_id)
+        valid_root_anchor = (
+            root is not None
+            and root.component_type == "Column"
+            and anchor_parent is not None
+            and anchor_parent.component_type == "Column"
+            and anchor_parent.children[-1:] == (anchor.component_id,)
+            and root.children[-1:] == (anchor_parent.component_id,)
+        )
+        if not valid_root_anchor:
+            raise CompactDslConversionError(
+                f"{button.component_id}: CircleButton anchor Row must be the final child "
+                "of the final root-level body Column."
+            )
+
+
+def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x2":
+        raise CompactDslConversionError("PillButton currently requires a 2x2 card.")
+    allowed = {
+        "label",
+        "icon",
+        "actionInk",
+        "actionSurface",
+        "fontSize",
+        "fontWeight",
+        "onClick",
+    }
+    _validate_high_level_props(
+        component,
+        required={"label", "actionInk", "actionSurface", "onClick"},
+        allowed=allowed,
+    )
+    label = component.props.get("label")
+    if not isinstance(label, str) or not label.strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton.label must be non-empty text."
+        )
+    _validate_optional_icon(component)
+    _validate_high_level_on_click(component)
+    _require_color(component, "actionInk")
+    _require_color(component, "actionSurface")
+    font_size = component.props.get("fontSize")
+    if font_size is not None and font_size != 14:
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton.fontSize must be 14 when provided."
+        )
+    font_weight = component.props.get("fontWeight")
+    if font_weight is not None and font_weight not in {400, 500}:
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton.fontWeight must be 400 or 500."
+        )
+
+    props = copy.deepcopy(component.props)
+    props["state"] = "capsule"
+    return [ComponentRow(component.component_id, "ActionUnit", props)]
+
+
+def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x2":
+        raise CompactDslConversionError("CircleButton requires a 2x2 card.")
+    allowed = {
+        "icon",
+        "accessibility",
+        "actionInk",
+        "actionSurface",
+        "onClick",
+    }
+    _validate_high_level_props(
+        component,
+        required={"icon", "accessibility", "actionInk", "actionSurface", "onClick"},
+        allowed=allowed,
+    )
+    _validate_optional_icon(component)
+    _validate_high_level_on_click(component)
+    _require_color(component, "actionInk")
+    _require_color(component, "actionSurface")
+    accessibility = component.props.get("accessibility")
+    allowed_accessibility = {"label", "description"}
+    if not isinstance(accessibility, dict) or not set(accessibility).issubset(
+        allowed_accessibility
+    ):
+        raise CompactDslConversionError(
+            f"{component.component_id}: CircleButton.accessibility only allows "
+            "label and description."
+        )
+    label = accessibility.get("label") if isinstance(accessibility, dict) else None
+    if not isinstance(label, str) or not label.strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: CircleButton.accessibility.label must be non-empty."
+        )
+    description = accessibility.get("description")
+    if description is not None and (not isinstance(description, str) or not description.strip()):
+        raise CompactDslConversionError(
+            f"{component.component_id}: CircleButton.accessibility.description must be non-empty."
+        )
+
+    props = copy.deepcopy(component.props)
+    props["state"] = "icon-round"
+    return [ComponentRow(component.component_id, "ActionUnit", props)]
+
+
+def _expand_emphasized_data(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("EmphasizedData requires a 2x2 or 2x4 card.")
+    allowed = {"value", "unit", "fontColor"}
+    _validate_high_level_props(
+        component,
+        required={"value", "fontColor"},
+        allowed=allowed,
+    )
+    _require_text_value(component, "value")
+    _require_color(component, "fontColor")
+    unit = component.props.get("unit")
+    if unit is not None and (not isinstance(unit, str) or not unit.strip()):
+        raise CompactDslConversionError(
+            f"{component.component_id}: EmphasizedData.unit must be non-empty text."
+        )
+
+    value_id = f"{component.component_id}_value"
+    children = [value_id]
+    rows = [
+        ComponentRow(
+            component.component_id,
+            "Row",
+            {
+                "width": 126 if size == "2x2" else 132,
+                "itemMargin": 2 if unit else 0,
+                "justifyContent": "center",
+                "alignItems": "bottom",
+            },
+            (),
+        ),
+        ComponentRow(
+            value_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["value"]),
+                "fontSize": 30,
+                "fontWeight": 700,
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+    ]
+    if unit:
+        unit_id = f"{component.component_id}_unit"
+        children.append(unit_id)
+        rows.append(
+            ComponentRow(
+                unit_id,
+                "Text",
+                {
+                    "content": unit,
+                    "fontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": component.props["fontColor"],
+                    "padding": {"bottom": 5},
+                    "maxLines": 1,
+                },
+            )
+        )
+    rows[0] = ComponentRow(
+        rows[0].component_id,
+        rows[0].component_type,
+        rows[0].props,
+        tuple(children),
+    )
+    return rows
+
+
+def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]:
+    allowed = {
+        "variant",
+        "primaryText",
+        "secondaryText",
+        "fontColor",
+        "backgroundColor",
+        "icon",
+        "fillColor",
+        "onClick",
+    }
+    _validate_high_level_props(
+        component,
+        required={
+            "primaryText",
+            "secondaryText",
+            "fontColor",
+            "backgroundColor",
+        },
+        allowed=allowed,
+    )
+    _require_text_value(component, "primaryText")
+    _require_text_value(component, "secondaryText")
+    _require_color(component, "fontColor")
+    _require_color(component, "backgroundColor")
+    _validate_optional_icon(component)
+    if "onClick" in component.props:
+        _validate_high_level_on_click(component)
+
+    variant = component.props.get("variant")
+    profile = _info_block_profile(size, variant)
+    icon = component.props.get("icon")
+    text_width = profile["inner_width"]
+    children: list[str] = []
+    rows: list[ComponentRow] = []
+    container_props: dict[str, Any] = {
+        "width": profile["width"],
+        "height": profile["height"],
+        "padding": profile["padding"],
+        "borderRadius": profile["border_radius"],
+        "backgroundColor": component.props["backgroundColor"],
+        "justifyContent": "center" if not icon else "start",
+    }
+    if "onClick" in component.props:
+        container_props["onClick"] = copy.deepcopy(component.props["onClick"])
+
+    text_parent_id = component.component_id
+    if icon:
+        text_parent_id = f"{component.component_id}_text"
+        icon_id = f"{component.component_id}_icon"
+        text_width -= 28
+        container_props.update({"alignItems": "center", "itemMargin": 8})
+        children.extend((text_parent_id, icon_id))
+    primary_id = f"{component.component_id}_primary"
+    secondary_id = f"{component.component_id}_secondary"
+    if icon:
+        rows.append(
+            ComponentRow(
+                component.component_id,
+                "Row",
+                container_props,
+                tuple(children),
+            )
+        )
+        rows.append(
+            ComponentRow(
+                text_parent_id,
+                "Column",
+                {
+                    "width": text_width,
+                    "justifyContent": "center",
+                    "itemMargin": profile["item_margin"],
+                },
+                (primary_id, secondary_id),
+            )
+        )
+    else:
+        container_props["itemMargin"] = profile["item_margin"]
+        rows.append(
+            ComponentRow(
+                component.component_id,
+                "Column",
+                container_props,
+                (primary_id, secondary_id),
+            )
+        )
+    rows.extend(_info_block_text_rows(component, profile, text_width, primary_id, secondary_id))
+    if icon:
+        image_props: dict[str, Any] = {
+            "src": icon,
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0,
+        }
+        if "fillColor" in component.props:
+            image_props["fillColor"] = component.props["fillColor"]
+        rows.append(ComponentRow(f"{component.component_id}_icon", "Image", image_props))
+    return rows
+
+
+def _info_block_profile(size: str, variant: Any) -> dict[str, Any]:
+    if size == "2x2":
+        if variant not in (None, "stacked"):
+            raise CompactDslConversionError('2x2 InfoBlock.variant must be omitted or "stacked".')
+        return {
+            "width": 134,
+            "height": 63,
+            "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
+            "border_radius": 16,
+            "inner_width": 110,
+            "item_margin": 4,
+            "primary_size": 14,
+            "primary_weight": 700,
+            "secondary_size": 12,
+        }
+    if size != "2x4" or variant not in {"slot", "aux", "small"}:
+        raise CompactDslConversionError(
+            '2x4 InfoBlock.variant must be "slot"; "aux" and "small" are legacy aliases.'
+        )
+    return {
+        "width": 132,
+        "height": 57,
+        "padding": 12,
+        "border_radius": 12,
+        "inner_width": 108,
+        "item_margin": 2,
+        "primary_size": 14,
+        "primary_weight": 700,
+        "secondary_size": 12,
+    }
+
+
+def _info_block_text_rows(
+    component: ComponentRow,
+    profile: dict[str, Any],
+    width: int,
+    primary_id: str,
+    secondary_id: str,
+) -> list[ComponentRow]:
+    color = component.props["fontColor"]
+    return [
+        ComponentRow(
+            primary_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["primaryText"]),
+                "width": width,
+                "fontSize": profile["primary_size"],
+                "fontWeight": profile["primary_weight"],
+                "fontColor": color,
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            secondary_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["secondaryText"]),
+                "width": width,
+                "fontSize": profile["secondary_size"],
+                "fontWeight": 400,
+                "fontColor": color,
+                "maxLines": 1,
+            },
+        ),
+    ]
+
+
+def _expand_progress_line_two(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("ProgressLine2 currently requires a 2x4 card.")
+    allowed = {
+        "value",
+        "total",
+        "displayValue",
+        "label",
+        "fontColor",
+        "color",
+        "backgroundColor",
+    }
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_text_value(component, "displayValue")
+    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressLine2.label must be non-empty text."
+        )
+    for name in ("fontColor", "color", "backgroundColor"):
+        _require_color(component, name)
+    total = component.props.get("total")
+    if isinstance(total, bool) or not isinstance(total, (int, float)) or total <= 0:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressLine2.total must be a positive number."
+        )
+
+    readout_id = f"{component.component_id}_readout"
+    value_id = f"{component.component_id}_value"
+    label_id = f"{component.component_id}_label"
+    bar_id = f"{component.component_id}_bar"
+    return [
+        ComponentRow(
+            component.component_id,
+            "Column",
+            {
+                "width": 276,
+                "height": 45,
+                "itemMargin": 4,
+                "justifyContent": "center",
+                "alignItems": "start",
+            },
+            (readout_id, bar_id),
+        ),
+        ComponentRow(
+            readout_id,
+            "Row",
+            {"width": 276, "alignItems": "bottom", "itemMargin": 6},
+            (value_id, label_id),
+        ),
+        ComponentRow(
+            value_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["displayValue"]),
+                "fontSize": 18,
+                "fontWeight": 700,
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            label_id,
+            "Text",
+            {
+                "content": component.props["label"],
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": component.props["fontColor"],
+                "padding": {"bottom": 2},
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            bar_id,
+            "Progress",
+            {
+                "type": "linear",
+                "width": 276,
+                "height": 8,
+                "strokeWidth": 8,
+                "borderRadius": 4,
+                "value": copy.deepcopy(component.props["value"]),
+                "total": component.props["total"],
+                "color": component.props["color"],
+                "backgroundColor": component.props["backgroundColor"],
+            },
+        ),
+    ]
+
+
+def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x2":
+        raise CompactDslConversionError("TableText currently requires a 2x2 card.")
+    items = _validate_item_component(component, minimum=2, maximum=3)
+    rows: list[ComponentRow] = []
+    children: list[str] = []
+    for index, item in enumerate(items):
+        row_id = f"{component.component_id}_row{index}"
+        label_id = f"{row_id}_label"
+        value_id = f"{row_id}_value"
+        children.append(row_id)
+        rows.extend(
+            [
+                ComponentRow(
+                    row_id,
+                    "Row",
+                    {
+                        "width": 126,
+                        "height": 20,
+                        "justifyContent": "start",
+                        "alignItems": "center",
+                    },
+                    (label_id, value_id),
+                ),
+                ComponentRow(
+                    label_id,
+                    "Text",
+                    {
+                        "content": item["label"],
+                        "width": 70,
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": component.props["fontColor"],
+                        "maxLines": 1,
+                    },
+                ),
+                ComponentRow(
+                    value_id,
+                    "Text",
+                    {
+                        "content": copy.deepcopy(item["value"]),
+                        "width": 56,
+                        "fontSize": 14,
+                        "fontWeight": 700,
+                        "fontColor": component.props["fontColor"],
+                        "textAlign": "end",
+                        "maxLines": 1,
+                    },
+                ),
+            ]
+        )
+    root = ComponentRow(
+        component.component_id,
+        "Column",
+        {
+            "width": 126,
+            "layoutWeight": 1,
+            "justifyContent": "center",
+            "alignItems": "start",
+            "itemMargin": 4,
+            "flexShrink": 1,
+        },
+        tuple(children),
+    )
+    return [root, *rows]
+
+
+def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("TextBlock requires a 2x4 card.")
+    items = _validate_item_component(component, minimum=2, maximum=2)
+    children: list[str] = []
+    rows: list[ComponentRow] = []
+    for index, item in enumerate(items):
+        item_id = f"{component.component_id}_item{index}"
+        label_id = f"{item_id}_label"
+        value_id = f"{item_id}_value"
+        children.append(item_id)
+        rows.extend(
+            [
+                ComponentRow(
+                    item_id,
+                    "Column",
+                    {
+                        "width": 134,
+                        "height": 45,
+                        "padding": {"left": 8, "right": 8, "top": 6, "bottom": 6},
+                        "borderRadius": 10,
+                        "backgroundColor": component.props["backgroundColor"],
+                        "itemMargin": 2,
+                        "justifyContent": "center",
+                    },
+                    (label_id, value_id),
+                ),
+                ComponentRow(
+                    label_id,
+                    "Text",
+                    {
+                        "content": item["label"],
+                        "width": 118,
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": component.props["fontColor"],
+                        "maxLines": 1,
+                    },
+                ),
+                ComponentRow(
+                    value_id,
+                    "Text",
+                    {
+                        "content": copy.deepcopy(item["value"]),
+                        "width": 118,
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": component.props["fontColor"],
+                        "maxLines": 1,
+                    },
+                ),
+            ]
+        )
+    root = ComponentRow(
+        component.component_id,
+        "Row",
+        {"width": 276, "height": 45, "itemMargin": 8},
+        tuple(children),
+    )
+    return [root, *rows]
+
+
+def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("CardButton requires a 2x4 card.")
+    allowed = {
+        "label",
+        "onClick",
+        "fontColor",
+        "backgroundColor",
+        "icon",
+        "fillColor",
+    }
+    _validate_high_level_props(
+        component,
+        required={"label", "onClick", "fontColor", "backgroundColor"},
+        allowed=allowed,
+    )
+    _require_text_value(component, "label")
+    _require_color(component, "fontColor")
+    _require_color(component, "backgroundColor")
+    _validate_optional_icon(component)
+    _validate_high_level_on_click(component)
+
+    label_id = f"{component.component_id}_label"
+    icon = component.props.get("icon")
+    children = [label_id]
+    container_type = "Column"
+    container_props: dict[str, Any] = {
+        "width": 132,
+        "height": 57,
+        "padding": {"left": 12, "right": 12},
+        "borderRadius": 12,
+        "backgroundColor": component.props["backgroundColor"],
+        "justifyContent": "center",
+        "alignItems": "center",
+        "onClick": copy.deepcopy(component.props["onClick"]),
+    }
+    label_width = 108
+    rows = []
+    if icon:
+        container_type = "Row"
+        icon_id = f"{component.component_id}_icon"
+        children.append(icon_id)
+        container_props["justifyContent"] = "start"
+        container_props["itemMargin"] = 8
+        label_width = 80
+    rows.append(
+        ComponentRow(
+            component.component_id,
+            container_type,
+            container_props,
+            tuple(children),
+        )
+    )
+    rows.append(
+        ComponentRow(
+            label_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["label"]),
+                "width": label_width,
+                "fontSize": 14,
+                "fontWeight": 500,
+                "fontColor": component.props["fontColor"],
+                "textAlign": "start",
+                "maxLines": 1,
+            },
+        )
+    )
+    if icon:
+        image_props: dict[str, Any] = {
+            "src": icon,
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0,
+        }
+        if "fillColor" in component.props:
+            image_props["fillColor"] = component.props["fillColor"]
+        rows.append(ComponentRow(f"{component.component_id}_icon", "Image", image_props))
+    return rows
+
+
+def _expand_progress_circle_single(
+    component: ComponentRow,
+    size: str,
+) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("ProgressCircleSingle currently requires a 2x4 card.")
+    allowed = {
+        "value",
+        "total",
+        "displayValue",
+        "label",
+        "details",
+        "fontColor",
+        "color",
+        "backgroundColor",
+    }
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_text_value(component, "value")
+    _require_text_value(component, "displayValue")
+    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircleSingle.label must be non-empty text."
+        )
+    total = component.props.get("total")
+    if isinstance(total, bool) or not isinstance(total, (int, float)) or total <= 0:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircleSingle.total must be a positive number."
+        )
+    details = component.props.get("details")
+    if not isinstance(details, list) or not 1 <= len(details) <= 2:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircleSingle.details requires 1 to 2 entries."
+        )
+    for index, value in enumerate(details):
+        if not _is_display_value(value):
+            raise CompactDslConversionError(
+                f"{component.component_id}: details[{index}] must be display text."
+            )
+    for name in ("fontColor", "color", "backgroundColor"):
+        _require_color(component, name)
+
+    ring_area_id = f"{component.component_id}_ring_area"
+    ring_stack_id = f"{component.component_id}_ring_stack"
+    ring_id = f"{component.component_id}_ring"
+    display_id = f"{component.component_id}_display"
+    info_id = f"{component.component_id}_info"
+    label_id = f"{component.component_id}_label"
+    details_group_id = f"{component.component_id}_details"
+    detail_ids = [f"{component.component_id}_detail{index}" for index in range(len(details))]
+    rows = [
+        ComponentRow(
+            component.component_id,
+            "Row",
+            {
+                "width": 276,
+                "height": 126,
+                "itemMargin": 12,
+                "alignItems": "center",
+            },
+            (ring_area_id, info_id),
+        ),
+        ComponentRow(
+            ring_area_id,
+            "Column",
+            {
+                "width": 132,
+                "height": 126,
+                "padding": 8,
+                "borderRadius": 16,
+                "backgroundColor": "#99FFFFFF",
+                "justifyContent": "center",
+                "alignItems": "center",
+            },
+            (ring_stack_id,),
+        ),
+        ComponentRow(
+            ring_stack_id,
+            "Stack",
+            {"width": 92, "height": 92, "alignContent": "center"},
+            (ring_id, display_id),
+        ),
+        ComponentRow(
+            ring_id,
+            "Progress",
+            {
+                "type": "ring",
+                "width": 92,
+                "height": 92,
+                "strokeWidth": 8,
+                "value": copy.deepcopy(component.props["value"]),
+                "total": total,
+                "color": component.props["color"],
+                "backgroundColor": component.props["backgroundColor"],
+            },
+        ),
+        ComponentRow(
+            display_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["displayValue"]),
+                "width": 76,
+                "fontSize": 18,
+                "fontWeight": 700,
+                "fontColor": component.props["fontColor"],
+                "textAlign": "center",
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            info_id,
+            "Column",
+            {
+                "width": 132,
+                "height": 126,
+                "padding": 8,
+                "borderRadius": 16,
+                "backgroundColor": "#99FFFFFF",
+                "itemMargin": 4,
+                "justifyContent": "start",
+                "alignItems": "start",
+            },
+            (label_id, details_group_id),
+        ),
+        ComponentRow(
+            label_id,
+            "Text",
+            {
+                "content": component.props["label"],
+                "width": 116,
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            details_group_id,
+            "Column",
+            {
+                "width": 116,
+                "layoutWeight": 1,
+                "itemMargin": 4,
+                "justifyContent": "end",
+                "alignItems": "start",
+            },
+            tuple(detail_ids),
+        ),
+    ]
+    for index, detail in enumerate(details):
+        rows.append(
+            ComponentRow(
+                detail_ids[index],
+                "Text",
+                {
+                    "content": copy.deepcopy(detail),
+                    "width": 116,
+                    "fontSize": 14 if index == 0 else 12,
+                    "fontWeight": 500 if index == 0 else 400,
+                    "fontColor": component.props["fontColor"],
+                    "maxLines": 1,
+                },
+            )
+        )
+    return rows
+
+
+def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x2":
+        raise CompactDslConversionError("EventCard currently requires a 2x2 card.")
+    allowed = {"title", "time", "location", "fontColor", "lineColor"}
+    required = {"title", "time", "fontColor", "lineColor"}
+    _validate_high_level_props(component, required=required, allowed=allowed)
+    _require_text_value(component, "title")
+    _require_text_value(component, "time")
+    if "location" in component.props:
+        _require_text_value(component, "location")
+    _require_color(component, "fontColor")
+    _require_color(component, "lineColor")
+
+    rail_id = f"{component.component_id}_rail"
+    dot_id = f"{rail_id}_dot"
+    dot_fill_id = f"{dot_id}_fill"
+    line_id = f"{rail_id}_line"
+    texts_id = f"{component.component_id}_texts"
+    title_id = f"{component.component_id}_title"
+    time_id = f"{component.component_id}_time"
+    text_children = [title_id, time_id]
+    if "location" in component.props:
+        text_children.append(f"{component.component_id}_location")
+    rows = [
+        ComponentRow(
+            component.component_id,
+            "Row",
+            {
+                "width": 126,
+                "layoutWeight": 1,
+                "padding": {"top": 4},
+                "itemMargin": 8,
+                "alignItems": "top",
+                "justifyContent": "start",
+                "flexShrink": 1,
+            },
+            (rail_id, texts_id),
+        ),
+        ComponentRow(
+            rail_id,
+            "Column",
+            {
+                "width": 8,
+                "height": 48,
+                "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
+                "itemMargin": 4,
+                "justifyContent": "start",
+                "alignItems": "center",
+                "flexShrink": 0,
+                "clip": True,
+            },
+            (dot_id, line_id),
+        ),
+        ComponentRow(
+            dot_id,
+            "Stack",
+            {
+                "width": 8,
+                "height": 8,
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "borderColor": component.props["fontColor"],
+                "backgroundColor": "#00FFFFFF",
+                "alignContent": "center",
+                "flexShrink": 0,
+            },
+            (dot_fill_id,),
+        ),
+        ComponentRow(
+            dot_fill_id,
+            "Divider",
+            {"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"},
+        ),
+        ComponentRow(
+            line_id,
+            "Divider",
+            {
+                "width": 1,
+                "layoutWeight": 1,
+                "strokeWidth": 1,
+                "vertical": True,
+                "color": component.props["lineColor"],
+                "flexShrink": 0,
+            },
+        ),
+        ComponentRow(
+            texts_id,
+            "Column",
+            {
+                "width": "matchParent",
+                "height": 48,
+                "layoutWeight": 1,
+                "itemMargin": 2 if "location" in component.props else 4,
+                "justifyContent": "start",
+                "alignItems": "start",
+                "flexShrink": 1,
+            },
+            tuple(text_children),
+        ),
+        ComponentRow(
+            title_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["title"]),
+                "fontSize": 14,
+                "fontWeight": 700,
+                "width": "matchParent",
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            time_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["time"]),
+                "fontSize": 12,
+                "fontWeight": 400,
+                "width": "matchParent",
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+    ]
+    if "location" in component.props:
+        rows.append(
+            ComponentRow(
+                f"{component.component_id}_location",
+                "Text",
+                {
+                    "content": copy.deepcopy(component.props["location"]),
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "width": "matchParent",
+                    "fontColor": component.props["fontColor"],
+                    "maxLines": 1,
+                },
+            )
+        )
+    return rows
+
+
+def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x2":
+        raise CompactDslConversionError("DataDisplay currently requires a 2x2 card.")
+    allowed = {"label", "value", "supportingText", "fontColor", "secondaryColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    for name in ("label", "supportingText"):
+        if not isinstance(component.props.get(name), str) or not component.props[name].strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: DataDisplay.{name} must be non-empty text."
+            )
+    _require_text_value(component, "value")
+    _require_color(component, "fontColor")
+    _require_color(component, "secondaryColor")
+
+    label_area_id = f"{component.component_id}_label_area"
+    label_id = f"{component.component_id}_label"
+    value_group_id = f"{component.component_id}_value_group"
+    value_id = f"{component.component_id}_value"
+    supporting_id = f"{component.component_id}_supporting"
+    return [
+        ComponentRow(
+            component.component_id,
+            "Column",
+            {
+                "width": 126,
+                "layoutWeight": 1,
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "alignItems": "center",
+                "flexShrink": 1,
+            },
+            (label_area_id, value_group_id),
+        ),
+        ComponentRow(
+            label_area_id,
+            "Row",
+            {
+                "width": 126,
+                "height": 20,
+                "justifyContent": "center",
+                "alignItems": "center",
+                "flexShrink": 0,
+            },
+            (label_id,),
+        ),
+        ComponentRow(
+            label_id,
+            "Text",
+            {
+                "content": component.props["label"],
+                "width": 102,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": component.props["secondaryColor"],
+                "textAlign": "center",
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            value_group_id,
+            "Column",
+            {
+                "width": 126,
+                "layoutWeight": 1,
+                "itemMargin": 2,
+                "justifyContent": "center",
+                "alignItems": "center",
+                "flexShrink": 1,
+            },
+            (value_id, supporting_id),
+        ),
+        ComponentRow(
+            value_id,
+            "Text",
+            {
+                "content": copy.deepcopy(component.props["value"]),
+                "fontSize": 38,
+                "fontWeight": 700,
+                "fontColor": component.props["fontColor"],
+                "maxLines": 1,
+            },
+        ),
+        ComponentRow(
+            supporting_id,
+            "Text",
+            {
+                "content": component.props["supportingText"],
+                "fontSize": 12,
+                "fontWeight": 500,
+                "fontColor": component.props["fontColor"],
+                "textAlign": "center",
+                "maxLines": 1,
+            },
+        ),
+    ]
+
+
+def _expand_top_text_bottom_value(
+    component: ComponentRow,
+    size: str,
+) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("TopTextBottomValue currently requires a 2x4 card.")
+    allowed = {"items", "fontColor", "dividerColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_color(component, "fontColor")
+    _require_color(component, "dividerColor")
+    items = _validate_label_value_items(component, minimum=3, maximum=3)
+
+    children: list[str] = []
+    rows: list[ComponentRow] = []
+    for index, item in enumerate(items):
+        item_id = f"{component.component_id}_item{index}"
+        value_id = f"{item_id}_value"
+        label_id = f"{item_id}_label"
+        if index:
+            divider_id = f"{component.component_id}_divider{index - 1}"
+            children.append(divider_id)
+            rows.append(
+                ComponentRow(
+                    divider_id,
+                    "Divider",
+                    {
+                        "width": 1,
+                        "height": 64,
+                        "vertical": True,
+                        "color": component.props["dividerColor"],
+                    },
+                )
+            )
+        children.append(item_id)
+        rows.extend(
+            [
+                ComponentRow(
+                    item_id,
+                    "Column",
+                    {
+                        "width": 96,
+                        "height": 84,
+                        "itemMargin": 4,
+                        "justifyContent": "center",
+                        "alignItems": "center",
+                    },
+                    (value_id, label_id),
+                ),
+                ComponentRow(
+                    label_id,
+                    "Text",
+                    {
+                        "content": item["label"],
+                        "width": 96,
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": component.props["fontColor"],
+                        "textAlign": "center",
+                        "maxLines": 1,
+                    },
+                ),
+                ComponentRow(
+                    value_id,
+                    "Text",
+                    {
+                        "content": copy.deepcopy(item["value"]),
+                        "width": 96,
+                        "fontSize": 18,
+                        "fontWeight": 700,
+                        "fontColor": component.props["fontColor"],
+                        "textAlign": "center",
+                        "maxLines": 1,
+                    },
+                ),
+            ]
+        )
+    root = ComponentRow(
+        component.component_id,
+        "Row",
+        {
+            "width": 296,
+            "height": 84,
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+        },
+        tuple(children),
+    )
+    return [root, *rows]
+
+
+def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size != "2x4":
+        raise CompactDslConversionError("SummaryList currently requires a 2x4 card.")
+    allowed = {"items", "fontColor", "backgroundColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_color(component, "fontColor")
+    _require_color(component, "backgroundColor")
+    items = component.props.get("items")
+    if not isinstance(items, list) or not 2 <= len(items) <= 3:
+        raise CompactDslConversionError(
+            f"{component.component_id}: SummaryList.items requires 2 to 3 entries."
+        )
+    for index, item in enumerate(items):
+        if not _is_display_value(item):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] must be display text."
+            )
+
+    row_ids = [f"{component.component_id}_item{index}" for index in range(len(items))]
+    rows = [
+        ComponentRow(
+            component.component_id,
+            "Column",
+            {
+                "width": 276,
+                "height": 64 if len(items) == 2 else 102,
+                "itemMargin": 8,
+                "alignItems": "start",
+            },
+            tuple(row_ids),
+        )
+    ]
+    for index, item in enumerate(items):
+        text_id = f"{row_ids[index]}_text"
+        rows.extend(
+            [
+                ComponentRow(
+                    row_ids[index],
+                    "Row",
+                    {
+                        "width": 276,
+                        "height": 28,
+                        "padding": {"left": 12, "right": 12},
+                        "borderRadius": 8,
+                        "backgroundColor": component.props["backgroundColor"],
+                        "alignItems": "center",
+                    },
+                    (text_id,),
+                ),
+                ComponentRow(
+                    text_id,
+                    "Text",
+                    {
+                        "content": copy.deepcopy(item),
+                        "width": 228,
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": component.props["fontColor"],
+                        "maxLines": 1,
+                    },
+                ),
+            ]
+        )
+    return rows
+
+
+def _is_display_value(value: Any) -> bool:
+    valid_scalar = isinstance(value, (int, float)) and not isinstance(value, bool)
+    valid_text = isinstance(value, str) and bool(value.strip())
+    return valid_scalar or valid_text or _is_path_binding(value)
+
+
+def _validate_label_value_items(
+    component: ComponentRow,
+    *,
+    minimum: int,
+    maximum: int,
+) -> list[dict[str, Any]]:
+    items = component.props.get("items")
+    if not isinstance(items, list) or not minimum <= len(items) <= maximum:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.items requires "
+            f"{minimum} to {maximum} entries."
+        )
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or set(item) != {"label", "value"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires label/value only."
+            )
+        label = item.get("label")
+        if not isinstance(label, str) or not label.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        if not _is_display_value(item.get("value")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].value must be display text."
+            )
+    return items
+
+
+def _validate_high_level_props(
+    component: ComponentRow,
+    *,
+    required: set[str],
+    allowed: set[str],
+) -> None:
+    if component.children:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type} must not declare children."
+        )
+    missing = required - set(component.props)
+    if missing:
+        names = ", ".join(sorted(missing))
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type} requires {names}."
+        )
+    unknown = set(component.props) - allowed
+    if unknown:
+        names = ", ".join(sorted(unknown))
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type} does not allow {names}."
+        )
+
+
+def _require_text_value(component: ComponentRow, name: str) -> None:
+    value = component.props.get(name)
+    valid_scalar = isinstance(value, (int, float)) and not isinstance(value, bool)
+    valid_text = isinstance(value, str) and bool(value.strip())
+    if valid_scalar or valid_text or _is_path_binding(value):
+        return
+    raise CompactDslConversionError(
+        f"{component.component_id}: {component.component_type}.{name} must be display text."
+    )
+
+
+def _require_color(component: ComponentRow, name: str) -> None:
+    value = component.props.get(name)
+    if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
+        return
+    raise CompactDslConversionError(
+        f"{component.component_id}: {component.component_type}.{name} must use #AARRGGBB."
+    )
+
+
+def _validate_optional_icon(component: ComponentRow) -> None:
+    icon = component.props.get("icon")
+    if icon is not None and (not isinstance(icon, str) or not icon.strip()):
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.icon must be non-empty."
+        )
+    if "fillColor" in component.props and icon is None:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.fillColor requires icon."
+        )
+    if "fillColor" in component.props:
+        _require_color(component, "fillColor")
+
+
+def _validate_high_level_on_click(component: ComponentRow) -> None:
+    handlers = component.props.get("onClick")
+    if not isinstance(handlers, list) or len(handlers) != 1:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.onClick must contain "
+            "exactly one handler."
+        )
+    handler = handlers[0]
+    valid_handler = isinstance(handler, dict) and set(handler) == {"call", "args"}
+    if not valid_handler:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.onClick handler must "
+            "contain only call and args."
+        )
+    call = handler.get("call")
+    args = handler.get("args")
+    if not isinstance(call, str) or not call.strip() or not isinstance(args, dict):
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.onClick requires a "
+            "non-empty call and object args."
+        )
+
+
+def _validate_item_component(
+    component: ComponentRow,
+    *,
+    minimum: int,
+    maximum: int,
+) -> list[dict[str, Any]]:
+    allowed = {"items", "fontColor", "backgroundColor"}
+    required = {"items", "fontColor"}
+    if component.component_type == "TextBlock":
+        required.add("backgroundColor")
+    _validate_high_level_props(component, required=required, allowed=allowed)
+    _require_color(component, "fontColor")
+    if "backgroundColor" in required:
+        _require_color(component, "backgroundColor")
+    items = component.props.get("items")
+    if not isinstance(items, list) or not minimum <= len(items) <= maximum:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.items requires "
+            f"{minimum} to {maximum} entries."
+        )
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or set(item) != {"label", "value"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires label/value only."
+            )
+        label = item.get("label")
+        if not isinstance(label, str) or not label.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        value = item.get("value")
+        valid_value = isinstance(value, (int, float)) and not isinstance(value, bool)
+        valid_value = valid_value or (isinstance(value, str) and bool(value.strip()))
+        valid_value = valid_value or _is_path_binding(value)
+        if not valid_value:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].value must be display text."
+            )
+    return items
 
 
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
@@ -1033,9 +2460,14 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
         image_styles = {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
         if "fillColor" in props:
             image_styles["fillColor"] = props.get("fillColor")
-        converted.append({
-            "id": icon_id, "component": "Image", "src": icon, "styles": image_styles,
-        })
+        converted.append(
+            {
+                "id": icon_id,
+                "component": "Image",
+                "src": icon,
+                "styles": image_styles,
+            }
+        )
     return converted
 
 
@@ -1048,19 +2480,10 @@ def _normalize_special_action_units(
     if action_ink is None:
         return components
 
-    components_by_id = {
-        component.component_id: component
-        for component in components
-    }
-    parents = {
-        child_id: component
-        for component in components
-        for child_id in component.children
-    }
+    components_by_id = {component.component_id: component for component in components}
+    parents = {child_id: component for component in components for child_id in component.children}
     action_ids = {
-        component.component_id
-        for component in components
-        if _is_plain_action_component(component)
+        component.component_id for component in components if _is_plain_action_component(component)
     }
     repaired_action_ids: set[str] = set()
     for component in components:
@@ -1133,10 +2556,7 @@ def _is_plain_action_component(component: ComponentRow) -> bool:
         return True
     if component.component_type != "Row":
         return False
-    return (
-        component.props.get("height") == 36
-        and component.props.get("borderRadius") in {18, 20}
-    )
+    return component.props.get("height") == 36 and component.props.get("borderRadius") in {18, 20}
 
 
 def _descendant_component_ids(
@@ -1192,19 +2612,9 @@ def _normalize_ring_stack_children(
     *,
     size: str,
 ) -> list[ComponentRow]:
-    components_by_id = {
-        component.component_id: component
-        for component in components
-    }
-    component_types = {
-        component.component_id: component.component_type
-        for component in components
-    }
-    dual_zone_ids = (
-        _two_by_two_dual_zone_ids(components_by_id)
-        if size == "2x2"
-        else set()
-    )
+    components_by_id = {component.component_id: component for component in components}
+    component_types = {component.component_id: component.component_type for component in components}
+    dual_zone_ids = _two_by_two_dual_zone_ids(components_by_id) if size == "2x2" else set()
     dual_zone_descendants = _descendant_component_ids(
         dual_zone_ids,
         components_by_id,
@@ -1214,13 +2624,9 @@ def _normalize_ring_stack_children(
     for component in components:
         props = component.props
         children = list(component.children)
-        progress_ids = [
-            child for child in children if component_types.get(child) == "Progress"
-        ]
+        progress_ids = [child for child in children if component_types.get(child) == "Progress"]
         ring_progress_ids = [
-            child
-            for child in progress_ids
-            if components_by_id[child].props.get("type") == "ring"
+            child for child in progress_ids if components_by_id[child].props.get("type") == "ring"
         ]
         is_ring = component.component_type == "Progress" and props.get("type") == "ring"
         resize_ring = size == "2x2" and (is_ring or bool(ring_progress_ids))
@@ -1233,14 +2639,10 @@ def _normalize_ring_stack_children(
             props = {**props, "width": ring_size, "height": ring_size}
             if is_ring:
                 props["strokeWidth"] = 6
-        image_ids = [
-            child for child in children if component_types.get(child) == "Image"
-        ]
+        image_ids = [child for child in children if component_types.get(child) == "Image"]
         if component.component_type == "Stack" and progress_ids and image_ids:
             reordered_ids = set(progress_ids + image_ids)
-            remaining_ids = [
-                child for child in children if child not in reordered_ids
-            ]
+            remaining_ids = [child for child in children if child not in reordered_ids]
             children = image_ids + progress_ids + remaining_ids
         normalized.append(
             ComponentRow(
@@ -1250,9 +2652,7 @@ def _normalize_ring_stack_children(
                 tuple(children),
             )
         )
-    normalized_by_id = {
-        component.component_id: component for component in normalized
-    }
+    normalized_by_id = {component.component_id: component for component in normalized}
     ring_stack_ids: set[str] = set()
     for component in normalized:
         if component.component_type != "Stack":
@@ -1272,9 +2672,7 @@ def _normalize_ring_stack_children(
         if component.component_type != "Column":
             centered.append(component)
             continue
-        has_ring_stack = any(
-            child_id in ring_stack_ids for child_id in component.children
-        )
+        has_ring_stack = any(child_id in ring_stack_ids for child_id in component.children)
         direct_text_count = 0
         for child_id in component.children:
             child = normalized_by_id.get(child_id)
@@ -1324,9 +2722,7 @@ def _normalize_two_by_four_white_backboards(
 def _normalize_large_value_unit_alignment(
     components: list[ComponentRow],
 ) -> list[ComponentRow]:
-    components_by_id = {
-        component.component_id: component for component in components
-    }
+    components_by_id = {component.component_id: component for component in components}
     replacements: dict[str, ComponentRow] = {}
     for row in components:
         if row.component_type != "Row":
@@ -1357,9 +2753,7 @@ def _normalize_large_value_unit_alignment(
                 and content.strip() in _INLINE_DISPLAY_UNITS
                 and previous.props["fontSize"] > child.props["fontSize"]
             ):
-                compact_readout_ids.update(
-                    {previous.component_id, child.component_id}
-                )
+                compact_readout_ids.update({previous.component_id, child.component_id})
         if compact_readout_ids:
             row_props["itemMargin"] = 2
         replacements[row.component_id] = ComponentRow(
@@ -1429,10 +2823,7 @@ def _normalize_small_backboard_icon_alignment(
     *,
     size: str,
 ) -> list[ComponentRow]:
-    components_by_id = {
-        component.component_id: component
-        for component in components
-    }
+    components_by_id = {component.component_id: component for component in components}
     if size == "2x2":
         candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
         backboard_width = 134
@@ -1464,11 +2855,7 @@ def _normalize_small_backboard_icon_alignment(
             continue
         children = [components_by_id.get(child_id) for child_id in backboard.children]
         text = next(
-            (
-                child
-                for child in children
-                if child and child.component_type in {"Column", "Text"}
-            ),
+            (child for child in children if child and child.component_type in {"Column", "Text"}),
             None,
         )
         icon = next(
@@ -1546,11 +2933,9 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
 
     closing_index = _find_fence_closing(lines, opening_index + 1)
     body_end = closing_index if closing_index is not None else len(lines)
-    body = "\n".join(lines[opening_index + 1:body_end]).strip()
+    body = "\n".join(lines[opening_index + 1 : body_end]).strip()
     if "```" in body:
-        raise CompactDslConversionError(
-            "Compact DSL must contain exactly one genui fence."
-        )
+        raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
     return body
 
 
@@ -1588,8 +2973,7 @@ def _repair_compact_json_rows(compact_dsl: str) -> str:
         repaired_values.append(value)
     repaired_values = _repair_compact_row_values(repaired_values)
     repaired_rows = [
-        json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-        for value in repaired_values
+        json.dumps(value, ensure_ascii=False, separators=(",", ":")) for value in repaired_values
     ]
     return "\n".join(repaired_rows)
 
@@ -1740,9 +3124,7 @@ def _extract_top_level_array_rows(body: str) -> list[str]:
         if char not in {"]", "}"}:
             continue
         if char != expected_closers[-1]:
-            raise CompactDslConversionError(
-                "Compact DSL contains mismatched JSON delimiters."
-            )
+            raise CompactDslConversionError("Compact DSL contains mismatched JSON delimiters.")
         expected_closers.pop()
         if not expected_closers:
             rows.append("".join(current))
@@ -1750,9 +3132,7 @@ def _extract_top_level_array_rows(body: str) -> list[str]:
 
     if expected_closers:
         if in_string:
-            raise CompactDslConversionError(
-                "Compact DSL contains an unclosed JSON string."
-            )
+            raise CompactDslConversionError("Compact DSL contains an unclosed JSON string.")
         current.extend(reversed(expected_closers))
         rows.append("".join(current))
     if current:
@@ -1923,9 +3303,7 @@ def _parse_json_line(line: str, line_number: int) -> list[Any]:
                 f"Compact DSL line {line_number} is invalid JSON: {exc.msg}."
             ) from exc
     if not isinstance(value, list):
-        raise CompactDslConversionError(
-            f"Compact DSL line {line_number} must be a JSON array."
-        )
+        raise CompactDslConversionError(f"Compact DSL line {line_number} must be a JSON array.")
     return value
 
 
@@ -2261,10 +3639,12 @@ def _parse_component_header(
         raise CompactDslConversionError(
             f"{component_id}: component type must be a non-empty string."
         )
-    if not isinstance(props, dict):
+    if component_type not in _COMPONENT_TYPES:
         raise CompactDslConversionError(
-            f"{component_id}: component props must be an object."
+            f"{component_id}: unsupported component type {component_type}."
         )
+    if not isinstance(props, dict):
+        raise CompactDslConversionError(f"{component_id}: component props must be an object.")
     return component_id, component_type, props
 
 
@@ -2465,9 +3845,7 @@ def _resolve_tokens(
             return _resolve_gradient_stops(value, component_id)
         resolved_items: list[Any] = []
         for item in value:
-            resolved_items.append(
-                _resolve_tokens(property_name, item, component_id)
-            )
+            resolved_items.append(_resolve_tokens(property_name, item, component_id))
         return resolved_items
     if not isinstance(value, str):
         return value
@@ -2543,8 +3921,6 @@ def _convert_component_rows(
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
         return _convert_card_header(component, card_size)
-    if component.component_type == "TimelineUnit":
-        return _convert_timeline_unit(component)
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component, action_icon_size)
     return [
@@ -2552,76 +3928,6 @@ def _convert_component_rows(
             component,
             hide_label=hide_label,
         )
-    ]
-
-
-def _convert_timeline_unit(component: ComponentRow) -> list[dict[str, Any]]:
-    allowed = {"color", "lineColor"}
-    if component.children or set(component.props) != allowed:
-        raise CompactDslConversionError(
-            "TimelineUnit requires color/lineColor only and must not declare children."
-        )
-    for name in allowed:
-        value = component.props[name]
-        if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
-            raise CompactDslConversionError(f"TimelineUnit.{name} must use #AARRGGBB.")
-
-    dot_id = f"{component.component_id}_dot"
-    dot_fill_id = f"{dot_id}_fill"
-    line_id = f"{component.component_id}_line"
-    return [
-        {
-            "id": component.component_id,
-            "component": "Column",
-            "children": [dot_id, line_id],
-            "itemMargin": 4,
-            "styles": {
-                "width": 8,
-                "height": 48,
-                "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
-                "justifyContent": "start",
-                "alignItems": "center",
-                "flexShrink": 0,
-                "clip": True,
-            },
-        },
-        {
-            "id": dot_id,
-            "component": "Stack",
-            "children": [dot_fill_id],
-            "styles": {
-                "width": 8,
-                "height": 8,
-                "borderRadius": 4,
-                "borderWidth": 1.5,
-                "borderColor": component.props["color"],
-                "backgroundColor": "#00FFFFFF",
-                "alignContent": "center",
-                "flexShrink": 0,
-            },
-        },
-        {
-            "id": dot_fill_id,
-            "component": "Divider",
-            "styles": {
-                "width": 0,
-                "height": 0,
-                "strokeWidth": 0,
-                "color": "#00FFFFFF",
-            },
-        },
-        {
-            "id": line_id,
-            "component": "Divider",
-            "styles": {
-                "width": 1,
-                "layoutWeight": 1,
-                "strokeWidth": 1,
-                "vertical": True,
-                "color": component.props["lineColor"],
-                "flexShrink": 0,
-            },
-        },
     ]
 
 
@@ -2649,8 +3955,7 @@ def _validate_action_unit_for_conversion(component: ComponentRow) -> None:
         icon = component.props.get("icon")
         if icon is not None and (not isinstance(icon, str) or not icon.strip()):
             raise CompactDslConversionError(
-                f"{component.component_id}: capsule ActionUnit.icon must be a "
-                "non-empty string."
+                f"{component.component_id}: capsule ActionUnit.icon must be a non-empty string."
             )
         return
     _require_action_unit_string(component, "icon")
@@ -2669,8 +3974,7 @@ def _validate_action_unit_on_click(component: ComponentRow) -> None:
     handler = handlers[0]
     if not isinstance(handler, dict) or set(handler) != {"call", "args"}:
         raise CompactDslConversionError(
-            f"{component.component_id}: ActionUnit.onClick handler must contain "
-            "only call and args."
+            f"{component.component_id}: ActionUnit.onClick handler must contain only call and args."
         )
     call = handler.get("call")
     args = handler.get("args")
@@ -2793,9 +4097,7 @@ def _capsule_row_styles(styles: dict[str, Any]) -> dict[str, Any]:
         "width",
     }
     row_styles = {
-        name: copy.deepcopy(value)
-        for name, value in styles.items()
-        if name in row_style_names
+        name: copy.deepcopy(value) for name, value in styles.items() if name in row_style_names
     }
     row_styles["justifyContent"] = "center"
     row_styles["alignItems"] = "center"
@@ -2977,10 +4279,7 @@ def _move_component_property(
     if property_name == "onClick":
         converted["onClick"] = value
         return True
-    if (
-        property_name == "itemMargin"
-        and component.component_type in {"Row", "Column"}
-    ):
+    if property_name == "itemMargin" and component.component_type in {"Row", "Column"}:
         converted["itemMargin"] = value
         return True
     if property_name == "space" and component.component_type == "List":
@@ -3309,9 +4608,7 @@ def _matching_event_handler(
     if not isinstance(call, str) or not isinstance(args, dict):
         return None
     same_call_handlers = [
-        candidate
-        for candidate in allowed_handlers
-        if candidate.get("call") == call
+        candidate for candidate in allowed_handlers if candidate.get("call") == call
     ]
     for candidate in same_call_handlers:
         candidate_args = candidate.get("args")
@@ -3472,9 +4769,7 @@ def _decode_json_pointer(path: str) -> list[str]:
     if path == "/":
         return []
     if not isinstance(path, str) or not path.startswith("/"):
-        raise CompactDslConversionError(
-            f'Compact DSL path "{path}" is not a JSON Pointer.'
-        )
+        raise CompactDslConversionError(f'Compact DSL path "{path}" is not a JSON Pointer.')
     tokens: list[str] = []
     for raw_token in path[1:].split("/"):
         tokens.append(raw_token.replace("~1", "/").replace("~0", "~"))
@@ -3496,9 +4791,7 @@ def _parse_array_index(token: str, path: str) -> int:
 def _serialize_rows(rows: list[Any]) -> str:
     serialized_rows: list[str] = []
     for row in rows:
-        serialized_rows.append(
-            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
-        )
+        serialized_rows.append(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
     return "\n".join(serialized_rows)
 
 

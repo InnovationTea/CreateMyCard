@@ -282,6 +282,8 @@ class Settings(BaseSettings):
         """兼容 .env.example 中的 prompt 文件路径配置。"""
         if not isinstance(value, str):
             return value
+        if "\n" in value:
+            return value
         candidate = Path(value).expanduser()
         roots = (
             Path.cwd(),

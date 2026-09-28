@@ -20,9 +20,7 @@ from services.compact_dsl_a2ui_converter import (
 def _serialize(rows: list[list[object]]) -> str:
     values: list[str] = []
     for row in rows:
-        values.append(
-            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
-        )
+        values.append(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
     return "\n".join(values)
 
 
@@ -95,9 +93,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                                 "intentName": "ViewDetail",
                                 "params": {
                                     "entityId": {
-                                        "path": (
-                                            "/data/calendar/events/0/entityId"
-                                        ),
+                                        "path": ("/data/calendar/events/0/entityId"),
                                     },
                                 },
                             },
@@ -186,9 +182,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         normalized = normalize_compact_dsl_design_tokens(compact_dsl)
         action = json.loads(normalized.splitlines()[1])
 
-        self.assertEqual(action[2]["width"], 30)
-        self.assertEqual(action[2]["height"], 30)
-        self.assertEqual(action[2]["borderRadius"], 15)
+        self.assertEqual(action[2]["width"], 36)
+        self.assertEqual(action[2]["height"], 36)
+        self.assertEqual(action[2]["borderRadius"], 18)
         self.assertEqual(action[2]["padding"], 0)
         self.assertIn("label", action[2])
         self.assertNotIn("design", action[2])
@@ -613,6 +609,687 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["fontWeight"], 400)
         self.assertEqual(action_styles["textAlign"], "center")
 
+    def test_expands_two_by_two_content_components(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["metric", "info", "table"],
+                ],
+                [
+                    "metric",
+                    "EmphasizedData",
+                    {
+                        "value": "82",
+                        "unit": "分",
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+                [
+                    "info",
+                    "InfoBlock",
+                    {
+                        "primaryText": "夜间睡眠",
+                        "secondaryText": "7小时1分",
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#CCFFFFFF",
+                    },
+                ],
+                [
+                    "table",
+                    "TableText",
+                    {
+                        "items": [
+                            {"label": "紫外线", "value": "中等"},
+                            {"label": "空气质量", "value": "良"},
+                        ],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["metric"]["component"], "Row")
+        self.assertEqual(
+            components["metric"]["children"],
+            ["metric_value", "metric_unit"],
+        )
+        self.assertEqual(components["metric"]["styles"]["width"], 126)
+        self.assertEqual(components["metric_value"]["styles"]["fontSize"], 30)
+        self.assertEqual(
+            components["metric_unit"]["styles"]["padding"],
+            {"bottom": 5},
+        )
+        self.assertEqual(components["info"]["component"], "Column")
+        self.assertEqual(components["info"]["styles"]["height"], 63)
+        self.assertEqual(components["info_primary"]["styles"]["fontWeight"], 700)
+        self.assertEqual(components["table"]["component"], "Column")
+        self.assertEqual(
+            components["table"]["children"],
+            ["table_row0", "table_row1"],
+        )
+        self.assertEqual(components["table_row0_label"]["styles"]["width"], 70)
+        self.assertEqual(components["table_row0_value"]["styles"]["width"], 56)
+
+    def test_expands_two_by_four_content_components(self) -> None:
+        handler = {"call": "openDetails", "args": {}}
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["info", "progress", "details", "action"],
+                ],
+                [
+                    "info",
+                    "InfoBlock",
+                    {
+                        "variant": "aux",
+                        "primaryText": "夜间睡眠",
+                        "secondaryText": "7小时1分",
+                        "fontColor": "#FF563D99",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+                [
+                    "progress",
+                    "ProgressLine2",
+                    {
+                        "value": 82,
+                        "total": 100,
+                        "displayValue": "82分",
+                        "label": "睡眠综合得分",
+                        "fontColor": "#FF563D99",
+                        "color": "#FF563D99",
+                        "backgroundColor": "#33563D99",
+                    },
+                ],
+                [
+                    "details",
+                    "TextBlock",
+                    {
+                        "items": [
+                            {"label": "睡眠时长", "value": "7小时1分"},
+                            {"label": "深睡时长", "value": "2小时15分"},
+                        ],
+                        "fontColor": "#FF563D99",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "查看详情",
+                        "onClick": [handler],
+                        "fontColor": "#FF563D99",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["info"]["styles"]["width"], 132)
+        self.assertEqual(components["info"]["styles"]["height"], 57)
+        self.assertEqual(components["progress"]["children"][-1], "progress_bar")
+        self.assertEqual(components["progress_bar"]["component"], "Progress")
+        self.assertEqual(components["progress_bar"]["styles"]["strokeWidth"], 8)
+        self.assertEqual(
+            components["details"]["children"],
+            ["details_item0", "details_item1"],
+        )
+        self.assertEqual(components["details_item0"]["styles"]["width"], 134)
+        self.assertEqual(components["action"]["component"], "Column")
+        self.assertEqual(components["action"]["onClick"], [handler])
+        self.assertEqual(components["action_label"]["styles"]["fontSize"], 14)
+
+    def test_expands_second_batch_two_by_two_components(self) -> None:
+        data_display_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["display"],
+                ],
+                [
+                    "display",
+                    "DataDisplay",
+                    {
+                        "label": "运动会倒计时",
+                        "value": 32,
+                        "supportingText": "天",
+                        "fontColor": "#FFFFFFFF",
+                        "secondaryColor": "#CCFFFFFF",
+                    },
+                ],
+            ]
+        )
+        result = convert_compact_dsl_to_a2ui(
+            data_display_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(
+            components["display"]["children"],
+            ["display_label_area", "display_value_group"],
+        )
+        self.assertEqual(components["display_value"]["styles"]["fontSize"], 38)
+        self.assertEqual(
+            components["display_label"]["styles"]["fontColor"],
+            "#CCFFFFFF",
+        )
+
+        event_card_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["day_area", "content_area"],
+                ],
+                [
+                    "day_area",
+                    "Row",
+                    {
+                        "width": 126,
+                        "height": 16,
+                        "justifyContent": "start",
+                        "alignItems": "center",
+                        "flexShrink": 0,
+                    },
+                    ["day_tag"],
+                ],
+                [
+                    "day_tag",
+                    "Text",
+                    {"content": "下一场会议", "textAlign": "start"},
+                ],
+                [
+                    "content_area",
+                    "EventCard",
+                    {
+                        "title": {"path": "/data/calendar/events/0/title"},
+                        "time": {"path": "/data/calendar/events/0/dtStart"},
+                        "location": "A 会议室",
+                        "fontColor": "#FF8C4B1C",
+                        "lineColor": "#1A8C4B1C",
+                    },
+                ],
+                ["/data/calendar/events/0/title", "UI需求评审会"],
+                ["/data/calendar/events/0/dtStart", "14:00 - 15:30"],
+            ]
+        )
+        result = convert_compact_dsl_to_a2ui(
+            event_card_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["content_area"]["component"], "Row")
+        self.assertEqual(
+            components["content_area"]["children"],
+            ["content_area_rail", "content_area_texts"],
+        )
+        self.assertEqual(
+            components["content_area_texts"]["children"],
+            [
+                "content_area_title",
+                "content_area_time",
+                "content_area_location",
+            ],
+        )
+        self.assertEqual(components["content_area_rail"]["styles"]["height"], 48)
+
+    def test_expands_second_batch_two_by_four_components(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["circle", "metrics", "list"],
+                ],
+                [
+                    "circle",
+                    "ProgressCircleSingle",
+                    {
+                        "value": 68,
+                        "total": 100,
+                        "displayValue": "68%",
+                        "label": "当前电量",
+                        "details": ["正常电量", "未充电"],
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                [
+                    "metrics",
+                    "TopTextBottomValue",
+                    {
+                        "items": [
+                            {"label": "睡眠得分", "value": "80分"},
+                            {"label": "消耗热量", "value": "92 千卡"},
+                            {"label": "今日步数", "value": "2031步"},
+                        ],
+                        "fontColor": "#FF563D99",
+                        "dividerColor": "#33563D99",
+                    },
+                ],
+                [
+                    "list",
+                    "SummaryList",
+                    {
+                        "items": ["项目阶段性汇报", "确认Q3设计需求", "申请下周出差"],
+                        "fontColor": "#FF8C4B1C",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["circle"]["styles"]["width"], 276)
+        self.assertEqual(components["circle"]["styles"]["height"], 126)
+        self.assertEqual(
+            components["circle"]["children"],
+            ["circle_ring_area", "circle_info"],
+        )
+        self.assertEqual(components["circle_ring"]["component"], "Progress")
+        self.assertEqual(components["circle_ring"]["styles"]["strokeWidth"], 8)
+        self.assertEqual(
+            components["metrics"]["children"],
+            [
+                "metrics_item0",
+                "metrics_divider0",
+                "metrics_item1",
+                "metrics_divider1",
+                "metrics_item2",
+            ],
+        )
+        self.assertEqual(components["metrics_item0"]["children"][0], "metrics_item0_value")
+        self.assertEqual(components["list"]["styles"]["height"], 102)
+        self.assertEqual(len(components["list"]["children"]), 3)
+
+    def test_event_card_rejects_non_calendar_scope_and_wrong_root_slot(self) -> None:
+        base_rows = [
+            [
+                "root",
+                "Column",
+                {"width": "matchParent", "height": "matchParent"},
+                ["day_area", "content_area"],
+            ],
+            [
+                "day_area",
+                "Row",
+                {
+                    "width": 126,
+                    "height": 16,
+                    "justifyContent": "start",
+                    "alignItems": "center",
+                    "flexShrink": 0,
+                },
+                ["day_tag"],
+            ],
+            ["day_tag", "Text", {"content": "下一场会议"}],
+            [
+                "content_area",
+                "EventCard",
+                {
+                    "title": {"path": "/data/calendar/events/0/title"},
+                    "time": {"path": "/data/calendar/events/0/dtStart"},
+                    "fontColor": "#FF8C4B1C",
+                    "lineColor": "#1A8C4B1C",
+                },
+            ],
+        ]
+        non_calendar_rows = [
+            [
+                "root",
+                "Column",
+                {"width": "matchParent", "height": "matchParent"},
+                ["day_area", "content_area", "extra"],
+            ],
+            *base_rows[1:],
+            ["extra", "Text", {"content": {"path": "/data/weather/current/condition"}}],
+        ]
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "requires a calendar-only card",
+        ):
+            convert_compact_dsl_to_a2ui(
+                _serialize(non_calendar_rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "requires a calendar-only card",
+        ):
+            validate_compact_dsl(
+                _serialize(non_calendar_rows),
+                task_spec={"size": "2x2"},
+                card_spec={"suggestSize": "2x2", "dataBindings": []},
+            )
+
+        wrong_slot_rows = [list(row) for row in base_rows]
+        wrong_slot_rows[0] = [
+            "root",
+            "Column",
+            {"width": "matchParent", "height": "matchParent"},
+            ["content_area", "day_area"],
+        ]
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "second direct child",
+        ):
+            convert_compact_dsl_to_a2ui(
+                _serialize(wrong_slot_rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
+    def test_timeline_unit_is_no_longer_a_supported_component(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["timeline"],
+                ],
+                [
+                    "timeline",
+                    "TimelineUnit",
+                    {"color": "#FF8C4B1C", "lineColor": "#1A8C4B1C"},
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "unsupported component type TimelineUnit",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
+    def test_high_level_components_are_validated_before_base_components(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "查看详情",
+                        "onClick": [{"call": "openDetails", "args": {}}],
+                        "fontColor": "#FF563D99",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "must exactly match a TaskSpec eventCandidate",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "size": "2x4",
+                    "dataModelSchema": {},
+                    "assetCandidates": [],
+                    "eventCandidates": [],
+                },
+                card_spec={"suggestSize": "2x4", "dataBindings": []},
+            )
+
+    def test_high_level_optional_icons_do_not_create_empty_slots(self) -> None:
+        handler = {"call": "openDetails", "args": {}}
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Row",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["info", "action"],
+                ],
+                [
+                    "info",
+                    "InfoBlock",
+                    {
+                        "variant": "small",
+                        "primaryText": "手机电量",
+                        "secondaryText": "68%",
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#99FFFFFF",
+                        "icon": "resources/base/media/battery.svg",
+                        "fillColor": "#FF1F4799",
+                    },
+                ],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "查看详情",
+                        "onClick": [handler],
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["info"]["children"], ["info_text", "info_icon"])
+        self.assertEqual(components["info_text"]["styles"]["width"], 80)
+        self.assertEqual(components["info_icon"]["styles"]["width"], 20)
+        self.assertEqual(
+            components["info_icon"]["styles"]["fillColor"],
+            "#FF1F4799",
+        )
+        self.assertEqual(components["action"]["children"], ["action_label"])
+        self.assertNotIn("action_icon", components)
+
+    def test_rejects_invalid_high_level_component_contracts(self) -> None:
+        cases = (
+            (
+                "2x2",
+                [
+                    "progress",
+                    "ProgressLine2",
+                    {
+                        "value": 0,
+                        "total": 0,
+                        "displayValue": "0分",
+                        "label": "进度",
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                "ProgressLine2 currently requires a 2x4 card",
+            ),
+            (
+                "2x4",
+                [
+                    "progress",
+                    "ProgressLine2",
+                    {
+                        "value": 0,
+                        "total": 0,
+                        "displayValue": "0分",
+                        "label": "进度",
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                "total must be a positive number",
+            ),
+            (
+                "2x2",
+                [
+                    "circle",
+                    "ProgressCircleSingle",
+                    {
+                        "value": 68,
+                        "total": 100,
+                        "displayValue": "68%",
+                        "label": "当前电量",
+                        "details": ["正常电量"],
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                "ProgressCircleSingle currently requires a 2x4 card",
+            ),
+            (
+                "2x4",
+                [
+                    "metrics",
+                    "TopTextBottomValue",
+                    {
+                        "items": [
+                            {"label": "睡眠得分", "value": "80分"},
+                            {"label": "今日步数", "value": "2031步"},
+                        ],
+                        "fontColor": "#FF563D99",
+                        "dividerColor": "#33563D99",
+                    },
+                ],
+                "TopTextBottomValue.items requires 3 to 3 entries",
+            ),
+            (
+                "2x4",
+                [
+                    "list",
+                    "SummaryList",
+                    {
+                        "items": ["只有一项"],
+                        "fontColor": "#FF8C4B1C",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+                "SummaryList.items requires 2 to 3 entries",
+            ),
+            (
+                "2x4",
+                [
+                    "display",
+                    "DataDisplay",
+                    {
+                        "label": "倒计时",
+                        "value": 32,
+                        "supportingText": "天",
+                        "fontColor": "#FFFFFFFF",
+                        "secondaryColor": "#CCFFFFFF",
+                    },
+                ],
+                "DataDisplay currently requires a 2x2 card",
+            ),
+            (
+                "2x4",
+                [
+                    "action",
+                    "PillButton",
+                    {
+                        "label": "打开设置",
+                        "actionSurface": "#331F4799",
+                        "actionInk": "#FF1F4799",
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                    },
+                ],
+                "PillButton currently requires a 2x2 card",
+            ),
+            (
+                "2x4",
+                [
+                    "action",
+                    "CircleButton",
+                    {
+                        "icon": "resources/base/media/settings.svg",
+                        "accessibility": {"label": "打开设置"},
+                        "actionSurface": "#331F4799",
+                        "actionInk": "#FF1F4799",
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                    },
+                ],
+                "CircleButton requires a 2x2 card",
+            ),
+        )
+        for size, component, expected_error in cases:
+            with self.subTest(size=size, expected_error=expected_error):
+                compact_dsl = _serialize(
+                    [
+                        [
+                            "root",
+                            "Column",
+                            {"width": "matchParent", "height": "matchParent"},
+                            ["progress"],
+                        ],
+                        component,
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    CompactDslConversionError,
+                    expected_error,
+                ):
+                    convert_compact_dsl_to_a2ui(
+                        compact_dsl,
+                        size=size,
+                        protocol_profile=self.profile,
+                    )
+
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
             [
@@ -672,6 +1349,184 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "#FF9E6D20",
         )
         self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
+
+    def test_pill_button_matches_legacy_capsule_action_unit_output(self) -> None:
+        handler = {"call": "openSettings", "args": {}}
+        shared_props = {
+            "label": "免打扰设置",
+            "icon": "resources/base/media/moon.svg",
+            "actionSurface": "#FFF0DCB8",
+            "actionInk": "#FF9E6D20",
+            "fontSize": 14,
+            "fontWeight": 500,
+            "onClick": [handler],
+        }
+
+        def convert(component_type: str, props: dict) -> dict:
+            compact_dsl = _serialize(
+                [
+                    [
+                        "root",
+                        "Column",
+                        {"width": "matchParent", "height": "matchParent"},
+                        ["cta"],
+                    ],
+                    ["cta", component_type, props],
+                ]
+            )
+            result = convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+            return json.loads(result.splitlines()[1])["updateComponents"]
+
+        pill_output = convert("PillButton", shared_props)
+        legacy_output = convert("ActionUnit", {"state": "capsule", **shared_props})
+
+        self.assertEqual(pill_output, legacy_output)
+
+    def test_circle_button_expands_inside_right_anchor_slot(self) -> None:
+        handler = {"call": "openBluetooth", "args": {}}
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["body"],
+                ],
+                ["body", "Column", {"width": 126, "height": 100}, ["anchor"]],
+                [
+                    "anchor",
+                    "Row",
+                    {
+                        "width": 126,
+                        "height": 40,
+                        "justifyContent": "spaceBetween",
+                        "alignItems": "center",
+                    },
+                    ["hint", "action_slot"],
+                ],
+                ["hint", "Text", {"content": "蓝牙"}],
+                [
+                    "action_slot",
+                    "Stack",
+                    {"width": 40, "height": 40, "alignContent": "center"},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "CircleButton",
+                    {
+                        "icon": "resources/base/media/bluetooth_fill.svg",
+                        "accessibility": {"label": "打开蓝牙设置"},
+                        "actionSurface": "#331F4799",
+                        "actionInk": "#FF1F4799",
+                        "onClick": [handler],
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["action"]["component"], "Stack")
+        self.assertEqual(components["action"]["styles"]["width"], 36)
+        self.assertEqual(components["action"]["styles"]["height"], 36)
+        self.assertEqual(components["action"]["styles"]["borderRadius"], 18)
+        self.assertEqual(components["action_icon"]["styles"]["width"], 20)
+        self.assertEqual(components["action"]["onClick"], [handler])
+
+    def test_circle_button_rejects_missing_anchor_slot(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "CircleButton",
+                    {
+                        "icon": "resources/base/media/bluetooth_fill.svg",
+                        "accessibility": {"label": "打开蓝牙设置"},
+                        "actionSurface": "#331F4799",
+                        "actionInk": "#FF1F4799",
+                        "onClick": [{"call": "openBluetooth", "args": {}}],
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "CircleButton requires a centered 40x40 Stack slot",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
+    def test_circle_button_requires_accessibility_label(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["body"],
+                ],
+                ["body", "Column", {"width": 126, "height": 100}, ["anchor"]],
+                [
+                    "anchor",
+                    "Row",
+                    {
+                        "width": 126,
+                        "height": 40,
+                        "justifyContent": "spaceBetween",
+                        "alignItems": "center",
+                    },
+                    ["hint", "action_slot"],
+                ],
+                ["hint", "Text", {"content": "蓝牙"}],
+                [
+                    "action_slot",
+                    "Stack",
+                    {"width": 40, "height": 40, "alignContent": "center"},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "CircleButton",
+                    {
+                        "icon": "resources/base/media/bluetooth_fill.svg",
+                        "actionSurface": "#331F4799",
+                        "actionInk": "#FF1F4799",
+                        "onClick": [{"call": "openBluetooth", "args": {}}],
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "CircleButton requires accessibility",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
 
     def test_rejects_action_unit_missing_required_props_without_key_error(self) -> None:
         handler = {"call": "openWeather", "args": {}}
@@ -780,11 +1635,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(len(result.splitlines()), 3)
 
     def test_repairs_bom_json_fence_and_surrounding_text(self) -> None:
-        source = (
-            "\ufeffModel output follows.\n"
-            f"```json\n{self.compact_dsl}\n```\n"
-            "End of output."
-        )
+        source = f"\ufeffModel output follows.\n```json\n{self.compact_dsl}\n```\nEnd of output."
 
         result = convert_compact_dsl_to_a2ui(
             source,
@@ -1156,11 +2007,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 [
                     "temperature",
                     "Text",
-                    {
-                        "content": (
-                            "{{ '/data/weather/current/temperatureText' }}"
-                        )
-                    },
+                    {"content": ("{{ '/data/weather/current/temperatureText' }}")},
                 ],
                 ["/data/weather/current/temperatureText", "26℃"],
             ]
@@ -1242,12 +2089,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 [
                     "ratio",
                     "Text",
-                    {
-                        "content": (
-                            "{{ ${/data/metrics/used} + '/' + "
-                            "${/data/metrics/total} }}"
-                        )
-                    },
+                    {"content": ("{{ ${/data/metrics/used} + '/' + ${/data/metrics/total} }}")},
                 ],
                 ["/data/metrics/used", 2],
                 ["/data/metrics/total", 5],
@@ -1286,11 +2128,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 [
                     "temperature",
                     "Text",
-                    {
-                        "content": (
-                            "{{ ${/data/weather/current/temperatureText} }}"
-                        )
-                    },
+                    {"content": ("{{ ${/data/weather/current/temperatureText} }}")},
                 ],
                 ["/data/weather/current/temperatureText", "26℃"],
             ]
@@ -1352,9 +2190,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
 
         task_spec["dataModelSchema"]["data"]["backup"] = schema
-        card_spec["dataBindings"].append(
-            {"writeResultTo": "/data/backup"}
-        )
+        card_spec["dataBindings"].append({"writeResultTo": "/data/backup"})
         self.assertEqual(
             repair_compact_dsl_binding_paths(
                 compact_dsl,
@@ -1601,6 +2437,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
+
 
 if __name__ == "__main__":
     unittest.main()

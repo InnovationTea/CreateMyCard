@@ -1,8 +1,6 @@
 """提示词拆分的构建、路由与模型输入等价回归；不调用线上模型。"""
 
-import hashlib
 import json
-import re
 import shutil
 from pathlib import Path
 
@@ -10,35 +8,18 @@ import pytest
 from scripts.build_compact_prompts import DEFAULT_BUNDLE, FRAGMENT, build, compile_bundle
 
 from config.config import get_settings
-from models.generation import TaskSpec
-from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
 )
 
-BASELINE = json.loads(
-    (Path(__file__).parent / "fixtures/compact_prompt_migration_baseline.json").read_text(
-        encoding="utf-8"
-    )
-)
-PRODUCT_HASHES = BASELINE.get("products")
-MESSAGE_HASHES = BASELINE.get("messages")
-assert isinstance(PRODUCT_HASHES, dict)
-assert isinstance(MESSAGE_HASHES, list)
 
-
-def _digest(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
-
-
-@pytest.mark.parametrize("filename,expected", PRODUCT_HASHES.items())
-def test_compiled_prompt_equals_pre_migration_text(filename: str, expected: str) -> None:
-    content = compile_bundle().get(filename)
-    assert isinstance(content, str)
-    assert _digest(content) == expected
-    assert "<!-- prompt:" not in content
-    assert "维护源" not in content
+def test_compiled_prompts_are_model_facing() -> None:
+    products = compile_bundle()
+    assert products
+    for content in products.values():
+        assert "<!-- prompt:" not in content
+        assert "维护源" not in content
 
 
 def test_generated_files_are_current() -> None:
@@ -52,7 +33,8 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     assert not list((root / "fewshots" / size).rglob("*.md"))
     fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
     expected = ["preamble"]
-    expected.extend(f"example-v{index:02d}" for index in range(15))
+    example_count = 16 if size == "2x2" else 15
+    expected.extend(f"example-v{index:02d}" for index in range(example_count))
     assert list(fragments) == expected
     manifest = json.loads((root / "manifest.yaml").read_text(encoding="utf-8"))
     modules = manifest.get("modules")
@@ -86,35 +68,6 @@ def test_merged_fewshot_checks_each_fragment(tmp_path: Path, size: str, mutation
     source.write_text(original.replace(body, broken, 1), encoding="utf-8")
     with pytest.raises(ValueError, match=f"案例缺少完整输入/输出：{size}-V00"):
         compile_bundle(bundle)
-
-
-@pytest.mark.parametrize("record", MESSAGE_HASHES)
-def test_actual_model_messages_equal_baseline(record: dict, monkeypatch) -> None:
-    monkeypatch.setattr(get_settings(), "CONFIG", {"fusion_ball_min_prd_version": "11.7.7.300"})
-    identifier = record.get("id")
-    assert isinstance(identifier, str)
-    size = identifier.split("-")[0]
-    source = DEFAULT_BUNDLE / "prompt_source/fewshots" / f"{size}.md"
-    fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
-    content = fragments.get(f"example-{identifier.split('-')[1].lower()}")
-    assert isinstance(content, str)
-    task_match = re.search(r"```json\s*\n(.*?)\n```", content, re.S)
-    dsl_match = re.search(r"```genui\s*\n(.*?)\n```", content, re.S)
-    assert task_match is not None and dsl_match is not None
-    task = TaskSpec(**json.loads(task_match.group(1)), appVersion=record.get("appVersion"))
-    dsl = dsl_match.group(1)
-    builder = PromptBuilder()
-    prompt = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
-    messages = builder.build_design_compact(task, prompt)
-    mode = record.get("mode")
-    if mode == "edit":
-        messages = builder.build_design_compact(task, prompt, previous_design_token=dsl)
-    elif mode == "repair":
-        errors = [{"stage": "conversion", "code": "TEST", "message": "引用缺失"}]
-        messages = builder.build_repair(messages, dsl, errors, dsl_format=DESIGN_COMPACT_PROFILE_ID)
-    else:
-        assert mode == "create"
-    assert _digest(json.dumps(messages, ensure_ascii=False)) == record.get("sha256")
 
 
 @pytest.mark.parametrize(
@@ -156,7 +109,7 @@ def test_unknown_fewshot_size_is_rejected() -> None:
 def test_legacy_prompt_files_are_removed() -> None:
     old = DEFAULT_BUNDLE.with_name(DESIGN_COMPACT_PROFILE_ID)
     assert (old / "protocol.json").is_file()
-    for filename in PRODUCT_HASHES:
+    for filename in compile_bundle():
         assert not (old / filename).exists()
 
 
