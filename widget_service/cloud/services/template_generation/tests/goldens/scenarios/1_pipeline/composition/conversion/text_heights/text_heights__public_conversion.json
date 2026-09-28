@@ -692,8 +692,8 @@
   },
   "ScheduleOverviewDateFull@1::2x2": {
     "template_root_0_0_0": {
-      "after": 16,
-      "before": 16
+      "after": null,
+      "before": null
     }
   },
   "ScheduleOverviewDateLocationFull@1::2x2": {
@@ -1394,6 +1394,10 @@
   },
   "WeatherOverviewThreeDayForecastFull@1::2x2": {
     "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1": {
       "after": null,
       "before": null
     }

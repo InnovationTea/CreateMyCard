@@ -54,6 +54,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.health.sport"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "height": "matchParent",

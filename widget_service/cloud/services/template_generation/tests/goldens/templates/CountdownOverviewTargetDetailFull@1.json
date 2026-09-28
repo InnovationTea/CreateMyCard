@@ -49,7 +49,8 @@
           },
           {
             "children": [
-              "template_root_0_0"
+              "template_root_0_0",
+              "template_root_0_1"
             ],
             "component": "Column",
             "id": "template_root_0",
@@ -148,6 +149,60 @@
               "fontWeight": 500,
               "height": 16,
               "maxLines": 1
+            }
+          },
+          {
+            "children": [
+              "template_root_0_1_0",
+              "template_root_0_1_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_1",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "产品发布会",
+            "id": "template_root_0_1_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9999521F",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "2026-11-15",
+            "id": "template_root_0_1_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9999521F",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
             }
           }
         ],

@@ -75,7 +75,8 @@
           },
           {
             "children": [
-              "template_root_0_0_0"
+              "template_root_0_0_0",
+              "template_root_0_0_1"
             ],
             "component": "Stack",
             "id": "template_root_0_0",
@@ -99,6 +100,17 @@
             },
             "total": 100,
             "value": "{{ ${/data/earphone/batteryLevel} }}"
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1",
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
+            }
           },
           {
             "component": "Text",
@@ -134,7 +146,7 @@
           "data": {
             "earphone": {
               "batteryLevel": 80,
-              "chargingStatusDesc": "示例数据"
+              "chargingStatusDesc": "充电中"
             }
           }
         }

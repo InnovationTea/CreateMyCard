@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import html as _html
 import json
 import sys
 from collections import Counter
@@ -184,6 +185,32 @@ def _split_ids(raw: str) -> frozenset[str]:
     return frozenset(item.strip() for item in raw.split(",") if item.strip())
 
 
+_LAYER_ALIASES: dict[str, str] = {
+    "a": "A", "template": "A", "templates": "A",
+    "b": "B", "taskspec": "B", "taskspecs": "B",
+    "c": "C", "scenario": "C", "scenarios": "C",
+}
+
+
+def _parse_layers(raw: str) -> frozenset[str] | None:
+    """解析 --layer 取值（a/b/c 或全名，逗号分隔）；空串 = 全部三层。"""
+    text = (raw or "").strip().lower()
+    if not text:
+        return None
+    picked: set[str] = set()
+    for token in text.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        layer = _LAYER_ALIASES.get(token)
+        if layer is None:
+            raise ValueError(
+                f"unknown layer {token!r} (choose from a/templates, b/taskspecs, c/scenarios)"
+            )
+        picked.add(layer)
+    return frozenset(picked)
+
+
 def _template_layer(
     declared: frozenset[str], declare_all: bool
 ) -> _LayerState:
@@ -272,37 +299,67 @@ def _scenario_layer(
     )
 
 
-def _check_layers(declared: frozenset[str], declare_all: bool) -> list[_LayerState]:
-    layers = [_template_layer(declared, declare_all)]
-    taskspec = _taskspec_layer(declared, declare_all)
-    layers.append(taskspec)
-    layers.append(_scenario_layer(declared, declare_all))
+def _check_layers(
+    declared: frozenset[str],
+    declare_all: bool,
+    only: frozenset[str] | None = None,
+) -> list[_LayerState]:
+    """跑三层的生成/比对；``only`` 限定层（未选层标记 skipped，不执行）。"""
+    builders = (
+        ("A", "Templates", _template_layer),
+        ("B", "Taskspecs", _taskspec_layer),
+        ("C", "Scenarios", _scenario_layer),
+    )
+    layers: list[_LayerState] = []
+    for key, label, builder in builders:
+        if only is not None and key not in only:
+            layers.append(
+                _LayerState(
+                    title=f"{label} golden comparison:",
+                    comparison=golden_layer.compare({}, {}),
+                    skipped=True,
+                )
+            )
+            continue
+        layers.append(builder(declared, declare_all))
     return layers
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
     declared = _split_ids(args.declared)
-    layers = _check_layers(declared, args.declare_all)
+    try:
+        want = _parse_layers(getattr(args, "layer", ""))
+    except ValueError as exc:
+        print(f"check: {exc}", file=sys.stderr)
+        return 1
+    layers = _check_layers(declared, args.declare_all, only=want)
     if args.diff:
         for layer in layers:
             _print_layer(layer, diff=True)
     report = golden_layer.render_check_report(
         [
             golden_layer.CheckLayer(
-                label="Templates",
-                comparison=layers[0].comparison,
-            ),
-            golden_layer.CheckLayer(
-                label="Taskspecs",
-                comparison=layers[1].comparison,
-                extra_failed=layers[1].replay_missed,
-            ),
-            golden_layer.CheckLayer(
-                label="Scenarios",
-                comparison=layers[2].comparison,
-            ),
+                label=label,
+                comparison=layer.comparison,
+                extra_failed=layer.replay_missed,
+            )
+            for layer, label in zip(
+                layers, ("Templates", "Taskspecs", "Scenarios")
+            )
+            if not layer.skipped
         ]
     )
+    if want is not None and len(want) < 3:
+        skipped_labels = [
+            label
+            for layer, label in zip(layers, ("Templates", "Taskspecs", "Scenarios"))
+            if layer.skipped
+        ]
+        if skipped_labels:
+            print(
+                f"(layer filter {','.join(sorted(want))}: skipped "
+                f"{', '.join(skipped_labels)})"
+            )
     print(report.text)
     return 1 if (report.has_undeclared or report.has_stale) else 0
 
@@ -800,6 +857,21 @@ _HTML_CSS = """
   .muted { color: #71717a; }
   .lb-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
   .lb-controls select, .lb-controls input { padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 4px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+          text-decoration: none; color: #18181b; font-weight: 600; }
+  .chip b { margin-left: 6px; }
+  .chip-pass b { color: var(--ok); } .chip-fail b { color: var(--bad); }
+  .chip-review b { color: var(--warn); } .chip-stale b { color: var(--warn); }
+  .badge.review, .badge.stale { background: #fef3c7; color: var(--warn); }
+  .bar .fill { display: block; height: 100%; border-radius: 4px; }
+  .bar .fill.ok { background: var(--ok); } .bar .fill.bad { background: var(--bad); }
+  tr.fail td { background: #fef2f2; } tr.review td { background: #fffbeb; }
+  tr.stale td { background: #fffbeb; }
+  td pre, details > pre { background: #fafafa; border: 1px solid var(--line);
+       border-radius: 6px; padding: 8px; overflow-x: auto; max-height: 320px;
+       font-size: 12px; margin: 4px 0; }
+  details { padding: 4px 8px; }
 """
 
 _HTML_JS = """
@@ -860,7 +932,261 @@ _HTML_JS = """
 """
 
 
-def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
+def _layer_verdict(state: "_LayerState") -> str:
+    """与 render_check_report 一致的层内判定：FAIL / STALE / REVIEW / PASS。"""
+    if state.skipped:
+        return "SKIP"
+    comparison = state.comparison
+    failed = (
+        len(comparison.undeclared_changes)
+        + len(comparison.undeclared_additions)
+        + len(comparison.undeclared_removals)
+    )
+    if failed:
+        return "FAIL"
+    if state.replay_missed:
+        return "STALE"
+    review = (
+        len(comparison.declared_changes)
+        + len(comparison.declared_additions)
+        + len(comparison.declared_removals)
+    )
+    return "REVIEW" if review else "PASS"
+
+
+def _layer_failure_rows(
+    state: "_LayerState",
+    *,
+    diff_cap: int = 48,
+) -> list[dict[str, str]]:
+    """把一层的漂移项折叠成报告行：id / 类别 / 阶段 / 错误或 diff 摘要。"""
+    esc = _html.escape
+    rows: list[dict[str, str]] = []
+    comparison = state.comparison
+
+    def add(ids: tuple[str, ...], kind: str, cls: str) -> None:
+        for item_id in ids:
+            diff_text = golden_layer.render_diff(
+                item_id, state.generated, state.blessed
+            ) or ""
+            diff_html = ""
+            if diff_text:
+                snippet = "\n".join(diff_text.splitlines()[:diff_cap])
+                diff_html = "<details><summary>diff</summary><pre>" + esc(
+                    snippet
+                ) + "</pre></details>"
+            rows.append(
+                {
+                    "id": item_id,
+                    "kind": kind,
+                    "cls": cls,
+                    "stage": "",
+                    "errorType": "",
+                    "message": "",
+                    "diff": diff_html,
+                }
+            )
+
+    add(comparison.undeclared_changes, "changed", "fail")
+    add(comparison.undeclared_additions, "added", "fail")
+    add(comparison.undeclared_removals, "removed", "fail")
+    add(comparison.declared_changes, "changed (declared)", "review")
+    add(comparison.declared_additions, "added (declared)", "review")
+    add(comparison.declared_removals, "removed (declared)", "review")
+    for case_id in state.replay_missed:
+        rows.append(
+            {
+                "id": case_id,
+                "kind": "replay missed",
+                "cls": "stale",
+                "stage": "recording",
+                "errorType": "GOLDEN_REPLAY_MISS",
+                "message": "prompt changed since recording - re-record this case",
+                "diff": "",
+            }
+        )
+    return rows
+
+
+def _layer_b_baseline_diagnoses() -> list[dict[str, str]]:
+    """Layer B 基线失败（golden.json status != success）的离线逐例诊断。"""
+    from services.template_generation.test_support.golden_taskspecs import (
+        blessed_case_ids,
+        diagnose_case_cached,
+    )
+
+    rows: list[dict[str, str]] = []
+    for case_id in blessed_case_ids():
+        golden = json.loads(
+            (golden_taskspecs.GOLDEN_ROOT / case_id / "golden.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        status = str(golden.get("status", ""))
+        if status == "success":
+            continue
+        try:
+            diagnosis = golden_taskspecs.diagnose_case_cached(case_id)
+        except Exception as exc:  # 回放本身失败也要给出可见的行
+            diagnosis = {
+                "stage": "",
+                "stageLabel": "",
+                "errorType": type(exc).__name__,
+                "message": str(exc)[:200],
+                "replayMissed": False,
+            }
+        rows.append(
+            {
+                "case": case_id,
+                "status": status,
+                "stage": diagnosis.get("stageLabel") or diagnosis.get("stage") or "—",
+                "errorType": diagnosis.get("errorType", ""),
+                "message": diagnosis.get("message", ""),
+            }
+        )
+    return rows
+
+
+def _render_layer_sections_html(
+    layer_states: list["_LayerState"],
+    inventory: dict,
+    want: frozenset[str] | None,
+) -> str:
+    """三层的仪表盘 + 失败明细 HTML（含管线阶段归因），按层分节。"""
+    esc = _html.escape
+    labels = (("A", "Templates", "layer-a"), ("B", "Taskspecs", "layer-b"), ("C", "Scenarios", "layer-c"))
+    chips: list[str] = []
+    sections: list[str] = []
+    for key, label, anchor in labels:
+        state = layer_states[{"A": 0, "B": 1, "C": 2}[key]]
+        if want is not None and key not in want:
+            continue
+        verdict = _layer_verdict(state)
+        verdict_cls = {"PASS": "pass", "FAIL": "fail", "REVIEW": "review", "STALE": "stale", "SKIP": "cand"}[verdict]
+        chips.append(
+            f'<a class="chip chip-{verdict_cls}" href="#{anchor}">Layer {key} · {label} '
+            f'<b>{verdict}</b></a>'
+        )
+        if state.skipped:
+            sections.append(
+                f'<h2 id="{anchor}">Layer {key} · {label}</h2>'
+                '<p class="muted">skipped (layer filter / no blessed cases).</p>'
+            )
+            continue
+        comparison = state.comparison
+        passed = len(comparison.unchanged)
+        failed_n = (
+            len(comparison.undeclared_changes)
+            + len(comparison.undeclared_additions)
+            + len(comparison.undeclared_removals)
+        )
+        review_n = (
+            len(comparison.declared_changes)
+            + len(comparison.declared_additions)
+            + len(comparison.declared_removals)
+        )
+        stale_n = len(state.replay_missed)
+        total = passed + failed_n + review_n + stale_n
+        rate = (100.0 * passed / total) if total else 100.0
+        cards = "".join(
+            f'<div class="card"><div class="n">{value}</div><div class="l">{esc(label_)}</div></div>'
+            for value, label_ in (
+                (total, "total"),
+                (passed, "passed"),
+                (failed_n, "failed"),
+                (review_n, "under review"),
+                (stale_n, "stale / replay-missed"),
+                (f"{rate:.1f}%", "pass rate"),
+            )
+        )
+        breakdown = ""
+        if key == "A":
+            layer_a = inventory.get("layerA_templates", {})
+            breakdown = (
+                "by size: "
+                + " · ".join(f"{size} {n}" for size, n in layer_a.get("bySize", {}).items())
+                + " — by layout: "
+                + " · ".join(f"{kind} {n}" for kind, n in layer_a.get("byLayout", {}).items())
+            )
+        elif key == "B":
+            layer_b = inventory.get("layerB_taskspecs", {})
+            breakdown = "baseline statuses: " + " · ".join(
+                f"{status} {len(ids)}"
+                for status, ids in layer_b.get("byStatus", {}).items()
+            )
+        else:
+            layer_c = inventory.get("layerC_scenarios", {})
+            breakdown = (
+                f"{len(layer_c.get('groups', {}))} scenario groups"
+                + (
+                    " · documented skips: " + ", ".join(layer_c["documentedSkips"])
+                    if layer_c.get("documentedSkips")
+                    else ""
+                )
+            )
+        failure_rows = _layer_failure_rows(state)
+        rows_html = "".join(
+            f'<tr class="{row["cls"]}">'
+            f"<td><code>{esc(row['id'])}</code></td>"
+            f'<td><span class="badge {row["cls"]}">{esc(row["kind"])}</span></td>'
+            f"<td>{esc(row['stage'])}</td>"
+            f"<td>{esc(row['errorType'])} {esc(row['message'])}</td>"
+            f"<td>{row['diff']}</td></tr>"
+            for row in failure_rows
+        )
+        failure_block = (
+            f'<h3>Failures &amp; divergence ({len(failure_rows)})</h3>'
+            '<table class="lb"><thead><tr><th>Item</th><th>Kind</th><th>Stage</th>'
+            "<th>Error / message</th><th>Diff</th></tr></thead><tbody>"
+            + (rows_html or '<tr><td colspan="5" class="muted">none — layer is green</td></tr>')
+            + "</tbody></table>"
+        )
+        baseline_block = ""
+        if key == "B":
+            diagnoses = _layer_b_baseline_diagnoses()
+            diag_rows = "".join(
+                f"<tr><td><code>{esc(row['case'])}</code></td>"
+                f'<td><span class="badge fail">{esc(row["status"])}</span></td>'
+                f"<td>{esc(row['stage'])}</td>"
+                f"<td><code>{esc(row['errorType'])}</code></td>"
+                f"<td>{esc(row['message'])}</td></tr>"
+                for row in diagnoses
+            )
+            baseline_block = (
+                f'<h3>Baseline failure diagnosis ({len(diagnoses)}) — '
+                "which pipeline stage the generation failed at</h3>"
+                '<p class="muted">每个失败基线离线回放一次，捕获引擎原始异常并映射回'
+                "管线阶段（preflight → 首层路由 → 检索 → 二层组合 → 展开 → 模型 → 校验）。</p>"
+                '<table class="lb"><thead><tr><th>Case</th><th>Status</th><th>Stage</th>'
+                "<th>Error type</th><th>Message</th></tr></thead><tbody>"
+                + (diag_rows or '<tr><td colspan="5" class="muted">no failed baselines</td></tr>')
+                + "</tbody></table>"
+            )
+        sections.append(
+            f'<h2 id="{anchor}">Layer {key} · {label} '
+            f'<span class="badge {verdict_cls}">{verdict}</span></h2>'
+            f'<div class="cards">{cards}</div>'
+            f'<div class="bar"><span class="fill {"ok" if failed_n == 0 and stale_n == 0 else "bad"}" '
+            f'style="width:{rate:.1f}%"></span></div>'
+            f"<p class='muted'>{esc(breakdown)}</p>"
+            + failure_block
+            + baseline_block
+        )
+    if not chips:
+        return ""
+    return (
+        '<div class="chips">' + "".join(chips) + "</div>"
+        + "".join(sections)
+    )
+
+
+def _write_coverage_html(
+    path: Path,
+    coverage: dict,
+    inventory: dict,
+    layer_states: list[_LayerState] | None = None,
+    want: frozenset[str] | None = None,
+) -> None:
     """把全部模板的 data-field/props 覆盖与逐组合结果写成单个自包含 HTML 报告。"""
     import html as html_escape
 
@@ -905,17 +1231,26 @@ def _write_coverage_html(path: Path, coverage: dict, inventory: dict) -> None:
         )
     )
 
+    layer_sections_html = (
+        _render_layer_sections_html(layer_states, inventory, want)
+        if layer_states is not None
+        else ""
+    )
     parts = [
         "<!doctype html><html><head><meta charset='utf-8'>",
-        "<title>Golden template coverage report</title>",
+        "<title>Golden report</title>",
         f"<style>{_HTML_CSS}</style>",
         "</head><body>",
-        "<h1>Golden template coverage report</h1>",
+        "<h1>Golden report</h1>",
         f'<div class="muted">Layer A {inventory["layerA_templates"].get("total", 0)} · '
         f'Layer B {inventory["layerB_taskspecs"]["total"]} · '
         f'Layer C {inventory["layerC_scenarios"]["total"]} golden testcases — '
         "generated by golden_cli report --html</div>",
         f'<div class="cards">{cards}</div>',
+    ]
+    if layer_sections_html:
+        parts.append(layer_sections_html)
+    parts += [
         "<h2>Per-template coverage</h2>",
         '<div class="controls">',
         '<input type="text" id="q" placeholder="filter by template name…" oninput="applyFilter()">',
@@ -1303,13 +1638,30 @@ def _taskspec_coverage() -> dict:
 
 
 def _cmd_report(args) -> int:
-    inventory = {
-        "layerA_templates": _report_layer_a(),
-        "layerB_taskspecs": _report_layer_b(),
-        "layerC_scenarios": _report_layer_c(),
-        "coverage": _report_coverage(),
-        "taskspecCoverage": _taskspec_coverage(),
-    }
+    try:
+        want = _parse_layers(getattr(args, "layer", ""))
+    except ValueError as exc:
+        print(f"report: {exc}", file=sys.stderr)
+        return 1
+    want = want or frozenset({"A", "B", "C"})
+    inventory: dict[str, Any] = {}
+    if "A" in want:
+        inventory["layerA_templates"] = _report_layer_a()
+    if "B" in want:
+        inventory["layerB_taskspecs"] = _report_layer_b()
+    if "C" in want:
+        inventory["layerC_scenarios"] = _report_layer_c()
+    if "A" in want or "B" in want:
+        inventory["coverage"] = _report_coverage()
+        inventory["taskspecCoverage"] = _taskspec_coverage()
+    for key, label in (
+        ("layerA_templates", "Layer A · templates"),
+        ("layerB_taskspecs", "Layer B · taskspecs"),
+        ("layerC_scenarios", "Layer C · scenarios"),
+        ("coverage", "coverage"),
+        ("taskspecCoverage", "taskspecCoverage"),
+    ):
+        inventory.setdefault(key, {"present": False, "total": 0, "summary": {}, "byStatus": {}, "groups": {}})
     if args.json:
         if args.health:
             layer_states = _check_layers(frozenset(), False)
@@ -1336,7 +1688,9 @@ def _cmd_report(args) -> int:
     print("Golden testcase report")
     print("=" * 72)
     layer_a = inventory["layerA_templates"]
-    if not layer_a.get("present"):
+    if "A" not in want:
+        pass
+    elif not layer_a.get("present"):
         print("Layer A · templates  : MISSING (run `golden accept` to bootstrap)")
     else:
         print(
@@ -1354,99 +1708,111 @@ def _cmd_report(args) -> int:
         for group, ids in layer_a["groups"].items():
             print(f"    [{group}] ({len(ids)}): {', '.join(ids)}")
     layer_b = inventory["layerB_taskspecs"]
-    print(f"Layer B · taskspecs  : {layer_b['total']} cases (real chain, recorded LLM)")
-    for status, ids in layer_b["byStatus"].items():
-        print(f"    {status} ({len(ids)}): {', '.join(ids)}")
+    if "B" in want:
+        print(f"Layer B · taskspecs  : {layer_b['total']} cases (real chain, recorded LLM)")
+        for status, ids in layer_b["byStatus"].items():
+            print(f"    {status} ({len(ids)}): {', '.join(ids)}")
     layer_c = inventory["layerC_scenarios"]
-    print(
-        f"Layer C · scenarios  : {layer_c['total']} goldens in "
-        f"{len(layer_c['groups'])} groups (pipeline-stage hierarchy, see "
-        "goldens/scenarios/README.md)"
-    )
-    for group, entry in layer_c["groups"].items():
-        extras = ""
-        if entry["combinationKeys"]:
-            extras += f" · {entry['combinationKeys']} combination keys"
-        if entry.get("excludedKeys"):
-            extras += f" · {entry['excludedKeys']} frozen refusals"
-        print(f"  {group} — {len(entry['scenarios'])} scenarios{extras}")
-        print(f"      {', '.join(entry['scenarios'])}")
-    if layer_c["documentedSkips"]:
+    if "C" in want:
         print(
-            "    documented pipeline skips: "
-            + ", ".join(layer_c["documentedSkips"])
+            f"Layer C · scenarios  : {layer_c['total']} goldens in "
+            f"{len(layer_c['groups'])} groups (pipeline-stage hierarchy, see "
+            "goldens/scenarios/README.md)"
         )
-    if layer_c["unblessed"]:
-        print(
-            "    UNBLESSED builders (register but no golden file): "
-            + ", ".join(layer_c["unblessed"])
-        )
-    if layer_c["orphanGoldens"]:
-        print(
-            "    ORPHAN golden files (on disk, not registered): "
-            + ", ".join(layer_c["orphanGoldens"])
-        )
+        for group, entry in layer_c["groups"].items():
+            extras = ""
+            if entry["combinationKeys"]:
+                extras += f" · {entry['combinationKeys']} combination keys"
+            if entry.get("excludedKeys"):
+                extras += f" · {entry['excludedKeys']} frozen refusals"
+            print(f"  {group} — {len(entry['scenarios'])} scenarios{extras}")
+            print(f"      {', '.join(entry['scenarios'])}")
+        if layer_c["documentedSkips"]:
+            print(
+                "    documented pipeline skips: "
+                + ", ".join(layer_c["documentedSkips"])
+            )
+        if layer_c["unblessed"]:
+            print(
+                "    UNBLESSED builders (register but no golden file): "
+                + ", ".join(layer_c["unblessed"])
+            )
+        if layer_c["orphanGoldens"]:
+            print(
+                "    ORPHAN golden files (on disk, not registered): "
+                + ", ".join(layer_c["orphanGoldens"])
+            )
     coverage = inventory["coverage"]
     summary = coverage["summary"]
     taskspecs = inventory["taskspecCoverage"]
     ts_summary = taskspecs["summary"]
     if args.html:
         html_path = Path(args.html)
-        print("Building HTML coverage report (includes a full Layer B replay)…")
-        _write_coverage_html(html_path, coverage, inventory)
+        print("Building HTML report (includes live layer health + a full Layer B replay)…")
+        layer_states = _check_layers(frozenset(), False, only=want)
+        _write_coverage_html(html_path, coverage, inventory, layer_states, want)
         print(
             f"HTML coverage report written: {html_path} "
             f"({html_path.resolve()}) — open it in a browser; it covers all "
             f"{summary['totalTemplates']} templates."
         )
-    print("Coverage · template data fields / props (Jest-style: worst first)")
-    for line in _render_coverage_table(
-        coverage["templates"], summary, show_all=args.coverage
-    ):
-        print(line)
-    variant_note = (
-        f"{summary['propsVariantCoveredTemplates']} templates with explicit "
-        "param-variant coverage"
-    )
-    print(
-        f"Coverage · props: declared on {summary['propsTemplates']} templates — "
-        "default render (Layer A) + optional-absent (pipeline) covered for all; "
-        f"{variant_note}. Required data fields: {summary['requiredFieldsTotal']} "
-        "(present in every pipeline render). 2x4: canonical only (Search rejects "
-        "2x4 at pipeline entry)."
-    )
-    print(
-        f"Coverage · taskspecs   : {ts_summary['total']} "
-        f"({' · '.join(f'{size} {n}' for size, n in ts_summary['bySize'].items())}) — "
-        + " · ".join(f"{status} {n}" for status, n in ts_summary["byStatus"].items())
-    )
-    print(
-        f"    capabilities covered: {len(ts_summary['capabilitiesCovered'])}/"
-        f"{len(ts_summary['capabilitiesInRegistry'])} — "
-        f"{', '.join(ts_summary['capabilitiesCovered'])}"
-        + (
-            f" | not covered: {', '.join(ts_summary['capabilitiesNotCovered'])}"
-            if ts_summary["capabilitiesNotCovered"]
-            else ""
+    if "A" in want or "B" in want:
+        print("Coverage · template data fields / props (Jest-style: worst first)")
+        for line in _render_coverage_table(
+            coverage["templates"], summary, show_all=args.coverage
+        ):
+            print(line)
+        variant_note = (
+            f"{summary['propsVariantCoveredTemplates']} templates with explicit "
+            "param-variant coverage"
         )
-    )
-    print(f"    distinct data fields provided: {ts_summary['distinctDataFields']}")
-    if args.coverage:
-        print("  per-taskspec:")
-        for row in taskspecs["rows"]:
-            error = f" · {row['errorCode']}" if row["errorCode"] else ""
-            print(
-                f"    {row['case']} [{row['size']}] {row['status']}{error} — "
-                f"{row['fieldCount']} data fields ({', '.join(row['capabilities'])})"
-                f"  「{row['query'][:40]}」"
+        print(
+            f"Coverage · props: declared on {summary['propsTemplates']} templates — "
+            "default render (Layer A) + optional-absent (pipeline) covered for all; "
+            f"{variant_note}. Required data fields: {summary['requiredFieldsTotal']} "
+            "(present in every pipeline render). 2x4: canonical only (Search rejects "
+            "2x4 at pipeline entry)."
+        )
+        print(
+            f"Coverage · taskspecs   : {ts_summary['total']} "
+            f"({' · '.join(f'{size} {n}' for size, n in ts_summary['bySize'].items())}) — "
+            + " · ".join(f"{status} {n}" for status, n in ts_summary["byStatus"].items())
+        )
+        print(
+            f"    capabilities covered: {len(ts_summary['capabilitiesCovered'])}/"
+            f"{len(ts_summary['capabilitiesInRegistry'])} — "
+            f"{', '.join(ts_summary['capabilitiesCovered'])}"
+            + (
+                f" | not covered: {', '.join(ts_summary['capabilitiesNotCovered'])}"
+                if ts_summary["capabilitiesNotCovered"]
+                else ""
             )
+        )
+        print(f"    distinct data fields provided: {ts_summary['distinctDataFields']}")
+        if args.coverage:
+            print("  per-taskspec:")
+            for row in taskspecs["rows"]:
+                error = f" · {row['errorCode']}" if row["errorCode"] else ""
+                print(
+                    f"    {row['case']} [{row['size']}] {row['status']}{error} — "
+                    f"{row['fieldCount']} data fields ({', '.join(row['capabilities'])})"
+                    f"  「{row['query'][:40]}」"
+                )
     total = (
-        layer_a.get("total", 0) if layer_a.get("present") else 0
-    ) + layer_b["total"] + layer_c["total"]
+        (layer_a.get("total", 0) if layer_a.get("present") else 0)
+        if "A" in want
+        else 0
+    ) + (layer_b["total"] if "B" in want else 0) + (
+        layer_c["total"] if "C" in want else 0
+    )
     print("=" * 72)
     print(f"Total golden testcases: {total}")
     exit_code = 0
     if args.fail_under is not None:
+        if "A" not in want and "B" not in want:
+            print("Coverage threshold: needs layers a/b (coverage not built).", file=sys.stderr)
+            exit_code = 1
+            return exit_code
         pct = summary["absencePct"]
         passed = pct >= args.fail_under
         print(
@@ -1456,7 +1822,7 @@ def _cmd_report(args) -> int:
         if not passed:
             exit_code = 1
     if args.health:
-        layer_states = _check_layers(frozenset(), False)
+        layer_states = _check_layers(frozenset(), False, only=want)
         report = golden_layer.render_check_report(
             [
                 golden_layer.CheckLayer(
@@ -2214,6 +2580,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="print unified diffs for every changed item (review before blessing)",
     )
+    check_parser.add_argument(
+        "--layer",
+        default="",
+        metavar="A,B,C",
+        help="test only these layers: a/templates, b/taskspecs, c/scenarios "
+        "(comma-separated; default all three). bless is always full-tree — "
+        "it refuses on undeclared drift in any layer",
+    )
 
     bless_parser = sub.add_parser(
         "bless", help="promote reviewed (declared) divergence into the golden set",
@@ -2282,6 +2656,13 @@ def main(argv: list[str] | None = None) -> int:
         "--json",
         action="store_true",
         help="print the inventory as JSON instead of text",
+    )
+    report_parser.add_argument(
+        "--layer",
+        default="",
+        metavar="A,B,C",
+        help="restrict the report to layers: a/templates, b/taskspecs, "
+        "c/scenarios (comma-separated; default all three)",
     )
 
     template_parser = sub.add_parser(

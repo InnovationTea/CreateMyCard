@@ -85,7 +85,8 @@
           },
           {
             "children": [
-              "template_root_0_0_0"
+              "template_root_0_0_0",
+              "template_root_0_0_1"
             ],
             "component": "Row",
             "id": "template_root_0_0",
@@ -104,8 +105,24 @@
           },
           {
             "component": "Text",
-            "content": "未来三天天气",
+            "content": "青浦区",
             "id": "template_root_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "flexShrink": 0,
+              "fontColor": "#99CCDDFF",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "未来三天天气",
+            "id": "template_root_0_0_1",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -512,25 +529,25 @@
             "weather": {
               "daily": [
                 {
-                  "condition": "示例数据",
-                  "date": "示例数据",
-                  "rainProbabilityPercent": "示例数据",
-                  "temperatureRangeText": "示例数据",
-                  "weekday": "示例数据"
+                  "condition": "多云",
+                  "date": "8月19日",
+                  "rainProbabilityPercent": "10%",
+                  "temperatureRangeText": "24° / 31°",
+                  "weekday": "周三"
                 },
                 {
-                  "condition": "示例数据",
-                  "date": "示例数据",
-                  "rainProbabilityPercent": "示例数据",
-                  "temperatureRangeText": "示例数据",
-                  "weekday": "示例数据"
+                  "condition": "晴",
+                  "date": "8月20日",
+                  "rainProbabilityPercent": "30%",
+                  "temperatureRangeText": "25° / 33°",
+                  "weekday": "周四"
                 },
                 {
-                  "condition": "示例数据",
-                  "date": "示例数据",
-                  "rainProbabilityPercent": "示例数据",
-                  "temperatureRangeText": "示例数据",
-                  "weekday": "示例数据"
+                  "condition": "小雨",
+                  "date": "8月21日",
+                  "rainProbabilityPercent": "40%",
+                  "temperatureRangeText": "25° / 32°",
+                  "weekday": "周五"
                 }
               ]
             }

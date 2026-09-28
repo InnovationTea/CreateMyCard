@@ -385,8 +385,8 @@
             "phoneBattery": {
               "batterySOC": 84,
               "chargingStatusDesc": "正在充电",
-              "healthStatusDesc": "示例数据",
-              "pluggedTypeDesc": "示例数据"
+              "healthStatusDesc": "良好",
+              "pluggedTypeDesc": "已插入"
             }
           }
         }

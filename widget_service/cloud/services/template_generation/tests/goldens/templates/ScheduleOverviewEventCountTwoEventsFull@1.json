@@ -89,7 +89,7 @@
           },
           {
             "component": "Text",
-            "content": "近期日程安排",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
@@ -169,6 +169,14 @@
             "component": "Row",
             "id": "template_root_0_1_0",
             "itemMargin": 8,
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.viewCalendarEvent"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "start",
               "clip": true,
@@ -427,12 +435,12 @@
               "eventCount": 1,
               "events": [
                 {
-                  "dtStart": "示例数据",
-                  "title": "示例数据"
+                  "dtStart": "14:00",
+                  "title": "UI需求评审会"
                 },
                 {
-                  "dtStart": "示例数据",
-                  "title": "示例数据"
+                  "dtStart": "16:30",
+                  "title": "华东渠道策略会"
                 }
               ]
             }

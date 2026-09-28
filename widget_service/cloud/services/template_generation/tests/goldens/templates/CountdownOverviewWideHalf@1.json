@@ -88,13 +88,14 @@
           },
           {
             "component": "Text",
-            "content": "倒计时",
+            "content": "产品发布会",
             "id": "template_root_0_0_0",
             "styles": {
               "fontColor": "#FF99521F",
               "fontSize": 14,
               "fontWeight": 600,
               "maxLines": 1,
+              "minFontSize": 12,
               "textOverflow": "ellipsis",
               "width": "matchParent"
             }

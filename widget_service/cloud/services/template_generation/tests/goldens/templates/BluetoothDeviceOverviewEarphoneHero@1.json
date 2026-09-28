@@ -75,7 +75,8 @@
           },
           {
             "children": [
-              "template_root_0_0_0"
+              "template_root_0_0_0",
+              "template_root_0_0_1"
             ],
             "component": "Stack",
             "id": "template_root_0_0",
@@ -99,6 +100,17 @@
             },
             "total": 100,
             "value": "{{ ${/data/earphone/batteryLevel} }}"
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1",
+            "src": "resources/base/media/icon_earphone.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
+            }
           },
           {
             "component": "Text",

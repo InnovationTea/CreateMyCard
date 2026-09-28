@@ -88,7 +88,7 @@
           },
           {
             "component": "Text",
-            "content": "日程提醒",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
@@ -98,7 +98,6 @@
               "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 400,
-              "height": 16,
               "maxLines": 1,
               "textOverflow": "ellipsis",
               "width": "matchParent"

@@ -100,7 +100,8 @@
           },
           {
             "children": [
-              "template_root_0_0_1_0_0"
+              "template_root_0_0_1_0_0",
+              "template_root_0_0_1_0_1"
             ],
             "component": "Stack",
             "id": "template_root_0_0_1_0",
@@ -124,6 +125,17 @@
             },
             "total": 100,
             "value": "{{ ${/data/earphone/batteryLevel} }}"
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1_0_1",
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
+            }
           },
           {
             "children": [
@@ -190,7 +202,7 @@
               "batteryLevel": 80,
               "earphoneName": "FreeBuds Pro",
               "isConnected": true,
-              "updatedAt": "示例数据"
+              "updatedAt": "今天 09:00"
             }
           }
         }

@@ -497,8 +497,8 @@
             "healthSport": {
               "dailySteps": 6200,
               "exerciseCalorieText": "420 千卡",
-              "exerciseDurationText": "示例数据",
-              "exerciseHeartRateAvg": 68
+              "exerciseDurationText": "40分",
+              "exerciseHeartRateAvg": 135
             }
           }
         }

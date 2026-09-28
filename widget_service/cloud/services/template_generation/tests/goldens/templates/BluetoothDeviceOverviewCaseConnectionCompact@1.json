@@ -76,7 +76,8 @@
           },
           {
             "children": [
-              "template_root_0_0_0"
+              "template_root_0_0_0",
+              "template_root_0_0_1"
             ],
             "component": "Row",
             "id": "template_root_0_0",
@@ -123,6 +124,16 @@
               "fontWeight": 500,
               "maxLines": 1,
               "width": "matchParent"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1",
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "styles": {
+              "fillColor": "#FF456A35",
+              "height": 24,
+              "width": 24
             }
           }
         ],

@@ -67,6 +67,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.weather"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,
@@ -155,8 +163,8 @@
           "data": {
             "weather": {
               "current": {
-                "feelsLikeC": 68.0,
-                "windLevel": 68
+                "feelsLikeC": 31.0,
+                "windLevel": 3
               }
             }
           }

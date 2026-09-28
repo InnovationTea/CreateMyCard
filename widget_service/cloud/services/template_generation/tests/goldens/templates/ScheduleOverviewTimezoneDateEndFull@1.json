@@ -89,7 +89,7 @@
           },
           {
             "component": "Text",
-            "content": "日程详情",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
@@ -320,7 +320,7 @@
                 {
                   "dtEnd": "15:30",
                   "startDate": "8月19日",
-                  "timeZone": "示例数据",
+                  "timeZone": "GMT+8",
                   "title": "UI需求评审会"
                 }
               ]

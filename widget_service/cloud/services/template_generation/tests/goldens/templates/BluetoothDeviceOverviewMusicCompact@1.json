@@ -55,6 +55,14 @@
             "component": "Row",
             "id": "template_root_0",
             "itemMargin": 4,
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.music.daily"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "backgroundColor": "#3364BB5C",

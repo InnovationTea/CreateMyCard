@@ -53,6 +53,14 @@
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.settings.bluetooth"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,
@@ -189,7 +197,7 @@
           "data": {
             "earphone": {
               "batteryLevel": 80,
-              "chargingStatusDesc": "示例数据"
+              "chargingStatusDesc": "充电中"
             }
           }
         }

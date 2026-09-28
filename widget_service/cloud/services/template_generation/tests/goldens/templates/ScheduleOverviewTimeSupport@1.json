@@ -49,10 +49,19 @@
           },
           {
             "children": [
-              "template_root_0_0"
+              "template_root_0_0",
+              "template_root_0_1"
             ],
             "component": "Row",
             "id": "template_root_0",
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.viewCalendarEvent"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "center",
               "clip": true,
@@ -119,6 +128,17 @@
               "height": 16,
               "maxLines": 1,
               "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_1",
+            "src": "resources/base/media/calendar_fill.svg",
+            "styles": {
+              "fillColor": "#991F4799",
+              "flexShrink": 0,
+              "height": 24,
+              "width": 24
             }
           }
         ],

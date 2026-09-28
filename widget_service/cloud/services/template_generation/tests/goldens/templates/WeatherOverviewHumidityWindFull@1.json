@@ -281,10 +281,10 @@
               "current": {
                 "humidityPercent": 70.0,
                 "temperatureText": "29°C",
-                "windDirection": "示例数据"
+                "windDirection": "东南风"
               },
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

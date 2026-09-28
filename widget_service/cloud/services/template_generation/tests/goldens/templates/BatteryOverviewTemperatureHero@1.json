@@ -168,7 +168,7 @@
             "phoneBattery": {
               "batteryTemperatureText": "29.0 ℃",
               "chargingStatusDesc": "未充电",
-              "pluggedTypeDesc": "示例数据"
+              "pluggedTypeDesc": "普通充电器"
             }
           }
         }

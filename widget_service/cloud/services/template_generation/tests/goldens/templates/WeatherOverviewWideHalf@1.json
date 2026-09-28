@@ -202,11 +202,11 @@
               },
               "daily": [
                 {
-                  "rainProbabilityPercent": "示例数据"
+                  "rainProbabilityPercent": "30%"
                 }
               ],
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

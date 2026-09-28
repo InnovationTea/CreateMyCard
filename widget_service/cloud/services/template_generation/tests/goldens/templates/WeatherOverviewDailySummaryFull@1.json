@@ -269,14 +269,14 @@
                 {},
                 {
                   "airQuality": "良",
-                  "date": "示例数据",
-                  "rainProbabilityPercent": "示例数据",
+                  "date": "8月20日",
+                  "rainProbabilityPercent": "30%",
                   "temperatureRangeText": "25° / 32°",
-                  "weekday": "示例数据"
+                  "weekday": "周四"
                 }
               ],
               "location": {
-                "districtName": "示例数据",
+                "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }
             }

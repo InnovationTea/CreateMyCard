@@ -430,9 +430,9 @@
           "data": {
             "phoneBattery": {
               "batterySOC": 84,
-              "isBatteryPresentText": "示例数据",
-              "nowCurrentText": "示例数据",
-              "voltageText": "示例数据"
+              "isBatteryPresentText": "已识别",
+              "nowCurrentText": "1.5 A",
+              "voltageText": "4.4 V"
             }
           }
         }

@@ -67,6 +67,14 @@
             "component": "Column",
             "id": "template_root_0",
             "itemMargin": 3,
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.weather"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "start",
               "clip": true,
@@ -224,8 +232,8 @@
           "data": {
             "weather": {
               "current": {
-                "condition": "示例数据",
-                "temperatureC": 68.0
+                "condition": "多云",
+                "temperatureC": 29.0
               },
               "daily": [
                 {},
@@ -233,9 +241,9 @@
                 {},
                 {},
                 {
-                  "condition": "示例数据",
-                  "rainProbabilityPercent": "示例数据",
-                  "temperatureRangeText": "示例数据"
+                  "condition": "小雨",
+                  "rainProbabilityPercent": "60%",
+                  "temperatureRangeText": "22° / 28°"
                 }
               ]
             }

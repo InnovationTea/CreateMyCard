@@ -89,7 +89,7 @@
           },
           {
             "component": "Text",
-            "content": "日程详情",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
@@ -340,14 +340,14 @@
             "calendar": {
               "events": [
                 {
-                  "importantEventType": 68,
+                  "importantEventType": 2,
                   "remindTime": [
                     "15"
                   ],
-                  "senderName": "示例数据"
+                  "senderName": "李娜"
                 }
               ],
-              "updatedAt": "示例数据"
+              "updatedAt": "今天 09:00"
             }
           }
         }

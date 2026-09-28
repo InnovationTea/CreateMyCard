@@ -88,7 +88,7 @@
           },
           {
             "component": "Text",
-            "content": "近期日程安排",
+            "content": "今天",
             "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
