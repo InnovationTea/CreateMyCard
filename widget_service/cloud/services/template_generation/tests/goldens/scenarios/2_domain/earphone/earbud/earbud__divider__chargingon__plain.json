@@ -121,7 +121,7 @@
             "id": "root_1_0_0_0_0_0",
             "styles": {
               "backgroundColor": "#3364BB5C",
-              "color": "#FF52991F",
+              "color": "#FF34651F",
               "height": 52,
               "strokeWidth": 6,
               "type": "ring",
@@ -149,7 +149,7 @@
             "id": "root_1_0_0_0_0_1_0",
             "styles": {
               "flexShrink": 0,
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 13.71,
               "fontWeight": 700
             }
@@ -160,7 +160,7 @@
             "id": "root_1_0_0_0_0_1_1",
             "styles": {
               "flexShrink": 1,
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 9.14,
               "fontWeight": 500,
               "margin": {
@@ -196,7 +196,7 @@
             "content": "左耳机",
             "id": "root_1_0_0_0_1_0_0",
             "styles": {
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700
             }
@@ -206,7 +206,7 @@
             "content": "{{ ${/data/earphone/leftChargingStatusDesc} }}",
             "id": "root_1_0_0_0_1_1",
             "styles": {
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500
             }
@@ -244,7 +244,7 @@
             "id": "root_1_0_0_1_0_0",
             "styles": {
               "backgroundColor": "#3364BB5C",
-              "color": "#FF52991F",
+              "color": "#FF34651F",
               "height": 52,
               "strokeWidth": 6,
               "type": "ring",
@@ -272,7 +272,7 @@
             "id": "root_1_0_0_1_0_1_0",
             "styles": {
               "flexShrink": 0,
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 13.71,
               "fontWeight": 700
             }
@@ -283,7 +283,7 @@
             "id": "root_1_0_0_1_0_1_1",
             "styles": {
               "flexShrink": 1,
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 9.14,
               "fontWeight": 500,
               "margin": {
@@ -319,7 +319,7 @@
             "content": "右耳机",
             "id": "root_1_0_0_1_1_0_0",
             "styles": {
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700
             }
@@ -329,7 +329,7 @@
             "content": "{{ ${/data/earphone/rightChargingStatusDesc} }}",
             "id": "root_1_0_0_1_1_1",
             "styles": {
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 500
             }

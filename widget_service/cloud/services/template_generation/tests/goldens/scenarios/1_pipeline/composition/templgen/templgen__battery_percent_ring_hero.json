@@ -322,8 +322,7 @@
         "value": {
           "data": {
             "phoneBattery": {
-              "batterySOC": 68,
-              "chargingStatusDesc": "未充电"
+              "batterySOC": 68
             }
           }
         }

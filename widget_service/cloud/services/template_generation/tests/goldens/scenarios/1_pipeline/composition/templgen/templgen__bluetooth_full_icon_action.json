@@ -98,7 +98,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#9952991F",
+              "fontColor": "#FF456A35",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 18,
@@ -115,7 +115,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#FF52991F",
+              "fontColor": "#FF34651F",
               "fontSize": 18,
               "fontWeight": 700,
               "height": 26,
@@ -331,7 +331,7 @@
             "id": "root_1_1_0",
             "src": "resources/base/media/icon_music.svg",
             "styles": {
-              "fillColor": "#FF52991F",
+              "fillColor": "#FF34651F",
               "height": 16,
               "objectFit": "contain",
               "width": 16

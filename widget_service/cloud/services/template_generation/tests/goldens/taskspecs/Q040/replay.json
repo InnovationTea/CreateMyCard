@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "56594969fc376709968f3c5b64aff4e187fae7285529059df169b6cc91f6a642",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/healthStatusDesc\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batterySOC\"},\"action\":[],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
+      "key": "019d807d02732081637e3263b133f9fce762f81a7891a84e31e094d90752fed7",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/healthStatusDesc\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
     },
     {
-      "key": "6e752af1eaf8d9e5d7ed0e5761cfce274bce99d2c0a6d17ce311cdb6e8c58068",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewChargingProgressFull@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}));"
+      "key": "d6affc21eff179c344845568aa6253268fb92c8c970884fc033e820de8901bf3",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewChargingProgressFull@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\"}));"
     }
   ]
 }

@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "1659b03915f2846066c1fe67f9d9deea1762e8abdc770979429d0f949f55f74d",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/alertLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"ViewWeather\":\"/current/alertLevel\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+      "key": "25ebd25fe9edda59f1cfedbc24fc9ffd9707a4f5258a831a0c834e1af2dc6ad9",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewAlertFull@1\", {\"location\": \"长沙市\", \"alertIcon\": \"resources/base/media/bell_fill.svg\", \"timeIcon\": \"resources/base/media/clock.svg\"}));"
     },
     {
-      "key": "76ee0c91e254db3f7b1f51acbf0b9ff9dbe3918efe9942120f558000bf049d16",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewAlertFull@1\", {\"location\": \"长沙市\", \"alertIcon\": \"resources/base/media/bell_fill.svg\", \"timeIcon\": \"resources/base/media/clock.svg\"}));"
+      "key": "88acba06804488e23367edec061d187145f5855fafbea0d4955c040aec83ee44",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/alertLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"ViewWeather\":\"/current/alertLevel\"},\"action\":[],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

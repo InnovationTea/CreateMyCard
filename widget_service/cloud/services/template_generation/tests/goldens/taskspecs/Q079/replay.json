@@ -1,8 +1,12 @@
 {
   "recordings": [
     {
-      "key": "6376e72b1dfcf50eb5e33b979879f0bc69d654e7c86477168a34715b7439038d",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\",\"/leftBatteryLevel\",\"/rightBatteryLevel\"]},\"action\":[\"event.open.music.daily\"]}"
+      "key": "112bbab7f0b82d29234b5457c0eb301ba866fec65cdc61ecd385fa1224d4dbc2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\",\"/leftBatteryLevel\",\"/rightBatteryLevel\"]},\"action\":[\"event.open.music.daily\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "dc98e79d0f156a3047a62f25c0d893dd9520fd7c1dddc16dfab76ab65d2c1cc3",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarbudPairFull@1\", {\"caseIcon\": \"resources/base/media/earphone_case_16644.svg\", \"leftEarIcon\": \"resources/base/media/icon_earphone.svg\", \"rightEarIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"BatteryOverviewPhoneTextCompact@1\", {}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.music.daily\", \"label\": \"每日推荐\", \"icon\": \"resources/base/media/music_fill.svg\"}));"
     }
   ]
 }

@@ -3,6 +3,11 @@
     "ActivityOverviewCompact@1": [
       null
     ],
+    "ActivityOverviewExerciseWideHero@1": [
+      null,
+      null,
+      null
+    ],
     "ActivityOverviewFull@1": [
       null,
       null,
@@ -12,12 +17,21 @@
       null,
       null
     ],
+    "ActivityOverviewGoalProgressWideFull@1": [
+      null
+    ],
     "ActivityOverviewHero@1": [
       null,
       null
     ],
     "ActivityOverviewSupport@1": [
       null
+    ],
+    "ActivityOverviewTrainingSummaryFull@1": [
+      16,
+      16,
+      16,
+      16
     ],
     "ActivityOverviewWideFull@1": [
       null,
@@ -30,11 +44,24 @@
       null,
       null
     ],
+    "ActivityOverviewYesterdayStepsSleepCompact@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewChargeStatusHero@1": [
+      20,
+      20
+    ],
     "BatteryOverviewChargingDiagnosticsHero@1": [
       16,
       16,
       16,
       16
+    ],
+    "BatteryOverviewChargingDiagnosticsWideFull@1": [
+      null
     ],
     "BatteryOverviewChargingProgressFull@1": [
       16,
@@ -62,16 +89,56 @@
       16,
       16
     ],
+    "BatteryOverviewPercentRingCompact@1": [
+      null
+    ],
+    "BatteryOverviewPercentStatusCompact@1": [
+      null
+    ],
+    "BatteryOverviewStatusRingHero@1": [
+      20,
+      null
+    ],
     "BatteryOverviewStatusSupport@1": [
+      null
+    ],
+    "BatteryOverviewStatusWideFull@1": [
+      null,
+      null,
+      null,
       null
     ],
     "BatteryOverviewSupport@1": [
       null,
       null
     ],
+    "BatteryOverviewSupportHero@1": [
+      null,
+      null
+    ],
     "BatteryOverviewTemperatureFull@1": [
       null,
       null
+    ],
+    "BatteryOverviewTemperatureHero@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewTemperatureRingHero@1": [
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewCaseConnectionCompact@1": [
+      null
+    ],
+    "BluetoothDeviceOverviewCaseConnectionHero@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewCaseSettingsHero@1": [
+      16
     ],
     "BluetoothDeviceOverviewChargeSupport@1": [
       null,
@@ -88,6 +155,9 @@
     ],
     "BluetoothDeviceOverviewConnectionSupport@1": [
       null
+    ],
+    "BluetoothDeviceOverviewEarbudChargingWideFull@1": [
+      16
     ],
     "BluetoothDeviceOverviewEarbudPairCompact@1": [
       null,
@@ -111,6 +181,11 @@
       16,
       16
     ],
+    "BluetoothDeviceOverviewEarbudsChargingWideFull@1": [
+      16,
+      null,
+      null
+    ],
     "BluetoothDeviceOverviewEarbudsDynamicWideFull@1": [
       null,
       null,
@@ -129,14 +204,6 @@
     "BluetoothDeviceOverviewEarbudsSupport@1": [
       16
     ],
-    "BluetoothDeviceOverviewEarphoneCaseCompact@1": [
-      null,
-      null
-    ],
-    "BluetoothDeviceOverviewEarphoneCompact@1": [
-      null,
-      null
-    ],
     "BluetoothDeviceOverviewHero@1": [
       16,
       16,
@@ -145,6 +212,44 @@
       null,
       null,
       16
+    ],
+    "BluetoothDeviceOverviewMusicFull@1": [
+      16,
+      16
+    ],
+    "BluetoothDeviceOverviewTripleBatteryWideHalf@1": [
+      16,
+      17.5,
+      16,
+      17.5,
+      16
+    ],
+    "CompactSubtitleAction@1": [
+      null
+    ],
+    "CountdownOverviewDepartureHero@1": [
+      16,
+      16,
+      16
+    ],
+    "CountdownOverviewEventHero@1": [
+      16
+    ],
+    "CountdownOverviewTargetDetailFull@1": [
+      16,
+      16
+    ],
+    "CountdownOverviewWideFull@1": [
+      null
+    ],
+    "CountdownOverviewWideHero@1": [
+      null
+    ],
+    "GenericMetricOverviewDualCompact@1": [
+      null,
+      null,
+      null,
+      null
     ],
     "HeartRateOverviewCompact@1": [
       null,
@@ -213,7 +318,15 @@
     "ScheduleOverviewDatedMeetingHero@1": [
       16
     ],
+    "ScheduleOverviewEventCountDetailsFull@1": [
+      null,
+      null
+    ],
     "ScheduleOverviewEventCountDetailsHero@1": [
+      16
+    ],
+    "ScheduleOverviewEventCountTwoEventsFull@1": [
+      16,
       16
     ],
     "ScheduleOverviewLocationDescriptionEndFull@1": [
@@ -230,6 +343,10 @@
     ],
     "ScheduleOverviewLocationSupport@1": [
       null
+    ],
+    "ScheduleOverviewMeetingEntryHero@1": [
+      16,
+      32
     ],
     "ScheduleOverviewMeetingSourceWideFull@1": [
       null
@@ -257,6 +374,14 @@
       16
     ],
     "ScheduleOverviewStartTimeSupport@1": [
+      null
+    ],
+    "ScheduleOverviewThreeMeetingsFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
       null
     ],
     "ScheduleOverviewTimeSupport@1": [
@@ -302,6 +427,12 @@
       null,
       null,
       null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       null
     ],
     "SleepOverviewHero@1": [
@@ -321,6 +452,25 @@
       null,
       null
     ],
+    "SleepOverviewScoreDetailWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewScoreFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
     "SleepOverviewSupport@1": [
       null
     ],
@@ -333,6 +483,13 @@
     "WeatherOverviewAlertFull@1": [
       null
     ],
+    "WeatherOverviewAlertInfoFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
     "WeatherOverviewCareAlertFull@1": [
       null,
       20,
@@ -342,6 +499,14 @@
     "WeatherOverviewCompact@1": [
       16,
       16
+    ],
+    "WeatherOverviewConditionFeelsLikeAlertFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
     ],
     "WeatherOverviewConditionHero@1": [
       null,
@@ -362,6 +527,40 @@
       20,
       20,
       20
+    ],
+    "WeatherOverviewDailySummaryFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewDestinationDayFull@1": [
+      16,
+      16,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeAlertFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeHero@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeWindSupport@1": [
+      13
     ],
     "WeatherOverviewFull@1": [
       null,
@@ -390,6 +589,24 @@
       null,
       null
     ],
+    "WeatherOverviewHumidityWindFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHumidityWindLevelHero@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewRainWindFull@1": [
+      null,
+      null,
+      null
+    ],
     "WeatherOverviewTemperatureSupport@1": [
       16,
       16
@@ -400,9 +617,18 @@
     "WeatherOverviewTemperaturecoldLevelSupport@1": [
       16
     ],
+    "WeatherOverviewThreeDayForecastFull@1": [
+      null,
+      null
+    ],
     "WeatherOverviewUpdatedAtFull@1": [
       20,
       20
+    ],
+    "WeatherOverviewUvColdFull@1": [
+      null,
+      null,
+      null
     ],
     "WeatherOverviewUvCompact@1": [
       16
@@ -414,6 +640,34 @@
       20,
       20,
       20
+    ],
+    "WeatherOverviewWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewWideHalf@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewWideHero@1": [
+      null,
+      null,
+      null,
+      null,
+      null
     ],
     "WeatherOverviewWindFull@1": [
       null,
@@ -441,6 +695,16 @@
       null
     ],
     "WorkoutOverviewSupport@1": [
+      null,
+      null
+    ],
+    "WorkoutOverviewTrainingRecordWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       null,
       null
     ]

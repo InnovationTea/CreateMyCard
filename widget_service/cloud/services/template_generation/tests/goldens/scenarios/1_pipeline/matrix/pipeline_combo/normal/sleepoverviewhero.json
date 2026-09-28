@@ -105,7 +105,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -318,7 +318,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -355,7 +355,7 @@
                 "content": "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
                 "id": "root_1_0_0_2",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -528,7 +528,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -565,7 +565,7 @@
                 "content": "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
                 "id": "root_1_0_0_2",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -736,7 +736,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -934,7 +934,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -1146,7 +1146,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -1357,7 +1357,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -1569,7 +1569,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -1606,7 +1606,7 @@
                 "content": "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
                 "id": "root_1_0_0_2",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -1780,7 +1780,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -1817,7 +1817,7 @@
                 "content": "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
                 "id": "root_1_0_0_2",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -1989,7 +1989,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -2187,7 +2187,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -2238,7 +2238,7 @@
                 "content": "时段 ",
                 "id": "root_1_0_0_2_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -2249,7 +2249,7 @@
                 "content": "{{ ${/data/healthSport/fallAsleepTimeText} + '-' + ${/data/healthSport/wakeupTimeText} }}",
                 "id": "root_1_0_0_2_1",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -2422,7 +2422,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -2635,7 +2635,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -2847,7 +2847,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -3060,7 +3060,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -3273,7 +3273,7 @@
                 "content": "睡眠监测",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -3375,22 +3375,22 @@
     "status"
   ],
   "sampleIds": {
-    "absent_endTime": "C263",
-    "absent_endTime+score": "C264",
-    "absent_endTime+score+startTime": "C265",
-    "absent_endTime+score+status": "C266",
-    "absent_endTime+startTime": "C267",
-    "absent_endTime+startTime+status": "C268",
-    "absent_endTime+status": "C269",
-    "absent_score": "C270",
-    "absent_score+startTime": "C271",
-    "absent_score+startTime+status": "C272",
-    "absent_score+status": "C273",
-    "absent_startTime": "C274",
-    "absent_startTime+status": "C275",
-    "absent_status": "C276",
-    "all": "C277",
-    "none": "C278"
+    "absent_endTime": "C308",
+    "absent_endTime+score": "C309",
+    "absent_endTime+score+startTime": "C310",
+    "absent_endTime+score+status": "C311",
+    "absent_endTime+startTime": "C312",
+    "absent_endTime+startTime+status": "C313",
+    "absent_endTime+status": "C314",
+    "absent_score": "C315",
+    "absent_score+startTime": "C316",
+    "absent_score+startTime+status": "C317",
+    "absent_score+status": "C318",
+    "absent_startTime": "C319",
+    "absent_startTime+status": "C320",
+    "absent_status": "C321",
+    "all": "C322",
+    "none": "C323"
   },
   "size": "2x2",
   "templateId": "SleepOverviewHero@1"

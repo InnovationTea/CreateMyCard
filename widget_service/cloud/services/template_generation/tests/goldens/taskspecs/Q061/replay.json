@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "f377086ef31acc40c197b3bb86cff117095e07dd3ba7ea8dbd7c278de3ff1eba",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/dailySteps\"],\"ViewWeather\":[\"/current/feelsLikeC\",\"/current/alertLevel\"]},\"action\":[\"event.open.weather\",\"event.open.health.sport\"]}"
+      "key": "76e7018964e27d1a80b858cd33aa0067f929001209006c93ee72b0d42c45b769",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/dailySteps\"],\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/feelsLikeC\",\"/current/alertLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\",\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

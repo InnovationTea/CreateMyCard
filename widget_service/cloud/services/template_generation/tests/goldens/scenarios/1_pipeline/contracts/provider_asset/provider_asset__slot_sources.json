@@ -62,7 +62,6 @@
     "resources/base/media/icon_tiktok.png",
     "resources/base/media/icon_timing.svg",
     "resources/base/media/icon_earphone.svg",
-    "resources/base/media/icon_phone.svg",
     "resources/base/media/icon_car.svg",
     "resources/base/media/icon_focus.svg",
     "resources/base/media/icon_schedule.svg",
@@ -83,9 +82,7 @@
     "resources/base/media/icon_left.svg",
     "resources/base/media/icon_right.svg"
   ],
-  "BatteryOverviewSupport@1.batteryIcon": [
-    "resources/base/media/icon_phone.svg"
-  ],
+  "BatteryOverviewSupport@1.batteryIcon": [],
   "BluetoothDeviceOverviewChargeSupport@1.deviceIcon": [
     "resources/base/media/earphone_case_16644.svg"
   ],

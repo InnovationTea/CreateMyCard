@@ -1,12 +1,8 @@
 {
   "recordings": [
     {
-      "key": "ca74c1c377d44431fb2a027f9efa378feab1e2bf54d7ea180b13bc023db7e801",
-      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WeatherOverviewWindHero@1\", {\"locationIcon\": \"resources/base/media/icon_weather_wind.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
-    },
-    {
-      "key": "dcd4fcb85b66cef0b900dd72a96fae183ddfeacf60ff3ec86e2ff59d5dd7cad2",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/windDirection\",\"/current/windLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+      "key": "dd7cb4466b6b0f94ed13dc44f32522f25d553907df26668e9639d1c2cc53fe5f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/windDirection\",\"/current/windLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

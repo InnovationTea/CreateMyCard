@@ -102,7 +102,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "height": 16,
@@ -142,7 +142,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -158,7 +158,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "height": 16,
@@ -193,7 +193,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -233,7 +233,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C012"
+    "all": "C014"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewPercentLevelHero@1"

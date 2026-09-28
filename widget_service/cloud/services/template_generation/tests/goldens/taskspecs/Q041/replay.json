@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "0eea8671f63b60cc5a9e8c62f8349d95b441177d04ef6112a0bf789a2e53f84a",
-      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTimezoneAllDayFull@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"日程详情\"}));"
+      "key": "5407e1632ac51956686f74399e4baa30cca11beabc7e08fa1b3fc748efc9811e",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCalendarEvents\": [\n      \"/events/0/title\",\n      \"/events/0/timeZone\",\n      \"/events/0/isAllDay\",\n      \"/events/0/eventLocation\"\n    ]\n  },\n  \"allowCalendarViewFallback\": true\n}"
     },
     {
-      "key": "9aab2ef77aa7a420c53380d216a087d7abbc851ef9ac805c68a3cf634c943c62",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/timeZone\",\"/events/0/isAllDay\",\"/events/0/eventLocation\"]},\"allowCalendarViewFallback\":true}"
+      "key": "939920617ce277d752cc682ec309a90181673dff40f709650e239a6069a5a9a8",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTimezoneAllDayFull@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"日程详情\"}));"
     }
   ]
 }

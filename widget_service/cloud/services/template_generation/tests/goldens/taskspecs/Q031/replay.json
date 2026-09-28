@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "577fd2eb7ea8bc211801b70634d3a013f7fb30fa2782d411623f933cc34a1b1b",
-      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\"}));"
+      "key": "ac32a4c6e4cb82c628867b63da13160b1236b7dc73682741df140361e2047627",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/isConnected\",\"/earphoneName\"]},\"action\":[\"event.open.music.favorite\"],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "d9230d5e50cf36fd2fd834c8a0ec711f6887890a78db69aec9c1c561f991032d",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/isConnected\",\"/earphoneName\"]},\"action\":[\"event.open.music.favorite\"],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
+      "key": "c98acb71a811c9f26c0325806d65580aa325bb97ceb8543874a15f4a5c113a50",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewHero@1\", {\"leftEarIcon\": \"resources/base/media/icon_earphone.svg\", \"rightEarIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\"}));"
     }
   ]
 }

@@ -303,7 +303,7 @@
             },
             {
               "component": "Text",
-              "content": "就医提醒",
+              "content": "日程详情",
               "id": "root_1_0_0_0_0",
               "styles": {
                 "constraintSize": {

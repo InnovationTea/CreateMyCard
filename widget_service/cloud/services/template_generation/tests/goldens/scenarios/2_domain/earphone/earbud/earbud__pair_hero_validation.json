@@ -5,7 +5,7 @@
   },
   "missing_earphoneName": {
     "errorType": "TerselConversionError",
-    "message": "Bluetooth Provider Template has no trusted earphone facts."
+    "message": "Bluetooth Provider Template variant does not match the trusted data shape."
   },
   "missing_leftBatteryLevel": {
     "errorType": "TerselConversionError",

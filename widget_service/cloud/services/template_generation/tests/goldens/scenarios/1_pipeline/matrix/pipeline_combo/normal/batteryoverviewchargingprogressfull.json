@@ -95,7 +95,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "height": 16,
@@ -143,7 +143,7 @@
                 "id": "root_1_0_0_1_0_0",
                 "styles": {
                   "backgroundColor": "#3364BB5C",
-                  "color": "#FF52991F",
+                  "color": "#FF34651F",
                   "height": 44,
                   "strokeWidth": 6,
                   "type": "ring",
@@ -157,7 +157,7 @@
                 "id": "root_1_0_0_1_0_1",
                 "src": "resources/base/media/battery_leaf_fill.svg",
                 "styles": {
-                  "fillColor": "#9952991F",
+                  "fillColor": "#FF456A35",
                   "height": 16,
                   "objectFit": "contain",
                   "width": 16
@@ -208,7 +208,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -225,7 +225,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -242,7 +242,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "height": 16,
@@ -293,7 +293,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1,
@@ -311,7 +311,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -348,7 +348,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1,
@@ -366,7 +366,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -409,7 +409,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C002"
+    "all": "C004"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewChargingProgressFull@1"

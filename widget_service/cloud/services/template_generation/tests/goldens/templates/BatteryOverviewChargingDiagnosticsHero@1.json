@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -78,7 +78,7 @@
             "itemMargin": 4,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#330A59F7",
+              "backgroundColor": "#3364BB5C",
               "borderRadius": 12,
               "clip": true,
               "constraintSize": {
@@ -122,7 +122,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,
@@ -140,7 +140,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 700,
               "height": 16,
@@ -177,7 +177,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,
@@ -195,7 +195,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 700,
               "height": 16,
@@ -232,7 +232,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,
@@ -251,7 +251,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 700,
               "height": 16,
@@ -289,7 +289,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#FF456A35",
               "fontSize": 10,
               "fontWeight": 400,
               "height": 14,
@@ -308,7 +308,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 700,
               "height": 16,

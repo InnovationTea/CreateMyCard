@@ -19,11 +19,24 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FF121259",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
               "justifyContent": "start",
+              "linearGradient": {
+                "colors": [
+                  [
+                    "#FF121259",
+                    0
+                  ],
+                  [
+                    "#FF2B65D9",
+                    1
+                  ]
+                ],
+                "direction": "RightBottom"
+              },
               "padding": 12,
               "width": "matchParent"
             }
@@ -103,7 +116,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1,
@@ -135,7 +148,7 @@
             "content": "{{ ${/data/weather/daily/1/rainProbabilityPercent} }}",
             "id": "template_root_0_0_1_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FFCCDDFF",
               "fontSize": 30,
               "fontWeight": 700,
               "height": 40,
@@ -149,7 +162,7 @@
             "content": "降雨概率",
             "id": "template_root_0_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,
@@ -185,7 +198,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,
@@ -199,7 +212,7 @@
             "content": "{{ ${/data/weather/daily/1/temperatureRangeText} }}",
             "id": "template_root_0_1_1",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#99CCDDFF",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 20,

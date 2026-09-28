@@ -401,7 +401,7 @@
             {
               "component": "Button",
               "id": "root_1_1_0",
-              "label": "加入会议",
+              "label": "一键入会",
               "onClick": [
                 {
                   "args": {

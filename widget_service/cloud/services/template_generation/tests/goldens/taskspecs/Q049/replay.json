@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "a1367dae7393efb723cedd6822dab4cd5c5120f445708a79a223484d29766ad4",
+      "key": "1de01c0e36f16a5fa0a16fafe0aaff27d55312d038fb32b0803ac7eb2705258c",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\",\"/batteryCapacityLevelDesc\",\"/healthStatusDesc\",\"/batteryTemperatureText\",\"/updatedAt\"]},\"action\":[\"event.open.settings.batteryHealth\"],\"allowBatterySettingsFallback\":true}"
     }
   ]

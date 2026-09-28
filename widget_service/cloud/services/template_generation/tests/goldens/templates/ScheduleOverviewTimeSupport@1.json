@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFE5EDFE",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -96,7 +96,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF1F4799",
               "fontSize": 14,
               "fontWeight": 700,
               "height": 20,
@@ -113,7 +113,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16,

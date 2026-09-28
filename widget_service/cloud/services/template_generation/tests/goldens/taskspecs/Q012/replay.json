@@ -1,11 +1,11 @@
 {
   "recordings": [
     {
-      "key": "521952e9fe0684c1234d64334bd7043dc9b65a3babf5946519208337b0bdacc1",
+      "key": "263df553f1f88b343d0f9072652e8d8305a2d1f69d2274c1d377a73db57d1ffc",
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
     },
     {
-      "key": "624bf4193ebf1754faa2dd32ae51078c9ce529e0fc848791b61867fdfdf79a32",
+      "key": "45d9499fcc7f423d67f507d306e6c53dd3262183cc4eae65295841b64fa1857c",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\",\"/sleepTypeDesc\",\"/deepSleepDurationText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/nightSleepDurationText\"},\"action\":[],\"allowCalendarViewFallback\":false}"
     }
   ]

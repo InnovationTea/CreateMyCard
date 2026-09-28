@@ -5,6 +5,16 @@
       "before": null
     }
   },
+  "ActivityOverviewExerciseWideHero@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "ActivityOverviewFull@1::2x2": {
     "template_root_0_0_0_0": {
       "after": null,
@@ -23,6 +33,12 @@
       "before": null
     }
   },
+  "ActivityOverviewGoalProgressWideFull@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    }
+  },
   "ActivityOverviewHero@1::2x2": {
     "template_root_0_0_0": {
       "after": null,
@@ -37,6 +53,21 @@
     "template_root_0_0_1": {
       "after": null,
       "before": null
+    }
+  },
+  "ActivityOverviewTrainingMetricsWideFull@1::2x4": {},
+  "ActivityOverviewTrainingSummaryFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_0_1_1": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_0_2": {
+      "after": 16,
+      "before": 16
     }
   },
   "ActivityOverviewWideFull@1::2x4": {
@@ -71,6 +102,30 @@
       "before": null
     }
   },
+  "ActivityOverviewYesterdayStepsSleepCompact@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "BatteryOverviewChargeStatusHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 20,
+      "before": 20
+    }
+  },
   "BatteryOverviewChargingDiagnosticsHero@1::2x2": {
     "template_root_0_0_0_1": {
       "after": 16,
@@ -87,6 +142,12 @@
     "template_root_0_0_3_1": {
       "after": 16,
       "before": 16
+    }
+  },
+  "BatteryOverviewChargingDiagnosticsWideFull@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
     }
   },
   "BatteryOverviewChargingProgressFull@1::2x2": {
@@ -155,14 +216,58 @@
       "before": 16
     }
   },
+  "BatteryOverviewPercentRingCompact@1::2x2": {
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "BatteryOverviewPercentRingHero@1::2x2": {},
+  "BatteryOverviewPercentStatusCompact@1::2x2": {
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "BatteryOverviewPhoneTextCompact@1::2x2": {},
+  "BatteryOverviewStatusHero@1::2x2": {},
+  "BatteryOverviewStatusRingHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 20,
+      "before": 20
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "BatteryOverviewStatusSupport@1::2x2": {
     "template_root_0_0_0_1": {
       "after": null,
       "before": null
     }
   },
+  "BatteryOverviewStatusWideFull@1::2x4": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_1_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_2_0": {
+      "after": null,
+      "before": null
+    }
+  },
   "BatteryOverviewSupport@1::2x2": {
+    "template_root_0_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "BatteryOverviewSupportHero@1::2x2": {
     "template_root_0_0_0_1": {
       "after": null,
       "before": null
@@ -178,7 +283,49 @@
       "before": null
     }
   },
+  "BatteryOverviewTemperatureHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_0": {
+      "after": null,
+      "before": null
+    }
+  },
+  "BatteryOverviewTemperatureRingHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "BatteryOverviewWideFull@1::2x4": {},
+  "BluetoothDeviceOverviewCaseConnectionCompact@1::2x2": {
+    "template_root_0_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "BluetoothDeviceOverviewCaseConnectionHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 16,
+      "before": 16
+    }
+  },
+  "BluetoothDeviceOverviewCaseSettingsHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 16,
+      "before": 16
+    }
+  },
   "BluetoothDeviceOverviewChargeSupport@1::2x2": {
     "template_root_0_0_0_1": {
       "after": null,
@@ -213,6 +360,12 @@
     "template_root_0_0_0_1": {
       "after": null,
       "before": null
+    }
+  },
+  "BluetoothDeviceOverviewEarbudChargingWideFull@1::2x4": {
+    "template_root_0_0_0_1": {
+      "after": 16,
+      "before": 16
     }
   },
   "BluetoothDeviceOverviewEarbudPairCompact@1::2x2": {
@@ -267,6 +420,12 @@
       "before": 16
     }
   },
+  "BluetoothDeviceOverviewEarbudsChargingWideFull@1::2x4": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    }
+  },
   "BluetoothDeviceOverviewEarbudsDynamicWideFull@1::2x4": {
     "template_root_0_0_0": {
       "after": null,
@@ -307,27 +466,9 @@
       "before": 16
     }
   },
-  "BluetoothDeviceOverviewEarphoneCaseCompact@1::2x2": {
-    "template_root_0_1_0": {
-      "after": null,
-      "before": null
-    },
-    "template_root_0_1_1": {
-      "after": null,
-      "before": null
-    }
-  },
+  "BluetoothDeviceOverviewEarphoneCaseCompact@1::2x2": {},
   "BluetoothDeviceOverviewEarphoneCaseHero@1::2x2": {},
-  "BluetoothDeviceOverviewEarphoneCompact@1::2x2": {
-    "template_root_0_1_0": {
-      "after": null,
-      "before": null
-    },
-    "template_root_0_1_1": {
-      "after": null,
-      "before": null
-    }
-  },
+  "BluetoothDeviceOverviewEarphoneCompact@1::2x2": {},
   "BluetoothDeviceOverviewEarphoneHero@1::2x2": {},
   "BluetoothDeviceOverviewHero@1::2x2": {
     "template_root_0_0": {
@@ -343,10 +484,95 @@
       "before": null
     }
   },
+  "BluetoothDeviceOverviewMusicCompact@1::2x2": {},
+  "BluetoothDeviceOverviewMusicFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1": {
+      "after": 16,
+      "before": 16
+    }
+  },
+  "BluetoothDeviceOverviewStatusHero@1::2x2": {},
+  "BluetoothDeviceOverviewTripleBatteryWideHalf@1::2x4": {
+    "template_root_0_0_1_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_1_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_2_1_0": {
+      "after": 16,
+      "before": 16
+    }
+  },
+  "CountdownOverviewDepartureHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_1": {
+      "after": 16,
+      "before": 16
+    }
+  },
+  "CountdownOverviewEventHero@1::2x2": {
+    "template_root_0_1_1": {
+      "after": 16,
+      "before": 16
+    }
+  },
   "CountdownOverviewFull@1::2x2": {},
   "CountdownOverviewHero@1::2x2": {},
   "CountdownOverviewSupport@1::2x2": {},
+  "CountdownOverviewTargetCompact@1::2x2": {},
+  "CountdownOverviewTargetDetailFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_0_1_1": {
+      "after": 16,
+      "before": 16
+    }
+  },
   "CountdownOverviewTravelSupport@1::2x2": {},
+  "CountdownOverviewWideFull@1::2x4": {
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "CountdownOverviewWideHalf@1::2x4": {},
+  "CountdownOverviewWideHero@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    }
+  },
+  "GenericMetricOverviewCompact@1::2x2": {},
+  "GenericMetricOverviewDualCompact@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "HeartRateOverviewCompact@1::2x2": {
     "template_root_0_0_0": {
       "after": null,
@@ -502,7 +728,19 @@
       "before": 16
     }
   },
+  "ScheduleOverviewEventCountDetailsFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    }
+  },
   "ScheduleOverviewEventCountDetailsHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    }
+  },
+  "ScheduleOverviewEventCountTwoEventsFull@1::2x2": {
     "template_root_0_0_0": {
       "after": 16,
       "before": 16
@@ -539,6 +777,17 @@
       "before": null
     }
   },
+  "ScheduleOverviewMeetingEntryHero@1::2x2": {
+    "template_root_0_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_1_1": {
+      "after": 32,
+      "before": 32
+    }
+  },
+  "ScheduleOverviewMeetingSenderFull@1::2x2": {},
   "ScheduleOverviewMeetingSourceWideFull@1::2x4": {
     "template_root_0_0_0": {
       "after": null,
@@ -566,6 +815,7 @@
       "before": 16
     }
   },
+  "ScheduleOverviewReminderCompact@1::2x2": {},
   "ScheduleOverviewReminderDetailsFull@1::2x2": {
     "template_root_0_0_0": {
       "after": 16,
@@ -586,6 +836,32 @@
   },
   "ScheduleOverviewStartTimeSupport@1::2x2": {
     "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "ScheduleOverviewThreeMeetingsFull@1::2x2": {
+    "template_root_0_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_1_0_1": {
       "after": null,
       "before": null
     }
@@ -645,31 +921,23 @@
       "after": null,
       "before": null
     },
-    "template_root_0_1_0_0": {
+    "template_root_0_1_0": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_0_1": {
+    "template_root_0_1_1": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_0_2": {
+    "template_root_0_1_2": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_1_0": {
+    "template_root_0_2_0": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_1_1": {
-      "after": null,
-      "before": null
-    },
-    "template_root_0_1_2_0": {
-      "after": null,
-      "before": null
-    },
-    "template_root_0_1_2_1": {
+    "template_root_0_2_1": {
       "after": null,
       "before": null
     }
@@ -708,6 +976,67 @@
       "before": null
     }
   },
+  "SleepOverviewScoreCompact@1::2x2": {},
+  "SleepOverviewScoreDetailWideFull@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_2_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_2_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "SleepOverviewScoreFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "SleepOverviewSupport@1::2x2": {
     "template_root_0_0_1": {
       "after": null,
@@ -734,6 +1063,20 @@
       "before": null
     }
   },
+  "WeatherOverviewAlertInfoFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "WeatherOverviewCareAlertFull@1::2x2": {
     "template_root_0_0_0_0": {
       "after": null,
@@ -756,6 +1099,28 @@
     "template_root_0_1": {
       "after": 16,
       "before": 16
+    }
+  },
+  "WeatherOverviewConditionFeelsLikeAlertFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3": {
+      "after": null,
+      "before": null
     }
   },
   "WeatherOverviewConditionHero@1::2x2": {
@@ -816,7 +1181,97 @@
       "before": 20
     }
   },
+  "WeatherOverviewDailySummaryFull@1::2x2": {
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewDestinationDayFull@1::2x2": {
+    "template_root_0_0_1": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2_1": {
+      "after": null,
+      "before": null
+    }
+  },
   "WeatherOverviewDualCityFull@1::2x2": {},
+  "WeatherOverviewFeelsLikeAlertFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewFeelsLikeHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewFeelsLikeWindSupport@1::2x2": {
+    "template_root_0_0_1": {
+      "after": 13,
+      "before": 13
+    }
+  },
   "WeatherOverviewFull@1::2x2": {
     "template_root_0_0_0_0": {
       "after": null,
@@ -869,6 +1324,56 @@
       "before": null
     }
   },
+  "WeatherOverviewHumidityWindFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewHumidityWindLevelHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewRainWindFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_2": {
+      "after": null,
+      "before": null
+    }
+  },
   "WeatherOverviewTemperatureSupport@1::2x2": {
     "template_root_0_0_1": {
       "after": 16,
@@ -887,6 +1392,12 @@
       "before": 16
     }
   },
+  "WeatherOverviewThreeDayForecastFull@1::2x2": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    }
+  },
   "WeatherOverviewTravelSupport@1::2x2": {},
   "WeatherOverviewUpdatedAtFull@1::2x2": {
     "template_root_0_1_0": {
@@ -896,6 +1407,20 @@
     "template_root_0_1_1": {
       "after": 20,
       "before": 20
+    }
+  },
+  "WeatherOverviewUvColdFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
     }
   },
   "WeatherOverviewUvCompact@1::2x2": {
@@ -920,6 +1445,96 @@
     "template_root_0_1_1": {
       "after": 20,
       "before": 20
+    }
+  },
+  "WeatherOverviewWideFull@1::2x4": {
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_3_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_3_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_3_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_4": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewWideHalf@1::2x4": {
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WeatherOverviewWideHero@1::2x4": {
+    "template_root_0_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2": {
+      "after": null,
+      "before": null
     }
   },
   "WeatherOverviewWindFull@1::2x2": {
@@ -981,5 +1596,36 @@
       "after": null,
       "before": null
     }
-  }
+  },
+  "WorkoutOverviewTrainingRecordWideFull@1::2x4": {
+    "template_root_0_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_2_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_2_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_2_1_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_0_2_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WorkoutOverviewTypeDurationCompact@1::2x2": {}
 }

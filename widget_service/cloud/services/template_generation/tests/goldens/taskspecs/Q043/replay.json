@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "b39f42c01bb168cde308feb625eaba16595f486ce11845f024aaaf8db89a6cc3",
-      "response": "{\"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/location/prefectureName\", \"/current/alertLevel\", \"/current/uvIndex\", \"/current/airQuality\"]}, \"action\": [\"event.call.phone\"], \"allowCalendarViewFallback\": false}"
+      "key": "0a874d0077fb5bb2ac53ee4fcefef1756d3eb7f49a601dd3ef2187d5dade7b6b",
+      "response": "Template(\"FullIconActionLayout@1\", {}, Template(\"WeatherOverviewCareAlertFull@1\", {\"uvIcon\": \"resources/base/media/sun_max.svg\"}), Template(\"IconAction@1\", {\"actionId\": \"event.call.phone\", \"icon\": \"resources/base/media/phone_fill.svg\"}));"
     },
     {
-      "key": "e42b00a250503e4c137d6f4c052c5297d633d5b8007861ef14a06b40dceb0211",
-      "response": "Template(\"FullIconActionLayout@1\", {}, Template(\"WeatherOverviewCareAlertFull@1\", {\"uvIcon\": \"resources/base/media/sun_max.svg\"}), Template(\"IconAction@1\", {\"actionId\": \"event.call.phone\", \"icon\": \"resources/base/media/phone_fill.svg\"}));"
+      "key": "493a46df7651fdcff52cabe84ade3c1845209e5a867733cae9db67a6699ad905",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/alertLevel\",\"/current/uvIndex\",\"/current/airQuality\"]},\"action\":[\"event.call.phone\"],\"allowCalendarViewFallback\":false}"
     }
   ]
 }

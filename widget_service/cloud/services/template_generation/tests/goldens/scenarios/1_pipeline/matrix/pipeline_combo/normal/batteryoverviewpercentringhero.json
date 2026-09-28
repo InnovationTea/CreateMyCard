@@ -111,7 +111,7 @@
                 "id": "root_1_0_0_0_0",
                 "styles": {
                   "backgroundColor": "#3364BB5C",
-                  "color": "#FF52991F",
+                  "color": "#FF34651F",
                   "height": 52,
                   "strokeWidth": 6,
                   "type": "ring",
@@ -125,7 +125,7 @@
                 "id": "root_1_0_0_0_1",
                 "src": "resources/base/media/battery_leaf_fill.svg",
                 "styles": {
-                  "fillColor": "#9952991F",
+                  "fillColor": "#FF456A35",
                   "height": 20,
                   "objectFit": "contain",
                   "width": 20
@@ -140,7 +140,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 28,
@@ -177,7 +177,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -216,7 +216,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C013"
+    "all": "C016"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewPercentRingHero@1"

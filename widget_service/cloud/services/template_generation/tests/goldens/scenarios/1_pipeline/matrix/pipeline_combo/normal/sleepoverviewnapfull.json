@@ -82,7 +82,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 16,
                   "fontWeight": 500,
                   "margin": {
@@ -122,7 +122,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1,
@@ -240,7 +240,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 16,
                   "fontWeight": 500,
                   "margin": {
@@ -280,7 +280,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1,
@@ -419,7 +419,7 @@
                 "content": "作息提醒",
                 "id": "root_1_0_0_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1
@@ -485,7 +485,7 @@
                 "content": "时段 ",
                 "id": "root_1_0_1_0_0",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -496,7 +496,7 @@
                 "content": "{{ ${/data/healthSport/fallAsleepTimeText} + '-' + ${/data/healthSport/wakeupTimeText} }}",
                 "id": "root_1_0_1_0_1",
                 "styles": {
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "maxLines": 1
@@ -612,7 +612,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 16,
                   "fontWeight": 500,
                   "margin": {
@@ -652,7 +652,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#991F4799",
+                  "fontColor": "#99401F99",
                   "fontSize": 12,
                   "fontWeight": 500,
                   "maxLines": 1,
@@ -695,10 +695,10 @@
     "startTime"
   ],
   "sampleIds": {
-    "absent_endTime": "C279",
-    "absent_startTime": "C280",
-    "all": "C281",
-    "none": "C282"
+    "absent_endTime": "C324",
+    "absent_startTime": "C325",
+    "all": "C326",
+    "none": "C327"
   },
   "size": "2x2",
   "templateId": "SleepOverviewNapFull@1"

@@ -92,7 +92,7 @@
                 "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
                 "id": "root_1_0_0_0",
                 "styles": {
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "height": 24,
@@ -117,8 +117,8 @@
                 "content": "耳机",
                 "id": "root_1_0_0_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
-                  "fontSize": 12,
+                  "fontColor": "#FF456A35",
+                  "fontSize": 10,
                   "fontWeight": 400
                 }
               },
@@ -127,8 +127,8 @@
                 "content": "{{ ${/data/earphone/earphoneName} }}",
                 "id": "root_1_0_0_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
-                  "fontSize": 12,
+                  "fontColor": "#FF456A35",
+                  "fontSize": 10,
                   "fontWeight": 400
                 }
               },
@@ -171,7 +171,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -204,7 +204,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -244,7 +244,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C110"
+    "all": "C148"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarphoneCompact@1"

@@ -19,7 +19,17 @@
   "optional_only_weather": {
     "coverage": {
       "candidates": {
+        "WeatherOverviewAlertInfoFull@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
         "WeatherOverviewCompact@1": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/location/districtName"
+        ],
+        "WeatherOverviewConditionFeelsLikeAlertFull@1": [
           "/current/condition",
           "/current/temperatureText",
           "/location/districtName"
@@ -216,6 +226,19 @@
               "/current/temperatureText"
             ],
             "template": "WeatherOverviewFull@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewAlertInfoFull@1"
           }
         ]
       }

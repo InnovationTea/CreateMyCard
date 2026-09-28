@@ -29,20 +29,25 @@
     ],
     "requiredGroups": [
       [
+        "ScheduleOverviewMeetingSenderFull@1",
         "ScheduleOverviewNextEventLocationFull@1"
       ],
       [
+        "ScheduleOverviewMeetingSenderFull@1",
         "ScheduleOverviewNextEventLocationFull@1"
       ],
       [
+        "ScheduleOverviewMeetingSenderFull@1",
         "ScheduleOverviewNextEventLocationFull@1"
       ],
       [
+        "ScheduleOverviewMeetingSenderFull@1",
         "ScheduleOverviewNextEventLocationFull@1"
       ]
     ],
     "templateIds": [
       [
+        "ScheduleOverviewMeetingSenderFull@1",
         "ScheduleOverviewNextEventLocationFull@1"
       ]
     ],
@@ -55,12 +60,16 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]
@@ -166,12 +175,16 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewUpdatedAtFull@1"
       ]
@@ -233,6 +246,8 @@
     "requiredGroups": [
       [
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewHero@1",
@@ -242,6 +257,8 @@
     "templateIds": [
       [
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewHero@1",
@@ -271,8 +288,7 @@
     "themeId": "family-weather-care-blue"
   },
   "optional_title__condition__actions0": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "2x2 business WeatherOverview has no Full template"
+    "error": "NO_ERROR"
   },
   "optional_title__condition__actions1": {
     "actionIds": [
@@ -283,11 +299,13 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
@@ -298,8 +316,7 @@
     "message": "2x2 business WeatherOverview has no Compact template"
   },
   "optional_title__district__actions0": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "2x2 business WeatherOverview has no Full template"
+    "error": "NO_ERROR"
   },
   "optional_title__district__actions1": {
     "actionIds": [
@@ -310,11 +327,13 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
@@ -333,14 +352,17 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ],
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1"
       ]
     ],
@@ -459,11 +481,13 @@
     ],
     "requiredGroups": [
       [
+        "WeatherOverviewUvColdFull@1",
         "WeatherOverviewUvFull@1"
       ]
     ],
     "templateIds": [
       [
+        "WeatherOverviewUvColdFull@1",
         "WeatherOverviewUvFull@1"
       ]
     ],

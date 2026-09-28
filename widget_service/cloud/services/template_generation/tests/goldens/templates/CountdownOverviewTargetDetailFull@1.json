@@ -1,0 +1,182 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFF0E6",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 136,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "距离目标日还剩",
+            "id": "template_root_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "height": 16,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_1_0",
+              "template_root_0_0_1_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0_1",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "bottom",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 40,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/countdown/countdownDays} }}",
+            "id": "template_root_0_0_1_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF99521F",
+              "fontSize": 38,
+              "fontWeight": 700,
+              "height": 40,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "天",
+            "id": "template_root_0_0_1_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "height": 16,
+              "maxLines": 1
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "countdown": {
+              "countdownDays": 28
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "CountdownOverview",
+    "capabilityId": "GetCountdownDays",
+    "layoutKind": "Full",
+    "providerId": "com.huawei.countdown.cli",
+    "size": "2x2"
+  },
+  "templateId": "CountdownOverviewTargetDetailFull@1"
+}

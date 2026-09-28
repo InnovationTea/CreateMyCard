@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFE5EDFE",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -115,7 +115,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 700,
               "height": 16,
@@ -129,7 +129,7 @@
             "id": "template_root_0_0_0_1",
             "src": "resources/base/media/calendar_fill.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#991F4799",
               "flexShrink": 0,
               "height": 20,
               "objectFit": "contain",
@@ -141,7 +141,7 @@
             "content": "{{ ${/data/calendar/events/0/description} }}",
             "id": "template_root_0_0_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF1F4799",
               "fontSize": 20,
               "fontWeight": 700,
               "height": 28,
@@ -177,7 +177,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16,
@@ -195,7 +195,7 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "fontColor": "#991F4595",
+              "fontColor": "#991F4799",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16,

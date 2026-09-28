@@ -918,10 +918,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C322",
-    "absent_district": "C323",
-    "all": "C324",
-    "none": "C325"
+    "absent_city": "C421",
+    "absent_district": "C422",
+    "all": "C423",
+    "none": "C424"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewConditionHero@1"

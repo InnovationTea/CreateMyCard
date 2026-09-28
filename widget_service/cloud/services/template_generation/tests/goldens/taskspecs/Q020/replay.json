@@ -1,12 +1,3 @@
 {
-  "recordings": [
-    {
-      "key": "92ff249d4dc834f60845a95463fc095d2426a5b3eac2cdc56d1cd35800157105",
-      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"BatteryOverviewSupport@1\", {\"batteryIcon\": \"resources/base/media/icon_phone.svg\"}), Template(\"BluetoothDeviceOverviewConnectionSupport@1\", {\"deviceIcon\": \"resources/base/media/icon_earphone.svg\"}));"
-    },
-    {
-      "key": "ae1e1051d58057c835e08072426e7cf3f9461facea473e3a1a0a3fe9df56c124",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\"],\"GetEarphoneInfo\":[\"/batteryLevel\",\"/isConnected\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
-    }
-  ]
+  "recordings": []
 }

@@ -92,7 +92,7 @@
                 "content": "蓝牙耳机",
                 "id": "root_1_0_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 12,
                   "fontWeight": 400,
                   "height": 16,
@@ -110,7 +110,7 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 18,
                   "fontWeight": 700,
                   "margin": {
@@ -157,7 +157,7 @@
                 "content": "左",
                 "id": "root_1_0_0_2_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "height": 12,
                   "maxLines": 1,
@@ -169,7 +169,7 @@
                 "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_2_0_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 500,
                   "height": 12,
@@ -196,7 +196,7 @@
                 "content": "右",
                 "id": "root_1_0_0_2_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "height": 12,
                   "maxLines": 1,
@@ -208,7 +208,7 @@
                 "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_2_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 500,
                   "height": 12,
@@ -240,9 +240,9 @@
                   }
                 ],
                 "styles": {
-                  "backgroundColor": "#1952991F",
+                  "backgroundColor": "#1934651F",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -283,7 +283,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C094"
+    "all": "C132"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudPairHero@1"

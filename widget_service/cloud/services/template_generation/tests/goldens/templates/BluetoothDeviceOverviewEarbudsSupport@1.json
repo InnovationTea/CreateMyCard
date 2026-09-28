@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFF0FFE6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -83,7 +83,7 @@
             "content": "耳机电量",
             "id": "template_root_0_0_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 14,
               "fontWeight": 700,
               "height": 19
@@ -94,7 +94,7 @@
             "content": "{{ 'L ' + ${/data/earphone/leftBatteryLevel} + '% R ' + ${/data/earphone/rightBatteryLevel} + '%' }}",
             "id": "template_root_0_0_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF34651F",
               "fontSize": 12,
               "fontWeight": 400,
               "height": 16
@@ -105,7 +105,7 @@
             "id": "template_root_0_1",
             "src": "resources/base/media/icon_earphone.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#FF456A35",
               "flexShrink": 0,
               "height": 24,
               "width": 24

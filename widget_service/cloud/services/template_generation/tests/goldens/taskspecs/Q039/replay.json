@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "e906984a4c3800d572653e1065433deab05b7d5f371be17560c54c400f98bd70",
-      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WorkoutOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.health.sport\", \"label\": \"今日训练\"}));"
+      "key": "61038301ac79484dde3c2c947cef714e056e9b350f43c4c940108433357b2506",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseTypeName\",\"/exerciseDurationText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "e95cfcf3da5a8ccaf4b1ba3030dab570f81e551387663ba6be4ed5eb582407c2",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseTypeName\",\"/exerciseDurationText\"]},\"action\":[\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
+      "key": "d6f4b19e97f2bb8741757619d7dd333868270e2e028a71ce524fa834a439a1f5",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WorkoutOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/stopwatch_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.health.sport\", \"label\": \"今日训练\"}));"
     }
   ]
 }

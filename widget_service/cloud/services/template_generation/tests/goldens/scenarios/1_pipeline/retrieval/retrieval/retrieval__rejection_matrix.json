@@ -3,14 +3,6 @@
     "errorType": "TemplateRetrievalMiss",
     "message": "2x2 business CalendarOverview has no Full template"
   },
-  "card_size_2x4_prompt": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "template Search does not support 2x4 cards"
-  },
-  "card_size_2x4_retrieval": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "template Search does not support 2x4 cards"
-  },
   "countdown_and_weather": {
     "errorType": "TemplateRetrievalMiss",
     "message": "2x2 template Search does not support multiple data businesses without exactly one Action"

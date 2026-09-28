@@ -46,7 +46,8 @@
     "message": "Provider Template layout suffix mismatches card size."
   },
   "wide_single_focus_wide_full_no_action": {
-    "error": "NO_ERROR"
+    "errorType": "TerselConversionError",
+    "message": "WideFull Provider Template requires WideFullOnlyLayout."
   },
   "wide_single_focus_wide_hero_one_pill": {
     "error": "NO_ERROR"

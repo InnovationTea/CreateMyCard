@@ -24,6 +24,8 @@ import json
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from models.generation import EventAction, TaskSpec
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,

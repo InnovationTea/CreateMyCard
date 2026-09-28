@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "0205ffba539bd318b97b4d35fd2e190fe894bcac7c5446d135437aaed8845065",
+      "key": "1763b01e8533680491f343a8df240163b8010bdfff80889c1fe1798ffb019fde",
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTwoEventsFull@1\", {}));"
     },
     {
-      "key": "67dcbe1c6d09f5112cb9508f7b9fbc7fdce5a7b5b44c5c3515e19214a0c371a3",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/1/title\",\"/events/1/dtStart\"]},\"allowCalendarViewFallback\":true}"
+      "key": "6498659e189137a31154ee15af94b27e8ba4eeaa69cfaac809ed0aeb5d6b2f4c",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/1/title\",\"/events/1/dtStart\"]},\"action\":[],\"allowCalendarViewFallback\":true}"
     }
   ]
 }

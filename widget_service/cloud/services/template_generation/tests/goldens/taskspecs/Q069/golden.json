@@ -1,8 +1,696 @@
 {
-  "artifact": null,
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "capabilityId": "GetHealthAndSportSummary",
+          "writeResultTo": "/data/healthSport"
+        }
+      ],
+      "description": "得分+睡眠状态+深睡+小睡+总时长",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "睡眠分析"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.moon_z_fill_1"
+      ],
+      "data": [
+        "GetHealthAndSportSummary"
+      ],
+      "event": []
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.moon_z_fill_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "candidateOutputFields": [
+            "/sleepScore",
+            "/sleepStatus",
+            "/deepSleepDurationText",
+            "/totalNapDurationText",
+            "/nightSleepDurationText"
+          ],
+          "capabilityId": "GetHealthAndSportSummary",
+          "writeResultTo": "/data/healthSport"
+        }
+      ],
+      "candidateEventCandidates": []
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "fusionBallBackground",
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#00000000",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer"
+              ],
+              "component": "Stack",
+              "id": "fusionBallBackground",
+              "styles": {
+                "alignContent": "topStart",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLarge"
+              ],
+              "component": "Stack",
+              "id": "fusionBallLargeSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "58.75%",
+                "width": "112.5%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallLarge",
+              "styles": {
+                "backgroundColor": "#FF493D99",
+                "borderRadius": 210,
+                "clip": true,
+                "color": "#00000000",
+                "height": "446.808511%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "116.666667%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallMedium"
+              ],
+              "component": "Stack",
+              "id": "fusionBallMediumSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "175%",
+                "width": "50%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallMedium",
+              "styles": {
+                "backgroundColor": "#FF5536B3",
+                "borderRadius": 160,
+                "clip": true,
+                "color": "#00000000",
+                "height": "114.285714%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "200%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallSmall"
+              ],
+              "component": "Stack",
+              "id": "fusionBallSmallSlot",
+              "styles": {
+                "alignContent": "bottomEnd",
+                "height": "137.5%",
+                "width": "121.875%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallSmall",
+              "styles": {
+                "backgroundColor": "#FF7D6B99",
+                "borderRadius": 100,
+                "clip": true,
+                "color": "#00000000",
+                "height": "90.909091%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "51.282051%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallGlassLayer",
+              "styles": {
+                "backdropBlur": {
+                  "radius": 210
+                },
+                "backgroundColor": "#0DFFFFFF",
+                "color": "#00000000",
+                "height": "matchParent",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__template_root"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1"
+              ],
+              "component": "Stack",
+              "id": "__genui_render_component__template_root",
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0"
+              ],
+              "component": "Stack",
+              "id": "root_1",
+              "styles": {
+                "alignContent": "topStart",
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0",
+                "root_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1",
+                "root_1_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "睡眠监测",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 70,
+                "justifyContent": "start"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/sleepScore} }}",
+              "id": "root_1_0_0_1_0_0",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 34,
+                "fontWeight": 800,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "分",
+              "id": "root_1_0_0_1_0_1",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "padding": {
+                  "bottom": 5
+                },
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "睡眠得分",
+              "id": "root_1_0_0_1_1",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0",
+                "root_1_0_0_2_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_2",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "睡眠状况",
+              "id": "root_1_0_0_2_0",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/sleepStatus} }}",
+              "id": "root_1_0_0_2_1",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0",
+                "root_1_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0_0",
+                "root_1_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0_0_0",
+                "root_1_0_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+              "id": "root_1_0_1_0_0_0",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "睡眠总时长",
+              "id": "root_1_0_1_0_0_1",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_1_0_1",
+              "src": "resources/base/media/moon_z_fill_1.svg",
+              "styles": {
+                "fillColor": "#99D9CCFF",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_1_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_1_1",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 16,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_1_0_0",
+                "root_1_0_1_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_1_0_0_0",
+                "root_1_0_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_1_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "深睡",
+              "id": "root_1_0_1_1_0_0_0",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/deepSleepDurationText} }}",
+              "id": "root_1_0_1_1_0_0_1",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_1_0_1_0",
+                "root_1_0_1_1_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_1_1_0_1",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "小睡",
+              "id": "root_1_0_1_1_0_1_0",
+              "styles": {
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/totalNapDurationText} }}",
+              "id": "root_1_0_1_1_0_1_1",
+              "styles": {
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "healthSport": {
+                "deepSleepDurationText": "2小时15分",
+                "nightSleepDurationText": "7小时1分",
+                "sleepScore": 82,
+                "sleepStatus": "良好",
+                "totalNapDurationText": "0分"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。",
+          "id": "asset.moon_z_fill_1",
+          "src": "resources/base/media/moon_z_fill_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "healthSport": {
+            "deepSleepDurationText": {
+              "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+              "sampleValue": "2小时15分",
+              "type": "string"
+            },
+            "nightSleepDurationText": {
+              "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+              "sampleValue": "7小时1分",
+              "type": "string"
+            },
+            "sleepScore": {
+              "description": "睡眠综合得分，取值范围 0-100。",
+              "sampleValue": 82,
+              "type": "integer"
+            },
+            "sleepStatus": {
+              "description": "基于得分智能生成的睡眠状态语义判定，包括：'优秀'、'良好'、'一般'、'较差'。",
+              "sampleValue": "良好",
+              "type": "string"
+            },
+            "totalNapDurationText": {
+              "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+              "sampleValue": "0分",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "帮我做个睡眠卡片，看看得分、睡得咋样、深睡多久、小睡多少、总时长多少。"
+    }
+  },
   "caseId": "Q069",
-  "errorCode": "A2UI_GENERATION_FAILED",
-  "message": "卡片创建过程遇到问题了，请稍后再试。",
-  "status": "failed",
+  "status": "success",
   "suggestSize": "2x4"
 }

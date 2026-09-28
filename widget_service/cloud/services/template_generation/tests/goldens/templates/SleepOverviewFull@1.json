@@ -19,7 +19,7 @@
             "itemMargin": 8,
             "styles": {
               "alignItems": "start",
-              "backgroundColor": "#FFFFFFFF",
+              "backgroundColor": "#FFFFF0E6",
               "borderRadius": 20,
               "clip": true,
               "height": "matchParent",
@@ -50,7 +50,8 @@
           {
             "children": [
               "template_root_0_0",
-              "template_root_0_1"
+              "template_root_0_1",
+              "template_root_0_2"
             ],
             "component": "Column",
             "id": "template_root_0",
@@ -78,6 +79,7 @@
             "itemMargin": 8,
             "styles": {
               "justifyContent": "start",
+              "layoutWeight": 1,
               "width": "matchParent"
             }
           },
@@ -97,10 +99,10 @@
           },
           {
             "component": "Text",
-            "content": "{{ ${/data/healthSport/sleepTypeDesc} }}",
+            "content": "{{ ${/data/healthSport/sleepTypeDesc} + ' ' + ${/data/healthSport/sleepStatus} }}",
             "id": "template_root_0_0_0_0",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1
@@ -111,7 +113,7 @@
             "id": "template_root_0_0_0_1",
             "src": "resources/base/media/moon_z_fill_1.svg",
             "styles": {
-              "fillColor": "#991F4595",
+              "fillColor": "#9999521F",
               "flexShrink": 0,
               "height": 20,
               "objectFit": "contain",
@@ -135,7 +137,7 @@
             "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
             "id": "template_root_0_0_1_0",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 20,
               "fontWeight": 700,
               "height": 28,
@@ -147,8 +149,8 @@
             "component": "Progress",
             "id": "template_root_0_0_2",
             "styles": {
-              "backgroundColor": "#330A59F7",
-              "color": "#E61F4595",
+              "backgroundColor": "#3399521F",
+              "color": "#FF99521F",
               "height": 12,
               "strokeWidth": 8,
               "width": "matchParent"
@@ -162,22 +164,8 @@
               "template_root_0_1_1",
               "template_root_0_1_2"
             ],
-            "component": "Column",
-            "id": "template_root_0_1",
-            "itemMargin": 4,
-            "styles": {
-              "justifyContent": "start",
-              "width": "matchParent"
-            }
-          },
-          {
-            "children": [
-              "template_root_0_1_0_0",
-              "template_root_0_1_0_1",
-              "template_root_0_1_0_2"
-            ],
             "component": "Row",
-            "id": "template_root_0_1_0",
+            "id": "template_root_0_1",
             "itemMargin": 4,
             "styles": {
               "alignItems": "center",
@@ -188,9 +176,9 @@
           {
             "component": "Text",
             "content": "睡眠监测评分",
-            "id": "template_root_0_1_0_0",
+            "id": "template_root_0_1_0",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1
@@ -199,9 +187,9 @@
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/sleepScore} }}",
-            "id": "template_root_0_1_0_1",
+            "id": "template_root_0_1_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 12,
               "fontWeight": 700,
               "maxLines": 1
@@ -210,57 +198,21 @@
           {
             "component": "Text",
             "content": "分",
-            "id": "template_root_0_1_0_2",
-            "styles": {
-              "fontColor": "#991F4595",
-              "fontSize": 12,
-              "fontWeight": 400,
-              "maxLines": 1
-            }
-          },
-          {
-            "children": [
-              "template_root_0_1_1_0",
-              "template_root_0_1_1_1"
-            ],
-            "component": "Row",
-            "id": "template_root_0_1_1",
-            "itemMargin": 4,
-            "styles": {
-              "alignItems": "center",
-              "justifyContent": "start",
-              "width": "matchParent"
-            }
-          },
-          {
-            "component": "Text",
-            "content": "睡眠状况",
-            "id": "template_root_0_1_1_0",
-            "styles": {
-              "fontColor": "#991F4595",
-              "fontSize": 12,
-              "fontWeight": 400,
-              "maxLines": 1
-            }
-          },
-          {
-            "component": "Text",
-            "content": "{{ ${/data/healthSport/sleepStatus} }}",
-            "id": "template_root_0_1_1_1",
-            "styles": {
-              "fontColor": "#E61F4595",
-              "fontSize": 12,
-              "fontWeight": 700,
-              "maxLines": 1
-            }
-          },
-          {
-            "children": [
-              "template_root_0_1_2_0",
-              "template_root_0_1_2_1"
-            ],
-            "component": "Row",
             "id": "template_root_0_1_2",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "children": [
+              "template_root_0_2_0",
+              "template_root_0_2_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_2",
             "itemMargin": 4,
             "styles": {
               "alignItems": "center",
@@ -271,9 +223,9 @@
           {
             "component": "Text",
             "content": "深度睡眠",
-            "id": "template_root_0_1_2_0",
+            "id": "template_root_0_2_0",
             "styles": {
-              "fontColor": "#991F4595",
+              "fontColor": "#9999521F",
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1
@@ -282,9 +234,9 @@
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/deepSleepDurationText} }}",
-            "id": "template_root_0_1_2_1",
+            "id": "template_root_0_2_1",
             "styles": {
-              "fontColor": "#E61F4595",
+              "fontColor": "#FF99521F",
               "fontSize": 12,
               "fontWeight": 700,
               "maxLines": 1

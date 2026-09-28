@@ -111,7 +111,7 @@
                     "minWidth": 0
                   },
                   "flexShrink": 1,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -124,7 +124,7 @@
                 "id": "root_1_0_0_0_1",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -137,7 +137,7 @@
                 "id": "root_1_0_0_0_2",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -179,7 +179,7 @@
                 "content": "左",
                 "id": "root_1_0_0_1_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -189,7 +189,7 @@
                 "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_0_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -214,7 +214,7 @@
                 "content": "右",
                 "id": "root_1_0_0_1_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -224,7 +224,7 @@
                 "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -268,7 +268,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -301,7 +301,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -449,7 +449,7 @@
                     "minWidth": 0
                   },
                   "flexShrink": 1,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -462,7 +462,7 @@
                 "id": "root_1_0_0_0_1",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -475,7 +475,7 @@
                 "id": "root_1_0_0_0_2",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -518,7 +518,7 @@
                 "content": "左",
                 "id": "root_1_0_0_1_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -528,7 +528,7 @@
                 "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_0_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -553,7 +553,7 @@
                 "content": "右",
                 "id": "root_1_0_0_1_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -563,7 +563,7 @@
                 "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -588,7 +588,7 @@
                 "content": "盒",
                 "id": "root_1_0_0_1_2_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -598,7 +598,7 @@
                 "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_2_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -642,7 +642,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -675,7 +675,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -824,7 +824,7 @@
                     "minWidth": 0
                   },
                   "flexShrink": 1,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -837,7 +837,7 @@
                 "id": "root_1_0_0_0_1",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -850,7 +850,7 @@
                 "id": "root_1_0_0_0_2",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -893,7 +893,7 @@
                 "content": "左",
                 "id": "root_1_0_0_1_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -903,7 +903,7 @@
                 "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_0_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -928,7 +928,7 @@
                 "content": "右",
                 "id": "root_1_0_0_1_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -938,7 +938,7 @@
                 "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -963,7 +963,7 @@
                 "content": "盒",
                 "id": "root_1_0_0_1_2_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -973,7 +973,7 @@
                 "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_2_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -1017,7 +1017,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -1050,7 +1050,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -1199,7 +1199,7 @@
                     "minWidth": 0
                   },
                   "flexShrink": 1,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -1212,7 +1212,7 @@
                 "id": "root_1_0_0_0_1",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -1225,7 +1225,7 @@
                 "id": "root_1_0_0_0_2",
                 "styles": {
                   "flexShrink": 0,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 12,
                   "fontWeight": 700,
                   "maxLines": 1,
@@ -1267,7 +1267,7 @@
                 "content": "左",
                 "id": "root_1_0_0_1_0_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -1277,7 +1277,7 @@
                 "content": "{{ '' + ${/data/earphone/leftBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_0_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -1302,7 +1302,7 @@
                 "content": "右",
                 "id": "root_1_0_0_1_1_0",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -1312,7 +1312,7 @@
                 "content": "{{ '' + ${/data/earphone/rightBatteryLevel} + '%' }}",
                 "id": "root_1_0_0_1_1_1",
                 "styles": {
-                  "fontColor": "#9952991F",
+                  "fontColor": "#FF456A35",
                   "fontSize": 10,
                   "fontWeight": 400
                 }
@@ -1356,7 +1356,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -1389,7 +1389,7 @@
                 "styles": {
                   "backgroundColor": "#3364BB5C",
                   "borderRadius": 18,
-                  "fontColor": "#FF52991F",
+                  "fontColor": "#FF34651F",
                   "fontSize": 14,
                   "fontWeight": 500,
                   "height": 36,
@@ -1434,10 +1434,10 @@
     "connected"
   ],
   "sampleIds": {
-    "absent_case": "C058",
-    "absent_connected": "C059",
-    "all": "C060",
-    "none": "C061"
+    "absent_case": "C096",
+    "absent_connected": "C097",
+    "all": "C098",
+    "none": "C099"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudPairCompact@1"

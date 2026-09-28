@@ -338,8 +338,8 @@
               "src": "resources/base/media/icon_earphone.svg",
               "styles": {
                 "fillColor": "#99CCFFF6",
-                "height": 14,
-                "width": 14
+                "height": 12,
+                "width": 12
               }
             },
             {
@@ -348,7 +348,7 @@
               "id": "root_1_0_0_1_1",
               "styles": {
                 "fontColor": "#99CCFFF6",
-                "fontSize": 12,
+                "fontSize": 10,
                 "fontWeight": 400,
                 "maxLines": 1,
                 "textOverflow": "clip"
@@ -417,7 +417,7 @@
             {
               "component": "Button",
               "id": "root_1_1_1_0",
-              "label": "免打扰",
+              "label": "免打扰设置",
               "onClick": [
                 {
                   "args": {

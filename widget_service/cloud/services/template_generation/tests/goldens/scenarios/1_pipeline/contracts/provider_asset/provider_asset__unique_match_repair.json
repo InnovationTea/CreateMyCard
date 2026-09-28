@@ -62,7 +62,8 @@
       "message": "Template asset semantics do not match batteryIcon: resources/base/media/drop_1.svg"
     },
     "repaired": {
-      "batteryIcon": "resources/base/media/icon_phone.svg"
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match batteryIcon: resources/base/media/drop_1.svg"
     }
   },
   "BluetoothDeviceOverviewChargeSupport@1.deviceIcon": {

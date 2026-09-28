@@ -10,7 +10,9 @@
         },
         "writeResultTo": "/data/calendar",
         "candidateOutputFields": [
+          "/events/0/title",
           "/events/0/dtStart",
+          "/events/0/dtEnd",
           "/events/0/eventLocation"
         ]
       },
@@ -89,7 +91,9 @@
       },
       "writeResultTo": "/data/calendar",
       "candidateOutputFields": [
+        "/events/0/title",
         "/events/0/dtStart",
+        "/events/0/dtEnd",
         "/events/0/eventLocation"
       ]
     },
