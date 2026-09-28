@@ -3080,7 +3080,7 @@ def _collect_two_by_two_content_density_errors(
     components_by_id: dict[str, ComponentRow],
     errors: list[str],
 ) -> None:
-    """Enforce the text-line budget introduced for the 150vp 2x2 canvas."""
+    """Enforce the relaxed text-line budget for the 150vp 2x2 canvas."""
     if task_spec.get("size") != "2x2":
         return
     if _uses_2x2_v01_countdown_layout(task_spec):
@@ -3151,11 +3151,12 @@ def _collect_two_by_two_content_density_errors(
                 "values. Treat peer metrics as ordinary complete text lines instead "
                 "of manufacturing multiple hero values."
             )
-        if len(line_profile) > 2:
+        if len(line_profile) > 5:
             errors.append(
                 "2x2 150vp single-business content with a 30fp/38fp numeric hero "
-                "may contain only the value/unit line and one 12fp/400 auxiliary "
-                "line. Merge auxiliary fields into that line with ' | '."
+                "may contain only the value/unit line and up to four 12fp/400 "
+                "auxiliary lines. Merge auxiliary fields into those lines with "
+                "' | '."
             )
         return
 
@@ -3168,14 +3169,14 @@ def _collect_two_by_two_content_density_errors(
         ):
             has_action = True
             break
-    if has_action and len(line_profile) > 3:
+    if has_action and len(line_profile) > 5:
         errors.append(
             "2x2 150vp single-business pure-text content with an action may "
-            "contain at most one prominent line and two 12fp/400 auxiliary "
+            "contain at most one prominent line and four 12fp/400 auxiliary "
             "lines. Merge related auxiliary fields with ' | ' and remove "
             "lower-priority update text."
         )
-    if has_action and len(line_profile) == 3:
+    if has_action and len(line_profile) == 5:
         oversized_text = False
         for component in information_components:
             font_size = _non_negative_number(component.props.get("fontSize"))
@@ -3184,7 +3185,7 @@ def _collect_two_by_two_content_density_errors(
                 break
         if oversized_text:
             errors.append(
-                "2x2 150vp single-business content with an action and three "
+                "2x2 150vp single-business content with an action and five "
                 "information lines must keep its prominent text at 18fp or "
                 "smaller so the 36vp action remains unobstructed."
             )

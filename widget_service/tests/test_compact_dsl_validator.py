@@ -652,10 +652,12 @@ def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
             '"padding":12,"itemMargin":4},["value_row","minimum"]]',
-            '["value_row","Row",{"width":126,"height":40},["maximum","unit"]]',
+            '["value_row","Row",{"width":126,"height":40,"alignItems":"bottom"},'
+            '["maximum","unit"]]',
             '["maximum","Text",{"content":{"path":"/data/healthSport/max"},'
             '"fontSize":30,"fontWeight":700,"maxLines":1}]',
             '["unit","Text",{"content":"次/分钟","fontSize":12,'
+            '"padding":{"bottom":4},'
             '"fontWeight":500,"maxLines":1}]',
             '["minimum","Text",{"content":"{{ \'最低 \' + '
             '${/data/healthSport/min} + \'次/分钟\' }}","height":18,'
@@ -694,10 +696,12 @@ def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
             '"padding":12,"itemMargin":4},["value_row","metrics","action_area"]]',
-            '["value_row","Row",{"width":136,"height":40},["steps","unit"]]',
+            '["value_row","Row",{"width":136,"height":40,"alignItems":"bottom"},'
+            '["steps","unit"]]',
             '["steps","Text",{"content":{"path":"/data/healthSport/steps"},'
             '"fontSize":30,"fontWeight":700,"maxLines":1}]',
             '["unit","Text",{"content":"步","fontSize":12,'
+            '"padding":{"bottom":4},'
             '"fontWeight":500,"maxLines":1}]',
             '["metrics","Row",{"width":136,"height":18,"itemMargin":4},'
             '["calorie","separator","heart_rate"]]',
