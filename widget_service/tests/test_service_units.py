@@ -34,8 +34,8 @@ ROM_VERSION_7_0 = "ALN-AL00 " + ".".join(("7", "0", "0", "100"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
 ROM_VERSION_7_2 = "ALN-AL00 " + ".".join(("7", "2", "0", "100"))
 ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
-REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
-REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
+REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0-assets-r1"
+REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0-assets-r1"
 PHASE_TWO_DATA_CAPABILITY_IDS = (
     "GetMemoData",
     "GetPhoneCallRecords",
