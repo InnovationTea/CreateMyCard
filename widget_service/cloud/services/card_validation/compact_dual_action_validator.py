@@ -20,10 +20,10 @@ def collect_dual_action_errors(
     reason = _structure_error(root, by_id, actions)
     if reason:
         errors.append(
-            "S3_DUAL_ACTION_LAYOUT: " + reason + " Use a root Column with a 126x40 "
-            "information Column and a 126x78 action Column, root padding 12 and gap 8; "
+            "S3_DUAL_ACTION_LAYOUT: " + reason + " Use a root Column with a 126x38 "
+            "information Column followed by two 126x36 capsules, root padding 12 and gap 8; "
             "place one 14fp main Text and an optional 12fp status Text in the information "
-            "group, and two 36vp capsules with gap 6 in the action group. Remove the "
+            "group, and keep the two 36vp capsules as separate root regions. Remove the "
             "separate CardHeader and large-number region; preserve both event handlers."
         )
 
@@ -33,22 +33,24 @@ def _structure_error(
 ) -> str:
     if root is None:
         return "Missing root."
-    if root.component_type != "Column" or len(root.children) != 2:
-        return "Two capsules require exactly two root regions."
+    if root.component_type != "Column" or len(root.children) != 3:
+        return "Two capsules require one information region and two action regions."
     if not _padding_is_twelve(root.props.get("padding")) or _gap(root) != 8:
         return "Root padding or gap violates the 126vp budget."
     info = by_id.get(root.children[0])
-    action = by_id.get(root.children[1])
-    if info is None or action is None:
+    action_one = by_id.get(root.children[1])
+    action_two = by_id.get(root.children[2])
+    if info is None or action_one is None or action_two is None:
         return "Missing information or action region."
-    for region, height in ((info, 40), (action, 78)):
-        geometry = (region.component_type, region.props.get("width"), region.props.get("height"))
-        if geometry != ("Column", 126, height):
-            return f"Region {region.component_id} must be 126x{height}."
-    if len(action.children) != 2 or set(action.children) != set(actions):
-        return "Capsules must be direct children of the last region."
-    if _gap(action) != 6:
-        return "Capsule gap must be 6vp."
+    info_geometry = (
+        info.component_type,
+        info.props.get("width"),
+        info.props.get("height"),
+    )
+    if info_geometry != ("Column", 126, 38):
+        return f"Region {info.component_id} must be a 126x38 Column."
+    if [action_one.component_id, action_two.component_id] != actions:
+        return "Capsules must be the second and third direct children of root."
     if len(info.children) not in (1, 2):
         return "Information must contain one or two direct text lines."
     for index, child_id in enumerate(info.children):

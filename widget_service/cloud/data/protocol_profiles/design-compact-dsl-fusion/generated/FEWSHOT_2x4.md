@@ -1,11 +1,3 @@
-# 2x4 完整案例集（维护源）
-
-> 维护说明、案例锚点和片段标记不发给模型；仅 prompt 标记内正文参与构建。
-
-本文件集中维护该尺寸的共用前言与 V00–V14 全部 15 个完整输入→输出案例。
-案例内容与顺序由 manifest 逐片段登记；构建产物由构建脚本生成并完成回归，禁止手改 generated。
-
-<!-- prompt:preamble -->
 # 2x4 Few-shot
 
 示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时禁止使用纯色、同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
@@ -22,11 +14,6 @@
 
 图标与动作必须逐一匹配当前对象和真实目标；候选中允许存在干扰项。示例里的动作不是业务默认配置，跨业务组合只在用户明确要求时保留。没有准确图标就用纯文字；不要按分区数复制共享动作。
 
-<!-- /prompt:preamble -->
-
-<a id="2x4-v00"></a>
-
-<!-- prompt:example-v00 -->
 ## 示例零（2x4-V00）：中性单业务骨架（`W-top-bottom`·未知业务回退）
 本例只提供 2x4 的主信息、辅助信息和稳定留白，不携带天气、设备、健康或日程语义。未知业务、字段含义不足或多业务组合无法匹配已知示例时，只参考本例的结构，不复制“主信息”等文案。
 ### user
@@ -45,11 +32,6 @@
 ["/data/view/secondary","辅助信息"]
 ```
 
-<!-- /prompt:example-v00 -->
-
-<a id="2x4-v01"></a>
-
-<!-- prompt:example-v01 -->
 ## 示例八（2x4-V01）：三行近期日程列表（`W-top-bottom` · list-rows·黄色微渐变）
 ### user
 ```json
@@ -71,11 +53,6 @@
 ["/data/calendar/events/1/title","确认Q3设计需求"]
 ["/data/calendar/events/2/title","申请下周出差"]
 ```
-<!-- /prompt:example-v01 -->
-
-<a id="2x4-v02"></a>
-
-<!-- prompt:example-v02 -->
 ## 示例九（2x4-V02）：手机电量大环与右侧说明（`W-split-panels` · ring-detail·蓝色微渐变）
 ### user
 ```json
@@ -98,11 +75,6 @@
 ["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ```
-<!-- /prompt:example-v02 -->
-
-<a id="2x4-v03"></a>
-
-<!-- prompt:example-v03 -->
 ## 示例十（2x4-V03）：睡眠恢复度线性进度与双详情（`W-top-bottom` · progress-detail·紫色微渐变）
 ### user
 ```json
@@ -130,11 +102,6 @@
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
 ```
-<!-- /prompt:example-v03 -->
-
-<a id="2x4-v04"></a>
-
-<!-- prompt:example-v04 -->
 ## 示例十一（2x4-V04）：睡眠得分与双详情（`W-content-side-slots`·var-a 双辅助区域·紫色微渐变）
 
 本例使用一个 `132×126vp` 内容区和一个上下双 `132×57vp` 固定槽列，二者间距 12vp，并允许整体镜像。内容区可以按真实业务替换为大数字、环形进度、事项列表或突出状态；内部对齐必须映射到一个 Sub-140 变体。固定槽各放一项紧凑信息或动作，文字保持左对齐，内容组在槽内垂直居中；只有一个有效状态时只显示一行，不用重复状态或无关更新时间填满槽位。示例中的线性 Progress 与可见睡眠得分共同组成主焦点，任何 Progress 都不能单独代替数值读数。
@@ -165,11 +132,6 @@
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
 ```
-<!-- /prompt:example-v04 -->
-
-<a id="2x4-v05"></a>
-
-<!-- prompt:example-v05 -->
 ## 示例十二（2x4-V05）：健康三指标（`W-top-bottom` · metric-triple·紫色微渐变）
 ### user
 ```json
@@ -196,11 +158,6 @@
 ["/data/healthSport/dailyTotalCaloriesText","92 千卡"]
 ["/data/healthSport/dailySteps",2031]
 ```
-<!-- /prompt:example-v05 -->
-
-<a id="2x4-v06"></a>
-
-<!-- prompt:example-v06 -->
 ## 示例十三（2x4-V06）：无标题四业务速览（`W-four-slots`·蓝色微渐变）
 `W-four-slots` 自身固定无卡级标题，不依赖用户额外提出“无标题”；root 固定 `padding:12`，四个 `132×57vp` 固定槽必须占满 `276×126vp` 安全内容区，不为 header 压缩高度。
 ### user
@@ -229,11 +186,6 @@
 ["calendarLabel","Text",{"content":"日程开始","width":108,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ["/data/calendar/events/0/dtStart","14:00"]
 ```
-<!-- /prompt:example-v06 -->
-
-<a id="2x4-v07"></a>
-
-<!-- prompt:example-v07 -->
 ## 示例十四（2x4-V07）：单列日程安排（`W-top-bottom` · text-footer·黄色微渐变）
 ### user
 ```json
@@ -253,11 +205,6 @@
 ["/data/calendar/events/0/description","评审卡片数据接口与视觉还原结果"]
 ["/data/calendar/events/0/startDate","12-18"]
 ```
-<!-- /prompt:example-v07 -->
-
-<a id="2x4-v08"></a>
-
-<!-- prompt:example-v08 -->
 ## 示例十五（2x4-V08）：下一日程与双真实入口（`W-content-side-slots` · agenda-cta·左焦点右双入口·黄色微渐变）
 ### user
 ```json
@@ -284,11 +231,6 @@
 ["/data/calendar/events/0/entityId","calendar-event-001"]
 ```
 
-<!-- /prompt:example-v08 -->
-
-<a id="2x4-v09"></a>
-
-<!-- prompt:example-v09 -->
 ## 示例十六（2x4-V09）：天气与手机电量双业务（`W-split-panels`·蓝色微渐变）
 `W-split-panels` 先按对象合并字段再布局：同一耳机的连接状态、耳机仓电量和充电状态只能共同放在一个背板，不能拆成右侧两个小背板来伪造 `W-content-side-slots` 三对象预设；action 不增加数据块，也不能为了放按钮改变骨架或把音乐动作放进天气背板。两个业务只能左右排列，禁止改成上下两个全宽背板。每个大背板在排除自己的 `12fp/400` 业务标题和底部 action 后，独立选择内容变体并遵守 2x2 的 `150×150vp` 内容密度：大数字主值后最多一条辅助信息，纯文字最多一条突出信息和两条辅助信息，并行数据最多三条普通字号完整信息。无动作的倒计时背板有目标名称时使用 Sub-118 `title-content`：标题在上，数字与单位作为一个主内容组左对齐并贴内容区底端；无标题且数值自身可理解时才使用 `core-center`。不得自造三层均分或居中标题结构。多日天气每一天合并成一行 `12fp/400` 文本，同日同时有完整日期和星期时只保留星期，再按天气、温度、降雨顺序保留能完整显示的字段；不拆成多行，也不在日期间增加 Divider。
 归属示范：音乐入口和音乐/闹钟素材是干扰候选，不属于本轮明确的天气、电量需求，全部舍弃。天气与电池按钮分别保留在所属背板，缺少准确图标时使用纯文字，不能为左右对称复制同一动作。动作参数引用的数据根必须与所在背板的数据根一致，例如引用 `/data/weather/` 的按钮必须放在天气背板。
@@ -318,11 +260,6 @@
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ```
 
-<!-- /prompt:example-v09 -->
-
-<a id="2x4-v10"></a>
-
-<!-- prompt:example-v10 -->
 ## 示例十七（2x4-V10）：天气、手机与耳机三数据（`W-content-side-slots` · 三对象预设·蓝色微渐变）
 ### user
 ```json
@@ -356,11 +293,6 @@
 ["/data/earphone/isConnected",true]
 ```
 
-<!-- /prompt:example-v10 -->
-
-<a id="2x4-v11"></a>
-
-<!-- prompt:example-v11 -->
 ## 示例十八（2x4-V11）：单城市天气主读数（`W-top-bottom` · value-led·蓝色微渐变）
 本例仅用于信息稀疏的单城市天气：主温度占据连续的视觉区域，单位紧贴主值，天气现象和温度范围作为辅助信息；不使用双背板，也不为了填满高度增加弱指标。若天气字段扩展为预警、空气质量、紫外线、感冒指数等四项以上，且还有明确动作或提醒文案，应切换 `W-content-side-slots`，把提醒/动作放进右侧两个辅助槽，不能沿用本例继续堆叠通栏文字，也不能生成第三个右侧背板。
 ### user
@@ -384,11 +316,6 @@
 ["/data/weather/current/temperatureRangeText","25°C / 32°C"]
 ```
 
-<!-- /prompt:example-v11 -->
-
-<a id="2x4-v12"></a>
-
-<!-- prompt:example-v12 -->
 ## 示例十九（2x4-V12）：耳机连接状态与辅助入口（`W-content-side-slots`·蓝色微渐变）
 本例用于单耳机业务的 `status-led` 变体：连接状态与设备名称构成左侧第一焦点，成对电量压入右上摘要，蓝牙设置占右下动作槽。若用户明确要求两个动作，两个右侧槽都用于动作，左右电量在左侧合并为一条辅助信息；不要生成满宽底部按钮。
 ### user
@@ -414,11 +341,6 @@
 ["/data/earphone/rightBatteryLevel",78]
 ```
 
-<!-- /prompt:example-v12 -->
-
-<a id="2x4-v13"></a>
-
-<!-- prompt:example-v13 -->
 ## 示例二十（2x4-V13）：中性稀疏双业务（`W-split-panels`·蓝色微渐变）
 
 本例是未知业务组合的 `W-split-panels` 稀疏金标，不提供可复制的业务文案。两侧各使用 Sub-118 `title-content`：标题在上，真实内容组左对齐并贴内容区底端；候选素材与对象精确匹配，因此放在各自标题右侧。若真实 TaskSpec 没有合法素材，只删除图标并让标题占满宽度，不留空槽、不猜测路径。
@@ -451,11 +373,6 @@
 ["/data/sync/time","14:00"]
 ```
 
-<!-- /prompt:example-v13 -->
-
-<a id="2x4-v14"></a>
-
-<!-- prompt:example-v14 -->
 ## 示例二十一（2x4-V14）：手机电量与耳机状态（`W-split-panels` 稀疏双业务金标·蓝色微渐变）
 
 本例是常见设备组合的稀疏 `W-split-panels` 金标。每侧只有 2～3 项必要事实且没有动作，使用 Sub-118 `title-content`；直接 content Column 使用 `layoutWeight:1` 与 `justifyContent:"end"`，让主读数或核心状态贴内容区底端。手机电量使用 20fp 完整格式化主读数，耳机连接状态使用 18fp；业务标签和必要状态保持 12fp。禁止把全部内容缩成顶部小字，也不添加更新时间、图标、进度环或重复电量来填充留白。
@@ -484,4 +401,3 @@
 ["/data/earphone/isConnected",true]
 ["/data/earphone/batteryLevel",80]
 ```
-<!-- /prompt:example-v14 -->

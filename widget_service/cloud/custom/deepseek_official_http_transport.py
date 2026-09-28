@@ -104,15 +104,8 @@ class DeepSeekOfficialHttpTransport:
 
         try:
             result = self._extract_content(response_body)
-        except ModelTransportError as exc:
+        except ModelTransportError:
             report_ops_metrics(body={"taskFailModelCrash": 1})
-            logger.warning(
-                f"{_MODULE} response_invalid code={exc.code} duration_ms={duration_ms} "
-                f"model={self.settings.deepseek_official_http_model} "
-                f"thinking={self.settings.deepseek_official_http_enable_thinking} "
-                f"max_tokens={self.settings.deepseek_official_http_max_tokens} "
-                f"summary={self._response_summary(response_body)}"
-            )
             raise
         usage = response_body.get("usage") if isinstance(response_body, Mapping) else None
         self._report_success_metrics(duration_ms, usage)
@@ -198,11 +191,6 @@ class DeepSeekOfficialHttpTransport:
                 "DeepSeek official HTTP choice is invalid",
                 code="MODEL_RESPONSE_INVALID",
             )
-        if first_choice.get("finish_reason") == "length":
-            raise ModelTransportError(
-                "DeepSeek official HTTP output was truncated (finish_reason=length)",
-                code="MODEL_OUTPUT_TRUNCATED",
-            )
         message = first_choice.get("message")
         if not isinstance(message, Mapping):
             raise ModelTransportError(
@@ -231,47 +219,14 @@ class DeepSeekOfficialHttpTransport:
         return result
 
     @staticmethod
-    def _response_summary(response_body: object) -> dict[str, Any]:
-        """只保留受控诊断元数据，不泄露提示词、模型正文或思考内容。"""
-        if not isinstance(response_body, Mapping):
-            return {}
-        summary: dict[str, Any] = {
-            "usage": DeepSeekOfficialHttpTransport._usage_summary(response_body.get("usage")),
-        }
-        choices = response_body.get("choices")
-        if not isinstance(choices, list) or not choices or not isinstance(choices[0], Mapping):
-            return summary
-        first_choice = choices[0]
-        reason = first_choice.get("finish_reason")
-        known_reasons = (
-            "stop", "length", "content_filter", "tool_calls", "insufficient_system_resource",
-        )
-        summary["finish_reason"] = reason if reason in known_reasons else "unknown"
-        message = first_choice.get("message")
-        if isinstance(message, Mapping):
-            for key in ("content", "reasoning_content"):
-                value = message.get(key)
-                summary[f"{key}_chars"] = len(value) if isinstance(value, str) else 0
-        return summary
-
-    @staticmethod
     def _usage_summary(usage: object) -> dict[str, int]:
         if not isinstance(usage, Mapping):
             return {}
         summary: dict[str, int] = {}
         for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
             value = usage.get(key)
-            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            if isinstance(value, int):
                 summary[key] = value
-        details = usage.get("completion_tokens_details")
-        if isinstance(details, Mapping):
-            reasoning_tokens = details.get("reasoning_tokens")
-            if (
-                isinstance(reasoning_tokens, int)
-                and not isinstance(reasoning_tokens, bool)
-                and reasoning_tokens >= 0
-            ):
-                summary["reasoning_tokens"] = reasoning_tokens
         return summary
 
     def _log_failure(self, failure_type: str, started_at: float, exc: Exception) -> None:

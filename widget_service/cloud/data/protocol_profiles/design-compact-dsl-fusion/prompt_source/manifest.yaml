@@ -1,8 +1,8 @@
 {
   "version": 1,
   "protocol_id": "design-compact-dsl",
-  "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
-  "size_policy": "sizes 为模块归属与案例尺寸索引；内存组装完整正文，按请求裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
+  "description": "YAML 1.2 JSON 子集；维护配置，不发送模型。products 数组顺序即唯一拼接顺序。",
+  "size_policy": "sizes 为维护归属与案例尺寸索引；本期保持完整正文，运行时仍仅裁剪第九节与选择同尺寸案例，不新增整文件过滤。",
   "modules": [
     {
       "file": "core.md",
@@ -128,8 +128,8 @@
       ]
     }
   ],
-  "prompts": {
-    "create": [
+  "products": {
+    "PROMPT.md": [
       "core.md#identity",
       "information/common.md#ownership-gate",
       "components/2x2.md#icon-gate",
@@ -138,9 +138,11 @@
       "combinations/2x2.md#hero-box",
       "combinations/common.md#peer-metrics",
       "combinations/2x2.md#paired-status",
+      "combinations/2x2.md#dual-ring-columns",
       "information/2x2.md#weather-date",
       "layouts/2x4.md#w9-gate",
       "combinations/2x4.md#wide-readout",
+      "combinations/2x4.md#wide-dual-ring-columns",
       "layouts/2x4.md#w8-gate",
       "combinations/common.md#baseline-correction",
       "information/2x4.md#w1-density",
@@ -166,6 +168,7 @@
       "components/2x2.md#timeline",
       "core.md#binding-events",
       "layouts/common.md#canvas-heading",
+      "components/2x4.md#fixed-slot-modules",
       "components/2x4.md#backboard-alpha",
       "layouts/common.md#canvas-budget",
       "combinations/common.md#small-panel",
@@ -187,16 +190,16 @@
       "information/common.md#metric-labels",
       "combinations/2x2.md#fusion-simplification"
     ],
-    "edit": [
+    "EDIT_SYSTEM_PROMPT.md": [
       "edit.md#contract"
     ],
-    "repair": [
+    "REPAIR_SYSTEM_PROMPT.md": [
       "repair.md#contract"
     ],
-    "argument_repair": [
+    "ARGUMENT_REPAIR_SYSTEM_PROMPT.md": [
       "argument_repair.md#contract"
     ],
-    "fewshot_2x2": [
+    "FEWSHOT_2x2.md": [
       "fewshots/2x2.md#preamble",
       "fewshots/2x2.md#example-v00",
       "fewshots/2x2.md#example-v01",
@@ -214,7 +217,7 @@
       "fewshots/2x2.md#example-v13",
       "fewshots/2x2.md#example-v14"
     ],
-    "fewshot_2x4": [
+    "FEWSHOT_2x4.md": [
       "fewshots/2x4.md#preamble",
       "fewshots/2x4.md#example-v00",
       "fewshots/2x4.md#example-v01",

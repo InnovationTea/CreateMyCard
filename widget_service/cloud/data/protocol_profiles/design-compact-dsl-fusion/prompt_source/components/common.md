@@ -1,6 +1,6 @@
 # 通用组件合同（维护源）
 
-> 维护说明不发给模型；仅 `prompt` 标记内正文参与内存拼接。
+> 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。
 
 ## 边界与阅读顺序
 
@@ -24,19 +24,19 @@
 | CardHeader | 稳定卡片主题 | 5.15；title/fontColor/icon/fillColor | 不接受任意几何覆盖；本节单组件示例 |
 | TimelineUnit | 小卡单会议 | 转至 components/2x2.md | 2x2 V06；宽卡禁止 |
 
-每个组件以正文合同为准，单组件的绑定支持不能推导到其它 Props。
+每个组件以正文原有合同为准，单组件的绑定支持不能推导到其它 Props。
 完整案例在 `../fewshots/`，组合条件在 `../combinations/`，不把示例中的属性自动扩展为通用合同。
 
 ## 片段索引
 
-| 片段 |
-|---|
-| `progress-type` |
-| `progress-trigger` |
-| `catalog` |
-| `icon-style` |
+| 片段 | 基线来源 |
+|---|---|
+| `progress-type` | `PROMPT.md` |
+| `progress-trigger` | `PROMPT.md` |
+| `catalog` | `PROMPT.md` |
+| `icon-style` | `PROMPT.md` |
 
-片段由 manifest 编排；修改正文后验证并重启服务，无需生成中间文件。
+正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:progress-type -->
 **Progress 数值类型前置约束**：`Progress.value` 必须绑定 number/integer 字段。若 TaskSpec 只有 `batterySOCText:"68%"` 一类格式化字符串，即使用户要求进度条也不得生成空环或空进度条，改用完整 Text 主读数；禁止从字符串中猜测、截取或隐式转换数值。
@@ -44,7 +44,7 @@
 <!-- /prompt:progress-type -->
 
 <!-- prompt:progress-trigger -->
-**Progress 生成前置约束**：默认不生成 Progress。只有 TaskSpec 的字段描述明确表示百分比、完成度、使用率、电量等比例语义，并且同时存在可验证的固定范围或真实 `total` 时才允许；温度、日期、时间、时长、倒计时、状态、名称和普通数值一律禁止。不得仅因字段是 number/integer、位于小内容背板或示例中存在环图就生成 Progress，也不得自行猜测 `total`；两座城市天气的 S4 分区只能使用合法天气 Image 或无 visual，绝不使用温度进度环。2x2 单业务内容区若只有一个环形 Progress 和至多一行状态文字，两者必须作为一个紧凑组水平居中，承载它们的 Column 固定 `alignItems:"center"`，不得让环和状态沿左边缘排列。
+**Progress 生成前置约束**：默认不生成 Progress。只有 TaskSpec 的字段描述明确表示百分比、完成度、使用率、电量等比例语义，并且同时存在可验证的固定范围或真实 `total` 时才允许；温度、日期、时间、时长、倒计时、状态、名称和普通数值一律禁止。不得仅因字段是 number/integer、位于小内容背板或示例中存在环图就生成 Progress，也不得自行猜测 `total`；两座城市天气的 `S-dual-info` 分区只能使用合法天气 Image 或无 visual，绝不使用温度进度环。2x2 单业务内容区若只有一个环形 Progress 和至多一行状态文字，两者必须作为一个紧凑组水平居中，承载它们的 Column 固定 `alignItems:"center"`，不得让环和状态沿左边缘排列。
 
 <!-- /prompt:progress-trigger -->
 
@@ -269,14 +269,14 @@ ActionUnit 是对卡级 CTA 的受控封装，只输出一行且不带 children�
 ActionUnit——卡级 CTA：
 
 - `state:"capsule"`：底部通栏文字胶囊（126x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标且已按 2.5 节分配名额时可写 `icon`，转换器展开为图标+文字整体居中，图标与文字间距固定 `8vp`，配色按第十二节浅色微渐变、融球两种按钮规则执行。
-- `state:"icon-round"`：右下 30x30 圆钮，必须有 `icon` 和 `onClick`，禁止 `label`；按钮背景和单色图标同样按第十二节两种按钮规则取色，不另设白底模式。
+- `state:"icon-round"`：仅用于 2x2 `S-title-anchor`；外层操作槽为 40×40vp，内部圆钮为 36×36vp，中心图标为 20×20vp。必须有 `icon` 和 `onClick`，禁止 `label`；按钮背景和单色图标按第十二节按钮规则取色，不另设白底模式。
 - 可用字段：`state`、`label`、`icon`、`actionInk`、`actionSurface`、`fontSize`、`fontWeight`、`onClick`、`flexShrink`。
 - `actionSurface` 是按钮背景色，`actionInk` 是按钮文字色，必须成对显式写 `#AARRGGBB`，按第十二节固定配对；浅色按钮使用第十二节按钮背景与主文字色，融球为白色 20% 按钮背景和 90% 文字，图标由转换器使用白色 60%。按钮文字使用 14/400-500。
-- capsule 只能放在 root 最后一个 `action_area Column` 内且是其唯一子节点；双按钮（S3 骨架）在该 Column 内纵排两张 capsule。不要用基础 `Button` 手写 CTA 皮，也不要再额外输出 action_icon Image 行。
+- capsule 只能放在 root 最后一个 `action_area Column` 内且是其唯一子节点；双按钮（`S-content-dual-action` 骨架）在该 Column 内纵排两张 capsule。不要用基础 `Button` 手写 CTA 皮，也不要再额外输出 action_icon Image 行。
 
 ## 5.15 高级组件（CardHeader，2x2/2x4）
 
-- CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；标题必须是稳定的业务、对象或事项主题，禁止把 `eventCount`、电量、温度、状态等数值或业务数据冒充标题。日期、时间、时长和倒计时短语只能放在内容区，`明天上午10点`、`14:00`、`还有3天` 等即使出现在 userQuery 中也绝对不能作为 CardHeader；存在对应动态字段时更禁止把 userQuery 中的时间硬编码为标题。日程、会议或提醒优先使用真实事项名称或用户明确主题（如“医院复查”）；没有可用事项主题时固定使用默认标题“日程”，不得省略标题。2x2 仅用于 S2 有独立标题的布局，S1、S3、S4 不使用；2x4 仅允许单数据块布局按骨架使用，2-4 个数据块的 W8/W9/W10 不使用，无标题布局和作为正文上下文的 kicker 不使用，也不预留空标题位。
+- CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；标题必须是稳定的业务、对象或事项主题，禁止把 `eventCount`、电量、温度、状态等数值或业务数据冒充标题。日期、时间、时长和倒计时短语只能放在内容区，`明天上午10点`、`14:00`、`还有3天` 等即使出现在 userQuery 中也绝对不能作为 CardHeader；存在对应动态字段时更禁止把 userQuery 中的时间硬编码为标题。日程、会议或提醒优先使用真实事项名称或用户明确主题（如“医院复查”）；没有可用事项主题时固定使用默认标题“日程”，不得省略标题。2x2 仅用于 带标题布局 有独立标题的布局，`S-center`、`S-content-dual-action`、`S-dual-info` 不使用；2x4 仅允许单数据块布局按骨架使用，2-4 个数据块的 `W-four-slots`/`W-split-panels`/`W-content-side-slots` 不使用，无标题布局和作为正文上下文的 kicker 不使用，也不预留空标题位。
 - 必填 `title`（非空文字、完整 Expression 或 PathBinding）、`fontColor`（本卡标题色）；可选 `icon`（候选原始 src）、`fillColor`（单色图标与标题完全同色，多色/品牌图标及位图省略）。不传 icon 就只显示标题，是否传入在布局前按 2.5 节决定，CardHeader 不自行增加图标。
 - 每卡最多一个。2x2 中必须是 root 的第一个且唯一父级的直接子组件，root 必须为 Column；2x4 中必须是 `root Stack` 下全尺寸前景 Column 的第一个且唯一父级的直接子组件。承载 CardHeader 的 Column 必须显式 `width:"matchParent"`、`height:"matchParent"`（2x4）、`padding:12`，并显式使用 `justifyContent:"start"` 或保证首项贴顶的 `"spaceBetween"`，不加 borderWidth。其他内容在标题下方布局，不得嵌套、重复、错序或用 center/spaceAround/spaceEvenly 移动标题。
 - 转换器固定标题行高度 `20vp`、不可收缩，2x2/2x4 宽度分别为 `126/276vp`，左上角均为 `(12,12)`。文字左对齐、垂直居中、`12fp/400`；有图标时文字槽宽分别为 `98/248vp`、间距 8vp，图标固定 20×20vp，左上角分别为 `(118,12)`/`(268,12)`；无图标时文字槽占满，不留空槽。
@@ -293,7 +293,7 @@ ActionUnit——卡级 CTA：
 ## 11.1 图标
 
 - 标题文字固定 `12fp/400`，不得加粗，不得因场景或示例升到 `14/16fp` 或 `500/700`。
-- `2x2` 顶部第一行文字信息若不是 CardHeader，必须为纯文字，不在文字前后或该行右侧配图标；无论它被命名为标题、倒计时、状态或业务说明，也无论左对齐、居中、单业务或多业务，都执行本条。例如「北京出差还有 30 天出发」不生成飞机 Image 或图标槽。其他居中标题或说明行同样只用文字；用户明确要求图标时除外。不得将首行前缀图标解释为内容区主视觉来绕过本条；S4 双业务分区主视觉不属于顶部标题行，仅与进度环内图标、图文按钮一起按 2.5 节允许位置、总数和互斥规则执行。
+- `2x2` 顶部第一行文字信息若不是 CardHeader，必须为纯文字，不在文字前后或该行右侧配图标；无论它被命名为标题、倒计时、状态或业务说明，也无论左对齐、居中、单业务或多业务，都执行本条。例如「北京出差还有 30 天出发」不生成飞机 Image 或图标槽。其他居中标题或说明行同样只用文字；用户明确要求图标时除外。不得将首行前缀图标解释为内容区主视觉来绕过本条；`S-dual-info` 双业务分区主视觉不属于顶部标题行，仅与进度环内图标、图文按钮一起按 2.5 节允许位置、总数和互斥规则执行。
 - 标题图标仅在已分配图标名额时显示，固定 `20×20vp`，通常位于标题行右侧；在 `2x2` 标题行中必须贴安全区右上角，右边缘距 root 右边 `12vp`。
 - `2x2` 和 `2x4` 的所有图标，包括标题、按钮、分区及进度环内图标，全部固定 `20×20vp`，不存在普通、辅助或主视觉图标的尺寸分档，也不因用户要求或布局角色改用其他尺寸；按钮点击外框、进度环和真实内容图片不属于图标尺寸，不随之修改。
 - 同一卡片图标风格、色彩角色和视觉重量保持一致。

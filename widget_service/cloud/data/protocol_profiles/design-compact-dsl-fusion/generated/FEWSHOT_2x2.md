@@ -1,11 +1,3 @@
-# 2x2 完整案例集（维护源）
-
-> 维护说明、案例锚点和片段标记不发给模型；仅 prompt 标记内正文参与构建。
-
-本文件集中维护该尺寸的共用前言与 V00–V14 全部 15 个完整输入→输出案例。
-案例内容与顺序由 manifest 逐片段登记；构建产物由构建脚本生成并完成回归，禁止手改 generated。
-
-<!-- prompt:preamble -->
 # 2x2 Few-shot
 
 示例中的图标位置不得套用到普通内容行：内容区仅允许环中心或 `S-dual-info` 分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。`S-dual-info` 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `134×63vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得用于温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
@@ -18,11 +10,6 @@
 
 2x2 单业务示例不应被理解为统一模板：先判断主焦点是量化主值、核心状态、事项标题还是唯一动作，再决定主区域的顺序和留白。量化主值优先使用大字号纯数字并把单位降为 12-16fp；状态或事项卡只放大真正的核心句，其余字段保持 12fp 支撑层。除 `S-content-dual-action` / `S-dual-info` 固定规则外，允许在同一骨架内采用顶部主值、中心主值或底部动作沉底三种安全变体，但必须保留一个清晰重心。
 
-<!-- /prompt:preamble -->
-
-<a id="2x2-v00"></a>
-
-<!-- prompt:example-v00 -->
 ## 示例零（2x2-V00）：中性单信息骨架（`S-center`·未知业务回退）
 本例只提供 2x2 的安全信息层级、留白和数据绑定，不携带天气、设备、健康或日程语义。未知业务、字段含义不足或多业务组合无法匹配已知示例时，只参考本例的结构，不复制“主信息”等文案。
 ### user
@@ -38,11 +25,6 @@
 ["/data/view/secondary","辅助信息"]
 ```
 
-<!-- /prompt:example-v00 -->
-
-<a id="2x2-v01"></a>
-
-<!-- prompt:example-v01 -->
 ## 示例一（2x2-V01）：运动会倒计时（`S-title-content`·融球暖橙）
 本例使用“标题单内容”：标题在上，主值组左对齐并贴内容区底端。仅当用户明确要求一个动作且实际候选目标匹配时，改选 `S-title-content-action`，在 root 末尾追加 36vp 胶囊动作；不得在 `S-title-content` 中临时增加动作槽。
 干扰候选示范：输入虽含一个歌单事件和音符素材，但本次只要求倒计时；输出不生成按钮、图标或隐式点击，不把候选数量当作用户意图。
@@ -60,11 +42,6 @@
 ["/data/countdown/countdownDays",32]
 ```
 
-<!-- /prompt:example-v01 -->
-
-<a id="2x2-v02"></a>
-
-<!-- prompt:example-v02 -->
 ## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（`S-title-content-action`·蓝色微渐变）
 归属示范：虽提供歌单入口与音乐图标，但用户只要求耳机状态和蓝牙设置。不得增加歌单按钮，也不用音符表达耳机电量；蓝牙入口无准确动作素材时保留纯文字。
 ### user
@@ -89,11 +66,6 @@
 ["case","Text",{"content":"{{ '盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ```
 
-<!-- /prompt:example-v02 -->
-
-<a id="2x2-v03"></a>
-
-<!-- prompt:example-v03 -->
 ## 示例三（2x2-V03）：耳机盒电量与双入口（`S-content-dual-action`）
 紧凑信息区固定 38vp，两个按钮各占 36vp，三个区域之间分别保留 8vp，满足 `38 + 8 + 36 + 8 + 36 = 126vp`。对象和电量合并为 14fp 主信息，12fp 状态紧随其下；不生成 CardHeader、独立大数字区或标题图标。示例的两个入口均由用户明确要求，不能因候选存在而自动增加按钮。
 ### user
@@ -113,11 +85,6 @@
 ```
 
 
-<!-- /prompt:example-v03 -->
-
-<a id="2x2-v04"></a>
-
-<!-- prompt:example-v04 -->
 ## 示例四（2x2-V04）：天气（`S-title-dual-content`·蓝色微渐变）
 本例使用“标题双内容”：地点标题在上，温度与天气现象位于上半内容区左上，温度范围位于下半内容区左下。
 候选中的温度计与整卡主题精确匹配、状态中性且不挤压地点标题，因此保留在 CardHeader 右上角；闹钟和日历只是干扰候选，必须舍弃。三个事实纵向都有空间时不使用 ` | ` 横向压缩；为容纳两条支撑信息，温度采用完整的 24fp 格式化主读数，而不是强行使用 38fp 数字 hero。
@@ -144,11 +111,6 @@
 
 
 
-<!-- /prompt:example-v04 -->
-
-<a id="2x2-v05"></a>
-
-<!-- prompt:example-v05 -->
 ## 示例五（2x2-V05）：手机+耳机电量（`S-dual-info`·蓝色微渐变）
 本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 `S-dual-info`；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。
 对象名比图标或环图更重要：第一行明确“手机 / 耳机盒＋电量”，第二行显示充电状态。移除可选环图以保证两行文字完整。
@@ -175,11 +137,6 @@
 ["/data/earphone/chargingStatusDesc","充电中"]
 ```
 
-<!-- /prompt:example-v05 -->
-
-<a id="2x2-v06"></a>
-
-<!-- prompt:example-v06 -->
 ## 示例六（2x2-V06）：单个或下一场会议（`S-title-content-action`·黄色微渐变）
 2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery、事件候选或 TaskSpec 的标题/描述/sampleValue 明确表达会议语义时，强制使用本例；sampleValue 只用于路由判断，不得代替动态绑定。会议标题必须作为内容区第一行 `14fp/700`：优先绑定 `events[0].title`，无真实标题字段且用户未给出名称时固定写“日程”，不得省略或用 `eventCount`、日期、时间替代。时间、地点固定 `12fp/400`。出现任一其他业务时改走 `S-dual-info`，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
 ### user
@@ -203,11 +160,6 @@
 ["/data/calendar/events/0/oneClickServiceLink","wemeet://join/example"]
 ```
 
-<!-- /prompt:example-v06 -->
-
-<a id="2x2-v07"></a>
-
-<!-- prompt:example-v07 -->
 ## 示例七（2x2-V07）：今日步数（`S-title-content`·整卡隐式入口·透明 PNG 标题图标）
 ### user
 ```json
@@ -229,11 +181,6 @@
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
 ```
 
-<!-- /prompt:example-v07 -->
-
-<a id="2x2-v08"></a>
-
-<!-- prompt:example-v08 -->
 ## 示例八（2x2-V08）：发布会倒计时（`S-title-primary-secondary-action`·左对齐主值·开始时间）
 倒计时存在底部按钮或另一类可见数据时，改用带动作布局，不再使用 V01 的无动作标题单内容结构。标题、主值组和辅助信息
 统一左对齐；数字与单位放在同一 `value_row`，开始时间独占第二行，底部动作沉底。`/data/countdown`
@@ -260,11 +207,6 @@
 ["/data/calendar/events/0/entityId","event-001"]
 ```
 
-<!-- /prompt:example-v08 -->
-
-<a id="2x2-v09"></a>
-
-<!-- prompt:example-v09 -->
 ## 示例九（2x2-V09）：电池测量主读数（`S-title-content-action`·单动作）
 完整温度在 126vp 内容宽度内使用20fp；同样适用于 description 明确为电流、电压、功率、频率等测量值且首帧为“数字+合法单位”的格式化字符串。负号、小数和单位一起做压力检查，不拆单位、不追加字段标签。若同一业务同时有多个测量值，只突出一个主读数，其余值使用 12/14/18fp 辅助行；`"4 V"` 后不能再拼“电压”，`"-151 mA"` 后不能再拼“电流”。状态紧跟主值，按钮沉底。
 ### user
@@ -285,11 +227,6 @@
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ```
 
-<!-- /prompt:example-v09 -->
-
-<a id="2x2-v10"></a>
-
-<!-- prompt:example-v10 -->
 ## 示例十（2x2-V10）：双城市天气（`S-dual-info`）
 城市名动态绑定，与温度同组。优先保留对象名和完整读数，不放可选图标；长城市名先独占第一行，第二行显示温度，再删可选天气描述，不截断名称或缩小到12fp以下。
 ### user
@@ -313,11 +250,6 @@
 ["/data/beijing/current/condition","晴"]
 ```
 
-<!-- /prompt:example-v10 -->
-
-<a id="2x2-v11"></a>
-
-<!-- prompt:example-v11 -->
 ## 示例十一（2x2-V11）：运动三指标与歌单入口（`S-title-content-action`·双指标纵排）
 本例示范“有按钮但纵向仍充足”时不把两个独立指标压进 ` | ` 单行。时长并入顶部上下文；热量和心率包含较长单位，无法在两个窄列中保留压力余量，因此在中部使用两条完整信息纵排。只有两个指标都足够短、各自的值和标签均通过独立槽位预算时，才改用等宽双列。图文动作 Row 属于动作区，不计入信息行，相同歌单事件只绑定按钮一次，不再绑定 root。
 ### user
@@ -340,11 +272,6 @@
 ["/data/healthSport/exerciseHeartRateAvg",135]
 ```
 
-<!-- /prompt:example-v11 -->
-
-<a id="2x2-v12"></a>
-
-<!-- prompt:example-v12 -->
 ## 示例十二（2x2-V12）：睡眠时长与状态（`S-title-dual-content`·紫色微渐变）
 本例使用“标题双内容”：稳定主题在顶部，时长与睡眠类型位于上半内容区左上，深睡时长位于下半内容区左下。格式化时长使用全宽 24fp 单行并保留完整单位；标题图标仍按素材和标题压力规则决定。
 ### user
@@ -366,11 +293,6 @@
 ["/data/healthSleep/deepSleepDurationText","2小时15分"]
 ```
 
-<!-- /prompt:example-v12 -->
-
-<a id="2x2-v13"></a>
-
-<!-- prompt:example-v13 -->
 ## 示例十三（2x2-V13）：双数值范围对照（`S-title-dual-column-action`·紫色微渐变）
 本例示范两个天然同级、需要一起比较的短量化指标。两个值共同构成一个并列焦点组，不按字段顺序、数值
 大小或文字长短任意挑选单一 hero；共享单位进入标题，每列保持“值＋标签”成组，使用同字号、同字重、
@@ -399,11 +321,6 @@
 ["/data/healthVitals/updatedAt","更新于 09:00"]
 ```
 
-<!-- /prompt:example-v13 -->
-
-<a id="2x2-v14"></a>
-
-<!-- prompt:example-v14 -->
 ## 示例十四（2x2-V14）：三项同级状态概览（`S-title-dual-content`·蓝色微渐变）
 本例示范三个没有明确主次的状态、等级或分类指标。整组是阅读焦点，不把其中某个较短 sampleValue 脱离
 标签放大；标签共享左侧对齐线，值共享右侧对齐线和统一字重，信息组在内容区垂直居中，地点等上下文沉底。
@@ -433,4 +350,3 @@
 ["/data/weatherHealth/coldRiskLevel","低"]
 ["/data/weatherHealth/locationName","成都公园"]
 ```
-<!-- /prompt:example-v14 -->

@@ -1,20 +1,3 @@
-# 参数结构修复（维护源）
-
-> 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。
-
-## 边界与阅读顺序
-
-只恢复 JSON 语法/容器/层级，不处理视觉，不补造业务事实。
-
-## 片段索引
-
-| 片段 | 基线来源 |
-|---|---|
-| `contract` | `ARGUMENT_REPAIR_SYSTEM_PROMPT.md` |
-
-正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
-
-<!-- prompt:contract -->
 # JSON 结构恢复
 
 你是一个严格的 JSON 结构恢复器。输入中的 `rawArguments` 是唯一需要恢复的原始内容；它可能缺少右花括号
@@ -89,4 +72,3 @@
 ```json
 {"candidateDataBindings":[{"capabilityId":"sample.data","arguments":{"count":2},"writeResultTo":"/data/sample","candidateOutputFields":[]}],"romVersion":"sample-rom"}
 ```
-<!-- /prompt:contract -->
