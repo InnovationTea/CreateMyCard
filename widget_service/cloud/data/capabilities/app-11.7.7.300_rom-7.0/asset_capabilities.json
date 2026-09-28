@@ -616,14 +616,6 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.icon_phone",
-    "type": "asset",
-    "src": "resources/base/media/icon_phone.svg",
-    "description": "样式：默认黑色的单色线框竖向智能手机，内部有屏幕轮廓；适用：手机设备、手机状态、专注模式中的手机对象。",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.icon_car",
     "type": "asset",
     "src": "resources/base/media/icon_car.svg",
