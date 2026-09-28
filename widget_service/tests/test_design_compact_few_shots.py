@@ -13,7 +13,10 @@ from services.card_validation.contrast_validator import _composite, _contrast, _
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.prompt_builder import PromptBuilder
 
-PROFILE = Path(__file__).resolve().parents[1] / "cloud/data/protocol_profiles/design-compact-dsl"
+PROFILE = (
+    Path(__file__).resolve().parents[1]
+    / "cloud/data/protocol_profiles/design-compact-dsl-fusion/generated"
+)
 
 
 def _examples() -> list[tuple[str, dict, str]]:

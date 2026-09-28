@@ -18,7 +18,8 @@ _DESIGN_PROMPT_PATH = (
     / "cloud"
     / "data"
     / "protocol_profiles"
-    / "design-compact-dsl"
+    / "design-compact-dsl-fusion"
+    / "generated"
     / "PROMPT.md"
 )
 

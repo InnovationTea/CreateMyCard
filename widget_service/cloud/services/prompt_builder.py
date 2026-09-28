@@ -3,7 +3,6 @@
 import json
 from typing import Any
 
-from config.config import get_settings
 from models.generation import TaskSpec
 from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
@@ -1247,13 +1246,8 @@ class PromptBuilder:
             task_spec,
             layout_scope,
         )
-        profile_dir = (
-            get_settings().data_root
-            / "protocol_profiles"
-            / DESIGN_COMPACT_PROFILE_ID
-        )
-        few_shot = (profile_dir / f"FEWSHOT_{task_spec.size}.md").read_text(
-            encoding="utf-8"
+        few_shot = A2UIProtocolRegistry.read_design_few_shot(
+            DESIGN_COMPACT_PROFILE_ID, task_spec.size
         )
         few_shot = PromptBuilder._select_few_shot(few_shot, task_spec)
         prompt = (

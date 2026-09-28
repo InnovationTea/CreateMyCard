@@ -49,4 +49,4 @@ ignore = ["UP009"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["cloud"]
+pythonpath = ["cloud", "."]

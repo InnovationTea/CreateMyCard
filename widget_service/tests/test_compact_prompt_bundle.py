@@ -1,0 +1,186 @@
+"""提示词拆分的构建、路由与模型输入等价回归；不调用线上模型。"""
+
+import hashlib
+import json
+import re
+import shutil
+from pathlib import Path
+
+import pytest
+from scripts.build_compact_prompts import DEFAULT_BUNDLE, build, compile_bundle
+
+from config.config import get_settings
+from models.generation import TaskSpec
+from services.prompt_builder import PromptBuilder
+from services.protocol_registry import (
+    DESIGN_COMPACT_PROFILE_ID,
+    A2UIProtocolRegistry,
+)
+
+BASELINE = json.loads(
+    (Path(__file__).parent / "fixtures/compact_prompt_migration_baseline.json").read_text(
+        encoding="utf-8"
+    )
+)
+PRODUCT_HASHES = BASELINE.get("products")
+MESSAGE_HASHES = BASELINE.get("messages")
+assert isinstance(PRODUCT_HASHES, dict)
+assert isinstance(MESSAGE_HASHES, list)
+
+
+def _digest(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+@pytest.mark.parametrize("filename,expected", PRODUCT_HASHES.items())
+def test_compiled_prompt_equals_pre_migration_text(filename: str, expected: str) -> None:
+    content = compile_bundle().get(filename)
+    assert isinstance(content, str)
+    assert _digest(content) == expected
+    assert "<!-- prompt:" not in content
+    assert "维护源" not in content
+
+
+def test_generated_files_are_current() -> None:
+    assert build(check=True) == []
+
+
+@pytest.mark.parametrize("record", MESSAGE_HASHES)
+def test_actual_model_messages_equal_baseline(record: dict, monkeypatch) -> None:
+    monkeypatch.setattr(get_settings(), "CONFIG", {"fusion_ball_min_prd_version": "11.7.7.300"})
+    identifier = record.get("id")
+    assert isinstance(identifier, str)
+    size = identifier.split("-")[0]
+    source = DEFAULT_BUNDLE / "prompt_source/fewshots" / size / f"{identifier}.md"
+    content = source.read_text(encoding="utf-8")
+    task_match = re.search(r"```json\s*\n(.*?)\n```", content, re.S)
+    dsl_match = re.search(r"```genui\s*\n(.*?)\n```", content, re.S)
+    assert task_match is not None and dsl_match is not None
+    task = TaskSpec(**json.loads(task_match.group(1)), appVersion=record.get("appVersion"))
+    dsl = dsl_match.group(1)
+    builder = PromptBuilder()
+    prompt = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
+    messages = builder.build_design_compact(task, prompt)
+    mode = record.get("mode")
+    if mode == "edit":
+        messages = builder.build_design_compact(task, prompt, previous_design_token=dsl)
+    elif mode == "repair":
+        errors = [{"stage": "conversion", "code": "TEST", "message": "引用缺失"}]
+        messages = builder.build_repair(messages, dsl, errors, dsl_format=DESIGN_COMPACT_PROFILE_ID)
+    else:
+        assert mode == "create"
+    assert _digest(json.dumps(messages, ensure_ascii=False)) == record.get("sha256")
+
+
+@pytest.mark.parametrize(
+    "method,filename",
+    [
+        ("read_design_prompt", "PROMPT.md"),
+        ("read_design_edit_prompt", "EDIT_SYSTEM_PROMPT.md"),
+        ("read_design_repair_prompt", "REPAIR_SYSTEM_PROMPT.md"),
+        ("read_design_argument_repair_prompt", "ARGUMENT_REPAIR_SYSTEM_PROMPT.md"),
+    ],
+)
+def test_registry_uses_generated_only(method: str, filename: str, tmp_path: Path) -> None:
+    old = tmp_path / DESIGN_COMPACT_PROFILE_ID
+    old.mkdir()
+    (old / filename).write_text("旧路径不得回退", encoding="utf-8")
+    read = getattr(A2UIProtocolRegistry, method)
+    with pytest.raises(ValueError, match="not found"):
+        read(DESIGN_COMPACT_PROFILE_ID, tmp_path)
+    new = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID, tmp_path)
+    new.mkdir(parents=True)
+    (new / filename).write_text("新产物", encoding="utf-8")
+    assert read(DESIGN_COMPACT_PROFILE_ID, tmp_path) == "新产物"
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_fewshot_uses_generated_only(size: str, tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="not found"):
+        A2UIProtocolRegistry.read_design_few_shot(DESIGN_COMPACT_PROFILE_ID, size, tmp_path)
+    actual = A2UIProtocolRegistry.read_design_few_shot(DESIGN_COMPACT_PROFILE_ID, size)
+    expected = (DEFAULT_BUNDLE / "generated" / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
+    assert actual == expected
+
+
+def test_unknown_fewshot_size_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Unsupported"):
+        A2UIProtocolRegistry.read_design_few_shot(DESIGN_COMPACT_PROFILE_ID, "../PROMPT")
+
+
+def test_legacy_prompt_files_are_removed() -> None:
+    old = DEFAULT_BUNDLE.with_name(DESIGN_COMPACT_PROFILE_ID)
+    assert (old / "protocol.json").is_file()
+    for filename in PRODUCT_HASHES:
+        assert not (old / filename).exists()
+
+
+def test_default_config_uses_same_generated_prompts() -> None:
+    settings = get_settings()
+    for key, method in (
+        ("system.prompt", "read_design_prompt"),
+        ("edit.system.prompt", "read_design_edit_prompt"),
+        ("repair.system.prompt", "read_design_repair_prompt"),
+    ):
+        assert settings.CONFIG.get(key) == getattr(A2UIProtocolRegistry, method)(
+            DESIGN_COMPACT_PROFILE_ID
+        )
+
+
+def test_check_detects_source_edit_without_writing(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    shutil.copytree(DEFAULT_BUNDLE, bundle)
+    source = bundle / "prompt_source/core.md"
+    original = source.read_text(encoding="utf-8")
+    source.write_text(original.replace("你是 HarmonyOS", "你是测试 HarmonyOS", 1), encoding="utf-8")
+    generated = bundle / "generated/PROMPT.md"
+    before = generated.read_bytes()
+    assert build(bundle, check=True) == ["PROMPT.md"]
+    assert generated.read_bytes() == before
+    assert build(bundle) == ["PROMPT.md"]
+    assert build(bundle, check=True) == []
+
+
+@pytest.mark.parametrize("mutation", ["missing", "duplicate", "escape", "size", "orphan"])
+def test_invalid_manifest_is_rejected(tmp_path: Path, mutation: str) -> None:
+    bundle = tmp_path / "bundle"
+    shutil.copytree(DEFAULT_BUNDLE, bundle)
+    path = bundle / "prompt_source/manifest.yaml"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    products = manifest.get("products")
+    modules = manifest.get("modules")
+    assert isinstance(products, dict) and isinstance(modules, list)
+    references = products.get("PROMPT.md")
+    assert isinstance(references, list)
+    if mutation == "missing":
+        references[0] = "core.md#does-not-exist"
+    elif mutation == "duplicate":
+        references.append(references[0])
+    elif mutation == "escape":
+        modules[0]["file"] = "../../escape.md"
+    elif mutation == "size":
+        modules[0]["sizes"] = ["4x4"]
+    else:
+        references.pop(0)
+    path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError):
+        compile_bundle(bundle)
+
+
+def test_unclosed_fragment_is_rejected(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    shutil.copytree(DEFAULT_BUNDLE, bundle)
+    source = bundle / "prompt_source/core.md"
+    original = source.read_text(encoding="utf-8")
+    source.write_text(original.replace("<!-- /prompt:identity -->", "", 1), encoding="utf-8")
+    with pytest.raises(ValueError, match="不闭合"):
+        compile_bundle(bundle)
+
+
+def test_unregistered_source_is_rejected(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    shutil.copytree(DEFAULT_BUNDLE, bundle)
+    source = bundle / "prompt_source/unregistered.md"
+    source.write_text("<!-- prompt:new -->\n规则\n<!-- /prompt:new -->\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="未登记"):
+        compile_bundle(bundle)

@@ -158,7 +158,7 @@
 
   <rect x="555" y="1475" width="690" height="112" class="step"/>
   <text x="900" y="1507" text-anchor="middle" class="node-title">组装两条模型消息</text>
-  <text x="900" y="1534" text-anchor="middle" class="small">system：design-compact-dsl/PROMPT.md 原文</text>
+  <text x="900" y="1534" text-anchor="middle" class="small">system：模块化 prompt_source → generated/PROMPT.md</text>
   <text x="900" y="1558" text-anchor="middle" class="small">Create user：TaskSpec；Edit user：query + TaskSpec + previousDesignToken</text>
   <text x="900" y="1580" text-anchor="middle" class="small">日志仅记录 system prompt 前 30 字符和总长度</text>
 
