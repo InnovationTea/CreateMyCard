@@ -26,13 +26,17 @@ _DETAIL_TEMPLATES = (
 _TEMPLATES = (
     "ScheduleOverviewLocationDescriptionEndFull@1",
     "ScheduleOverviewEventCountDetailsHero@1",
+    "ScheduleOverviewEventCountDetailsFull@1",
     "ScheduleOverviewDatedAllDayHero@1",
     "ScheduleOverviewTimezoneDateEndFull@1",
     "ScheduleOverviewTimezoneAllDayFull@1",
     "ScheduleOverviewReminderHero@1",
     *_DETAIL_TEMPLATES[1:],
 )
-_TIMEZONE_TEMPLATES = frozenset(_TEMPLATES[3:5])
+_TIMEZONE_TEMPLATES = frozenset({
+    "ScheduleOverviewTimezoneDateEndFull@1",
+    "ScheduleOverviewTimezoneAllDayFull@1",
+})
 
 
 def _options(node: Nested2Node) -> dict[str, Any]:

@@ -60,12 +60,29 @@ _LAYOUT_COMPONENTS = frozenset(
         "HeroTitleContentActionLayout",
         "TwoSupportLayout",
         "WideSingleFocusLayout",
+        "WideFullOnlyLayout",
+        "WideTwoFullLayout",
+        "WideHeroCompactLayout",
+        "WideFullHeroActionLayout",
+        "WideHeroActionFullLayout",
+        "WideFullTwoCompactLayout",
+        "WideFourCompactLayout",
+        "WideFullHeroTwoActionLayout",
+        "WideTwoHeroActionLayout",
+        "WideFullFourActionLayout",
+        "WideTwoHalfLayout",
+        "WideHalfTwoCompactLayout",
+        "WideHalfCompactTwoLargeActionLayout",
+        "WideHalfFourLargeActionLayout",
+        "WideTwoFocusLayout",
+        "WideTwoFocusActionLayout",
+        "WideTwoFocusTwoActionLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
 _SINGLE_CONDITIONAL_BINDING_COMPONENTS = frozenset({"IfBind", "IfMissingBind"})
 _GROUPED_CONDITIONAL_BINDING_COMPONENTS = frozenset(
-    {"IfAllBind", "IfAnyMissingBind"}
+    {"IfAllBind", "IfAnyMissingBind", "IfAnyBind", "IfAllMissingBind"}
 )
 _CONDITIONAL_BINDING_COMPONENTS = (
     _SINGLE_CONDITIONAL_BINDING_COMPONENTS
@@ -106,6 +123,7 @@ _MAX_PRESENCE_MATCH_ITEMS = 4
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
+    "WideHalf",
     "HeroTitle",
     "HeroContent",
     "Support",
@@ -125,6 +143,7 @@ _PROVIDER_TEMPLATE_FAMILIES = (
     "BatteryOverview",
     "WorkoutOverview",
     "SleepOverview",
+    "GenericMetricOverview",
     "DateOverview",
 )
 
@@ -178,7 +197,29 @@ class ProviderTemplateEntry(StrictModel):
         default_factory=dict, alias="assetParameterSemanticTags"
     )
     supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
+    size_scoped_hidden_parameters: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        alias="sizeScopedHiddenParameters",
+    )
     entry: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def size_scoped_parameters_are_valid(self) -> ProviderTemplateEntry:
+        for card_size, names in self.size_scoped_hidden_parameters.items():
+            if card_size not in ("2x2", "2x4"):
+                raise ValueError(
+                    f"Provider sizeScopedHiddenParameters card size is invalid: {card_size}"
+                )
+            if not names or len(names) != len(set(names)):
+                raise ValueError(
+                    f"Provider sizeScopedHiddenParameters must list unique names: {card_size}"
+                )
+            for name in names:
+                if _REFERENCE_NAME_RE.fullmatch(name) is None:
+                    raise ValueError(
+                        f"Provider sizeScopedHiddenParameters name is invalid: {name}"
+                    )
+        return self
 
     @model_validator(mode="after")
     def supported_events_are_valid(self) -> ProviderTemplateEntry:
@@ -241,7 +282,11 @@ class ProviderTemplateEntry(StrictModel):
         if self.capability_id is None:
             return ()
         layout_kind = _provider_template_layout_kind(self.template_id)
-        return ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+        return (
+            ("2x4",)
+            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            else ("2x2",)
+        )
 
     @property
     def requires_layout_action(self) -> bool:
@@ -449,6 +494,7 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             "supported_event_ids": entry.supported_event_ids,
             "required_any_of": entry.required_any_of,
             "display_together": entry.display_together,
+            "size_scoped_hidden_parameters": entry.size_scoped_hidden_parameters,
         })
         if entry.supported_event_ids:
             for variant in definition.variants:
@@ -728,6 +774,7 @@ def _ui_template_signature(
     type_map = {
         "string": "string",
         "asset": "string",
+        "path": "string",
         "number": "number",
         "integer": "integer",
         "boolean": "boolean",
@@ -736,7 +783,7 @@ def _ui_template_signature(
         if not raw_prop:
             continue
         prop_match = re.fullmatch(
-            r"([A-Za-z_][A-Za-z0-9_]*)(\?)?\s*:\s*(string|asset|number|integer|boolean)",
+            r"([A-Za-z_][A-Za-z0-9_]*)(\?)?\s*:\s*(string|asset|path|number|integer|boolean)",
             raw_prop,
         )
         if prop_match is None:
@@ -1350,6 +1397,19 @@ def _template_directive_components(content: str, line_number: int) -> tuple[str,
             components = (missing, present)
         else:
             components = (present, missing)
+    elif re.fullmatch(
+        r"#(?:if|elseif)[ \t]+data\.[A-Za-z_][A-Za-z0-9_]*"
+        r"(?:[ \t]*\|\|[ \t]*data\.[A-Za-z_][A-Za-z0-9_]*)+",
+        content,
+    ):
+        names = re.findall(r"data\.([A-Za-z_][A-Za-z0-9_]*)", content)
+        if len(set(names)) != len(names):
+            keyword = content.split(maxsplit=1)[0]
+            raise ValueError(
+                f"Provider Template {keyword} target is invalid at line {line_number}"
+            )
+        encoded = json.dumps(names, separators=(",", ":"))
+        components = (f"IfAnyBind({encoded},", f"IfAllMissingBind({encoded},")
     else:
         grouped = re.fullmatch(
             r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
@@ -1372,8 +1432,8 @@ def _remove_empty_template_conditionals(body: str) -> str:
         r'"[A-Za-z_][A-Za-z0-9_]*",\s*\),\s*'
     )
     grouped = (
-        r'(?:IfAllBind|IfAnyMissingBind)\(\["[A-Za-z_][A-Za-z0-9_]*",'
-        r'"[A-Za-z_][A-Za-z0-9_]*"\],\s*\),\s*'
+        r'(?:IfAllBind|IfAnyMissingBind|IfAnyBind|IfAllMissingBind)\('
+        r'\["[A-Za-z_][A-Za-z0-9_]*"(?:,"[A-Za-z_][A-Za-z0-9_]*")+\],\s*\),\s*'
     )
     result = body
     while True:
@@ -1455,6 +1515,131 @@ def provider_template_layout_kind(wire_id: str) -> str | None:
     return None
 
 
+def size_scoped_template_parameters(
+    definition: TemplateDefinition, card_size: str
+) -> frozenset[str]:
+    """Return business Template props hidden when the Template is used at one card size.
+
+    展示差异来自模板自身的 `sizeScopedHiddenParameters` 元数据声明，
+    engine 只按声明通用读取，不维护模板 ID 特例白名单。
+    """
+    return frozenset(definition.size_scoped_hidden_parameters.get(card_size, ()))
+
+
+_ASSET_SEMANTIC_TERMS = {
+    "calendar": ("calendar", "schedule", "日程", "日历"),
+    "schedule": ("schedule", "日程"),
+    "meeting": ("meeting", "conference", "会议", "入会"),
+    "time": ("time", "clock", "时间", "时钟"),
+    "location": ("location", "place", "room", "地点", "位置", "会议室"),
+    "focus": ("focus", "dnd", "专注", "勿扰"),
+    "sport": ("sport", "training", "run", "运动", "训练", "跑步"),
+    "run": ("run", "running", "跑步"),
+    "activity": ("activity", "steps", "walk", "活动", "步数", "步行"),
+    "steps": ("steps", "step count", "walk", "步数", "步行"),
+    "calories": ("calorie", "calories", "kcal", "热量", "卡路里"),
+    "energy": ("energy", "flame", "fire", "能量", "火焰"),
+    "distance": ("distance", "mileage", "距离", "里程"),
+    "route": ("route", "path", "路线", "路径"),
+    "workout": ("workout", "exercise", "training", "锻炼", "训练", "运动"),
+    "heart": ("heart", "cardiac", "心脏", "心率"),
+    "heart-rate": ("heart rate", "heartrate", "心率"),
+    "pulse": ("pulse", "bpm", "脉搏", "心率"),
+    "call": ("call", "phone", "电话", "拨打"),
+    "weather": ("weather", "天气"),
+    "weather-condition": ("晴天", "天气降雨", "台风", "大风提醒"),
+    "weather-temperature-indicator": (
+        "weather_thermometer", "天气温度", "当前气温", "温度计", "温度指标", "温差变化", "冷热趋势",
+    ),
+    "weather-indicator": (
+        "晴天", "天气降雨", "台风", "大风提醒", "体感温度", "天气温度", "当前气温",
+    ),
+    "sleep": ("sleep", "睡眠", "月亮"),
+    "alert": ("alert", "warning", "预警", "警告"),
+    "product": ("product", "earphone", "headphone", "耳机"),
+    "audio": ("audio", "music", "earphone", "headphone", "音频", "音乐", "耳机"),
+    "earphone": ("earphone", "earbud", "headphone", "耳机", "耳塞"),
+    "earphone-body": ("耳机本体", "左右分体", "earphone body", "earbuds body"),
+    "earphone-case": ("耳机收纳盒", "耳机充电盒", "earphone case", "earbud case"),
+    "app-icon": ("应用图标", "品牌", "app icon"),
+    "phone-device": ("smartphone", "phone icon", "icon_phone", "手机图标"),
+    "music": ("music", "playlist", "音乐", "歌单"),
+    "favorite": ("favorite", "like", "heart", "收藏", "心动", "心形"),
+    "battery": ("battery", "charge", "charging", "电池", "电量", "充电"),
+    "power": ("power", "charge", "charging", "省电", "电量", "充电"),
+    "power-saving": (
+        "power saving",
+        "power-saving",
+        "battery saver",
+        "save power",
+        "leaf",
+        "省电",
+        "节电",
+        "节能",
+        "绿叶",
+        "叶片",
+        "叶子",
+    ),
+    "memory": ("memory", "ram", "内存"),
+    "resource": ("system resource", "resource usage", "系统资源", "资源占用"),
+    "clean": ("clean", "cleanup", "clear", "清理", "释放"),
+    "app": ("app", "application", "应用", "软件"),
+    "timer": ("timer", "timing", "hourglass", "计时", "时长", "时间"),
+    "countdown": ("countdown", "timing", "hourglass", "stopwatch", "沙漏", "秒表"),
+    "settings": ("settings", "setting", "设置"),
+    "parental-control": (
+        "parental control",
+        "parent control",
+        "digital wellbeing",
+        "家长控制",
+        "健康使用",
+        "管控时间",
+    ),
+}
+
+_ASSET_SOURCE_TERMS = (
+    "icon",
+    "image",
+    "asset",
+    "source",
+    "src",
+    "图标",
+    "图片",
+    "素材",
+    "资源",
+)
+
+
+def asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:
+    """Derive one asset's closed semantic tags from sceneTags and known terms."""
+    explicit = [
+        str(tag).casefold()
+        for tag in asset.get("sceneTags", [])
+        if isinstance(tag, str) and tag.strip()
+    ]
+    searchable = " ".join(
+        str(asset.get(key, "")) for key in ("id", "src", "description")
+    ).casefold()
+    inferred = [
+        tag
+        for tag, terms in _ASSET_SEMANTIC_TERMS.items()
+        if any(term in searchable for term in terms)
+    ]
+    return tuple(dict.fromkeys([*explicit, *inferred]))
+
+
+def parameter_value_kind(name: str, schema: dict[str, Any]) -> str:
+    """Classify one Template prop as data-path, asset-source, action-id or literal."""
+    if name.casefold().endswith("path"):
+        return "data-path"
+    semantic_text = f"{name} {schema.get('description', '')}".casefold()
+    if any(token in semantic_text for token in _ASSET_SOURCE_TERMS):
+        return "asset-source"
+    if any(token in semantic_text for token in ("action", "event", "操作", "事件")):
+        return "action-id"
+    return "literal"
+
+
 def _parse_component_body(
     body: str,
     *,
@@ -1534,7 +1719,7 @@ def _component_node(node: ast.AST) -> TemplateNode:
     if component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
         if len(values) != 1 or not children:
             raise ValueError(
-                f"Provider Template {component} requires two binding names and children"
+                f"Provider Template {component} requires at least two binding names and children"
             )
         _grouped_conditional_binding_names(values[0])
     elif component in _CONDITIONAL_COMPONENTS:
@@ -1553,10 +1738,10 @@ def _component_node(node: ast.AST) -> TemplateNode:
     )
 
 
-def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:
-    if value.kind != "array" or len(value.items) != 2:
+def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, ...]:
+    if value.kind != "array" or len(value.items) < 2:
         raise ValueError(
-            "Provider Template grouped conditional requires two binding names"
+            "Provider Template grouped conditional requires at least two binding names"
         )
     binding_names: list[str] = []
     for item in value.items:
@@ -1565,12 +1750,11 @@ def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:
                 "Provider Template grouped conditional binding must be a string"
             )
         binding_names.append(item.value)
-    first_name, second_name = binding_names
-    if first_name == second_name:
+    if len(set(binding_names)) != len(binding_names):
         raise ValueError(
             "Provider Template grouped conditional bindings must be different"
         )
-    return first_name, second_name
+    return tuple(binding_names)
 
 
 def _indexed_template_child(node: ast.AST) -> int | None:
@@ -2305,7 +2489,10 @@ def _validate_image_color_declarations(
         and preserve_value.value is True
     )
     preserve_here = preserve_original or declared_preserve
-    if node.component == "Image" and preserve_here and "fillColor" in options:
+    # 仅 Image 自身声明原色保护时禁止 fillColor（语义冲突：既要原色又要着色）。
+    # 继承的保护只代表动作区文字与底板沿用模板主题色，Image 可显式声明 fillColor
+    # 覆盖默认的动作前景补色（例如双行动作的 60% 辅助内容色图标）。
+    if node.component == "Image" and declared_preserve and "fillColor" in options:
         raise ValueError("Image _preserveOriginalColor cannot be combined with fillColor")
     for child in node.children:
         _validate_image_color_declarations(child, preserve_here)
@@ -2638,7 +2825,11 @@ def provider_template_context_admission(
     task_spec: TaskSpec,
 ) -> ProviderTemplateAdmission:
     """Apply Provider-owned constraints that depend on the selected generation context."""
-    if definition.requires_layout_action and not task_spec.eventCandidates:
+    if (
+        definition.requires_layout_action
+        and task_spec.size == "2x2"
+        and not task_spec.eventCandidates
+    ):
         return ProviderTemplateAdmission(False, "layout-action-required")
     return ProviderTemplateAdmission(True)
 
@@ -2684,6 +2875,8 @@ def _provider_variant_binding_admission(
     values_by_field = _provider_sample_values_by_field(task_spec.dataModelSchema)
     properties = variant.parameters_schema.get("properties", {})
     for name in variant.parameters_schema.get("required", ()):
+        if name.casefold().endswith("path"):
+            continue
         if name in definition.asset_parameter_semantic_tags:
             continue
         candidates = list(dict.fromkeys(values_by_field.get(name, ())))

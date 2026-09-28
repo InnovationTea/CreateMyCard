@@ -37,9 +37,9 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 
 模板路线允许受控的 `2x2` 双业务单动作组合：两个业务必须分别具备完整覆盖显式字段的 `HeroTitle`
 与 `HeroContent` 模板，服务端按 `HeroTitle`、`HeroContent`、`PillAction` 的固定顺序组合，根布局为
-`HeroTitleContentActionLayout`。第二层模型只能消费确定性 Search 返回的候选，不得交换、重复或嵌套位置。
+`HeroTitleContentActionLayout`。第二层模型只能消费确定性 Planner 的完整计划，不得交换、重复或嵌套位置。
 
-`HeroContent` 是全局主题所属的主业务。Search 确定两个位置后，按该业务重新过滤主题候选；保留兼容的
+`HeroContent` 是全局主题所属的主业务。Planner 确定两个位置后，按该业务重新过滤主题候选；保留兼容的
 已选主题，否则确定性选择该业务的可用主题，沿用版本门禁及融球候选优先规则。第二层使用同一主题契约，
 `HeroTitle`、`HeroContent` 和 `PillAction` 统一应用其根样式、主辅内容色和动作色。主业务支持融球且
 版本门禁开启时，可信编译器为整卡只包装一次主业务融球背景；不得改用标题业务的融球，也不放开其它多业务布局。
@@ -122,11 +122,14 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 
 ## 7. 模板内容根与对比度边界
 
-公共 A2UI 校验根保持 `root`，非融球 `2x2` 固定布局模板为
+公共 A2UI 校验根保持 `root`，非融球 `2x2`、`2x4` 固定布局模板为
 `root → template_root → __genui_render_component__root_1`，防溢出前缀直接标记原布局骨架，
-不再增加专用防溢出 Stack。单业务、双业务及各主题使用同一规则；根背景保持不变，安全边距从根节点
+不再增加专用防溢出 Stack。单业务、多业务及各主题使用同一规则；根背景保持不变，安全边距从根节点
 移到 `template_root`，骨架属性和内容不变。独立模板预览仍为 `root → template_root`；
-不含单一布局骨架的旧 CardPlan shell 和非 `2x2` 产物保持原结构。融球模板仍为
+不含单一布局骨架的旧 CardPlan shell 保持原结构。`2x4` 沿用 300×150vp 画布、12vp 安全边距和
+276×126vp 内容预算；标记覆盖整个布局骨架，包含全部业务与动作，不对业务子树逐个加标记。
+融球的版本、主题和尺寸门禁保持不变，`2x4` 即使选中融球主题也沿用其原有纯色或渐变背景，
+使用上述非融球内容结构，不展开融球背景。现有 `2x2` 融球模板仍为
 `root → template_root → __genui_render_component__template_root → root_1`，
 融球背景仍是 `root` 的并列子节点。保留当前融球容器的 `matchParent` 尺寸。
 
@@ -144,6 +147,7 @@ Expr(data.start == "" ? "" : data.start + " - " + data.end)
 分属不同的固定布局容器。融球、非融球和独立模板预览均适用；普通卡片和无效标记仍检查单位缺失。
 `DISPLAY_UNIT_DUPLICATED`、其它 semantic、hard、其余转换前校验及高度预算保持不变，
 也不恢复运行时 IF 支持。
+有效模板根同时豁免 Compact 的 W9 固定双栏路由限制，以保留批准的横版组合。
 模板字号按评审结果保留；原有 38fp 主值统一改为 30fp、高度 40vp。
 运动健康模板的 30fp 文本使用自然高度，不声明固定 height，以保持与相邻单位或说明的对齐。
 独立调用对比度校验器使用同一模板根判断，符合条件整卡跳过，否则所有内容正常检查。
@@ -194,3 +198,10 @@ Provider 模板通过 `requiredAnyOf` 声明字段组内至少一项可用（多
 EarbudPairFull 要求名称或连接状态至少一项可用，保留编译期防线。EarbudPairFull 与 EarbudTripleHero 的三项充电状态采用 displayTogether：缺任意一项时均不计入覆盖；显式请求被隐藏状态时，该模板不可进入计划，无可用模板则在正文调用前返回不适用。
 
 2×2 耳机单业务的首层输出 excludedActionIds，列出用户局部禁止的输入候选动作。保留原始候选列表，自动选择前校验排除 ID 来源、拒绝与显式动作冲突，按过滤后候选数量比较 Compact、Hero、Full。整体禁止或不能可靠映射局部限制时关闭自动补动作。其它业务不输出该字段。
+
+## 横版规划与字段填充
+
+2x4 的默认链路与 2x2 共用第一层意图、Search、Planner 和第二层填充契约。Search 报告数据可用性与
+字段覆盖，Planner 枚举完整布局、固定业务实例和按钮归属；第二层不再自行决定宽卡片组合。
+通用健康指标的每个路径参数随 Plan 固定，并在编译前校验。完整规则和兼容入口边界见
+[Search 与 Planner 交互契约](template-search-planner-contract.md#7-横版组合规则)。

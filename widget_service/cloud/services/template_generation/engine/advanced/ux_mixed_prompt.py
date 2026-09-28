@@ -12,6 +12,7 @@ from models.generation import TaskSpec
 from services.template_generation.engine.cardplan.generated.prompts import (
     UX_MIXED_SYSTEM_PROMPT_KERNEL,
 )
+from services.template_generation.engine.cardplan.generic_metrics import GENERIC_HEALTH_LABELS
 from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
     BusinessTemplateGroup,
@@ -54,7 +55,13 @@ _WEATHER_BUILTIN_ASSETS = (
 )
 _MAX_UX_MIXED_PROMPT_CHARS = 24_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
+_COMPACT_ACTION_TEMPLATE_ID = "CompactAction@1"
+_COMPACT_SUBTITLE_ACTION_TEMPLATE_ID = "CompactSubtitleAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
+_LARGE_ICON_ACTION_TEMPLATE_ID = "LargeIconAction@1"
+_TWO_FOCUS_LAYOUT_IDS = frozenset(
+    {"WideTwoFocusLayout", "WideTwoFocusActionLayout", "WideTwoFocusTwoActionLayout"}
+)
 
 
 @dataclass(frozen=True)
@@ -86,6 +93,7 @@ class _ScopePromptBridge(BaseModel):
     adaptive_template_id: None = None
     advanced_component_ids: tuple[str, ...]
     disable_template_fallback: bool = True
+    preserve_search_candidates: bool = False
 
 
 @dataclass(frozen=True)
@@ -104,6 +112,14 @@ def build_ux_mixed_validation_retry_prompt(
     error: ValueError,
 ) -> list[dict[str, str]]:
     """Ask only the second layer to regenerate after strict contract rejection."""
+    asset_hint = ""
+    if "Template asset semantics do not match" in str(error):
+        asset_hint = (
+            "该错误说明所选素材不满足对应参数声明的语义标签："
+            "素材必须取自该参数在 parameterSources 中的 allowedSources；"
+            "allowedSources 为空表示本轮没有匹配素材，可选参数必须整体省略，"
+            "不得改用其它素材替代。"
+        )
     return [
         *messages,
         {"role": "assistant", "content": raw_output},
@@ -112,13 +128,15 @@ def build_ux_mixed_validation_retry_prompt(
             "content": (
                 "上一输出未通过服务端严格契约校验："
                 f"{error}。严格使用原动态契约，重新输出完整调用树。"
-                "输出必须以 Template( 开头并以 ); 结束；"
+                + asset_hint
+                + "输出必须以 Template( 开头并以 ); 结束；"
                 "所有 Template 都必须是不含关键字参数的直接位置调用。"
                 "禁止变量赋值、return、props=、children=、对象方法、"
                 "数组 children、Markdown 或解释。"
                 "若原动态契约包含 planCandidates，必须完整选择其中一个原子 Plan，"
                 "不得跨 Plan 混用布局、业务模板或 Action 消费位置；"
-                "每个 requiredLocalTemplateGroups 恰好选择一个业务 Template；"
+                "有 Plan 时按 Plan 的业务实例数生成；无 Plan 时每个 "
+                "requiredLocalTemplateGroups 恰好选择一个业务 Template；"
                 "不得新增基础组件、业务文本、Action 或候选外 Template。"
                 "只输出类 Tersel 调用树，不要解释。"
             ),
@@ -183,8 +201,29 @@ def build_ux_mixed_prompt(
             scope,
             task_spec,
             registry,
+            required_template_groups=required_template_groups,
         )
-        if layout_selection.business_layout_kinds_by_position:
+        if _TWO_FOCUS_LAYOUT_IDS.intersection(layout_selection.layout_ids):
+            candidate_ids_by_component, required_template_groups = (
+                _order_two_focus_component_slots(
+                    candidate_ids_by_component,
+                    required_template_groups,
+                    card_spec,
+                    registry,
+                )
+            )
+        if task_spec.size == "2x4" and layout_selection.business_layout_kinds_by_position:
+            (
+                candidate_ids_by_component,
+                effective_required_template_groups,
+                _,
+            ) = _filter_second_layer_template_candidates(
+                candidate_ids_by_component,
+                required_template_groups,
+                layout_selection.business_layout_kinds_by_position,
+                exact_slots=True,
+            )
+        elif layout_selection.business_layout_kinds_by_position:
             (
                 candidate_ids_by_component,
                 effective_required_template_groups,
@@ -233,6 +272,7 @@ def build_ux_mixed_prompt(
         local_template_ids=selected_template_ids,
         primary_domain=primary_component.domain_id,
         advanced_component_ids=scope.advanced_component_ids,
+        preserve_search_candidates=bool(template_plans),
     )
     base = build_hybrid_prompt(
         task_spec=task_spec,
@@ -390,6 +430,13 @@ def build_ux_mixed_prompt(
     required_numbers = tuple(item for item in required_numbers if item not in provider_owned_values)
     contract = base.contract.model_copy(
         update={
+            "trusted_literals": tuple(dict.fromkeys(
+                (*base.contract.trusted_literals, *GENERIC_HEALTH_LABELS.values())
+            )),
+            # 原子计划已校验操作归属，内置按钮不占布局根的 Action 槽位。
+            "content_action_ids": (
+                selected_action_ids if template_plans else base.contract.content_action_ids
+            ),
             "required_template_groups": effective_required_template_groups,
             "allowed_template_ids": tuple(
                 dict.fromkeys(
@@ -449,7 +496,16 @@ def build_ux_mixed_prompt(
         )
         for component_id, template_ids in candidate_ids_by_component.items()
     )
-    action_template_ids = layout_selection.action_template_ids if selected_action_ids else ()
+    candidate_groups = _candidate_groups_for_prompt(
+        effective_component_candidates,
+        effective_required_template_groups,
+    )
+    action_template_ids = (
+        layout_selection.action_template_ids if selected_action_ids else ()
+    )
+    if layout_selection.layout_ids == ("WideHalfTwoCompactLayout",):
+        if selected_action_ids == ("event.open.music.daily",):
+            action_template_ids = ("PlaylistCompactAction@1",)
     action_template_contracts = build_template_prompt_contracts(
         action_template_ids,
         contract,
@@ -508,6 +564,13 @@ def build_ux_mixed_prompt(
     )
     selected_actions = _selected_action_candidates(contract)
     asset_candidates = _asset_prompt_candidates(task_spec, contract)
+    candidate_group_guidance = (
+        "candidateGroups 中每一组对应一个独立布局槽位；同一个通用组件可以在多个槽位实例化。"
+        "本用例必须按槽位顺序选择 Full、Compact、Compact，并由布局根承载。"
+        if tuple(item["layoutKind"] for item in candidate_groups)
+        == ("Full", "Compact", "Compact")
+        else "candidateGroups 中每一组对应一个独立布局槽位；严格按槽位顺序选择并组合模板。"
+    )
     layout_consistency_instruction = (
         "严格按所选 Plan 的 layoutTemplateId 和 children 顺序生成；"
         "主题已经由 Planner 确定，不得根据候选模板自行更换布局、主题或 Action 消费位置。"
@@ -516,6 +579,8 @@ def build_ux_mixed_prompt(
             "HeroTitleContentActionLayout 的三个直接 children 必须严格按 HeroTitle、"
             "HeroContent、PillAction 排列。全局主题已按主业务 HeroContent 确定，"
             "标题与动作继承同一主题；融球背景由服务端按版本门禁统一展开，不由模型生成。"
+            if "HeroTitleContentActionLayout" in allowed_layout_ids
+            else "严格按所选布局的槽位顺序组合；使用首层确定的主题，不得自行更换。"
         )
     )
     user = "\n".join(
@@ -531,6 +596,14 @@ def build_ux_mixed_prompt(
                     for candidate in effective_component_candidates
                 ],
                 ensure_ascii=False,
+            ),
+            *(
+                (
+                    "candidateGroups=" + json.dumps(candidate_groups, ensure_ascii=False),
+                    candidate_group_guidance,
+                )
+                if task_spec.size == "2x4"
+                else ()
             ),
             "templateContracts="
             + json.dumps(business_template_contracts, ensure_ascii=False),
@@ -570,7 +643,8 @@ def build_ux_mixed_prompt(
                 "给出最多三个完整原子 Plan。能合法补全开放 Props 时优先选择排名靠前的 Plan，"
                 "必须完整选择其中一个 Plan，"
                 "严格保持 layoutTemplateId、业务 Template 顺序以及 Action 消费位置；"
-                "不得跨 Plan 混用。仅补全所选 Template 的开放 Props 与可信素材。"
+                "不得跨 Plan 混用或更换 fieldBindings；重复通用模板按 Plan 实例数生成。"
+                "仅补全所选 Template 的开放 Props 与可信素材。"
                 if template_plans
                 else (
                     "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"
@@ -641,18 +715,54 @@ def _layout_prompt_contracts(
     return tuple(result)
 
 
+def _candidate_groups_for_prompt(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    required_groups: tuple[tuple[str, ...], ...],
+) -> tuple[dict[str, Any], ...]:
+    """Expose repeated template slots without duplicating component candidates."""
+    candidate_ids_by_component = {
+        candidate.component_id: set(candidate.available_template_ids)
+        for candidate in candidates
+    }
+    groups: list[dict[str, Any]] = []
+    for slot_index, template_group in enumerate(required_groups):
+        template_ids = tuple(template_group)
+        matching_components = tuple(
+            component_id
+            for component_id, available_ids in candidate_ids_by_component.items()
+            if set(template_ids).intersection(available_ids)
+        )
+        groups.append(
+            {
+                "slotIndex": slot_index,
+                "componentId": matching_components[0] if matching_components else "",
+                "availableTemplateIds": list(template_ids),
+                "layoutKind": (
+                    provider_template_layout_kind(template_ids[0])
+                    if template_ids
+                    else ""
+                ),
+            }
+        )
+    return tuple(groups)
+
+
 def _selected_action_candidates(
     contract: HybridBodyContract,
 ) -> tuple[dict[str, str], ...]:
     selected_ids = set(contract.content_action_ids)
-    return tuple(
-        {
+    entries: list[dict[str, str]] = []
+    for action in contract.action_bindings:
+        if action.action_id not in selected_ids:
+            continue
+        entry = {
             "actionId": action.action_id,
             "label": action.display_label,
         }
-        for action in contract.action_bindings
-        if action.action_id in selected_ids
-    )
+        if action.display_subtitle:
+            entry["subtitle"] = action.display_subtitle
+        entries.append(entry)
+    return tuple(entries)
 
 
 def _asset_prompt_candidates(
@@ -740,8 +850,28 @@ def _layout_output_option(
         "HeroTitleContentActionLayout": ("HeroTitle", "HeroContent"),
         "TwoSupportLayout": "Support",
         "WideSingleFocusLayout": "WideHero" if selected_actions else "WideFull",
+        "WideFullOnlyLayout": "WideFull",
+        "WideTwoFullLayout": "Full",
+        "WideHeroCompactLayout": ("Hero", "Compact"),
+        "WideFullHeroActionLayout": ("Full", "Hero"),
+        "WideHeroActionFullLayout": ("Full", "Hero"),
+        "WideFullTwoCompactLayout": "Full",
+        "WideFourCompactLayout": ("Compact",) * 4,
+        "WideFullHeroTwoActionLayout": ("Full", "Hero"),
+        "WideTwoHeroActionLayout": ("Hero", "Hero"),
+        "WideFullFourActionLayout": "Full",
+        "WideTwoHalfLayout": "WideHalf",
+        "WideHalfTwoCompactLayout": ("WideHalf", "Compact", "Compact"),
+        "WideHalfCompactTwoLargeActionLayout": ("WideHalf", "Compact"),
+        "WideHalfFourLargeActionLayout": "WideHalf",
+        "WideTwoFocusLayout": ("Hero", "Hero"),
+        "WideTwoFocusActionLayout": ("Hero", "Hero"),
+        "WideTwoFocusTwoActionLayout": ("Hero", "Hero"),
     }[layout_id]
-    if isinstance(layout_kind, tuple):
+    if layout_id == "WideFullTwoCompactLayout":
+        business_template_ids = required_template_groups
+        layout_kind_label = "Full+Compact"
+    elif isinstance(layout_kind, tuple):
         business_template_ids = tuple(
             tuple(
                 template_id
@@ -767,6 +897,29 @@ def _layout_output_option(
         "CompactTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "HeroTitleContentActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideSingleFocusLayout": _PILL_ACTION_TEMPLATE_ID if selected_actions else None,
+        "WideFullHeroActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideHeroActionFullLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideFullTwoCompactLayout": (
+            _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID
+            if _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID in action_template_ids
+            # 双行动作模板的 subtitle 为必选 Props：仅当批准动作确实带有
+            # 副标题时才优先使用，否则回退单行 CompactAction。
+            and bool(selected_actions)
+            and all(item.get("subtitle") for item in selected_actions)
+            else _COMPACT_ACTION_TEMPLATE_ID
+        ),
+        "WideHalfTwoCompactLayout": (
+            "PlaylistCompactAction@1"
+            if "PlaylistCompactAction@1" in action_template_ids
+            else _COMPACT_ACTION_TEMPLATE_ID
+        ),
+        "WideFullHeroTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideTwoHeroActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideFullFourActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
+        "WideHalfCompactTwoLargeActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
+        "WideHalfFourLargeActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
+        "WideTwoFocusActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideTwoFocusTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
     }.get(layout_id)
     if action_template_id not in action_template_ids:
         action_template_id = None
@@ -787,17 +940,46 @@ def _layout_output_option(
     }
 
 
+# 候选动作可携带 subtitle 等附加信息，但输出语法只允许模板签名内的 Props。
+_ACTION_TEMPLATE_ALLOWED_PROPS: dict[str, tuple[str, ...]] = {
+    "PillAction@1": ("actionId", "label"),
+    "PlaylistCompactAction@1": ("actionId", "label"),
+    "CompactAction@1": ("actionId", "label", "subtitle", "prominent"),
+    "CompactSubtitleAction@1": ("actionId", "label", "subtitle"),
+    "IconAction@1": ("actionId",),
+    "LargeIconAction@1": ("actionId",),
+}
+
+
 def _action_output_syntax(
     action_template_id: str,
     action: dict[str, str],
 ) -> str:
-    if action_template_id == _ICON_ACTION_TEMPLATE_ID:
+    allowed_props = _ACTION_TEMPLATE_ALLOWED_PROPS.get(action_template_id)
+    filtered = (
+        {key: action[key] for key in allowed_props if key in action}
+        if allowed_props is not None
+        else action
+    )
+    if action_template_id == _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID:
         props = {
-            "actionId": action["actionId"],
+            **filtered,
+            "icon": "<one semantically matching trustedAssetSource>",
+        }
+        if "subtitle" not in props:
+            props["subtitle"] = "<与动作互补的副标题，来自用户请求语义>"
+    elif action_template_id in {_COMPACT_ACTION_TEMPLATE_ID, "PlaylistCompactAction@1"}:
+        props = {
+            **filtered,
+            "icon": "<one semantically matching trustedAssetSource>",
+        }
+    elif action_template_id in {_ICON_ACTION_TEMPLATE_ID, _LARGE_ICON_ACTION_TEMPLATE_ID}:
+        props = {
+            "actionId": filtered["actionId"],
             "icon": "<one semantically matching trustedAssetSource>",
         }
     else:
-        props = action
+        props = filtered
     return (
         f'Template("{action_template_id}",'
         + json.dumps(props, ensure_ascii=False, separators=(",", ":"))
@@ -856,12 +1038,29 @@ def _validate_prompt_template_plans(
     for plan in plans:
         business_ids = {slot.business_id for slot in plan.business_slots}
         action_ids = {item.action_id for item in plan.action_assignments}
-        if business_ids != expected_business_ids:
+        if business_ids != expected_business_ids and not _is_fallback_scope_plan(
+            plan,
+            business_ids,
+            expected_business_ids,
+        ):
             raise ValueError("Template Plan businesses do not match Advanced Scope")
         if action_ids != expected_action_ids:
             raise ValueError("Template Plan Actions do not match selected Actions")
         if plan.theme_id != scope.theme_id:
             raise ValueError("Template Plan Theme does not match Advanced Scope")
+
+
+def _is_fallback_scope_plan(
+    plan: TemplatePlan,
+    business_ids: set[str],
+    expected_business_ids: set[str],
+) -> bool:
+    """独立 WideFull 部分覆盖兜底计划的业务集合是范围并集的子集，允许并存。"""
+    return (
+        plan.layout_template_id == "WideFullOnlyLayout@1"
+        and len(plan.business_slots) == 1
+        and business_ids < expected_business_ids
+    )
 
 
 def _planned_layout_selection(
@@ -921,6 +1120,11 @@ def _planned_output_grammar(
                     "position": slot.position,
                     "templateId": slot.template_id,
                     "layoutRole": slot.layout_role,
+                    "requiredFieldBindings": slot.field_bindings,
+                    "fieldLabels": {
+                        path: GENERIC_HEALTH_LABELS.get(path)
+                        for path in slot.field_bindings.values()
+                    },
                     "syntax": (
                         f'Template("{slot.template_id}", <matching props>)'
                     ),
@@ -935,7 +1139,7 @@ def _planned_output_grammar(
                 }
             )
         root_actions = []
-        for index, assignment in enumerate(plan.action_assignments):
+        for assignment in plan.action_assignments:
             if assignment.consumer != "root-action":
                 continue
             action = actions_by_id.get(assignment.action_id)
@@ -946,7 +1150,7 @@ def _planned_output_grammar(
                 raise ValueError("Root Action Plan is missing its Template")
             root_actions.append(
                 {
-                    "position": len(plan.business_slots) + index,
+                    "position": len(plan.business_slots) + len(root_actions),
                     "templateId": action_template_id,
                     "syntax": _action_output_syntax(action_template_id, action),
                 }
@@ -965,10 +1169,66 @@ def _planned_output_grammar(
     }
 
 
+def _order_two_focus_component_slots(
+    candidates_by_component: dict[str, tuple[str, ...]],
+    required_template_groups: tuple[tuple[str, ...], ...],
+    card_spec: dict[str, Any],
+    registry: CardPlanRegistry,
+) -> tuple[dict[str, tuple[str, ...]], tuple[tuple[str, ...], ...]]:
+    """Order symmetric two-focus slots by the request data-binding order.
+
+    The two-focus layouts place the first slot on the left panel. The retrieval
+    pipeline orders candidates alphabetically, so without this projection a
+    "weather + battery" request would render battery first. Reorder both the
+    component candidates and the per-component template groups by the request
+    ``dataBindings`` order, which follows the user's mention order.
+    """
+    bindings = card_spec.get("dataBindings")
+    capability_order: dict[str, int] = {}
+    if isinstance(bindings, list):
+        for index, binding in enumerate(bindings):
+            if not isinstance(binding, dict):
+                continue
+            capability_id = binding.get("capabilityId")
+            if isinstance(capability_id, str) and capability_id not in capability_order:
+                capability_order[capability_id] = index
+
+    def slot_order(component_id: str) -> tuple[int, str]:
+        capability_ids = registry.require_ux_business_component(
+            component_id
+        ).data_capability_ids
+        indexes = [
+            capability_order[capability_id]
+            for capability_id in capability_ids
+            if capability_id in capability_order
+        ]
+        return (min(indexes) if indexes else len(capability_order), component_id)
+
+    ordered_components = dict(
+        sorted(candidates_by_component.items(), key=lambda item: slot_order(item[0]))
+    )
+    groups_by_component: dict[str, tuple[str, ...]] = {}
+    for group in required_template_groups:
+        for component_id, template_ids in ordered_components.items():
+            if component_id in groups_by_component:
+                continue
+            if set(group).intersection(template_ids):
+                groups_by_component[component_id] = group
+                break
+    if len(groups_by_component) != len(ordered_components):
+        return candidates_by_component, required_template_groups
+    ordered_groups = tuple(
+        groups_by_component[component_id] for component_id in ordered_components
+    )
+    return ordered_components, ordered_groups
+
+
 def _second_layer_layout_selection(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
+    *,
+    required_template_groups: tuple[tuple[str, ...], ...] = (),
 ) -> _SecondLayerLayoutSelection:
     """Resolve only layout capacity and Action shape in the second layer."""
     action_count = len(task_spec.eventCandidates)
@@ -1013,12 +1273,163 @@ def _second_layer_layout_selection(
             )
         else:
             raise ValueError("2x2 Template candidates do not fit one supported layout")
-    elif task_spec.size == "2x4" and component_count == 1 and action_count <= 1:
-        selection = _SecondLayerLayoutSelection(
-            layout_ids=("WideSingleFocusLayout",),
-            layout_kinds=("WideHero" if action_count else "WideFull",),
-            action_template_ids=((_PILL_ACTION_TEMPLATE_ID,) if action_count else ()),
+    elif task_spec.size == "2x4":
+        group_kinds = tuple(
+            {
+                provider_template_layout_kind(template_id)
+                for template_id in group
+            }
+            for group in required_template_groups
         )
+
+        def has_half(index: int) -> bool:
+            return index < len(group_kinds) and "WideHalf" in group_kinds[index]
+        if (component_count, action_count) == (1, 0):
+            layout_id, kinds, actions = "WideFullOnlyLayout", ("WideFull",), ()
+        elif (component_count, action_count) == (1, 1):
+            if (
+                len(group_kinds) >= 2
+                and "Full" in group_kinds[0]
+                and "Compact" in group_kinds[1]
+            ):
+                layout_id, kinds, actions = (
+                    "WideFullTwoCompactLayout",
+                    ("Full", "Compact"),
+                    (_COMPACT_ACTION_TEMPLATE_ID,),
+                )
+            else:
+                layout_id, kinds, actions = (
+                    "WideSingleFocusLayout", ("WideHero",), (_PILL_ACTION_TEMPLATE_ID,)
+                )
+        elif (component_count, action_count) == (1, 2):
+            layout_id, kinds, actions = (
+                "WideFullTwoCompactLayout", ("Full",), (_COMPACT_ACTION_TEMPLATE_ID,)
+            )
+        elif (component_count, action_count) == (2, 0):
+            full_primary_present = len(group_kinds) >= 3 and "Full" in group_kinds[0]
+            compact_secondary_present = len(group_kinds) >= 2 and "Compact" in group_kinds[1]
+            compact_tertiary_present = len(group_kinds) >= 3 and "Compact" in group_kinds[2]
+            if full_primary_present and compact_secondary_present and compact_tertiary_present:
+                layout_id, kinds, actions = (
+                    "WideFullTwoCompactLayout", ("Full", "Compact"), ()
+                )
+            elif compact_secondary_present:
+                if "Full" in group_kinds[0]:
+                    raise ValueError(
+                        "2x4 Full + Compact composition is not supported; "
+                        "use WideFullTwoCompactLayout with two Compact children"
+                    )
+                elif "Hero" in group_kinds[0]:
+                    layout_id, kinds, actions = (
+                        "WideHeroCompactLayout", ("Hero", "Compact"), ()
+                    )
+                else:
+                    raise ValueError(
+                        "2x4 primary business must provide Full or Hero beside Compact"
+                    )
+            else:
+                if has_half(0) and has_half(1):
+                    layout_id, kinds, actions = "WideTwoHalfLayout", ("WideHalf", "WideHalf"), ()
+                elif "Hero" in group_kinds[0] and "Hero" in group_kinds[1]:
+                    layout_id, kinds, actions = "WideTwoFocusLayout", ("Hero", "Hero"), ()
+                else:
+                    layout_id, kinds, actions = "WideTwoFullLayout", ("Full", "Full"), ()
+        elif (component_count, action_count) == (4, 0):
+            if not all("Compact" in kinds for kinds in group_kinds):
+                raise ValueError(
+                    "2x4 four-Compact layout requires four Compact business templates"
+                )
+            layout_id, kinds, actions = (
+                "WideFourCompactLayout", ("Compact",) * 4, ()
+            )
+        elif (component_count, action_count) == (2, 1):
+            if has_half(0) and "Compact" in group_kinds[1]:
+                selection = _SecondLayerLayoutSelection(
+                    layout_ids=("WideHalfTwoCompactLayout",),
+                    layout_kinds=("WideHalf",),
+                    action_template_ids=(_COMPACT_ACTION_TEMPLATE_ID,),
+                    business_layout_kinds_by_position=("WideHalf", "Compact"),
+                )
+            elif len(group_kinds) >= 2 and "Compact" in group_kinds[1]:
+                if "Full" in group_kinds[0]:
+                    selection = _SecondLayerLayoutSelection(
+                        layout_ids=("WideFullTwoCompactLayout",),
+                        layout_kinds=("Full",),
+                        action_template_ids=(_COMPACT_ACTION_TEMPLATE_ID,),
+                        business_layout_kinds_by_position=("Full", "Compact"),
+                    )
+                elif "Hero" in group_kinds[0]:
+                    selection = _SecondLayerLayoutSelection(
+                        layout_ids=("WideFullTwoCompactLayout",),
+                        layout_kinds=("Hero",),
+                        action_template_ids=(_COMPACT_ACTION_TEMPLATE_ID,),
+                        business_layout_kinds_by_position=("Hero", "Compact"),
+                    )
+                else:
+                    raise ValueError(
+                        "2x4 primary business must provide Full or Hero beside Compact"
+                    )
+            else:
+                hero_pair = (
+                    len(group_kinds) >= 2
+                    and "Hero" in group_kinds[0]
+                    and "Hero" in group_kinds[1]
+                )
+                selection = _SecondLayerLayoutSelection(
+                    layout_ids=(
+                        ("WideTwoFocusActionLayout",)
+                        if hero_pair
+                        else (
+                            "WideFullHeroActionLayout",
+                            "WideHeroActionFullLayout",
+                        )
+                    ),
+                    layout_kinds=("Full", "Full") if not hero_pair else ("Hero",),
+                    action_template_ids=(_PILL_ACTION_TEMPLATE_ID,),
+                    business_layout_kinds_by_position=("Full", "Hero")
+                    if not hero_pair
+                    else ("Hero", "Hero"),
+                )
+        elif (component_count, action_count) == (3, 0):
+            layout_id, kinds, actions = (
+                ("WideHalfTwoCompactLayout", ("WideHalf", "Compact", "Compact"), ())
+                if has_half(0)
+                else ("WideFullTwoCompactLayout", ("Full", "Compact", "Compact"), ())
+            )
+        elif (component_count, action_count) == (2, 2):
+            if has_half(0):
+                layout_id, kinds, actions = (
+                    "WideHalfCompactTwoLargeActionLayout",
+                    ("WideHalf", "Compact"),
+                    (_LARGE_ICON_ACTION_TEMPLATE_ID,),
+                )
+            elif "Hero" in group_kinds[0] and "Hero" in group_kinds[1]:
+                layout_id, kinds, actions = (
+                    "WideTwoFocusTwoActionLayout",
+                    ("Hero", "Hero"),
+                    (_PILL_ACTION_TEMPLATE_ID,),
+                )
+            else:
+                layout_id, kinds, actions = (
+                    "WideFullHeroTwoActionLayout",
+                    ("Full", "Hero"),
+                    (_PILL_ACTION_TEMPLATE_ID,),
+                )
+        elif (component_count, action_count) == (1, 4):
+            layout_id, kinds, actions = (
+                ("WideHalfFourLargeActionLayout", ("WideHalf",), (_LARGE_ICON_ACTION_TEMPLATE_ID,))
+                if has_half(0)
+                else ("WideFullFourActionLayout", ("Full",), (_LARGE_ICON_ACTION_TEMPLATE_ID,))
+            )
+        else:
+            raise ValueError("2x4 Template candidates do not fit one supported layout")
+        if (component_count, action_count) != (2, 1):
+            selection = _SecondLayerLayoutSelection(
+                layout_ids=(layout_id,),
+                layout_kinds=(kinds[0],),
+                action_template_ids=actions,
+                business_layout_kinds_by_position=kinds,
+            )
     else:
         raise ValueError("Template candidates do not fit one supported layout")
     allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
@@ -1047,12 +1458,64 @@ def _filter_second_layer_template_candidates(
     candidates_by_component: dict[str, tuple[str, ...]],
     required_template_groups: tuple[tuple[str, ...], ...],
     layout_kinds: tuple[str, ...],
+    *,
+    exact_slots: bool = False,
 ) -> tuple[
     dict[str, tuple[str, ...]],
     tuple[tuple[str, ...], ...],
     tuple[str, ...],
 ]:
     """Filter first-layer candidates by layout without inspecting business data."""
+    if exact_slots:
+        if len(layout_kinds) == len(candidates_by_component):
+            filtered: dict[str, tuple[str, ...]] = {}
+            for (component_id, template_ids), layout_kind in zip(
+                candidates_by_component.items(), layout_kinds, strict=True
+            ):
+                matched_ids = []
+                for template_id in template_ids:
+                    if provider_template_layout_kind(template_id) == layout_kind:
+                        matched_ids.append(template_id)
+                filtered[component_id] = tuple(matched_ids)
+            if any(not template_ids for template_ids in filtered.values()):
+                raise ValueError(
+                    "First-layer Template candidates have no complete layout-slot coverage"
+                )
+            allowed_ids = {item for values in filtered.values() for item in values}
+            groups = required_template_groups or tuple(filtered.values())
+            filtered_groups = tuple(
+                tuple(item for item in group if item in allowed_ids) for group in groups
+            )
+            if any(not group for group in filtered_groups):
+                raise ValueError(
+                    "First-layer Template candidates have no complete layout-slot coverage"
+                )
+            return filtered, filtered_groups, layout_kinds
+        if (
+            len(required_template_groups) == len(layout_kinds)
+            and len(layout_kinds) > len(candidates_by_component)
+        ):
+            # Split-slot composition (one component, e.g. a Full + Compact
+            # pair): every slot group must contain a template of its slot kind
+            # among that component's candidates.
+            allowed_ids = {
+                item for values in candidates_by_component.values() for item in values
+            }
+            filtered_groups = []
+            for group, layout_kind in zip(
+                required_template_groups, layout_kinds, strict=True
+            ):
+                group_ids = tuple(item for item in group if item in allowed_ids)
+                if not any(
+                    provider_template_layout_kind(item) == layout_kind
+                    for item in group_ids
+                ):
+                    raise ValueError(
+                        "First-layer Template candidates have no complete layout-slot coverage"
+                    )
+                filtered_groups.append(group_ids)
+            return dict(candidates_by_component), tuple(filtered_groups), layout_kinds
+        raise ValueError("Layout slot count does not match Advanced Scope components")
     viable_layout_kind_values: list[str] = []
     for layout_kind in layout_kinds:
         has_complete_coverage = _layout_kind_has_complete_coverage(
@@ -1180,13 +1643,28 @@ def _prune_layout_selection(
     pairs = tuple(pairs_values)
     if not pairs:
         raise ValueError("Second-layer layout candidates have no complete business Template")
-    has_pill_layout = any(layout_id != "FullIconActionLayout" for layout_id, _ in pairs)
+    large_icon_layout_ids = {
+        "WideFullFourActionLayout",
+        "WideHalfCompactTwoLargeActionLayout",
+        "WideHalfFourLargeActionLayout",
+    }
+    has_large_icon_layout = any(
+        layout_id in large_icon_layout_ids for layout_id, _ in pairs
+    )
     has_icon_layout = any(layout_id == "FullIconActionLayout" for layout_id, _ in pairs)
+    has_pill_layout = any(
+        layout_id not in large_icon_layout_ids | {"FullIconActionLayout"}
+        for layout_id, _ in pairs
+    )
     action_templates: list[str] = []
     for template_id in selection.action_template_ids:
         if template_id == _PILL_ACTION_TEMPLATE_ID and has_pill_layout:
             action_templates.append(template_id)
         if template_id == _ICON_ACTION_TEMPLATE_ID and has_icon_layout:
+            action_templates.append(template_id)
+        if template_id == _LARGE_ICON_ACTION_TEMPLATE_ID and has_large_icon_layout:
+            action_templates.append(template_id)
+        if template_id == _COMPACT_ACTION_TEMPLATE_ID and has_pill_layout:
             action_templates.append(template_id)
     return _SecondLayerLayoutSelection(
         layout_ids=tuple(layout_id for layout_id, _ in pairs),

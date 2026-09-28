@@ -156,15 +156,14 @@ def test_case_prompt_self_check_is_only_for_small_single_earphone_business(
                 candidateOutputFields=["/current/condition"],
             ),
         )
-    if size == "2x4":
-        with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-            build_template_retrieval_prompt(task, get_cardplan_registry(), bindings)
-        return
     messages = build_template_retrieval_prompt(task, get_cardplan_registry(), bindings)
     system = messages[0].get("content")
     assert isinstance(system, str)
     assert (_SELF_CHECK in system) == (size == "2x2" and not mixed)
     assert ("输入动作全部保留为候选，不在第一层筛除" in system) == (not mixed)
+    # 排除字段及服务端比较规则仅限 2x2 单耳机；2x4 遵循通用显式动作契约。
+    assert ("excludedActionIds" in system) == (size == "2x2" and not mixed)
+    assert ("allowEarphoneCandidateActions" in system) == (size == "2x2" and not mixed)
 
 
 @pytest.mark.parametrize("has_action", [False, True])

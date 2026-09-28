@@ -212,7 +212,9 @@ def test_fallback_is_isolated_to_unselected_single_battery_2x2(reason: str) -> N
 
 def test_compact_and_support_without_hero_do_not_trigger_fallback() -> None:
     case = _case(("/batterySOC", "/chargingStatusDesc"))
-    registry = CardPlanRegistry(disabled_template_ids=("BatteryOverviewChargingRingHero@1",))
+    registry = CardPlanRegistry(disabled_template_ids=(
+        "BatteryOverviewChargingRingHero@1", "BatteryOverviewStatusHero@1",
+    ))
     result = _search(case, registry)
     assert {c.template_id for c in result.business_candidates[0].candidates} == {
         "BatteryOverviewCompact@1", "BatteryOverviewSupport@1",

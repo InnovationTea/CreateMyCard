@@ -2,7 +2,7 @@
 
 本文描述默认 `firstLayerComponentSelector=search` 链路中五个模块的职责和数据边界。目标是让 Search
 只回答“哪些模板在当前卡片尺寸与数据条件下可用”，由确定性 Planner 统一处理布局、主题、Action
-消费位置和业务顺序，第二层 LLM 只在不超过三个完整 Plan 中选择。
+消费位置和业务顺序，第二层 LLM 只在不超过三个完整 Plan 中选择。该默认链路同时用于 2x2 和 2x4。
 
 ## 1. 总体链路
 
@@ -51,7 +51,7 @@ Search 直接入口也使用同一规则，之后仍严格检查候选白名单�
 - `requiredOutputFieldsByCapability` 只包含用户显式要求展示的字段。
 - `primaryOutputFieldByCapability` 是稀疏映射。每个业务最多一个显式主焦点；无法从描述中确定时不输出该
   capability。值必须同时存在于该 capability 的显式字段数组中。
-- `action` 只包含用户显式要求且来自 TaskSpec 候选的事件 ID。
+- `action` 只包含用户显式要求且来自 TaskSpec 候选的事件 ID。第一层按尺寸声明上限：2x2 为两个、2x4 为四个；Planner 再检查实际布局容量。
 - `allowCalendarViewFallback` 是可选布尔值，兼容旧首层输出时默认为 `false`。仅当用户请求单日历日程
   且未明确禁止按钮、操作或跳转时，首层标记为 `true`；它只表达用户是否允许默认查看入口，不代表已选
   Action。首层仍不判断 Full/Hero 是否可用，也不直接把默认查看事件加入 `action`。
@@ -73,7 +73,7 @@ Search 输入第一层意图、卡片尺寸、TaskSpec、CardSpec 已批准的�
 3. 使用模板定义中的必需字段检查运行时数据可用性与类型。
 4. 使用 `primaryData + secondaryData + optionalData` 计算显式字段覆盖；`optionalData` 可以形成覆盖，
    但不会成为模板准入的必需数据。
-5. 只保留能够独立覆盖该业务全部显式字段的模板。
+5. 2x2 只保留独立完整覆盖的模板；2x4 保留已验证的部分覆盖候选，将组合覆盖交给 Planner。宽版 Search 不按前 24 个模板截断，避免可选字段增多挤掉可行形态；第二层只接收最终最多三个 Plan 的候选并集。
 6. 为每个候选返回 `availableDataFields`：本轮候选字段中被模板实际引用、TaskSpec 已提供且类型兼容的
    完整绑定路径，包含可用的非显式字段。按完整路径去重，不同绑定根分别计算；缺失字段、未引用字段、
    静态文案、图标和仅用于事件参数的字段不计入。该字段只提供数据事实，不在 Search 中排序。
@@ -159,7 +159,7 @@ Planner 是确定性服务模块，输入第一层意图、Search 结果、卡�
 `templateId` 从 Registry 重新取得模板定义，并联合规划：
 
 - 精确 Layout Template；
-- 有序业务槽位及每个槽位的精确业务 Template；
+- 有序业务槽位及每个槽位的精确业务 Template；通用指标通过 `fieldBindings` 锁定每个实例的路径参数；
 - Theme；
 - 每个 Action 的消费者：根 Action Template 或某个支持 `actionId` 的垂域业务 Template；
 - 显式字段覆盖与主焦点匹配信号。
@@ -202,7 +202,7 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 ## 6. Validator / Compiler
 
 编译前先对调用树执行原子 Plan 校验：根 Layout、直接业务 Template 的 ID 与顺序、根 Action Template
-及事件 ID、业务 Template 内嵌 `actionId` 的槽位必须完整匹配同一个 Plan。若调用树跨 Plan 混用，或同时
+及事件 ID、业务 Template 内嵌 `actionId` 的槽位、通用指标路径参数必须完整匹配同一个 Plan。若调用树跨 Plan 混用，或同时
 匹配零个或多个 Plan，直接拒绝；唯一匹配的 `planId` 记录到内部展开统计和日志。之后才进入原有 Props、
 数据绑定、Action 唯一消费、节点预算、主题展开和 A2UI 转换校验。
 
@@ -210,3 +210,39 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 
 旧 `firstLayerComponentSelector=llm` 路径保留原有 `TemplateRouteSelection` 行为用于兼容，不使用新的
 Planner 原子 Plan 契约。
+
+## 7. 横版组合规则
+
+`wide_template_planner.py` 为公共 Planner 提供完整横版组合，复用同一套主题裁决、排序、去重与编译契约。
+它按每个 capability 的显式字段枚举完整覆盖，再匹配已登记布局的业务形态与动作位置。布局失败仅淘汰
+该组合；不得因为候选集合中存在 Full + Compact 就拒绝其中可行的 Hero + Hero 或 Full + Full。
+
+- 最多四个业务实例；同一通用指标模板可以出现两次，但分别固定不同的 `valuePath`。
+- 双指标模板固定 `firstValuePath`、`secondValuePath`，两个字段必须不同。通用指标只消费未被专用模板
+  覆盖的已验证标量字段；按实际实例数计数，不能覆盖或替换其它 capability 的必选槽位。
+- 第一层声明主焦点时优先匹配专用模板主字段，再优先减少通用实例数和业务实例总数；其它排序沿用
+  主、次、可选字段匹配，并在可行时保持请求中的业务顺序。同一批 Plan 共享主题和业务集合。
+- 单动作且同时存在 `Full + Compact + CompactAction` 与 `Full + Hero + PillAction` 两类完整组合时，
+  右列"2x1 业务 + 2x1 动作"形态与 Hero 形态同分，按枚举顺序稳定优先前者。
+- 单动作时允许为已选业务追加一个"伴生动作槽位"：同一业务内声明了 `supportedEventIds` 且变体带
+  `actionId` Prop 的 Compact 模板（如耳机歌单入口），以第三个 2x1 槽位进入
+  `Full + Compact + Compact` 组合，动作内嵌其根节点；伴生槽位不承载显式字段，也不改变 Search 的
+  字段覆盖结论，无合格伴生模板时保持原有组合不变。
+- 双面板根按钮在 `businessPosition` 中记录归属，按面板位置排列。归属来自当前业务已启用模板的
+  `supportedEventIds`，动态天气/日程跳转还须匹配该模板的数据对象。已批准固定目标可通过业务事件
+  白名单证明入口归属；没有可证明归属的动作只能进入独立共享操作区，不能放到搭档面板下。
+- 根按钮声明 `actionTemplateId`；内置按钮声明业务位置且不占根动作槽位。每个动作实例只消费一次。
+- 单业务单动作若存在支持该事件、覆盖全部字段的 WideFull，优先使用 WideFullOnlyLayout 的内置按钮
+  计划，继续执行 `supports_business_action` 的严格对象校验；未满足条件时继续枚举其它完整布局。
+- 双 Hero 双面板（WideTwoFocusLayout）同样允许单动作内嵌进语义匹配 Hero 的根节点底板，不产生根
+  Action 槽位；内嵌 Plan 与根按钮 Plan 同分时优先内嵌。只有 2x2 变体的标准 Hero 经 Wide 组合进入
+  2x4 时仍按其 2x2 变体校验 `actionId`；已声明 2x4 变体的模板只按 2x4 变体判断。
+- 2x4 四个动作仅支持单业务 + 四个 LargeIconAction 的既有专用布局；三个动作或容量不足返回未命中。
+  2x2 不扩展动作容量。动作、字段或业务不能静默删除。
+
+通用指标在数据投影时使用 Plan 的精确路径并集，不按同领域其它模板的字段并集扣除；编译器把相对路径
+拼接到唯一的健康数据绑定根，缺失或多根均拒绝。缺少可选评分等字段时，睡眠 Full 的主信息区弹性占位，
+可选辅行直接位于业务根，避免产生空容器。
+
+`retrieve_template_variants`、`plan_embedded_wide_full` 与无 Plan 的二层布局推导仅保留给旧兼容入口和
+直接调用者；默认生产链路不回落到这些路径。已选完整 Plan 生成失败时沿用现有第二层修复与失败语义。
