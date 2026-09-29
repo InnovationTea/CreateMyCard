@@ -156,6 +156,9 @@ _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK = """# 本次耳机 W1 填槽约束
   分别显示左右耳充电状态。若同时存在耳机概览字段，右上背板可用两行分别显示
   “左耳 电量 · 充电状态”和“右耳 电量 · 充电状态”，每行最多两个动态事实。
   左右耳标签必须与对应读数一起可见，不能显示两个无法区分的百分比。
+- 左右耳摘要用基础Column时参考V12：左右padding12、上下padding6，两行各18、间距2，
+  共38vp小于槽内45vp；不能照搬动作槽的四边padding12而只留下33vp。长状态不能省略，
+  两行宽度不足时改用完整分区，不删“左耳/右耳”标签或充电状态。
 - 音乐动作或设置动作占用右侧槽并直接绑定背板 onClick。两个明确动作占满右侧时，
   全部必要耳机概览放在左侧最多四行；禁止生成满宽按钮或把动作移到画布外。"""
 
@@ -165,8 +168,8 @@ _TWO_BY_FOUR_WEATHER_FOCUS_AUX_LOCK = """# 本次天气 W1 填槽约束
   空气质量和用户明确要求的提醒文字作为支撑信息，整个紧凑内容组垂直居中；提醒
   最多两行，不把预警固定在顶部后留下大块空白。
 - 右上背板分别用两行显示紫外线和感冒指数，不使用 `|` 合并；右下背板保留明确
-  动作。拨号动作只显示一个简短命令标签，号码放在事件参数中，不把 11 位号码挤进
-  78vp 文字区。"""
+  动作。仅要求拨号携带号码时，号码留在原事件参数中，按钮使用保留真实动作与必要目标的短命令；
+  用户还要求展示号码时必须另留可见位置，不以本条规则删除 Plan 展示事实。"""
 
 _TWO_BY_FOUR_HEALTH_FOCUS_AUX_LOCK = """# 本次健康运动 W1 填槽约束
 
@@ -422,6 +425,9 @@ _TWO_BY_FOUR_ROUTE_LOCKS = {
 明确正文的剩余高度；layoutWeight:1 不代表文字行高可以忽略。动作是最后一个直接
 子项。正文紧张时取消独立业务标题，将对象名并入首行必要读数；普通 Text 最多合并两个能完整显示的动态
 事实，三个以上字段必须拆成短行并核算全部行高，不能删除 Plan 项；多日摘要除外。
+四行普通正文使用每行16、间距2，总高70；不得保留四行18和间距2后声称只占70或58。
+若还需第五行，先合并同对象且宽度足够的两个短事实或把同一记录的事实移到另一区可用空间，
+不要重复字段、压缩按钮或把行高改得低于文字。没有足够空间时不能假设裁切即可通过。
 动作使用一个简短完整命令，不追加同义提示，天气详情优先使用“查看天气”。数字与
 单位同行拆分时，Row 固定底对齐且 `itemMargin:2`，数字与单位 Text 不设置固定宽度，
 较小 Text 不设置底部 padding。""",
@@ -585,7 +591,10 @@ class PromptBuilder:
             return False
         if _contains_any(task_spec.userQuery, ("两个", "分别", "各自", "每首", "双入口")):
             return PromptBuilder._query_requests_action(task_spec)
-        verbs = re.findall(r"打开|进入|导航|拨打|拨号|播放|暂停|开启|关闭", task_spec.userQuery)
+        verbs = re.findall(
+            r"打开|进入|导航|拨打|拨号|播放|暂停|开启|关闭|(?:前往|去)设置",
+            task_spec.userQuery,
+        )
         return len(verbs) >= 2
 
     @staticmethod
@@ -679,6 +688,8 @@ class PromptBuilder:
                 example_id = "2x4-V24"
             elif PromptBuilder._query_requests_multiple_actions(task_spec):
                 example_id = "2x4-V08"
+            elif {root.casefold() for root in roots} == {"earphone"}:
+                example_id = "2x4-V12"
             elif len(roots) >= 2:
                 example_id = "2x4-V18"
             else:

@@ -122,7 +122,10 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
         "text": {
             "type": "string",
             "minLength": 1,
-            "description": "仅填写 userQuery 中明确出现的静态正文。",
+            "description": (
+                "逐字引用 userQuery 明确要求在卡面展示的静态正文；"
+                "仅用于拨号、入会、导航等操作的参数不单独列为展示事实。"
+            ),
         },
         "componentHints": {
             "type": "array",
@@ -137,13 +140,13 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
         properties["dataId"] = {
             "type": "string",
             "enum": data_paths,
-            "description": "动态信息使用的真实 JSON Pointer。",
+            "description": "必须在卡面展示的动态信息的真实 JSON Pointer；仅用于事件传参时不选。",
         }
     if action_ids:
         properties["actionId"] = {
             "type": "string",
             "enum": action_ids,
-            "description": "用户明确要求的真实事件候选 ID。",
+            "description": "用户明确要求的真实事件候选 ID；该候选原有参数继续完整携带。",
         }
     return {
         "type": "function",
