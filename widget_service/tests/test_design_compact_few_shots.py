@@ -120,9 +120,29 @@ def test_few_shot_validates_and_converts(
 
 
 def test_example_ids_are_contiguous_and_unique() -> None:
-    expected = [f"2x2-V{index:02d}" for index in range(7)]
+    expected = [f"2x2-V{index:02d}" for index in range(10)]
     expected.extend(f"2x4-V{index:02d}" for index in range(7))
     assert [item[0] for item in EXAMPLES] == expected
+
+
+def test_two_by_two_examples_cover_every_declared_layout() -> None:
+    document = PROMPTS["fewshot_2x2"]
+    expected = {
+        "S-center",
+        "S-title-content",
+        "S-title-dual-content",
+        "S-quad-content",
+        "S-title-content-action",
+        "S-title-primary-secondary-action",
+        "S-title-dual-column-action",
+        "S-title-anchor",
+        "S-content-dual-action",
+        "S-dual-info",
+    }
+
+    actual = set(re.findall(r"`(S-[a-z-]+)`", document))
+
+    assert actual == expected
 
 
 @pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
@@ -187,6 +207,8 @@ def test_examples_use_only_declared_actions_and_assets(
         ("2x2-V04", {"InfoBlock"}),
         ("2x2-V05", {"CardHeader", "PillButton"}),
         ("2x2-V06", {"PillButton"}),
+        ("2x2-V07", {"CardHeader"}),
+        ("2x2-V09", {"CardHeader", "PillButton"}),
         ("2x4-V03", {"InfoBlock", "CardButton"}),
         ("2x4-V04", {"CardButton"}),
         ("2x4-V05", {"InfoBlock", "CardButton"}),
@@ -205,6 +227,7 @@ def test_examples_use_available_high_level_components(
     (
         ("2x2-V01", {"EventCard"}, {"Text", "Column"}),
         ("2x2-V05", {"ProgressCircle", "PairedMetric"}, {"Progress", "Stack"}),
+        ("2x2-V08", {"Grid"}, {"Column", "Row", "Text"}),
         ("2x4-V01", {"EmphasisText", "TextBlock"}, {"Text", "Column"}),
         ("2x4-V02", {"PillButton", "CardButton"}, {"Button", "Column"}),
         ("2x4-V05", {"ProgressCircleSingle"}, {"Progress", "Stack"}),
@@ -232,6 +255,9 @@ def test_unavailable_or_incompatible_components_use_base_components(
         ("2x2-V04", "S-dual-info"),
         ("2x2-V05", "S-adaptive-single-business"),
         ("2x2-V06", "S-adaptive-single-business"),
+        ("2x2-V07", "S-adaptive-single-business"),
+        ("2x2-V08", "S-quad-content"),
+        ("2x2-V09", "S-adaptive-single-business"),
         ("2x4-V00", "W-adaptive-single-business"),
         ("2x4-V01", "W-adaptive-single-business"),
         ("2x4-V02", "W-split-panels"),
@@ -357,7 +383,7 @@ def test_unknown_routes_use_current_neutral_examples() -> None:
     assert PromptBuilder._visual_route(wide) == ("generic", ("2x4-V00",))
 
 
-def test_prompt_source_has_no_retired_formal_example_references() -> None:
-    retired = re.compile(r"(?:2x[24]-)?V(?:0[7-9]|1[0-9])\b")
+def test_prompt_source_has_no_out_of_range_formal_example_references() -> None:
+    retired = re.compile(r"(?:2x2-V(?:1[0-9]|[2-9][0-9])|2x4-V(?:0[7-9]|[1-9][0-9]))\b")
     for path in PROMPT_SOURCE.rglob("*.md"):
         assert not retired.search(path.read_text(encoding="utf-8")), path

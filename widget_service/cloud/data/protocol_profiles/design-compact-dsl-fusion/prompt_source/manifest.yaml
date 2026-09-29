@@ -1,8 +1,8 @@
 {
   "version": 1,
   "protocol_id": "design-compact-dsl",
-  "description": "YAML 1.2 JSON �Ӽ����������ã�������ģ�͡�prompts �и�����˳��Ψһ�ڴ�ƴ��˳��",
-  "size_policy": "sizes Ϊģ������밸���ߴ��������ڴ���װ�������ģ�������ü��ھŽڲ��ֲ�ѡ��ͬ�ߴ簸���������ߴ��������ģ���ļ���",
+  "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
+  "size_policy": "sizes 为模块归属与案例尺寸索引；内存组装完整正文，按请求裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
   "modules": [
     {
       "file": "core.md",
@@ -126,6 +126,13 @@
       "sizes": [
         "2x4"
       ]
+    },
+    {
+      "file": "plan.md",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ]
     }
   ],
   "prompts": {
@@ -202,7 +209,10 @@
       "fewshots/2x2.md#example-v19",
       "fewshots/2x2.md#example-v20",
       "fewshots/2x2.md#example-v21",
-      "fewshots/2x2.md#example-v22"
+      "fewshots/2x2.md#example-v22",
+      "fewshots/2x2.md#example-v23",
+      "fewshots/2x2.md#example-v24",
+      "fewshots/2x2.md#example-v25"
     ],
     "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
@@ -228,6 +238,9 @@
       "fewshots/2x4.md#example-v19",
       "fewshots/2x4.md#example-v20",
       "fewshots/2x4.md#example-v21"
+    ],
+    "plan": [
+      "plan.md#contract"
     ]
   },
   "fewshots": {
@@ -324,6 +337,18 @@
       {
         "id": "2x2-V22",
         "source": "fewshots/2x2.md#example-v22"
+      },
+      {
+        "id": "2x2-V23",
+        "source": "fewshots/2x2.md#example-v23"
+      },
+      {
+        "id": "2x2-V24",
+        "source": "fewshots/2x2.md#example-v24"
+      },
+      {
+        "id": "2x2-V25",
+        "source": "fewshots/2x2.md#example-v25"
       }
     ],
     "2x4": [

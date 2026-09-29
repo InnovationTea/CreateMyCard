@@ -179,7 +179,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     assert not list((DEFAULT_SOURCE / "fewshots" / size).rglob("*.md"))
     fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
     expected = ["preamble"]
-    example_count = 7
+    example_count = 10 if size == "2x2" else 7
     expected.extend(f"example-v{index:02d}" for index in range(example_count))
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
@@ -219,6 +219,7 @@ def test_merged_fewshot_checks_each_fragment(tmp_path: Path, size: str, mutation
 @pytest.mark.parametrize(
     "method,name",
     [
+        ("read_design_plan_prompt", "plan"),
         ("read_design_prompt", "create"),
         ("read_design_edit_prompt", "edit"),
         ("read_design_repair_prompt", "repair"),

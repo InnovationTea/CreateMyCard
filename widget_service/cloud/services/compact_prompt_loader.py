@@ -7,7 +7,15 @@ from pathlib import Path
 
 FRAGMENT = re.compile(r"<!-- prompt:([a-z0-9_-]+) -->\n(.*?)<!-- /prompt:\1 -->\n", re.S)
 PROMPT_NAMES = frozenset(
-    {"create", "edit", "repair", "argument_repair", "fewshot_2x2", "fewshot_2x4"}
+    {
+        "plan",
+        "create",
+        "edit",
+        "repair",
+        "argument_repair",
+        "fewshot_2x2",
+        "fewshot_2x4",
+    }
 )
 
 
@@ -65,7 +73,7 @@ def assemble_prompts(source_root: Path) -> dict[str, str]:
             raise ValueError(f"源文件未登记：{path}")
     prompts = _required(manifest, "prompts", dict)
     if set(prompts) != PROMPT_NAMES:
-        raise ValueError("manifest 必须声明全部六种 Compact 提示词")
+        raise ValueError("manifest 必须声明全部七种 Compact 提示词")
     result = {}
     used = set()
     for prompt_name, references in prompts.items():

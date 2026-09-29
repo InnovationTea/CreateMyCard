@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
 )
+from services.compact_plan import compact_plan_coverage_errors
 from services.protocol_registry import A2UIProtocolRegistry
 from utils.ops_metrics import report_ops_metrics
 
@@ -65,6 +66,7 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
+    compact_plan: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -138,6 +140,18 @@ class DesignCompactProcessor:
             report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
+        plan_errors = compact_plan_coverage_errors(
+            source_dsl,
+            context.compact_plan,
+            context.task_spec,
+        )
+        if plan_errors:
+            return self._validation_failure(
+                source_dsl,
+                plan_errors,
+                code="COMPACT_PLAN_COVERAGE_FAILED",
+            )
+
         design_profile_id = context.design_profile_id or "design-compact-dsl"
         design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         if not context.skip_compact_dsl_validation:
@@ -194,11 +208,13 @@ class DesignCompactProcessor:
     def _validation_failure(
         source_dsl: str,
         errors: tuple[str, ...],
+        *,
+        code: str = "COMPACT_DSL_VALIDATION_FAILED",
     ) -> DslProcessingResult:
         issues = tuple(
             QualityIssue(
                 stage="validation",
-                code="COMPACT_DSL_VALIDATION_FAILED",
+                code=code,
                 message=message,
             )
             for message in errors
