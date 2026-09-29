@@ -40,6 +40,139 @@ def test_runtime_does_not_depend_on_generated_products() -> None:
     assert read_prompt(DEFAULT_SOURCE, "create") == assemble_prompts(DEFAULT_SOURCE).get("create")
 
 
+def test_information_modules_keep_semantic_boundary() -> None:
+    root = DEFAULT_BUNDLE / "prompt_source/information"
+    expected_fragments = {
+        "common.md": ["contract"],
+        "2x2.md": ["capacity"],
+        "2x4.md": ["capacity"],
+    }
+    prompt_bodies = []
+    for filename, expected in expected_fragments.items():
+        source = (root / filename).read_text(encoding="utf-8")
+        fragments = dict(FRAGMENT.findall(source))
+        assert list(fragments) == expected
+        prompt_bodies.extend(fragments.values())
+
+    information_prompt = "\n".join(prompt_bodies)
+    for forbidden in (
+        "CardHeader",
+        "Sub-118",
+        "Sub-140",
+        "S-dual-info",
+        "W-content-side-slots",
+        "fontSize",
+        "fillColor",
+        "vp",
+        "fp",
+    ):
+        assert forbidden not in information_prompt
+
+    for required in ("汇总—明细", "主体—属性", "同级并列", "事件—要素", "内容—操作"):
+        assert required in information_prompt
+
+    manifest_path = DEFAULT_BUNDLE / "prompt_source/manifest.yaml"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    prompts = manifest.get("prompts")
+    assert isinstance(prompts, dict)
+    references = prompts.get("create")
+    assert isinstance(references, list)
+    start = references.index("information/common.md#contract")
+    assert references[start : start + 3] == [
+        "information/common.md#contract",
+        "information/2x2.md#capacity",
+        "information/2x4.md#capacity",
+    ]
+
+
+def test_combination_modules_separate_semantics_from_size_mapping() -> None:
+    root = DEFAULT_BUNDLE / "prompt_source/combinations"
+    expected_fragments = {
+        "common.md": ["contract"],
+        "2x2.md": ["mapping"],
+        "2x4.md": ["mapping"],
+    }
+    bodies = {}
+    for filename, expected in expected_fragments.items():
+        source = (root / filename).read_text(encoding="utf-8")
+        fragments = dict(FRAGMENT.findall(source))
+        assert list(fragments) == expected
+        body = fragments.get(expected[0])
+        assert isinstance(body, str)
+        bodies[filename] = body
+
+    common = bodies.get("common.md")
+    assert isinstance(common, str)
+    for required in (
+        "标题与数量",
+        "核心与补充",
+        "核心、补充与操作",
+        "单内容与操作",
+        "双占比",
+        "三占比",
+        "四占比",
+        "双信息块",
+        "双操作",
+    ):
+        assert required in common
+    for forbidden in (
+        "S-dual-info",
+        "W-content-side-slots",
+        "Sub-118",
+        "Sub-140",
+        "fontSize",
+        "backgroundColor",
+        "vp",
+        "fp",
+    ):
+        assert forbidden not in common
+
+    combined = "\n".join(bodies.values())
+    for forbidden in (
+        "<Card",
+        "<Region",
+        '"composition":',
+        '"Card"',
+        '"Region"',
+    ):
+        assert forbidden not in combined
+
+    two_by_two = bodies.get("2x2.md")
+    two_by_four = bodies.get("2x4.md")
+    assert isinstance(two_by_two, str)
+    assert isinstance(two_by_four, str)
+    for layout_id in (
+        "S-center",
+        "S-title-content-action",
+        "S-content-dual-action",
+        "S-dual-info",
+    ):
+        assert layout_id in two_by_two
+    for layout_id in (
+        "W-top-bottom",
+        "W-split-panels",
+        "W-content-side-slots",
+        "W-four-slots",
+    ):
+        assert layout_id in two_by_four
+
+    manifest_path = DEFAULT_BUNDLE / "prompt_source/manifest.yaml"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    prompts = manifest.get("prompts")
+    assert isinstance(prompts, dict)
+    references = prompts.get("create")
+    assert isinstance(references, list)
+    common_index = references.index("combinations/common.md#contract")
+    information_index = references.index("information/2x4.md#capacity")
+    assert common_index == information_index + 1
+    two_by_two_index = references.index("combinations/2x2.md#mapping")
+    layout_two_by_two_index = references.index("layouts/2x2.md#s-layouts")
+    assert two_by_two_index == layout_two_by_two_index + 1
+    two_by_four_index = references.index("combinations/2x4.md#mapping")
+    layout_two_by_four_index = references.index("layouts/2x4.md#w-layouts")
+    assert two_by_four_index == layout_two_by_four_index + 1
+
+
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     source = DEFAULT_SOURCE / "fewshots" / f"{size}.md"
