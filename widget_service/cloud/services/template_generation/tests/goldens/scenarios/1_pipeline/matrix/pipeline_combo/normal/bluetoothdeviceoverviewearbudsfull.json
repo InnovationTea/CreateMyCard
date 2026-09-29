@@ -1516,10 +1516,10 @@
     "rightDesc"
   ],
   "sampleIds": {
-    "absent_leftDesc": "C141",
-    "absent_rightDesc": "C142",
-    "all": "C143",
-    "none": "C144"
+    "absent_leftDesc": "C176",
+    "absent_rightDesc": "C177",
+    "all": "C178",
+    "none": "C179"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudsFull@1"

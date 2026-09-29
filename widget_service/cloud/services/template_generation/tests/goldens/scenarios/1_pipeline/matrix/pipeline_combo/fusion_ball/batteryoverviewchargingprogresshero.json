@@ -1374,10 +1374,10 @@
     "health"
   ],
   "sampleIds": {
-    "absent_charging": "C005",
-    "absent_health": "C006",
-    "all": "C007",
-    "none": "C008"
+    "absent_charging": "C006",
+    "absent_health": "C007",
+    "all": "C008",
+    "none": "C009"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewChargingProgressHero@1"

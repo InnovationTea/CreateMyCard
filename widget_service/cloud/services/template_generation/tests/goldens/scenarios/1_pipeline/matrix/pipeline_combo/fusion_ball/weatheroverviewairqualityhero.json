@@ -2977,14 +2977,14 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C354",
-    "absent_city+coldLevel": "C355",
-    "absent_city+district": "C356",
-    "absent_coldLevel": "C357",
-    "absent_coldLevel+district": "C358",
-    "absent_district": "C359",
-    "all": "C360",
-    "none": "C361"
+    "absent_city": "C469",
+    "absent_city+coldLevel": "C470",
+    "absent_city+district": "C471",
+    "absent_coldLevel": "C472",
+    "absent_coldLevel+district": "C473",
+    "absent_district": "C474",
+    "all": "C475",
+    "none": "C476"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewAirQualityHero@1"

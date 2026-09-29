@@ -1166,10 +1166,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C517",
-    "absent_district": "C518",
-    "all": "C519",
-    "none": "C520"
+    "absent_city": "C632",
+    "absent_district": "C633",
+    "all": "C634",
+    "none": "C635"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewHumidityWindFull@1"

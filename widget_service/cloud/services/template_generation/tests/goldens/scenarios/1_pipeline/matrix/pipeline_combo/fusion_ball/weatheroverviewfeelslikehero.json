@@ -1358,10 +1358,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C448",
-    "absent_district": "C449",
-    "all": "C450",
-    "none": "C451"
+    "absent_city": "C563",
+    "absent_district": "C564",
+    "all": "C565",
+    "none": "C566"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewFeelsLikeHero@1"

@@ -382,7 +382,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C060"
+    "all": "C080"
   },
   "size": "2x2",
   "templateId": "ScheduleOverviewReminderCompact@1"

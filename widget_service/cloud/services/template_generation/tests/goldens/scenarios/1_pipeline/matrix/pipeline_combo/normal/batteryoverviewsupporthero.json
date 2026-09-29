@@ -1923,14 +1923,14 @@
     "temperature"
   ],
   "sampleIds": {
-    "absent_charging": "C023",
-    "absent_charging+percentText": "C024",
-    "absent_charging+temperature": "C025",
-    "absent_percentText": "C026",
-    "absent_percentText+temperature": "C027",
-    "absent_temperature": "C028",
-    "all": "C029",
-    "none": "C030"
+    "absent_charging": "C040",
+    "absent_charging+percentText": "C041",
+    "absent_charging+temperature": "C042",
+    "absent_percentText": "C043",
+    "absent_percentText+temperature": "C044",
+    "absent_temperature": "C045",
+    "all": "C046",
+    "none": "C047"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewSupportHero@1"

@@ -295,7 +295,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C083"
+    "all": "C103"
   },
   "size": "2x2",
   "templateId": "CountdownOverviewFull@1"

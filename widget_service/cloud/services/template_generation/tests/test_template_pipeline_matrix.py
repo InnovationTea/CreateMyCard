@@ -70,6 +70,10 @@ _LAYOUT_BY_KIND = {
     "Support": "TwoSupportLayout@1",
     "HeroTitle": "HeroTitleContentActionLayout@1",
     "HeroContent": "HeroTitleContentActionLayout@1",
+    # 2x4 wide 家族（#404 后 Search 支持 2x4）：每个 wide 模板至少一次全链路固化。
+    "WideHero": "WideSingleFocusLayout@1",
+    "WideFull": "WideFullOnlyLayout@1",
+    "WideHalf": "WideTwoHalfLayout@1",
 }
 
 # Support 模板必须落进双业务 TwoSupportLayout；每个能力固定一个跨能力伙伴。
@@ -320,13 +324,19 @@ class _PinnedPlanModel:
 
 @dataclass(frozen=True)
 class _FamilySpec:
-    """单个 2x2 模板的管线场景静态输入（与缺席子集无关的部分）。"""
+    """单个 2x2 模板的管线场景静态输入（与缺席子集无关的部分）。
+
+    wide 2x4 家族（``slot_definitions`` 非空）：lead 模板 = 第一个槽位，
+    其余槽位为固定搭档；缺席子集只作用于 lead。``size`` 为 "2x4"。
+    """
 
     wire_id: str
     layout_kind: str
     definition: TemplateDefinition
     optional_names: tuple[str, ...]
     partner_definition: TemplateDefinition | None
+    size: str = "2x2"
+    slot_definitions: tuple[TemplateDefinition, ...] = ()
 
     @property
     def capability_id(self) -> str:
@@ -547,7 +557,14 @@ def _template_call(
 
 
 def _action_count_for(layout_kind: str) -> int:
-    return {"Hero": 1, "Compact": 2, "HeroTitle": 1}.get(layout_kind, 0)
+    return {
+        "Hero": 1,
+        "Compact": 2,
+        "HeroTitle": 1,
+        "WideHero": 1,
+        "WideFull": 0,
+        "WideHalf": 0,
+    }.get(layout_kind, 0)
 
 
 def _action_pills(capability_id: str, action_count: int) -> tuple[str, ...]:
@@ -572,9 +589,14 @@ async def _render_pipeline_combination(
     enable_fusion_ball: bool = False,
 ) -> dict:
     action_count = _action_count_for(spec.layout_kind)
-    entries = [(spec.definition, absent)]
-    if spec.partner_definition is not None:
-        entries.append((spec.partner_definition, frozenset()))
+    if spec.slot_definitions:
+        # wide 2x4 家族：缺席子集只作用于 lead 槽位，其余槽位保持 canonical。
+        entries = [(spec.definition, absent)]
+        entries.extend((slot, frozenset()) for slot in spec.slot_definitions)
+    else:
+        entries = [(spec.definition, absent)]
+        if spec.partner_definition is not None:
+            entries.append((spec.partner_definition, frozenset()))
     schema, coverage_bindings = _schema_and_bindings(entries)
     capabilities = tuple(entry[0].capability_id for entry in entries)
     events = _event_candidates(capabilities[0], action_count)
@@ -585,7 +607,7 @@ async def _render_pipeline_combination(
     )
     task_spec = TaskSpec(
         userQuery=_USER_QUERY_BY_CAPABILITY[capabilities[0]],
-        size="2x2",
+        size=spec.size,
         eventCandidates=events,
         assetCandidates=list(asset_pool),
         dataModelSchema=schema,
@@ -593,7 +615,7 @@ async def _render_pipeline_combination(
     card_spec = {
         "title": _TITLE_BY_CAPABILITY[capabilities[0]],
         "description": _USER_QUERY_BY_CAPABILITY[capabilities[0]],
-        "suggestSize": "2x2",
+        "suggestSize": spec.size,
         "dataBindings": [
             {
                 "capabilityId": binding.capabilityId,
@@ -753,6 +775,15 @@ _SKIPPED_TEMPLATES: dict[str, str] = {
         "同 GenericMetricOverviewCompact@1：无声明绑定的 props 驱动泛型模板，"
         "2x2 确定性 Search 无路由"
     ),
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1": (
+        "phone-earphone 双业务 2x4 组合的 phone 槽模板：布局门禁要求同体包含 "
+        "BatteryOverview 槽位（paired_with_phone），引擎尚无 battery+bluetooth "
+        "的 2x4 配对 planner 路径，单模板家族无法满足；等上游补齐配对路由后入阵"
+    ),
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": (
+        "同 BluetoothDeviceOverviewCompletePhoneWideFull@1：phone-earphone "
+        "双业务 2x4 配对路由缺失"
+    ),
 }
 
 
@@ -781,7 +812,24 @@ def _collect_family_specs() -> list[_FamilySpec]:
         # k=0 模板同样入阵：单一 all 组合 = 每个模板至少一次全链路 DSL 固化。
         optional_names = tuple(sorted(definition.variants[0].optional_bindings))
         partner_definition: TemplateDefinition | None = None
-        if layout_kind == "Support":
+        size = "2x2"
+        slot_definitions: tuple[TemplateDefinition, ...] = ()
+        if layout_kind in ("WideHero", "WideFull", "WideHalf"):
+            # 2x4 wide 家族（#404 后 Search 支持 2x4）：单模板/成对槽位组合，
+            # size=2x4，缺席子集只作用于 lead。WideHalf 布局需要两个半宽槽位，
+            # 与排序相邻的 WideHalf 模板配对（wrap-around，覆盖全部半宽模板）。
+            size = "2x4"
+            if layout_kind == "WideHalf":
+                halves = sorted(
+                    other
+                    for other in _REGISTRY.provider_template_ids
+                    if provider_template_layout_kind(other) == "WideHalf"
+                    and other not in _SKIPPED_TEMPLATES
+                    and _REGISTRY.require_template(other).capability_id is not None
+                )
+                partner_wire_id = halves[(halves.index(wire_id) + 1) % len(halves)]
+                partner_definition = _REGISTRY.require_template(partner_wire_id)
+        elif layout_kind == "Support":
             partner_capability, partner_wire_id = _SUPPORT_PARTNER_BY_CAPABILITY[
                 definition.capability_id
             ]
@@ -798,6 +846,8 @@ def _collect_family_specs() -> list[_FamilySpec]:
                 definition=definition,
                 optional_names=optional_names,
                 partner_definition=partner_definition,
+                size=size,
+                slot_definitions=slot_definitions,
             )
         )
     return specs

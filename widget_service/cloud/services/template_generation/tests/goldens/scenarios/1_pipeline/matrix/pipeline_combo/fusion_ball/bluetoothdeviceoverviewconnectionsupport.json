@@ -617,8 +617,8 @@
     "percent"
   ],
   "sampleIds": {
-    "all": "C094",
-    "none": "C095"
+    "all": "C119",
+    "none": "C120"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewConnectionSupport@1"

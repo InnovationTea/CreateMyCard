@@ -293,7 +293,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C010"
+    "all": "C011"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewCompact@1"

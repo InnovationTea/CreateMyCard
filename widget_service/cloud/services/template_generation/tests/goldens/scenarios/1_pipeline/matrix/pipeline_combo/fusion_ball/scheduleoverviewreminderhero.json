@@ -471,7 +471,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C063"
+    "all": "C083"
   },
   "size": "2x2",
   "templateId": "ScheduleOverviewReminderHero@1"
