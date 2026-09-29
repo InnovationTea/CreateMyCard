@@ -13,7 +13,7 @@ import json_repair
 if __name__ == "__main__" and __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.logger import json_for_log, logger
+from app.logger import json_for_log, json_text_for_log, logger
 from config.config import get_settings
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import (
@@ -253,7 +253,7 @@ class A2UIModelClient:
         if protocol_profile.get("format") == "raw-json":
             logger.info(
                 f"{_MODULE} raw_json_processed backend={self.backend} "
-                f"output_length={len(dsl_text)}"
+                f"output_length={len(dsl_text)} raw_output={json_text_for_log(raw_output)}"
             )
             return dsl_text
         is_design_compact = (
