@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import copy
 import json
 from typing import Any
 
 from models.generation import TaskSpec
+from services.compact_plan import build_compact_plan_tool, compact_plan_context
 from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
@@ -23,41 +25,36 @@ _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
-本次 TaskSpec 已由程序识别为 2x2 单目标倒计时。FEWSHOT_2x2 的 V00 只示范
-“单一主焦点”的信息密度；倒计时必须遵守下列专用结构，
+本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，参考 FEWSHOT_2x2 的 V07，
+并遵守下列标题单内容结构：
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown` 与 `/data/calendar`
 拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
 
-- 没有可见按钮、也没有额外展示数据时使用本锁的纯倒计时构图。
-- 固定视觉顺序：顶部居中目标名称；中部 `value_group` 必须是 Column，依次纵向
-  放置居中的 38fp 倒计时数字和其正下方的 12fp 单位“天”。
+- 没有可见按钮、也没有额外展示数据时使用 `S-title-content`。
+- 固定视觉顺序：顶部使用左对齐的 CardHeader 显示目标名称；下方 `content` 固定
+  `126×100vp`，使用 `justifyContent:"end"` 与 `alignItems:"start"`，让唯一主值组贴底。
+- 主值使用左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的 12fp 单位“天”。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
   无法提取目标名称时固定使用“倒计时”。
-- 单位只能写“天”，并且必须在数字正下方；禁止放到数字右侧，禁止写
-  “天后开始”“天后参加”等长后缀。
-- 先按主提示词判定事件意图和对象归属；只有用户明确要求、且候选实际目标匹配的动作，
-  才映射为底部 PillButton。action_area 必须是 root 最后一项并固定沉底。
-  候选恰好一个也不代表必须使用；无关或未被要求的动作不生成按钮，合法隐式入口按主规则处理。
-  不得把标题、时间和数字重组为 countdown_group 或其它自由布局。
+- 单位只能写“天”，禁止写“天后开始”“天后参加”等长后缀；不得增加日期、状态、
+  action_area 或整卡点击，也不得重组为 countdown_group 或其它自由布局。
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
   `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
 
 _COUNTDOWN_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
-本次 TaskSpec 已由程序识别为带显式动作或额外展示数据的 2x2 单目标倒计时，必须锁定
-倒计时专用结构。FEWSHOT_2x2 的 V02 只示范“标题 + 单主值 + 底部动作”的层级，
+本次 TaskSpec 已由程序识别为带显式动作的 2x2 单目标倒计时，必须参考
+FEWSHOT_2x2 的 V09，使用标题主次内容单按钮结构，
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown`
 与 `/data/calendar` 拆成两个业务对象。两者共同描述同一个倒计时目标。
 
-- 只要最终保留可见按钮，或显示开始时间、日期、状态等另一类数据，标题、主值组和辅助信息
-  全部左对齐；禁止继续使用纯展示倒计时的居中数字加垂直单位构图。
-- root 依次包含顶部 `title_area`、中部 `value_group` 和可选的底部 `action_area`。
-  `title_area` 与标题文字左对齐；`value_group` 必须是全宽 Column，`alignItems:"start"`。
-- `value_group` 第一行必须是左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的
-  12-16fp 单位“天”；第二行仅在确有另一类展示数据时使用 12fp/400 Text。
+- root 依次包含 `CardHeader` 和 `126×100vp` body；body 内是 `126×56vp` content、
+  `8vp` 间距和沉底的 `126×36vp` action_area。
+- content 第一行必须是左对齐的 `value_row`，横向放置 30fp 倒计时数字和紧邻的
+  12fp 单位“天”；第二行仅在用户确实要求时显示一条 12fp/400 补充事实。
   禁止把“天”和辅助时间拆成数字下方的两行，禁止生成第三行。
-- 只有用户明确要求且候选目标匹配时才生成底部 PillButton；`action_area` 必须是 root
-  最后一项并固定沉底。显式“查看/打开”动作不得改绑 root，也不得用普通 Text 模拟按钮。
+- 用户明确要求且候选目标匹配的 PillButton 必须放在 action_area；显式“查看/打开”动作
+  不得改绑 root，也不得用普通 Text 模拟按钮。
 - 顶部标题只能是活动、事件等倒计时目标名称；存在可用动态标题且用户要求展示时优先绑定，
   禁止使用日期或时间作为标题，无法提取目标名称时固定使用“倒计时”。
 - 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
@@ -317,6 +314,7 @@ _IMPLICIT_ROUTE_EVENT_MARKERS = {
     ),
 }
 _TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V04"
+_TWO_BY_TWO_QUAD_FEW_SHOT_ID = "2x2-V08"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V02"
 _GENERIC_FEW_SHOT_IDS = {
     "2x2": ("2x2-V00",),
@@ -613,9 +611,9 @@ class PromptBuilder:
 
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
-                "2x2-V02"
+                "2x2-V09"
                 if PromptBuilder._uses_expanded_countdown_layout(task_spec)
-                else "2x2-V00"
+                else "2x2-V07"
             )
             return "countdown", (example_id,)
 
@@ -752,9 +750,11 @@ class PromptBuilder:
         task_spec: TaskSpec,
     ) -> tuple[str, ...]:
         """按对象数量和动作关系选择结构示例，不借用示例业务语义。"""
-        if task_spec.size == "2x2":
-            return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
         block_count = PromptBuilder._data_block_count(task_spec)
+        if task_spec.size == "2x2":
+            if block_count >= 4:
+                return (_TWO_BY_TWO_QUAD_FEW_SHOT_ID,)
+            return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
         if block_count >= 4:
             return ("2x4-V04",)
         if block_count == 3:
@@ -971,7 +971,15 @@ class PromptBuilder:
     @staticmethod
     def _layout_route_lock(task_spec: TaskSpec, layout_scope: str) -> str:
         if task_spec.size == "2x2":
-            if layout_scope in {"S-dual-info", "S-quad-content"}:
+            if layout_scope == "S-quad-content":
+                return (
+                    "# 本次尺寸骨架硬约束（高优先级）\n\n"
+                    "本轮恰好四个同级短模块，固定使用 S-quad-content。root 为 Column，"
+                    "padding 12、itemMargin 8，直接包含两个 126×59vp Row；每行直接包含"
+                    "两个 59×59vp 内容格，横向间距 8vp。禁止公共标题、公共动作区、"
+                    "空格和第五个模块；每格只使用所属对象的数据。"
+                )
+            if layout_scope == "S-dual-info":
                 return _SIZE_LAYOUT_ROUTE_LOCKS["2x2"]
             return (
                 "# 本次尺寸骨架硬约束（高优先级）\n\n"
@@ -1391,6 +1399,82 @@ class PromptBuilder:
                 "content": user_content,
             },
         ]
+
+    def build_compact_plan(
+        self,
+        task_spec: TaskSpec,
+        system_prompt: str,
+        generation_user_content: str,
+    ) -> list[dict[str, str]]:
+        """构造不含 Few-shot 的 submit_card_plan 首轮请求。"""
+        task_spec_value = task_spec.model_dump(
+            mode="json",
+            exclude_none=True,
+            exclude={"appVersion"},
+        )
+        tool = build_compact_plan_tool(task_spec_value)
+        tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
+        effective_system_prompt = (
+            f"{system_prompt}\n\n# 可用工具合同\n\n{tool_payload}\n\n"
+            "只输出一个 JSON 工具调用包："
+            '{"name":"submit_card_plan","arguments":{...}}。'
+            "不要输出 Markdown、解释、Compact DSL 或其它字段。"
+        )
+        try:
+            generation_input: Any = json.loads(generation_user_content)
+        except json.JSONDecodeError:
+            generation_input = generation_user_content
+        user_content = json.dumps(
+            {
+                "taskSpec": task_spec_value,
+                "generationInput": generation_input,
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        return [
+            {"role": "system", "content": effective_system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+
+    @staticmethod
+    def build_compact_plan_repair(
+        plan_prompt: list[dict[str, str]],
+        invalid_output: str,
+        errors: tuple[str, ...],
+    ) -> list[dict[str, str]]:
+        """要求模型只修正 Plan 工具参数，不提前生成 Compact DSL。"""
+        if len(plan_prompt) != 2:
+            raise ValueError("Compact Plan repair requires two initial messages")
+        repaired = copy.deepcopy(plan_prompt)
+        repaired[1]["content"] = json.dumps(
+            {
+                "originalInput": plan_prompt[1]["content"],
+                "invalidToolCall": invalid_output,
+                "planErrors": list(errors),
+                "instruction": (
+                    "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
+                    "不得生成 Compact DSL、Markdown 或解释。"
+                ),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        return repaired
+
+    @staticmethod
+    def apply_compact_plan(
+        initial_prompt: list[dict[str, str]],
+        plan: dict[str, Any],
+    ) -> list[dict[str, str]]:
+        """把已接受的 Plan 注入第二阶段，同时保持修复链要求的双消息结构。"""
+        if len(initial_prompt) != 2 or initial_prompt[0].get("role") != "system":
+            raise ValueError("Compact Plan requires the initial system and user messages")
+        updated = copy.deepcopy(initial_prompt)
+        updated[0]["content"] = (
+            f"{updated[0]['content']}\n\n{compact_plan_context(plan)}"
+        )
+        return updated
 
     @staticmethod
     def _design_token_system_prompt(

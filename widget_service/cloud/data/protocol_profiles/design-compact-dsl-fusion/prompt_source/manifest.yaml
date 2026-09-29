@@ -82,6 +82,13 @@
       ]
     },
     {
+      "file": "plan.md",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ]
+    },
+    {
       "file": "layouts/common.md",
       "sizes": [
         "2x2",
@@ -129,6 +136,9 @@
     }
   ],
   "prompts": {
+    "plan": [
+      "plan.md#contract"
+    ],
     "create": [
       "core.md#identity",
       "components/2x2.md#icon-gate",
@@ -186,7 +196,10 @@
       "fewshots/2x2.md#example-v03",
       "fewshots/2x2.md#example-v04",
       "fewshots/2x2.md#example-v05",
-      "fewshots/2x2.md#example-v06"
+      "fewshots/2x2.md#example-v06",
+      "fewshots/2x2.md#example-v07",
+      "fewshots/2x2.md#example-v08",
+      "fewshots/2x2.md#example-v09"
     ],
     "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
@@ -229,6 +242,18 @@
       {
         "id": "2x2-V06",
         "source": "fewshots/2x2.md#example-v06"
+      },
+      {
+        "id": "2x2-V07",
+        "source": "fewshots/2x2.md#example-v07"
+      },
+      {
+        "id": "2x2-V08",
+        "source": "fewshots/2x2.md#example-v08"
+      },
+      {
+        "id": "2x2-V09",
+        "source": "fewshots/2x2.md#example-v09"
       }
     ],
     "2x4": [

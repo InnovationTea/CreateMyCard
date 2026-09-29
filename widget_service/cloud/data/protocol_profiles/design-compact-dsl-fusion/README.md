@@ -25,11 +25,12 @@
 | `layouts/common.md` | 画布、预算、区域槽位、路由总则 | 一级高度、非负空间 |
 | `layouts/2x2.md` | 十个正式语义布局；S1–S4 仅作为输入别名 | 小卡路由 |
 | `layouts/2x4.md` | 四个正式顶层布局；W1–W10 仅作为输入别名 | 宽卡路由 |
-| `composition.md` | 内部决策顺序、冲突优先级；未来 Plan 接入边界 | 模型消息合同 |
+| `composition.md` | 已接受 Plan 之后的内部决策顺序与冲突优先级 | 模型消息合同 |
+| `plan.md` | `submit_card_plan` 信息合同 | 不生成 DSL，不检索 Few-shot |
 | `repair.md` | 反馈定位、共同根因、最小修复及子树重算 | 创建约束继承 |
 | `edit.md` | 编辑包装与稳定性规则 | 原始 DSL 编辑 |
 | `argument_repair.md` | 参数 JSON 结构恢复 | 不补造业务值 |
-| `fewshots/2x2.md` | 小卡共用前言与 V00–V06 共 7 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
+| `fewshots/2x2.md` | 小卡共用前言与 V00–V09 共 10 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
 | `fewshots/2x4.md` | 宽卡共用前言与 V00–V06 共 7 个完整输入→输出案例 | 每例校验、转换，不丢失前置覆盖 |
 | `fewshots/repair/` | 修复案例维护入口；本步不增加在线 few-shot | 先验证再启用 |
 
@@ -43,17 +44,18 @@ prompt_source → manifest 顺序 → 内存拼接与缓存 → 请求裁剪/示
 ```
 
 `manifest.yaml` 使用 YAML 1.2 的 JSON 子集，由标准库解析，不新增部署依赖。
-`prompts` 中每个数组的顺序是唯一拼接顺序，引用格式为 `文件#片段`。六个名称是内存中的提示词标识：
-`create`、`edit`、`repair`、`argument_repair`、`fewshot_2x2`、`fewshot_2x4`。
+`prompts` 中每个数组的顺序是唯一拼接顺序，引用格式为 `文件#片段`。七个名称是内存中的提示词标识：
+`plan`、`create`、`edit`、`repair`、`argument_repair`、`fewshot_2x2`、`fewshot_2x4`。
 每种尺寸的 Few-shot 只维护一个文档，前言使用 `preamble`；2x2 使用 `example-v00` 至
-`example-v15`，2x4 使用 `example-v00` 至 `example-v14`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
+`example-v09`，2x4 使用 `example-v00` 至 `example-v06`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
 信息模块和组合公共模块使用连续合同：先完成信息语义分析，再判断多组件关系，最后按尺寸映射到正式
 布局；组合不新增 Compact 组件或 Card/Region 等语义协议节点。其它模块仍可按需要拆分片段。
 
-`sizes` 标明维护适用范围，而不是新增整文件运行时过滤。本期仍由 PromptBuilder 仅裁剪第九节的
-尺寸/对象数骨架，并按原算法选择同尺寸案例；不基于新增字段重新选择布局。
+`sizes` 标明维护适用范围，而不是新增整文件运行时过滤。Plan 阶段不加载 Few-shot；Compact DSL
+阶段仍由 PromptBuilder 裁剪第九节的尺寸/对象数骨架，并按原算法选择同尺寸案例，不根据 Plan
+重新检索案例。
 修改规则时只编辑源模块，验证最终模型文本后发布并重启服务；没有中间文件或额外构建步骤。
 部署应完整携带源目录；缺失、越界路径、重复/遗漏片段与损坏案例均明确报错。
 外部配置使用 `@prompt:源目录#名称`。普通 `@file:` 仍读取原文，不能直接读取带维护说明的源模块。

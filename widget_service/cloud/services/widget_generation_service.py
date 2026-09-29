@@ -37,6 +37,7 @@ from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
+from services.compact_plan import CompactPlanValidationError, parse_compact_plan_call
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -607,8 +608,74 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
         source_generated_by_template = False
+        accepted_compact_plan: dict | None = None
+        effective_generation_prompt = prompt
+
+        async def generate_compact_plan() -> dict:
+            """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
+            from services.prompt_builder import PromptBuilder
+
+            nonlocal model_call_phase
+            plan_system_prompt = A2UIProtocolRegistry.read_design_plan_prompt(
+                policy.model_profile_id
+            )
+            plan_prompt = PromptBuilder().build_compact_plan(
+                task_spec,
+                plan_system_prompt,
+                prompt[1]["content"],
+            )
+            plan_profile = {"id": "compact-info-plan", "format": "raw-json"}
+            max_plan_attempts = 2
+            for attempt in range(1, max_plan_attempts + 1):
+                model_call_phase = "plan"
+                raw_plan = await self._resolve_model_result(
+                    model_client.generate(
+                        plan_prompt,
+                        plan_profile,
+                        suppress_prompt_log=attempt > 1,
+                        phase="plan",
+                    )
+                )
+                try:
+                    validation = parse_compact_plan_call(
+                        raw_plan,
+                        task_spec.model_dump(mode="json", exclude_none=True),
+                        static_text_source=previous_design_token,
+                    )
+                except CompactPlanValidationError as exc:
+                    logger.warning(
+                        f"{_MODULE} compact_plan_rejected "
+                        f"attempt={attempt} max_attempts={max_plan_attempts} "
+                        f"errors={json_for_log(exc.errors)}"
+                    )
+                    if attempt == max_plan_attempts:
+                        raise A2UIModelGenerationError(
+                            "Compact Info Plan did not satisfy the plan contract"
+                        ) from exc
+                    plan_prompt = PromptBuilder.build_compact_plan_repair(
+                        plan_prompt,
+                        raw_plan,
+                        exc.errors,
+                    )
+                    continue
+                logger.info(
+                    f"{_MODULE} compact_plan_accepted "
+                    f"fact_count={len(validation.plan['info_required'])} "
+                    f"layout_hint_count={len(validation.plan.get('layoutHints', []))} "
+                    f"warning_count={len(validation.warnings)}"
+                )
+                if validation.warnings:
+                    logger.warning(
+                        f"{_MODULE} compact_plan_warnings "
+                        f"warnings={json_for_log(validation.warnings)}"
+                    )
+                return validation.plan
+            raise AssertionError("Compact Plan retry loop exited unexpectedly")
 
         async def generate_source_dsl() -> str:
+            nonlocal accepted_compact_plan
+            nonlocal effective_generation_prompt
+            nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
             source_generated_by_jsx = False
             source_generated_by_template = False
@@ -680,8 +747,25 @@ class WidgetGenerationService:
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
+            if (
+                policy.operation == "generateWidgetCardCompactDsl"
+                and not model_client.use_mock
+            ):
+                accepted_compact_plan = await generate_compact_plan()
+                effective_generation_prompt = PromptBuilder.apply_compact_plan(
+                    prompt,
+                    accepted_compact_plan,
+                )
+            elif policy.operation == "generateWidgetCardCompactDsl":
+                logger.info(
+                    f"{_MODULE} compact_plan_skipped reason=model_mock"
+                )
+            model_call_phase = "initial"
             result = await self._resolve_model_result(
-                model_client.generate(prompt, model_protocol_profile)
+                model_client.generate(
+                    effective_generation_prompt,
+                    model_protocol_profile,
+                )
             )
             return require_generated_dsl(result)
 
@@ -703,7 +787,7 @@ class WidgetGenerationService:
                 {item["stage"] for item in quality_error_payloads}
             )
             repair_prompt = PromptBuilder().build_repair(
-                prompt,
+                effective_generation_prompt,
                 invalid_source_dsl,
                 quality_error_payloads,
                 dsl_format=policy.source_format,
@@ -742,6 +826,7 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
+                compact_plan=accepted_compact_plan,
             )
             processing_result = processor.process(
                 source_dsl,

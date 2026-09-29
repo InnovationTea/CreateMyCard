@@ -21,6 +21,7 @@ DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
 DESIGN_COMPACT_PROMPT_BUNDLE = "design-compact-dsl-fusion"
 _RANGE_INDEX_FILE = "registry_ranges.json"
 _DESIGN_PROMPT_FILE = "PROMPT.md"
+_DESIGN_PLAN_PROMPT_FILE = "PLAN_SYSTEM_PROMPT.md"
 _DESIGN_EDIT_PROMPT_FILE = "EDIT_SYSTEM_PROMPT.md"
 _DESIGN_REPAIR_PROMPT_FILE = "REPAIR_SYSTEM_PROMPT.md"
 _DESIGN_ARGUMENT_REPAIR_PROMPT_FILE = "ARGUMENT_REPAIR_SYSTEM_PROMPT.md"
@@ -177,6 +178,21 @@ class A2UIProtocolRegistry:
         """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
         return cls._read_design_text(
             design_profile_id, profiles_root, "create", _DESIGN_PROMPT_FILE, "prompt"
+        )
+
+    @classmethod
+    def read_design_plan_prompt(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> str:
+        """读取 Compact 两阶段生成的 Info Plan 系统提示词。"""
+        return cls._read_design_text(
+            design_profile_id,
+            profiles_root,
+            "plan",
+            _DESIGN_PLAN_PROMPT_FILE,
+            "plan prompt",
         )
 
     @classmethod

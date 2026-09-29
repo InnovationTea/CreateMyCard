@@ -1,0 +1,555 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+"""Compact DSL 两阶段生成使用的信息计划合同。"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from typing import Any
+
+from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+
+SUBMIT_CARD_PLAN = "submit_card_plan"
+
+_JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
+_BINDING_PATH = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
+_FACT_KEYS = frozenset(
+    {"requirement", "dataId", "actionId", "text", "componentHints"}
+)
+_TARGET_KEYS = ("dataId", "actionId", "text")
+_BASE_FACT_COMPONENTS = ("Text", "Image", "Progress", "Button")
+_VISIBLE_PROP_NAMES = frozenset(
+    {
+        "content",
+        "displayValue",
+        "items",
+        "label",
+        "location",
+        "primaryText",
+        "secondaryLabel",
+        "secondaryText",
+        "src",
+        "supportingText",
+        "time",
+        "title",
+        "total",
+        "unit",
+        "value",
+    }
+)
+_COMPONENT_HINTS = {
+    "2x2": (
+        *_BASE_FACT_COMPONENTS,
+        "CardHeader",
+        "EmphasizedData",
+        "InfoBlock",
+        "TableText",
+        "DataDisplay",
+        "EventCard",
+        "PillButton",
+        "CircleButton",
+    ),
+    "2x4": (
+        *_BASE_FACT_COMPONENTS,
+        "CardHeader",
+        "EmphasizedData",
+        "InfoBlock",
+        "ProgressLine2",
+        "TextBlock",
+        "CardButton",
+        "ProgressCircleSingle",
+        "TopTextBottomValue",
+        "SummaryList",
+    ),
+}
+_LAYOUT_HINTS = {
+    "2x2": (
+        "S-center",
+        "S-title-content",
+        "S-title-content-action",
+        "S-title-anchor",
+        "S-content-dual-action",
+        "S-dual-info",
+        "S-title-dual-content",
+        "S-title-dual-column-action",
+        "S-title-primary-secondary-action",
+        "S-quad-content",
+    ),
+    "2x4": (
+        "W-top-bottom",
+        "W-split-panels",
+        "W-content-side-slots",
+        "W-four-slots",
+    ),
+}
+
+
+class CompactPlanValidationError(ValueError):
+    """模型提交的 Compact Info Plan 不满足合同。"""
+
+    def __init__(self, errors: list[str] | tuple[str, ...]) -> None:
+        self.errors = tuple(dict.fromkeys(errors))
+        super().__init__("; ".join(self.errors))
+
+
+@dataclass(frozen=True)
+class CompactPlanValidationResult:
+    """标准化后的计划及不阻断生成的清理提示。"""
+
+    plan: dict[str, Any]
+    warnings: tuple[str, ...] = ()
+
+
+def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
+    """根据本次 TaskSpec 构造 submit_card_plan 的动态工具合同。"""
+    size = task_spec.get("size")
+    data_paths = list(compact_plan_data_paths(task_spec))
+    action_ids = list(compact_plan_action_ids(task_spec))
+    target_variants: list[dict[str, Any]] = []
+    if data_paths:
+        target_variants.append({"required": ["dataId"]})
+    if action_ids:
+        target_variants.append({"required": ["actionId"]})
+    target_variants.append({"required": ["text"]})
+    properties: dict[str, Any] = {
+        "requirement": {
+            "type": "string",
+            "minLength": 1,
+            "description": "一个必须可见的原子信息或操作。",
+        },
+        "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "仅填写 userQuery 中明确出现的静态正文。",
+        },
+        "componentHints": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(_component_hints(size))},
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": True,
+            "description": "按优先级排列的组件软候选，不冻结最终组件。",
+        },
+    }
+    if data_paths:
+        properties["dataId"] = {
+            "type": "string",
+            "enum": data_paths,
+            "description": "动态信息使用的真实 JSON Pointer。",
+        }
+    if action_ids:
+        properties["actionId"] = {
+            "type": "string",
+            "enum": action_ids,
+            "description": "用户明确要求的真实事件候选 ID。",
+        }
+    return {
+        "type": "function",
+        "function": {
+            "name": SUBMIT_CARD_PLAN,
+            "description": (
+                "提交最终卡片必须可见的信息与操作；组件和布局只提供软候选。"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "info_required": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 24,
+                        "items": {
+                            "type": "object",
+                            "properties": properties,
+                            "required": ["requirement"],
+                            "oneOf": target_variants,
+                            "additionalProperties": False,
+                        },
+                    },
+                    "layoutHints": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": list(_layout_hints(size)),
+                        },
+                        "maxItems": 2,
+                        "uniqueItems": True,
+                        "description": "至多两个父布局软候选，不冻结最终骨架。",
+                    },
+                },
+                "required": ["info_required"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def parse_compact_plan_call(
+    raw_output: str,
+    task_spec: dict[str, Any],
+    *,
+    static_text_source: str | None = None,
+) -> CompactPlanValidationResult:
+    """解析命名工具调用包，并按当前 TaskSpec 标准化 Plan。"""
+    payload = _parse_json_object(raw_output)
+    if set(payload) != {"name", "arguments"}:
+        raise CompactPlanValidationError(
+            ["Plan output must contain only name and arguments."]
+        )
+    if payload.get("name") != SUBMIT_CARD_PLAN:
+        raise CompactPlanValidationError(
+            [f"Plan output must call {SUBMIT_CARD_PLAN}."]
+        )
+    arguments = payload.get("arguments")
+    if isinstance(arguments, str):
+        arguments = _parse_json_object(arguments)
+    if not isinstance(arguments, dict):
+        raise CompactPlanValidationError(["submit_card_plan.arguments must be an object."])
+    unknown_arguments = set(arguments) - {"info_required", "layoutHints"}
+    if unknown_arguments:
+        names = ", ".join(sorted(unknown_arguments))
+        raise CompactPlanValidationError([f"Unsupported Plan arguments: {names}."])
+    facts, warnings = _validate_facts(
+        arguments.get("info_required"),
+        task_spec,
+        static_text_source=static_text_source,
+    )
+    plan: dict[str, Any] = {"info_required": facts}
+    layout_hints, layout_warnings = _normalize_layout_hints(
+        arguments.get("layoutHints"),
+        task_spec.get("size"),
+    )
+    warnings.extend(layout_warnings)
+    if layout_hints:
+        plan["layoutHints"] = layout_hints
+    return CompactPlanValidationResult(plan=plan, warnings=tuple(warnings))
+
+
+def compact_plan_context(plan: dict[str, Any]) -> str:
+    """构造第二阶段使用的硬事实与软候选说明。"""
+    payload = json.dumps(plan, ensure_ascii=False, separators=(",", ":"))
+    return (
+        "# 已接受的 Compact Info Plan\n\n"
+        "以下 Plan 只冻结必须可见的信息、静态正文和操作；componentHints 与 "
+        "layoutHints 都是软候选，不冻结组件实例或最终骨架。每项事实必须由最终 Compact "
+        "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
+        "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n\n"
+        f"```json\n{payload}\n```"
+    )
+
+
+def compact_plan_coverage_errors(
+    compact_dsl: str,
+    plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+) -> tuple[str, ...]:
+    """检查最终 Compact DSL 是否覆盖已冻结的信息与操作。"""
+    if not plan:
+        return ()
+    rows = parse_compact_dsl_rows(compact_dsl)
+    components = [row for row in rows if isinstance(row, ComponentRow)]
+    visible_paths: set[str] = set()
+    visible_literals: list[str] = []
+    handlers: list[dict[str, Any]] = []
+    for component in components:
+        visible_props = {
+            key: value
+            for key, value in component.props.items()
+            if key in _VISIBLE_PROP_NAMES
+        }
+        _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
+        on_click = component.props.get("onClick")
+        if isinstance(on_click, list):
+            handlers.extend(item for item in on_click if isinstance(item, dict))
+    event_handlers = _event_handlers_by_id(task_spec)
+    normalized_literals = [_normalize_text(value) for value in visible_literals]
+    errors: list[str] = []
+    facts = plan.get("info_required")
+    if not isinstance(facts, list):
+        return ("Accepted Compact Plan has no info_required facts.",)
+    for fact in facts:
+        if not isinstance(fact, dict):
+            continue
+        requirement = fact.get("requirement")
+        label = requirement if isinstance(requirement, str) else "unknown requirement"
+        if "dataId" in fact and fact["dataId"] not in visible_paths:
+            errors.append(f"Plan fact is missing from visible DSL: {label} ({fact['dataId']}).")
+            continue
+        if "actionId" in fact:
+            expected = event_handlers.get(fact["actionId"])
+            if expected is None or expected not in handlers:
+                errors.append(
+                    f"Plan action is missing from visible DSL: {label} ({fact['actionId']})."
+                )
+            continue
+        if "text" in fact:
+            expected_text = _normalize_text(fact["text"])
+            if not expected_text or not any(
+                expected_text in actual for actual in normalized_literals
+            ):
+                errors.append(f"Plan static text is missing from visible DSL: {label}.")
+    return tuple(errors)
+
+
+def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
+    """按 TaskSpec 顺序列出可作为事实目标的叶子 JSON Pointer。"""
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return ()
+    paths: list[str] = []
+    _collect_schema_paths(schema, (), paths)
+    return tuple(dict.fromkeys(paths))
+
+
+def compact_plan_action_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
+    """列出本轮具有稳定 ID 的事件候选。"""
+    candidates = task_spec.get("eventCandidates")
+    if not isinstance(candidates, list):
+        return ()
+    identifiers: list[str] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        identifier = candidate.get("id")
+        if isinstance(identifier, str) and identifier.strip():
+            identifiers.append(identifier.strip())
+    return tuple(dict.fromkeys(identifiers))
+
+
+def _validate_facts(
+    value: Any,
+    task_spec: dict[str, Any],
+    *,
+    static_text_source: str | None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    if not isinstance(value, list) or not value:
+        raise CompactPlanValidationError(
+            ["info_required must be a non-empty array of atomic facts."]
+        )
+    if len(value) > 24:
+        raise CompactPlanValidationError(["info_required must contain at most 24 facts."])
+    data_paths = set(compact_plan_data_paths(task_spec))
+    action_ids = set(compact_plan_action_ids(task_spec))
+    allowed_hints = set(_component_hints(task_spec.get("size")))
+    user_query = task_spec.get("userQuery")
+    query_text = user_query if isinstance(user_query, str) else ""
+    if static_text_source:
+        query_text = f"{query_text}\n{static_text_source}"
+    normalized: list[dict[str, Any]] = []
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
+    warnings: list[str] = []
+    errors: list[str] = []
+    for index, raw_fact in enumerate(value):
+        location = f"info_required[{index}]"
+        if not isinstance(raw_fact, dict):
+            errors.append(f"{location} must be an object.")
+            continue
+        unknown_keys = set(raw_fact) - _FACT_KEYS
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            errors.append(f"{location} contains unsupported fields: {names}.")
+            continue
+        requirement = raw_fact.get("requirement")
+        if not isinstance(requirement, str) or not requirement.strip():
+            errors.append(f"{location}.requirement must be non-empty text.")
+            continue
+        targets = [name for name in _TARGET_KEYS if _non_empty(raw_fact.get(name))]
+        if len(targets) != 1:
+            errors.append(
+                f"{location} must choose exactly one of dataId, actionId, or text."
+            )
+            continue
+        target = targets[0]
+        target_value = raw_fact[target].strip()
+        if target == "dataId" and target_value not in data_paths:
+            errors.append(f"{location}.dataId is not present in TaskSpec: {target_value}.")
+            continue
+        if target == "actionId" and target_value not in action_ids:
+            errors.append(
+                f"{location}.actionId is not present in TaskSpec: {target_value}."
+            )
+            continue
+        if target == "text" and _normalize_text(target_value) not in _normalize_text(
+            query_text
+        ):
+            errors.append(f"{location}.text must be copied from userQuery.")
+            continue
+        fact: dict[str, Any] = {
+            "requirement": requirement.strip(),
+            target: target_value,
+        }
+        hints = raw_fact.get("componentHints")
+        if hints is not None:
+            if not isinstance(hints, list):
+                warnings.append(
+                    f"{location}.componentHints was ignored because it is not an array."
+                )
+            else:
+                accepted_hints: list[str] = []
+                for hint in hints:
+                    if not isinstance(hint, str) or hint not in allowed_hints:
+                        continue
+                    if hint not in accepted_hints:
+                        accepted_hints.append(hint)
+                if accepted_hints:
+                    fact["componentHints"] = accepted_hints[:3]
+                if accepted_hints != hints:
+                    warnings.append(
+                        f"{location}.componentHints removed unsupported or duplicate values."
+                    )
+        identity = (target, target_value)
+        previous = seen.get(identity)
+        if previous is None:
+            seen[identity] = fact
+            normalized.append(fact)
+            continue
+        if fact["requirement"] not in previous["requirement"]:
+            previous["requirement"] += "; " + fact["requirement"]
+        merged_hints = list(
+            dict.fromkeys(
+                [*previous.get("componentHints", []), *fact.get("componentHints", [])]
+            )
+        )
+        if merged_hints:
+            previous["componentHints"] = merged_hints[:3]
+        warnings.append(f"{location} duplicated an existing target and was merged.")
+    if errors:
+        raise CompactPlanValidationError(errors)
+    return normalized, warnings
+
+
+def _normalize_layout_hints(
+    value: Any,
+    size: Any,
+) -> tuple[list[str], list[str]]:
+    if value is None:
+        return [], []
+    if not isinstance(value, list):
+        return [], ["layoutHints was ignored because it is not an array."]
+    allowed = set(_layout_hints(size))
+    accepted: list[str] = []
+    for item in value:
+        if isinstance(item, str) and item in allowed and item not in accepted:
+            accepted.append(item)
+    accepted = accepted[:2]
+    warnings = []
+    if accepted != value:
+        warnings.append("layoutHints removed unsupported, duplicate, or excess values.")
+    return accepted, warnings
+
+
+def _parse_json_object(raw_output: str) -> dict[str, Any]:
+    if not isinstance(raw_output, str) or not raw_output.strip():
+        raise CompactPlanValidationError(["Plan output must be non-empty JSON."])
+    text = raw_output.strip()
+    match = _JSON_FENCE.fullmatch(text)
+    if match is not None:
+        text = match.group(1).strip()
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise CompactPlanValidationError(["Plan output must be valid JSON."]) from exc
+    if not isinstance(payload, dict):
+        raise CompactPlanValidationError(["Plan output root must be an object."])
+    return payload
+
+
+def _collect_schema_paths(
+    value: Any,
+    path: tuple[str | int, ...],
+    output: list[str],
+) -> None:
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _collect_schema_paths(item, (*path, index), output)
+        return
+    if not isinstance(value, dict):
+        if path:
+            output.append(_json_pointer(path))
+        return
+    if _is_schema_leaf(value):
+        if path:
+            output.append(_json_pointer(path))
+        return
+    if value.get("type") == "array" and "items" in value:
+        _collect_schema_paths(value["items"], (*path, 0), output)
+        return
+    if value.get("type") == "object" and isinstance(value.get("properties"), dict):
+        for key, child in value["properties"].items():
+            _collect_schema_paths(child, (*path, key), output)
+        return
+    for key, child in value.items():
+        _collect_schema_paths(child, (*path, key), output)
+
+
+def _is_schema_leaf(value: dict[str, Any]) -> bool:
+    field_type = value.get("type")
+    if isinstance(field_type, str) and field_type not in {"array", "object"}:
+        return True
+    return "sampleValue" in value and not isinstance(value.get("sampleValue"), dict)
+
+
+def _json_pointer(path: tuple[str | int, ...]) -> str:
+    tokens = [str(item).replace("~", "~0").replace("/", "~1") for item in path]
+    return "/" + "/".join(tokens)
+
+
+def _collect_paths_and_literals(
+    value: Any,
+    paths: set[str],
+    literals: list[str],
+) -> None:
+    if isinstance(value, str):
+        matches = list(_BINDING_PATH.finditer(value))
+        if matches:
+            paths.update(match.group("path") for match in matches)
+        else:
+            literals.append(value)
+        return
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            paths.add(value["path"])
+            return
+        for child in value.values():
+            _collect_paths_and_literals(child, paths, literals)
+        return
+    if isinstance(value, list):
+        for child in value:
+            _collect_paths_and_literals(child, paths, literals)
+
+
+def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    handlers: dict[str, dict[str, Any]] = {}
+    candidates = task_spec.get("eventCandidates")
+    if not isinstance(candidates, list):
+        return handlers
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        identifier = candidate.get("id")
+        call = candidate.get("call")
+        args = candidate.get("args")
+        if (
+            isinstance(identifier, str)
+            and isinstance(call, str)
+            and isinstance(args, dict)
+        ):
+            handlers[identifier] = {"call": call, "args": args}
+    return handlers
+
+
+def _component_hints(size: Any) -> tuple[str, ...]:
+    return _COMPONENT_HINTS.get(size, _BASE_FACT_COMPONENTS)
+
+
+def _layout_hints(size: Any) -> tuple[str, ...]:
+    return _LAYOUT_HINTS.get(size, ())
+
+
+def _normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", "", value).casefold() if isinstance(value, str) else ""
+
+
+def _non_empty(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
