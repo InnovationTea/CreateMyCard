@@ -357,7 +357,6 @@ def blessed_statuses() -> dict[str, str]:
 
 _STATUS_STAGE_BY_STATUS: dict[str, str] = {
     "preflight_rejected": "preflight",
-    "failed": "composition",
 }
 
 
@@ -365,9 +364,10 @@ def diagnose_case_offline(case_id: str) -> dict:
     """失败基线的零回放诊断：只读 golden.json，按 status/errorCode 推断阶段。
 
     与 ``diagnose_case``（在线回放、捕获引擎原始异常）相比精度低一档：
-    ``failed`` 基线只能给到 errorCode 推断的阶段与通用文案；preflight
-    基线的 blockingIssues 在 golden.json 里，可给出真实拦截原因。供
-    ``--offline`` 报告使用。
+    preflight 基线的 blockingIssues 在 golden.json 里，可给出真实拦截原因；
+    ``failed`` 基线的录制只冻结了通用文案，阶段无法离线定位——如实标注
+    「阶段需回放」，并附上用例画像（能力/错误码）供分诊。供 ``--offline``
+    报告使用。
     """
     golden = json.loads(
         (GOLDEN_ROOT / case_id / "golden.json").read_text(encoding="utf-8")
@@ -375,8 +375,10 @@ def diagnose_case_offline(case_id: str) -> dict:
     status = str(golden.get("status", "?"))
     error_code = str(golden.get("errorCode", "") or "")
     stage = _STATUS_STAGE_BY_STATUS.get(status)
-    if stage is None:
-        stage = _STAGE_BY_ERROR_CODE.get(error_code, "composition")
+    if stage is None and status == "failed" and error_code == "VALIDATION_FAILED":
+        # 只有校验失败能从 errorCode 确定阶段；A2UI_GENERATION_FAILED 可能是
+        # 路由/检索/组合任一段，离线不猜测（在线 diagnose_case 才定位）。
+        stage = "validation"
     error_type = ""
     message = str(golden.get("message", "") or "")
     if status == "preflight_rejected":
@@ -385,6 +387,31 @@ def diagnose_case_offline(case_id: str) -> dict:
             first = issues[0]
             error_type = str(first.get("code") or "blocking_issue")
             message = str(first.get("message") or "")[:300]
+    elif status == "failed":
+        # golden.json 只冻结通用文案：阶段与根因都需回放定位；把用例画像
+        # （能力 + 错误码）带上，让 offline 行也有分诊价值。
+        try:
+            payload = json.loads(
+                (GOLDEN_ROOT / case_id / "input.json").read_text(encoding="utf-8")
+            )
+            capabilities = sorted(
+                {
+                    binding.get("capabilityId", "")
+                    for binding in payload.get("candidateDataBindings", [])
+                    if binding.get("capabilityId")
+                }
+            )
+        except (OSError, json.JSONDecodeError):
+            capabilities = []
+        error_type = error_code
+        context_bits = []
+        if capabilities:
+            context_bits.append("capabilities=" + ",".join(capabilities))
+        message = (
+            "生成管线失败，具体阶段与引擎根因需回放定位"
+            "（跑非 --offline 报告或 diagnose_case）"
+            + ("；" + "；".join(context_bits) if context_bits else "")
+        )
     stage_labels = dict(_PIPELINE_STAGES)
     return {
         "case": case_id,
@@ -393,8 +420,7 @@ def diagnose_case_offline(case_id: str) -> dict:
         "stage": stage,
         "stageLabel": stage_labels.get(stage, stage or ""),
         "errorType": error_type,
-        "message": message
-        + ("（--offline：回放后可给出引擎原始报错）" if status == "failed" else ""),
+        "message": message,
         "replayMissed": False,
     }
 
@@ -481,22 +507,45 @@ _STAGE_BY_ERROR_CODE: dict[str, str] = {
 }
 
 
+def _exception_chain(exc: BaseException | None) -> list[BaseException]:
+    """从外层异常走到根因（__cause__ 优先，__context__ 兜底）。"""
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    current = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return chain
+
+
 def _classify_stage(error_code: str, exception: BaseException | None) -> str:
-    """把失败归类到管线阶段；返回阶段键（_PIPELINE_STAGES 的第一列）。"""
-    if exception is not None:
-        by_type = _STAGE_BY_EXCEPTION.get(type(exception).__name__)
+    """把失败归类到管线阶段；返回阶段键（_PIPELINE_STAGES 的第一列）。
+
+    沿整条异常链找第一个能定位阶段的类型（外层常是
+    ``TemplateGenerationError`` 包装，真正定位阶段的是链上的引擎异常）。
+    """
+    for link in _exception_chain(exception):
+        by_type = _STAGE_BY_EXCEPTION.get(type(link).__name__)
         if by_type:
             return by_type
     return _STAGE_BY_ERROR_CODE.get(error_code or "", "composition")
+
+
+def _root_exception(exc: BaseException | None) -> BaseException | None:
+    chain = _exception_chain(exc)
+    return chain[-1] if chain else None
 
 
 def diagnose_case(case_id: str) -> dict:
     """离线回放单个用例并给出失败诊断（不修改任何金样文件）。
 
     对 ``status=failed`` 的基线，服务层把引擎异常折叠成带通用文案的
-    FAILED 响应；这里在 facade 的引擎入口包一层捕获原始异常类型与文案，
-    映射回管线阶段，供报告展示「失败发生在哪一段」。成功用例
-    ``stage`` 为 None。回放走 ReplayingTransport + 设置固定，全程离线。
+    FAILED 响应；这里在 facade 的引擎入口包一层捕获原始异常链，取根因
+    的类型与文案（外层 ``TemplateGenerationError("template body validation "
+    "failed")`` 之类包装对定位毫无信息量），映射回管线阶段，供报告展示
+    「失败发生在哪一段、根因是什么」。成功用例 ``stage`` 为 None。回放走
+    ReplayingTransport + 设置固定，全程离线。
     """
     import services.template_generation.facade as facade_module
 
@@ -538,8 +587,18 @@ def diagnose_case(case_id: str) -> dict:
             failure_message = str(first.get("message") or "")[:300]
     elif status == "failed":
         stage = _classify_stage(error_code, captured_exc)
-        error_type = type(captured_exc).__name__ if captured_exc else ""
-        failure_message = (str(captured_exc) if captured_exc else str(result.get("message", "")))[:300]
+        root = _root_exception(captured_exc)
+        if root is not None:
+            error_type = type(root).__name__
+            failure_message = str(root)[:300]
+            if type(root) is not type(captured_exc):
+                # 外层包装无信息量时保留包装名，方便与引擎日志对齐。
+                failure_message = (
+                    f"{failure_message}（外层 {type(captured_exc).__name__}）"
+                )
+        else:
+            error_type = error_code
+            failure_message = str(result.get("message", ""))
     return {
         "case": case_id,
         "status": status,
