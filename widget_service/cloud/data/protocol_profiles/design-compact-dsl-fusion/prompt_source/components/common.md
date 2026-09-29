@@ -41,15 +41,15 @@
 
 | 组件 | 语义合同 | Props | 正式 Few-shot |
 |---|---|---|---|
-| `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x2 V02 |
-| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x2 V04；2x4 V03/V05 |
+| `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x2 V18；2x4 V04 |
+| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x2 V05/V20；2x4 V04/V18 |
 | `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`fontColor`、`color`、`backgroundColor` 必填；`unit` 可选 | - |
 | `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | - |
 | `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | - |
-| `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V03/V04/V05 |
+| `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V08/V12/V18/V19/V20 |
 | `ProgressCircleSingle` | 一个真实环形比例、环心图标和右侧读数 | `value`、`total`、`icon`、`displayValue`、`label` 与配色必填；`secondaryLabel` 可选 | - |
 | `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor` 必填；`location` 可选 | - |
-| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor` 必填 | 2x2 V00 |
+| `DataDisplay` | 一个标签、核心值和静态短支撑文本 | `label`、`value`、`supportingText`、`fontColor` 必填 | 2x2 V16 |
 | `TopTextBottomValue` | 三项等权的标签、数值和单位 | `items`、`fontColor`、`dividerColor` 必填；每项包含 `label`、`value`、`unit` | - |
 | `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | - |
 
@@ -298,6 +298,11 @@ props 可用样式字段：
 合并无关事实或改变主次关系。每个组件只输出一行且不带 children；只允许使用该组件属性表列出的 Props，
 可另传共同规则中的外部布局 Props；不传 padding、圆角、字号或对齐覆盖内部样式。内容字段支持静态值、完整
 Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
+
+使用优先级是信息完整、可读性、组件复用。高阶组件不是强制替换：先核对必需内容，再按组件实际
+行高、字号、padding、图标和剩余文字宽度核算；不够放时优先取消可选图标，仍不够则改用基础组合。
+例如 `DataDisplay` 不是多指标卡的通用回退，`InfoBlock` 不能装下任意长的单位串，进度组件不能从
+带单位字符串中猜测数值。Recipe 内部不可调的字号不等于卡片其余区域必须跟着放大。
 
 ### 5.12.2 `EmphasizedData`
 

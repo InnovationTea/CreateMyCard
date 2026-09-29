@@ -1,8 +1,8 @@
 {
   "version": 1,
   "protocol_id": "design-compact-dsl",
-  "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
-  "size_policy": "sizes 为模块归属与案例尺寸索引；内存组装完整正文，按请求裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
+  "description": "YAML 1.2 JSON �Ӽ����������ã�������ģ�͡�prompts �и�����˳��Ψһ�ڴ�ƴ��˳��",
+  "size_policy": "sizes Ϊģ������밸���ߴ��������ڴ���װ�������ģ�������ü��ھŽڲ��ֲ�ѡ��ͬ�ߴ簸���������ߴ��������ģ���ļ���",
   "modules": [
     {
       "file": "core.md",
@@ -186,7 +186,23 @@
       "fewshots/2x2.md#example-v03",
       "fewshots/2x2.md#example-v04",
       "fewshots/2x2.md#example-v05",
-      "fewshots/2x2.md#example-v06"
+      "fewshots/2x2.md#example-v06",
+      "fewshots/2x2.md#example-v07",
+      "fewshots/2x2.md#example-v08",
+      "fewshots/2x2.md#example-v09",
+      "fewshots/2x2.md#example-v10",
+      "fewshots/2x2.md#example-v11",
+      "fewshots/2x2.md#example-v12",
+      "fewshots/2x2.md#example-v13",
+      "fewshots/2x2.md#example-v14",
+      "fewshots/2x2.md#example-v15",
+      "fewshots/2x2.md#example-v16",
+      "fewshots/2x2.md#example-v17",
+      "fewshots/2x2.md#example-v18",
+      "fewshots/2x2.md#example-v19",
+      "fewshots/2x2.md#example-v20",
+      "fewshots/2x2.md#example-v21",
+      "fewshots/2x2.md#example-v22"
     ],
     "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
@@ -196,7 +212,22 @@
       "fewshots/2x4.md#example-v03",
       "fewshots/2x4.md#example-v04",
       "fewshots/2x4.md#example-v05",
-      "fewshots/2x4.md#example-v06"
+      "fewshots/2x4.md#example-v06",
+      "fewshots/2x4.md#example-v07",
+      "fewshots/2x4.md#example-v08",
+      "fewshots/2x4.md#example-v09",
+      "fewshots/2x4.md#example-v10",
+      "fewshots/2x4.md#example-v11",
+      "fewshots/2x4.md#example-v12",
+      "fewshots/2x4.md#example-v13",
+      "fewshots/2x4.md#example-v14",
+      "fewshots/2x4.md#example-v15",
+      "fewshots/2x4.md#example-v16",
+      "fewshots/2x4.md#example-v17",
+      "fewshots/2x4.md#example-v18",
+      "fewshots/2x4.md#example-v19",
+      "fewshots/2x4.md#example-v20",
+      "fewshots/2x4.md#example-v21"
     ]
   },
   "fewshots": {
@@ -229,6 +260,70 @@
       {
         "id": "2x2-V06",
         "source": "fewshots/2x2.md#example-v06"
+      },
+      {
+        "id": "2x2-V07",
+        "source": "fewshots/2x2.md#example-v07"
+      },
+      {
+        "id": "2x2-V08",
+        "source": "fewshots/2x2.md#example-v08"
+      },
+      {
+        "id": "2x2-V09",
+        "source": "fewshots/2x2.md#example-v09"
+      },
+      {
+        "id": "2x2-V10",
+        "source": "fewshots/2x2.md#example-v10"
+      },
+      {
+        "id": "2x2-V11",
+        "source": "fewshots/2x2.md#example-v11"
+      },
+      {
+        "id": "2x2-V12",
+        "source": "fewshots/2x2.md#example-v12"
+      },
+      {
+        "id": "2x2-V13",
+        "source": "fewshots/2x2.md#example-v13"
+      },
+      {
+        "id": "2x2-V14",
+        "source": "fewshots/2x2.md#example-v14"
+      },
+      {
+        "id": "2x2-V15",
+        "source": "fewshots/2x2.md#example-v15"
+      },
+      {
+        "id": "2x2-V16",
+        "source": "fewshots/2x2.md#example-v16"
+      },
+      {
+        "id": "2x2-V17",
+        "source": "fewshots/2x2.md#example-v17"
+      },
+      {
+        "id": "2x2-V18",
+        "source": "fewshots/2x2.md#example-v18"
+      },
+      {
+        "id": "2x2-V19",
+        "source": "fewshots/2x2.md#example-v19"
+      },
+      {
+        "id": "2x2-V20",
+        "source": "fewshots/2x2.md#example-v20"
+      },
+      {
+        "id": "2x2-V21",
+        "source": "fewshots/2x2.md#example-v21"
+      },
+      {
+        "id": "2x2-V22",
+        "source": "fewshots/2x2.md#example-v22"
       }
     ],
     "2x4": [
@@ -259,6 +354,66 @@
       {
         "id": "2x4-V06",
         "source": "fewshots/2x4.md#example-v06"
+      },
+      {
+        "id": "2x4-V07",
+        "source": "fewshots/2x4.md#example-v07"
+      },
+      {
+        "id": "2x4-V08",
+        "source": "fewshots/2x4.md#example-v08"
+      },
+      {
+        "id": "2x4-V09",
+        "source": "fewshots/2x4.md#example-v09"
+      },
+      {
+        "id": "2x4-V10",
+        "source": "fewshots/2x4.md#example-v10"
+      },
+      {
+        "id": "2x4-V11",
+        "source": "fewshots/2x4.md#example-v11"
+      },
+      {
+        "id": "2x4-V12",
+        "source": "fewshots/2x4.md#example-v12"
+      },
+      {
+        "id": "2x4-V13",
+        "source": "fewshots/2x4.md#example-v13"
+      },
+      {
+        "id": "2x4-V14",
+        "source": "fewshots/2x4.md#example-v14"
+      },
+      {
+        "id": "2x4-V15",
+        "source": "fewshots/2x4.md#example-v15"
+      },
+      {
+        "id": "2x4-V16",
+        "source": "fewshots/2x4.md#example-v16"
+      },
+      {
+        "id": "2x4-V17",
+        "source": "fewshots/2x4.md#example-v17"
+      },
+      {
+        "id": "2x4-V18",
+        "source": "fewshots/2x4.md#example-v18"
+      },
+      {
+        "id": "2x4-V19",
+        "source": "fewshots/2x4.md#example-v19"
+      },
+      {
+        "id": "2x4-V20",
+        "source": "fewshots/2x4.md#example-v20"
+      },
+      {
+        "id": "2x4-V21",
+        "source": "fewshots/2x4.md#example-v21"
       }
     ]
   }
