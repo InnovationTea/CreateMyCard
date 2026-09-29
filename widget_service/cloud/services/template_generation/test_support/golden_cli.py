@@ -588,7 +588,7 @@ def _render_coverage_table(
         if entry["templateId"] in summary["structuralSkips"]:
             return "structural: " + entry.get("skipReason", "")[:56]
         if entry["size"] == "2x4":
-            return "2x4: Search rejects at entry (Layer A only)"
+            return "2x4: canonical-only by matrix design (2x4 pipeline covered by Layer B)"
         gaps = len(entry["optionalFields"]) - len(entry["absenceTestedFields"])
         if gaps:
             untested = [
@@ -1019,6 +1019,97 @@ def _layer_failure_rows(
     return rows
 
 
+def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
+    """Layer C 的覆盖健康度：把 per-template %Absence 聚合成可行动的结论。
+
+    返回（cards_spec, table_html）。分类：
+    - full            可选字段全部做过 absence 组合（无事可做）
+    - k0              没有可选字段，本来就无从 absence-test
+    - skip-2x4        组合矩阵按设计仅跑 2x2（2x4 由 Layer B 用例覆盖）
+    - skip-unreachable 模板在确定性路由下不可达（prompt 门禁/泛型模板）
+    - gap             真正的缺口：可选字段存在且可测，但没测（需要补矩阵/模板）
+    """
+    esc = _html.escape
+    coverage = inventory.get("coverage") or {}
+    entries = coverage.get("templates") or []
+    counts = {"full": 0, "k0": 0, "skip-2x4": 0, "skip-unreachable": 0, "gap": 0}
+    skip_rows: list[str] = []
+    gap_rows: list[str] = []
+    for entry in entries:
+        wire_id = entry["templateId"]
+        optional = len(entry["optionalFields"])
+        reason = entry.get("skipReason", "") or ""
+        pct = entry.get("absencePct")
+        pct_text = "—" if pct is None else f"{pct}%"
+        if reason:
+            if "2x4 模板" in reason:
+                counts["skip-2x4"] += 1
+                cls = "2x4-canonical"
+                action = "无需处理（2x4 由 Layer B 用例覆盖）"
+            else:
+                counts["skip-unreachable"] += 1
+                cls = "unreachable"
+                action = "无需处理（确定性路由不可达，属上游设计）"
+            skip_rows.append(
+                f"<tr><td><code>{esc(wire_id)}</code></td>"
+                f'<td><span class="badge cand">{esc(cls)}</span></td>'
+                f"<td>{esc(reason)}</td>"
+                f"<td>{esc(action)}</td></tr>"
+            )
+        elif optional == 0:
+            counts["k0"] += 1
+        elif pct is not None and pct < 100:
+            counts["gap"] += 1
+            gap_rows.append(
+                f"<tr><td><code>{esc(wire_id)}</code></td>"
+                f"<td>{pct_text}%</td><td>{optional}</td>"
+                f"<td>{esc(', '.join(f for f in entry['optionalFields'] if f not in entry['absenceTestedFields']))}</td>"
+                "<td>补 pipeline_combo 家族或排查为何缺席组合未渲染</td></tr>"
+            )
+        else:
+            counts["full"] += 1
+    cards = [
+        (counts["full"], "templates with full absence coverage"),
+        (counts["k0"], "templates with no optional fields"),
+        (counts["skip-2x4"], "2x4-canonical (matrix runs 2x2 only)"),
+        (counts["skip-unreachable"], "unreachable by design"),
+        (counts["gap"], "actionable coverage gaps"),
+    ]
+    skip_table = ""
+    if skip_rows:
+        skip_table = (
+            f'<h4>By-design skips ({len(skip_rows)}) — nothing to fix, each with its reason</h4>'
+            '<table class="lb"><thead><tr><th>Template</th><th>Class</th>'
+            "<th>Reason</th><th>Action</th></tr></thead><tbody>"
+            + "".join(skip_rows)
+            + "</tbody></table>"
+        )
+    gap_table = ""
+    if gap_rows:
+        gap_table = (
+            f'<h4>True coverage gaps ({len(gap_rows)}) — these DO need fixing</h4>'
+            '<table class="lb"><thead><tr><th>Template</th><th>%Absence</th>'
+            "<th>Optional fields</th><th>Untested</th><th>Action</th></tr></thead><tbody>"
+            + "".join(gap_rows)
+            + "</tbody></table>"
+        )
+    headline = (
+        f'<p class="muted">结论：可行动缺口 <b>{counts["gap"]}</b> 个。'
+        "0% / 备注 行全部属于上表的按设计跳过（2x4 矩阵范围外或路由不可达），"
+        "不是待修问题。</p>"
+        if not gap_rows
+        else f'<p class="muted">结论：发现 <b>{counts["gap"]}</b> 个真正的覆盖缺口，见下表。</p>'
+    )
+    table = (
+        headline
+        + gap_table
+        + skip_table
+        if (gap_rows or skip_rows)
+        else '<p class="muted">coverage health: no data (run with layers a/b/c)</p>'
+    )
+    return cards, table
+
+
 def _layer_b_baseline_diagnoses(offline: bool = False) -> list[dict[str, str]]:
     """Layer B 基线失败（golden.json status != success）的逐例诊断。
 
@@ -1112,9 +1203,11 @@ def _render_layer_sections_html(
             else:
                 layer_c = inventory.get("layerC_scenarios", {})
                 total = layer_c.get("total", 0)
+                cov_cards, coverage_health = _layer_c_coverage_health(inventory)
                 cards_spec = (
                     (total, "scenario goldens"),
                     (len(layer_c.get("groups", {})), "groups"),
+                    *cov_cards,
                 )
                 breakdown = ""
             cards = "".join(
@@ -1140,6 +1233,10 @@ def _render_layer_sections_html(
                     "<th>Error type</th><th>Message</th></tr></thead><tbody>"
                     + (diag_rows or '<tr><td colspan="5" class="muted">no failed baselines</td></tr>')
                     + "</tbody></table>"
+                )
+            if key == "C":
+                baseline_block += (
+                    '<h3>Coverage health (what needs attention)</h3>' + coverage_health
                 )
             chips.append(
                 f'<a class="chip chip-cand" href="#{anchor}">Layer {key} · {label} '
@@ -1191,6 +1288,9 @@ def _render_layer_sections_html(
         stale_n = len(state.replay_missed)
         total = passed + baseline_n + failed_n + review_n + stale_n
         rate = (100.0 * passed / total) if total else 100.0
+        cov_cards, coverage_health = (
+            _layer_c_coverage_health(inventory) if key == "C" else ([], "")
+        )
         cards = "".join(
             f'<div class="card"><div class="n">{value}</div><div class="l">{esc(label_)}</div></div>'
             for value, label_ in (
@@ -1201,6 +1301,7 @@ def _render_layer_sections_html(
                 (review_n, "under review"),
                 (stale_n, "stale / replay-missed"),
                 (f"{rate:.1f}%", "pass rate"),
+                *cov_cards,
             )
         )
         breakdown = ""
@@ -1278,6 +1379,10 @@ def _render_layer_sections_html(
                 "<th>Error type</th><th>Message</th></tr></thead><tbody>"
                 + (diag_rows or '<tr><td colspan="5" class="muted">no failed baselines</td></tr>')
                 + "</tbody></table>"
+            )
+        if key == "C":
+            baseline_block += (
+                '<h3>Coverage health (what needs attention)</h3>' + coverage_health
             )
         sections.append(
             f'<h2 id="{anchor}">Layer {key} · {label} '
@@ -1777,8 +1882,9 @@ def _cmd_report(args) -> int:
         inventory["layerB_taskspecs"] = _report_layer_b()
     if "C" in want:
         inventory["layerC_scenarios"] = _report_layer_c()
-    if "A" in want or "B" in want:
+    if "A" in want or "B" in want or "C" in want:
         inventory["coverage"] = _report_coverage()
+    if "B" in want:
         inventory["taskspecCoverage"] = _taskspec_coverage()
     for key, label in (
         ("layerA_templates", "Layer A · templates"),
@@ -1900,8 +2006,8 @@ def _cmd_report(args) -> int:
             f"Coverage · props: declared on {summary['propsTemplates']} templates — "
             "default render (Layer A) + optional-absent (pipeline) covered for all; "
             f"{variant_note}. Required data fields: {summary['requiredFieldsTotal']} "
-            "(present in every pipeline render). 2x4: canonical only (Search rejects "
-            "2x4 at pipeline entry)."
+            "(present in every pipeline render). 2x4: canonical only in the combo "
+            "matrix (matrix runs 2x2; 2x4 pipeline covered by Layer B cases)."
         )
         print(
             f"Coverage · taskspecs   : {ts_summary['total']} "
@@ -2063,7 +2169,9 @@ def _report_coverage() -> dict:
                 subsetsRendered=0,
                 subsetsRefused=0,
                 skipReason=(
-                    "2x4：Search 在管线入口拒绝 2x4，仅 Layer A canonical 渲染"
+                    "2x4 模板：组合矩阵按设计仅跑 2x2 组合；2x4 的真实管线路由"
+                    "（#404 后已开放）由 Layer B 的 2x4 用例覆盖，此处仅 Layer A "
+                    "canonical 渲染"
                     if size == "2x4"
                     else "no pipeline_combo family (unexpected)"
                 ),
