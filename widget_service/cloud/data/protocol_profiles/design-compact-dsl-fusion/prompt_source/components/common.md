@@ -41,17 +41,17 @@
 
 | 组件 | 语义合同 | Props | 正式 Few-shot |
 |---|---|---|---|
-| `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x4 V04 |
-| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x4 V04/V06/V10 |
-| `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`fontColor`、`color`、`backgroundColor` 必填；`unit` 可选 | 2x4 V03 |
-| `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | 2x2 V14 |
-| `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V03 |
-| `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V08/V12 |
-| `ProgressCircleSingle` | 一个真实环形比例、环心图标和右侧读数 | `value`、`total`、`icon`、`displayValue`、`label` 与配色必填；`secondaryLabel` 可选 | 2x4 V02 |
-| `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor` 必填；`location` 可选 | 2x2 V06 |
-| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor` 必填 | `S-center` |
-| `TopTextBottomValue` | 三项等权的标签、数值和单位 | `items`、`fontColor`、`dividerColor` 必填；每项包含 `label`、`value`、`unit` | 2x4 V05 |
-| `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V01 |
+| `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x2 V02 |
+| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x2 V04；2x4 V03/V05 |
+| `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`fontColor`、`color`、`backgroundColor` 必填；`unit` 可选 | - |
+| `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | - |
+| `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | - |
+| `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V03/V04/V05 |
+| `ProgressCircleSingle` | 一个真实环形比例、环心图标和右侧读数 | `value`、`total`、`icon`、`displayValue`、`label` 与配色必填；`secondaryLabel` 可选 | - |
+| `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor` 必填；`location` 可选 | - |
+| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor` 必填 | 2x2 V00 |
+| `TopTextBottomValue` | 三项等权的标签、数值和单位 | `items`、`fontColor`、`dividerColor` 必填；每项包含 `label`、`value`、`unit` | - |
+| `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | - |
 
 共同约束：组件只输出一行且不带 children；内容字段支持 Text.content 已允许的静态值、Expression 或
 PathBinding。宽高、字号、对齐、间距和子节点 ID 由转换器按尺寸及合法槽位固定展开，不作为 Props。

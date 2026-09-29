@@ -2680,10 +2680,10 @@ def _collect_two_by_four_w1_focus_aux_errors(
                 break
         has_non_start_container = False
         if cell.component_type == "Row":
-            has_non_start_container = cell.props.get("justifyContent") not in {
-                None,
-                "start",
-            }
+            is_card_button = _uses_visual_recipe_part(cell, "CardButton.root")
+            has_non_start_container = not is_card_button and cell.props.get(
+                "justifyContent"
+            ) not in {None, "start"}
         elif cell.component_type == "Column":
             has_non_start_container = cell.props.get("alignItems") not in {
                 None,
@@ -3262,6 +3262,13 @@ def _collect_two_by_two_content_density_errors(
         return
     if _has_two_by_two_s4_zones(root, components_by_id):
         return
+    if len(root.children) == 1:
+        only_child = components_by_id.get(root.children[0])
+        if only_child is not None and _uses_visual_recipe_part(
+            only_child,
+            "DataDisplay.root",
+        ):
+            return
 
     information_regions: list[ComponentRow] = []
     for index, child_id in enumerate(root.children):

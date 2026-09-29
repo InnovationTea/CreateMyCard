@@ -600,12 +600,13 @@ def _centered_single_value_hero_dsl(
     return "\n".join(rows)
 
 
-def test_design_prompt_defines_centered_single_value_hero_safe_box() -> None:
+def test_design_prompt_routes_single_core_value_to_center_layout() -> None:
     prompt = _DESIGN_PROMPT
 
-    assert "2x2 单数值 Hero 安全盒前置约束" in prompt
-    assert "`width:106`、`height:58`" in prompt
-    assert "38/16fp -> 30/14fp -> 24/12fp -> 20/12fp" in prompt
+    assert "## 11.5 2x2 组合落地" in prompt
+    assert "| `S-center` | 单一核心内容 |" in prompt
+    assert "只承载一个无需标题即可理解的 `DataDisplay`" in prompt
+    assert "2x2 单数值 Hero 安全盒前置约束" not in prompt
 
 
 def test_accepts_centered_single_value_hero_inside_106_by_58_safe_box() -> None:
