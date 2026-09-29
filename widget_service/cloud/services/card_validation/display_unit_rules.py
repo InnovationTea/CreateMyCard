@@ -286,11 +286,17 @@ def _literal_matches_rule(term: str, rule: DisplayUnitRule) -> bool:
 
 def _value_matches_rule(value: str, rule: DisplayUnitRule) -> bool:
     normalized_literal = _normalized_unit(value)
-    return any(
-        alias in normalized_literal
-        for unit in rule.units
-        for alias in _normalized_aliases(unit)
-    )
+    for unit in rule.units:
+        for alias in _normalized_aliases(unit):
+            for match in re.finditer(re.escape(alias), normalized_literal):
+                before = normalized_literal[:match.start()]
+                after = normalized_literal[match.end():]
+                if before and before[-1].isalpha():
+                    continue
+                if after and after[0].isalpha() and after not in _UNIT_TEXT_SUFFIXES:
+                    continue
+                return True
+    return False
 
 
 def _string_literal_values(expression: str) -> list[str]:

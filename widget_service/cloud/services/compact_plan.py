@@ -234,7 +234,12 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；componentHints 与 "
         "layoutHints 都是软候选，不冻结组件实例或最终骨架。每项事实必须由最终 Compact "
         "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
-        "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n\n"
+        "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
+        "逐项核对 dataId → 可见组件 Prop：标题、地区、更新时间也必须真实绑定；"
+        "不能用用户原话或 sampleValue 写死，即使首帧文字相同。只写数据行、只在事件参数"
+        "引用都不算可见。actionId → 所属对象的点击组件与可见动作名称：入会不能挂在"
+        "耳机等无关信息块，不能因槽位已满省略动作。数值图形不支持的格式化文本保留文字，"
+        "不得从 sampleValue 提取数字写成静态进度。\n\n"
         f"```json\n{payload}\n```"
     )
 

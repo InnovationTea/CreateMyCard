@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import copy
 import json
+import re
 from typing import Any
 
 from models.generation import TaskSpec
@@ -68,10 +69,11 @@ _TWO_BY_TWO_COUNTDOWN_WEATHER_ROUTE_LOCK = """# 本次 2x2 倒计时与天气路
 - root 固定 `padding:8`、`itemMargin:8`，直接包含两个 `134×63vp` 背板。
 - 倒计时背板只放两行：第一行 `14fp/700` 的“数字+天”，第二行 `12fp/400`
   的短状态；有 `icon_timing` 候选时放在右侧固定图标槽。
-- 天气背板只放两行：第一行 `14fp/700` 的地点与温度，第二行 `12fp/400`
-  的天气状态；有天气温度计候选时放在右侧固定图标槽。
-- 每个带图标背板使用 `Row -> [82vp 文字 Column, 20×20vp Image]`；天气详情
-  动作绑定天气背板本身，不生成按钮或动作提示文字。"""
+- 天气背板先保留完整温度范围、天气和用户要求的降雨概率；不把静态地点前缀挤在长温度前。
+  同行放不下时取消可选图标，使用完整文字宽度；不得把完整数值截在“降雨”等标签后。
+- 图标不是必选。只有全部必要文字仍能完整显示时才使用右侧图标槽。
+  天气详情只绑定天气背板；闹钟等时间动作绑定倒计时背板并显示“打开闹钟”等完整动作名，
+  不得把其它对象动作静默挂在天气信息上。"""
 
 _TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK = """# 本次 2x4 倒计时双业务路由（高优先级）
 
@@ -578,6 +580,15 @@ class PromptBuilder:
         return _contains_any(task_spec.userQuery, _ACTION_QUERY_MARKERS)
 
     @staticmethod
+    def _query_requests_multiple_actions(task_spec: TaskSpec) -> bool:
+        if len(task_spec.eventCandidates) < 2:
+            return False
+        if _contains_any(task_spec.userQuery, ("两个", "分别", "各自", "每首", "双入口")):
+            return PromptBuilder._query_requests_action(task_spec)
+        verbs = re.findall(r"打开|进入|导航|拨打|拨号|播放|暂停|开启|关闭", task_spec.userQuery)
+        return len(verbs) >= 2
+
+    @staticmethod
     def _has_explicit_non_weather_action(task_spec: TaskSpec) -> bool:
         if not _contains_any(
             task_spec.userQuery, ("拨打", "拨号", "电话", "歌单", "设置", "导航", "入会", "播放")
@@ -660,7 +671,15 @@ class PromptBuilder:
             return "countdown", (example_id,)
 
         if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
-            example_id = "2x4-V08" if event_count >= 2 else "2x4-V04"
+            has_action = event_count > 0 and PromptBuilder._query_requests_action(task_spec)
+            if not has_action:
+                example_id = "2x4-V24"
+            elif PromptBuilder._query_requests_multiple_actions(task_spec):
+                example_id = "2x4-V08"
+            elif len(roots) >= 2:
+                example_id = "2x4-V18"
+            else:
+                example_id = "2x4-V23"
             return "focus-aux", (example_id,)
 
         if (
@@ -679,9 +698,7 @@ class PromptBuilder:
                 return "multi-business", multi_business_ids
             return "multi-business", _GENERIC_MULTI_FEW_SHOT_IDS[task_spec.size]
 
-        if task_spec.size == "2x2" and event_count >= 2 and _contains_any(
-            query, ("两个", "分别", "各自", "每个", "每首", "单独", "双入口"),
-        ):
+        if task_spec.size == "2x2" and PromptBuilder._query_requests_multiple_actions(task_spec):
             return "generic", ("2x2-V03",)
 
         if task_spec.size == "2x2" and event_count == 1 and _contains_any(
@@ -695,6 +712,13 @@ class PromptBuilder:
                 ("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",)
             )
         if "phonebattery" in normalized_roots:
+            dense_with_action = (
+                PromptBuilder._schema_leaf_count(task_spec.dataModelSchema.get("data")) >= 4
+                and event_count > 0
+                and PromptBuilder._query_requests_action(task_spec)
+            )
+            if task_spec.size == "2x2" and dense_with_action:
+                return "battery-readout", ("2x2-V29",)
             return "battery-readout", (("2x2-V09",) if task_spec.size == "2x2" else ("2x4-V02",))
         if "weather" in normalized_roots or any(
             _contains_any(query, markers)
@@ -744,7 +768,16 @@ class PromptBuilder:
                     ("sleepDuration", "deepSleepDuration", "sleepType"),
                 )
                 if has_sleep_summary and _contains_any(query, ("睡眠", "睡了", "深睡")):
+                    if event_count > 0 and PromptBuilder._query_requests_action(task_spec):
+                        return "health-readout", ("2x2-V30",)
                     return "health-readout", ("2x2-V12",)
+                has_heart_rate_range = PromptBuilder._schema_has_field(
+                    task_spec, ("heartRateMax", "maximumHeartRate")
+                ) and PromptBuilder._schema_has_field(
+                    task_spec, ("heartRateMin", "minimumHeartRate")
+                )
+                if has_heart_rate_range:
+                    return "health-readout", ("2x2-V13",)
                 return "health-readout", ("2x2-V07", "2x2-V13")
             has_sleep_score = PromptBuilder._schema_has_field(task_spec, ("sleepScore",))
             has_sleep_duration = PromptBuilder._schema_has_field(
@@ -775,6 +808,11 @@ class PromptBuilder:
         if task_spec.size == "2x2":
             if block_count >= 4:
                 return (_TWO_BY_TWO_QUAD_FEW_SHOT_ID,)
+            has_meeting_action = (
+                bool(task_spec.eventCandidates) and PromptBuilder._query_requests_action(task_spec)
+            )
+            if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
+                return ("2x2-V28",)
             if normalized_roots == {"phonebattery", "earphone"}:
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             if PromptBuilder._query_mentions_weather(task_spec):
@@ -813,6 +851,8 @@ class PromptBuilder:
                 return "S-quad-content"
             if block_count >= 2:
                 return "S-dual-info"
+            if PromptBuilder._query_requests_multiple_actions(task_spec):
+                return "S-content-dual-action"
             return "S-adaptive-single-business"
 
         if block_count >= 4:
@@ -1013,6 +1053,13 @@ class PromptBuilder:
                 "所有行与上下文共同满足卡片高度，必要时取消可选图标和重复标题。"
             )
         if task_spec.size == "2x2":
+            if layout_scope == "S-content-dual-action":
+                return (
+                    "# 本轮双动作预算\n\n"
+                    "使用 S-content-dual-action：正文38、间距8、按钮36、间距8、按钮36。"
+                    "不增加 CardHeader 或独立标题，不使用融球；必要对象名并入正文短行。"
+                    "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
+                )
             if layout_scope == "S-quad-content":
                 return (
                     "# 本次尺寸骨架硬约束（高优先级）\n\n"
@@ -1064,11 +1111,7 @@ class PromptBuilder:
         if not supported_route:
             return ""
 
-        query_requests_dual_action = len(task_spec.eventCandidates) >= 2 and _contains_any(
-            task_spec.userQuery,
-            ("两个", "分别", "各自", "双入口"),
-        )
-        if query_requests_dual_action:
+        if PromptBuilder._query_requests_multiple_actions(task_spec):
             return ""
 
         return (
@@ -1357,6 +1400,9 @@ class PromptBuilder:
             f"{PromptBuilder._visual_route_instruction(task_spec, layout_scope)}\n\n"
             f"{PromptBuilder._layout_route_lock(task_spec, layout_scope)}"
         )
+        formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
+        if formatted_percent_instruction:
+            prompt = f"{prompt}\n\n{formatted_percent_instruction}"
         cross_domain_lock = PromptBuilder._two_by_four_cross_domain_lock(task_spec)
         if cross_domain_lock:
             prompt = f"{prompt}\n\n{cross_domain_lock}"
@@ -1378,6 +1424,37 @@ class PromptBuilder:
             suffix = f"\n\n{domain_lock}" if domain_lock else ""
             return f"{prompt}\n\n{_TWO_BY_FOUR_FOCUS_AUX_ROUTE_LOCK}{suffix}"
         return prompt
+
+    @staticmethod
+    def _formatted_percent_instruction(task_spec: TaskSpec) -> str:
+        paths: list[str] = []
+
+        def visit(value: Any, path: str) -> None:
+            if isinstance(value, list):
+                for index, child in enumerate(value):
+                    visit(child, f"{path}/{index}")
+                return
+            if not isinstance(value, dict):
+                return
+            if "type" in value:
+                sample = value.get("sampleValue")
+                is_percent_text = isinstance(sample, str) and sample.strip().endswith("%")
+                if value.get("type") == "string" and is_percent_text:
+                    paths.append(path)
+                return
+            for name, child in value.items():
+                escaped = str(name).replace("~", "~0").replace("/", "~1")
+                visit(child, f"{path}/{escaped}")
+
+        visit(task_spec.dataModelSchema, "")
+        if not paths:
+            return ""
+        return (
+            "# 本轮已格式化百分比路径\n\n"
+            + "、".join(paths)
+            + " 均为带单位字符串，只能直接绑定完整文字，不追加%，不能从样例提取数字写死 Progress。"
+            "若同对象同指标没有数值路径，就不生成对应进度图；其它对象的电量或百分比不能代替。"
+        )
 
     def build_design_compact(
         self,
