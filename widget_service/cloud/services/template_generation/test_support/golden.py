@@ -48,6 +48,7 @@ class CheckLayer:
     label: str
     comparison: GoldenComparison
     extra_failed: tuple[str, ...] = ()
+    baseline_failed: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class CheckReport:
     has_divergence: bool
     failed_ids: tuple[str, ...]
     review_ids: tuple[str, ...]
+    baseline_failed_ids: tuple[str, ...] = ()
 
 
 def render_check_report(layers: list[CheckLayer]) -> CheckReport:
@@ -70,14 +72,19 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
       STALE  内容仍一致但录制已失效（replay miss）——需重录才能继续验证；
       REVIEW 差异已申报（declared），等待 bless 固化；
       FAIL   未申报差异。
+    baseline-failed（Layer B 固化的失败基线）不算通过：期望是全部用例
+    通过，因此如实单列并计入汇总，但不改变漂移判定（固化语义不变）。
     """
     layer_lines: list[str] = []
     failed_lines: list[str] = []
     stale_lines: list[str] = []
     review_lines: list[str] = []
+    baseline_lines: list[str] = []
     total_passed = total_stale = total_review = total_failed = 0
+    total_baseline = 0
     failed_ids: list[str] = []
     review_ids: list[str] = []
+    baseline_ids: list[str] = []
     for layer in layers:
         comparison = layer.comparison
         failed = (
@@ -93,8 +100,15 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
             + list(comparison.declared_additions)
             + list(comparison.declared_removals)
         )
-        passed = len(comparison.unchanged) - len(stale)
-        total = passed + len(stale) + len(failed) + len(review)
+        # baseline-failed = 回放与固化一致、但固化本身就是失败基线的用例；
+        # 与漂移无关，但按「期望全部用例通过」如实单列，不计入 passed。
+        baseline = [
+            item_id
+            for item_id in layer.baseline_failed
+            if item_id not in failed and item_id not in stale
+        ]
+        passed = len(comparison.unchanged) - len(stale) - len(baseline)
+        total = passed + len(stale) + len(failed) + len(review) + len(baseline)
         if failed:
             status = "FAIL"
         elif stale:
@@ -103,11 +117,12 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
             status = "REVIEW"
         else:
             status = "PASS"
+        baseline_suffix = f" · baseline-failed {len(baseline):>3}" if baseline else ""
         layer_lines.append(
             f"  {layer.label:<10} {status:<6} "
             f"passed {passed:>3} · stale {len(stale):>3} · "
-            f"under review {len(review):>3} · failed {len(failed):>3} · "
-            f"total {total:>3}"
+            f"under review {len(review):>3} · failed {len(failed):>3}"
+            f"{baseline_suffix} · total {total:>3}"
         )
         kind = layer.label.rstrip("s").lower()
         for item_id in failed:
@@ -116,12 +131,16 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
             stale_lines.append(f"  [{kind}] {item_id}")
         for item_id in review:
             review_lines.append(f"  [{kind}] {item_id}")
+        for item_id in baseline:
+            baseline_lines.append(f"  [{kind}] {item_id}")
         failed_ids.extend(f"{kind}:{item_id}" for item_id in failed)
         review_ids.extend(f"{kind}:{item_id}" for item_id in review)
+        baseline_ids.extend(f"{kind}:{item_id}" for item_id in baseline)
         total_passed += passed
         total_stale += len(stale)
         total_review += len(review)
         total_failed += len(failed)
+        total_baseline += len(baseline)
 
     lines = ["Golden check", *layer_lines, ""]
     if failed_lines:
@@ -142,10 +161,21 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
             *review_lines,
             "",
         ]
-    lines.append(
+    if baseline_lines:
+        lines += [
+            "Baseline failures (replay matches the golden, but the golden itself is a "
+            "failure - expectation is ALL testcases pass; see report --html Layer B "
+            "diagnosis):",
+            *baseline_lines,
+            "",
+        ]
+    summary = (
         f"Golden summary  passed {total_passed} · stale {total_stale} · "
         f"under review {total_review} · failed {total_failed}"
     )
+    if total_baseline:
+        summary += f" · baseline-failed {total_baseline}"
+    lines.append(summary)
     has_undeclared = total_failed > 0
     has_stale = total_stale > 0
     has_divergence = has_undeclared or has_stale or total_review > 0
@@ -158,6 +188,8 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
         verdict = "Result: REVIEW PENDING (all changes declared - bless to promote)"
     else:
         verdict = "Result: PASSED"
+        if total_baseline:
+            verdict += f" ({total_baseline} baseline failures counted separately)"
     lines.append(verdict)
     return CheckReport(
         text="\n".join(lines),
@@ -166,6 +198,7 @@ def render_check_report(layers: list[CheckLayer]) -> CheckReport:
         has_divergence=has_divergence,
         failed_ids=tuple(failed_ids),
         review_ids=tuple(review_ids),
+        baseline_failed_ids=tuple(baseline_ids),
     )
 
 
