@@ -377,18 +377,18 @@ PromptBuilder.build_design_compact()
 创建模式的 System 消息完整读取：
 
 ```text
-cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/PROMPT.md
+cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/（内存组装 create）
 ```
 
 编辑模式的 System 消息读取：
 
 ```text
-cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/EDIT_SYSTEM_PROMPT.md
+cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/（内存组装 edit）
 ```
 
-上述文件由同级 `prompt_source/manifest.yaml` 索引的模块构建，禁止直接修改 generated；
-模块边界和构建命令见提示词包 README。原协议标识保持不变，旧提示词路径不再回退。
-其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮实际的 `PROMPT.md` 内容及运行时限制。编辑附加规则只约束
+上述文本由 `prompt_source/manifest.yaml` 索引的模块直接在内存中组装；模块边界和加载规则见提示词包 README。
+原协议标识保持不变，旧提示词路径不再回退。其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮实际的
+`create` 内容及运行时限制。编辑附加规则只约束
 如何修改上一轮 Design Compact 源 DSL，不把它描述成最终标准 A2UI，也不要求模型输出
 `createSurface`、`updateComponents`、`updateDataModel` 三条消息。Compact DSL 的组件行和数据行数量由
 卡片结构决定，随后统一交给 Processor 转换。

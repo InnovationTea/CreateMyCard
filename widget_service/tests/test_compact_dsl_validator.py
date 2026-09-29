@@ -7,21 +7,23 @@ from pathlib import Path
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.compact_prompt_loader import assemble_prompts
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
     get_dsl_processor,
 )
 
-_DESIGN_PROMPT_PATH = (
+_DESIGN_PROMPT_SOURCE = (
     Path(__file__).resolve().parents[1]
     / "cloud"
     / "data"
     / "protocol_profiles"
     / "design-compact-dsl-fusion"
-    / "generated"
-    / "PROMPT.md"
+    / "prompt_source"
 )
+_DESIGN_PROMPT = assemble_prompts(_DESIGN_PROMPT_SOURCE).get("create")
+assert isinstance(_DESIGN_PROMPT, str)
 
 _INVALID_COMPACT_DSL = "\n".join(
     [
@@ -282,7 +284,7 @@ def _w9_sparse_task_spec() -> dict:
 
 def _w9_sparse_dsl(*, centered: bool) -> str:
     content_props = {
-        "width": 114,
+        "width": 116,
         "layoutWeight": 1,
         "itemMargin": 4,
     }
@@ -290,23 +292,23 @@ def _w9_sparse_dsl(*, centered: bool) -> str:
         content_props["justifyContent"] = "center"
     rows = [
         '["root","Row",{"width":"matchParent","height":"matchParent",'
-        '"padding":8,"itemMargin":8},["leftZone","rightZone"]]',
-        '["leftZone","Column",{"width":138,"height":134,"padding":12},'
+        '"padding":12,"itemMargin":12},["leftZone","rightZone"]]',
+        '["leftZone","Column",{"width":132,"height":126,"padding":8},'
         '["leftContent"]]',
         f'["leftContent","Column",{content_props!r}'.replace("'", '"')
         + ',["leftName","leftStatus"]]',
         '["leftName","Text",{"content":{"path":"/data/left/name"},'
-        '"width":120,"fontSize":12,"maxLines":1}]',
+        '"width":116,"fontSize":12,"maxLines":1}]',
         '["leftStatus","Text",{"content":{"path":"/data/left/status"},'
-        '"width":120,"fontSize":18,"fontWeight":700,"maxLines":1}]',
-        '["rightZone","Column",{"width":138,"height":134,"padding":12},'
+        '"width":116,"fontSize":18,"fontWeight":700,"maxLines":1}]',
+        '["rightZone","Column",{"width":132,"height":126,"padding":8},'
         '["rightContent"]]',
         f'["rightContent","Column",{content_props!r}'.replace("'", '"')
         + ',["rightName","rightStatus"]]',
         '["rightName","Text",{"content":{"path":"/data/right/name"},'
-        '"width":120,"fontSize":12,"maxLines":1}]',
+        '"width":116,"fontSize":12,"maxLines":1}]',
         '["rightStatus","Text",{"content":{"path":"/data/right/status"},'
-        '"width":120,"fontSize":18,"fontWeight":700,"maxLines":1}]',
+        '"width":116,"fontSize":18,"fontWeight":700,"maxLines":1}]',
         '["/data/left/name","项目"]',
         '["/data/left/status","进行中"]',
         '["/data/right/name","同步"]',
@@ -336,6 +338,28 @@ def test_accepts_sparse_w9_with_vertical_center_and_layout_weight() -> None:
         task_spec=_w9_sparse_task_spec(),
         card_spec={"suggestSize": "2x4", "dataBindings": []},
     )
+
+
+def test_rejects_sparse_w9_with_legacy_backboard_geometry() -> None:
+    legacy = _w9_sparse_dsl(centered=True)
+    legacy = legacy.replace(
+        '"padding":12,"itemMargin":12',
+        '"padding":8,"itemMargin":8',
+    )
+    legacy = legacy.replace(
+        '"width":132,"height":126,"padding":8',
+        '"width":138,"height":134,"padding":12',
+    )
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match=r"must use W9.*padding 12.*132x126",
+    ):
+        validate_compact_dsl(
+            legacy,
+            task_spec=_w9_sparse_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
 
 
 def _fusion_overloaded_dsl() -> str:
@@ -492,7 +516,7 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
 
 
 def test_design_prompt_contains_no_empty_container_examples() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = _DESIGN_PROMPT
     empty_container_lines = re.findall(
         r'^\["[^"]+","(?:Row|Column|List|Stack)",\{.*\},\[\]\]$',
         prompt,
@@ -503,11 +527,11 @@ def test_design_prompt_contains_no_empty_container_examples() -> None:
 
 
 def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = _DESIGN_PROMPT
 
     assert "## 3.1 一级高度算账硬门禁" in prompt
-    assert "20 + 59 + 59 + 8 × 2 = 154 > 134" in prompt
-    assert "20 + 66 + 36 + 36 = 158 > 126" in prompt
+    assert "63 + 8 + 63 = 134vp" in prompt
+    assert "59 + 40 + 36 + 8 × 2 = 151vp" in prompt
     assert "itemMargin 不生效" not in prompt
     assert "两者可以同时设置" in prompt
 
@@ -577,7 +601,7 @@ def _centered_single_value_hero_dsl(
 
 
 def test_design_prompt_defines_centered_single_value_hero_safe_box() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = _DESIGN_PROMPT
 
     assert "2x2 单数值 Hero 安全盒前置约束" in prompt
     assert "`width:106`、`height:58`" in prompt

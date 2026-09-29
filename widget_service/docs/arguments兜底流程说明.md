@@ -324,7 +324,7 @@ flowchart TD
 - 路由触发与连续计数：`cloud/api/routes.py`
 - 参数恢复模块：`cloud/services/compact_dsl_argument_repair.py`
 - 参数恢复 Prompt：
-  `cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/ARGUMENT_REPAIR_SYSTEM_PROMPT.md`
+  `cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/argument_repair.md`
 - 配置模型：`cloud/config/config.py`
 - 蓝区默认配置：`cloud/config/default_config.yaml`
 - 主要回归测试：`tests/test_tool_dispatch_routes.py`

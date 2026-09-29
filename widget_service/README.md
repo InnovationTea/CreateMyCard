@@ -1,9 +1,9 @@
 # Widget Service
 
 CompactDSL 单步提示词维护入口：
-[模块边界、案例索引与构建说明](cloud/data/protocol_profiles/design-compact-dsl-fusion/README.md)。
-只修改 `prompt_source/`，发布前构建并执行 `python scripts/build_compact_prompts.py --check`；
-`generated/` 为唯一正式加载路径，不保留旧提示词回退。
+[模块边界、案例索引与加载说明](cloud/data/protocol_profiles/design-compact-dsl-fusion/README.md)。
+只修改 `prompt_source/`；服务按 manifest 直接读取、在内存中拼接并缓存，发布后重启服务生效。
+无需构建中间文件，不保留其它提示词回退。
 
 Python 3.12 FastAPI microservice for AI widget card generation.
 
@@ -64,7 +64,7 @@ The service follows `docs/AGENTS.md`:
   recovery. When enabled, the service tracks stringified `content.arguments` per `requestId` in the current process.
   `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT=1` means the first consecutive occurrence returns the
   existing correction instruction and the second invokes `A2UIModelClient` with the JSON-only prompt from
-  `data/protocol_profiles/design-compact-dsl-fusion/generated/ARGUMENT_REPAIR_SYSTEM_PROMPT.md`.
+  `data/protocol_profiles/design-compact-dsl-fusion/prompt_source/argument_repair.md`.
   `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS=2` controls the dedicated content-validation attempts.
   The original string is always sent unchanged as `rawArguments`; no heuristic JSON repair runs before or after the
   model. Each output must pass strict JSON parsing and request validation. A rejected first output is retried with its

@@ -9,11 +9,10 @@ from services.card_validation import CompactDslValidationError, validate_compact
 
 def _rows() -> list:
     return [
-        ["root", "Column", {"padding": 12, "itemMargin": 8}, ["summary", "controls"]],
-        ["summary", "Column", {"width": 126, "height": 40, "itemMargin": 2}, ["a", "b"]],
+        ["root", "Column", {"padding": 12, "itemMargin": 8}, ["summary", "one", "two"]],
+        ["summary", "Column", {"width": 126, "height": 38, "itemMargin": 0}, ["a", "b"]],
         ["a", "Text", {"content": "电量 80%", "fontSize": 14, "height": 20, "maxLines": 1}],
         ["b", "Text", {"content": "未充电", "fontSize": 12, "height": 18, "maxLines": 1}],
-        ["controls", "Column", {"width": 126, "height": 78, "itemMargin": 6}, ["one", "two"]],
         ["one", "ActionUnit", {"state": "capsule", "label": "动作一", "onClick": []}],
         ["two", "ActionUnit", {"state": "capsule", "label": "动作二", "onClick": []}],
         ["/state/ready", True],
@@ -57,7 +56,7 @@ def test_rejects_invalid_s3_slots(change: str) -> None:
     elif change == "height":
         rows[1][2].pop("height")
     elif change == "gap":
-        rows[4][2]["itemMargin"] = 4
+        rows[0][2]["itemMargin"] = 4
     elif change == "icon":
         rows[1][3].append("extra")
         rows.append(["extra", "Text", {"content": "额外信息"}])
@@ -65,6 +64,18 @@ def test_rejects_invalid_s3_slots(change: str) -> None:
         rows[2][2]["maxLines"] = 2
     else:
         rows[0][3].reverse()
+    with pytest.raises(CompactDslValidationError, match="S3_DUAL_ACTION_LAYOUT"):
+        _validate(rows)
+
+
+def test_rejects_legacy_s3_nested_action_container() -> None:
+    rows = _rows()
+    rows[0][3] = ["summary", "controls"]
+    rows.insert(
+        4,
+        ["controls", "Column", {"width": 126, "height": 78, "itemMargin": 6}, ["one", "two"]],
+    )
+
     with pytest.raises(CompactDslValidationError, match="S3_DUAL_ACTION_LAYOUT"):
         _validate(rows)
 
@@ -77,7 +88,7 @@ def test_does_not_apply_to_wide_cards() -> None:
 
 def test_does_not_apply_to_one_capsule() -> None:
     rows = _rows()
-    rows[4][3].remove("two")
-    rows.pop(6)
+    rows[0][3].remove("two")
+    rows.pop(5)
     rows[1][2].pop("height")
     _validate(rows)

@@ -68,3 +68,4 @@ test/
 test.jsonl
 /widget_service/cloud/compact-dsl-renderer/
 /widget_service/cloud/a2ui-renderer/
+/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/

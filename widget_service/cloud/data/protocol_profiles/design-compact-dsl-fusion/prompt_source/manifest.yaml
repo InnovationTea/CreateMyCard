@@ -1,8 +1,8 @@
 {
   "version": 1,
   "protocol_id": "design-compact-dsl",
-  "description": "YAML 1.2 JSON 子集；维护配置，不发送模型。products 数组顺序即唯一拼接顺序。",
-  "size_policy": "sizes 为维护归属与案例尺寸索引；本期保持完整正文，运行时仍仅裁剪第九节与选择同尺寸案例，不新增整文件过滤。",
+  "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
+  "size_policy": "sizes 为模块归属与案例尺寸索引；内存组装完整正文，按请求裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
   "modules": [
     {
       "file": "core.md",
@@ -128,8 +128,8 @@
       ]
     }
   ],
-  "products": {
-    "PROMPT.md": [
+  "prompts": {
+    "create": [
       "core.md#identity",
       "information/common.md#ownership-gate",
       "components/2x2.md#icon-gate",
@@ -190,16 +190,16 @@
       "information/common.md#metric-labels",
       "combinations/2x2.md#fusion-simplification"
     ],
-    "EDIT_SYSTEM_PROMPT.md": [
+    "edit": [
       "edit.md#contract"
     ],
-    "REPAIR_SYSTEM_PROMPT.md": [
+    "repair": [
       "repair.md#contract"
     ],
-    "ARGUMENT_REPAIR_SYSTEM_PROMPT.md": [
+    "argument_repair": [
       "argument_repair.md#contract"
     ],
-    "FEWSHOT_2x2.md": [
+    "fewshot_2x2": [
       "fewshots/2x2.md#preamble",
       "fewshots/2x2.md#example-v00",
       "fewshots/2x2.md#example-v01",
@@ -218,7 +218,7 @@
       "fewshots/2x2.md#example-v14",
       "fewshots/2x2.md#example-v15"
     ],
-    "FEWSHOT_2x4.md": [
+    "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
       "fewshots/2x4.md#example-v00",
       "fewshots/2x4.md#example-v01",

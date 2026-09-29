@@ -11,17 +11,14 @@ import pytest
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
+from services.compact_prompt_loader import assemble_prompts
 from services.prompt_builder import PromptBuilder
 
-PROFILE = (
+PROMPT_SOURCE = (
     Path(__file__).resolve().parents[1]
-    / "cloud/data/protocol_profiles/design-compact-dsl-fusion/generated"
+    / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
 )
-PROMPTS = {
-    "create": (PROFILE / "PROMPT.md").read_text(encoding="utf-8"),
-    "fewshot_2x2": (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8"),
-    "fewshot_2x4": (PROFILE / "FEWSHOT_2x4.md").read_text(encoding="utf-8"),
-}
+PROMPTS = assemble_prompts(PROMPT_SOURCE)
 
 
 def _examples() -> list[tuple[str, dict, str]]:
