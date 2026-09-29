@@ -55,6 +55,11 @@ def _task(extra_earbuds: bool) -> TaskSpec:
     return TaskSpec(
         userQuery="查看耳机盒电量及充电状态",
         size="2x2",
+        assetCandidates=[{
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "description": "耳机充电盒图标",
+            "sceneTags": ["earphone-case"],
+        }],
         dataModelSchema={"data": {"earphone": fields}},
         eventCandidates=[
             EventAction(
@@ -100,7 +105,8 @@ class _CaseModel:
         self.body_calls += 1
         return (
             'Template("HeroActionLayout@1",{},'
-            'Template("BluetoothDeviceOverviewEarphoneCaseHero@1",{}),'
+            'Template("BluetoothDeviceOverviewEarphoneCaseHero@1",'
+            '{"deviceIcon":"resources/base/media/earphone_case_16644.svg"}),'
             'Template("PillAction@1",'
             '{"actionId":"event.open.settings.bluetooth","label":"蓝牙设置"}));'
         )

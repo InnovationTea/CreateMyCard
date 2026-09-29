@@ -35,7 +35,7 @@
       "templateId": "BatteryOverviewFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态。",
+      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -51,7 +51,7 @@
       "templateId": "BatteryOverviewHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Hero，居中展示电量进度环和当前电量等级，并为底部一个 PillAction 预留空间。",
+      "description": "手机电量 Hero，居中展示电量进度环和当前电量等级，并为底部一个 PillAction 预留空间；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -81,7 +81,7 @@
       "templateId": "BatteryOverviewPercentStatusCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量与充电状态 Compact：左侧以 20vp 大号数字展示电量百分比，辅行展示充电状态，右侧 40vp 电量环，环内可选电量图标，自带圆角底板；用于宽版右列 2x1 组合槽位。 组件形态：percentStatusCompact。",
+      "description": "手机电量与充电状态 Compact：左侧以 20vp 大号数字展示电量百分比，辅行展示充电状态，右侧 40vp 电量环，环内必选电量图标，自带圆角底板；用于宽版右列 2x1 组合槽位。 组件形态：percentStatusCompact；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -95,7 +95,7 @@
       "templateId": "BatteryOverviewCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Compact，左侧以 36vp 环形进度展示 /batterySOC，环内可选电量图标；右侧展示“电量 /batterySOC%”和充电状态，用于下方组合两个 PillAction。",
+      "description": "手机电量 Compact，左侧以 36vp 环形进度展示 /batterySOC，环内必选电量图标；右侧展示“电量 /batterySOC%”和充电状态，用于下方组合两个 PillAction；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -120,13 +120,29 @@
       ]
     },
     {
+      "templateId": "BatteryOverviewHealthTemperatureHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池健康与电池温度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和电池温度。 组件形态：healthTemperatureHero。",
+      "optionalData": [],
+      "entry": "templates/battery-health-temperature-hero.cardtpl",
+      "primaryData": [
+        "/healthStatusDesc"
+      ],
+      "secondaryData": [
+        "/batteryTemperatureText"
+      ]
+    },
+    {
       "templateId": "BatteryOverviewChargingProgressHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
+      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康；可选电量等级、温度与充电状态以 · 拼成同一行，等级使用短文案，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
       "optionalData": [
         "/chargingStatusDesc",
-        "/healthStatusDesc"
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/batteryTemperatureText"
       ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -153,7 +169,7 @@
       ],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 SupportHero：约 1.5x2 竖版电量面板，内部元素与手机电量 Support 一致；左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内可选 16vp 手机设备图标；可在根节点绑定事件。预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不选择。",
+      "description": "手机电量 SupportHero：约 1.5x2 竖版电量面板，内部元素与手机电量 Support 一致；左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内必选 16vp 手机设备图标；可在根节点绑定事件。预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不选择；batteryIcon 必填。",
       "optionalData": [
         "/chargingStatusDesc",
         "/batterySOCText",
@@ -186,7 +202,7 @@
       "templateId": "BatteryOverviewPercentRingCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Compact：自带圆角底板，左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内可选电量图标，不展示充电状态；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact。",
+      "description": "手机电量 Compact：自带圆角底板，左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内必选电量图标，不展示充电状态；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -246,6 +262,54 @@
           "battery"
         ]
       }
+    },
+    {
+      "templateId": "BatteryOverviewStatusSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、健康状态和电池温度，用于第二层组合一个 PillAction。组件形态：statusSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-status-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/healthStatusDesc",
+        "/batteryTemperatureText"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewStatusLevelSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、健康状态和电量等级，用于第二层组合一个 PillAction。组件形态：statusLevelSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-status-level-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingLevelSummaryHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池四项状态 Hero；以圆角面板内四行 key-value 展示电池电量、充电状态、充电类型和电量等级，用于第二层组合一个 PillAction。组件形态：chargingLevelSummaryHero。",
+      "optionalData": [],
+      "entry": "templates/battery-charging-level-summary-hero.cardtpl",
+      "primaryData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/pluggedTypeDesc",
+        "/batteryCapacityLevelDesc"
+      ]
     },
     {
       "templateId": "BatteryOverviewChargingRingHero@1",
@@ -351,7 +415,7 @@
       "templateId": "BatteryOverviewStatusHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量状态 Hero，展示手机剩余电量百分比和充电状态，可选电量图标；用于左右双焦点拼接布局。",
+      "description": "手机电量状态 Hero，展示手机剩余电量百分比和充电状态，必选电量图标；用于左右双焦点拼接布局；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -370,7 +434,7 @@
       "templateId": "BatteryOverviewChargeStatusHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内可选手机图标）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约。",
+      "description": "手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内必选手机图标）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约；batteryIcon 必填。",
       "optionalData": [
         "/chargingStatusDesc",
         "/pluggedTypeDesc",
@@ -456,6 +520,34 @@
         "/pluggedTypeDesc",
         "/chargingStatusDesc"
       ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentDetailsFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比详情 Full；2x2 无按钮，标题手机电量、大字百分比，下方充电状态、电量等级、充电类型三行，右侧字段加粗。无需健康状态或数值电量。",
+      "optionalData": [],
+      "entry": "templates/battery-percent-details-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentTextFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比 Full，无按钮，顶部手机电量、中部百分比大字、底部电量状态；仅需 batterySOCText；可选 chargingStatusDesc 替换底部电量状态文案。",
+      "optionalData": ["/chargingStatusDesc"],
+      "entry": "templates/battery-percent-text-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {

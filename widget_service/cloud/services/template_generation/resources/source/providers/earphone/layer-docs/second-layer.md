@@ -22,12 +22,12 @@
     用于 `TwoSupportLayout@1`，支持可选根节点事件 `actionId`，不展示左右耳电量。
   - `BluetoothDeviceOverviewEarbudsFull@1`：展示左右耳电量，可选展示左右耳充电状态，左右耳图标可选；
     用于无 Action 的 Full。
-  - `BluetoothDeviceOverviewEarphoneCaseHero@1`：展示耳机仓电量进度环和充电状态文本；`caseIcon`
-    可选；用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
+  - `BluetoothDeviceOverviewEarphoneCaseHero@1`：展示耳机仓电量进度环和充电状态文本；`deviceIcon`
+    必填且必须表达充电盒；用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarphoneCaseCompact@1`：展示耳机仓电量和充电状态文本；`caseIcon`
     可选；用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
-  - `BluetoothDeviceOverviewEarphoneHero@1`：展示耳机电量进度环和耳机名称文本；`earphoneIcon`
-    可选；用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
+  - `BluetoothDeviceOverviewEarphoneHero@1`：展示耳机电量进度环和耳机名称文本；`deviceIcon`
+    必填且必须表达耳机本体；用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarphoneCompact@1`：展示耳机电量和耳机名称文本；`earphoneIcon`
     可选；用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
   - `BluetoothDeviceOverviewStatusHero@1`：耳机仓充电状态 Hero，只表达单个焦点面板内容；顶部为
@@ -60,7 +60,7 @@
 - `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段，内置每日歌单 actionId。左侧三列各显示图标、电量、充电状态，不加进度环；deviceIcon 为充电盒，左右耳图标不可互换。两侧面板使用主题底色，外侧安全边距由骨架提供。
 - `BluetoothDeviceOverviewCaseConnectionHero@1`：展示耳机仓电量环、百分比及连接状态，只需 isConnected 和 batteryLevel，deviceIcon 使用充电盒素材；通过既有 Hero 布局组合操作，保持 Q060 充电状态模板独立。
 - `BluetoothDeviceOverviewCaseSettingsHero@1`：2x2 耳机仓充电状态 Hero，只需 chargingStatusDesc，不要求电量或素材；不内置操作按钮，通过既有 HeroActionLayout 与 PillAction 组合。内容尺寸跟随父槽位，底色和安全边距交由骨架处理。画廊使用示例充电状态展示，不改变输入字段、现有布局或检索分支。
-- `BluetoothDeviceOverviewMusicFull@1` 用于 Q059 耳机名称、连接状态、耳机盒电量及更新时间。2x4 单业务双操作时，使用 WideFullTwoCompactLayout，依次组合本 Full、蓝牙设置 CompactAction、每日歌单 CompactAction；布局设置 compactRows=true（右侧按钮高 57vp，间距 12vp），两个动作使用 prominent=true，文案沿用批准的“蓝牙设置”和“每日推荐”。素材仅使用输入批准的候选；缺少蓝牙标志时可使用对应耳机设备图标。
+- `BluetoothDeviceOverviewMusicFull@1` 用于 Q059 耳机名称、连接状态、耳机盒电量及更新时间；`deviceIcon` 必填且必须表达充电盒。2x4 单业务双操作时，使用 WideFullTwoCompactLayout，依次组合本 Full、蓝牙设置 CompactAction、每日歌单 CompactAction；布局设置 compactRows=true（右侧按钮高 57vp，间距 12vp），两个动作使用 prominent=true，文案沿用批准的“蓝牙设置”和“每日推荐”。素材仅使用输入批准的候选；缺少蓝牙标志时可使用对应耳机设备图标。
 
 - `BluetoothDeviceOverviewEarbudChargingWideFull@1`：左右两列等宽，间距 12vp，高度撑满骨架内容区，外侧安全边距由骨架统一提供 12vp。左侧音乐面板内边距 8vp、底部按钮高 36vp；右侧两个耳机面板等分可用高度，间距 12vp，电量字体 16vp，环直径 44vp。通过规划器分配的 actionId 承担收藏歌单操作，不额外组合底部按钮。
 

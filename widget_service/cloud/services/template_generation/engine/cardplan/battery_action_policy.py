@@ -24,7 +24,7 @@ def resolve_battery_settings_fallback(
     search_result: TemplateSearchResult,
     task_spec: TaskSpec,
 ) -> TemplateSearchIntent:
-    """Full 优先；无 Full 且有 Hero 时才补选唯一、目标正确的设置候选。"""
+    """有 Hero 时提供唯一、目标正确的设置候选，供 Planner 与无动作 Full 平等比较。"""
     if not intent.allow_battery_settings_fallback or intent.action_ids:
         return intent
     if task_spec.size != "2x2" or search_result.card_size != task_spec.size:
@@ -37,7 +37,7 @@ def resolve_battery_settings_fallback(
     if group.capability_id != _BATTERY_CAPABILITY or group.business_id != _BATTERY_BUSINESS:
         return intent
     roles = {provider_template_layout_kind(candidate.template_id) for candidate in group.candidates}
-    if "Full" in roles or "Hero" not in roles:
+    if "Hero" not in roles:
         return intent
     event_id = _SETTINGS_EVENT
     expected_args = _SETTINGS_ARGS

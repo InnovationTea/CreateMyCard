@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 from collections import Counter
 
+import pytest
+
 from services.template_generation.engine.cardplan.preview_dataset import (
     build_template_preview_cases,
     validate_preview_asset_paths,
     write_template_preview_dataset,
 )
+from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 
 
 def test_template_preview_dataset_covers_all_business_templates(tmp_path):
@@ -17,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 173
+    assert manifest.get("templateCount") == 179
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
         "Support": 22,
         "Compact": 24,
-        "Hero": 47,
-        "Full": 53,
+        "Hero": 51,
+        "Full": 55,
         "WideHero": 4,
         "WideFull": 18,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 148, "2x4": 25}
-    assert len(cases) == 173
+    assert manifest.get("countsBySize") == {"2x2": 154, "2x4": 25}
+    assert len(cases) == 179
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -39,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 173
+    assert len(template_ids) == 179
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -243,3 +246,94 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "leftBatteryLevel",
         "rightBatteryLevel",
     }
+
+
+@pytest.mark.parametrize(
+    ("template_id", "icon_name"),
+    [
+        ("BluetoothDeviceOverviewEarphoneCaseHero@1", "earphone_case_16644.svg"),
+        ("BluetoothDeviceOverviewEarphoneHero@1", "icon_earphone.svg"),
+        ("BluetoothDeviceOverviewMusicFull@1", "earphone_case_16644.svg"),
+    ],
+)
+def test_earphone_ring_previews_include_required_device_icon(template_id, icon_name):
+    variant = get_cardplan_registry().require_variant(template_id, "default")
+    assert variant.parameters_schema.get("required") == ["deviceIcon"]
+    properties = variant.parameters_schema.get("properties")
+    assert isinstance(properties, dict)
+    assert set(properties) == {"deviceIcon"}
+    case = next(item for item in build_template_preview_cases() if item.template_id == template_id)
+    update = case.messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    ring_ids = set()
+    icon_ids = set()
+    for node in components:
+        if node.get("component") == "Progress":
+            ring_ids.add(node.get("id"))
+        if node.get("component") == "Image":
+            assert node.get("src") == f"resources/base/media/{icon_name}"
+            styles = node.get("styles")
+            assert isinstance(styles, dict)
+            assert styles.get("width") == 20
+            assert styles.get("height") == 20
+            icon_ids.add(node.get("id"))
+    assert len(icon_ids) == 1
+    assert len(ring_ids) == 1
+    for node in components:
+        if node.get("component") != "Stack":
+            continue
+        children = node.get("children", [])
+        if icon_ids.issubset(children):
+            assert ring_ids.issubset(children)
+            break
+    else:
+        pytest.fail("图标必须与电量环位于同一个 Stack")
+
+
+def test_battery_2x2_icon_contracts_and_previews_are_required():
+    registry = get_cardplan_registry()
+    covered = set()
+    for case in build_template_preview_cases():
+        if case.business_id != "BatteryOverview" or case.size != "2x2":
+            continue
+        if case.layout_kind not in ("Full", "Hero", "Compact"):
+            continue
+        variant = registry.require_variant(case.template_id, "default")
+        properties = variant.parameters_schema.get("properties")
+        assert isinstance(properties, dict)
+        if "batteryIcon" not in properties:
+            continue
+        assert "batteryIcon" in variant.parameters_schema.get("required", [])
+        update = case.messages[1].get("updateComponents")
+        assert isinstance(update, dict)
+        components = update.get("components")
+        assert isinstance(components, list)
+        images = []
+        for node in components:
+            if node.get("component") == "Image":
+                images.append(node)
+        assert len(images) == 1, case.template_id
+        image = images[0]
+        expected_name = "battery_leaf_fill.svg"
+        if case.template_id in (
+            "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1"
+        ):
+            expected_name = "icon_phone.svg"
+        assert image.get("src") == f"resources/base/media/{expected_name}"
+        covered.add(case.template_id)
+    assert len(covered) == 12
+
+
+def test_battery_wide_and_support_icons_remain_optional():
+    registry = get_cardplan_registry()
+    for template_id in (
+        "BatteryOverviewWideFull@1",
+        "BatteryOverviewChargingDiagnosticsWideFull@1",
+        "BatteryOverviewStatusWideFull@1",
+        "BatteryOverviewSupport@1",
+        "BatteryOverviewStatusSupport@1",
+    ):
+        variant = registry.require_variant(template_id, "default")
+        assert "batteryIcon" not in variant.parameters_schema.get("required", [])

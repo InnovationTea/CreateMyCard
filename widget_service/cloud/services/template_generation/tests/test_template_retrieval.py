@@ -1793,6 +1793,11 @@ def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
     task = TaskSpec(
         userQuery="展示耳机名称和耳机电量",
         size="2x2",
+        assetCandidates=[{
+            "src": "resources/base/media/icon_earphone.svg",
+            "description": "耳机本体图标",
+            "sceneTags": ["earphone-body"],
+        }],
         eventCandidates=[
             EventAction(
                 id="event.open.music.daily",
@@ -1827,6 +1832,12 @@ def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
             {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"}
         ],
     }
+
+    without_icon = task.model_copy(update={"assetCandidates": []})
+    with pytest.raises(TemplateRetrievalMiss):
+        retrieve_template_variants(
+            query, without_icon, get_cardplan_registry(), (binding,), card_spec
+        )
 
     result = retrieve_template_variants(
         query,
@@ -2299,6 +2310,11 @@ def _weather_battery_task(with_actions: bool) -> TaskSpec:
     return TaskSpec(
         userQuery="看当前天气和手机电量、充电状态",
         size="2x4",
+        assetCandidates=[{
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "description": "手机电量图标",
+            "sceneTags": ["battery"],
+        }],
         eventCandidates=events,
         dataModelSchema={
             "data": {
@@ -2418,7 +2434,8 @@ def test_weather_battery_2x4_composes_two_focus_panels(
     source = (
         f'Template("{expected_layout_id}",{{}},'
         'Template("WeatherOverviewConditionHero@1",{}),'
-        'Template("BatteryOverviewStatusHero@1",{}),'
+        'Template("BatteryOverviewStatusHero@1",'
+        '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
         f"{action_payloads});"
     )
     compilation = compile_ux_layout_card(
@@ -2489,6 +2506,11 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
             "手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。"
         ),
         size="2x4",
+        assetCandidates=[{
+            "src": "resources/base/media/icon_phone.svg",
+            "description": "手机电量图标",
+            "sceneTags": ["phone-device"],
+        }],
         eventCandidates=[
             EventAction(
                 id="event.open.settings.bluetooth",
@@ -2586,7 +2608,7 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         "BluetoothDeviceOverviewCaseSettingsHero@1"
     ]
     assert candidate_groups[1]["availableTemplateIds"] == [
-        "BatteryOverviewChargeStatusHero@1"
+        "BatteryOverviewChargeStatusHero@1", "BatteryOverviewStatusRingHero@1"
     ]
 
     action_payloads = "".join(
@@ -2602,7 +2624,8 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
     source = (
         'Template("WideTwoFocusTwoActionLayout@1",{},'
         'Template("BluetoothDeviceOverviewCaseSettingsHero@1",{}),'
-        'Template("BatteryOverviewChargeStatusHero@1",{}),'
+        'Template("BatteryOverviewChargeStatusHero@1",'
+        '{"batteryIcon":"resources/base/media/icon_phone.svg"}),'
         f"{action_payloads});"
     )
     compilation = compile_ux_layout_card(
