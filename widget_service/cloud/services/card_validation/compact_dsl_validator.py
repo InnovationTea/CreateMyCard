@@ -215,6 +215,7 @@ def validate_compact_dsl(
     _collect_semantic_text_errors(components, task_spec, errors)
     _collect_raw_boolean_text_errors(components, task_spec, errors)
     _collect_progress_value_errors(components, task_spec, errors)
+    _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
     for component in components:
@@ -919,6 +920,73 @@ def _collect_progress_value_errors(
             "'68%'. If only formatted text exists, remove Progress and show "
             "the complete value with Text."
         )
+
+
+def _data_business_root(path: str | None) -> str | None:
+    root = None
+    if path:
+        parts = path.split("/")
+        if len(parts) >= 4 and parts[1] == "data":
+            root = f"/data/{parts[2]}"
+    return root
+
+
+def _progress_readout_root(component: ComponentRow, schema: dict[str, Any]) -> str | None:
+    """只识别单字段动态读数，不把动态名称、标签或多字段摘要当配对证据。"""
+    root = None
+    if component.component_type == "Text":
+        paths = _component_content_paths(component)
+        if len(paths) == 1:
+            path = paths[0]
+            node = _schema_node_at_path(schema, path)
+            sample = node.get("sampleValue") if isinstance(node, dict) else None
+            numeric = _schema_type(node) in _NUMERIC_SCHEMA_TYPES
+            formatted = isinstance(sample, str) and bool(
+                _MEASUREMENT_SAMPLE_PATTERN.fullmatch(sample.strip())
+            )
+            if numeric or formatted:
+                root = _data_business_root(path)
+    return root
+
+
+def _collect_progress_readout_object_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """阻止进度与直接同组读数明确来自不同业务根；不猜测远端分区或同根指标。"""
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return
+    components_by_id = {component.component_id: component for component in components}
+    for parent in components:
+        if parent.component_type not in {"Row", "Column", "Stack"}:
+            continue
+        readout_roots: set[str] = set()
+        progresses: list[ComponentRow] = []
+        for child_id in parent.children:
+            child = components_by_id.get(child_id)
+            if child is None:
+                continue
+            root = _progress_readout_root(child, schema)
+            if root is not None:
+                readout_roots.add(root)
+            if child.component_type == "Progress":
+                progresses.append(child)
+        if not readout_roots:
+            continue
+        for progress in progresses:
+            value_path = _pure_binding_path(progress.props.get("value"))
+            value_root = _data_business_root(value_path)
+            if value_root is None or value_root in readout_roots:
+                continue
+            errors.append(
+                f"component {progress.component_id}: Progress.value {value_path} belongs to "
+                f"{value_root}, but the direct sibling readout(s) in {parent.component_id} "
+                f"belong to {', '.join(sorted(readout_roots))}. Keep progress and its readout "
+                "on the same object; if that object has no numeric field, omit its progress "
+                "and retain its complete text. Do not borrow another object's value."
+            )
 
 
 def _is_ambiguous_metric_node(node: Any) -> bool:

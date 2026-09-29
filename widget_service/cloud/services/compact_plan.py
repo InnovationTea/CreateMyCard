@@ -20,6 +20,7 @@ _FACT_KEYS = frozenset(
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _BASE_FACT_COMPONENTS = ("Text", "Image", "Progress", "Button")
+_NUMERIC_FACT_COMPONENTS = frozenset({"Progress", "ProgressLine2", "ProgressCircleSingle"})
 _VISIBLE_PROP_NAMES = frozenset(
     {
         "content",
@@ -133,7 +134,10 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
             "minItems": 1,
             "maxItems": 3,
             "uniqueItems": True,
-            "description": "按优先级排列的组件软候选，不冻结最终组件。",
+            "description": (
+                "按优先级排列的组件软候选，不冻结最终组件。进度组件只推荐给本事实"
+                "直接绑定的 number/integer dataId；字符串、布尔值、静态正文和操作不推荐进度组件。"
+            ),
         },
     }
     if data_paths:
@@ -346,6 +350,9 @@ def _validate_facts(
     if len(value) > 24:
         raise CompactPlanValidationError(["info_required must contain at most 24 facts."])
     data_paths = set(compact_plan_data_paths(task_spec))
+    numeric_paths: list[str] = []
+    _collect_schema_paths(task_spec.get("dataModelSchema"), (), numeric_paths, numeric_only=True)
+    numeric_data_paths = set(numeric_paths)
     action_ids = set(compact_plan_action_ids(task_spec))
     allowed_hints = set(_component_hints(task_spec.get("size")))
     user_query = task_spec.get("userQuery")
@@ -403,17 +410,23 @@ def _validate_facts(
                 )
             else:
                 accepted_hints: list[str] = []
+                removed_type_mismatch = False
                 for hint in hints:
                     if not isinstance(hint, str) or hint not in allowed_hints:
                         continue
+                    if hint in _NUMERIC_FACT_COMPONENTS:
+                        if target != "dataId" or target_value not in numeric_data_paths:
+                            removed_type_mismatch = True
+                            continue
                     if hint not in accepted_hints:
                         accepted_hints.append(hint)
                 if accepted_hints:
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
-                    warnings.append(
-                        f"{location}.componentHints removed unsupported or duplicate values."
-                    )
+                    reason = "unsupported or duplicate values."
+                    if removed_type_mismatch:
+                        reason = "unsupported, type-incompatible or duplicate values."
+                    warnings.append(f"{location}.componentHints removed {reason}")
         identity = (target, target_value)
         previous = seen.get(identity)
         if previous is None:
@@ -475,28 +488,30 @@ def _collect_schema_paths(
     value: Any,
     path: tuple[str | int, ...],
     output: list[str],
+    *,
+    numeric_only: bool = False,
 ) -> None:
     if isinstance(value, list):
         for index, item in enumerate(value):
-            _collect_schema_paths(item, (*path, index), output)
+            _collect_schema_paths(item, (*path, index), output, numeric_only=numeric_only)
         return
     if not isinstance(value, dict):
-        if path:
+        if path and not numeric_only:
             output.append(_json_pointer(path))
         return
     if _is_schema_leaf(value):
-        if path:
+        if path and (not numeric_only or value.get("type") in {"number", "integer"}):
             output.append(_json_pointer(path))
         return
     if value.get("type") == "array" and "items" in value:
-        _collect_schema_paths(value["items"], (*path, 0), output)
+        _collect_schema_paths(value["items"], (*path, 0), output, numeric_only=numeric_only)
         return
     if value.get("type") == "object" and isinstance(value.get("properties"), dict):
         for key, child in value["properties"].items():
-            _collect_schema_paths(child, (*path, key), output)
+            _collect_schema_paths(child, (*path, key), output, numeric_only=numeric_only)
         return
     for key, child in value.items():
-        _collect_schema_paths(child, (*path, key), output)
+        _collect_schema_paths(child, (*path, key), output, numeric_only=numeric_only)
 
 
 def _is_schema_leaf(value: dict[str, Any]) -> bool:
