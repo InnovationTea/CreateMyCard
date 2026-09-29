@@ -1,0 +1,21 @@
+#Template BatteryOverviewPhoneTextCompact@1(props: {})
+data = { percentText: $path("/batterySOCText") }
+Row({"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "padding": {"left": 12, "right": 16, "top": 8, "bottom": 8},
+  "justifyContent": "spaceBetween", "alignItems": "center", "itemMargin": 8,
+  "borderRadius": 16, "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+  Column({"layoutWeight": 1, "itemMargin": 2},
+  Text(data.percentText, {"width": "matchParent", "height": 27, "fontSize": 20,
+    "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+  Text("手机", {"width": "matchParent", "height": 14, "fontSize": 10,
+    "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1})
+  ),
+  Column({"width": 18, "height": 28, "borderRadius": 3,
+    "backgroundColor": $theme('primaryColor'), "padding": 2,
+    "justifyContent": "spaceBetween", "alignItems": "center", "flexShrink": 0},
+    Text(" ", {"width": "matchParent", "height": 19, "fontSize": 8, "borderRadius": 1,
+      "backgroundColor": $theme('supportContentStyle.backgroundColor')}),
+    Text(" ", {"width": 6, "height": 2, "fontSize": 8, "borderRadius": 1,
+      "backgroundColor": $theme('supportContentStyle.backgroundColor')})
+  )
+)
+#End

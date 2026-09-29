@@ -30,6 +30,10 @@ _NAMES = ("first", "second", "third")
 @pytest.mark.parametrize(
     "target,expected",
     (
+        (
+            "data.first || data.second",
+            ('IfAnyBind(["first","second"],', 'IfAllMissingBind(["first","second"],'),
+        ),
         ("data.first", ('IfBind("first",', 'IfMissingBind("first",')),
         ("props.flag", ('IfParam("flag",', 'IfMissingParam("flag",')),
         ("!data.first", ('IfMissingBind("first",', 'IfBind("first",')),
@@ -56,7 +60,8 @@ def test_directive_components_preserve_pair_type_and_order(
     (
         "data.first && data.first",
         "data.first && props.flag",
-        "data.first || data.second",
+        "data.first || data.first",
+        "data.first || props.flag",
         "!!data.first",
         "data.first.value",
     ),
@@ -272,7 +277,7 @@ def test_elseif_cannot_borrow_other_branch_guards(body: str) -> None:
         "#if data.first\n#elseif data.second",
         "#if data.first\n#elseif\n#end",
         "#if data.first\n#elseif data.second.value\n#end",
-        "#if data.first\n#elseif data.second || data.third\n#end",
+        "#if data.first\n#elseif data.second || props.label\n#end",
         "#if data.first\n#elseif data.second && props.label\n#end",
         "#if data.first\n#elseif data.first && data.second && data.third\n#end",
         "#if data.first\n#elseif data.second && data.second\n#end",

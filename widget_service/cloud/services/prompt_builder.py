@@ -181,8 +181,9 @@ _TWO_BY_FOUR_HEALTH_FOCUS_AUX_LOCK = """# 本次健康运动 W1 填槽约束
   `focus_zone` 与左侧内容组都使用 `justifyContent:"center"`、`alignItems:"center"`，
   普通摘要 Text 使用 `textAlign:"center"`。
 - 睡眠得分等场景若把 12fp 指标名与 30fp 数字放在同一个 Row，Row 必须使用
-  `alignItems:"bottom"`，12fp 指标名使用 `padding.bottom:9`；也可以改成一个完整
-  单行 Text。禁止只写 bottom 对齐而不做字号差补偿。
+  `alignItems:"bottom"` 和 `itemMargin:2`，同行 Text 使用内容自适应宽度且 12fp
+  指标名不得设置 `padding.bottom`；也可以改成一个完整
+  单行 Text。当前渲染器会按 Text 外框底边对齐，额外底部 padding 会把小字向上抬。
 - 有动作时先把右下槽保留给动作，右上槽用两个单行 Text 放最多两个剩余指标；
   无动作时两个右侧槽各放一组最多两项的紧密信息。禁止把三项心率、热量、时长等
   串成一行后裁切。
@@ -205,8 +206,8 @@ _TWO_BY_FOUR_PHONE_EARPHONE_FOCUS_AUX_LOCK = """# 本次手机与耳机 W1 填�
   只有已含单位的 string 电量文本时直接显示完整读数，不得把字符串绑定给 Progress，
   也不得编造数值路径或总量。左侧焦点区和内容组必须双轴居中。number/integer 电量
   与静态 `%` 拆分显示时必须是同一 Row 的相邻 Text，Row 使用 `alignItems:"bottom"`
-  和 `justifyContent:"center"`；较小 Text 的 `padding.bottom` 取两者字号差的一半，
-  禁止把 `%` 放到下一行。
+  和 `justifyContent:"center"`，`itemMargin` 固定为 2；数字和 `%` 都不设置固定宽度，
+  较小 Text 不设置 `padding.bottom`，禁止把 `%` 放到下一行。
 - 右上背板用最多两行显示耳机连接状态和耳机仓/左右耳中最重要的一项电量信息；
   右下背板保留用户明确要求的音乐动作。动作直接绑定背板，只显示一个简短命令。
 - `isConnected` 必须转成“已连接/未连接”，所有电量必须保留 `%`，不得用装饰图标、
@@ -395,9 +396,10 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 root padding 固定为 `8vp`，不得继续保留旧版 `12vp` 外边距。不得自由拼接骨架。
 带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
 最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。数字与单位拆成同一
-Row 内的两个 Text 时，不论数字字号大小，Row 必须使用 `alignItems:"bottom"`，单位
-的 `padding.bottom` 必须取数字与单位字号差的一半，且不得与数字设置相同的固定高度。
-同一 Row 内其它不同字号 Text 也执行相同的底部对齐与字号差补偿。""",
+Row 内的两个 Text 时，不论数字字号大小，Row 必须使用 `alignItems:"bottom"` 和
+`itemMargin:2`，数字与单位 Text 均不设置固定宽度；单位不得设置 `padding.bottom`，
+且不得与数字设置相同的固定高度。同一 Row 内其它不同字号
+Text 也只依赖 Row 底对齐，禁止用底部 padding 抬高小字号文字。""",
 }
 
 _TWO_BY_FOUR_ROUTE_LOCKS = {
@@ -416,7 +418,8 @@ _TWO_BY_FOUR_ROUTE_LOCKS = {
 layoutWeight:1，动作是最后一个直接子项。普通 Text 最多合并两个能完整显示的动态
 事实，三个以上字段必须拆成短行或删除最低优先级项；多日天气的单日摘要除外。
 动作使用一个简短完整命令，不追加同义提示，天气详情优先使用“查看天气”。数字与
-单位同行拆分时，Row 固定底对齐，较小 Text 的底部补偿取字号差的一半。""",
+单位同行拆分时，Row 固定底对齐且 `itemMargin:2`，数字与单位 Text 不设置固定宽度，
+较小 Text 不设置底部 padding。""",
     "W10-triple-backboards": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W10 左大右双小。root 必须是 Row，padding 与分区间距均为 8vp；

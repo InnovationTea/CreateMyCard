@@ -25,7 +25,7 @@ def _earphone_binding(fields: list[str]) -> CandidateDataBinding:
     ("fields", "expected_missing"),
     [
         (["/earphoneName", "/batteryLevel"],
-         ["/isConnected", "/leftBatteryLevel", "/rightBatteryLevel"]),
+         ["/leftBatteryLevel", "/rightBatteryLevel"]),
         (["/earphoneName", "/batteryLevel", "/isConnected",
           "/leftBatteryLevel", "/rightBatteryLevel"], []),
     ],

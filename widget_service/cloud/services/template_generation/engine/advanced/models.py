@@ -17,6 +17,23 @@ UX_LAYOUT_COMPONENT_IDS = frozenset(
         "HeroTitleContentActionLayout",
         "TwoSupportLayout",
         "WideSingleFocusLayout",
+        "WideFullOnlyLayout",
+        "WideTwoFullLayout",
+        "WideHeroCompactLayout",
+        "WideFullHeroActionLayout",
+        "WideHeroActionFullLayout",
+        "WideFullTwoCompactLayout",
+        "WideFourCompactLayout",
+        "WideFullHeroTwoActionLayout",
+        "WideTwoHeroActionLayout",
+        "WideFullFourActionLayout",
+        "WideTwoHalfLayout",
+        "WideHalfTwoCompactLayout",
+        "WideHalfCompactTwoLargeActionLayout",
+        "WideHalfFourLargeActionLayout",
+        "WideTwoFocusLayout",
+        "WideTwoFocusActionLayout",
+        "WideTwoFocusTwoActionLayout",
     }
 )
 UX_DIRECT_BUSINESS_COMPONENT_IDS = frozenset(
@@ -27,6 +44,7 @@ UX_DIRECT_BUSINESS_COMPONENT_IDS = frozenset(
         "BluetoothDeviceOverview",
         "DateOverview",
         "HeartRateOverview",
+        "GenericMetricOverview",
         "ResourceUsageOverview",
         "ScheduleOverview",
         "SleepOverview",
@@ -267,10 +285,14 @@ class TemplateRouteSelection(StrictModel):
     component_candidates: tuple[TemplateComponentCandidate, ...] = Field(
         alias="componentCandidates"
     )
-    action_ids: tuple[str, ...] = Field(default=(), alias="actionIds", max_length=2)
+    action_ids: tuple[str, ...] = Field(default=(), alias="actionIds", max_length=4)
     required_template_groups: tuple[tuple[str, ...], ...] = Field(
         default=(),
         alias="requiredTemplateGroups",
+    )
+    required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        alias="requiredOutputFieldsByCapability",
     )
 
     @property

@@ -25,7 +25,7 @@
   },
   "fusionBallStyle": {
     "scene": "sleep",
-    "businessIds": ["SleepOverview"],
+    "businessIds": ["SleepOverview", "GenericMetricOverview"],
     "largeColor": "#FF493D99",
     "mediumColor": "#FF5536B3",
     "smallColor": "#FF7D6B99"

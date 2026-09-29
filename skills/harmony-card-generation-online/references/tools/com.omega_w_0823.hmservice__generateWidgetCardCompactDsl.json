@@ -34,18 +34,7 @@
       },
       "userQuery": {
         "type": "String",
-        "description": "能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"
-      },
-      "extrainfo": {
-        "type": "Array<String>",
-        "description": "本轮已清洗、已告知且与卡片相关的外部事实和会话有效上下文；没有内容时省略，不进入 TaskSpec 或 artifact",
-        "required": [],
-        "properties": {
-          "ArrayItem": {
-            "type": "String",
-            "description": "卡片相关的外部事实或上下文信息"
-          }
-        }
+        "description": "能力裁决后的本轮有效卡片需求；有外部事实时在后方追加固定标题‘本轮卡片静态内容（用作展示的外部事实）：’及完整事实；调整后生成时不得保留已移除或未经确认替代的内容"
       },
       "candidateDataBindings": {
         "type": "Array",

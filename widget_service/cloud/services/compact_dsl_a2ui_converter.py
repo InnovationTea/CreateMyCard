@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -23,6 +24,67 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200B"
+_INLINE_DISPLAY_UNITS = frozenset(
+    {
+        "%",
+        "°C",
+        "℃",
+        "°F",
+        "天",
+        "小时",
+        "分钟",
+        "分",
+        "秒",
+        "毫秒",
+        "步",
+        "次",
+        "件",
+        "个",
+        "条",
+        "项",
+        "人",
+        "级",
+        "公里",
+        "千米",
+        "米",
+        "厘米",
+        "毫米",
+        "km",
+        "m",
+        "cm",
+        "mm",
+        "kg",
+        "g",
+        "mg",
+        "kcal",
+        "千卡",
+        "cal",
+        "mL",
+        "ml",
+        "L",
+        "A",
+        "mA",
+        "V",
+        "W",
+        "kW",
+        "kWh",
+        "bpm",
+        "次/分钟",
+        "mV",
+        "μA",
+        "uA",
+        "kHz",
+        "MHz",
+        "Pa",
+        "kPa",
+        "Wh",
+        "MB",
+        "GB",
+        "TB",
+        "km/h",
+        "m/s",
+    }
+)
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -668,6 +730,10 @@ def convert_compact_dsl_to_a2ui(
         normalized_components,
         size=size,
     )
+    normalized_components = _normalize_two_by_four_white_backboards(
+        normalized_components,
+        size=size,
+    )
     normalized_components = _normalize_large_value_unit_alignment(
         normalized_components
     )
@@ -695,6 +761,7 @@ def convert_compact_dsl_to_a2ui(
             converted_components = expand_fusion_ball_components(
                 converted_components,
                 fusion_palette,
+                size=size,
             )
         except FusionBallExpansionError as exc:
             raise CompactDslConversionError(str(exc)) from exc
@@ -1228,6 +1295,33 @@ def _normalize_ring_stack_children(
     return centered
 
 
+def _normalize_two_by_four_white_backboards(
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> list[ComponentRow]:
+    if size != "2x4":
+        return components
+
+    normalized: list[ComponentRow] = []
+    for component in components:
+        if (
+            component.component_id == "root"
+            or component.props.get("backgroundColor") != "#CCFFFFFF"
+        ):
+            normalized.append(component)
+            continue
+        normalized.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                {**component.props, "backgroundColor": "#99FFFFFF"},
+                component.children,
+            )
+        )
+    return normalized
+
+
 def _normalize_large_value_unit_alignment(
     components: list[ComponentRow],
 ) -> list[ComponentRow]:
@@ -1255,6 +1349,20 @@ def _normalize_large_value_unit_alignment(
             continue
 
         row_props = {**row.props, "alignItems": "bottom"}
+        compact_readout_ids: set[str] = set()
+        for index, child in enumerate(text_children[1:], start=1):
+            content = child.props.get("content")
+            previous = text_children[index - 1]
+            if (
+                isinstance(content, str)
+                and content.strip() in _INLINE_DISPLAY_UNITS
+                and previous.props["fontSize"] > child.props["fontSize"]
+            ):
+                compact_readout_ids.update(
+                    {previous.component_id, child.component_id}
+                )
+        if compact_readout_ids:
+            row_props["itemMargin"] = 2
         replacements[row.component_id] = ComponentRow(
             row.component_id,
             row.component_type,
@@ -1263,21 +1371,30 @@ def _normalize_large_value_unit_alignment(
         )
         for child in text_children:
             child_font_size = child.props["fontSize"]
-            if child_font_size == max_font_size:
-                continue
-            bottom_padding = int(round((max_font_size - child_font_size) / 2))
             child_props = {**child.props}
-            padding = child_props.get("padding")
-            if isinstance(padding, dict):
-                child_props["padding"] = {
-                    **padding,
-                    "bottom": bottom_padding,
-                }
-            else:
-                child_props["padding"] = {"bottom": bottom_padding}
-            height = child_props.get("height")
-            if isinstance(height, (int, float)) and height > 24:
-                child_props.pop("height")
+            if child.component_id in compact_readout_ids:
+                child_props.pop("width", None)
+            if child_font_size != max_font_size:
+                bottom_padding = min(
+                    8,
+                    max(
+                        0,
+                        int(math.ceil((max_font_size - child_font_size) / 4)),
+                    ),
+                )
+                padding = child_props.get("padding")
+                if isinstance(padding, dict):
+                    child_props["padding"] = {
+                        **padding,
+                        "bottom": bottom_padding,
+                    }
+                else:
+                    child_props["padding"] = {"bottom": bottom_padding}
+                height = child_props.get("height")
+                if isinstance(height, (int, float)) and height > 24:
+                    child_props.pop("height")
+            if child_props == child.props:
+                continue
             replacements[child.component_id] = ComponentRow(
                 child.component_id,
                 child.component_type,

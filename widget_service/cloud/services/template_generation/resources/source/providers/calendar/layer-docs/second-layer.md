@@ -2,8 +2,12 @@
 
 - Provider：`com.huawei.calendar.cli`；业务领域统一为 `CalendarOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
-- 当前日历 Provider 没有 `Compact` 模板，因此不进入单业务双 Action 组合；不得用 Hero、Full 或
-  WideFull 冒充缺失形态。双业务可选择四种日程 Support 进入 `TwoSupportLayout@1`；
+- `2x2` 单业务双 Action 场景仅存在提醒 Compact（`ScheduleOverviewReminderCompact@1`），
+  仅当显式字段全部由该提醒模板覆盖时进入模板路线；不得用 Hero、Full 或
+  WideFull 冒充缺失形态。`2x4` 单业务双 Action 用 `WideFullTwoCompactLayout@1`，
+  Full 槽位按显式字段选择 `ScheduleOverviewEventCountDetailsFull@1` 或
+  `ScheduleOverviewMeetingSenderFull@1`（见下文各自条目）。
+  双业务可选择四种日程 Support 进入 `TwoSupportLayout@1`；
   双业务单 Action 也可以使用 `ScheduleOverviewHeroContent@1`，并固定放在
   `HeroTitleContentActionLayout@1` 的第二个业务位置。
 - 可用模板：
@@ -11,12 +15,23 @@
     可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewReminderHero@1`：日程提醒 Hero；展示标题、开始时间和提前提醒；可选
     `headerLabel`。提醒文案通过端侧 Expr 判断开始时间是否为空，不在云侧读取样例值。
+  - `ScheduleOverviewReminderCompact@1`：日程提醒 Compact；仅展示首项日程的提前提醒分钟数，
+    不接收动作；可选 `bellIcon`（通知提醒语义）。
   - `ScheduleOverviewTimezoneFull@1`：时区日程 Full；展示时区、标题、起止时间和地点；可选
     `headerLabel`。
   - `ScheduleOverviewDateFull@1`：日期日程 Full；展示真实日期、标题、起止时间和地点；可选
     `headerLabel`。
   - `ScheduleOverviewDatedMeetingHero@1`：带日期会议 Hero；展示真实日期、标题、起止时间和地点，
     不接收展示 Prop。
+  - `ScheduleOverviewMeetingEntryHero@1`：会议条目 Hero；以时间轴样式展示首项日程的开始时间和地点，
+    两者均为必需；不接收展示 Prop，不含动作。
+  - `ScheduleOverviewMeetingSenderFull@1`：会议详情 Full；顶部展示今日日程标题（可选
+    `headerLabel` 覆盖），时间轴依次展示首项日程标题（可选，缺失时整行隐藏）、时间段（缺结束时间时
+    仅开始时间）和两行地点；开始时间和地点必需。标题 14vp/700，副标题 10vp/400。数据标题缺失时，
+    可选 `title` Prop 只能逐字复用 `cardComposition.businessTitleCandidate` 作为标题兜底。用于 2x4
+    组合布局的整列业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action；2x4 单业务
+    双操作时依次组合本 Full 与两个 `CompactAction@1`（按各自 `allowedActionIds` 语义绑定，如免打扰
+    设置 + 一键入会）。
   - `ScheduleOverviewHeroContent@1`：日程 HeroContent；展示标题、起止时间和地点；只用于
     `HeroTitleContentActionLayout@1` 的第二个业务 child。
   - `ScheduleOverviewTimeSupport@1`：开始时间必需，标题、结束时间和地点可选；有标题时主行显示标题、
@@ -36,6 +51,9 @@
     `timeIcon` 与 `locationIcon` 可选。
   - `ScheduleOverviewTwoEventsFull@1`：双日程 Full；按顺序展示前两项日程各自的标题和开始时间，
     不接收展示 Prop。
+  - `ScheduleOverviewThreeMeetingsFull@1`：三场会议 Full；无背板，按顺序展示前三项日程各自的
+    开始时间、标题和地点，每场会议以时间轴圆点开始；不接收展示 Prop，用于 2x4 组合布局的整列
+    业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action。
   - `ScheduleOverviewLocationDescriptionEndFull@1`：备注详情 Full；展示首项日程的备注、结束时间和地点；
     可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewDatedAllDayHero@1`：带日期全天日程 Hero；展示日期、标题和全天状态，
@@ -57,25 +75,40 @@
     `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewEventCountDetailsHero@1`：近期日程清点 Hero；展示日程总数及首项日程的标题、
     开始时间和备注，不接收展示 Prop。
+  - `ScheduleOverviewEventCountTwoEventsFull@1`：双日程清点 Full；展示日程总数，以及前两项日程各自的
+    标题和开始时间，五个展示字段必须全部可用；可接收可信 `headerLabel`，以及
+    `event.viewCalendarEvent` 的 `actionId`，并仅将动作绑定到第一条日程。`entityId` 仍是事件参数，
+    不作为展示字段或模板 Prop。
+  - `ScheduleOverviewEventCountDetailsFull@1`：近期日程清点 Full；主数据 `/eventCount`、
+    `/events/0/title`；次要数据 `/events/0/dtStart`、`/events/0/isAllDay`；可选数据
+    `/events/0/description`；可选 `calendarIcon` 与 `headerLabel`；全天状态由端侧 `Expr`
+    按运行时布尔值渲染，备注缺失时整行隐藏。2x4 单业务双操作时，使用
+    `WideFullTwoCompactLayout@1`，依次组合本 Full 与两个 `CompactAction@1`（按各自
+    `allowedActionIds` 语义绑定，如查看日程详情 + 打开闹钟）；素材仅从本轮候选按语义匹配
+    （日历/闹钟语义）。
   - `ScheduleOverviewTimezoneAllDayFull@1`：时区全天日程 Full；展示标题、全天状态、时区和地点；可选
     `calendarIcon` 与 `headerLabel`；全天文案由端侧 `Expr(...)` 按运行时布尔值计算。
-- Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 只用于 `SingleFocusLayout@1`，
-  或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个 `IconAction@1`。WideFull 当前只作
-  `2x4` 预留。
+- Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 可用于 `SingleFocusLayout@1`、
+  `WideTwoFullLayout@1`，或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个
+  `IconAction@1`。WideFull 当前只作 `2x4` 预留。
 - HeroContent 必须位于 HeroTitle 之后，且布局第三个直接 child 必须是一个 `PillAction@1`；不得交换
-  两个业务位置或在业务模板内嵌 Action。
+  两个业务位置。除明确声明 `supportedEventIds` 与可选 `actionId` 的模板外，不得在业务模板内嵌 Action；
+  `ScheduleOverviewEventCountTwoEventsFull@1` 消费动作时不得再为同一事件生成独立 Action child。
 - `headerLabel` 只能逐字复用 `cardComposition.businessTitleCandidate`，没有可信标题时省略。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；Props 只能使用本轮 Prompt 下发的可信文本或素材，
   不得输出数据路径。
 - 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。标题 Hero 与地点
   Hero 是两个独立候选；二者都只在自身完整覆盖显式字段时可选。缺少真实日期、时间、提醒、时区、地点、
-  发起人、重要类型、备注或日程总数时，不得用静态文案或其它数组项补齐。
+  发起人、重要类型、备注或日程总数时，不得用静态文案或其它数组项补齐。`2x4` 单业务单 Action 时，
+  CalendarOverview 可拆为 Full + Compact 两个槽位组合（`WideFullTwoCompactLayout@1`），
+  两槽位模板的字段并集覆盖全部显式字段即可。
 - 素材参数不绑定固定素材 ID，只从本轮素材候选中按语义匹配：
   - `sourceIcon`：日历应用、日程来源或会议来源语义，使用 Theme 主内容色着色；
   - `calendarIcon`：日历本或日程管理语义，使用 Theme 辅助内容色着色；
   - `meetingIcon`：会议、评审或在线会议语义，使用 Theme 辅助内容色着色；
   - `timeIcon`：时钟、时间或日程时刻语义；
-  - `locationIcon`：地点、位置、会议室或地图标记语义。
+  - `locationIcon`：地点、位置、会议室或地图标记语义；
+  - `bellIcon`：通知、提醒或日程提醒响铃语义，使用 Theme 辅助内容色着色。
 - 同一模板的多个素材槽位必须分别匹配语义，不得复用同一素材填充来源、时间和地点。
 - `TwoEventsFull` 的底板宽度跟随父容器、高度等分剩余空间，内部时间轴旁的文本使用剩余宽度。
   `LocationDescriptionEndFull`、`LocationHero`、`TitleHero`、`TimezoneDateEndFull`、`TimezoneAllDayFull`

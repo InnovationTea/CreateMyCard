@@ -98,13 +98,14 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
     registry = get_cardplan_registry()
     definition = registry.templates[template_id]
     assert definition.capability_id
-    schema = _required_only_schema(
-        definition, _TEMPLATE_QUERY_DISCRIMINATORS.get(template_id, ())
-    )
+    extra_paths = list(_TEMPLATE_QUERY_DISCRIMINATORS.get(template_id, ()))
+    for group in definition.required_any_of:
+        extra_paths.append(group[0])
+    schema = _required_only_schema(definition, tuple(extra_paths))
     # 查询判别字段（如 WeatherOverviewAlertFull@1 的 /current/alertLevel）是模板
     # 准入条件的一部分，必须与必需字段一起进入意图与候选字段。
     paths = sorted(
-        {*definition.required_data, *_TEMPLATE_QUERY_DISCRIMINATORS.get(template_id, ())}
+        {*definition.required_data, *extra_paths}
     )
     assert paths, f"{template_id} declares no required data"
 
