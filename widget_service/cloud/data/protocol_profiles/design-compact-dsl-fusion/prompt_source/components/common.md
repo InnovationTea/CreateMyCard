@@ -29,7 +29,7 @@
 | 线性进度 | `ProgressLine2` | 可见读数 + 线性进度 | 当前值相对明确总量 | 只进入 `W-top-bottom` 的 progress-detail 预设 |
 | 环形进度 | `ProgressCircleSingle` | 单环主指标 + 右侧说明 | 单个真实比例及同对象说明 | 只进入 `W-split-panels` 的 ring-detail 预设 |
 | 日程 | `EventCard` | 时间线 + 标题 + 时间 + 可选地点 | 2x2 单会议 | 单事件；只用于 calendar 唯一业务 |
-| 等权指标 | `TopTextBottomValue` | 三组标签—值 | 2x4 三个同级指标 | 恰好三项；只进入 `W-top-bottom` 的 metric-triple 预设 |
+| 等权指标 | `TopTextBottomValue` | 三组标签—数值—单位 | 2x4 三个同级指标 | 恰好三项；只进入 `W-top-bottom` 的 metric-triple 预设 |
 | 操作 | `PillButton` | 操作文案 + 可选图标 | 2x2 底部卡级 CTA | 一个实例绑定一个真实动作 |
 | 操作 | `CircleButton` | 纯图标操作 | 2x2 右下锚点 CTA | `36×36vp` 按钮进入 `40×40vp` 槽 |
 | 操作 | `CardButton` | 文案 + 可选图标 | 2x4 固定动作槽 | 一个实例绑定一个真实动作 |
@@ -43,18 +43,20 @@
 |---|---|---|---|
 | `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x4 V04 |
 | `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x4 V04/V06/V10 |
-| `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`label`、`fontColor`、`color`、`backgroundColor` 必填 | 2x4 V03 |
+| `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`fontColor`、`color`、`backgroundColor` 必填；`unit` 可选 | 2x4 V03 |
 | `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | 2x2 V14 |
 | `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V03 |
 | `CardButton` | 固定动作背板；整块只承载一个真实动作 | `label`、`onClick`、`fontColor`、`backgroundColor` 必填；`icon`、`fillColor` 可选 | 2x4 V08/V12 |
-| `ProgressCircleSingle` | 一个真实环形比例、环心读数和右侧说明 | `value`、`total`、`displayValue`、`label`、`details` 与配色必填 | 2x4 V02 |
-| `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor`、`lineColor` 必填；`location` 可选 | 2x2 V06 |
-| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor`、`secondaryColor` 必填 | `S-center` |
-| `TopTextBottomValue` | 三项等权的标签和值 | `items`、`fontColor`、`dividerColor` 必填 | 2x4 V05 |
+| `ProgressCircleSingle` | 一个真实环形比例、环心图标和右侧读数 | `value`、`total`、`icon`、`displayValue`、`label` 与配色必填；`secondaryLabel` 可选 | 2x4 V02 |
+| `EventCard` | 单会议的时间线、标题、时间与可选地点 | `title`、`time`、`fontColor` 必填；`location` 可选 | 2x2 V06 |
+| `DataDisplay` | 一个标签、核心值和短支撑文本 | `label`、`value`、`supportingText`、`fontColor` 必填 | `S-center` |
+| `TopTextBottomValue` | 三项等权的标签、数值和单位 | `items`、`fontColor`、`dividerColor` 必填；每项包含 `label`、`value`、`unit` | 2x4 V05 |
 | `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | 2x4 V01 |
 
 共同约束：组件只输出一行且不带 children；内容字段支持 Text.content 已允许的静态值、Expression 或
 PathBinding。宽高、字号、对齐、间距和子节点 ID 由转换器按尺寸及合法槽位固定展开，不作为 Props。
+高阶组件的 `fontColor` 表示 100% 内容色；设计系统规定的辅助文字、单位、时间线和环心图标由转换器
+确定性派生为 60% 内容色，模型不额外传辅助色。
 `InfoBlock.onClick` 必须逐字使用当前事件候选；`InfoBlock` 无图标时不生成图标节点或空槽。
 `CardButton` 无图标时由确定性视觉配方补充中性的固定视觉占位，模型仍不得伪造图标路径。环形 Progress、
 完整业务父级完整内容区不属于 `InfoBlock`。
@@ -374,19 +376,20 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 | `value` | number 绑定 | 必填；绑定 number/integer 字段并驱动进度条 |
 | `total` | number | 必填；静态正数 |
 | `displayValue` | 显示值 | 必填；与 `value/total` 表达同一进度关系 |
-| `label` | string | 必填；静态非空说明 |
+| `unit` | string | 可选；读数未包含单位时填写静态单位 |
 | `fontColor` | `#AARRGGBB` | 必填 |
 | `color` | `#AARRGGBB` | 必填；进度色 |
 | `backgroundColor` | `#AARRGGBB` | 必填；轨道色 |
 
 #### 槽位与容量
 
-只进入 2x4 `W-top-bottom` 的 progress-detail 整宽进度槽；不用于 2x2，也不与另一个进度合并进同一实例。
+只进入 2x4 `W-top-bottom` 的 progress-detail 整宽进度槽；读数固定使用与 `EmphasizedData` 相同的
+`30fp/700` 主值和可选 `12fp/500` 单位，不用于 2x2。
 
 #### 示例
 
 ```genui
-["score","ProgressLine2",{"value":{"path":"/data/healthSport/sleepScore"},"total":100,"displayValue":"{{ ${/data/healthSport/sleepScore} + '分' }}","label":"睡眠综合得分","fontColor":"#FF563D99","color":"#FF563D99","backgroundColor":"#33563D99"}]
+["score","ProgressLine2",{"value":{"path":"/data/healthSport/sleepScore"},"total":100,"displayValue":{"path":"/data/healthSport/sleepScore"},"unit":"分","fontColor":"#FF563D99","color":"#FF563D99","backgroundColor":"#33563D99"}]
 ```
 
 #### 注意事项
@@ -491,7 +494,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 选择条件
 
-用于一个具有真实比例范围的环形主指标，并在右侧展示 1–2 条同一对象的说明。普通数值、温度、时间和
+用于一个具有真实比例范围的环形主指标。环心显示对象图标，右侧显示标签、读数和可选状态。普通数值、温度、时间和
 无可靠总量的数据不使用。
 
 #### 组件属性
@@ -500,9 +503,10 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 |---|---|---|
 | `value` | number 绑定 | 必填；绑定 number/integer 字段 |
 | `total` | number | 必填；静态正数 |
+| `icon` | string | 必填；逐字使用当前素材候选的本地路径 |
 | `displayValue` | 显示值 | 必填；与环形进度表达同一数值 |
 | `label` | string | 必填；静态非空说明 |
-| `details` | Array | 必填；1–2 条显示值 |
+| `secondaryLabel` | 显示值 | 可选；同一对象的一条状态说明 |
 | `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 必填 |
 
 #### 槽位与容量
@@ -512,12 +516,12 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 #### 示例
 
 ```genui
-["main","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"当前电量","details":[{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},{"path":"/data/phoneBattery/chargingStatusDesc"}],"fontColor":"#FF1F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["main","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"手机电量","secondaryLabel":{"path":"/data/phoneBattery/chargingStatusDesc"},"fontColor":"#FF1F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
 ```
 
 #### 注意事项
 
-`value`、`displayValue` 与 `details` 必须属于同一对象；环形进度不能代替可见读数。
+`value`、`displayValue` 与 `secondaryLabel` 必须属于同一对象；图标只标识该对象，不代替可见读数。
 
 ### 5.12.9 `EventCard`
 
@@ -532,7 +536,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 | `title` | 显示值 | 必填；会议标题 |
 | `time` | 显示值 | 必填；会议时间 |
 | `location` | 显示值 | 可选；用户要求且有合法字段时使用 |
-| `fontColor`、`lineColor` | `#AARRGGBB` | 必填 |
+| `fontColor` | `#AARRGGBB` | 必填；标题使用该颜色，时间线及辅助文字由转换器生成 60% 内容色 |
 
 #### 槽位与容量
 
@@ -541,7 +545,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 #### 示例
 
 ```genui
-["content_area","EventCard",{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"},"fontColor":"#FF8C4B1C","lineColor":"#1A8C4B1C"}]
+["content_area","EventCard",{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"},"fontColor":"#FF8C4B1C"}]
 ```
 
 #### 注意事项
@@ -560,7 +564,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 |---|---|---|
 | `label`、`supportingText` | string | 必填；静态非空短文本 |
 | `value` | 显示值 | 必填；唯一核心值 |
-| `fontColor`、`secondaryColor` | `#AARRGGBB` | 必填 |
+| `fontColor` | `#AARRGGBB` | 必填；主值使用该颜色，标签和支撑文本由转换器生成 60% 内容色 |
 
 #### 槽位与容量
 
@@ -569,7 +573,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 #### 示例
 
 ```genui
-["display","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天","fontColor":"#FFFFFFFF","secondaryColor":"#CCFFFFFF"}]
+["display","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天","fontColor":"#FFFFFFFF"}]
 ```
 
 #### 注意事项
@@ -586,9 +590,10 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 | Prop | 类型 | 要求 |
 |---|---|---|
-| `items` | Array | 必填；恰好 3 项，每项只含 `label`、`value` |
+| `items` | Array | 必填；恰好 3 项，每项只含 `label`、`value`、`unit` |
 | `items[].label` | string | 必填；静态非空标签 |
 | `items[].value` | 显示值 | 必填 |
+| `items[].unit` | string | 必填；静态非空单位 |
 | `fontColor`、`dividerColor` | `#AARRGGBB` | 必填 |
 
 #### 槽位与容量
@@ -598,12 +603,12 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 #### 示例
 
 ```genui
-["metrics","TopTextBottomValue",{"items":[{"label":"睡眠得分","value":"80分"},{"label":"消耗热量","value":"92 千卡"},{"label":"今日步数","value":"2031步"}],"fontColor":"#FF563D99","dividerColor":"#33563D99"}]
+["metrics","TopTextBottomValue",{"items":[{"label":"睡眠得分","value":80,"unit":"分"},{"label":"消耗热量","value":92,"unit":"千卡"},{"label":"今日步数","value":2031,"unit":"步"}],"fontColor":"#FF563D99","dividerColor":"#33563D99"}]
 ```
 
 #### 注意事项
 
-组件名沿用现有命名；Fusion 的固定视觉顺序仍是主值在上、标签在下，不能借名称改变 Few-shot 视觉。
+固定视觉顺序为标签在上、数值居中、单位在下；单位不得再次拼进 `value`。
 
 ### 5.12.12 `SummaryList`
 

@@ -31,7 +31,9 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
         "SummaryList",
     }
     assert contract["components"]["InfoBlock"]["alignment"] == "aligned"
-    assert contract["components"]["ProgressLine2"]["alignment"] == "adapted"
+    assert contract["components"]["ProgressLine2"]["alignment"] == "aligned"
+    assert contract["components"]["ProgressCircleSingle"]["alignment"] == "aligned"
+    assert contract["components"]["DataDisplay"]["alignment"] == "aligned"
     assert contract["components"]["SummaryList"]["alignment"] == "native"
 
 
@@ -56,6 +58,20 @@ def test_visual_recipe_part_marks_only_internal_expansion_rows() -> None:
     assert component_type == "Text"
     assert styles["fontSize"] == 10
     assert styles["_visualRecipe"] == (f"{VISUAL_RECIPE_VERSION}:TableText.value")
+
+
+def test_progress_circle_height_follows_latest_runtime_line_count() -> None:
+    two_line = component_visual_recipe("ProgressCircleSingle", size="2x4")
+    three_line = component_visual_recipe(
+        "ProgressCircleSingle",
+        size="2x4",
+        variant="withSecondary",
+    )
+
+    assert two_line["parts"]["root"]["styles"]["height"] == 44
+    assert two_line["parts"]["labels"]["styles"]["height"] == 44
+    assert three_line["parts"]["root"]["styles"]["height"] == 46
+    assert three_line["parts"]["labels"]["styles"]["height"] == 46
 
 
 def test_unknown_visual_recipe_variant_is_rejected() -> None:

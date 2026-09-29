@@ -3389,6 +3389,8 @@ def _collect_two_by_four_detached_unit_errors(
     for component in components:
         if component.component_type != "Text":
             continue
+        if _uses_visual_recipe(component):
+            continue
         numeric_paths: list[str] = []
         for path in _component_content_paths(component):
             schema_node = _schema_node_at_path(data_model_schema, path)
@@ -4316,6 +4318,8 @@ def _collect_ambiguous_metric_text_errors(
     }
     for component in components:
         if component.component_type != "Text":
+            continue
+        if _uses_visual_recipe_part(component, "ProgressLine2.value"):
             continue
         paths: list[str] = []
         _collect_binding_context(

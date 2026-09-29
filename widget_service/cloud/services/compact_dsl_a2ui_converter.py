@@ -1277,7 +1277,7 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
                 size=size,
                 props={
                     "content": unit,
-                    "fontColor": component.props["fontColor"],
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
         )
@@ -1426,7 +1426,7 @@ def _info_block_text_rows(
             props={
                 "content": copy.deepcopy(component.props["secondaryText"]),
                 "width": width,
-                "fontColor": color,
+                "fontColor": _color_with_alpha(color, 0.6),
             },
         ),
     ]
@@ -1439,16 +1439,18 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
         "value",
         "total",
         "displayValue",
-        "label",
+        "unit",
         "fontColor",
         "color",
         "backgroundColor",
     }
-    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    required = allowed - {"unit"}
+    _validate_high_level_props(component, required=required, allowed=allowed)
     _require_text_value(component, "displayValue")
-    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
+    unit = component.props.get("unit")
+    if unit is not None and (not isinstance(unit, str) or not unit.strip()):
         raise CompactDslConversionError(
-            f"{component.component_id}: ProgressLine2.label must be non-empty text."
+            f"{component.component_id}: ProgressLine2.unit must be non-empty text."
         )
     for name in ("fontColor", "color", "backgroundColor"):
         _require_color(component, name)
@@ -1460,9 +1462,9 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
 
     readout_id = f"{component.component_id}_readout"
     value_id = f"{component.component_id}_value"
-    label_id = f"{component.component_id}_label"
     bar_id = f"{component.component_id}_bar"
-    return [
+    readout_children = [value_id]
+    rows = [
         _visual_row(
             component.component_id,
             "ProgressLine2",
@@ -1475,7 +1477,8 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
             "ProgressLine2",
             "readout",
             size=size,
-            children=(value_id, label_id),
+            props={"itemMargin": 2 if unit else 0},
+            children=tuple(readout_children),
         ),
         _visual_row(
             value_id,
@@ -1484,16 +1487,6 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
             size=size,
             props={
                 "content": copy.deepcopy(component.props["displayValue"]),
-                "fontColor": component.props["fontColor"],
-            },
-        ),
-        _visual_row(
-            label_id,
-            "ProgressLine2",
-            "label",
-            size=size,
-            props={
-                "content": component.props["label"],
                 "fontColor": component.props["fontColor"],
             },
         ),
@@ -1511,6 +1504,28 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
             },
         ),
     ]
+    if unit:
+        unit_id = f"{component.component_id}_unit"
+        readout_children.append(unit_id)
+        rows[1] = ComponentRow(
+            rows[1].component_id,
+            rows[1].component_type,
+            rows[1].props,
+            tuple(readout_children),
+        )
+        rows.append(
+            _visual_row(
+                unit_id,
+                "ProgressLine2",
+                "unit",
+                size=size,
+                props={
+                    "content": unit,
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                },
+            )
+        )
+    return rows
 
 
 def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -1540,7 +1555,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                     size=size,
                     props={
                         "content": item["label"],
-                        "fontColor": component.props["fontColor"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
                 _visual_row(
@@ -1715,14 +1730,16 @@ def _expand_progress_circle_single(
     allowed = {
         "value",
         "total",
+        "icon",
         "displayValue",
         "label",
-        "details",
+        "secondaryLabel",
         "fontColor",
         "color",
         "backgroundColor",
     }
-    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    required = allowed - {"secondaryLabel"}
+    _validate_high_level_props(component, required=required, allowed=allowed)
     _require_text_value(component, "value")
     _require_text_value(component, "displayValue")
     if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
@@ -1734,31 +1751,33 @@ def _expand_progress_circle_single(
         raise CompactDslConversionError(
             f"{component.component_id}: ProgressCircleSingle.total must be a positive number."
         )
-    details = component.props.get("details")
-    if not isinstance(details, list) or not 1 <= len(details) <= 2:
+    _validate_optional_icon(component)
+    secondary_label = component.props.get("secondaryLabel")
+    if secondary_label is not None and not _is_display_value(secondary_label):
         raise CompactDslConversionError(
-            f"{component.component_id}: ProgressCircleSingle.details requires 1 to 2 entries."
+            f"{component.component_id}: ProgressCircleSingle.secondaryLabel must be display text."
         )
-    for index, value in enumerate(details):
-        if not _is_display_value(value):
-            raise CompactDslConversionError(
-                f"{component.component_id}: details[{index}] must be display text."
-            )
     for name in ("fontColor", "color", "backgroundColor"):
         _require_color(component, name)
 
     ring_stack_id = f"{component.component_id}_ring_stack"
     ring_id = f"{component.component_id}_ring"
-    display_id = f"{component.component_id}_display"
+    icon_id = f"{component.component_id}_icon"
     labels_id = f"{component.component_id}_labels"
     label_id = f"{component.component_id}_label"
-    detail_ids = [f"{component.component_id}_detail{index}" for index in range(len(details))]
+    display_id = f"{component.component_id}_display"
+    secondary_id = f"{component.component_id}_secondary"
+    variant = "withSecondary" if secondary_label is not None else None
+    label_children = [label_id, display_id]
+    if secondary_label is not None:
+        label_children.append(secondary_id)
     rows = [
         _visual_row(
             component.component_id,
             "ProgressCircleSingle",
             "root",
             size=size,
+            variant=variant,
             children=(ring_stack_id, labels_id),
         ),
         _visual_row(
@@ -1766,13 +1785,15 @@ def _expand_progress_circle_single(
             "ProgressCircleSingle",
             "ringStack",
             size=size,
-            children=(ring_id, display_id),
+            variant=variant,
+            children=(ring_id, icon_id),
         ),
         _visual_row(
             ring_id,
             "ProgressCircleSingle",
             "ring",
             size=size,
+            variant=variant,
             props={
                 "type": "ring",
                 "value": copy.deepcopy(component.props["value"]),
@@ -1782,13 +1803,14 @@ def _expand_progress_circle_single(
             },
         ),
         _visual_row(
-            display_id,
+            icon_id,
             "ProgressCircleSingle",
-            "display",
+            "icon",
             size=size,
+            variant=variant,
             props={
-                "content": copy.deepcopy(component.props["displayValue"]),
-                "fontColor": component.props["fontColor"],
+                "src": component.props["icon"],
+                "fillColor": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
         _visual_row(
@@ -1796,29 +1818,43 @@ def _expand_progress_circle_single(
             "ProgressCircleSingle",
             "labels",
             size=size,
-            children=(label_id, *detail_ids),
+            variant=variant,
+            children=tuple(label_children),
         ),
         _visual_row(
             label_id,
             "ProgressCircleSingle",
             "label",
             size=size,
+            variant=variant,
             props={
                 "content": component.props["label"],
                 "fontColor": component.props["fontColor"],
             },
         ),
+        _visual_row(
+            display_id,
+            "ProgressCircleSingle",
+            "display",
+            size=size,
+            variant=variant,
+            props={
+                "content": copy.deepcopy(component.props["displayValue"]),
+                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+            },
+        ),
     ]
-    for index, detail in enumerate(details):
+    if secondary_label is not None:
         rows.append(
             _visual_row(
-                detail_ids[index],
+                secondary_id,
                 "ProgressCircleSingle",
-                "detailPrimary" if index == 0 else "detailSecondary",
+                "secondary",
                 size=size,
+                variant=variant,
                 props={
-                    "content": copy.deepcopy(detail),
-                    "fontColor": component.props["fontColor"],
+                    "content": copy.deepcopy(secondary_label),
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
         )
@@ -1828,15 +1864,14 @@ def _expand_progress_circle_single(
 def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size != "2x2":
         raise CompactDslConversionError("EventCard currently requires a 2x2 card.")
-    allowed = {"title", "time", "location", "fontColor", "lineColor"}
-    required = {"title", "time", "fontColor", "lineColor"}
+    allowed = {"title", "time", "location", "fontColor"}
+    required = {"title", "time", "fontColor"}
     _validate_high_level_props(component, required=required, allowed=allowed)
     _require_text_value(component, "title")
     _require_text_value(component, "time")
     if "location" in component.props:
         _require_text_value(component, "location")
     _require_color(component, "fontColor")
-    _require_color(component, "lineColor")
 
     has_location = "location" in component.props
     variant = "withLocation" if has_location else "withoutLocation"
@@ -1902,7 +1937,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             variant=variant,
             props={
                 "height": line_height,
-                "color": component.props["lineColor"],
+                "color": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
         _visual_row(
@@ -1925,7 +1960,6 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             props={
                 "content": copy.deepcopy(component.props["title"]),
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
         ),
         _visual_row(
@@ -1936,7 +1970,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["time"]),
-                "fontColor": component.props["fontColor"],
+                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
     ]
@@ -1950,7 +1984,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
                 variant=variant,
                 props={
                     "content": copy.deepcopy(component.props["location"]),
-                    "fontColor": component.props["fontColor"],
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
         )
@@ -1960,7 +1994,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
 def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size != "2x2":
         raise CompactDslConversionError("DataDisplay currently requires a 2x2 card.")
-    allowed = {"label", "value", "supportingText", "fontColor", "secondaryColor"}
+    allowed = {"label", "value", "supportingText", "fontColor"}
     _validate_high_level_props(component, required=allowed, allowed=allowed)
     for name in ("label", "supportingText"):
         if not isinstance(component.props.get(name), str) or not component.props[name].strip():
@@ -1969,7 +2003,7 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
             )
     _require_text_value(component, "value")
     _require_color(component, "fontColor")
-    _require_color(component, "secondaryColor")
+    secondary_color = _color_with_alpha(component.props["fontColor"], 0.6)
 
     label_id = f"{component.component_id}_label"
     value_id = f"{component.component_id}_value"
@@ -1989,7 +2023,7 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
             size=size,
             props={
                 "content": component.props["label"],
-                "fontColor": component.props["secondaryColor"],
+                "fontColor": secondary_color,
             },
         ),
         _visual_row(
@@ -2009,7 +2043,7 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
             size=size,
             props={
                 "content": component.props["supportingText"],
-                "fontColor": component.props["fontColor"],
+                "fontColor": secondary_color,
             },
         ),
     ]
@@ -2025,7 +2059,7 @@ def _expand_top_text_bottom_value(
     _validate_high_level_props(component, required=allowed, allowed=allowed)
     _require_color(component, "fontColor")
     _require_color(component, "dividerColor")
-    items = _validate_label_value_items(component, minimum=3, maximum=3)
+    items = _validate_top_text_bottom_value_items(component)
 
     children: list[str] = []
     rows: list[ComponentRow] = []
@@ -2033,6 +2067,7 @@ def _expand_top_text_bottom_value(
         item_id = f"{component.component_id}_item{index}"
         value_id = f"{item_id}_value"
         label_id = f"{item_id}_label"
+        unit_id = f"{item_id}_unit"
         if index:
             divider_id = f"{component.component_id}_divider{index - 1}"
             children.append(divider_id)
@@ -2055,7 +2090,7 @@ def _expand_top_text_bottom_value(
                     "TopTextBottomValue",
                     "item",
                     size=size,
-                    children=(label_id, value_id),
+                    children=(label_id, value_id, unit_id),
                 ),
                 _visual_row(
                     label_id,
@@ -2075,6 +2110,16 @@ def _expand_top_text_bottom_value(
                     props={
                         "content": copy.deepcopy(item["value"]),
                         "fontColor": component.props["fontColor"],
+                    },
+                ),
+                _visual_row(
+                    unit_id,
+                    "TopTextBottomValue",
+                    "unit",
+                    size=size,
+                    props={
+                        "content": item["unit"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
             ]
@@ -2182,6 +2227,36 @@ def _validate_label_value_items(
         if not isinstance(label, str) or not label.strip():
             raise CompactDslConversionError(
                 f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        if not _is_display_value(item.get("value")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].value must be display text."
+            )
+    return items
+
+
+def _validate_top_text_bottom_value_items(
+    component: ComponentRow,
+) -> list[dict[str, Any]]:
+    items = component.props.get("items")
+    if not isinstance(items, list) or len(items) != 3:
+        raise CompactDslConversionError(
+            f"{component.component_id}: TopTextBottomValue.items requires 3 to 3 entries."
+        )
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or set(item) != {"label", "value", "unit"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires label/value/unit only."
+            )
+        label = item.get("label")
+        unit = item.get("unit")
+        if not isinstance(label, str) or not label.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        if not isinstance(unit, str) or not unit.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].unit must be non-empty text."
             )
         if not _is_display_value(item.get("value")):
             raise CompactDslConversionError(

@@ -166,6 +166,25 @@ function labelValueItems(
   return value as Array<{ label: string; value: unknown }>;
 }
 
+function labelValueUnitItems(id: string, type: string, value: unknown) {
+  if (!Array.isArray(value) || value.length !== 3) {
+    throw new Error(`${id}: ${type}.items 需要 3–3 项。`);
+  }
+  value.forEach((item, index) => {
+    const valid = record(item)
+      && Object.keys(item).sort().join(",") === "label,unit,value"
+      && typeof item.label === "string"
+      && item.label.trim().length > 0
+      && typeof item.unit === "string"
+      && item.unit.trim().length > 0
+      && isDisplayValue(item.value);
+    if (!valid) {
+      throw new Error(`${id}: ${type}.items[${index}] 只接受有效的 label/value/unit。`);
+    }
+  });
+  return value as Array<{ label: string; value: unknown; unit: string }>;
+}
+
 function colorWithAlpha(color: string, opacity: number) {
   const alpha = Math.round(Number.parseInt(color.slice(1, 3), 16) * opacity);
   return `#${alpha.toString(16).padStart(2, "0").toUpperCase()}${color.slice(3)}`;
@@ -242,7 +261,13 @@ function expandHighLevel(
     if (p.unit) {
       const unitId = `${id}_unit`;
       children.push(unitId);
-      rows.push(row(unitId, type, "unit", size, { content: p.unit, fontColor: p.fontColor }));
+      rows.push(row(
+        unitId,
+        type,
+        "unit",
+        size,
+        { content: p.unit, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
+      ));
     }
     return rows;
   }
@@ -294,7 +319,11 @@ function expandHighLevel(
         type,
         "secondary",
         size,
-        { content: p.secondaryText, width: textWidth, fontColor: p.fontColor },
+        {
+          content: p.secondaryText,
+          width: textWidth,
+          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+        },
       ),
     ];
     if (p.icon) {
@@ -314,12 +343,18 @@ function expandHighLevel(
   if (type === "ProgressLine2") {
     if (size !== "2x4") throw new Error("ProgressLine2 仅支持 2x4 卡片。");
     const allowed = [
-      "value", "total", "displayValue", "label", "fontColor", "color", "backgroundColor",
+      "value", "total", "displayValue", "unit", "fontColor", "color", "backgroundColor",
     ];
-    requireProps(id, type, p, allowed, allowed);
+    requireProps(
+      id,
+      type,
+      p,
+      ["value", "total", "displayValue", "fontColor", "color", "backgroundColor"],
+      allowed,
+    );
     requireDisplay(id, type, p, "displayValue");
-    if (typeof p.label !== "string" || !p.label.trim()) {
-      throw new Error(`${id}: ProgressLine2.label 必须是非空文本。`);
+    if (p.unit !== undefined && (typeof p.unit !== "string" || !p.unit.trim())) {
+      throw new Error(`${id}: ProgressLine2.unit 必须是非空文本。`);
     }
     ["fontColor", "color", "backgroundColor"].forEach(name => requireColor(id, type, p, name));
     if (typeof p.total !== "number" || !Number.isFinite(p.total) || p.total <= 0) {
@@ -327,13 +362,12 @@ function expandHighLevel(
     }
     const readout = `${id}_readout`;
     const value = `${id}_value`;
-    const label = `${id}_label`;
     const bar = `${id}_bar`;
-    return [
+    const readoutChildren = [value];
+    const rows = [
       row(id, type, "root", size, {}, [readout, bar]),
-      row(readout, type, "readout", size, {}, [value, label]),
+      row(readout, type, "readout", size, { itemMargin: p.unit ? 2 : 0 }, readoutChildren),
       row(value, type, "value", size, { content: p.displayValue, fontColor: p.fontColor }),
-      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }),
       row(
         bar,
         type,
@@ -348,6 +382,18 @@ function expandHighLevel(
         },
       ),
     ];
+    if (p.unit) {
+      const unit = `${id}_unit`;
+      readoutChildren.push(unit);
+      rows.push(row(
+        unit,
+        type,
+        "unit",
+        size,
+        { content: p.unit, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
+      ));
+    }
+    return rows;
   }
 
   if (type === "TableText" || type === "TextBlock") {
@@ -382,7 +428,10 @@ function expandHighLevel(
         type,
         "label",
         size,
-        { content: item.label, fontColor: p.fontColor },
+        {
+          content: item.label,
+          fontColor: isTable ? colorWithAlpha(String(p.fontColor), 0.6) : p.fontColor,
+        },
       ));
       rows.push(row(
         valueId,
@@ -431,34 +480,45 @@ function expandHighLevel(
   if (type === "ProgressCircleSingle") {
     if (size !== "2x4") throw new Error("ProgressCircleSingle 仅支持 2x4 卡片。");
     const allowed = [
-      "value", "total", "displayValue", "label", "details", "fontColor", "color",
-      "backgroundColor",
+      "value", "total", "icon", "displayValue", "label", "secondaryLabel", "fontColor",
+      "color", "backgroundColor",
     ];
-    requireProps(id, type, p, allowed, allowed);
+    requireProps(
+      id,
+      type,
+      p,
+      [
+        "value", "total", "icon", "displayValue", "label", "fontColor", "color",
+        "backgroundColor",
+      ],
+      allowed,
+    );
     requireDisplay(id, type, p, "value");
     requireDisplay(id, type, p, "displayValue");
+    requireOptionalIcon(id, type, p);
     if (typeof p.label !== "string" || !p.label.trim()) {
       throw new Error(`${id}: ProgressCircleSingle.label 必须是非空文本。`);
     }
     if (typeof p.total !== "number" || !Number.isFinite(p.total) || p.total <= 0) {
       throw new Error(`${id}: ProgressCircleSingle.total 必须是正数。`);
     }
-    if (!Array.isArray(p.details)
-      || p.details.length < 1
-      || p.details.length > 2
-      || !p.details.every(isDisplayValue)) {
-      throw new Error(`${id}: ProgressCircleSingle.details 需要 1–2 项可显示文本。`);
+    if (p.secondaryLabel !== undefined && !isDisplayValue(p.secondaryLabel)) {
+      throw new Error(`${id}: ProgressCircleSingle.secondaryLabel 必须是可显示文本。`);
     }
     ["fontColor", "color", "backgroundColor"].forEach(name => requireColor(id, type, p, name));
     const ringStack = `${id}_ring_stack`;
     const ring = `${id}_ring`;
-    const display = `${id}_display`;
+    const icon = `${id}_icon`;
     const labels = `${id}_labels`;
     const label = `${id}_label`;
-    const detailIds = p.details.map((_, index) => `${id}_detail${index}`);
+    const display = `${id}_display`;
+    const secondary = `${id}_secondary`;
+    const variant = p.secondaryLabel === undefined ? undefined : "withSecondary";
+    const labelChildren = [label, display];
+    if (p.secondaryLabel !== undefined) labelChildren.push(secondary);
     const rows = [
-      row(id, type, "root", size, {}, [ringStack, labels]),
-      row(ringStack, type, "ringStack", size, {}, [ring, display]),
+      row(id, type, "root", size, {}, [ringStack, labels], variant),
+      row(ringStack, type, "ringStack", size, {}, [ring, icon], variant),
       row(
         ring,
         type,
@@ -471,30 +531,59 @@ function expandHighLevel(
           color: p.color,
           backgroundColor: p.backgroundColor,
         },
+        [],
+        variant,
       ),
-      row(display, type, "display", size, { content: p.displayValue, fontColor: p.fontColor }),
-      row(labels, type, "labels", size, {}, [label, ...detailIds]),
-      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }),
+      row(
+        icon,
+        type,
+        "icon",
+        size,
+        { src: p.icon, fillColor: colorWithAlpha(String(p.fontColor), 0.6) },
+        [],
+        variant,
+      ),
+      row(labels, type, "labels", size, {}, labelChildren, variant),
+      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }, [], variant),
+      row(
+        display,
+        type,
+        "display",
+        size,
+        {
+          content: p.displayValue,
+          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+        },
+        [],
+        variant,
+      ),
     ];
-    p.details.forEach((detail, index) => rows.push(row(
-      detailIds[index],
-      type,
-      index ? "detailSecondary" : "detailPrimary",
-      size,
-      { content: detail, fontColor: p.fontColor },
-    )));
+    if (p.secondaryLabel !== undefined) {
+      rows.push(row(
+        secondary,
+        type,
+        "secondary",
+        size,
+        {
+          content: p.secondaryLabel,
+          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+        },
+        [],
+        variant,
+      ));
+    }
     return rows;
   }
 
   if (type === "EventCard") {
     if (size !== "2x2") throw new Error("EventCard 仅支持 2x2 卡片。");
-    const allowed = ["title", "time", "location", "fontColor", "lineColor"];
-    requireProps(id, type, p, ["title", "time", "fontColor", "lineColor"], allowed);
+    const allowed = ["title", "time", "location", "fontColor"];
+    requireProps(id, type, p, ["title", "time", "fontColor"], allowed);
     requireDisplay(id, type, p, "title");
     requireDisplay(id, type, p, "time");
     if (p.location !== undefined) requireDisplay(id, type, p, "location");
     requireColor(id, type, p, "fontColor");
-    requireColor(id, type, p, "lineColor");
+    const secondaryColor = colorWithAlpha(String(p.fontColor), 0.6);
     const variant = p.location === undefined ? "withoutLocation" : "withLocation";
     const metrics = recipe(type, size, variant).metrics!;
     const rail = `${id}_rail`;
@@ -537,7 +626,7 @@ function expandHighLevel(
         type,
         "line",
         size,
-        { height: metrics.lineHeight, color: p.lineColor },
+        { height: metrics.lineHeight, color: secondaryColor },
         [],
         variant,
       ),
@@ -547,7 +636,7 @@ function expandHighLevel(
         type,
         "title",
         size,
-        { content: p.title, fontColor: p.fontColor, maxLines: 1 },
+        { content: p.title, fontColor: p.fontColor },
         [],
         variant,
       ),
@@ -556,7 +645,7 @@ function expandHighLevel(
         type,
         "meta",
         size,
-        { content: p.time, fontColor: p.fontColor },
+        { content: p.time, fontColor: secondaryColor },
         [],
         variant,
       ),
@@ -569,7 +658,7 @@ function expandHighLevel(
         type,
         "meta",
         size,
-        { content: p.location, fontColor: p.fontColor },
+        { content: p.location, fontColor: secondaryColor },
         [],
         variant,
       ));
@@ -579,7 +668,7 @@ function expandHighLevel(
 
   if (type === "DataDisplay") {
     if (size !== "2x2") throw new Error("DataDisplay 仅支持 2x2 卡片。");
-    const allowed = ["label", "value", "supportingText", "fontColor", "secondaryColor"];
+    const allowed = ["label", "value", "supportingText", "fontColor"];
     requireProps(id, type, p, allowed, allowed);
     if (typeof p.label !== "string" || !p.label.trim()
       || typeof p.supportingText !== "string" || !p.supportingText.trim()) {
@@ -587,20 +676,20 @@ function expandHighLevel(
     }
     requireDisplay(id, type, p, "value");
     requireColor(id, type, p, "fontColor");
-    requireColor(id, type, p, "secondaryColor");
+    const secondaryColor = colorWithAlpha(String(p.fontColor), 0.6);
     const label = `${id}_label`;
     const value = `${id}_value`;
     const supporting = `${id}_supporting`;
     return [
       row(id, type, "root", size, {}, [label, value, supporting]),
-      row(label, type, "label", size, { content: p.label, fontColor: p.secondaryColor }),
+      row(label, type, "label", size, { content: p.label, fontColor: secondaryColor }),
       row(value, type, "value", size, { content: p.value, fontColor: p.fontColor }),
       row(
         supporting,
         type,
         "supporting",
         size,
-        { content: p.supportingText, fontColor: p.fontColor },
+        { content: p.supportingText, fontColor: secondaryColor },
       ),
     ];
   }
@@ -611,7 +700,7 @@ function expandHighLevel(
     requireProps(id, type, p, allowed, allowed);
     requireColor(id, type, p, "fontColor");
     requireColor(id, type, p, "dividerColor");
-    const items = labelValueItems(id, type, p.items, 3, 3);
+    const items = labelValueUnitItems(id, type, p.items);
     const children: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
     items.forEach((item, index) => {
@@ -623,8 +712,9 @@ function expandHighLevel(
       const itemId = `${id}_item${index}`;
       const value = `${itemId}_value`;
       const label = `${itemId}_label`;
+      const unit = `${itemId}_unit`;
       children.push(itemId);
-      rows.push(row(itemId, type, "item", size, {}, [label, value]));
+      rows.push(row(itemId, type, "item", size, {}, [label, value, unit]));
       rows.push(row(
         label,
         type,
@@ -638,6 +728,13 @@ function expandHighLevel(
         "value",
         size,
         { content: item.value, fontColor: p.fontColor },
+      ));
+      rows.push(row(
+        unit,
+        type,
+        "unit",
+        size,
+        { content: item.unit, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
       ));
     });
     return [row(id, type, "root", size, {}, children), ...rows];

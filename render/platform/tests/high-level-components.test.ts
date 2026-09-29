@@ -43,7 +43,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     objectFit: "contain",
     flexShrink: 0,
   });
-  assert.equal(visualRecipePart("ProgressCircleSingle", "ring", "2x4").styles.width, 52);
+  assert.equal(visualRecipePart("ProgressCircleSingle", "ring", "2x4").styles.width, 44);
   assert.equal(visualRecipePart("TopTextBottomValue", "item", "2x4").styles.width, 90);
 
   const dataDisplay = compileMiniDsl(fixtures.examples[0].source, { size: "2x2" }).graph;
@@ -52,7 +52,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     width: 126,
     height: 36,
     borderRadius: 30,
-    padding: { left: 8, top: 0, right: 8, bottom: 0 },
+    padding: 0,
     flexShrink: 0,
     backgroundColor: "#331F4799",
     fontColor: "#FF1F4799",
@@ -61,7 +61,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   });
   assert.equal(
     (dataDisplay.getNode("display_value")?.props.styles as Record<string, unknown>).fontSize,
-    38,
+    56,
   );
 
   const info = compileMiniDsl(fixtures.examples[1].source, { size: "2x2" }).graph;
@@ -70,7 +70,11 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const event = compileMiniDsl(fixtures.examples[2].source, { size: "2x2" }).graph;
   assert.equal((event.getNode("event")?.props.styles as Record<string, unknown>).height, 50);
-  assert.equal((event.getNode("event_rail_line")?.props.styles as Record<string, unknown>).height, 31);
+  assert.equal((event.getNode("event_rail_line")?.props.styles as Record<string, unknown>).height, 32);
+  assert.equal(
+    (event.getNode("event_time")?.props.styles as Record<string, unknown>).fontColor,
+    "#998C4B1C",
+  );
 
   const table = compileMiniDsl(fixtures.examples[3].source, { size: "2x2" }).graph;
   assert.equal((table.getNode("settings")?.props.styles as Record<string, unknown>).width, 36);
@@ -84,11 +88,21 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
 
   const progress = compileMiniDsl(fixtures.examples[5].source, { size: "2x4" }).graph;
+  assert.equal((progress.getNode("progress")?.props.styles as Record<string, unknown>).height, 50);
   assert.equal((progress.getNode("progress_bar")?.props.styles as Record<string, unknown>).height, 8);
+  assert.equal((progress.getNode("progress_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
   assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).width, 134);
+  assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).height, 48);
 
   const circle = compileMiniDsl(fixtures.examples[6].source, { size: "2x4" }).graph;
-  assert.equal((circle.getNode("progress_ring")?.props.styles as Record<string, unknown>).width, 52);
+  assert.equal((circle.getNode("progress_ring")?.props.styles as Record<string, unknown>).width, 44);
+  assert.equal((circle.getNode("progress")?.props.styles as Record<string, unknown>).height, 46);
+  assert.equal(circle.getNode("progress_icon")?.type, "Extended.Image");
+  assert.equal((circle.getNode("progress_icon")?.props.styles as Record<string, unknown>).width, 20);
+  assert.equal(
+    (circle.getNode("progress_icon")?.props.styles as Record<string, unknown>).fillColor,
+    "#991F4799",
+  );
 
   const cardButton = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;
   assert.equal((cardButton.getNode("calendar")?.props.styles as Record<string, unknown>).width, 132);
@@ -96,6 +110,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const metrics = compileMiniDsl(fixtures.examples[8].source, { size: "2x4" }).graph;
   assert.equal((metrics.getNode("metrics_item0")?.props.styles as Record<string, unknown>).width, 90);
+  assert.equal((metrics.getNode("metrics_item0_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
 
   const summary = compileMiniDsl(fixtures.examples[9].source, { size: "2x4" }).graph;
   assert.equal((summary.getNode("list")?.props.styles as Record<string, unknown>).height, 102);

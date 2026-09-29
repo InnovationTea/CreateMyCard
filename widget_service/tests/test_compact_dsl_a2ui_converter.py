@@ -706,8 +706,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {
                         "value": 82,
                         "total": 100,
-                        "displayValue": "82分",
-                        "label": "睡眠综合得分",
+                        "displayValue": 82,
+                        "unit": "分",
                         "fontColor": "#FF563D99",
                         "color": "#FF563D99",
                         "backgroundColor": "#33563D99",
@@ -751,11 +751,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["progress"]["children"][-1], "progress_bar")
         self.assertEqual(components["progress_bar"]["component"], "Progress")
         self.assertEqual(components["progress_bar"]["styles"]["strokeWidth"], 8)
+        self.assertEqual(components["progress_unit"]["styles"]["fontSize"], 12)
         self.assertEqual(
             components["details"]["children"],
             ["details_item0", "details_item1"],
         )
         self.assertEqual(components["details_item0"]["styles"]["width"], 134)
+        self.assertEqual(components["details_item0"]["styles"]["height"], 48)
         self.assertEqual(components["action"]["component"], "Row")
         self.assertEqual(components["action"]["onClick"], [handler])
         self.assertEqual(
@@ -786,7 +788,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "value": {"path": "/data/sleep/score"},
                         "total": 100,
                         "displayValue": display_expression,
-                        "label": "睡眠综合得分",
                         "fontColor": "#FF563D99",
                         "color": "#FF563D99",
                         "backgroundColor": "#33563D99",
@@ -848,7 +849,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "value": 32,
                         "supportingText": "天",
                         "fontColor": "#FFFFFFFF",
-                        "secondaryColor": "#CCFFFFFF",
                     },
                 ],
             ]
@@ -865,10 +865,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["display"]["children"],
             ["display_label", "display_value", "display_supporting"],
         )
-        self.assertEqual(components["display_value"]["styles"]["fontSize"], 38)
+        self.assertEqual(components["display_value"]["styles"]["fontSize"], 56)
+        self.assertEqual(components["display_value"]["styles"]["height"], 60)
         self.assertEqual(
             components["display_label"]["styles"]["fontColor"],
-            "#CCFFFFFF",
+            "#99FFFFFF",
+        )
+        self.assertEqual(
+            components["display_supporting"]["styles"]["fontColor"],
+            "#99FFFFFF",
         )
 
         event_card_dsl = _serialize(
@@ -904,7 +909,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "time": {"path": "/data/calendar/events/0/dtStart"},
                         "location": "A 会议室",
                         "fontColor": "#FF8C4B1C",
-                        "lineColor": "#1A8C4B1C",
                     },
                 ],
                 ["/data/calendar/events/0/title", "UI需求评审会"],
@@ -933,6 +937,11 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         )
         self.assertEqual(components["content_area_rail"]["styles"]["height"], 50)
+        self.assertEqual(components["content_area_rail_line"]["styles"]["height"], 32)
+        self.assertEqual(
+            components["content_area_time"]["styles"]["fontColor"],
+            "#998C4B1C",
+        )
 
     def test_expands_second_batch_two_by_four_components(self) -> None:
         compact_dsl = _serialize(
@@ -949,9 +958,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {
                         "value": 68,
                         "total": 100,
+                        "icon": "resources/base/media/battery_leaf_fill.svg",
                         "displayValue": "68%",
                         "label": "当前电量",
-                        "details": ["正常电量", "未充电"],
+                        "secondaryLabel": "未充电",
                         "fontColor": "#FF1F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
@@ -962,9 +972,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "TopTextBottomValue",
                     {
                         "items": [
-                            {"label": "睡眠得分", "value": "80分"},
-                            {"label": "消耗热量", "value": "92 千卡"},
-                            {"label": "今日步数", "value": "2031步"},
+                            {"label": "睡眠得分", "value": 80, "unit": "分"},
+                            {"label": "消耗热量", "value": 92, "unit": "千卡"},
+                            {"label": "今日步数", "value": 2031, "unit": "步"},
                         ],
                         "fontColor": "#FF563D99",
                         "dividerColor": "#33563D99",
@@ -991,13 +1001,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         components = {item["id"]: item for item in update["components"]}
 
         self.assertEqual(components["circle"]["styles"]["width"], 276)
-        self.assertEqual(components["circle"]["styles"]["height"], 52)
+        self.assertEqual(components["circle"]["styles"]["height"], 46)
         self.assertEqual(
             components["circle"]["children"],
             ["circle_ring_stack", "circle_labels"],
         )
         self.assertEqual(components["circle_ring"]["component"], "Progress")
         self.assertEqual(components["circle_ring"]["styles"]["strokeWidth"], 6)
+        self.assertEqual(components["circle_icon"]["component"], "Image")
+        self.assertEqual(components["circle_icon"]["styles"]["width"], 20)
         self.assertEqual(
             components["metrics"]["children"],
             [
@@ -1010,6 +1022,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["metrics_item0"]["children"][0], "metrics_item0_label")
         self.assertEqual(components["metrics_item0_value"]["styles"]["fontSize"], 24)
+        self.assertEqual(components["metrics_item0_unit"]["styles"]["fontSize"], 12)
         self.assertEqual(components["list"]["styles"]["height"], 102)
         self.assertEqual(len(components["list"]["children"]), 3)
 
@@ -1041,7 +1054,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "title": {"path": "/data/calendar/events/0/title"},
                     "time": {"path": "/data/calendar/events/0/dtStart"},
                     "fontColor": "#FF8C4B1C",
-                    "lineColor": "#1A8C4B1C",
                 },
             ],
         ]
@@ -1223,7 +1235,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "value": 0,
                         "total": 0,
                         "displayValue": "0分",
-                        "label": "进度",
                         "fontColor": "#FF1F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
@@ -1240,7 +1251,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "value": 0,
                         "total": 0,
                         "displayValue": "0分",
-                        "label": "进度",
                         "fontColor": "#FF1F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
@@ -1256,9 +1266,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {
                         "value": 68,
                         "total": 100,
+                        "icon": "resources/base/media/battery_leaf_fill.svg",
                         "displayValue": "68%",
                         "label": "当前电量",
-                        "details": ["正常电量"],
                         "fontColor": "#FF1F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
@@ -1273,8 +1283,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "TopTextBottomValue",
                     {
                         "items": [
-                            {"label": "睡眠得分", "value": "80分"},
-                            {"label": "今日步数", "value": "2031步"},
+                            {"label": "睡眠得分", "value": 80, "unit": "分"},
+                            {"label": "今日步数", "value": 2031, "unit": "步"},
                         ],
                         "fontColor": "#FF563D99",
                         "dividerColor": "#33563D99",
@@ -1305,7 +1315,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "value": 32,
                         "supportingText": "天",
                         "fontColor": "#FFFFFFFF",
-                        "secondaryColor": "#CCFFFFFF",
                     },
                 ],
                 "DataDisplay currently requires a 2x2 card",

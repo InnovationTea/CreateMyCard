@@ -9,12 +9,7 @@
           "styles": {
             "height": 36,
             "borderRadius": 30,
-            "padding": {
-              "left": 8,
-              "top": 0,
-              "right": 8,
-              "bottom": 0
-            },
+            "padding": 0,
             "fontSize": 14,
             "fontWeight": 500,
             "flexShrink": 0
@@ -241,14 +236,17 @@
       }
     },
     "ProgressLine2": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Column",
           "styles": {
             "width": 276,
-            "height": 45,
-            "itemMargin": 5,
+            "height": 50,
+            "padding": {
+              "bottom": 4
+            },
+            "itemMargin": 6,
             "justifyContent": "start",
             "alignItems": "start",
             "flexShrink": 0
@@ -259,8 +257,8 @@
           "styles": {
             "width": 276,
             "height": 32,
-            "itemMargin": 6,
-            "alignItems": "bottom",
+            "itemMargin": 2,
+            "alignItems": "top",
             "flexShrink": 0
           }
         },
@@ -274,16 +272,16 @@
             "flexShrink": 0
           }
         },
-        "label": {
+        "unit": {
           "component": "Text",
           "styles": {
             "height": 18,
             "fontSize": 12,
             "fontWeight": 500,
             "maxLines": 1,
-            "flexShrink": 1,
-            "constraintSize": {
-              "minWidth": 0
+            "flexShrink": 0,
+            "margin": {
+              "top": 14
             }
           }
         },
@@ -361,13 +359,13 @@
       }
     },
     "TextBlock": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Row",
           "styles": {
             "width": 276,
-            "height": 45,
+            "height": 48,
             "itemMargin": 8,
             "alignItems": "center",
             "flexShrink": 1
@@ -377,7 +375,7 @@
           "component": "Column",
           "styles": {
             "width": 134,
-            "height": 45,
+            "height": 48,
             "padding": {
               "left": 8,
               "right": 8
@@ -481,13 +479,13 @@
       }
     },
     "ProgressCircleSingle": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Row",
           "styles": {
             "width": 276,
-            "height": 52,
+            "height": 44,
             "itemMargin": 8,
             "alignItems": "center",
             "justifyContent": "center",
@@ -497,8 +495,8 @@
         "ringStack": {
           "component": "Stack",
           "styles": {
-            "width": 52,
-            "height": 52,
+            "width": 44,
+            "height": 44,
             "alignContent": "center",
             "flexShrink": 0
           }
@@ -506,21 +504,18 @@
         "ring": {
           "component": "Progress",
           "styles": {
-            "width": 52,
-            "height": 52,
+            "width": 44,
+            "height": 44,
             "strokeWidth": 6,
             "flexShrink": 0
           }
         },
-        "display": {
-          "component": "Text",
+        "icon": {
+          "component": "Image",
           "styles": {
-            "width": 40,
-            "height": 18,
-            "fontSize": 12,
-            "fontWeight": 500,
-            "textAlign": "center",
-            "maxLines": 1,
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
             "flexShrink": 0
           }
         },
@@ -528,7 +523,7 @@
           "component": "Column",
           "styles": {
             "width": 132,
-            "height": 52,
+            "height": 44,
             "itemMargin": 0,
             "alignItems": "start",
             "justifyContent": "center",
@@ -539,14 +534,14 @@
           "component": "Text",
           "styles": {
             "width": 132,
-            "height": 20,
+            "height": 18,
             "fontSize": 14,
             "fontWeight": 700,
             "maxLines": 1,
             "textOverflow": "ellipsis"
           }
         },
-        "detailPrimary": {
+        "display": {
           "component": "Text",
           "styles": {
             "width": 132,
@@ -557,7 +552,7 @@
             "textOverflow": "ellipsis"
           }
         },
-        "detailSecondary": {
+        "secondary": {
           "component": "Text",
           "styles": {
             "width": 132,
@@ -568,16 +563,44 @@
             "textOverflow": "ellipsis"
           }
         }
+      },
+      "variants": {
+        "withSecondary": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 46
+              }
+            },
+            "labels": {
+              "styles": {
+                "height": 46
+              }
+            },
+            "display": {
+              "styles": {
+                "height": 14,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            },
+            "secondary": {
+              "styles": {
+                "height": 14
+              }
+            }
+          }
+        }
       }
     },
     "EventCard": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Row",
           "styles": {
-            "width": 126,
-            "itemMargin": 8,
+            "width": 116,
+            "itemMargin": 7,
             "alignItems": "top",
             "flexShrink": 1,
             "clip": true
@@ -591,7 +614,7 @@
               "top": 5,
               "bottom": 0
             },
-            "itemMargin": 4,
+            "itemMargin": 5,
             "alignItems": "center",
             "justifyContent": "start",
             "flexShrink": 0
@@ -621,7 +644,7 @@
         "copy": {
           "component": "Column",
           "styles": {
-            "width": 110,
+            "width": 101,
             "itemMargin": 0,
             "alignItems": "start",
             "justifyContent": "start",
@@ -634,7 +657,7 @@
         "title": {
           "component": "Text",
           "styles": {
-            "width": 110,
+            "width": 101,
             "fontSize": 14,
             "fontWeight": 500,
             "maxLines": 2,
@@ -649,7 +672,7 @@
         "meta": {
           "component": "Text",
           "styles": {
-            "width": 110,
+            "width": 101,
             "height": 16,
             "fontSize": 12,
             "fontWeight": 400,
@@ -666,28 +689,28 @@
         "withoutLocation": {
           "metrics": {
             "height": 34,
-            "lineHeight": 15
+            "lineHeight": 16
           }
         },
         "withLocation": {
           "metrics": {
             "height": 50,
-            "lineHeight": 31
+            "lineHeight": 32
           }
         }
       }
     },
     "DataDisplay": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Column",
           "styles": {
             "width": 126,
-            "layoutWeight": 1,
+            "height": 114,
             "itemMargin": 8,
             "alignItems": "center",
-            "justifyContent": "start",
+            "justifyContent": "center",
             "flexShrink": 1
           }
         },
@@ -702,22 +725,11 @@
             "maxLines": 1
           }
         },
-        "valueGroup": {
-          "component": "Column",
-          "styles": {
-            "width": 126,
-            "layoutWeight": 1,
-            "itemMargin": 2,
-            "alignItems": "center",
-            "justifyContent": "center",
-            "flexShrink": 1
-          }
-        },
         "value": {
           "component": "Text",
           "styles": {
-            "height": 40,
-            "fontSize": 38,
+            "height": 60,
+            "fontSize": 56,
             "fontWeight": 700,
             "textAlign": "center",
             "maxLines": 1
@@ -736,7 +748,7 @@
       }
     },
     "TopTextBottomValue": {
-      "alignment": "adapted",
+      "alignment": "aligned",
       "parts": {
         "root": {
           "component": "Row",
@@ -778,6 +790,18 @@
             "height": 32,
             "fontSize": 24,
             "fontWeight": 700,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "width": 90,
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 400,
             "textAlign": "center",
             "maxLines": 1,
             "flexShrink": 0
