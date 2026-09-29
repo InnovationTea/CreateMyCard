@@ -12,14 +12,21 @@ from typing import Any, Literal
 from pydantic import ValidationError
 
 from api.schemas import GenerateWidgetCardRequest
-from app.logger import json_for_log, logger
+from app.logger import json_for_log, json_text_for_log, logger
 from config.config import get_settings
+from core.errors import ErrorCode
 from core.json_pointer import parse_json_pointer
 from custom.a2ui_model_client import A2UIModelClient
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelBackend
 from models.capability import EventDynamicArgument
-from models.generation import ModelRequestContext
+from models.generation import CandidateDataBinding, GenerationOptions, ModelRequestContext
+from services.argument_json_recovery import (
+    DECODER,
+    PreservedArguments,
+    extract_fragments,
+    repair_syntax,
+)
 from services.capability_registry import CapabilityRegistry
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_preflight import GenerationPreflight
@@ -86,12 +93,29 @@ class CompactDslArgumentRepairError(ValueError):
     """表示模型候选无法作为生成请求的 content 使用。"""
 
 
+class CompactDslArgumentRepairExhaustedError(ValueError):
+    """参数恢复失败是本轮生成的终态，不再让 Agent 自动改参循环。"""
+
+    error_code = ErrorCode.A2UI_GENERATION_FAILED
+
+    def details(self) -> dict[str, Any]:
+        return {
+            "stage": "argumentRepair",
+            "retryable": False,
+            "requiredActions": ["NOTIFY_USER"],
+            "agentInstruction": (
+                "本次 DSL 生成失败：参数修复及重试均未成功，未生成卡片结果。"
+                "请停止本轮自动调用，并提示用户：卡片生成失败，请重试一下。"
+            ),
+        }
+
+
 @dataclass(frozen=True)
 class CompactDslArgumentRecoveryResult:
     """参数恢复模块返回给路由的完整结果。"""
 
     content: dict[str, Any]
-    mode: Literal["model", "model_retry", "minimal"]
+    mode: Literal["model", "model_retry"]
     attempts: int
     dropped_candidates: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -159,6 +183,10 @@ async def recover_compact_dsl_content(
     normalized_attempts = min(max(max_attempts, 1), 3)
     raw_hash = hashlib.sha256(raw_arguments.encode("utf-8")).hexdigest()
     registry, registry_warnings = _select_capability_registry(payload, content)
+    preserved = _preserve_valid_fragments(raw_arguments, registry)
+    for key in ("bundleName", "romVersion"):
+        if key in content:
+            preserved.fields[key] = content.get(key)
     previous_output = ""
     validation_errors: list[str] = []
     client = A2UIModelClient(
@@ -174,6 +202,7 @@ async def recover_compact_dsl_content(
                 content,
                 previous_output=previous_output,
                 validation_errors=validation_errors,
+                preserved=preserved,
             )
             raw_output = ""
             try:
@@ -183,11 +212,16 @@ async def recover_compact_dsl_content(
                     suppress_prompt_log=True,
                     phase="argument_repair",
                 )
+                logger.info(
+                    f"{_MODULE} model_output attempt={attempt} "
+                    f"raw_arguments_hash={raw_hash} output={json_text_for_log(raw_output)}"
+                )
                 repaired_content, dropped, warnings = _normalize_model_output(
                     raw_output,
                     content,
                     payload,
                     registry,
+                    preserved=preserved,
                 )
             except Exception as exc:
                 previous_output = raw_output
@@ -221,19 +255,11 @@ async def recover_compact_dsl_content(
                 f"exception_type={type(exc).__name__}"
             )
 
-    minimal_content = _build_minimal_content(raw_arguments, content)
-    warnings = [*registry_warnings, *validation_errors]
-    warnings.append("模型未返回合法请求，已使用最小静态请求继续生成。")
-    result = CompactDslArgumentRecoveryResult(
-        content=minimal_content,
-        mode="minimal",
-        attempts=normalized_attempts,
-        dropped_candidates=("dynamicCandidates:*",),
-        warnings=tuple(warnings),
-        raw_arguments_hash=raw_hash,
+    logger.error(
+        f"{_MODULE} recovery_failed attempts={normalized_attempts} "
+        f"raw_arguments_hash={raw_hash} errors={json_for_log(validation_errors)}"
     )
-    _log_recovery_result(result)
-    return result
+    raise CompactDslArgumentRepairExhaustedError("卡片生成失败，请重试一下。")
 
 
 def _build_repair_prompt(
@@ -241,6 +267,7 @@ def _build_repair_prompt(
     *,
     previous_output: str = "",
     validation_errors: list[str] | None = None,
+    preserved: PreservedArguments | None = None,
 ) -> list[dict[str, str]]:
     model_content = {
         key: value for key, value in content.items() if key not in _PROTECTED_TRANSPORT_KEYS
@@ -259,6 +286,17 @@ def _build_repair_prompt(
         repair_input["previousOutput"] = previous_output
     if validation_errors:
         repair_input["validationErrors"] = validation_errors
+    if preserved is not None:
+        repair_input["lockedFields"] = preserved.fields
+        repair_input["lockedArrayItems"] = preserved.items
+        repair_input["requiredRepairFields"] = preserved.required_fields
+    try:
+        DECODER.decode(raw_arguments)
+    except ValueError:
+        try:
+            repair_input["syntaxRepairSuggestion"] = DECODER.decode(repair_syntax(raw_arguments))
+        except ValueError as exc:
+            repair_input["syntaxRepairWarning"] = str(exc)
     system_prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt(
         DESIGN_COMPACT_PROFILE_ID
     )
@@ -273,8 +311,17 @@ def _normalize_model_output(
     outer_content: dict[str, Any],
     payload: dict[str, Any],
     registry: CapabilityRegistry | None,
+    *,
+    preserved: PreservedArguments | None = None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
-    repaired = _strict_json_object(raw_output)
+    repaired = _strict_json_object(
+        raw_output, allow_empty=preserved is not None and bool(preserved.fields)
+    )
+    if preserved is not None:
+        try:
+            repaired = preserved.merge(repaired)
+        except ValueError as exc:
+            raise CompactDslArgumentRepairError(str(exc)) from exc
     forbidden = sorted(set(repaired) & _WRAPPER_KEYS)
     if forbidden:
         raise CompactDslArgumentRepairError(
@@ -303,20 +350,36 @@ def _normalize_model_output(
     _preserve_outer_content_values(normalized, outer_content)
     if not normalized:
         raise CompactDslArgumentRepairError("repaired content must not be empty")
+    candidate_fields = ("candidateDataBindings", "candidateEventCandidates", "candidateAssetIds")
+    if dropped and not any(normalized.get(name) for name in candidate_fields):
+        raise CompactDslArgumentRepairError("no usable candidates remain after repair validation")
+    if preserved is not None:
+        try:
+            preserved.assert_retained(normalized)
+        except ValueError as exc:
+            raise CompactDslArgumentRepairError(str(exc)) from exc
     return normalized, dropped, warnings
 
 
-def _strict_json_object(raw_output: str) -> dict[str, Any]:
+def _strict_json_object(raw_output: str, *, allow_empty: bool = False) -> dict[str, Any]:
     candidate = _strip_json_fence(raw_output)
     try:
-        loaded = json.loads(candidate)
+        loaded = DECODER.decode(candidate)
     except json.JSONDecodeError as exc:
-        raise CompactDslArgumentRepairError(
-            f"model output is invalid JSON at line {exc.lineno} column {exc.colno}"
-        ) from exc
+        try:
+            repaired = repair_syntax(candidate)
+            loaded = DECODER.decode(repaired)
+        except ValueError as repair_exc:
+            raise CompactDslArgumentRepairError(
+                f"model output is invalid JSON at line {exc.lineno} column {exc.colno}; "
+                f"syntax repair rejected: {repair_exc}"
+            ) from repair_exc
+        logger.info(f"{_MODULE} syntax_repaired output={json_text_for_log(repaired)}")
+    except ValueError as exc:
+        raise CompactDslArgumentRepairError(str(exc)) from exc
     if not isinstance(loaded, dict):
         raise CompactDslArgumentRepairError("model output root must be a JSON object")
-    if not loaded:
+    if not loaded and not allow_empty:
         raise CompactDslArgumentRepairError("model output object must not be empty")
     return loaded
 
@@ -640,82 +703,88 @@ def _normalized_business_content(
     return normalized
 
 
-def _build_minimal_content(
-    raw_arguments: str,
-    outer_content: dict[str, Any],
-) -> dict[str, Any]:
-    source_url = _extract_json_value(raw_arguments, "sourceArtifactUrl")
-    user_query = _first_non_empty_extracted_text(
-        raw_arguments,
-        "userQuery",
-        "description",
-        "title",
-    )
-    user_query = user_query or "根据用户请求生成卡片"
-    minimal: dict[str, Any] = {"userQuery": user_query}
-    extrainfo = _extract_json_value(raw_arguments, "extrainfo")
-    if isinstance(extrainfo, list) and all(
-        isinstance(item, str) and item.strip() for item in extrainfo
-    ):
-        normalized_extrainfo = [item.strip() for item in extrainfo]
-        if normalized_extrainfo:
-            minimal["extrainfo"] = normalized_extrainfo
-    if isinstance(source_url, str) and source_url.strip():
-        minimal["sourceArtifactUrl"] = source_url
-        minimal["options"] = {"allowDegradation": True}
-    else:
-        title = _extract_json_value(raw_arguments, "title")
-        description = _extract_json_value(raw_arguments, "description")
-        minimal.update(
-            {
-                "size": _extracted_size(raw_arguments),
-                "title": title if isinstance(title, str) and title.strip() else "智能卡片",
-                "description": (
-                    description
-                    if isinstance(description, str) and description.strip()
-                    else user_query
-                ),
-                "candidateDataBindings": [],
-                "candidateEventCandidates": [],
-                "candidateAssetIds": [],
-                "options": {"allowDegradation": True},
-            }
-        )
-    for key in ("bundleName", "romVersion"):
-        value = _extract_json_value(raw_arguments, key)
-        if isinstance(value, str) and value.strip():
-            minimal[key] = value
-    _preserve_outer_content_values(minimal, outer_content)
-    return minimal
-
-
-def _extract_json_value(raw_arguments: str, key: str) -> Any:
-    pattern = re.compile(rf'(?<!\\)"{re.escape(key)}"\s*:')
-    decoder = json.JSONDecoder()
-    matches = list(pattern.finditer(raw_arguments))
-    for match in reversed(matches):
-        value_start = match.end()
-        while value_start < len(raw_arguments) and raw_arguments[value_start].isspace():
-            value_start += 1
-        try:
-            value, _end = decoder.raw_decode(raw_arguments, value_start)
-        except json.JSONDecodeError:
+def _preserve_valid_fragments(
+    raw: str,
+    registry: CapabilityRegistry | None,
+) -> PreservedArguments:
+    fragments = extract_fragments(raw)
+    preserved = PreservedArguments(required_fields=list(fragments.damaged_fields))
+    text_fields = {
+        "userQuery", "title", "description", "sourceArtifactUrl", "bundleName", "romVersion"
+    }
+    for name, value in fragments.fields.items():
+        if name in text_fields and isinstance(value, str) and value.strip():
+            preserved.fields[name] = value
+        elif name == "size" and value in ("2x2", "2x4"):
+            preserved.fields[name] = value
+    for name in ("candidateDataBindings", "candidateAssetIds"):
+        values = fragments.fields.get(name, fragments.array_prefixes.get(name))
+        if not isinstance(values, list):
             continue
-        return value
-    return None
+        locked: dict[int, Any] = {}
+        for index, value in enumerate(values):
+            if _fragment_is_valid(name, value, registry):
+                locked[index] = value
+        complete = name in fragments.fields and len(locked) == len(values)
+        if complete:
+            preserved.fields[name] = values
+        elif locked:
+            preserved.items[name] = locked
+        if not complete and name not in preserved.required_fields:
+            preserved.required_fields.append(name)
+    options = fragments.fields.get("options")
+    if isinstance(options, dict):
+        try:
+            GenerationOptions.model_validate(options, strict=True)
+        except ValidationError as exc:
+            logger.info(f"{_MODULE} options_require_repair error_count={exc.error_count()}")
+        else:
+            preserved.fields["options"] = options
+    for name, value in fragments.fields.items():
+        if name not in _BUSINESS_KEYS or name in preserved.fields:
+            continue
+        if name == "candidateEventCandidates" and value == []:
+            preserved.fields[name] = []
+        elif name not in preserved.required_fields:
+            preserved.required_fields.append(name)
+    logger.info(
+        f"{_MODULE} fragments_preserved fields={json_for_log(preserved.fields)} "
+        f"items={json_for_log(preserved.items)} "
+        f"required_repair_fields={json_for_log(preserved.required_fields)}"
+    )
+    return preserved
 
 
-def _first_non_empty_extracted_text(raw_arguments: str, *keys: str) -> str:
-    for key in keys:
-        value = _extract_json_value(raw_arguments, key)
-        if isinstance(value, str) and value.strip():
-            return value
-    return ""
-
-
-def _extracted_size(raw_arguments: str) -> str:
-    size = _extract_json_value(raw_arguments, "size")
-    return size if size in {"2x2", "2x4"} else "2x2"
+def _fragment_is_valid(
+    name: str,
+    value: Any,
+    registry: CapabilityRegistry | None,
+) -> bool:
+    if registry is None:
+        return False
+    if name == "candidateAssetIds":
+        return isinstance(value, str) and registry.get_asset_capability(value) is not None
+    try:
+        binding = CandidateDataBinding.model_validate(value, strict=True)
+    except ValidationError:
+        return False
+    capability = registry.get_data_capability(binding.capabilityId)
+    if capability is None:
+        return False
+    # 此对象仅供独立候选预检，绝不作为恢复结果或生成请求下发。
+    probe = GenerateWidgetCardRequest(
+        uid="argument-repair-validation",
+        locale="zh-CN",
+        prdVer="0",
+        device={"romVersion": "0"},
+        userQuery="参数恢复校验",
+        title="参数恢复校验",
+        description="参数恢复校验",
+        size="2x2",
+        candidateDataBindings=[binding],
+    )
+    preflight = GenerationPreflight(registry).run(EditRequestNormalizer.normalize_create(probe))
+    return not preflight.blocking_issues
 
 
 def _repair_error_messages(exc: Exception) -> list[str]:
@@ -741,5 +810,6 @@ def _log_recovery_result(result: CompactDslArgumentRecoveryResult) -> None:
         f"raw_arguments_hash={result.raw_arguments_hash} "
         f"dropped_candidates={json_for_log(result.dropped_candidates)} "
         f"warning_count={len(result.warnings)} "
-        f"content_keys={json_for_log(sorted(result.content))}"
+        f"warnings={json_for_log(result.warnings)} "
+        f"content={json_for_log(result.content)}"
     )
