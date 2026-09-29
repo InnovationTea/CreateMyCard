@@ -184,6 +184,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=("跳过 Runner 静态/浏览器校验，并禁止失败后的模型修复重试；仍执行生成 A2UI 所必需的 JSX 解析和转换。"),
     )
     parser.set_defaults(with_browser_validation=True)
+    parser.add_argument(
+        "--with-python-validation",
+        action="store_true",
+        help="启用纯 Python 布局预算校验；可与 --no-browser-validation 合用，不启动浏览器。",
+    )
     layout_budget_group = parser.add_mutually_exclusive_group()
     layout_budget_group.add_argument(
         "--no-layout-budget-validation",
@@ -209,7 +214,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     few_shot_group.add_argument(
         "--few-shot",
         action="store_true",
-        help="在 2x4 的 layout_patterns 中加载 few-shot 示例；默认开启，2x2 不受影响。",
+        help="启用按尺寸和规划检索的 few-shot 示例（默认开启）。",
     )
     few_shot_group.add_argument(
         "--no-few-shot", dest="few_shot", action="store_false",
@@ -262,11 +267,12 @@ def preflight(
     context_path: Path | None = None,
     *,
     browser_validation: bool = False,
+    python_validation: bool = False,
     include_few_shot: bool = False,
 ) -> None:
     resources = GenerationResources(include_few_shot=include_few_shot)
     missing = resources.missing_files()
-    if not JSX_VALIDATOR_PATH.is_file():
+    if (browser_validation or not python_validation) and not JSX_VALIDATOR_PATH.is_file():
         missing.append(JSX_VALIDATOR_PATH)
     if not input_path.exists():
         missing.append(input_path)
@@ -284,10 +290,29 @@ def preflight(
         raise ValueError("Runtime 与 JSX→A2UI 合同不同步：\n" + "\n".join(contract_errors))
 
 
+def _validation_status_for_result(
+    result: dict[str, Any],
+    *,
+    browser_validation: bool = False,
+    python_validation: bool = False,
+) -> str:
+    """Return whether the successful result was verified by an enabled validator."""
+    browser_checked = result.get(
+        "browser_validation",
+        result.get("browserValidation", "enabled" if browser_validation else "skipped"),
+    ) == "enabled"
+    python_checked = result.get(
+        "python_validation",
+        result.get("pythonValidation", "enabled" if python_validation else "disabled"),
+    ) == "enabled"
+    return "passed" if browser_checked or python_checked else "unverified"
+
+
 async def async_main(args: argparse.Namespace) -> int:
     validation_enabled = not args.no_validation
     browser_validation = validation_enabled and args.with_browser_validation
-    # 与 phone 相同：保留旧参数解析，但不启用 Python 几何估算。
+    python_validation = validation_enabled and args.with_python_validation
+    # 旧预算开关保持停用；新 Python 校验由 python_validation 独立控制。
     layout_budget_validation = False
     bridge_options = BridgeOptions(
         max_turns=args.max_turns,
@@ -296,6 +321,7 @@ async def async_main(args: argparse.Namespace) -> int:
         request_timeout=args.request_timeout,
         browser_fallback_after=args.browser_fallback_after,
         browser_validation=browser_validation,
+        python_validation=python_validation,
         validation_enabled=validation_enabled,
         layout_budget_validation=layout_budget_validation,
         validate_dynamic_values=not args.skip_dynamic_value_validation,
@@ -309,6 +335,7 @@ async def async_main(args: argparse.Namespace) -> int:
         args.input,
         args.context,
         browser_validation=browser_validation,
+        python_validation=python_validation,
         include_few_shot=bridge_options.include_few_shot,
     )
     loaded_tasks = load_tasks(args.input.resolve())
@@ -386,6 +413,8 @@ async def async_main(args: argparse.Namespace) -> int:
         "model": getattr(agent, "model", bridge.model_name),
         "provider": getattr(agent, "provider", "platform"),
         "thinkingMode": args.thinking_mode,
+        "promptDeliveryMode": "single_system_bundle",
+        "repairPromptMode": "deferred_once",
         "maxTokens": agent.max_tokens,
         "maxTurns": args.max_turns,
         "submitMode": args.submit_mode,
@@ -397,9 +426,15 @@ async def async_main(args: argparse.Namespace) -> int:
         "fewShotEnabled": bridge_options.include_few_shot,
         "dynamicDataBindingEnabled": bridge_options.enable_dynamic_data_binding,
         "browserValidationEnabled": browser_validation,
+        "pythonValidationEnabled": python_validation,
         "layoutBudgetValidationEnabled": layout_budget_validation,
         "validationMode": (
-            "disabled" if not validation_enabled else "browser" if browser_validation else "static-only"
+            "disabled"
+            if not validation_enabled
+            else "browser"
+            if browser_validation
+            else "python" if python_validation
+            else "static-only"
         ),
         "continueOnError": args.continue_on_error,
         "dynamicValueValidationEnabled": not args.skip_dynamic_value_validation,
@@ -466,6 +501,9 @@ async def async_main(args: argparse.Namespace) -> int:
             "component_name": name,
             "loaded_resources": [],
             "resource_reads": [],
+            "prompt_source_files": [],
+            "repair_prompt_loaded": False,
+            "repair_source_files": [],
             "reasoning_trace": [],
             "turn_trace": [],
             "validation_reports": [],
@@ -533,6 +571,9 @@ async def async_main(args: argparse.Namespace) -> int:
                     "elapsed_seconds": failure["elapsedSeconds"],
                     "loaded_resources": loaded_resources or [],
                     "resource_reads": resource_reads or [],
+                    "prompt_source_files": getattr(exc, "prompt_source_files", []),
+                    "repair_prompt_loaded": getattr(exc, "repair_prompt_loaded", False),
+                    "repair_source_files": getattr(exc, "repair_source_files", []),
                     "turn_trace": getattr(exc, "turn_trace", []),
                     "validation_reports": getattr(exc, "validation_reports", []),
                     "plan": getattr(exc, "plan", None),
@@ -560,10 +601,10 @@ async def async_main(args: argparse.Namespace) -> int:
         semantic_status = str(result.get("semantic_status") or "completed")
         if semantic_status not in {"completed", "partial", "insufficient_input", "unverified"}:
             semantic_status = "unverified"
-        validation_status = (
-            "passed"
-            if result.get("browser_validation", "enabled" if browser_validation else "skipped") == "enabled"
-            else "unverified"
+        validation_status = _validation_status_for_result(
+            result,
+            browser_validation=browser_validation,
+            python_validation=python_validation,
         )
         if semantic_status == "completed":
             card_status = "completed" if validation_status == "passed" else "completed_unverified"

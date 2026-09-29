@@ -15,6 +15,7 @@ class BridgeOptions:
     request_timeout: float = 900.0
     browser_fallback_after: int = 3
     browser_validation: bool = True
+    python_validation: bool = False
     validation_enabled: bool = True
     layout_budget_validation: bool = False
     validate_dynamic_values: bool = True
