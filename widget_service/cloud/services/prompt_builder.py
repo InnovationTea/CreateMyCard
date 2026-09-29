@@ -83,9 +83,9 @@ _TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK = """# 本次 2x4 倒计时双业务路�
   `alignItems:"start"`，底部放一行倒计时数字与单位“天”。禁止增加第四行辅助说明。
   整个倒计时父区只能出现一个“天”；数字与单位必须在同一 Row 内并使用底对齐。
   不得把数字压成 `14fp` 的 `30天`，也不得从另一个业务根借字段填充本背板。
-- 另一背板按自己的业务选择变体。多日天气使用 dense-summary，每天压成一行，
-  同日同时有完整日期和星期时只保留星期；按天气、温度、降雨顺序保留能完整显示的
-  字段。显式天气详情动作以完整短标签“查看天气”固定沉底；日程列表使用 event-led，
+- 另一背板按自己的业务选择变体。多日天气按天组织完整摘要；日期与星期只有未被分别
+  要求时才去重，Plan 中已保留的日期、星期、天气、温度和降雨不得删除。
+  显式天气详情动作以完整短标签“查看天气”固定沉底；日程列表使用 event-led，
   事项标题与时间成组排列，
   若动作只查看第一场日程，绑定第一场事项行，不额外生成挤占列表空间的重复 CTA。
 - 每个背板只能引用一个 `/data` 一级业务根。倒计时背板只引用 `/data/countdown`，
@@ -102,6 +102,8 @@ W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或�
 - 左侧只建立一个主焦点，可按业务使用大数字、环形进度、最多三项的事项列表或
   一条突出状态；Progress 不是选择本骨架的前提。左侧普通 value/text 焦点不添加
   装饰性 Image；只有 Image 作为合法环形 Progress 的中心内容时才允许保留。
+- 主对象的紧密事实留在主区连续展示；例如得分与时长都属于睡眠，不把时长挤进手机
+  状态槽。辅助对象的电量和状态分别成行，不在前面重复长标签导致状态被裁掉。
 - 左侧纯文字 status-focus 只有 2-4 行短文本时，全部放进一个紧凑 Column，
   由 focus_zone 使用 justifyContent center 让整组垂直居中；三行以上保持左对齐，
   但不得把第一行固定在顶部。只有一个主信息组、最多再加一条短辅助信息时，
@@ -134,12 +136,12 @@ W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或�
 
 _TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK = """# 本次电池 W1 填槽约束
 
-- 左侧以剩余电量为唯一主焦点；若用户要求系统识别状态，把“识别+状态”作为左侧
-  唯一辅助行。左侧焦点区与其紧凑内容组必须同时使用水平、垂直居中；主值 Row
-  使用 `justifyContent:"center"`，辅助 Text 使用 `textAlign:"center"`，不得贴左或贴顶。
-  用户没有明确要求进度图形时不生成 Progress。
-- 右上背板显示充电电流，右下背板显示充电电压；标签与值各占一行。
-- 四项信息分别只显示一次，禁止生成“剩余电量 / 100%”等重复说明。"""
+- 只布局本轮提供且用户或 Plan 要求的电池信息，不预设必须有电流、电压或四项指标。
+- 电量、充电状态、充电器连接类型是不同事实，不能以电量代替状态或删掉连接类型。
+  多个必要状态用独立短行，不能把长状态串进一行或把“未连接充电器”截成“未”。
+- 先预留全部显式动作，再把必要读数、状态分到主区和剩余辅助槽。主区有多项事实时
+  用普通字号紧凑纵排，不保留占满主区的大环。用户未要求进度图形时不生成 Progress。
+- 标签与完整读数同组，各事实只显示一次；不得补造当前未提供的指标。"""
 
 _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK = """# 本次耳机 W1 填槽约束
 
@@ -151,6 +153,7 @@ _TWO_BY_FOUR_EARPHONE_FOCUS_AUX_LOCK = """# 本次耳机 W1 填槽约束
 - 只有左右耳电量与充电状态时，左侧用两行分别显示左右耳电量；右上背板用两行
   分别显示左右耳充电状态。若同时存在耳机概览字段，右上背板可用两行分别显示
   “左耳 电量 · 充电状态”和“右耳 电量 · 充电状态”，每行最多两个动态事实。
+  左右耳标签必须与对应读数一起可见，不能显示两个无法区分的百分比。
 - 音乐动作或设置动作占用右侧槽并直接绑定背板 onClick。两个明确动作占满右侧时，
   全部必要耳机概览放在左侧最多四行；禁止生成满宽按钮或把动作移到画布外。"""
 
@@ -191,15 +194,16 @@ _TWO_BY_FOUR_HEALTH_WEATHER_FOCUS_AUX_LOCK = """# 本次健康与天气 W1 填�
 
 _TWO_BY_FOUR_PHONE_EARPHONE_FOCUS_AUX_LOCK = """# 本次手机与耳机 W1 填槽约束
 
-- 左侧以手机剩余电量为唯一主焦点。TaskSpec 同时提供可计算的 number/integer 电量值、
+- 左侧以手机剩余电量为唯一主焦点。手机对象自身同时提供 number/integer 电量值、
   且用户要求进度图形时，使用紧凑环形 Progress 与可见电量读数，禁止改成横向线性条；
   只有已含单位的 string 电量文本时直接显示完整读数，不得把字符串绑定给 Progress，
-  也不得编造数值路径或总量。左侧焦点区和内容组必须双轴居中。number/integer 电量
+  也不得借用耳机仓或左右耳的数值，更不能编造数值路径或总量。
+  左侧焦点区和内容组必须双轴居中。number/integer 电量
   与静态 `%` 拆分显示时必须是同一 Row 的相邻 Text，Row 使用 `alignItems:"bottom"`
   和 `justifyContent:"center"`，`itemMargin` 固定为 2；数字和 `%` 都不设置固定宽度，
   较小 Text 不设置 `padding.bottom`，禁止把 `%` 放到下一行。
-- 右上背板用最多两行显示耳机连接状态和耳机仓/左右耳中最重要的一项电量信息；
-  右下背板保留用户明确要求的音乐动作。动作直接绑定背板，只显示一个简短命令。
+- 耳机连接状态、耳机仓和左右耳电量分别核对，不能只选最重要的一项代替全部要求。
+  两行槽不足以完整容纳时使用完整双区；音乐动作保持独立入口，不吞掉必要读数。
 - `isConnected` 必须转成“已连接/未连接”，所有电量必须保留 `%`，不得用装饰图标、
   重复状态或更新时间填满槽位。"""
 
@@ -389,8 +393,8 @@ _SIZE_LAYOUT_ROUTE_LOCKS = {
 使用 W8 四格。多业务 root 的第一层只能按这些骨架从左到右组织，禁止两个
 全宽业务蒙版上下排列。W8/W9/W10 均禁止公共标题和公共动作区，
 root padding 固定为 `12vp`；左右区域和固定槽间距固定为 `12vp`。不得自由拼接骨架。
-带动作的大背板必须让真实内容区使用 `layoutWeight:1`，动作是
-最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。数字与单位拆成同一
+带动作的大背板先扣除动作与间距，再分配真实正文高度；使用 `layoutWeight:1` 时也必须核算全部行高。
+动作是最后一个直接子项；不得用普通 Text 伪造“点击查看”等动作提示。数字与单位拆成同一
 Row 内的两个 Text 时，不论数字字号大小，Row 必须使用 `alignItems:"bottom"` 和
 `itemMargin:2`，数字与单位 Text 均不设置固定宽度；单位不得设置 `padding.bottom`，
 且不得与数字设置相同的固定高度。同一 Row 内其它不同字号
@@ -405,15 +409,17 @@ _TWO_BY_FOUR_ROUTE_LOCKS = {
 禁止公共标题、公共内容区、公共动作区、
 第五个数据块和格内按钮。天气中的温度/体感/湿度可以在一个两行背板内组成热舒适组，
 风向与风力组成一个风况组；其余格分别承载预警、电池温度、步数或心率等独立指标。
-字段多于四组时先合并天然相关字段，再删除最低优先级字段，不得退回 W1/W9。""",
+字段与动作多于四组时先合并天然相关字段；若仍放不下，改用同尺寸完整分区，
+不得删除必要事实或动作来凑四格。""",
     "W-split-panels": """# 本次尺寸骨架硬约束（高优先级）
 
 本轮固定使用 W9 左右双内容父区。root 必须是 Row，padding 与两父区间距均为 12vp，
 直接且只能包含两个 132×126vp 父区；每区 padding 8，内部为 116×110vp Sub-118。
 禁止上下堆叠、公共标题、公共内容区和公共动作区。
-每个业务的数据与至多一个动作只放在所属背板内；带动作时真实 content 必须使用
-layoutWeight:1，动作是最后一个直接子项。普通 Text 最多合并两个能完整显示的动态
-事实，三个以上字段必须拆成短行或删除最低优先级项；多日天气的单日摘要除外。
+每个业务的数据与至多一个动作只放在所属背板内；先扣除 36vp 动作和间距，
+明确正文的剩余高度；layoutWeight:1 不代表文字行高可以忽略。动作是最后一个直接
+子项。正文紧张时取消独立业务标题，将对象名并入首行必要读数；普通 Text 最多合并两个能完整显示的动态
+事实，三个以上字段必须拆成短行并核算全部行高，不能删除 Plan 项；多日摘要除外。
 动作使用一个简短完整命令，不追加同义提示，天气详情优先使用“查看天气”。数字与
 单位同行拆分时，Row 固定底对齐且 `itemMargin:2`，数字与单位 Text 不设置固定宽度，
 较小 Text 不设置底部 padding。""",
@@ -490,6 +496,8 @@ class PromptBuilder:
         """Count independent compact metrics that should use the W8 grid."""
         if task_spec.size != "2x4":
             return 0
+        if task_spec.eventCandidates and PromptBuilder._query_requests_action(task_spec):
+            return 0
         data_schema = task_spec.dataModelSchema.get("data")
         if not isinstance(data_schema, dict):
             return 0
@@ -530,6 +538,27 @@ class PromptBuilder:
         return metric_count
 
     @staticmethod
+    def _uses_wide_full_width_list(task_spec: TaskSpec) -> bool:
+        """多条多字段记录使用全宽，避免半卡路由静默裁掉必要属性。"""
+        return task_spec.size == "2x4" and PromptBuilder._has_dense_record_list(
+            task_spec.dataModelSchema.get("data")
+        )
+
+    @staticmethod
+    def _has_dense_record_list(value: Any) -> bool:
+        if isinstance(value, list):
+            dense_count = 0
+            for item in value:
+                if PromptBuilder._schema_leaf_count(item) >= 4:
+                    dense_count += 1
+            return dense_count >= 3
+        if isinstance(value, dict):
+            for child in value.values():
+                if PromptBuilder._has_dense_record_list(child):
+                    return True
+        return False
+
+    @staticmethod
     def _schema_has_field(task_spec: TaskSpec, markers: tuple[str, ...]) -> bool:
         schema = task_spec.dataModelSchema.get("data")
         if not isinstance(schema, dict):
@@ -547,6 +576,18 @@ class PromptBuilder:
     @staticmethod
     def _query_requests_action(task_spec: TaskSpec) -> bool:
         return _contains_any(task_spec.userQuery, _ACTION_QUERY_MARKERS)
+
+    @staticmethod
+    def _has_explicit_non_weather_action(task_spec: TaskSpec) -> bool:
+        if not _contains_any(
+            task_spec.userQuery, ("拨打", "拨号", "电话", "歌单", "设置", "导航", "入会", "播放")
+        ):
+            return False
+        event_markers = (*_SIDE_EFFECT_EVENT_MARKERS, "music", "hwmusic")
+        for event in task_spec.eventCandidates:
+            if _contains_any(PromptBuilder._event_text(event), event_markers):
+                return True
+        return False
 
     @staticmethod
     def _event_text(event: Any) -> str:
@@ -580,17 +621,19 @@ class PromptBuilder:
             route == "weather-readout"
             and task_spec.size == "2x2"
             and PromptBuilder._query_requests_action(task_spec)
-            and not _contains_any(task_spec.userQuery, ("按钮", "入口"))
         ):
-            return (
-                "用户要求点按查看天气详情；把匹配的只读天气动作绑定到整卡，"
-                "不生成 Button、PillButton、CircleButton，也不生成‘点击查看详情’"
-                "‘查看天气’等可见提示 Text。"
-            )
+            needs_button = _contains_any(task_spec.userQuery, ("按钮", "入口"))
+            if not needs_button and not PromptBuilder._has_explicit_non_weather_action(task_spec):
+                return (
+                    "用户要求点按查看天气详情；把匹配的只读天气动作绑定到整卡，"
+                    "不生成 Button、PillButton、CircleButton，也不生成‘点击查看详情’"
+                    "‘查看天气’等可见提示 Text。"
+                )
         if PromptBuilder._query_requests_action(task_spec):
             return (
                 "用户语义包含显式动作；仅绑定目标匹配的候选，"
-                "并在当前骨架允许时保留一个清晰 CTA。"
+                "逐项保留全部已要求的不同操作，各自一个清晰入口，"
+                "不能因示例只有一个按钮而省略第二个动作。"
             )
         if PromptBuilder._has_implicit_entry(task_spec, route):
             return (
@@ -604,6 +647,9 @@ class PromptBuilder:
         roots = PromptBuilder._data_roots(task_spec)
         query = task_spec.userQuery
         event_count = len(task_spec.eventCandidates)
+
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return "multi-business", ("2x4-V22",)
 
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
@@ -654,6 +700,11 @@ class PromptBuilder:
             _contains_any(query, markers)
             for markers in (("天气", "温度", "空气质量"),)
         ):
+            if (
+                task_spec.size == "2x2"
+                and PromptBuilder._has_explicit_non_weather_action(task_spec)
+            ):
+                return "weather-readout", ("2x2-V26",)
             return "weather-readout", (
                 ("2x2-V04", "2x2-V14")
                 if task_spec.size == "2x2"
@@ -663,6 +714,8 @@ class PromptBuilder:
             query, ("日程", "会议", "提醒", "安排", "活动")
         ):
             if task_spec.size == "2x2":
+                if PromptBuilder._schema_has_field(task_spec, ("eventCount",)):
+                    return "calendar-event", ("2x2-V27",)
                 return "calendar-event", ("2x2-V06",)
             if event_count >= 2 and PromptBuilder._query_requests_action(task_spec):
                 return "calendar-event", ("2x4-V08",)
@@ -731,6 +784,8 @@ class PromptBuilder:
             return ("2x4-V06",)
         if block_count == 3:
             return ("2x4-V10",)
+        if len(task_spec.eventCandidates) >= 2 and PromptBuilder._query_requests_action(task_spec):
+            return ("2x4-V17",)
         if normalized_roots == {"weather", "phonebattery"}:
             return (_TWO_BY_FOUR_DUAL_FEW_SHOT_ID,)
         if normalized_roots == {"phonebattery", "earphone"}:
@@ -742,6 +797,8 @@ class PromptBuilder:
     @staticmethod
     def _layout_scope(task_spec: TaskSpec) -> str:
         """只返回由尺寸、数据块和明确动作数量确定的骨架范围。"""
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return "W-top-bottom"
         if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
             return "W-content-side-slots"
         if (
@@ -946,6 +1003,15 @@ class PromptBuilder:
 
     @staticmethod
     def _layout_route_lock(task_spec: TaskSpec, layout_scope: str) -> str:
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return (
+                "# 本轮密集列表路由\n\n"
+                "使用 W-top-bottom 的全宽列表变体：短上下文与记录列表纵排，"
+                "每条记录使用整卡安全宽度；保留各条日期、星期、名称及全部必要属性。"
+                "不得把三条多字段记录压进半卡、删日期或缩成只有标签。"
+                "只读详情可绑定所属列表整体；动作保持真实归属，不把其它动作串在一起。"
+                "所有行与上下文共同满足卡片高度，必要时取消可选图标和重复标题。"
+            )
         if task_spec.size == "2x2":
             if layout_scope == "S-quad-content":
                 return (
@@ -1042,6 +1108,8 @@ class PromptBuilder:
     def _uses_two_by_four_countdown_multi_layout(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x4":
             return False
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return False
         roots = PromptBuilder._data_roots(task_spec)
         if len(roots) != 2 or "countdown" not in roots:
             return False
@@ -1081,6 +1149,8 @@ class PromptBuilder:
     @staticmethod
     def _two_by_four_cross_domain_lock(task_spec: TaskSpec) -> str:
         if task_spec.size != "2x4":
+            return ""
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
             return ""
         roots = {
             root.casefold() for root in PromptBuilder._data_roots(task_spec)
@@ -1155,6 +1225,8 @@ class PromptBuilder:
     def _uses_two_by_four_focus_aux_layout(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x4":
             return False
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return False
         roots = PromptBuilder._data_roots(task_spec)
         normalized_roots = {root.casefold() for root in roots}
         if not roots or "countdown" in normalized_roots or len(roots) > 2:
@@ -1166,6 +1238,11 @@ class PromptBuilder:
         if PromptBuilder._two_by_four_metric_grid_count(task_spec) >= 4:
             return False
         candidate_count = len(task_spec.eventCandidates)
+        has_separate_actions = (
+            candidate_count >= 2 and PromptBuilder._query_requests_action(task_spec)
+        )
+        if len(roots) == 2 and has_separate_actions:
+            return False
 
         if len(roots) == 1:
             root_value = next(iter(data_schema.values()))
@@ -1232,7 +1309,7 @@ class PromptBuilder:
                 and earphone_schema is not None
                 and PromptBuilder._schema_leaf_count(earphone_schema) >= 4
             ):
-                return True
+                return False
 
         fact_counts = sorted(
             PromptBuilder._schema_leaf_count(value)
