@@ -542,7 +542,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C577"
+    "all": "C692"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewThreeDayForecastFull@1"

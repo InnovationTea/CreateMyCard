@@ -255,7 +255,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C017"
+    "all": "C018"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewPercentStatusCompact@1"

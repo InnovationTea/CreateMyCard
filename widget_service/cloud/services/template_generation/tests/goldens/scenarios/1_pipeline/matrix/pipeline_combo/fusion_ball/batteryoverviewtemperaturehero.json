@@ -1077,10 +1077,10 @@
     "pluggedType"
   ],
   "sampleIds": {
-    "absent_charging": "C032",
-    "absent_pluggedType": "C033",
-    "all": "C034",
-    "none": "C035"
+    "absent_charging": "C049",
+    "absent_pluggedType": "C050",
+    "all": "C051",
+    "none": "C052"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewTemperatureHero@1"

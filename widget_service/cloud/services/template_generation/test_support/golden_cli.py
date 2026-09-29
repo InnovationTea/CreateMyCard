@@ -1023,7 +1023,8 @@ def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
     """Layer C 的覆盖健康度：把 per-template %Absence 聚合成可行动的结论。
 
     返回（cards_spec, table_html）。2x4 模板默认启用且由 Layer B 用例覆盖，
-    不进入缺席覆盖统计，也不作为 skip 展示。分类（仅 2x2）：
+    不进入缺席覆盖统计，也不作为 skip 展示。分类（覆盖 2x2 与 2x4 全部模板；
+    2x4 自 #404 后拥有 pipeline_combo_wide 家族，缺席子集照常统计）：
     - full            可选字段全部做过 absence 组合
     - k0              没有可选字段，本来就无从 absence-test
     - missing_full    缺席覆盖不全（真正的缺口：可选字段存在且可测但没测）
@@ -1041,12 +1042,10 @@ def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
         optional = len(entry["optionalFields"])
         reason = entry.get("skipReason", "") or ""
         pct = entry.get("absencePct")
-        if size == "2x4":
-            # 2x4 模板默认启用，管线行为由 Layer B 的 2x4 用例覆盖；
-            # 组合矩阵是 2x2 缺席覆盖的工具，不把 2x4 记为 skip/gap。
-            continue
         if reason:
-            # 确定性路由不可达（prompt 门禁 / 泛型模板 / 无法单独成 plan）。
+            # 确定性路由不可达（prompt 门禁 / 泛型模板 / phone-earphone 配对
+            # 路由缺失 / 无法单独成 plan）。含 2x4 的 phone 变体（size 列如实
+            # 显示 2x4）。
             counts["unreachable"] += 1
             untested = [
                 f
@@ -1078,9 +1077,9 @@ def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
         else:
             counts["full"] += 1
     cards = [
-        (counts["full"], "2x2 templates with full absence coverage"),
-        (counts["k0"], "2x2 templates with no optional fields"),
-        (counts["missing_full"], "2x2 templates missing full absence coverage"),
+        (counts["full"], "templates with full absence coverage"),
+        (counts["k0"], "templates with no optional fields"),
+        (counts["missing_full"], "templates missing full absence coverage"),
         (counts["unreachable"], "unreachable templates"),
     ]
     missing_table = (
@@ -1091,7 +1090,7 @@ def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
         + (
             "".join(missing_rows)
             if missing_rows
-            else '<tr><td colspan="4" class="muted">none — every 2x2 template '
+            else '<tr><td colspan="4" class="muted">none — every template '
             "with optional fields is fully absence-tested</td></tr>"
         )
         + "</tbody></table>"

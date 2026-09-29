@@ -218,7 +218,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C081"
+    "all": "C101"
   },
   "size": "2x2",
   "templateId": "CountdownOverviewDepartureHero@1"

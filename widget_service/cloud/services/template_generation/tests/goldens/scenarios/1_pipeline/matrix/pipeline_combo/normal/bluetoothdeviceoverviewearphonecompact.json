@@ -244,7 +244,7 @@
   "layout": "CompactTwoActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C148"
+    "all": "C184"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarphoneCompact@1"

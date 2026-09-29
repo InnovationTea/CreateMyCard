@@ -1922,10 +1922,10 @@
     "connected"
   ],
   "sampleIds": {
-    "absent_case": "C096",
-    "absent_connected": "C097",
-    "all": "C098",
-    "none": "C099"
+    "absent_case": "C122",
+    "absent_connected": "C123",
+    "all": "C124",
+    "none": "C125"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarbudPairCompact@1"

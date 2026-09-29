@@ -3001,14 +3001,14 @@
     "district"
   ],
   "sampleIds": {
-    "absent_alertLevel": "C521",
-    "absent_alertLevel+city": "C522",
-    "absent_alertLevel+district": "C523",
-    "absent_city": "C524",
-    "absent_city+district": "C525",
-    "absent_district": "C526",
-    "all": "C527",
-    "none": "C528"
+    "absent_alertLevel": "C636",
+    "absent_alertLevel+city": "C637",
+    "absent_alertLevel+district": "C638",
+    "absent_city": "C639",
+    "absent_city+district": "C640",
+    "absent_district": "C641",
+    "all": "C642",
+    "none": "C643"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewHumidityWindLevelHero@1"

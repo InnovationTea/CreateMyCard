@@ -281,7 +281,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C169"
+    "all": "C275"
   },
   "size": "2x2",
   "templateId": "HeartRateOverviewFull@1"

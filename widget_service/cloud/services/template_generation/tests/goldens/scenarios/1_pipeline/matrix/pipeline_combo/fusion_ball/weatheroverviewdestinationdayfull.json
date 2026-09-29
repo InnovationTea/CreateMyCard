@@ -427,7 +427,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C435"
+    "all": "C550"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDestinationDayFull@1"
