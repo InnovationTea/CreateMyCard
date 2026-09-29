@@ -4,6 +4,9 @@ import { defaultRegistry, renderTree } from "@genui-sdk/renderer";
 import { compileMiniDsl } from "@/lib/mini-renderer";
 import { EXAMPLE_DSL } from "./example-dsl";
 import fusionExamples from "../fixtures/fusion-examples.json";
+import highLevelExamples from "../fixtures/high-level-component-examples.json";
+
+const examples = [...fusionExamples.examples, ...highLevelExamples.examples];
 
 class PreviewBoundary extends Component<{ children: ReactNode }, { error: string }> {
   state = { error: "" };
@@ -25,7 +28,7 @@ export function App() {
   }, [source, width]);
   function apply() { setSource(draft); setEvent(""); setRevision(r => r + 1); }
   function loadExample(value: string) {
-    const selected = fusionExamples.examples[Number(value)];
+    const selected = examples[Number(value)];
     const dsl = value === "original" ? EXAMPLE_DSL : selected.source;
     setExample(value); setDraft(dsl); setSource(dsl); setEvent(""); setRevision(r => r + 1);
     setWidth(value === "original" ? 160 : selected.width);
@@ -44,10 +47,10 @@ export function App() {
         <label className="example-picker">示例<select aria-label="示例选择" value={example} onChange={e => loadExample(e.target.value)}>
           <option value="original">发布会倒计时 · 原始示例</option>
           {(["2x2", "2x4"] as const).map(size => <optgroup key={size} label={`${size} · ${size === "2x2" ? "150 × 150" : "300 × 150"}`}>
-            {fusionExamples.examples.map((e, index) => e.size === size && <option key={index} value={index}>{e.name}</option>)}
+            {examples.map((e, index) => e.size === size && <option key={index} value={index}>{e.name}</option>)}
           </optgroup>)}
         </select></label>
-        {example !== "original" && fusionExamples.examples[Number(example)]?.note && <p className="example-note">{fusionExamples.examples[Number(example)].note}</p>}
+        {example !== "original" && examples[Number(example)]?.note && <p className="example-note">{examples[Number(example)].note}</p>}
         <textarea aria-label="极简 DSL 输入" spellCheck={false} value={draft} onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); apply(); } }} />
         <footer className="editor-footer"><span>{draft.split("\n").length} 行 · Ctrl / ⌘ + Enter 渲染</span><button className="primary" onClick={apply}>渲染预览 ↗</button></footer>

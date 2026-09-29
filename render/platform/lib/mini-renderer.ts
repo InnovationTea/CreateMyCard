@@ -2,12 +2,20 @@ import { UIGraph } from "@genui-sdk/graph";
 import { tryNormalizeV09Protocol } from "@genui-sdk/parser";
 import { applyDesignStyles } from "./design-handle";
 import { parseExpression, resolvePathBindingsInValue } from "@genui-sdk/interactions";
-import { expandCompactComponents, type MiniNode, type CardSize } from "./compact-components";
+import {
+  HIGH_LEVEL_COMPONENT_TYPES,
+  expandCompactComponents,
+  type MiniNode,
+  type CardSize,
+} from "./compact-components";
 
 export const SURFACE_ID = "dsl-preview";
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => typeof v === "object" && v !== null && !Array.isArray(v);
-const TYPES = new Set("Card Row Column Text Image Button ActionUnit CardHeader TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "));
+const TYPES = new Set([
+  ..."Card Row Column Text Image Button ActionUnit CardHeader TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "),
+  ...HIGH_LEVEL_COMPONENT_TYPES,
+]);
 
 /** Balanced JSON tuples: supports JSONL, multiline tuples, and a JSON array of tuples. */
 function parseTuples(source: string): unknown[][] {

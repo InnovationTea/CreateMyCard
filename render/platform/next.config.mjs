@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default {
   reactStrictMode: true,
-  outputFileTracingRoot: path.join(__dirname, ".."),
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   experimental: { externalDir: true },
   webpack(config) {
     config.resolve.extensionAlias = { ...config.resolve.extensionAlias, ".js": [".ts", ".tsx", ".js"], ".mjs": [".mts", ".mjs"] };
