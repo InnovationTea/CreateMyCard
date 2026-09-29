@@ -673,6 +673,8 @@ class PromptBuilder:
 
         if PromptBuilder._uses_dense_health_panels(task_spec):
             return "multi-business", ("2x4-V25",)
+        if PromptBuilder._uses_two_dense_business_panels(task_spec):
+            return "multi-business", PromptBuilder._multi_business_few_shot_ids(task_spec, roots)
 
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
@@ -848,6 +850,13 @@ class PromptBuilder:
             if PromptBuilder._query_mentions_weather(task_spec):
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
             return ()
+        if PromptBuilder._uses_two_dense_business_panels(task_spec):
+            if (
+                len(task_spec.eventCandidates) >= 2
+                and PromptBuilder._query_requests_action(task_spec)
+            ):
+                return ("2x4-V17",)
+            return ("2x4-V26",)
         if block_count >= 4:
             return ("2x4-V06",)
         if block_count == 3:
@@ -868,6 +877,8 @@ class PromptBuilder:
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return "W-top-bottom"
         if PromptBuilder._uses_dense_health_panels(task_spec):
+            return "W-split-panels"
+        if PromptBuilder._uses_two_dense_business_panels(task_spec):
             return "W-split-panels"
         if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
             return "W-content-side-slots"
@@ -1331,12 +1342,25 @@ class PromptBuilder:
         return PromptBuilder._schema_leaf_count(data_schema) >= 6
 
     @staticmethod
+    def _uses_two_dense_business_panels(task_spec: TaskSpec) -> bool:
+        if task_spec.size != "2x4":
+            return False
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict) or len(data_schema) != 2:
+            return False
+        if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return False
+        return all(PromptBuilder._schema_leaf_count(value) >= 3 for value in data_schema.values())
+
+    @staticmethod
     def _uses_two_by_four_focus_aux_layout(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x4":
             return False
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return False
         if PromptBuilder._uses_dense_health_panels(task_spec):
+            return False
+        if PromptBuilder._uses_two_dense_business_panels(task_spec):
             return False
         roots = PromptBuilder._data_roots(task_spec)
         normalized_roots = {root.casefold() for root in roots}

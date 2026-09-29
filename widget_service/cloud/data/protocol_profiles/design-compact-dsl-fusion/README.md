@@ -30,7 +30,7 @@
 | `edit.md` | 编辑包装与稳定性规则 | 原始 DSL 编辑 |
 | `argument_repair.md` | 参数 JSON 结构恢复 | 不补造业务值 |
 | `fewshots/2x2.md` | 小卡共用前言与 V00–V32 共 33 个完整输入→输出案例 | 每例校验、转换、必要信息覆盖 |
-| `fewshots/2x4.md` | 宽卡共用前言与 V00–V25 共 26 个完整输入→输出案例 | 每例校验、转换、必要信息覆盖 |
+| `fewshots/2x4.md` | 宽卡共用前言与 V00–V26 共 27 个完整输入→输出案例 | 每例校验、转换、必要信息覆盖 |
 | `fewshots/repair/` | 修复案例维护入口；本步不增加在线 few-shot | 先验证再启用 |
 
 ## 修改与加载
@@ -46,7 +46,7 @@ prompt_source → manifest 顺序 → 内存拼接与缓存 → 请求裁剪/示
 `prompts` 中每个数组的顺序是唯一拼接顺序，引用格式为 `文件#片段`。七个名称是内存中的提示词标识：
 `plan`、`create`、`edit`、`repair`、`argument_repair`、`fewshot_2x2`、`fewshot_2x4`。
 每种尺寸的 Few-shot 只维护一个文档，前言使用 `preamble`；2x2 使用 `example-v00` 至
-`example-v32`，2x4 使用 `example-v00` 至 `example-v25`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
+`example-v32`，2x4 使用 `example-v00` 至 `example-v26`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
 信息模块和组合公共模块使用连续合同：先完成信息语义分析，再判断多组件关系，最后按尺寸映射到正式
