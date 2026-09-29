@@ -50,8 +50,9 @@ Golden-master UI-consistency regression for the widget card generation service.
 Three snapshot layers live under
 services/template_generation/tests/goldens/ (relative to cloud/):
   [template]   Layer A - one canonical A2UI snapshot per template, built from
-               the deterministic preview dataset (no LLM). Catches cardtpl,
-               theme, and compiler changes.
+               the deterministic preview dataset (no LLM) with ALL of each
+               template's data bound (every optional field present, realistic
+               samples). Catches cardtpl, theme, and compiler changes.
   [taskspec]   Layer B - one record/replay per eval case (Qxxx) through the
                real service chain (WS envelope -> request -> capability
                registry -> preflight -> engine -> validation -> artifact),
@@ -61,8 +62,10 @@ services/template_generation/tests/goldens/ (relative to cloud/):
                comparing stale data.
   [scenario]   Layer C - composed-scenario snapshots registered inside the
                pytest files (deterministic builders, no LLM): layout+action
-               compositions, parametrized geometry/palette variants, and
-               stub-model pipeline renders that Layers A/B do not produce.
+               compositions, parametrized geometry/palette variants, and the
+               pipeline combo matrix — every template family's optional-field
+               absence subsets rendered through the full pipeline, for 2x2 AND
+               2x4 (wide) families, normal + fusion-ball twins.
                Replaces inline deep assertions with reviewed snapshot diffs.
 
 The loop: edit code -> `check` -> if the drift is EXPECTED, review
@@ -72,12 +75,18 @@ fix the code and re-check. A change is only done when `check` exits 0.
 
 _TOP_EPILOG = """\
 report states (per layer, Jest-style):
-  PASS    generated output equals the blessed golden.
-  REVIEW  declared change awaiting `bless` (check still exits 0).
-  STALE   prompt changed, so the recording cannot verify the run; the
-          non-LLM output still matches. Re-record via bless --corpus-dir.
-  FAIL    undeclared divergence - investigate the diff, then fix the code
-          or bless the intended change.
+  PASS     generated output equals the blessed golden.
+  REVIEW   declared change awaiting `bless` (check still exits 0).
+  STALE    prompt changed, so the recording cannot verify the run; the
+           non-LLM output still matches. Re-record via bless --corpus-dir.
+  FAIL     undeclared divergence - investigate the diff, then fix the code
+           or bless the intended change.
+  baseline-failed (Layer B) - the golden itself is a recorded FAILURE
+           (status failed / preflight_rejected). Replay matches it, so the
+           gate stays green, but it is NOT counted as a pass: the summary
+           adds a separate 'baseline-failed N' segment and report --html
+           diagnoses each one's pipeline stage. Expectation: all testcases
+           eventually pass.
 
 exit codes:  0 = clean, or every divergence is declared;
              1 = undeclared drift, replay misses, or bless refused.
@@ -86,9 +95,21 @@ typical sessions (run from the cloud/ directory):
   # PR gate - is any generated UI different?
   python3 -m services.template_generation.test_support.golden_cli check
 
+  # test ONE layer only (a|templates, b|taskspecs, c|scenarios):
+  python3 -m ...golden_cli check --layer b
+  python3 -m ...golden_cli report --layer a,c
+
   # full inventory of every golden testcase (grouped, with documented skips):
   python3 -m services.template_generation.test_support.golden_cli report
   python3 -m services.template_generation.test_support.golden_cli report --health
+
+  # HTML report: per-layer dashboards (A/B/C), failure tables with pipeline
+  # stage attribution, Layer B baseline-failure diagnosis, per-template
+  # coverage:
+  python3 -m ...golden_cli report --html                # live (runs replays)
+  python3 -m ...golden_cli report --html --offline      # recorded files only,
+      # ~7s, no replays/LLM — dashboards from goldens; failed-case diagnosis
+      # shows stage 'needs replay'
 
   # push the pipeline_combo matrix onto the eval-device combo gallery:
   python3 -m services.template_generation.test_support.golden_cli combo-gallery
@@ -113,18 +134,21 @@ typical sessions (run from the cloud/ directory):
 
 One --declared list gates all layers: template ids (Xxx@1), case ids
 (Qxxx), and scenario ids (<module>__<name>) never collide. The pytest CI
-gates run the same comparisons (tests/test_template_goldens.py,
-tests/test_taskspec_goldens.py, tests/test_scenario_goldens.py).
+gate runs the same comparisons: tests/test_golden_workflow.py (one unified
+gate over all three layers).
 Per-layer CLIs: test_support.golden (Layer A run/accept/diff) and
-test_support.golden_taskspecs (Layer B record/run/accept).
+test_support.golden_taskspecs (Layer B record/run/accept/diagnose).
 """
 
 _CHECK_DESCRIPTION = """\
 Rebuild all golden layers from current code and compare with the blessed
 set. This is the one-command test; it uses the same comparison logic as the
-pytest golden gates and never calls the LLM (Layer B replays recordings,
-so a changed prompt shows up as "replay missed" instead of a live call).
+pytest golden gate (tests/test_golden_workflow.py) and never calls the LLM
+(Layer B replays recordings, so a changed prompt shows up as "replay
+missed" instead of a live call).
 Exit 0 requires: no undeclared divergence and no replay-missed (stale) case.
+Recorded failure baselines are counted separately as "baseline-failed" —
+they do not turn the gate red, but they are not counted as passes either.
 """
 
 _CHECK_EPILOG = """\
@@ -470,16 +494,29 @@ def _cmd_bless(args: argparse.Namespace) -> int:
 _REPORT_DESCRIPTION = """\
 Full inventory of every golden testcase across all three layers, grouped the
 way the workflow is organized (Layer A by size/layout, Layer B by final
-status, Layer C by pipeline-stage hierarchy). Fast: reads blessed goldens and
-registered builders, never re-renders. Use --health to also run the full
-comparison and append the live per-layer verdict.
+status incl. baseline failures, Layer C by pipeline-stage hierarchy). Fast:
+reads blessed goldens and registered builders, never re-renders.
+  --layer a,b,c     restrict the report to selected layers
+  --health          also run the full comparison, append the live per-layer
+                    verdict
+  --offline         render from the recorded golden files only — no replays,
+                    no live comparison, never touches the LLM; Layer B
+                    dashboards count recorded baseline failures as failures
+  --html [PATH]     self-contained HTML report (default
+                    coverage/template_report.html): per-layer dashboards,
+                    failure tables with pipeline-stage attribution, Layer B
+                    baseline-failure diagnosis, per-template coverage
+  --fail-under PCT  coverage gate (exit 1 below threshold)
 """
 
 _REPORT_EPILOG = """\
 examples:
-  report                # full inventory (a few seconds)
-  report --health       # inventory + live per-layer PASS/FAIL verdict
-  report --json         # machine-readable inventory
+  report                     # full inventory (a few seconds)
+  report --layer b           # only Layer B: cases, statuses, baseline failures
+  report --health            # inventory + live per-layer PASS/FAIL verdict
+  report --html              # live HTML: layer dashboards + diagnosis
+  report --html --offline    # HTML from recorded files only (~7s, no replays)
+  report --json --health     # machine-readable inventory + verdicts
 """
 
 
@@ -2807,7 +2844,7 @@ def main(argv: list[str] | None = None) -> int:
 
     check_parser = sub.add_parser(
         "check",
-        help="compare both golden layers against current generation (the one-command test)",
+        help="compare all three golden layers against current generation (the one-command test)",
         description=_CHECK_DESCRIPTION,
         epilog=_CHECK_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
