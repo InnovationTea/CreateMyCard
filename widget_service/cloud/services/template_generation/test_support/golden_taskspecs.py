@@ -341,6 +341,64 @@ def blessed_case_ids() -> list[str]:
     )
 
 
+def blessed_statuses() -> dict[str, str]:
+    """{case_id: golden.json 的 status}（纯文件读取，离线、不回放）。"""
+    statuses: dict[str, str] = {}
+    for case_id in blessed_case_ids():
+        try:
+            golden = json.loads(
+                (GOLDEN_ROOT / case_id / "golden.json").read_text(encoding="utf-8")
+            )
+            statuses[case_id] = str(golden.get("status", "?"))
+        except (OSError, json.JSONDecodeError):
+            statuses[case_id] = "?"
+    return statuses
+
+
+_STATUS_STAGE_BY_STATUS: dict[str, str] = {
+    "preflight_rejected": "preflight",
+    "failed": "composition",
+}
+
+
+def diagnose_case_offline(case_id: str) -> dict:
+    """失败基线的零回放诊断：只读 golden.json，按 status/errorCode 推断阶段。
+
+    与 ``diagnose_case``（在线回放、捕获引擎原始异常）相比精度低一档：
+    ``failed`` 基线只能给到 errorCode 推断的阶段与通用文案；preflight
+    基线的 blockingIssues 在 golden.json 里，可给出真实拦截原因。供
+    ``--offline`` 报告使用。
+    """
+    golden = json.loads(
+        (GOLDEN_ROOT / case_id / "golden.json").read_text(encoding="utf-8")
+    )
+    status = str(golden.get("status", "?"))
+    error_code = str(golden.get("errorCode", "") or "")
+    stage = _STATUS_STAGE_BY_STATUS.get(status)
+    if stage is None:
+        stage = _STAGE_BY_ERROR_CODE.get(error_code, "composition")
+    error_type = ""
+    message = str(golden.get("message", "") or "")
+    if status == "preflight_rejected":
+        issues = golden.get("blockingIssues") or []
+        if issues:
+            first = issues[0]
+            error_type = str(first.get("code") or "blocking_issue")
+            message = str(first.get("message") or "")[:300]
+    stage_labels = dict(_PIPELINE_STAGES)
+    return {
+        "case": case_id,
+        "status": status,
+        "errorCode": error_code,
+        "stage": stage,
+        "stageLabel": stage_labels.get(stage, stage or ""),
+        "errorType": error_type,
+        "message": message
+        + ("（--offline：回放后可给出引擎原始报错）" if status == "failed" else ""),
+        "replayMissed": False,
+    }
+
+
 def capture_selected_templates(case_id: str) -> dict:
     """离线回放单个用例并捕获实际选中的模板（不修改任何金样文件）。
 

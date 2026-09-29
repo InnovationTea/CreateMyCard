@@ -336,12 +336,20 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if args.diff:
         for layer in layers:
             _print_layer(layer, diff=True)
+    statuses = (
+        golden_taskspecs.blessed_statuses() if not layers[1].skipped else {}
+    )
     report = golden_layer.render_check_report(
         [
             golden_layer.CheckLayer(
                 label=label,
                 comparison=layer.comparison,
                 extra_failed=layer.replay_missed,
+                baseline_failed=tuple(
+                    item_id
+                    for item_id in layer.comparison.unchanged
+                    if statuses.get(item_id) not in (None, "success", "?")
+                ),
             )
             for layer, label in zip(
                 layers, ("Templates", "Taskspecs", "Scenarios")
@@ -737,6 +745,7 @@ def _template_layer_b_matches(
     capability_id: str,
     template_id: str | None = None,
     selected_by_case: dict[str, dict] | None = None,
+    allow_capture: bool = True,
 ) -> list[dict]:
     """Layer B 语料用例 × 模板的精确归因。
 
@@ -777,11 +786,13 @@ def _template_layer_b_matches(
             try:
                 if selected_by_case is not None and case_dir.name in selected_by_case:
                     info = selected_by_case[case_dir.name]
-                else:
+                elif allow_capture:
                     info = golden_taskspecs.capture_selected_templates_cached(
                         case_dir.name
                     )
-                captured = set(info.get("selected", []))
+                else:
+                    info = None
+                captured = set(info.get("selected", [])) if info else set()
                 selected = template_id in captured
                 selected_business = sorted(
                     item
@@ -1008,11 +1019,17 @@ def _layer_failure_rows(
     return rows
 
 
-def _layer_b_baseline_diagnoses() -> list[dict[str, str]]:
-    """Layer B 基线失败（golden.json status != success）的离线逐例诊断。"""
+def _layer_b_baseline_diagnoses(offline: bool = False) -> list[dict[str, str]]:
+    """Layer B 基线失败（golden.json status != success）的逐例诊断。
+
+    offline=True 时零回放：只读 golden.json，按 status/errorCode 推断阶段
+    （preflight 的真实拦截原因在 golden.json 里，可给出；failed 基线只能
+    给到 errorCode 档位）。offline=False 走在线回放，捕获引擎原始异常。
+    """
     from services.template_generation.test_support.golden_taskspecs import (
         blessed_case_ids,
         diagnose_case_cached,
+        diagnose_case_offline,
     )
 
     rows: list[dict[str, str]] = []
@@ -1025,16 +1042,19 @@ def _layer_b_baseline_diagnoses() -> list[dict[str, str]]:
         status = str(golden.get("status", ""))
         if status == "success":
             continue
-        try:
-            diagnosis = golden_taskspecs.diagnose_case_cached(case_id)
-        except Exception as exc:  # 回放本身失败也要给出可见的行
-            diagnosis = {
-                "stage": "",
-                "stageLabel": "",
-                "errorType": type(exc).__name__,
-                "message": str(exc)[:200],
-                "replayMissed": False,
-            }
+        if offline:
+            diagnosis = golden_taskspecs.diagnose_case_offline(case_id)
+        else:
+            try:
+                diagnosis = golden_taskspecs.diagnose_case_cached(case_id)
+            except Exception as exc:  # 回放本身失败也要给出可见的行
+                diagnosis = {
+                    "stage": "",
+                    "stageLabel": "",
+                    "errorType": type(exc).__name__,
+                    "message": str(exc)[:200],
+                    "replayMissed": False,
+                }
         rows.append(
             {
                 "case": case_id,
@@ -1048,19 +1068,92 @@ def _layer_b_baseline_diagnoses() -> list[dict[str, str]]:
 
 
 def _render_layer_sections_html(
-    layer_states: list["_LayerState"],
+    layer_states: list["_LayerState"] | None,
     inventory: dict,
     want: frozenset[str] | None,
+    offline: bool = False,
 ) -> str:
-    """三层的仪表盘 + 失败明细 HTML（含管线阶段归因），按层分节。"""
+    """三层的仪表盘 + 失败明细 HTML（含管线阶段归因），按层分节。
+
+    ``layer_states=None``（或 offline=True）时进入离线模式：不跑任何回放，
+    仅从已固化的 golden 文件构建仪表盘（Layer B 的 baseline-failed 如实
+    计入失败，不算通过），诊断走零回放的 ``diagnose_case_offline``。
+    """
     esc = _html.escape
     labels = (("A", "Templates", "layer-a"), ("B", "Taskspecs", "layer-b"), ("C", "Scenarios", "layer-c"))
+    offline = offline or layer_states is None
+    statuses = golden_taskspecs.blessed_statuses() if offline else {}
     chips: list[str] = []
     sections: list[str] = []
     for key, label, anchor in labels:
-        state = layer_states[{"A": 0, "B": 1, "C": 2}[key]]
         if want is not None and key not in want:
             continue
+        if offline:
+            layer_b = inventory.get("layerB_taskspecs", {})
+            if key == "A":
+                total = inventory.get("layerA_templates", {}).get("total", 0)
+                cards_spec = ((total, "golden snapshots"),)
+                breakdown = ""
+            elif key == "B":
+                by_status = layer_b.get("byStatus", {})
+                status_counts = {s: len(ids) for s, ids in by_status.items()}
+                total = layer_b.get("total", sum(status_counts.values()))
+                passed = status_counts.get("success", 0)
+                baseline_n = total - passed
+                cards_spec = (
+                    (total, "total cases"),
+                    (passed, "passed (success)"),
+                    (baseline_n, "baseline-failed"),
+                    (f"{(100.0 * passed / total) if total else 100.0:.1f}%", "pass rate"),
+                )
+                breakdown = "baseline statuses: " + " · ".join(
+                    f"{status} {count}" for status, count in status_counts.items()
+                )
+            else:
+                layer_c = inventory.get("layerC_scenarios", {})
+                total = layer_c.get("total", 0)
+                cards_spec = (
+                    (total, "scenario goldens"),
+                    (len(layer_c.get("groups", {})), "groups"),
+                )
+                breakdown = ""
+            cards = "".join(
+                f'<div class="card"><div class="n">{value}</div><div class="l">{esc(label_)}</div></div>'
+                for value, label_ in cards_spec
+            )
+            baseline_block = ""
+            if key == "B":
+                diagnoses = _layer_b_baseline_diagnoses(offline=True)
+                diag_rows = "".join(
+                    f"<tr><td><code>{esc(row['case'])}</code></td>"
+                    f'<td><span class="badge fail">{esc(row["status"])}</span></td>'
+                    f"<td>{esc(row['stage'])}</td>"
+                    f"<td><code>{esc(row['errorType'])}</code></td>"
+                    f"<td>{esc(row['message'])}</td></tr>"
+                    for row in diagnoses
+                )
+                baseline_block = (
+                    f'<h3>Baseline failure diagnosis ({len(diagnoses)}) — offline '
+                    "(stage inferred from the recorded golden; replay without "
+                    "--offline for the engine-level error)</h3>"
+                    '<table class="lb"><thead><tr><th>Case</th><th>Status</th><th>Stage</th>'
+                    "<th>Error type</th><th>Message</th></tr></thead><tbody>"
+                    + (diag_rows or '<tr><td colspan="5" class="muted">no failed baselines</td></tr>')
+                    + "</tbody></table>"
+                )
+            chips.append(
+                f'<a class="chip chip-cand" href="#{anchor}">Layer {key} · {label} '
+                "<b>INVENTORY</b></a>"
+            )
+            sections.append(
+                f'<h2 id="{anchor}">Layer {key} · {label} '
+                '<span class="badge cand">INVENTORY (offline)</span></h2>'
+                f'<div class="cards">{cards}</div>'
+                + (f"<p class='muted'>{esc(breakdown)}</p>" if breakdown else "")
+                + baseline_block
+            )
+            continue
+        state = layer_states[{"A": 0, "B": 1, "C": 2}[key]]
         verdict = _layer_verdict(state)
         verdict_cls = {"PASS": "pass", "FAIL": "fail", "REVIEW": "review", "STALE": "stale", "SKIP": "cand"}[verdict]
         chips.append(
@@ -1075,6 +1168,16 @@ def _render_layer_sections_html(
             continue
         comparison = state.comparison
         passed = len(comparison.unchanged)
+        baseline_n = 0
+        if key == "B":
+            layer_statuses = golden_taskspecs.blessed_statuses()
+            baseline_items = [
+                item_id
+                for item_id in comparison.unchanged
+                if layer_statuses.get(item_id) not in (None, "success", "?")
+            ]
+            baseline_n = len(baseline_items)
+            passed -= baseline_n
         failed_n = (
             len(comparison.undeclared_changes)
             + len(comparison.undeclared_additions)
@@ -1086,14 +1189,15 @@ def _render_layer_sections_html(
             + len(comparison.declared_removals)
         )
         stale_n = len(state.replay_missed)
-        total = passed + failed_n + review_n + stale_n
+        total = passed + baseline_n + failed_n + review_n + stale_n
         rate = (100.0 * passed / total) if total else 100.0
         cards = "".join(
             f'<div class="card"><div class="n">{value}</div><div class="l">{esc(label_)}</div></div>'
             for value, label_ in (
                 (total, "total"),
                 (passed, "passed"),
-                (failed_n, "failed"),
+                *(((baseline_n, "baseline-failed"),) if key == "B" else ()),
+                (failed_n, "failed (drift)"),
                 (review_n, "under review"),
                 (stale_n, "stale / replay-missed"),
                 (f"{rate:.1f}%", "pass rate"),
@@ -1166,7 +1270,7 @@ def _render_layer_sections_html(
             f'<h2 id="{anchor}">Layer {key} · {label} '
             f'<span class="badge {verdict_cls}">{verdict}</span></h2>'
             f'<div class="cards">{cards}</div>'
-            f'<div class="bar"><span class="fill {"ok" if failed_n == 0 and stale_n == 0 else "bad"}" '
+            f'<div class="bar"><span class="fill {"ok" if failed_n == 0 and stale_n == 0 and baseline_n == 0 else "bad"}" '
             f'style="width:{rate:.1f}%"></span></div>'
             f"<p class='muted'>{esc(breakdown)}</p>"
             + failure_block
@@ -1186,6 +1290,7 @@ def _write_coverage_html(
     inventory: dict,
     layer_states: list[_LayerState] | None = None,
     want: frozenset[str] | None = None,
+    offline: bool = False,
 ) -> None:
     """把全部模板的 data-field/props 覆盖与逐组合结果写成单个自包含 HTML 报告。"""
     import html as html_escape
@@ -1207,17 +1312,20 @@ def _write_coverage_html(
     summary = coverage["summary"]
 
     selected_by_case: dict[str, dict] = {}
-    try:
-        from services.template_generation.test_support.golden_taskspecs import (
-            capture_selected_templates_cached,
-            blessed_case_ids,
-        )
+    if not offline:
+        try:
+            from services.template_generation.test_support.golden_taskspecs import (
+                capture_selected_templates_cached,
+                blessed_case_ids,
+            )
 
-        print("HTML: replaying all Layer B cases to capture selected templates…")
-        for case_id in blessed_case_ids():
-            selected_by_case[case_id] = capture_selected_templates_cached(case_id)
-    except Exception as exc:
-        print(f"HTML: selected-template capture skipped ({exc})")
+            print("HTML: replaying all Layer B cases to capture selected templates…")
+            for case_id in blessed_case_ids():
+                selected_by_case[case_id] = capture_selected_templates_cached(case_id)
+        except Exception as exc:
+            print(f"HTML: selected-template capture skipped ({exc})")
+    elif offline:
+        print("HTML: --offline — selected-template columns show candidates only")
 
     cards = "".join(
         f'<div class="card"><div class="n">{value}</div><div class="l">{label}</div></div>'
@@ -1231,10 +1339,8 @@ def _write_coverage_html(
         )
     )
 
-    layer_sections_html = (
-        _render_layer_sections_html(layer_states, inventory, want)
-        if layer_states is not None
-        else ""
+    layer_sections_html = _render_layer_sections_html(
+        layer_states, inventory, want, offline=offline
     )
     parts = [
         "<!doctype html><html><head><meta charset='utf-8'>",
@@ -1328,7 +1434,10 @@ def _write_coverage_html(
                 "FAMILY</span> 融球模式家族金样缺失</li>"
             )
         layer_b = _template_layer_b_matches(
-            capability_id, wire_id, selected_by_case=selected_by_case or None
+            capability_id,
+            wire_id,
+            selected_by_case=selected_by_case or None,
+            allow_capture=not offline,
         )
         layer_b_rows = "".join(
             f'<tr data-size="{esc(item["size"])}" data-status="{esc(item["status"])}" '
@@ -1638,6 +1747,10 @@ def _taskspec_coverage() -> dict:
 
 
 def _cmd_report(args) -> int:
+    offline = bool(getattr(args, "offline", False))
+    if offline and getattr(args, "health", False):
+        print("--offline: skipping the live per-layer verdict (--health needs replays).")
+        args.health = False
     try:
         want = _parse_layers(getattr(args, "layer", ""))
     except ValueError as exc:
@@ -1748,9 +1861,13 @@ def _cmd_report(args) -> int:
     ts_summary = taskspecs["summary"]
     if args.html:
         html_path = Path(args.html)
-        print("Building HTML report (includes live layer health + a full Layer B replay)…")
-        layer_states = _check_layers(frozenset(), False, only=want)
-        _write_coverage_html(html_path, coverage, inventory, layer_states, want)
+        if offline:
+            print("Building HTML report (--offline: no replays, recorded goldens only)…")
+            layer_states = None
+        else:
+            print("Building HTML report (includes live layer health + a full Layer B replay)…")
+            layer_states = _check_layers(frozenset(), False, only=want)
+        _write_coverage_html(html_path, coverage, inventory, layer_states, want, offline)
         print(
             f"HTML coverage report written: {html_path} "
             f"({html_path.resolve()}) — open it in a browser; it covers all "
@@ -2663,6 +2780,14 @@ def main(argv: list[str] | None = None) -> int:
         metavar="A,B,C",
         help="restrict the report to layers: a/templates, b/taskspecs, "
         "c/scenarios (comma-separated; default all three)",
+    )
+    report_parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="render from the recorded golden files only: no pipeline replays, "
+        "no live drift comparison (Layer B dashboards count recorded baseline "
+        "failures as failures; diagnosis infers the stage from golden.json). "
+        "Never needs the LLM or the replay; --health is ignored",
     )
 
     template_parser = sub.add_parser(
