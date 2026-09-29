@@ -1022,91 +1022,105 @@ def _layer_failure_rows(
 def _layer_c_coverage_health(inventory: dict) -> tuple[list[tuple], str]:
     """Layer C 的覆盖健康度：把 per-template %Absence 聚合成可行动的结论。
 
-    返回（cards_spec, table_html）。分类：
-    - full            可选字段全部做过 absence 组合（无事可做）
+    返回（cards_spec, table_html）。2x4 模板默认启用且由 Layer B 用例覆盖，
+    不进入缺席覆盖统计，也不作为 skip 展示。分类（仅 2x2）：
+    - full            可选字段全部做过 absence 组合
     - k0              没有可选字段，本来就无从 absence-test
-    - skip-2x4        组合矩阵按设计仅跑 2x2（2x4 由 Layer B 用例覆盖）
-    - skip-unreachable 模板在确定性路由下不可达（prompt 门禁/泛型模板）
-    - gap             真正的缺口：可选字段存在且可测，但没测（需要补矩阵/模板）
+    - missing_full    缺席覆盖不全（真正的缺口：可选字段存在且可测但没测）
+    - unreachable     确定性路由不可达（prompt 门禁/泛型模板/无法单独成 plan）
     """
     esc = _html.escape
     coverage = inventory.get("coverage") or {}
     entries = coverage.get("templates") or []
-    counts = {"full": 0, "k0": 0, "skip-2x4": 0, "skip-unreachable": 0, "gap": 0}
-    skip_rows: list[str] = []
-    gap_rows: list[str] = []
+    counts = {"full": 0, "k0": 0, "missing_full": 0, "unreachable": 0}
+    missing_rows: list[str] = []
+    unreachable_rows: list[str] = []
     for entry in entries:
         wire_id = entry["templateId"]
+        size = entry.get("size", "?")
         optional = len(entry["optionalFields"])
         reason = entry.get("skipReason", "") or ""
         pct = entry.get("absencePct")
-        pct_text = "—" if pct is None else f"{pct}%"
+        if size == "2x4":
+            # 2x4 模板默认启用，管线行为由 Layer B 的 2x4 用例覆盖；
+            # 组合矩阵是 2x2 缺席覆盖的工具，不把 2x4 记为 skip/gap。
+            continue
         if reason:
-            if "2x4 模板" in reason:
-                counts["skip-2x4"] += 1
-                cls = "2x4-canonical"
-                action = "无需处理（2x4 由 Layer B 用例覆盖）"
-            else:
-                counts["skip-unreachable"] += 1
-                cls = "unreachable"
-                action = "无需处理（确定性路由不可达，属上游设计）"
-            skip_rows.append(
+            # 确定性路由不可达（prompt 门禁 / 泛型模板 / 无法单独成 plan）。
+            counts["unreachable"] += 1
+            untested = [
+                f
+                for f in entry["optionalFields"]
+                if f not in entry["absenceTestedFields"]
+            ]
+            unreachable_rows.append(
                 f"<tr><td><code>{esc(wire_id)}</code></td>"
-                f'<td><span class="badge cand">{esc(cls)}</span></td>'
+                f"<td>{esc(size)}</td>"
                 f"<td>{esc(reason)}</td>"
-                f"<td>{esc(action)}</td></tr>"
+                f"<td>{esc(', '.join(untested)) if untested else '—'}</td></tr>"
             )
-        elif optional == 0:
+            continue
+        if optional == 0:
             counts["k0"] += 1
         elif pct is not None and pct < 100:
-            counts["gap"] += 1
-            gap_rows.append(
+            counts["missing_full"] += 1
+            untested = [
+                f
+                for f in entry["optionalFields"]
+                if f not in entry["absenceTestedFields"]
+            ]
+            missing_rows.append(
                 f"<tr><td><code>{esc(wire_id)}</code></td>"
-                f"<td>{pct_text}%</td><td>{optional}</td>"
-                f"<td>{esc(', '.join(f for f in entry['optionalFields'] if f not in entry['absenceTestedFields']))}</td>"
-                "<td>补 pipeline_combo 家族或排查为何缺席组合未渲染</td></tr>"
+                f"<td>{pct if pct is not None else '—'}%</td>"
+                f"<td>{optional}</td>"
+                f"<td>{esc(', '.join(untested))}</td></tr>"
             )
         else:
             counts["full"] += 1
     cards = [
-        (counts["full"], "templates with full absence coverage"),
-        (counts["k0"], "templates with no optional fields"),
-        (counts["skip-2x4"], "2x4-canonical (matrix runs 2x2 only)"),
-        (counts["skip-unreachable"], "unreachable by design"),
-        (counts["gap"], "actionable coverage gaps"),
+        (counts["full"], "2x2 templates with full absence coverage"),
+        (counts["k0"], "2x2 templates with no optional fields"),
+        (counts["missing_full"], "2x2 templates missing full absence coverage"),
+        (counts["unreachable"], "unreachable templates"),
     ]
-    skip_table = ""
-    if skip_rows:
-        skip_table = (
-            f'<h4>By-design skips ({len(skip_rows)}) — nothing to fix, each with its reason</h4>'
-            '<table class="lb"><thead><tr><th>Template</th><th>Class</th>'
-            "<th>Reason</th><th>Action</th></tr></thead><tbody>"
-            + "".join(skip_rows)
-            + "</tbody></table>"
+    missing_table = (
+        f'<h4>Templates missing full absence coverage ({counts["missing_full"]})'
+        " — these DO need fixing</h4>"
+        '<table class="lb"><thead><tr><th>Template</th><th>%Absence</th>'
+        "<th>Optional fields</th><th>Untested fields</th></tr></thead><tbody>"
+        + (
+            "".join(missing_rows)
+            if missing_rows
+            else '<tr><td colspan="4" class="muted">none — every 2x2 template '
+            "with optional fields is fully absence-tested</td></tr>"
         )
-    gap_table = ""
-    if gap_rows:
-        gap_table = (
-            f'<h4>True coverage gaps ({len(gap_rows)}) — these DO need fixing</h4>'
-            '<table class="lb"><thead><tr><th>Template</th><th>%Absence</th>'
-            "<th>Optional fields</th><th>Untested</th><th>Action</th></tr></thead><tbody>"
-            + "".join(gap_rows)
-            + "</tbody></table>"
+        + "</tbody></table>"
+    )
+    unreachable_table = (
+        f'<h4>Unreachable templates ({counts["unreachable"]}) — deterministic '
+        "search cannot select them; Layer A canonical still applies</h4>"
+        '<table class="lb"><thead><tr><th>Template</th><th>Size</th>'
+        "<th>Why unreachable</th><th>Untested optional fields</th></tr></thead><tbody>"
+        + (
+            "".join(unreachable_rows)
+            if unreachable_rows
+            else '<tr><td colspan="4" class="muted">none</td></tr>'
         )
-    headline = (
-        f'<p class="muted">结论：可行动缺口 <b>{counts["gap"]}</b> 个。'
-        "0% / 备注 行全部属于上表的按设计跳过（2x4 矩阵范围外或路由不可达），"
-        "不是待修问题。</p>"
-        if not gap_rows
-        else f'<p class="muted">结论：发现 <b>{counts["gap"]}</b> 个真正的覆盖缺口，见下表。</p>'
+        + "</tbody></table>"
     )
-    table = (
-        headline
-        + gap_table
-        + skip_table
-        if (gap_rows or skip_rows)
-        else '<p class="muted">coverage health: no data (run with layers a/b/c)</p>'
-    )
+    if counts["missing_full"]:
+        headline = (
+            f'<p class="muted">结论：<b>{counts["missing_full"]}</b> 个 2x2 模板'
+            "缺席覆盖不全，见第一张表；"
+            f'另有 {counts["unreachable"]} 个模板确定性路由不可达（第二张表）。</p>'
+        )
+    else:
+        headline = (
+            '<p class="muted">结论：所有带可选字段的 2x2 模板缺席覆盖都是 100%，'
+            f'没有待修缺口；另有 {counts["unreachable"]} 个模板确定性路由不可达'
+            "（引擎设计如此，非缺陷），见第二张表。</p>"
+        )
+    table = headline + missing_table + unreachable_table
     return cards, table
 
 
@@ -2169,9 +2183,7 @@ def _report_coverage() -> dict:
                 subsetsRendered=0,
                 subsetsRefused=0,
                 skipReason=(
-                    "2x4 模板：组合矩阵按设计仅跑 2x2 组合；2x4 的真实管线路由"
-                    "（#404 后已开放）由 Layer B 的 2x4 用例覆盖，此处仅 Layer A "
-                    "canonical 渲染"
+                    "2x4（组合矩阵不跑 2x2 缺席组合；管线行为由 Layer B 的 2x4 用例覆盖）"
                     if size == "2x4"
                     else "no pipeline_combo family (unexpected)"
                 ),
