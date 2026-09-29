@@ -662,6 +662,9 @@ class PromptBuilder:
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return "multi-business", ("2x4-V22",)
 
+        if PromptBuilder._uses_dense_health_panels(task_spec):
+            return "multi-business", ("2x4-V25",)
+
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
                 "2x2-V25"
@@ -712,6 +715,17 @@ class PromptBuilder:
                 ("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",)
             )
         if "phonebattery" in normalized_roots:
+            requested_ring_with_action = (
+                task_spec.size == "2x2"
+                and _contains_any(query, ("进度环", "环形", "圆环"))
+                and event_count > 0
+            )
+            if (
+                requested_ring_with_action
+                and PromptBuilder._query_requests_action(task_spec)
+                and PromptBuilder._has_compact_numeric_battery(task_spec)
+            ):
+                return "battery-readout", ("2x2-V31",)
             dense_with_action = (
                 PromptBuilder._schema_leaf_count(task_spec.dataModelSchema.get("data")) >= 4
                 and event_count > 0
@@ -740,6 +754,11 @@ class PromptBuilder:
             if task_spec.size == "2x2":
                 if PromptBuilder._schema_has_field(task_spec, ("eventCount",)):
                     return "calendar-event", ("2x2-V27",)
+                has_time_range = PromptBuilder._schema_has_field(
+                    task_spec, ("dtStart",)
+                ) and PromptBuilder._schema_has_field(task_spec, ("dtEnd",))
+                if has_time_range:
+                    return "calendar-event", ("2x2-V32",)
                 return "calendar-event", ("2x2-V06",)
             if event_count >= 2 and PromptBuilder._query_requests_action(task_spec):
                 return "calendar-event", ("2x4-V08",)
@@ -837,6 +856,8 @@ class PromptBuilder:
         """只返回由尺寸、数据块和明确动作数量确定的骨架范围。"""
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return "W-top-bottom"
+        if PromptBuilder._uses_dense_health_panels(task_spec):
+            return "W-split-panels"
         if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
             return "W-content-side-slots"
         if (
@@ -1043,6 +1064,14 @@ class PromptBuilder:
 
     @staticmethod
     def _layout_route_lock(task_spec: TaskSpec, layout_scope: str) -> str:
+        if PromptBuilder._uses_dense_health_panels(task_spec):
+            return (
+                f"{_TWO_BY_FOUR_ROUTE_LOCKS['W-split-panels']}\n\n"
+                "本轮是同一运动记录的密集信息，按日常活动/本次训练或训练时间/训练读数"
+                "分成两个完整区；同一数据根可按这两组分区，不重复展示字段。"
+                "不要使用大值加两行辅助槽的结构：辅助槽装不下全部心率、热量或时长。"
+                "时间与带长单位的心率分行，动作留在所属训练区，普通文字优先保留完整标签和读数。"
+            )
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return (
                 "# 本轮密集列表路由\n\n"
@@ -1265,10 +1294,38 @@ class PromptBuilder:
         return detail_count >= 2 or fact_count >= 4
 
     @staticmethod
+    def _has_compact_numeric_battery(task_spec: TaskSpec) -> bool:
+        data_schema = task_spec.dataModelSchema.get("data")
+        if not isinstance(data_schema, dict):
+            return False
+        battery_schema = data_schema.get("phoneBattery")
+        if not isinstance(battery_schema, dict):
+            return False
+        if PromptBuilder._schema_leaf_count(battery_schema) > 2:
+            return False
+        ratio_schema = battery_schema.get("batterySOC")
+        if not isinstance(ratio_schema, dict):
+            return False
+        return ratio_schema.get("type") in {"number", "integer"}
+
+    @staticmethod
+    def _uses_dense_health_panels(task_spec: TaskSpec) -> bool:
+        """多字段运动摘要需要完整分区，不能由字段多反推小辅助槽可容纳。"""
+        if task_spec.size != "2x4":
+            return False
+        roots = {root.casefold() for root in PromptBuilder._data_roots(task_spec)}
+        if roots != {"healthsport"}:
+            return False
+        data_schema = task_spec.dataModelSchema.get("data")
+        return PromptBuilder._schema_leaf_count(data_schema) >= 6
+
+    @staticmethod
     def _uses_two_by_four_focus_aux_layout(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x4":
             return False
         if PromptBuilder._uses_wide_full_width_list(task_spec):
+            return False
+        if PromptBuilder._uses_dense_health_panels(task_spec):
             return False
         roots = PromptBuilder._data_roots(task_spec)
         normalized_roots = {root.casefold() for root in roots}

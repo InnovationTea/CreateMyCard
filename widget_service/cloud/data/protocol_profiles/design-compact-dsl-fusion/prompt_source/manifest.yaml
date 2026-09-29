@@ -217,7 +217,9 @@
       "fewshots/2x2.md#example-v27",
       "fewshots/2x2.md#example-v28",
       "fewshots/2x2.md#example-v29",
-      "fewshots/2x2.md#example-v30"
+      "fewshots/2x2.md#example-v30",
+      "fewshots/2x2.md#example-v31",
+      "fewshots/2x2.md#example-v32"
     ],
     "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
@@ -245,7 +247,8 @@
       "fewshots/2x4.md#example-v21",
       "fewshots/2x4.md#example-v22",
       "fewshots/2x4.md#example-v23",
-      "fewshots/2x4.md#example-v24"
+      "fewshots/2x4.md#example-v24",
+      "fewshots/2x4.md#example-v25"
     ],
     "plan": [
       "plan.md#contract"
@@ -377,6 +380,14 @@
       {
         "id": "2x2-V30",
         "source": "fewshots/2x2.md#example-v30"
+      },
+      {
+        "id": "2x2-V31",
+        "source": "fewshots/2x2.md#example-v31"
+      },
+      {
+        "id": "2x2-V32",
+        "source": "fewshots/2x2.md#example-v32"
       }
     ],
     "2x4": [
@@ -479,6 +490,10 @@
       {
         "id": "2x4-V24",
         "source": "fewshots/2x4.md#example-v24"
+      },
+      {
+        "id": "2x4-V25",
+        "source": "fewshots/2x4.md#example-v25"
       }
     ]
   }
