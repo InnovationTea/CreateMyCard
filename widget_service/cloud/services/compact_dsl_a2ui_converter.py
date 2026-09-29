@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-import math
 import re
 import sys
 from dataclasses import dataclass
@@ -29,67 +28,6 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200b"
-_INLINE_DISPLAY_UNITS = frozenset(
-    {
-        "%",
-        "°C",
-        "℃",
-        "°F",
-        "天",
-        "小时",
-        "分钟",
-        "分",
-        "秒",
-        "毫秒",
-        "步",
-        "次",
-        "件",
-        "个",
-        "条",
-        "项",
-        "人",
-        "级",
-        "公里",
-        "千米",
-        "米",
-        "厘米",
-        "毫米",
-        "km",
-        "m",
-        "cm",
-        "mm",
-        "kg",
-        "g",
-        "mg",
-        "kcal",
-        "千卡",
-        "cal",
-        "mL",
-        "ml",
-        "L",
-        "A",
-        "mA",
-        "V",
-        "W",
-        "kW",
-        "kWh",
-        "bpm",
-        "次/分钟",
-        "mV",
-        "μA",
-        "uA",
-        "kHz",
-        "MHz",
-        "Pa",
-        "kPa",
-        "Wh",
-        "MB",
-        "GB",
-        "TB",
-        "km/h",
-        "m/s",
-    }
-)
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -131,7 +69,6 @@ _SEMANTIC_FIELDS = {
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
 }
-_REQUIRED_FIELDS: dict[str, str] = {}
 _COMMON_STYLE_PROPERTIES = frozenset(
     {
         "alignSelf",
@@ -202,84 +139,7 @@ _COMPONENT_STYLE_PROPERTIES = {
     "List": frozenset({"listDirection", "scrollBar", "space"}),
     "Stack": frozenset({"alignContent"}),
 }
-_COMMON_COMPACT_PROPERTIES = frozenset({"design", "onClick", "accessibility", "accessibily"})
 _COMMON_COMPACT_ONLY_PROPERTIES = frozenset({"accessibility", "accessibily"})
-_ACTION_UNIT_PROPERTIES = frozenset(
-    {
-        "state",
-        "icon",
-        "actionInk",
-        "actionSurface",
-        "fontSize",
-        "fontWeight",
-    }
-)
-_ACTION_UNIT_FORBIDDEN_SKIN_PROPERTIES = frozenset(
-    {
-        "backgroundColor",
-        "borderColor",
-        "borderRadius",
-        "borderWidth",
-        "color",
-        "design",
-        "fillColor",
-        "fontColor",
-        "height",
-        "layoutWeight",
-        "linearGradient",
-        "maxFontSize",
-        "maxLines",
-        "minFontSize",
-        "opacity",
-        "padding",
-        "textAlign",
-        "textOverflow",
-        "width",
-    }
-)
-_NUMBER_PROPERTIES = frozenset(
-    {
-        "borderRadius",
-        "borderWidth",
-        "backdropBlur",
-        "flexShrink",
-        "fontSize",
-        "layoutWeight",
-        "maxFontSize",
-        "maxHeight",
-        "maxLines",
-        "maxWidth",
-        "minFontSize",
-        "minHeight",
-        "minWidth",
-        "opacity",
-        "strokeWidth",
-    }
-)
-_BOOLEAN_PROPERTIES = frozenset({"clip", "vertical"})
-_STRING_PROPERTIES = frozenset(
-    {
-        "alignContent",
-        "alignItems",
-        "alignSelf",
-        "backgroundImage",
-        "backgroundImageSizeWithStyle",
-        "listDirection",
-        "objectFit",
-        "scrollBar",
-        "shape",
-        "textAlign",
-        "textOverflow",
-        "type",
-        "visibility",
-        "state",
-        "icon",
-        "actionInk",
-        "actionSurface",
-    }
-)
-_FORBIDDEN_PROPERTIES = frozenset({"action", "event", "submit_form"})
-_FORBIDDEN_STRING_FRAGMENTS = ("{{", "$item", "$__dataModel")
 _A2UI_BINDING_EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _A2UI_BINDING_PATH_PATTERN = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
 _LEGACY_TOKEN_PREFIXES = (
@@ -303,24 +163,6 @@ _LEGACY_FONT_SIZE_TOKENS = frozenset(
         "Body_S",
         "Caption_L",
         "Caption_M",
-    }
-)
-_TOKEN_AWARE_PROPERTIES = frozenset(
-    {
-        "borderRadius",
-        "fontSize",
-        "fontWeight",
-        "height",
-        "itemMargin",
-        "margin",
-        "maxHeight",
-        "maxWidth",
-        "minHeight",
-        "minWidth",
-        "padding",
-        "space",
-        "strokeWidth",
-        "width",
     }
 )
 _COLOR_PROPERTIES = frozenset(
@@ -395,15 +237,6 @@ _COLOR_TOKENS = {
     "mask_sixth": "#0C000000",
 }
 _DEFAULT_ROOT_BACKGROUND = "#FFE5EDFE"
-_TWO_BY_TWO_SINGLE_RING_SIZE = 48
-_TWO_BY_TWO_DUAL_RING_SIZE = 44
-_PLAIN_BACKGROUND_INKS = {
-    "#FFE5EDFE": "#FF1F4799",
-    "#FFEDE6FF": "#FF401F99",
-    "#FFF0FFE6": "#FF52991F",
-    "#FFFFF3E6": "#FF99661F",
-    "#FFE6FDFF": "#FF1F8F99",
-}
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "metric-display-xl": {"fontSize": 38, "fontWeight": 300},
     "metric-display-lg": {"fontSize": 38, "fontWeight": 300},
@@ -585,6 +418,26 @@ class DataRow:
 
 CompactRow = ComponentRow | DataRow
 
+# 外部布局只作用于组件根，不允许覆盖 Recipe 的内部字号、配色或结构。
+_PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
+
+
+def _place_high_level_root(
+    original: ComponentRow,
+    expanded: ComponentRow,
+    parent: ComponentRow | None,
+) -> ComponentRow:
+    props = copy.deepcopy(expanded.props)
+    if parent is not None and parent.component_type == "Row":
+        if props.get("width") == "matchParent" and "width" not in original.props:
+            props["layoutWeight"] = 1
+    for name in _PLACEMENT_PROPS:
+        if name in original.props:
+            props[name] = copy.deepcopy(original.props[name])
+    if "width" in original.props and "layoutWeight" not in original.props:
+        props.pop("layoutWeight", None)
+    return ComponentRow(expanded.component_id, expanded.component_type, props, expanded.children)
+
 
 def _visual_recipe(
     component_name: str,
@@ -654,6 +507,10 @@ def expand_high_level_component_rows(
 ) -> list[ComponentRow]:
     """Expand Fusion high-level rows into the existing base Compact components."""
     existing_ids = {component.component_id for component in components}
+    parents: dict[str, ComponentRow] = {}
+    for parent in components:
+        for child_id in parent.children:
+            parents[child_id] = parent
     generated_ids: set[str] = set()
     expanded: list[ComponentRow] = []
     expanders = {
@@ -674,6 +531,18 @@ def expand_high_level_component_rows(
     for component in components:
         expander = expanders.get(component.component_type)
         rows = [component] if expander is None else expander(component, size)
+        if expander is not None:
+            rows[0] = _place_high_level_root(
+                component, rows[0], parents.get(component.component_id)
+            )
+        elif component.component_type == "CardHeader":
+            header = ComponentRow(
+                component.component_id,
+                component.component_type,
+                {"width": "matchParent", **component.props},
+                component.children,
+            )
+            rows[0] = _place_high_level_root(component, header, parents.get(component.component_id))
         for index, row in enumerate(rows):
             is_original_root = index == 0 and row.component_id == component.component_id
             if not is_original_root and row.component_id in existing_ids:
@@ -821,9 +690,6 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
-    validate_event_card_scope(components)
-    validate_event_card_layout(components, size=size)
-    validate_circle_button_layout(components, size=size)
     components = expand_high_level_component_rows(components, size=size)
     validate_card_header_layout(components, size=size)
     fusion_palette = fusion_ball_palette_for_root(
@@ -833,23 +699,6 @@ def convert_compact_dsl_to_a2ui(
     )
 
     normalized_components = [_normalize_component(row) for row in components]
-    normalized_components = _normalize_special_action_units(
-        normalized_components,
-        size=size,
-    )
-    normalized_components = _normalize_ring_stack_children(
-        normalized_components,
-        size=size,
-    )
-    normalized_components = _normalize_two_by_four_white_backboards(
-        normalized_components,
-        size=size,
-    )
-    normalized_components = _normalize_large_value_unit_alignment(normalized_components)
-    normalized_components = _normalize_small_backboard_icon_alignment(
-        normalized_components,
-        size=size,
-    )
     data_model = _build_data_model(data_rows)
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
@@ -906,72 +755,18 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
     headers = [item for item in components if item.component_type == "CardHeader"]
     if not headers:
         return
-    if len(headers) != 1:
-        raise CompactDslConversionError("CardHeader requires 2x2 and at most one instance.")
-    header = headers[0]
-    root = next((item for item in components if item.component_id == "root"), None)
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("CardHeader requires a 2x2 or 2x4 card.")
+    for header in headers:
+        _validate_high_level_props(
+            header,
+            required={"title", "fontColor"},
+            allowed={"title", "fontColor", "icon", "fillColor"},
+        )
+        _validate_card_header_props(header, components)
 
-    if size == "2x2":
-        if root is None or root.component_type != "Column":
-            raise CompactDslConversionError("CardHeader requires a root Column.")
-        container = root
-        parents = [item.component_id for item in components if header.component_id in item.children]
-        if parents != ["root"] or root.children[0] != header.component_id:
-            raise CompactDslConversionError(
-                "CardHeader must be the first direct child of root only."
-            )
-    elif size == "2x4":
-        if root is None or root.component_type != "Stack":
-            raise CompactDslConversionError("2x4 CardHeader requires a root Stack.")
-        parents = [item for item in components if header.component_id in item.children]
-        if len(parents) != 1:
-            raise CompactDslConversionError("2x4 CardHeader must have exactly one parent.")
-        container = parents[0]
-        is_root_level_column = (
-            container.component_type == "Column" and container.component_id in root.children
-        )
-        has_header_first = bool(container.children) and container.children[0] == header.component_id
-        if not is_root_level_column or not has_header_first:
-            raise CompactDslConversionError(
-                "2x4 CardHeader must be the first child of a root-level foreground Column."
-            )
-        if (
-            container.props.get("width") != "matchParent"
-            or container.props.get("height") != "matchParent"
-        ):
-            raise CompactDslConversionError(
-                "2x4 CardHeader foreground Column requires matchParent width and height."
-            )
-    else:
-        raise CompactDslConversionError("CardHeader requires 2x2 and at most one instance.")
 
-    padding = container.props.get("padding")
-    valid_padding = padding == 12 or padding == {
-        "left": 12,
-        "right": 12,
-        "top": 12,
-        "bottom": 12,
-    }
-    if size == "2x2" and (not valid_padding or container.props.get("justifyContent") != "start"):
-        raise CompactDslConversionError(
-            "CardHeader requires root padding:12 and justifyContent:start."
-        )
-    if size == "2x4" and (
-        not valid_padding or container.props.get("justifyContent") not in {"start", "spaceBetween"}
-    ):
-        raise CompactDslConversionError(
-            "CardHeader container requires padding:12 and start/spaceBetween alignment."
-        )
-    if container.props.get("borderWidth", 0) != 0:
-        if size == "2x2":
-            raise CompactDslConversionError("CardHeader root must not add a border inset.")
-        raise CompactDslConversionError("CardHeader container must not add a border inset.")
-    allowed = {"title", "fontColor", "icon", "fillColor"}
-    if header.children or set(header.props) - allowed:
-        raise CompactDslConversionError(
-            "CardHeader accepts title/fontColor/icon/fillColor only, "
-            "without children or layout props."
-        )
+def _validate_card_header_props(header: ComponentRow, components: list[ComponentRow]) -> None:
     title = header.props.get("title")
     valid_title = isinstance(title, str) and bool(title.strip())
     if not valid_title and not _is_path_binding(title):
@@ -994,142 +789,6 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
     generated_ids = {f"{header.component_id}_title", f"{header.component_id}_icon"}
     if any(item.component_id in generated_ids for item in components):
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
-
-
-def validate_event_card_scope(components: list[ComponentRow]) -> None:
-    if not any(item.component_type == "EventCard" for item in components):
-        return
-    if any(_has_non_calendar_data_binding(item.props) for item in components):
-        raise CompactDslConversionError(
-            "EventCard requires a calendar-only card; dual-business cards must use S-dual-info."
-        )
-
-
-def validate_event_card_layout(components: list[ComponentRow], *, size: str) -> None:
-    event_cards = [item for item in components if item.component_type == "EventCard"]
-    if not event_cards:
-        return
-    if len(event_cards) != 1:
-        raise CompactDslConversionError("EventCard currently supports exactly one event.")
-    if size != "2x2":
-        raise CompactDslConversionError("EventCard currently requires a 2x2 card.")
-
-    components_by_id = {item.component_id: item for item in components}
-    root = components_by_id.get("root")
-    if root is None or root.component_type != "Column" or not root.children:
-        raise CompactDslConversionError(
-            "EventCard requires a root Column with a left-aligned date row."
-        )
-    event_card = event_cards[0]
-    if len(root.children) < 2 or root.children[1] != event_card.component_id:
-        raise CompactDslConversionError(
-            "EventCard must be the second direct child of the root Column."
-        )
-
-    day_area = components_by_id.get(root.children[0])
-    expected_layout = {
-        "width": 126,
-        "height": 16,
-        "justifyContent": "start",
-        "alignItems": "center",
-        "flexShrink": 0,
-    }
-    has_expected_layout = day_area is not None and all(
-        day_area.props.get(name) == value for name, value in expected_layout.items()
-    )
-    is_expected_row = day_area is not None and day_area.component_type == "Row"
-    has_single_child = day_area is not None and len(day_area.children) == 1
-    if not all((is_expected_row, has_expected_layout, has_single_child)):
-        raise CompactDslConversionError(
-            "EventCard date context must be the first root child and use a "
-            "left-aligned 126x16 Row with exactly one Text child."
-        )
-
-    day_text = components_by_id.get(day_area.children[0])
-    if day_text is None or day_text.component_type != "Text":
-        raise CompactDslConversionError(
-            "EventCard date context Row must contain exactly one Text child."
-        )
-    if day_text.props.get("textAlign", "start") != "start":
-        raise CompactDslConversionError("EventCard date context Text must be left-aligned.")
-
-
-def _has_non_calendar_data_binding(value: Any) -> bool:
-    if isinstance(value, str):
-        paths = (match.group("path") for match in _A2UI_BINDING_PATH_PATTERN.finditer(value))
-        return any(_is_non_calendar_data_path(path) for path in paths)
-    if isinstance(value, dict):
-        if set(value) == {"path"}:
-            return _is_non_calendar_data_path(value.get("path"))
-        return any(_has_non_calendar_data_binding(item) for item in value.values())
-    if isinstance(value, list):
-        return any(_has_non_calendar_data_binding(item) for item in value)
-    return False
-
-
-def _is_non_calendar_data_path(value: Any) -> bool:
-    if not isinstance(value, str) or not value.startswith("/data/"):
-        return False
-    return value != "/data/calendar" and not value.startswith("/data/calendar/")
-
-
-def validate_circle_button_layout(components: list[ComponentRow], *, size: str) -> None:
-    circle_buttons = [item for item in components if item.component_type == "CircleButton"]
-    if not circle_buttons:
-        return
-    if size != "2x2":
-        raise CompactDslConversionError("CircleButton requires a 2x2 card.")
-
-    components_by_id = {item.component_id: item for item in components}
-    root = components_by_id.get("root")
-    parent_by_child: dict[str, ComponentRow] = {}
-    for parent in components:
-        for child_id in parent.children:
-            parent_by_child[child_id] = parent
-
-    for button in circle_buttons:
-        slot = parent_by_child.get(button.component_id)
-        valid_slot = (
-            slot is not None
-            and slot.component_type == "Stack"
-            and slot.children == (button.component_id,)
-            and slot.props.get("width") == 40
-            and slot.props.get("height") == 40
-            and slot.props.get("alignContent") == "center"
-        )
-        if not valid_slot:
-            raise CompactDslConversionError(
-                f"{button.component_id}: CircleButton requires a centered 40x40 Stack slot."
-            )
-        anchor = parent_by_child.get(slot.component_id)
-        valid_anchor = (
-            anchor is not None
-            and anchor.component_type == "Row"
-            and anchor.children[-1:] == (slot.component_id,)
-            and anchor.props.get("width") == 126
-            and anchor.props.get("height") == 40
-            and anchor.props.get("justifyContent") == "spaceBetween"
-            and anchor.props.get("alignItems") == "center"
-        )
-        if not valid_anchor:
-            raise CompactDslConversionError(
-                f"{button.component_id}: CircleButton slot must be the last child of a "
-                "126x40 right-anchor Row."
-            )
-        anchor_parent = parent_by_child.get(anchor.component_id)
-        valid_root_anchor = (
-            root is not None
-            and root.component_type == "Column"
-            and anchor_parent is not None
-            and anchor_parent.component_type == "Column"
-            and anchor_parent.children[-1:] == (anchor.component_id,)
-            and root.children[-1:] == (anchor_parent.component_id,)
-        )
-        if not valid_root_anchor:
-            raise CompactDslConversionError(
-                f"{button.component_id}: CircleButton anchor Row must be the final child "
-                "of the final root-level body Column."
-            )
 
 
 def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -1320,14 +979,9 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
         _validate_high_level_on_click(component)
 
     variant = component.props.get("variant")
-    profile = _info_block_profile(size, variant)
-    metrics = profile.get("metrics")
-    if not isinstance(metrics, dict):
-        raise CompactDslConversionError("InfoBlock visual recipe has invalid metrics.")
+    _info_block_profile(size, variant)
     icon = component.props.get("icon")
-    text_width = metrics.get("copyWidthWithVisual" if icon else "contentWidth")
-    if not isinstance(text_width, int):
-        raise CompactDslConversionError("InfoBlock visual recipe has invalid text width.")
+    copy_layout = {"layoutWeight": 1} if icon else {"width": "matchParent"}
     text_parent_id = f"{component.component_id}_text"
     icon_id = f"{component.component_id}_icon"
     primary_id = f"{component.component_id}_primary"
@@ -1355,7 +1009,7 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
             "InfoBlock",
             "copy",
             size=size,
-            props={"width": text_width},
+            props=copy_layout,
             children=(primary_id, secondary_id),
         ),
     ]
@@ -1363,7 +1017,6 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
         _info_block_text_rows(
             component,
             size,
-            text_width,
             primary_id,
             secondary_id,
         )
@@ -1401,7 +1054,6 @@ def _info_block_profile(size: str, variant: Any) -> dict[str, Any]:
 def _info_block_text_rows(
     component: ComponentRow,
     size: str,
-    width: int,
     primary_id: str,
     secondary_id: str,
 ) -> list[ComponentRow]:
@@ -1414,7 +1066,6 @@ def _info_block_text_rows(
             size=size,
             props={
                 "content": copy.deepcopy(component.props["primaryText"]),
-                "width": width,
                 "fontColor": color,
             },
         ),
@@ -1425,7 +1076,6 @@ def _info_block_text_rows(
             size=size,
             props={
                 "content": copy.deepcopy(component.props["secondaryText"]),
-                "width": width,
                 "fontColor": _color_with_alpha(color, 0.6),
             },
         ),
@@ -2158,7 +1808,7 @@ def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRo
             component.component_id,
             "Column",
             {
-                "width": 276,
+                "width": "matchParent",
                 "height": 64 if len(items) == 2 else 102,
                 "itemMargin": 8,
                 "alignItems": "start",
@@ -2174,7 +1824,7 @@ def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRo
                     row_ids[index],
                     "Row",
                     {
-                        "width": 276,
+                        "width": "matchParent",
                         "height": 28,
                         "padding": {"left": 12, "right": 12},
                         "borderRadius": 8,
@@ -2188,7 +1838,7 @@ def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRo
                     "Text",
                     {
                         "content": copy.deepcopy(item),
-                        "width": 228,
+                        "width": "matchParent",
                         "fontSize": 12,
                         "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
@@ -2281,7 +1931,7 @@ def _validate_high_level_props(
         raise CompactDslConversionError(
             f"{component.component_id}: {component.component_type} requires {names}."
         )
-    unknown = set(component.props) - allowed
+    unknown = set(component.props) - allowed - _PLACEMENT_PROPS
     if unknown:
         names = ", ".join(sorted(unknown))
         raise CompactDslConversionError(
@@ -2395,8 +2045,6 @@ def _validate_item_component(
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
-    row_width = 126 if size == "2x2" else 276
-    title_width = row_width - 28 if icon else row_width
     title_id = f"{component.component_id}_title"
     icon_id = f"{component.component_id}_icon"
     children = [title_id, icon_id] if icon else [title_id]
@@ -2406,7 +2054,7 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
         "children": children,
         "itemMargin": 8 if icon else 0,
         "styles": {
-            "width": row_width,
+            "width": "matchParent",
             "height": 20,
             "flexShrink": 0,
             "justifyContent": "start",
@@ -2418,7 +2066,7 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
         "component": "Text",
         "content": _convert_path_bindings(props.get("title")),
         "styles": {
-            "width": title_width,
+            "layoutWeight": 1,
             "fontSize": 12,
             "fontWeight": 400,
             "fontColor": props.get("fontColor"),
@@ -2427,6 +2075,9 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
             "flexShrink": 0,
         },
     }
+    for name in _PLACEMENT_PROPS:
+        if name in props:
+            row["styles"][name] = copy.deepcopy(props[name])
     converted = [row, title]
     if icon:
         image_styles = {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
@@ -2441,463 +2092,6 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
             }
         )
     return converted
-
-
-def _normalize_special_action_units(
-    components: list[ComponentRow],
-    *,
-    size: str,
-) -> list[ComponentRow]:
-    action_ink = _action_ink_for_root(components)
-    if action_ink is None:
-        return components
-
-    components_by_id = {component.component_id: component for component in components}
-    parents = {child_id: component for component in components for child_id in component.children}
-    action_ids = {
-        component.component_id for component in components if _is_plain_action_component(component)
-    }
-    repaired_action_ids: set[str] = set()
-    for component in components:
-        if component.component_id not in action_ids:
-            continue
-        background = component.props.get("backgroundColor")
-        if isinstance(background, str) and background.upper() == action_ink:
-            repaired_action_ids.add(component.component_id)
-    repaired_descendant_ids = _descendant_component_ids(
-        repaired_action_ids,
-        components_by_id,
-    )
-    action_surface = f"#33{action_ink[3:]}"
-    full_width_action_ids: set[str] = set()
-    bottom_layout_ids: set[str] = set()
-    if size == "2x4":
-        for component_id in action_ids:
-            parent = parents.get(component_id)
-            if parent is None or parent.props.get("width") != 276:
-                continue
-            if parent.children != (component_id,):
-                continue
-            full_width_action_ids.add(component_id)
-            layout = parents.get(parent.component_id)
-            if layout is None or layout.component_type != "Column":
-                continue
-            if layout.children[-1:] != (parent.component_id,):
-                continue
-            if layout.props.get("height") == "matchParent":
-                bottom_layout_ids.add(layout.component_id)
-
-    normalized: list[ComponentRow] = []
-    for component in components:
-        props = copy.deepcopy(component.props)
-        component_id = component.component_id
-        if component.component_type == "ActionUnit":
-            props["actionInk"] = action_ink
-            props["actionSurface"] = action_surface
-        elif component_id in repaired_action_ids:
-            props["backgroundColor"] = action_surface
-            if component.component_type == "Button":
-                props["fontColor"] = action_ink
-        elif component_id in repaired_descendant_ids:
-            if component.component_type == "Text":
-                props["fontColor"] = action_ink
-            elif component.component_type == "Image" and "fillColor" in props:
-                props["fillColor"] = action_ink
-
-        if component_id in full_width_action_ids:
-            props["width"] = 276
-        if component_id in bottom_layout_ids:
-            props["padding"] = 12
-            props["justifyContent"] = "spaceBetween"
-
-        normalized.append(
-            ComponentRow(
-                component_id,
-                component.component_type,
-                props,
-                component.children,
-            )
-        )
-    return normalized
-
-
-def _is_plain_action_component(component: ComponentRow) -> bool:
-    if not component.props.get("onClick"):
-        return False
-    if component.component_type == "Button":
-        return True
-    if component.component_type != "Row":
-        return False
-    return component.props.get("height") == 36 and component.props.get("borderRadius") in {18, 20}
-
-
-def _descendant_component_ids(
-    root_ids: set[str],
-    components_by_id: dict[str, ComponentRow],
-) -> set[str]:
-    descendants: set[str] = set()
-    pending = list(root_ids)
-    while pending:
-        component = components_by_id.get(pending.pop())
-        if component is None:
-            continue
-        for child_id in component.children:
-            if child_id in descendants:
-                continue
-            descendants.add(child_id)
-            pending.append(child_id)
-    return descendants
-
-
-def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
-    for component in components:
-        if component.component_id != "root":
-            continue
-        props = component.props
-        if "linearGradient" in props or "backgroundImage" in props:
-            return None
-        background = props.get("backgroundColor", _DEFAULT_ROOT_BACKGROUND)
-        if isinstance(background, str):
-            return _PLAIN_BACKGROUND_INKS.get(background.upper())
-    return None
-
-
-def _template_subtree_component_ids(
-    components: list[ComponentRow],
-    components_by_id: dict[str, ComponentRow],
-) -> set[str]:
-    if len(components) != len(components_by_id):
-        return set()
-    root = components_by_id.get("root")
-    template = components_by_id.get("template_root")
-    if root is None or template is None:
-        return set()
-    if template.component_id not in root.children:
-        return set()
-    template_ids = {template.component_id}
-    template_ids.update(_descendant_component_ids(template_ids, components_by_id))
-    return template_ids
-
-
-def _normalize_ring_stack_children(
-    components: list[ComponentRow],
-    *,
-    size: str,
-) -> list[ComponentRow]:
-    components_by_id = {component.component_id: component for component in components}
-    component_types = {component.component_id: component.component_type for component in components}
-    dual_zone_ids = _two_by_two_dual_zone_ids(components_by_id) if size == "2x2" else set()
-    dual_zone_descendants = _descendant_component_ids(
-        dual_zone_ids,
-        components_by_id,
-    )
-    template_component_ids = _template_subtree_component_ids(components, components_by_id)
-    normalized: list[ComponentRow] = []
-    for component in components:
-        props = component.props
-        children = list(component.children)
-        progress_ids = [child for child in children if component_types.get(child) == "Progress"]
-        ring_progress_ids = [
-            child for child in progress_ids if components_by_id[child].props.get("type") == "ring"
-        ]
-        is_ring = component.component_type == "Progress" and props.get("type") == "ring"
-        resize_ring = size == "2x2" and (is_ring or bool(ring_progress_ids))
-        if resize_ring and component.component_id not in template_component_ids:
-            ring_size = (
-                _TWO_BY_TWO_DUAL_RING_SIZE
-                if component.component_id in dual_zone_descendants
-                else _TWO_BY_TWO_SINGLE_RING_SIZE
-            )
-            props = {**props, "width": ring_size, "height": ring_size}
-            if is_ring:
-                props["strokeWidth"] = 6
-        image_ids = [child for child in children if component_types.get(child) == "Image"]
-        if component.component_type == "Stack" and progress_ids and image_ids:
-            reordered_ids = set(progress_ids + image_ids)
-            remaining_ids = [child for child in children if child not in reordered_ids]
-            children = image_ids + progress_ids + remaining_ids
-        normalized.append(
-            ComponentRow(
-                component.component_id,
-                component.component_type,
-                props,
-                tuple(children),
-            )
-        )
-    normalized_by_id = {component.component_id: component for component in normalized}
-    ring_stack_ids: set[str] = set()
-    for component in normalized:
-        if component.component_type != "Stack":
-            continue
-        for child_id in component.children:
-            child = normalized_by_id.get(child_id)
-            if (
-                child is not None
-                and child.component_type == "Progress"
-                and child.props.get("type") == "ring"
-            ):
-                ring_stack_ids.add(component.component_id)
-                break
-
-    centered: list[ComponentRow] = []
-    for component in normalized:
-        if component.component_type != "Column":
-            centered.append(component)
-            continue
-        has_ring_stack = any(child_id in ring_stack_ids for child_id in component.children)
-        direct_text_count = 0
-        for child_id in component.children:
-            child = normalized_by_id.get(child_id)
-            if child is not None and child.component_type == "Text":
-                direct_text_count += 1
-        if not has_ring_stack or direct_text_count > 1:
-            centered.append(component)
-            continue
-        centered.append(
-            ComponentRow(
-                component.component_id,
-                component.component_type,
-                {**component.props, "alignItems": "center"},
-                component.children,
-            )
-        )
-    return centered
-
-
-def _normalize_two_by_four_white_backboards(
-    components: list[ComponentRow],
-    *,
-    size: str,
-) -> list[ComponentRow]:
-    if size != "2x4":
-        return components
-
-    normalized: list[ComponentRow] = []
-    for component in components:
-        if (
-            component.component_id == "root"
-            or component.props.get("backgroundColor") != "#CCFFFFFF"
-        ):
-            normalized.append(component)
-            continue
-        normalized.append(
-            ComponentRow(
-                component.component_id,
-                component.component_type,
-                {**component.props, "backgroundColor": "#99FFFFFF"},
-                component.children,
-            )
-        )
-    return normalized
-
-
-def _normalize_large_value_unit_alignment(
-    components: list[ComponentRow],
-) -> list[ComponentRow]:
-    components_by_id = {component.component_id: component for component in components}
-    replacements: dict[str, ComponentRow] = {}
-    for row in components:
-        if row.component_type != "Row":
-            continue
-        if row.props.get("_visualRecipe"):
-            continue
-        text_children: list[ComponentRow] = []
-        for child_id in row.children:
-            child = components_by_id.get(child_id)
-            if child is None or child.component_type != "Text":
-                continue
-            font_size = child.props.get("fontSize")
-            if isinstance(font_size, (int, float)):
-                text_children.append(child)
-        if len(text_children) < 2:
-            continue
-
-        max_font_size = max(child.props["fontSize"] for child in text_children)
-        min_font_size = min(child.props["fontSize"] for child in text_children)
-        if max_font_size == min_font_size:
-            continue
-
-        row_props = {**row.props, "alignItems": "bottom"}
-        compact_readout_ids: set[str] = set()
-        for index, child in enumerate(text_children[1:], start=1):
-            content = child.props.get("content")
-            previous = text_children[index - 1]
-            if (
-                isinstance(content, str)
-                and content.strip() in _INLINE_DISPLAY_UNITS
-                and previous.props["fontSize"] > child.props["fontSize"]
-            ):
-                compact_readout_ids.update({previous.component_id, child.component_id})
-        if compact_readout_ids:
-            row_props["itemMargin"] = 2
-        replacements[row.component_id] = ComponentRow(
-            row.component_id,
-            row.component_type,
-            row_props,
-            row.children,
-        )
-        for child in text_children:
-            child_font_size = child.props["fontSize"]
-            child_props = {**child.props}
-            if child.component_id in compact_readout_ids:
-                child_props.pop("width", None)
-            if child_font_size != max_font_size:
-                bottom_padding = min(
-                    8,
-                    max(
-                        0,
-                        int(math.ceil((max_font_size - child_font_size) / 4)),
-                    ),
-                )
-                padding = child_props.get("padding")
-                if isinstance(padding, dict):
-                    child_props["padding"] = {
-                        **padding,
-                        "bottom": bottom_padding,
-                    }
-                else:
-                    child_props["padding"] = {"bottom": bottom_padding}
-                height = child_props.get("height")
-                if isinstance(height, (int, float)) and height > 24:
-                    child_props.pop("height")
-            if child_props == child.props:
-                continue
-            replacements[child.component_id] = ComponentRow(
-                child.component_id,
-                child.component_type,
-                child_props,
-                child.children,
-            )
-
-    return [replacements.get(component.component_id, component) for component in components]
-
-
-def _two_by_two_dual_zone_ids(
-    components_by_id: dict[str, ComponentRow],
-) -> set[str]:
-    root = components_by_id.get("root")
-    if root is None or root.component_type != "Column" or len(root.children) != 2:
-        return set()
-    if root.props.get("padding") != 8 or root.props.get("itemMargin") != 8:
-        return set()
-    zones = [components_by_id.get(child_id) for child_id in root.children]
-    if any(zone is None for zone in zones):
-        return set()
-    if not all(
-        zone.props.get("width") == 134 and zone.props.get("height") == 63
-        for zone in zones
-        if zone is not None
-    ):
-        return set()
-    return set(root.children)
-
-
-def _normalize_small_backboard_icon_alignment(
-    components: list[ComponentRow],
-    *,
-    size: str,
-) -> list[ComponentRow]:
-    components_by_id = {component.component_id: component for component in components}
-    if size == "2x2":
-        candidate_ids = _two_by_two_dual_zone_ids(components_by_id)
-        backboard_width = 134
-        backboard_height = 63
-        text_width = 82
-    elif size == "2x4":
-        candidate_ids = set()
-        for component in components:
-            dimensions = (
-                component.props.get("width"),
-                component.props.get("height"),
-            )
-            if dimensions == (132, 57):
-                candidate_ids.add(component.component_id)
-    else:
-        return components
-
-    replacements: dict[str, ComponentRow] = {}
-    for candidate_id in candidate_ids:
-        backboard = components_by_id[candidate_id]
-        if backboard.props.get("_visualRecipe"):
-            continue
-        if size == "2x4":
-            backboard_width = 132
-            backboard_height = 57
-            text_width = 80
-        if (
-            backboard.component_type not in {"Row", "Column"}
-            or not 1 <= len(backboard.children) <= 2
-        ):
-            continue
-        children = [components_by_id.get(child_id) for child_id in backboard.children]
-        text = next(
-            (child for child in children if child and child.component_type in {"Column", "Text"}),
-            None,
-        )
-        icon = next(
-            (child for child in children if child and child.component_type == "Image"),
-            None,
-        )
-        if icon is None and backboard.component_type == "Column":
-            replacements[backboard.component_id] = ComponentRow(
-                backboard.component_id,
-                backboard.component_type,
-                {
-                    **backboard.props,
-                    "width": backboard_width,
-                    "height": backboard_height,
-                    "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
-                    "justifyContent": "center",
-                    "alignItems": "start",
-                },
-                backboard.children,
-            )
-            continue
-        if text is None or icon is None:
-            continue
-
-        backboard_props = {
-            **backboard.props,
-            "width": backboard_width,
-            "height": backboard_height,
-            "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
-            "itemMargin": 8,
-            "justifyContent": "start",
-            "alignItems": "center",
-        }
-        replacements[backboard.component_id] = ComponentRow(
-            backboard.component_id,
-            "Row",
-            backboard_props,
-            (text.component_id, icon.component_id),
-        )
-        text_props = {**text.props, "width": text_width}
-        if text.component_type == "Column":
-            text_props["justifyContent"] = "center"
-            text_props["alignItems"] = "start"
-        else:
-            text_props["maxLines"] = 1
-            text_props["textAlign"] = "start"
-        replacements[text.component_id] = ComponentRow(
-            text.component_id,
-            text.component_type,
-            text_props,
-            text.children,
-        )
-        replacements[icon.component_id] = ComponentRow(
-            icon.component_id,
-            icon.component_type,
-            {
-                **icon.props,
-                "width": 20,
-                "height": 20,
-                "objectFit": "contain",
-                "flexShrink": 0,
-            },
-            icon.children,
-        )
-
-    return [replacements.get(component.component_id, component) for component in components]
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
@@ -3360,6 +2554,8 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
+    if "_visualRecipe" in props:
+        raise CompactDslConversionError("_visualRecipe is reserved for internal expansion.")
     children = _parse_children(value, component_id, component_type)
     return ComponentRow(
         component_id=component_id,
@@ -4075,6 +3271,8 @@ def _apply_action_runtime_geometry(
         "borderRadius",
         "padding",
         "flexShrink",
+        "layoutWeight",
+        "margin",
     ):
         value = props.get(property_name)
         if value is not None:
@@ -4086,6 +3284,8 @@ def _capsule_row_styles(styles: dict[str, Any]) -> dict[str, Any]:
         "backgroundColor",
         "borderRadius",
         "flexShrink",
+        "layoutWeight",
+        "margin",
         "height",
         "padding",
         "width",

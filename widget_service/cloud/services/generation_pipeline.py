@@ -138,12 +138,15 @@ class DesignCompactProcessor:
             report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
 
+        design_profile_id = context.design_profile_id or "design-compact-dsl"
+        design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         if not context.skip_compact_dsl_validation:
             try:
                 validation_result = validate_compact_dsl(
                     source_dsl,
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
+                    protocol_profile=design_protocol,
                 )
             except CompactDslValidationError as exc:
                 return self._validation_failure(source_dsl, exc.errors)
@@ -154,10 +157,6 @@ class DesignCompactProcessor:
             validation_result = None
 
         try:
-            design_profile_id = context.design_profile_id or "design-compact-dsl"
-            design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
-                design_profile_id
-            )
             design_protocol["appVersion"] = context.task_spec["appVersion"]
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
@@ -205,6 +204,7 @@ class DesignCompactProcessor:
             for message in errors
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
+
 
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.STANDARD_A2UI: StandardA2UIProcessor(),

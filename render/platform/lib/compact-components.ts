@@ -12,6 +12,8 @@ type Recipe = {
   variants?: Record<string, Partial<Recipe>>;
 };
 
+const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margin"];
+
 export const VISUAL_RECIPE_VERSION = "visual-recipes-v1";
 export const HIGH_LEVEL_COMPONENT_TYPES = [
   "PillButton", "CircleButton", "EmphasizedData", "InfoBlock", "ProgressLine2",
@@ -99,7 +101,7 @@ function requireProps(
 ) {
   const missing = required.filter(name => !(name in props));
   if (missing.length) throw new Error(`${id}: ${type} 缺少 ${missing.join("、")}。`);
-  const unknown = Object.keys(props).filter(name => !allowed.includes(name));
+  const unknown = Object.keys(props).filter(name => !allowed.includes(name) && !PLACEMENT_PROPS.includes(name));
   if (unknown.length) throw new Error(`${id}: ${type} 不接受 ${unknown.join("、")}。`);
 }
 
@@ -296,8 +298,7 @@ function expandHighLevel(
     if (size === "2x4" && !["slot", "aux", "small"].includes(String(p.variant))) {
       throw new Error('2x4 InfoBlock.variant 必须是 "slot"，也兼容 "aux"/"small"。');
     }
-    const metrics = recipe(type, size).metrics!;
-    const textWidth = Number(metrics[p.icon ? "copyWidthWithVisual" : "contentWidth"]);
+    const copyLayout = p.icon ? { layoutWeight: 1 } : { width: "matchParent" };
     const textId = `${id}_text`;
     const primaryId = `${id}_primary`;
     const secondaryId = `${id}_secondary`;
@@ -306,13 +307,13 @@ function expandHighLevel(
     if (p.onClick !== undefined) rootProps.onClick = p.onClick;
     const rows = [
       row(id, type, p.icon ? "root" : "rootNoVisual", size, rootProps, children),
-      row(textId, type, "copy", size, { width: textWidth }, [primaryId, secondaryId]),
+      row(textId, type, "copy", size, copyLayout, [primaryId, secondaryId]),
       row(
         primaryId,
         type,
         "primary",
         size,
-        { content: p.primaryText, width: textWidth, fontColor: p.fontColor },
+        { content: p.primaryText, fontColor: p.fontColor },
       ),
       row(
         secondaryId,
@@ -321,7 +322,6 @@ function expandHighLevel(
         size,
         {
           content: p.secondaryText,
-          width: textWidth,
           fontColor: colorWithAlpha(String(p.fontColor), 0.6),
         },
       ),
@@ -756,7 +756,7 @@ function expandHighLevel(
     const rows: Array<[string, MiniNode]> = [[id, {
       type: "Column",
       props: {
-        width: 276,
+        width: "matchParent",
         height: p.items.length === 2 ? 64 : 102,
         itemMargin: 8,
         alignItems: "start",
@@ -768,7 +768,7 @@ function expandHighLevel(
       rows.push([children[index], {
         type: "Row",
         props: {
-          width: 276,
+          width: "matchParent",
           height: 28,
           padding: { left: 12, right: 12 },
           borderRadius: 8,
@@ -781,7 +781,7 @@ function expandHighLevel(
         type: "Text",
         props: {
           content: item,
-          width: 228,
+          width: "matchParent",
           fontSize: 12,
           fontWeight: 400,
           fontColor: p.fontColor,
@@ -812,7 +812,18 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
 
   for (const [id, node] of input) {
     const rows = expandHighLevel(id, node, size);
-    if (rows) putExpansion(id, node.type, rows);
+    if (rows) {
+      const parent = [...input.values()].find(item => item.children.includes(id));
+      const props = rows[0][1].props;
+      if (parent?.type === "Row" && props.width === "matchParent" && node.props.width === undefined) {
+        props.layoutWeight = 1;
+      }
+      for (const key of PLACEMENT_PROPS) {
+        if (node.props[key] !== undefined) props[key] = clone(node.props[key]);
+      }
+      if (node.props.width !== undefined && node.props.layoutWeight === undefined) delete props.layoutWeight;
+      putExpansion(id, node.type, rows);
+    }
   }
 
   const add = (id: string, type: string, props: RecordValue, children: string[] = []) => {
@@ -827,17 +838,16 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
     requireNoChildren(id, node.type, node.children);
     if (node.type === "CardHeader") {
       const allowed = ["title", "fontColor", "icon", "fillColor"];
-      const invalid = Object.keys(p).some(key => !allowed.includes(key))
+      const invalid = Object.keys(p).some(key => !allowed.includes(key) && !PLACEMENT_PROPS.includes(key))
         || p.title == null
         || typeof p.fontColor !== "string";
       if (invalid) {
         throw new Error("CardHeader 需要 title/fontColor，只接受可选 icon/fillColor。");
       }
-      const width = size === "2x2" ? 126 : 276;
       const children = [`${id}_title`];
       add(children[0], "Text", {
         content: p.title,
-        width: width - (p.icon ? 28 : 0),
+        layoutWeight: 1,
         fontSize: 12,
         fontWeight: 400,
         fontColor: p.fontColor,
@@ -859,12 +869,15 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
       nodes.set(id, {
         type: "Row",
         props: {
-          width,
+          width: "matchParent",
           height: 20,
+          ...([...input.values()].some(item => item.type === "Row" && item.children.includes(id))
+            && p.width === undefined ? { layoutWeight: 1 } : {}),
           itemMargin: p.icon ? 8 : 0,
           flexShrink: 0,
           justifyContent: "start",
           alignItems: "center",
+          ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
         },
         children,
       });
@@ -925,6 +938,7 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
         borderRadius: p.borderRadius ?? (p.state === "capsule" ? 20 : 15),
         padding: p.padding ?? 0,
         flexShrink: p.flexShrink ?? 0,
+        ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
         backgroundColor: surface,
         onClick: p.onClick,
         accessibility: p.accessibility,

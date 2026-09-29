@@ -54,7 +54,9 @@
 | `SummaryList` | 2–3 条同级短摘要 | `items`、`fontColor`、`backgroundColor` 必填 | - |
 
 共同约束：组件只输出一行且不带 children；内容字段支持 Text.content 已允许的静态值、Expression 或
-PathBinding。宽高、字号、对齐、间距和子节点 ID 由转换器按尺寸及合法槽位固定展开，不作为 Props。
+PathBinding。内部字号、行高、间距、图标和子节点 ID 由视觉 Recipe 展开。
+可选外部布局 Props 为 `width`、`height`、`layoutWeight`、`flexShrink`、`margin`，只作用于组件根。
+横向填充组件默认跟随父槽位；放入 Row 时未显式指定宽度则等权分配。内部排版不能用外部 Props 覆盖。
 高阶组件的 `fontColor` 表示 100% 内容色；设计系统规定的辅助文字、单位、时间线和环心图标由转换器
 确定性派生为 60% 内容色，模型不额外传辅助色。
 `InfoBlock.onClick` 必须逐字使用当前事件候选；`InfoBlock` 无图标时不生成图标节点或空槽。
@@ -294,7 +296,7 @@ props 可用样式字段：
 
 先按信息语义保留可行组件，再结合尺寸文件中的合法槽位决定是否使用。不要为了套用高阶组件而补造字段、
 合并无关事实或改变主次关系。每个组件只输出一行且不带 children；只允许使用该组件属性表列出的 Props，
-不传 width、height、padding、圆角、字号或对齐，转换器按尺寸固定展开。内容字段支持静态值、完整
+可另传共同规则中的外部布局 Props；不传 padding、圆角、字号或对齐覆盖内部样式。内容字段支持静态值、完整
 Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 ### 5.12.2 `EmphasizedData`
