@@ -55,8 +55,9 @@
 
 共同约束：组件只输出一行且不带 children；内容字段支持 Text.content 已允许的静态值、Expression 或
 PathBinding。宽高、字号、对齐、间距和子节点 ID 由转换器按尺寸及合法槽位固定展开，不作为 Props。
-`InfoBlock.onClick` 必须逐字使用当前事件候选；无图标时不生成图标节点或空槽。环形 Progress、完整业务
-父级完整内容区不属于 `InfoBlock`。
+`InfoBlock.onClick` 必须逐字使用当前事件候选；`InfoBlock` 无图标时不生成图标节点或空槽。
+`CardButton` 无图标时由确定性视觉配方补充中性的固定视觉占位，模型仍不得伪造图标路径。环形 Progress、
+完整业务父级完整内容区不属于 `InfoBlock`。
 
 ## 片段索引
 

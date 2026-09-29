@@ -666,10 +666,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["metric"]["styles"]["width"], 126)
         self.assertEqual(components["metric_value"]["styles"]["fontSize"], 30)
-        self.assertEqual(
-            components["metric_unit"]["styles"]["padding"],
-            {"bottom": 5},
-        )
+        self.assertEqual(components["metric_unit"]["styles"]["margin"], {"top": 14})
         self.assertEqual(components["info"]["component"], "Column")
         self.assertEqual(components["info"]["styles"]["height"], 63)
         self.assertEqual(components["info_primary"]["styles"]["fontWeight"], 700)
@@ -678,8 +675,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["table"]["children"],
             ["table_row0", "table_row1"],
         )
-        self.assertEqual(components["table_row0_label"]["styles"]["width"], 70)
+        self.assertEqual(components["table_row0_label"]["styles"]["width"], 62)
         self.assertEqual(components["table_row0_value"]["styles"]["width"], 56)
+        self.assertEqual(components["table_row0_value"]["styles"]["fontSize"], 10)
 
     def test_expands_two_by_four_content_components(self) -> None:
         handler = {"call": "openDetails", "args": {}}
@@ -758,9 +756,80 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ["details_item0", "details_item1"],
         )
         self.assertEqual(components["details_item0"]["styles"]["width"], 134)
-        self.assertEqual(components["action"]["component"], "Column")
+        self.assertEqual(components["action"]["component"], "Row")
         self.assertEqual(components["action"]["onClick"], [handler])
+        self.assertEqual(
+            components["action"]["children"],
+            ["action_label", "action_visual"],
+        )
         self.assertEqual(components["action_label"]["styles"]["fontSize"], 14)
+        self.assertEqual(components["action_visual"]["component"], "Divider")
+
+    def test_visual_recipe_preserves_bindings_expressions_and_events(self) -> None:
+        display_expression = "{{ ${/data/sleep/score} + '分' }}"
+        handler = {
+            "call": "openDetails",
+            "args": {"entityId": {"path": "/data/sleep/entityId"}},
+        }
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["progress", "action"],
+                ],
+                [
+                    "progress",
+                    "ProgressLine2",
+                    {
+                        "value": {"path": "/data/sleep/score"},
+                        "total": 100,
+                        "displayValue": display_expression,
+                        "label": "睡眠综合得分",
+                        "fontColor": "#FF563D99",
+                        "color": "#FF563D99",
+                        "backgroundColor": "#33563D99",
+                    },
+                ],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": {"path": "/data/sleep/actionLabel"},
+                        "onClick": [handler],
+                        "fontColor": "#FF563D99",
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                ],
+                ["/data/sleep/score", 82],
+                ["/data/sleep/entityId", "sleep-001"],
+                ["/data/sleep/actionLabel", "查看详情"],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["progress_value"]["content"], display_expression)
+        self.assertEqual(
+            components["progress_bar"]["value"],
+            "{{ ${/data/sleep/score} }}",
+        )
+        self.assertEqual(
+            components["action_label"]["content"],
+            "{{ ${/data/sleep/actionLabel} }}",
+        )
+        self.assertEqual(
+            components["action"]["onClick"][0]["args"]["entityId"],
+            "{{ ${/data/sleep/entityId} }}",
+        )
+        self.assertNotIn("_visualRecipe", result)
 
     def test_expands_second_batch_two_by_two_components(self) -> None:
         data_display_dsl = _serialize(
@@ -794,7 +863,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(
             components["display"]["children"],
-            ["display_label_area", "display_value_group"],
+            ["display_label", "display_value", "display_supporting"],
         )
         self.assertEqual(components["display_value"]["styles"]["fontSize"], 38)
         self.assertEqual(
@@ -863,7 +932,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "content_area_location",
             ],
         )
-        self.assertEqual(components["content_area_rail"]["styles"]["height"], 48)
+        self.assertEqual(components["content_area_rail"]["styles"]["height"], 50)
 
     def test_expands_second_batch_two_by_four_components(self) -> None:
         compact_dsl = _serialize(
@@ -922,13 +991,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         components = {item["id"]: item for item in update["components"]}
 
         self.assertEqual(components["circle"]["styles"]["width"], 276)
-        self.assertEqual(components["circle"]["styles"]["height"], 126)
+        self.assertEqual(components["circle"]["styles"]["height"], 52)
         self.assertEqual(
             components["circle"]["children"],
-            ["circle_ring_area", "circle_info"],
+            ["circle_ring_stack", "circle_labels"],
         )
         self.assertEqual(components["circle_ring"]["component"], "Progress")
-        self.assertEqual(components["circle_ring"]["styles"]["strokeWidth"], 8)
+        self.assertEqual(components["circle_ring"]["styles"]["strokeWidth"], 6)
         self.assertEqual(
             components["metrics"]["children"],
             [
@@ -939,7 +1008,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "metrics_item2",
             ],
         )
-        self.assertEqual(components["metrics_item0"]["children"][0], "metrics_item0_value")
+        self.assertEqual(components["metrics_item0"]["children"][0], "metrics_item0_label")
+        self.assertEqual(components["metrics_item0_value"]["styles"]["fontSize"], 24)
         self.assertEqual(components["list"]["styles"]["height"], 102)
         self.assertEqual(len(components["list"]["children"]), 3)
 
@@ -1085,7 +1155,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"suggestSize": "2x4", "dataBindings": []},
             )
 
-    def test_high_level_optional_icons_do_not_create_empty_slots(self) -> None:
+    def test_high_level_optional_icons_follow_visual_recipe_slots(self) -> None:
         handler = {"call": "openDetails", "args": {}}
         compact_dsl = _serialize(
             [
@@ -1130,14 +1200,17 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         components = {item["id"]: item for item in update["components"]}
 
         self.assertEqual(components["info"]["children"], ["info_text", "info_icon"])
-        self.assertEqual(components["info_text"]["styles"]["width"], 80)
-        self.assertEqual(components["info_icon"]["styles"]["width"], 20)
+        self.assertEqual(components["info_text"]["styles"]["width"], 88)
+        self.assertEqual(components["info_icon"]["styles"]["width"], 24)
         self.assertEqual(
             components["info_icon"]["styles"]["fillColor"],
             "#FF1F4799",
         )
-        self.assertEqual(components["action"]["children"], ["action_label"])
-        self.assertNotIn("action_icon", components)
+        self.assertEqual(
+            components["action"]["children"],
+            ["action_label", "action_visual"],
+        )
+        self.assertEqual(components["action_visual"]["component"], "Divider")
 
     def test_rejects_invalid_high_level_component_contracts(self) -> None:
         cases = (
@@ -1350,7 +1423,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
 
-    def test_pill_button_matches_legacy_capsule_action_unit_output(self) -> None:
+    def test_pill_button_uses_versioned_visual_geometry(self) -> None:
         handler = {"call": "openSettings", "args": {}}
         shared_props = {
             "label": "免打扰设置",
@@ -1384,7 +1457,12 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         pill_output = convert("PillButton", shared_props)
         legacy_output = convert("ActionUnit", {"state": "capsule", **shared_props})
 
-        self.assertEqual(pill_output, legacy_output)
+        pill_components = {item["id"]: item for item in pill_output["components"]}
+        legacy_components = {item["id"]: item for item in legacy_output["components"]}
+        self.assertEqual(pill_components["cta"]["styles"]["width"], 126)
+        self.assertEqual(pill_components["cta"]["styles"]["borderRadius"], 30)
+        self.assertEqual(legacy_components["cta"]["styles"]["width"], "matchParent")
+        self.assertEqual(pill_components["cta"]["onClick"], [handler])
 
     def test_circle_button_expands_inside_right_anchor_slot(self) -> None:
         handler = {"call": "openBluetooth", "args": {}}

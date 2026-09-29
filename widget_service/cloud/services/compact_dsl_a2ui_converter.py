@@ -14,6 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.compact_component_runtime import (
+    CompactComponentRuntimeError,
+    component_visual_recipe,
+    visual_recipe_part,
+)
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
@@ -581,6 +586,57 @@ class DataRow:
 CompactRow = ComponentRow | DataRow
 
 
+def _visual_recipe(
+    component_name: str,
+    *,
+    size: str | None = None,
+    variant: str | None = None,
+) -> dict[str, Any]:
+    try:
+        return component_visual_recipe(component_name, size=size, variant=variant)
+    except CompactComponentRuntimeError as exc:
+        raise CompactDslConversionError(str(exc)) from exc
+
+
+def _visual_recipe_part_for_converter(
+    component_name: str,
+    part_name: str,
+    *,
+    size: str | None = None,
+    variant: str | None = None,
+) -> tuple[str, dict[str, Any]]:
+    try:
+        return visual_recipe_part(
+            component_name,
+            part_name,
+            size=size,
+            variant=variant,
+        )
+    except CompactComponentRuntimeError as exc:
+        raise CompactDslConversionError(str(exc)) from exc
+
+
+def _visual_row(
+    component_id: str,
+    component_name: str,
+    part_name: str,
+    *,
+    size: str | None = None,
+    variant: str | None = None,
+    props: dict[str, Any] | None = None,
+    children: tuple[str, ...] = (),
+) -> ComponentRow:
+    component_type, styles = _visual_recipe_part_for_converter(
+        component_name,
+        part_name,
+        size=size,
+        variant=variant,
+    )
+    if props:
+        styles.update(copy.deepcopy(props))
+    return ComponentRow(component_id, component_type, styles, children)
+
+
 def parse_compact_dsl_rows(compact_dsl: str) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
     return tuple(_parse_compact_rows(compact_dsl))
@@ -1113,7 +1169,12 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             f"{component.component_id}: PillButton.fontWeight must be 400 or 500."
         )
 
-    props = copy.deepcopy(component.props)
+    _, recipe_props = _visual_recipe_part_for_converter(
+        "PillButton",
+        "root",
+        size=size,
+    )
+    props = {**recipe_props, **copy.deepcopy(component.props)}
     props["state"] = "capsule"
     return [ComponentRow(component.component_id, "ActionUnit", props)]
 
@@ -1157,7 +1218,12 @@ def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentR
             f"{component.component_id}: CircleButton.accessibility.description must be non-empty."
         )
 
-    props = copy.deepcopy(component.props)
+    _, recipe_props = _visual_recipe_part_for_converter(
+        "CircleButton",
+        "root",
+        size=size,
+    )
+    props = {**recipe_props, **copy.deepcopy(component.props)}
     props["state"] = "icon-round"
     return [ComponentRow(component.component_id, "ActionUnit", props)]
 
@@ -1182,26 +1248,21 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
     value_id = f"{component.component_id}_value"
     children = [value_id]
     rows = [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Row",
-            {
-                "width": 126 if size == "2x2" else 132,
-                "itemMargin": 2 if unit else 0,
-                "justifyContent": "center",
-                "alignItems": "bottom",
-            },
-            (),
+            "EmphasizedData",
+            "root",
+            size=size,
+            props={"itemMargin": 2 if unit else 0},
         ),
-        ComponentRow(
+        _visual_row(
             value_id,
-            "Text",
-            {
+            "EmphasizedData",
+            "value",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["value"]),
-                "fontSize": 30,
-                "fontWeight": 700,
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
         ),
     ]
@@ -1209,16 +1270,14 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
         unit_id = f"{component.component_id}_unit"
         children.append(unit_id)
         rows.append(
-            ComponentRow(
+            _visual_row(
                 unit_id,
-                "Text",
-                {
+                "EmphasizedData",
+                "unit",
+                size=size,
+                props={
                     "content": unit,
-                    "fontSize": 12,
-                    "fontWeight": 500,
                     "fontColor": component.props["fontColor"],
-                    "padding": {"bottom": 5},
-                    "maxLines": 1,
                 },
             )
         )
@@ -1262,73 +1321,68 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
 
     variant = component.props.get("variant")
     profile = _info_block_profile(size, variant)
+    metrics = profile.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactDslConversionError("InfoBlock visual recipe has invalid metrics.")
     icon = component.props.get("icon")
-    text_width = profile["inner_width"]
-    children: list[str] = []
-    rows: list[ComponentRow] = []
+    text_width = metrics.get("copyWidthWithVisual" if icon else "contentWidth")
+    if not isinstance(text_width, int):
+        raise CompactDslConversionError("InfoBlock visual recipe has invalid text width.")
+    text_parent_id = f"{component.component_id}_text"
+    icon_id = f"{component.component_id}_icon"
+    primary_id = f"{component.component_id}_primary"
+    secondary_id = f"{component.component_id}_secondary"
+    children = [text_parent_id]
+    if icon:
+        children.append(icon_id)
     container_props: dict[str, Any] = {
-        "width": profile["width"],
-        "height": profile["height"],
-        "padding": profile["padding"],
-        "borderRadius": profile["border_radius"],
         "backgroundColor": component.props["backgroundColor"],
-        "justifyContent": "center" if not icon else "start",
     }
     if "onClick" in component.props:
         container_props["onClick"] = copy.deepcopy(component.props["onClick"])
-
-    text_parent_id = component.component_id
-    if icon:
-        text_parent_id = f"{component.component_id}_text"
-        icon_id = f"{component.component_id}_icon"
-        text_width -= 28
-        container_props.update({"alignItems": "center", "itemMargin": 8})
-        children.extend((text_parent_id, icon_id))
-    primary_id = f"{component.component_id}_primary"
-    secondary_id = f"{component.component_id}_secondary"
-    if icon:
-        rows.append(
-            ComponentRow(
-                component.component_id,
-                "Row",
-                container_props,
-                tuple(children),
-            )
+    root_part = "root" if icon else "rootNoVisual"
+    rows = [
+        _visual_row(
+            component.component_id,
+            "InfoBlock",
+            root_part,
+            size=size,
+            props=container_props,
+            children=tuple(children),
+        ),
+        _visual_row(
+            text_parent_id,
+            "InfoBlock",
+            "copy",
+            size=size,
+            props={"width": text_width},
+            children=(primary_id, secondary_id),
+        ),
+    ]
+    rows.extend(
+        _info_block_text_rows(
+            component,
+            size,
+            text_width,
+            primary_id,
+            secondary_id,
         )
-        rows.append(
-            ComponentRow(
-                text_parent_id,
-                "Column",
-                {
-                    "width": text_width,
-                    "justifyContent": "center",
-                    "itemMargin": profile["item_margin"],
-                },
-                (primary_id, secondary_id),
-            )
-        )
-    else:
-        container_props["itemMargin"] = profile["item_margin"]
-        rows.append(
-            ComponentRow(
-                component.component_id,
-                "Column",
-                container_props,
-                (primary_id, secondary_id),
-            )
-        )
-    rows.extend(_info_block_text_rows(component, profile, text_width, primary_id, secondary_id))
+    )
     if icon:
         image_props: dict[str, Any] = {
             "src": icon,
-            "width": 20,
-            "height": 20,
-            "objectFit": "contain",
-            "flexShrink": 0,
         }
         if "fillColor" in component.props:
             image_props["fillColor"] = component.props["fillColor"]
-        rows.append(ComponentRow(f"{component.component_id}_icon", "Image", image_props))
+        rows.append(
+            _visual_row(
+                icon_id,
+                "InfoBlock",
+                "icon",
+                size=size,
+                props=image_props,
+            )
+        )
     return rows
 
 
@@ -1336,65 +1390,43 @@ def _info_block_profile(size: str, variant: Any) -> dict[str, Any]:
     if size == "2x2":
         if variant not in (None, "stacked"):
             raise CompactDslConversionError('2x2 InfoBlock.variant must be omitted or "stacked".')
-        return {
-            "width": 134,
-            "height": 63,
-            "padding": {"left": 12, "right": 12, "top": 0, "bottom": 0},
-            "border_radius": 16,
-            "inner_width": 110,
-            "item_margin": 4,
-            "primary_size": 14,
-            "primary_weight": 700,
-            "secondary_size": 12,
-        }
+        return _visual_recipe("InfoBlock", size=size)
     if size != "2x4" or variant not in {"slot", "aux", "small"}:
         raise CompactDslConversionError(
             '2x4 InfoBlock.variant must be "slot"; "aux" and "small" are legacy aliases.'
         )
-    return {
-        "width": 132,
-        "height": 57,
-        "padding": 12,
-        "border_radius": 12,
-        "inner_width": 108,
-        "item_margin": 2,
-        "primary_size": 14,
-        "primary_weight": 700,
-        "secondary_size": 12,
-    }
+    return _visual_recipe("InfoBlock", size=size)
 
 
 def _info_block_text_rows(
     component: ComponentRow,
-    profile: dict[str, Any],
+    size: str,
     width: int,
     primary_id: str,
     secondary_id: str,
 ) -> list[ComponentRow]:
     color = component.props["fontColor"]
     return [
-        ComponentRow(
+        _visual_row(
             primary_id,
-            "Text",
-            {
+            "InfoBlock",
+            "primary",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["primaryText"]),
                 "width": width,
-                "fontSize": profile["primary_size"],
-                "fontWeight": profile["primary_weight"],
                 "fontColor": color,
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
+        _visual_row(
             secondary_id,
-            "Text",
-            {
+            "InfoBlock",
+            "secondary",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["secondaryText"]),
                 "width": width,
-                "fontSize": profile["secondary_size"],
-                "fontWeight": 400,
                 "fontColor": color,
-                "maxLines": 1,
             },
         ),
     ]
@@ -1431,56 +1463,47 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
     label_id = f"{component.component_id}_label"
     bar_id = f"{component.component_id}_bar"
     return [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Column",
-            {
-                "width": 276,
-                "height": 45,
-                "itemMargin": 4,
-                "justifyContent": "center",
-                "alignItems": "start",
-            },
-            (readout_id, bar_id),
+            "ProgressLine2",
+            "root",
+            size=size,
+            children=(readout_id, bar_id),
         ),
-        ComponentRow(
+        _visual_row(
             readout_id,
-            "Row",
-            {"width": 276, "alignItems": "bottom", "itemMargin": 6},
-            (value_id, label_id),
+            "ProgressLine2",
+            "readout",
+            size=size,
+            children=(value_id, label_id),
         ),
-        ComponentRow(
+        _visual_row(
             value_id,
-            "Text",
-            {
+            "ProgressLine2",
+            "value",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["displayValue"]),
-                "fontSize": 18,
-                "fontWeight": 700,
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
+        _visual_row(
             label_id,
-            "Text",
-            {
+            "ProgressLine2",
+            "label",
+            size=size,
+            props={
                 "content": component.props["label"],
-                "fontSize": 12,
-                "fontWeight": 400,
                 "fontColor": component.props["fontColor"],
-                "padding": {"bottom": 2},
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
+        _visual_row(
             bar_id,
-            "Progress",
-            {
+            "ProgressLine2",
+            "bar",
+            size=size,
+            props={
                 "type": "linear",
-                "width": 276,
-                "height": 8,
-                "strokeWidth": 8,
-                "borderRadius": 4,
                 "value": copy.deepcopy(component.props["value"]),
                 "total": component.props["total"],
                 "color": component.props["color"],
@@ -1503,56 +1526,47 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
         children.append(row_id)
         rows.extend(
             [
-                ComponentRow(
+                _visual_row(
                     row_id,
-                    "Row",
-                    {
-                        "width": 126,
-                        "height": 20,
-                        "justifyContent": "start",
-                        "alignItems": "center",
-                    },
-                    (label_id, value_id),
+                    "TableText",
+                    "row",
+                    size=size,
+                    children=(label_id, value_id),
                 ),
-                ComponentRow(
+                _visual_row(
                     label_id,
-                    "Text",
-                    {
+                    "TableText",
+                    "label",
+                    size=size,
+                    props={
                         "content": item["label"],
-                        "width": 70,
-                        "fontSize": 12,
-                        "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
-                        "maxLines": 1,
                     },
                 ),
-                ComponentRow(
+                _visual_row(
                     value_id,
-                    "Text",
-                    {
+                    "TableText",
+                    "value",
+                    size=size,
+                    props={
                         "content": copy.deepcopy(item["value"]),
-                        "width": 56,
-                        "fontSize": 14,
-                        "fontWeight": 700,
                         "fontColor": component.props["fontColor"],
-                        "textAlign": "end",
-                        "maxLines": 1,
                     },
                 ),
             ]
         )
-    root = ComponentRow(
+    recipe = _visual_recipe("TableText", size=size)
+    metrics = recipe.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactDslConversionError("TableText visual recipe has invalid metrics.")
+    item_margin = metrics.get("twoRowGap" if len(items) == 2 else "threeRowGap")
+    root = _visual_row(
         component.component_id,
-        "Column",
-        {
-            "width": 126,
-            "layoutWeight": 1,
-            "justifyContent": "center",
-            "alignItems": "start",
-            "itemMargin": 4,
-            "flexShrink": 1,
-        },
-        tuple(children),
+        "TableText",
+        "root",
+        size=size,
+        props={"itemMargin": item_margin},
+        children=tuple(children),
     )
     return [root, *rows]
 
@@ -1570,51 +1584,44 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
         children.append(item_id)
         rows.extend(
             [
-                ComponentRow(
+                _visual_row(
                     item_id,
-                    "Column",
-                    {
-                        "width": 134,
-                        "height": 45,
-                        "padding": {"left": 8, "right": 8, "top": 6, "bottom": 6},
-                        "borderRadius": 10,
+                    "TextBlock",
+                    "item",
+                    size=size,
+                    props={
                         "backgroundColor": component.props["backgroundColor"],
-                        "itemMargin": 2,
-                        "justifyContent": "center",
                     },
-                    (label_id, value_id),
+                    children=(label_id, value_id),
                 ),
-                ComponentRow(
+                _visual_row(
                     label_id,
-                    "Text",
-                    {
+                    "TextBlock",
+                    "label",
+                    size=size,
+                    props={
                         "content": item["label"],
-                        "width": 118,
-                        "fontSize": 12,
-                        "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
-                        "maxLines": 1,
                     },
                 ),
-                ComponentRow(
+                _visual_row(
                     value_id,
-                    "Text",
-                    {
+                    "TextBlock",
+                    "value",
+                    size=size,
+                    props={
                         "content": copy.deepcopy(item["value"]),
-                        "width": 118,
-                        "fontSize": 12,
-                        "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
-                        "maxLines": 1,
                     },
                 ),
             ]
         )
-    root = ComponentRow(
+    root = _visual_row(
         component.component_id,
-        "Row",
-        {"width": 276, "height": 45, "itemMargin": 8},
-        tuple(children),
+        "TextBlock",
+        "root",
+        size=size,
+        children=tuple(children),
     )
     return [root, *rows]
 
@@ -1642,62 +1649,60 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
     _validate_high_level_on_click(component)
 
     label_id = f"{component.component_id}_label"
+    visual_id = f"{component.component_id}_visual"
     icon = component.props.get("icon")
-    children = [label_id]
-    container_type = "Column"
+    children = [label_id, visual_id]
     container_props: dict[str, Any] = {
-        "width": 132,
-        "height": 57,
-        "padding": {"left": 12, "right": 12},
-        "borderRadius": 12,
         "backgroundColor": component.props["backgroundColor"],
-        "justifyContent": "center",
-        "alignItems": "center",
         "onClick": copy.deepcopy(component.props["onClick"]),
     }
-    label_width = 108
-    rows = []
-    if icon:
-        container_type = "Row"
-        icon_id = f"{component.component_id}_icon"
-        children.append(icon_id)
-        container_props["justifyContent"] = "start"
-        container_props["itemMargin"] = 8
-        label_width = 80
-    rows.append(
-        ComponentRow(
+    rows = [
+        _visual_row(
             component.component_id,
-            container_type,
-            container_props,
-            tuple(children),
-        )
-    )
-    rows.append(
-        ComponentRow(
+            "CardButton",
+            "root",
+            size=size,
+            props=container_props,
+            children=tuple(children),
+        ),
+        _visual_row(
             label_id,
-            "Text",
-            {
+            "CardButton",
+            "label",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["label"]),
-                "width": label_width,
-                "fontSize": 14,
-                "fontWeight": 500,
                 "fontColor": component.props["fontColor"],
-                "textAlign": "start",
-                "maxLines": 1,
             },
-        )
-    )
+        ),
+    ]
     if icon:
         image_props: dict[str, Any] = {
             "src": icon,
-            "width": 20,
-            "height": 20,
-            "objectFit": "contain",
-            "flexShrink": 0,
         }
         if "fillColor" in component.props:
             image_props["fillColor"] = component.props["fillColor"]
-        rows.append(ComponentRow(f"{component.component_id}_icon", "Image", image_props))
+        rows.append(
+            _visual_row(
+                visual_id,
+                "CardButton",
+                "icon",
+                size=size,
+                props=image_props,
+            )
+        )
+    else:
+        foreground = component.props["fontColor"]
+        placeholder_color = _color_with_alpha(foreground, 0.2)
+        rows.append(
+            _visual_row(
+                visual_id,
+                "CardButton",
+                "placeholder",
+                size=size,
+                props={"backgroundColor": placeholder_color},
+            )
+        )
     return rows
 
 
@@ -1742,126 +1747,78 @@ def _expand_progress_circle_single(
     for name in ("fontColor", "color", "backgroundColor"):
         _require_color(component, name)
 
-    ring_area_id = f"{component.component_id}_ring_area"
     ring_stack_id = f"{component.component_id}_ring_stack"
     ring_id = f"{component.component_id}_ring"
     display_id = f"{component.component_id}_display"
-    info_id = f"{component.component_id}_info"
+    labels_id = f"{component.component_id}_labels"
     label_id = f"{component.component_id}_label"
-    details_group_id = f"{component.component_id}_details"
     detail_ids = [f"{component.component_id}_detail{index}" for index in range(len(details))]
     rows = [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Row",
-            {
-                "width": 276,
-                "height": 126,
-                "itemMargin": 12,
-                "alignItems": "center",
-            },
-            (ring_area_id, info_id),
+            "ProgressCircleSingle",
+            "root",
+            size=size,
+            children=(ring_stack_id, labels_id),
         ),
-        ComponentRow(
-            ring_area_id,
-            "Column",
-            {
-                "width": 132,
-                "height": 126,
-                "padding": 8,
-                "borderRadius": 16,
-                "backgroundColor": "#99FFFFFF",
-                "justifyContent": "center",
-                "alignItems": "center",
-            },
-            (ring_stack_id,),
-        ),
-        ComponentRow(
+        _visual_row(
             ring_stack_id,
-            "Stack",
-            {"width": 92, "height": 92, "alignContent": "center"},
-            (ring_id, display_id),
+            "ProgressCircleSingle",
+            "ringStack",
+            size=size,
+            children=(ring_id, display_id),
         ),
-        ComponentRow(
+        _visual_row(
             ring_id,
-            "Progress",
-            {
+            "ProgressCircleSingle",
+            "ring",
+            size=size,
+            props={
                 "type": "ring",
-                "width": 92,
-                "height": 92,
-                "strokeWidth": 8,
                 "value": copy.deepcopy(component.props["value"]),
                 "total": total,
                 "color": component.props["color"],
                 "backgroundColor": component.props["backgroundColor"],
             },
         ),
-        ComponentRow(
+        _visual_row(
             display_id,
-            "Text",
-            {
+            "ProgressCircleSingle",
+            "display",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["displayValue"]),
-                "width": 76,
-                "fontSize": 18,
-                "fontWeight": 700,
                 "fontColor": component.props["fontColor"],
-                "textAlign": "center",
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
-            info_id,
-            "Column",
-            {
-                "width": 132,
-                "height": 126,
-                "padding": 8,
-                "borderRadius": 16,
-                "backgroundColor": "#99FFFFFF",
-                "itemMargin": 4,
-                "justifyContent": "start",
-                "alignItems": "start",
-            },
-            (label_id, details_group_id),
+        _visual_row(
+            labels_id,
+            "ProgressCircleSingle",
+            "labels",
+            size=size,
+            children=(label_id, *detail_ids),
         ),
-        ComponentRow(
+        _visual_row(
             label_id,
-            "Text",
-            {
+            "ProgressCircleSingle",
+            "label",
+            size=size,
+            props={
                 "content": component.props["label"],
-                "width": 116,
-                "height": 16,
-                "fontSize": 12,
-                "fontWeight": 400,
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
-        ),
-        ComponentRow(
-            details_group_id,
-            "Column",
-            {
-                "width": 116,
-                "layoutWeight": 1,
-                "itemMargin": 4,
-                "justifyContent": "end",
-                "alignItems": "start",
-            },
-            tuple(detail_ids),
         ),
     ]
     for index, detail in enumerate(details):
         rows.append(
-            ComponentRow(
+            _visual_row(
                 detail_ids[index],
-                "Text",
-                {
+                "ProgressCircleSingle",
+                "detailPrimary" if index == 0 else "detailSecondary",
+                size=size,
+                props={
                     "content": copy.deepcopy(detail),
-                    "width": 116,
-                    "fontSize": 14 if index == 0 else 12,
-                    "fontWeight": 500 if index == 0 else 400,
                     "fontColor": component.props["fontColor"],
-                    "maxLines": 1,
                 },
             )
         )
@@ -1881,129 +1838,119 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
     _require_color(component, "fontColor")
     _require_color(component, "lineColor")
 
+    has_location = "location" in component.props
+    variant = "withLocation" if has_location else "withoutLocation"
+    recipe = _visual_recipe("EventCard", size=size, variant=variant)
+    metrics = recipe.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactDslConversionError("EventCard visual recipe has invalid metrics.")
+    event_height = metrics.get("height")
+    line_height = metrics.get("lineHeight")
+    if not isinstance(event_height, int) or not isinstance(line_height, int):
+        raise CompactDslConversionError("EventCard visual recipe has invalid geometry.")
     rail_id = f"{component.component_id}_rail"
     dot_id = f"{rail_id}_dot"
-    dot_fill_id = f"{dot_id}_fill"
     line_id = f"{rail_id}_line"
     texts_id = f"{component.component_id}_texts"
     title_id = f"{component.component_id}_title"
     time_id = f"{component.component_id}_time"
     text_children = [title_id, time_id]
-    if "location" in component.props:
+    if has_location:
         text_children.append(f"{component.component_id}_location")
     rows = [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Row",
-            {
-                "width": 126,
+            "EventCard",
+            "root",
+            size=size,
+            variant=variant,
+            props={
+                "height": event_height,
                 "layoutWeight": 1,
-                "padding": {"top": 4},
-                "itemMargin": 8,
-                "alignItems": "top",
-                "justifyContent": "start",
-                "flexShrink": 1,
             },
-            (rail_id, texts_id),
+            children=(rail_id, texts_id),
         ),
-        ComponentRow(
+        _visual_row(
             rail_id,
-            "Column",
-            {
-                "width": 8,
-                "height": 48,
-                "padding": {"left": 0, "top": 4, "right": 0, "bottom": 2},
-                "itemMargin": 4,
-                "justifyContent": "start",
-                "alignItems": "center",
-                "flexShrink": 0,
+            "EventCard",
+            "rail",
+            size=size,
+            variant=variant,
+            props={
+                "height": event_height,
                 "clip": True,
             },
-            (dot_id, line_id),
+            children=(dot_id, line_id),
         ),
-        ComponentRow(
+        _visual_row(
             dot_id,
-            "Stack",
-            {
-                "width": 8,
-                "height": 8,
-                "borderRadius": 4,
-                "borderWidth": 1.5,
+            "EventCard",
+            "dot",
+            size=size,
+            variant=variant,
+            props={
                 "borderColor": component.props["fontColor"],
                 "backgroundColor": "#00FFFFFF",
                 "alignContent": "center",
-                "flexShrink": 0,
             },
-            (dot_fill_id,),
         ),
-        ComponentRow(
-            dot_fill_id,
-            "Divider",
-            {"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"},
-        ),
-        ComponentRow(
+        _visual_row(
             line_id,
-            "Divider",
-            {
-                "width": 1,
-                "layoutWeight": 1,
-                "strokeWidth": 1,
-                "vertical": True,
+            "EventCard",
+            "line",
+            size=size,
+            variant=variant,
+            props={
+                "height": line_height,
                 "color": component.props["lineColor"],
-                "flexShrink": 0,
             },
         ),
-        ComponentRow(
+        _visual_row(
             texts_id,
-            "Column",
-            {
-                "width": "matchParent",
-                "height": 48,
-                "layoutWeight": 1,
-                "itemMargin": 2 if "location" in component.props else 4,
-                "justifyContent": "start",
-                "alignItems": "start",
-                "flexShrink": 1,
+            "EventCard",
+            "copy",
+            size=size,
+            variant=variant,
+            props={
+                "height": event_height,
             },
-            tuple(text_children),
+            children=tuple(text_children),
         ),
-        ComponentRow(
+        _visual_row(
             title_id,
-            "Text",
-            {
+            "EventCard",
+            "title",
+            size=size,
+            variant=variant,
+            props={
                 "content": copy.deepcopy(component.props["title"]),
-                "fontSize": 14,
-                "fontWeight": 700,
-                "width": "matchParent",
                 "fontColor": component.props["fontColor"],
                 "maxLines": 1,
             },
         ),
-        ComponentRow(
+        _visual_row(
             time_id,
-            "Text",
-            {
+            "EventCard",
+            "meta",
+            size=size,
+            variant=variant,
+            props={
                 "content": copy.deepcopy(component.props["time"]),
-                "fontSize": 12,
-                "fontWeight": 400,
-                "width": "matchParent",
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
         ),
     ]
-    if "location" in component.props:
+    if has_location:
         rows.append(
-            ComponentRow(
+            _visual_row(
                 f"{component.component_id}_location",
-                "Text",
-                {
+                "EventCard",
+                "meta",
+                size=size,
+                variant=variant,
+                props={
                     "content": copy.deepcopy(component.props["location"]),
-                    "fontSize": 12,
-                    "fontWeight": 400,
-                    "width": "matchParent",
                     "fontColor": component.props["fontColor"],
-                    "maxLines": 1,
                 },
             )
         )
@@ -2024,84 +1971,45 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
     _require_color(component, "fontColor")
     _require_color(component, "secondaryColor")
 
-    label_area_id = f"{component.component_id}_label_area"
     label_id = f"{component.component_id}_label"
-    value_group_id = f"{component.component_id}_value_group"
     value_id = f"{component.component_id}_value"
     supporting_id = f"{component.component_id}_supporting"
     return [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Column",
-            {
-                "width": 126,
-                "layoutWeight": 1,
-                "itemMargin": 8,
-                "justifyContent": "start",
-                "alignItems": "center",
-                "flexShrink": 1,
-            },
-            (label_area_id, value_group_id),
+            "DataDisplay",
+            "root",
+            size=size,
+            children=(label_id, value_id, supporting_id),
         ),
-        ComponentRow(
-            label_area_id,
-            "Row",
-            {
-                "width": 126,
-                "height": 20,
-                "justifyContent": "center",
-                "alignItems": "center",
-                "flexShrink": 0,
-            },
-            (label_id,),
-        ),
-        ComponentRow(
+        _visual_row(
             label_id,
-            "Text",
-            {
+            "DataDisplay",
+            "label",
+            size=size,
+            props={
                 "content": component.props["label"],
-                "width": 102,
-                "fontSize": 12,
-                "fontWeight": 400,
                 "fontColor": component.props["secondaryColor"],
-                "textAlign": "center",
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
-            value_group_id,
-            "Column",
-            {
-                "width": 126,
-                "layoutWeight": 1,
-                "itemMargin": 2,
-                "justifyContent": "center",
-                "alignItems": "center",
-                "flexShrink": 1,
-            },
-            (value_id, supporting_id),
-        ),
-        ComponentRow(
+        _visual_row(
             value_id,
-            "Text",
-            {
+            "DataDisplay",
+            "value",
+            size=size,
+            props={
                 "content": copy.deepcopy(component.props["value"]),
-                "fontSize": 38,
-                "fontWeight": 700,
                 "fontColor": component.props["fontColor"],
-                "maxLines": 1,
             },
         ),
-        ComponentRow(
+        _visual_row(
             supporting_id,
-            "Text",
-            {
+            "DataDisplay",
+            "supporting",
+            size=size,
+            props={
                 "content": component.props["supportingText"],
-                "fontSize": 12,
-                "fontWeight": 500,
                 "fontColor": component.props["fontColor"],
-                "textAlign": "center",
-                "maxLines": 1,
             },
         ),
     ]
@@ -2129,13 +2037,12 @@ def _expand_top_text_bottom_value(
             divider_id = f"{component.component_id}_divider{index - 1}"
             children.append(divider_id)
             rows.append(
-                ComponentRow(
+                _visual_row(
                     divider_id,
-                    "Divider",
-                    {
-                        "width": 1,
-                        "height": 64,
-                        "vertical": True,
+                    "TopTextBottomValue",
+                    "divider",
+                    size=size,
+                    props={
                         "color": component.props["dividerColor"],
                     },
                 )
@@ -2143,56 +2050,41 @@ def _expand_top_text_bottom_value(
         children.append(item_id)
         rows.extend(
             [
-                ComponentRow(
+                _visual_row(
                     item_id,
-                    "Column",
-                    {
-                        "width": 96,
-                        "height": 84,
-                        "itemMargin": 4,
-                        "justifyContent": "center",
-                        "alignItems": "center",
-                    },
-                    (value_id, label_id),
+                    "TopTextBottomValue",
+                    "item",
+                    size=size,
+                    children=(label_id, value_id),
                 ),
-                ComponentRow(
+                _visual_row(
                     label_id,
-                    "Text",
-                    {
+                    "TopTextBottomValue",
+                    "label",
+                    size=size,
+                    props={
                         "content": item["label"],
-                        "width": 96,
-                        "fontSize": 12,
-                        "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
-                        "textAlign": "center",
-                        "maxLines": 1,
                     },
                 ),
-                ComponentRow(
+                _visual_row(
                     value_id,
-                    "Text",
-                    {
+                    "TopTextBottomValue",
+                    "value",
+                    size=size,
+                    props={
                         "content": copy.deepcopy(item["value"]),
-                        "width": 96,
-                        "fontSize": 18,
-                        "fontWeight": 700,
                         "fontColor": component.props["fontColor"],
-                        "textAlign": "center",
-                        "maxLines": 1,
                     },
                 ),
             ]
         )
-    root = ComponentRow(
+    root = _visual_row(
         component.component_id,
-        "Row",
-        {
-            "width": 296,
-            "height": 84,
-            "justifyContent": "spaceBetween",
-            "alignItems": "center",
-        },
-        tuple(children),
+        "TopTextBottomValue",
+        "root",
+        size=size,
+        children=tuple(children),
     )
     return [root, *rows]
 
@@ -2340,6 +2232,11 @@ def _require_color(component: ComponentRow, name: str) -> None:
     raise CompactDslConversionError(
         f"{component.component_id}: {component.component_type}.{name} must use #AARRGGBB."
     )
+
+
+def _color_with_alpha(color: str, opacity: float) -> str:
+    alpha = round(int(color[1:3], 16) * opacity)
+    return f"#{alpha:02X}{color[3:]}"
 
 
 def _validate_optional_icon(component: ComponentRow) -> None:
@@ -2727,6 +2624,8 @@ def _normalize_large_value_unit_alignment(
     for row in components:
         if row.component_type != "Row":
             continue
+        if row.props.get("_visualRecipe"):
+            continue
         text_children: list[ComponentRow] = []
         for child_id in row.children:
             child = components_by_id.get(child_id)
@@ -2844,6 +2743,8 @@ def _normalize_small_backboard_icon_alignment(
     replacements: dict[str, ComponentRow] = {}
     for candidate_id in candidate_ids:
         backboard = components_by_id[candidate_id]
+        if backboard.props.get("_visualRecipe"):
+            continue
         if size == "2x4":
             backboard_width = 132
             backboard_height = 57
@@ -4013,6 +3914,7 @@ def _convert_action_unit_capsule(component: ComponentRow, icon_size: int) -> lis
     )
     _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
+    _apply_action_runtime_geometry(styles, component.props)
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
         styles["fontColor"] = action_ink
@@ -4034,6 +3936,7 @@ def _convert_action_unit_capsule_with_icon(
     )
     _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
+    _apply_action_runtime_geometry(styles, component.props)
     text_styles = _capsule_text_styles(styles, component.props.get("actionInk"))
     row_styles = _capsule_row_styles(styles)
     row: dict[str, Any] = {
@@ -4082,6 +3985,22 @@ def _apply_action_text_styles(
     props: dict[str, Any],
 ) -> None:
     for property_name in ("fontSize", "fontWeight"):
+        value = props.get(property_name)
+        if value is not None:
+            styles[property_name] = copy.deepcopy(value)
+
+
+def _apply_action_runtime_geometry(
+    styles: dict[str, Any],
+    props: dict[str, Any],
+) -> None:
+    for property_name in (
+        "width",
+        "height",
+        "borderRadius",
+        "padding",
+        "flexShrink",
+    ):
         value = props.get(property_name)
         if value is not None:
             styles[property_name] = copy.deepcopy(value)
@@ -4146,6 +4065,7 @@ def _convert_action_unit_icon_round(
     )
     _normalize_icon_button_stack(styles)
     _apply_action_background(styles, component.props)
+    _apply_action_runtime_geometry(styles, component.props)
     icon_color = _resolve_tokens(
         "fillColor",
         component.props.get("actionInk", "icon_emphasize"),

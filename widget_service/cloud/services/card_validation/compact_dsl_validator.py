@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.compact_component_runtime import VISUAL_RECIPE_VERSION
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -33,6 +34,7 @@ _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
     r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
 )
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_VISUAL_RECIPE_MARKER_PREFIX = f"{VISUAL_RECIPE_VERSION}:"
 _REFERENCE_CANVAS_HEIGHT = {
     "2x2": 150.0,
     "2x4": 150.0,
@@ -119,6 +121,16 @@ _COMMON_DISPLAY_UNITS = frozenset(
         "m/s",
     }
 )
+
+
+def _uses_visual_recipe(component: ComponentRow) -> bool:
+    marker = component.props.get("_visualRecipe")
+    return isinstance(marker, str) and marker.startswith(_VISUAL_RECIPE_MARKER_PREFIX)
+
+
+def _uses_visual_recipe_part(component: ComponentRow, part: str) -> bool:
+    marker = component.props.get("_visualRecipe")
+    return marker == f"{_VISUAL_RECIPE_MARKER_PREFIX}{part}"
 
 _MEASUREMENT_DESCRIPTION_MARKERS = (
     "温度",
@@ -382,6 +394,8 @@ def _collect_hero_value_errors(
     for component in components:
         if component.component_type != "Text":
             continue
+        if _uses_visual_recipe(component):
+            continue
         font_size = _non_negative_number(component.props.get("fontSize"))
         if font_size is None or font_size <= 18:
             continue
@@ -409,6 +423,8 @@ def _collect_hero_value_errors(
 
     for component in components:
         if component.component_type != "Row":
+            continue
+        if _uses_visual_recipe(component):
             continue
         for index, child_id in enumerate(component.children[:-1]):
             suffix = components_by_id.get(component.children[index + 1])
@@ -743,6 +759,8 @@ def _collect_adjacent_display_unit_errors(
 ) -> None:
     for component in components:
         if component.component_type != "Row":
+            continue
+        if _uses_visual_recipe(component):
             continue
         for index, child_id in enumerate(component.children[:-1]):
             value = components_by_id.get(child_id)
@@ -1115,6 +1133,8 @@ def _collect_mixed_font_row_alignment_errors(
     for component in components:
         if component.component_type != "Row":
             continue
+        if _uses_visual_recipe(component):
+            continue
         text_children: list[ComponentRow] = []
         for child_id in component.children:
             child = components_by_id.get(child_id)
@@ -1218,6 +1238,7 @@ def _collect_two_by_four_small_backboard_errors(
             )
         has_visual = any(
             component.component_type in {"Image", "Progress", "Stack"}
+            or _uses_visual_recipe_part(component, "CardButton.placeholder")
             for component in descendants
         )
         if has_visual:
@@ -2275,7 +2296,7 @@ def _is_two_by_four_focus_aux_cell(component: ComponentRow | None) -> bool:
     return (
         component.props.get("width") == _TWO_BY_FOUR_AUX_WIDTH
         and component.props.get("height") == _TWO_BY_FOUR_AUX_CELL_HEIGHT
-        and component.props.get("borderRadius") == 12
+        and component.props.get("borderRadius") in {12, 16}
         and "backgroundColor" in component.props
     )
 

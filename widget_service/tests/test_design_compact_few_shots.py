@@ -940,9 +940,9 @@ def test_peer_status_gold_uses_aligned_label_value_rows() -> None:
     value_sizes = {
         components[f"metric_list_row{index}_value"]["styles"]["fontSize"] for index in range(3)
     }
-    assert label_widths == {70}
+    assert label_widths == {62}
     assert value_widths == {56}
-    assert value_sizes == {14}
+    assert value_sizes == {10}
     assert all(size < 20 for size in value_sizes)
 
 
