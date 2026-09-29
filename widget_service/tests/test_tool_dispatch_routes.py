@@ -233,7 +233,7 @@ def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
                     "width": 276,
                     "height": 64,
                     "content": "Static card",
-                    "fontSize": 20,
+                    "fontSize": 18,
                     "fontWeight": 700,
                     "fontColor": "#E5000000",
                     "maxLines": 1,
@@ -1598,15 +1598,17 @@ def test_compact_argument_repair_drops_unregistered_and_invalid_candidates(monke
     )
     assert message["data"]["status"] == "success"
     saved_content = json.loads(saved_request_bodies[0])["content"]
-    assert saved_content["candidateDataBindings"] == []
+    bindings = saved_content.get("candidateDataBindings")
+    assert isinstance(bindings, list) and len(bindings) == 1
+    assert bindings[0].get("capabilityId") == "ViewWeather"
     assert saved_content["candidateEventCandidates"] == []
     assert saved_content["candidateAssetIds"] == []
 
 
-def test_compact_argument_repair_uses_minimal_request_after_invalid_model_outputs(
+def test_compact_argument_repair_fails_after_invalid_model_outputs(
     monkeypatch,
 ):
-    """两次模型输出均非法时从原字符串保留文本并继续静态生成。"""
+    """两次模型输出均非法时终止本轮，不调用生成模型或保存静态产物。"""
     settings = get_settings()
     monkeypatch.setattr(
         settings,
@@ -1658,25 +1660,28 @@ def test_compact_argument_repair_uses_minimal_request_after_invalid_model_output
             "/api/v1/ws/tools/generateWidgetCardCompactDsl"
         ) as websocket:
             websocket.send_json(request)
-            response = _receive_final_frame(websocket, request_id)
+            response = websocket.receive_json()
     finally:
         compact_dsl_argument_issue_tracker.clear()
 
-    message = _assert_success_envelope(
-        response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert message["data"]["status"] == "success"
-    assert model_formats == ["raw-json", "raw-json", "compact-dsl"]
-    saved_payload = json.loads(saved_request_bodies[0])
-    saved_content = saved_payload["content"]
-    assert saved_content["userQuery"] == "天气卡片"
-    assert saved_content["title"] == "实时天气"
-    assert saved_content["description"] == "天气观察"
-    assert saved_content["candidateDataBindings"] == []
-    assert saved_content["candidateEventCandidates"] == []
-    assert saved_content["candidateAssetIds"] == []
+    reply = response.get("reply")
+    assert isinstance(reply, dict)
+    stream_info = reply.get("streamInfo")
+    assert isinstance(stream_info, dict)
+    stream_content = stream_info.get("streamContent")
+    assert isinstance(stream_content, str)
+    message = parse_legacy_stream_content(stream_content)
+    assert message.get("requestId") == request_id
+    assert message.get("status") == "failed"
+    assert message.get("errorCode") == "A2UI_GENERATION_FAILED"
+    error = message.get("error")
+    assert isinstance(error, dict)
+    details = error.get("details")
+    assert isinstance(details, dict)
+    assert details.get("retryable") is False
+    assert "重试一下" in details.get("agentInstruction", "")
+    assert model_formats == ["raw-json", "raw-json"]
+    assert saved_request_bodies == []
 
 
 def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):

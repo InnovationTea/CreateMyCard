@@ -7,6 +7,7 @@ pydantic-settings>=2.4.0
 requests>=2.32.0
 orjson>=3.10.0
 jsonschema>=4.23.0
+json-repair==0.50.0
 packaging>=24.1
 tenacity>=8.5.0
 structlog>=24.4.0

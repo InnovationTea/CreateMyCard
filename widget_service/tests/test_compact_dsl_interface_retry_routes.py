@@ -201,7 +201,12 @@ def test_bad_parameters_never_enter_generation_retry(monkeypatch, bad_input):
         else:
             websocket.send_json(_tool_payload({"arguments": "broken"}, "repair-failure"))
         response = websocket.receive_json()
-    assert final_result([response]).get("errorCode") == ErrorCode.INVALID_ARGUMENTS
+    expected = (
+        ErrorCode.A2UI_GENERATION_FAILED
+        if bad_input == "repair-failed"
+        else ErrorCode.INVALID_ARGUMENTS
+    )
+    assert final_result([response]).get("errorCode") == expected
     assert len(repair_calls) == (1 if bad_input == "repair-failed" else 0)
 
 
