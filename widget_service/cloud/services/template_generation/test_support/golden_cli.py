@@ -1238,11 +1238,24 @@ def _render_layer_sections_html(
             f"<td>{row['diff']}</td></tr>"
             for row in failure_rows
         )
+        drift_hint = {
+            "A": "当前代码重新生成的模板快照与已固化金样的漂移：changed = 输出变了"
+                 "（预期内 → bless --declared 固化；预期外 → 先查代码），added = 新模板"
+                 "还没有金样，removed = 金样对应的模板已不存在。0 表示模板渲染与基线完全一致。",
+            "B": "回放结果与已固化 golden 的漂移：changed = 该用例当前生成结果变了，"
+                 "replay missed = prompt 变了导致录制失效（需重录）。0 表示回放与基线一致。"
+                 "注意与下方 Baseline failure diagnosis 区分：那是「录制时本来就失败的基线」，"
+                 "这里是「本次代码运行相对基线的漂移」。",
+            "C": "场景快照与已固化金样的漂移：changed = 该场景当前重建结果变了。"
+                 "0 表示场景行为与基线完全一致。",
+        }[key]
         failure_block = (
             f'<h3>Failures &amp; divergence ({len(failure_rows)})</h3>'
+            f'<p class="muted">{esc(drift_hint)}</p>'
             '<table class="lb"><thead><tr><th>Item</th><th>Kind</th><th>Stage</th>'
             "<th>Error / message</th><th>Diff</th></tr></thead><tbody>"
-            + (rows_html or '<tr><td colspan="5" class="muted">none — layer is green</td></tr>')
+            + (rows_html or '<tr><td colspan="5" class="muted">none — layer is green'
+               "（当前生成与固化基线一致；模板/引擎改动后会在这里出现待复核的漂移）</td></tr>")
             + "</tbody></table>"
         )
         baseline_block = ""
