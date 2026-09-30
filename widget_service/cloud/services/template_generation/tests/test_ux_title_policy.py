@@ -15,18 +15,26 @@ from services.template_generation.engine.cardplan.registry import CardPlanRegist
 
 
 @pytest.mark.parametrize(
-    ("size", "layout"),
-    [("2x2", "SingleFocusLayout"), ("2x4", "WideFullOnlyLayout")],
+    ("size", "layout", "businesses"),
+    [
+        ("2x2", "SingleFocusLayout", ("WeatherOverview",)),
+        ("2x4", "WideFullOnlyLayout", ("WeatherOverview",)),
+        ("2x2", "TwoSupportLayout", ("BatteryOverview", "BluetoothDeviceOverview")),
+        ("2x4", "WideTwoFullLayout", ("BatteryOverview", "BluetoothDeviceOverview")),
+    ],
 )
 @pytest.mark.parametrize("explicit_title", [False, True])
 def test_ux_layout_only_renders_explicit_titles(
-    size: Literal["2x2", "2x4"], layout: str, explicit_title: bool
+    size: Literal["2x2", "2x4"],
+    layout: str,
+    businesses: tuple[str, ...],
+    explicit_title: bool,
 ) -> None:
-    title = "天气卡片名称"
-    card_spec = {"title": title, "description": "显示天气", "suggestSize": size}
+    title = "卡片名称"
+    card_spec = {"title": title, "description": "显示业务内容", "suggestSize": size}
     contract = HybridBodyContract(
         theme_profile_id="family-weather-care-blue",
-        allowed_components=("Text", "Column", "Stack", layout),
+        allowed_components=("Text", "Column", "Row", "Stack", layout),
         allowed_design_tokens=("body",),
         allowed_layout_tokens=(),
         allowed_template_ids=(f"{layout}@1",),
@@ -36,6 +44,7 @@ def test_ux_layout_only_renders_explicit_titles(
         required_literals=("晴",),
         protected_literals=("晴",),
         allowed_layout_component_ids=(layout,),
+        allowed_business_component_ids=businesses,
         limits=HybridLimits(
             max_raw_components=8,
             max_expanded_components=32,
@@ -47,10 +56,17 @@ def test_ux_layout_only_renders_explicit_titles(
     if explicit_title:
         texts.insert(0, title)
     children = ",".join(f'Text({json.dumps(text, ensure_ascii=False)},"body")' for text in texts)
-    source = f'Template("{layout}@1",{{}},Column({children}));'
+    content = f'Column({children})'
+    if len(businesses) == 2:
+        content += ',Column(Text("另一业务内容","body"))'
+        texts.append("另一业务内容")
+        contract = contract.model_copy(update={
+            "trusted_literals": (*contract.trusted_literals, "另一业务内容"),
+        })
+    source = f'Template("{layout}@1",{{}},{content});'
     compilation = compile_ux_layout_card(
         source,
-        task_spec=TaskSpec(userQuery="显示天气", size=size, dataModelSchema={"data": {}}),
+        task_spec=TaskSpec(userQuery="显示业务内容", size=size, dataModelSchema={"data": {}}),
         contract=contract,
         protocol_profile=A2UIProtocolRegistry().get_profile(),
         registry=CardPlanRegistry(),
@@ -67,4 +83,4 @@ def test_ux_layout_only_renders_explicit_titles(
         if component.get("component") == "Text":
             actual_texts.append(component.get("content"))
     assert actual_texts == texts
-    assert card_spec == {"title": title, "description": "显示天气", "suggestSize": size}
+    assert card_spec == {"title": title, "description": "显示业务内容", "suggestSize": size}

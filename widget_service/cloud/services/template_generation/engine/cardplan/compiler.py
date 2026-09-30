@@ -485,12 +485,6 @@ def compile_ux_layout_card(
         registry,
         size=task_spec.size,
     )
-    content = _inject_phone_earphone_title(
-        content,
-        contract,
-        registry,
-        template_ids=tuple(state.template_ids),
-    )
     content = _deduplicate_ux_business_title_fragments(content, business_title)
     content = _lower_capsule_progress(content)
     content = _deduplicate_visible_text(content, task_spec)
@@ -7760,46 +7754,6 @@ def _is_literal_component_header(node: Nested2Node) -> bool:
 
 def _is_plain_literal_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip()) and "${" not in value
-
-
-def _inject_phone_earphone_title(
-    node: Nested2Node,
-    contract: HybridBodyContract,
-    registry: CardPlanRegistry,
-    *,
-    template_ids: tuple[str, ...] = (),
-) -> Nested2Node:
-    if _contract_ux_business_component_names(contract, registry) != {
-        "BatteryOverview",
-        "BluetoothDeviceOverview",
-    }:
-        return node
-    if "TwoSupportLayout@1" in template_ids:
-        # 双业务 Support 行各自占满半卡片高度，不再挤入一行“设备电量”标题。
-        return node
-    if "WideHalfTwoCompactLayout@1" in template_ids:
-        # 三个槽位已有业务标签，并已占满 136vp 安全区。
-        return node
-    if any(template_id.startswith("WideTwoFocus") for template_id in template_ids):
-        # 双焦点拼接布局的左右面板自带业务标签行，不再注入整卡“设备电量”标题。
-        return node
-    title = _bluetooth_text("设备电量", "subtitle", 12, 400, align="start")
-    body = _with_flex_weight(node, 1, axis="vertical")
-    return Nested2Node(
-        "Column",
-        (
-            "section",
-            {
-                "width": "100%",
-                "height": "100%",
-                "itemMargin": registry.ux_tokens["moduleGap"],
-                "justifyContent": "start",
-                "alignItems": "start",
-                "clip": True,
-            },
-        ),
-        (title, body),
-    )
 
 
 def _inject_resource_battery_title(
