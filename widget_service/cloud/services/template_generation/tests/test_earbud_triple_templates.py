@@ -1,11 +1,22 @@
-"""独立三电量模板不依赖连接状态，且保持动作和充电状态布局。"""
+"""独立三电量模板不依赖连接状态，且保持动作和充电状态布局。
 
-import json
+完整 A2UI 产物已固化为场景金样（Layer C）：无动作 Full 渲染（charge_mask=0）
+与 Hero+PillAction 的 charge_mask{0..7} 各一份；充电状态列几何、主题色、
+onClick 载荷与连接语义的缺省（isConnected/已连接 不得出现）都由快照整体冻结。
+引擎或模板改动后按 golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
+
+import asyncio
 
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction
 from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_template_generation import (
     _bluetooth_card_spec,
     _bluetooth_task,
@@ -13,22 +24,25 @@ from services.template_generation.tests.test_template_generation import (
     _provider_field,
 )
 
+_CHARGE_FIELDS = ("leftChargingStatusDesc", "rightChargingStatusDesc", "chargingStatusDesc")
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "with_action, charge_mask", [(False, 0), *[(True, mask) for mask in range(8)]],
+_TRIPLE_SCENARIOS: tuple[tuple[str, bool, int], ...] = (
+    ("earbud_triple__full_no_action__mask0", False, 0),
+    *(
+        (f"earbud_triple__hero_pill_action__mask{mask}", True, mask)
+        for mask in range(8)
+    ),
 )
-async def test_triple_templates_preserve_header_batteries_and_action(
-    with_action: bool, charge_mask: int,
-) -> None:
+
+
+async def _render_triple_templates(with_action: bool, charge_mask: int = 0) -> dict:
     fields = {
         "earphoneName": _provider_field("测试耳机", "string"),
         "batteryLevel": _provider_field(80, "integer"),
         "leftBatteryLevel": _provider_field(76, "integer"),
         "rightBatteryLevel": _provider_field(78, "integer"),
     }
-    charge_fields = ("leftChargingStatusDesc", "rightChargingStatusDesc", "chargingStatusDesc")
-    for index, field in enumerate(charge_fields):
+    for index, field in enumerate(_CHARGE_FIELDS):
         if charge_mask & (1 << index):
             fields[field] = _provider_field("未充电", "string")
     action_id = "event.open.music.favorite"
@@ -87,76 +101,20 @@ async def test_triple_templates_preserve_header_batteries_and_action(
         candidateOutputFields=[f"/{name}" for name in fields],
     )
     result = await generate_template_a2ui(task, _bluetooth_card_spec(), (binding,), model)
-    assert template_id in result.template_ids
-    for line in result.a2ui.splitlines():
-        for component in json.loads(line).get("updateComponents", {}).get("components", []):
-            if component.get("onClick"):
-                assert component.get("styles", {}).get("backgroundColor") == "#1934651F"
+    return a2ui_messages(result)
 
-    for field in required_fields:
-        assert field in result.a2ui
-    if with_action:
-        assert action_id in result.a2ui
-    assert ("蓝牙耳机" in result.a2ui) == (not with_action)
-    assert "isConnected" not in result.a2ui
-    assert "已连接" not in result.a2ui
-    assert "未连接" not in result.a2ui
-    if with_action:
-        assert "PillAction@1" in result.template_ids
-        assert "IconAction@1" not in result.template_ids
-        component_messages = []
-        for line in result.a2ui.splitlines():
-            update = json.loads(line).get("updateComponents")
-            if update is not None:
-                component_messages.append(update)
-        component_json = json.dumps(component_messages)
-        for name in charge_fields:
-            assert (name in component_json) == (charge_mask == 7)
-        columns = []
-        for line in result.a2ui.splitlines():
-            update = json.loads(line).get("updateComponents", {})
-            for component in update.get("components", []):
-                styles = component.get("styles", {})
-                if component.get("component") == "Column" and styles.get("width") == 36:
-                    columns.append(component)
-        assert len(columns) == 3
-        expected_height = 50 if charge_mask == 7 else 34
-        assert all(column.get("styles", {}).get("height") == expected_height for column in columns)
-        components = {}
-        for line in result.a2ui.splitlines():
-            update = json.loads(line).get("updateComponents", {})
-            for component in update.get("components", []):
-                components[component.get("id")] = component
-        for column in columns:
-            assert column.get("itemMargin") == 2
-            assert column.get("styles", {}).get("alignItems") == "start"
-            children = column.get("children", [])
-            assert len(children) == (3 if charge_mask == 7 else 2)
-            icon = components.get(children[0])
-            assert isinstance(icon, dict)
-            assert icon.get("component") == "Stack"
-            assert icon.get("styles", {}).get("width") == 16
-            percent = components.get(children[1])
-            assert isinstance(percent, dict)
-            assert percent.get("styles", {}).get("fontSize") == 12
-            assert percent.get("styles", {}).get("fontWeight") == 500
-            assert percent.get("styles", {}).get("fontColor") == "#FFFFFFFF"
-            if charge_mask != 7:
-                continue
-            status = components.get(children[2])
-            assert isinstance(status, dict)
-            assert status.get("styles", {}).get("fontSize") == 10
-            assert status.get("styles", {}).get("fontWeight") == 400
-            assert status.get("styles", {}).get("fontColor") == "#99FFFFFF"
-            assert status.get("styles", {}).get("textAlign") == "start"
-        return
-    headers = []
-    for line in result.a2ui.splitlines():
-        message = json.loads(line)
-        update = message.get("updateComponents", {})
-        for component in update.get("components", []):
-            styles = component.get("styles", {})
-            if styles.get("height") in (18, 26) and component.get("component") == "Text":
-                headers.append(styles)
-    assert any(style.get("fontSize") == 12 and style.get("height") == 18 for style in headers)
-    assert any(style.get("fontSize") == 18 and style.get("height") == 26 for style in headers)
+
+def _register_triple_scenarios() -> None:
+    for scenario_id, with_action, charge_mask in _TRIPLE_SCENARIOS:
+        def _build(with_action: bool = with_action, charge_mask: int = charge_mask) -> dict:
+            return asyncio.run(_render_triple_templates(with_action, charge_mask))
+
+        scenario(scenario_id)(_build)
+
+
+_register_triple_scenarios()
+
+
+@pytest.mark.parametrize("scenario_id", [item[0] for item in _TRIPLE_SCENARIOS])
+def test_triple_templates_preserve_header_batteries_and_action(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)

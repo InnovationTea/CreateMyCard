@@ -1,0 +1,85 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下一场日程是明天下午两点的客户方案交流会，帮我做个卡片，看会议地点、备注和结束时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/eventLocation",
+          "/events/0/description",
+          "/events/0/dtEnd"
+        ]
+      }
+    ],
+    "title": "客户交流",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "地点备注和结束",
+    "candidateAssetIds": [
+      "asset.icon_meeting",
+      "asset.local_fill",
+      "asset.clock_fill",
+      "asset.icon_schedule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "007",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "下一场日程是明天下午两点的客户方案交流会，帮我做个卡片，看会议地点、备注和结束时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下一场日程是明天下午两点的客户方案交流会，帮我做个卡片，看会议地点、备注和结束时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/eventLocation",
+        "/events/0/description",
+        "/events/0/dtEnd"
+      ]
+    }
+  ],
+  "title": "客户交流",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "地点备注和结束",
+  "candidateAssetIds": [
+    "asset.icon_meeting",
+    "asset.local_fill",
+    "asset.clock_fill",
+    "asset.icon_schedule"
+  ]
+}

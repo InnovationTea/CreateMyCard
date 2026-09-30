@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "ce73682f9e0384bc2b867fb7307dbd1acb9fe0554d21306ffd812a5d45b82c49",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
+    },
+    {
+      "key": "d999d35d5c2446303d1848791baf8a8d43d2ac0522ed6cefb777a0c6cb454798",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\",\"/sleepStatus\",\"/totalNapDurationText\"]},\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "明天要在广州出门办事，帮我做个降雨卡片，用进度环看明天下雨概率，再看温度范围。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "广州市",
+          "forecastDays": 2
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/daily/1/temperatureRangeText",
+          "/daily/1/rainProbabilityPercent"
+        ]
+      }
+    ],
+    "title": "广州出行",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "降雨进度环和温度",
+    "candidateAssetIds": [
+      "asset.icon_weather_thermometer_medium",
+      "asset.drop_1",
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "005",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "明天要在广州出门办事，帮我做个降雨卡片，用进度环看明天下雨概率，再看温度范围。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "明天要在广州出门办事，帮我做个降雨卡片，用进度环看明天下雨概率，再看温度范围。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "广州市",
+        "forecastDays": 2
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/daily/1/temperatureRangeText",
+        "/daily/1/rainProbabilityPercent"
+      ]
+    }
+  ],
+  "title": "广州出行",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "降雨进度环和温度",
+  "candidateAssetIds": [
+    "asset.icon_weather_thermometer_medium",
+    "asset.drop_1",
+    "asset.calendar_fill"
+  ]
+}

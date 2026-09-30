@@ -1,4 +1,17 @@
-"""Plan 主数据优先、实际字段使用量与稳定排序回归。"""
+"""Plan 主数据优先与数据使用量统计的场景金样回归。
+
+两类确定性数据使用契约已固化为场景金样（Layer C）：
+- plan_data__plan_preference：Plan 偏好矩阵——无/有主数据焦点时主数据优先于
+  更丰富的次级数据、仅 condition 需求下的使用量排序（Humidity → Uv → Full）、
+  双业务取更多真实数据优先于次级匹配，逐用例冻结布局/业务槽/主数据匹配；
+- plan_data__usable_bindings：候选可用字段统计——可选字段 available / missing /
+  wrong-type / not-candidate 四态与双数据根各计一次的路径清单（去重后冻结）。
+第二层 prompt 中的「数据使用量」章节与「优先选择排名靠前的 Plan」文案契约
+保留为内联测试（解释 Layer B 录制的 prompt 字节）。检索排序或可用字段统计
+改动后按 golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
+
+from __future__ import annotations
 
 import pytest
 
@@ -15,36 +28,42 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateSearchIntent,
     search_template_variants,
 )
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_template_plan_planner import (
     _field,
+    _plan_summaries,
     _weather_binding,
     _weather_card_spec,
     _weather_task,
 )
 
 
-@pytest.mark.parametrize("focus", [None, "/current/temperatureText"])
-def test_primary_data_stays_ahead_of_richer_secondary_data(focus: str | None) -> None:
+# --------------------------------------------------------------------------
+# 场景：Plan 偏好（主数据优先 / 使用量排序 / 双业务更多数据）
+# --------------------------------------------------------------------------
+
+
+def _weather_plans_with_focus(focus: str | None) -> list[dict[str, object]]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={"ViewWeather": ("/current/temperatureText",)},
         primaryOutputFieldByCapability={} if focus is None else {"ViewWeather": focus},
     )
     registry = get_cardplan_registry()
+    task = _weather_task()
     search = search_template_variants(
         intent,
-        _weather_task(),
+        task,
         registry,
         (_weather_binding(),),
         _weather_card_spec(),
     )
-    plans = plan_template_candidates(intent, search, _weather_task(), registry)
-    assert plans[0].business_slots[0].template_id == "WeatherOverviewFull@1"
-    if focus is not None:
-        for plan in plans:
-            assert focus in plan.business_slots[0].primary_matched_fields
+    return _plan_summaries(plan_template_candidates(intent, search, task, registry))
 
 
-def test_richer_templates_win_then_equal_usage_keeps_search_order() -> None:
+def _condition_ranking() -> list[str]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/condition",),
@@ -60,28 +79,60 @@ def test_richer_templates_win_then_equal_usage_keeps_search_order() -> None:
         _weather_card_spec(),
     )
     plans = plan_template_candidates(intent, search, task, registry)
-    assert [plan.business_slots[0].template_id for plan in plans] == [
-        "WeatherOverviewHumidityFull@1",
-        "WeatherOverviewUvFull@1",
-        "WeatherOverviewFull@1",
-    ]
-    projection = build_ux_mixed_prompt(
-        task_spec=task,
-        card_spec=_weather_card_spec(),
-        scope=planner_scope(plans),
-        component_candidates=planner_component_candidates(plans),
-        required_template_groups=planner_required_template_groups(plans),
-        template_plans=plans,
-        registry=registry,
+    return [plan.business_slots[0].template_id for plan in plans]
+
+
+def _dual_business_plans() -> list[dict[str, object]]:
+    task = _weather_task()
+    data = task.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    weather = data.get("weather")
+    assert isinstance(weather, dict)
+    current = weather.get("current")
+    assert isinstance(current, dict)
+    current.update({"temperatureC": _field(29.0, "number"), "feelsLikeC": _field(30.0, "number")})
+    data["phoneBattery"] = {"batterySOC": _field(80, "integer")}
+    weather_binding = _weather_binding()
+    weather_binding.candidateOutputFields.extend(["/current/temperatureC", "/current/feelsLikeC"])
+    battery_binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOC"],
     )
-    message = projection.messages[1].get("content")
-    assert isinstance(message, str)
-    assert "数据使用量" in message
-    assert "优先选择排名靠前的 Plan" in message
+    bindings = (weather_binding, battery_binding)
+    card_spec = {
+        "dataBindings": [
+            {"capabilityId": item.capabilityId, "writeResultTo": item.writeResultTo}
+            for item in bindings
+        ]
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureText", "/current/condition"),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
+        }
+    )
+    registry = get_cardplan_registry()
+    search = search_template_variants(intent, task, registry, bindings, card_spec)
+    return _plan_summaries(plan_template_candidates(intent, search, task, registry))
 
 
-@pytest.mark.parametrize("optional_state", ["available", "missing", "wrong-type", "not-candidate"])
-def test_search_counts_only_usable_candidate_bindings(optional_state: str) -> None:
+@scenario("plan_data__plan_preference")
+def _build_plan_preference() -> dict[str, object]:
+    return {
+        "primary_focus_default": {"plans": _weather_plans_with_focus(None)},
+        "primary_focus_temperature": {"plans": _weather_plans_with_focus("/current/temperatureText")},
+        "usage_ranking_condition": {"orderedPlanTemplates": _condition_ranking()},
+        "dual_business_more_data": {"plans": _dual_business_plans()},
+    }
+
+
+# --------------------------------------------------------------------------
+# 场景：候选可用字段统计
+# --------------------------------------------------------------------------
+
+
+def _usable_binding_fields(optional_state: str) -> list[str]:
     task = _weather_task()
     data = task.dataModelSchema.get("data")
     assert isinstance(data, dict)
@@ -113,13 +164,10 @@ def test_search_counts_only_usable_candidate_bindings(optional_state: str) -> No
         for item in result.business_candidates[0].candidates
         if item.template_id == "WeatherOverviewFull@1"
     )
-    paths = candidate.available_data_fields
-    assert ("/data/weather/current/airQuality" in paths) is (optional_state == "available")
-    assert len(paths) == (6 if optional_state == "available" else 5)
-    assert len(paths) == len(set(paths))
+    return sorted(candidate.available_data_fields)
 
 
-def test_dual_root_usage_counts_each_real_binding_once() -> None:
+def _dual_root_binding_fields() -> list[str]:
     fields = ["/current/temperatureC", "/current/condition"]
     roots = ("/data/weather1", "/data/weather2")
     task = TaskSpec(
@@ -156,49 +204,64 @@ def test_dual_root_usage_counts_each_real_binding_once() -> None:
     )
     candidate = result.business_candidates[0].candidates[0]
     assert candidate.template_id == "WeatherOverviewDualCityFull@1"
-    assert candidate.available_data_fields == (
-        "/data/weather1/current/condition",
-        "/data/weather1/current/temperatureC",
-        "/data/weather2/current/condition",
-        "/data/weather2/current/temperatureC",
-    )
+    return sorted(candidate.available_data_fields)
 
 
-def test_dual_business_plan_prefers_more_data_before_secondary_matches() -> None:
-    task = _weather_task()
-    data = task.dataModelSchema.get("data")
-    assert isinstance(data, dict)
-    weather = data.get("weather")
-    assert isinstance(weather, dict)
-    current = weather.get("current")
-    assert isinstance(current, dict)
-    current.update({"temperatureC": _field(29.0, "number"), "feelsLikeC": _field(30.0, "number")})
-    data["phoneBattery"] = {"batterySOC": _field(80, "integer")}
-    weather_binding = _weather_binding()
-    weather_binding.candidateOutputFields.extend(["/current/temperatureC", "/current/feelsLikeC"])
-    battery_binding = CandidateDataBinding(
-        capabilityId="GetPhoneBatteryInfo",
-        writeResultTo="/data/phoneBattery",
-        candidateOutputFields=["/batterySOC"],
-    )
-    bindings = (weather_binding, battery_binding)
-    card_spec = {
-        "dataBindings": [
-            {"capabilityId": item.capabilityId, "writeResultTo": item.writeResultTo}
-            for item in bindings
-        ]
+@scenario("plan_data__usable_bindings")
+def _build_usable_bindings() -> dict[str, object]:
+    return {
+        "available": _usable_binding_fields("available"),
+        "missing": _usable_binding_fields("missing"),
+        "wrong_type": _usable_binding_fields("wrong-type"),
+        "not_candidate": _usable_binding_fields("not-candidate"),
+        "dual_root": _dual_root_binding_fields(),
     }
+
+
+# --------------------------------------------------------------------------
+# 保留的内联契约测试（prompt 内容契约，解释 Layer B 录制字节）
+# --------------------------------------------------------------------------
+
+
+def test_second_layer_prompt_declares_data_usage_preference() -> None:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
-            "ViewWeather": ("/current/temperatureText", "/current/condition"),
-            "GetPhoneBatteryInfo": ("/batterySOC",),
+            "ViewWeather": ("/current/condition",),
         }
     )
     registry = get_cardplan_registry()
-    search = search_template_variants(intent, task, registry, bindings, card_spec)
+    task = _weather_task()
+    search = search_template_variants(
+        intent,
+        task,
+        registry,
+        (_weather_binding(),),
+        _weather_card_spec(),
+    )
     plans = plan_template_candidates(intent, search, task, registry)
-    assert plans[0].layout_template_id == "TwoSupportLayout@1"
-    assert {slot.template_id for slot in plans[0].business_slots} == {
-        "WeatherOverviewTemperatureSupport@1",
-        "BatteryOverviewSupport@1",
-    }
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=_weather_card_spec(),
+        scope=planner_scope(plans),
+        component_candidates=planner_component_candidates(plans),
+        required_template_groups=planner_required_template_groups(plans),
+        template_plans=plans,
+        registry=registry,
+    )
+    message = projection.messages[1].get("content")
+    assert isinstance(message, str)
+    assert "数据使用量" in message
+    assert "优先选择排名靠前的 Plan" in message
+
+
+# --------------------------------------------------------------------------
+# 场景金样断言入口
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("scenario_id", [
+    "plan_data__plan_preference",
+    "plan_data__usable_bindings",
+])
+def test_plan_data_golden_scenarios(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)

@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "0fb0d0754662e6f5e775e3eac031f6f9b8a98c248d09bb4d8c343af2cba89c59",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/feelsLikeC\",\"/current/windLevel\",\"/current/alertLevel\",\"/current/coldLevel\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"action\":[\"event.open.weather\",\"event.open.settings.battery\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

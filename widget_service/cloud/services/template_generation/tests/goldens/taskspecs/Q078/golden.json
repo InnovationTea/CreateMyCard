@@ -1,0 +1,20 @@
+{
+  "artifact": null,
+  "blockingIssues": [
+    {
+      "actualType": "object",
+      "agentAction": "FIX_AND_RETRY",
+      "capabilityId": "event.call.phone",
+      "code": "EVENT_ARGUMENT_SCHEMA_INVALID",
+      "expected": "仅包含 schema properties 声明的字段",
+      "message": "包含 schema 未声明的字段。",
+      "path": "/candidateEventCandidates/0/action/args/params/relationship",
+      "referenceSource": "getWidgetCapabilityOverview.eventCapabilities[].actionTemplate/dynamicArguments",
+      "repairInstruction": "从本轮能力概述重新完整复制该事件的 actionTemplate 到 action，再仅按 dynamicArguments 描述填写动态字段；固定字段不得改写。",
+      "retryable": true
+    }
+  ],
+  "caseId": "Q078",
+  "errorCode": "INVALID_ARGUMENTS",
+  "status": "preflight_rejected"
+}

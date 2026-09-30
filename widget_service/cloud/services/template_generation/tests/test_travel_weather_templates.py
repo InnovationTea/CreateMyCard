@@ -1,100 +1,24 @@
-"""出行倒计时与目的地天气模板回归。"""
+"""出行倒计时与目的地天气模板回归。
+
+三个出行场景已固化为场景金样（Layer C）：Q008 倒计时 + 后日天气双
+Support、Q026 闹钟动作挂在倒计时胶囊、Q042 天气动作挂在天气胶囊。完整
+A2UI 产物由快照整体冻结：独立业务胶囊的等价样式、全卡唯一可点击组件
+及其归属与 padding、字号/字重层级、图标有无、PillAction 缺省。引擎或
+模板改动后按 golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
 
 from __future__ import annotations
 
-import json
+import asyncio
 from typing import Any
-
-import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.pipeline import generate_template_a2ui
-
-
-def _a2ui_components(a2ui: str) -> list[dict[str, Any]]:
-    for line in a2ui.splitlines():
-        message = json.loads(line)
-        update_components = message.get("updateComponents")
-        if not isinstance(update_components, dict):
-            continue
-        components = update_components.get("components")
-        if isinstance(components, list):
-            return components
-    raise AssertionError("A2UI updateComponents message not found")
-
-
-def _component_for_content(a2ui: str, expected_content: str) -> dict[str, Any]:
-    for component in _a2ui_components(a2ui):
-        if component.get("content") == expected_content:
-            return component
-    raise AssertionError(f"A2UI component not found for content: {expected_content}")
-
-
-def _parent_component(a2ui: str, child: dict[str, Any]) -> dict[str, Any]:
-    child_id = child.get("id")
-    for component in _a2ui_components(a2ui):
-        if child_id in component.get("children", []):
-            return component
-    raise AssertionError(f"A2UI parent component not found for child: {child_id}")
-
-
-def _business_capsule(a2ui: str, descendant: dict[str, Any]) -> dict[str, Any]:
-    current = descendant
-    while True:
-        current = _parent_component(a2ui, current)
-        styles = current.get("styles", {})
-        is_capsule = (
-            current.get("component") == "Row"
-            and styles.get("layoutWeight") == 1
-            and styles.get("backgroundColor") is not None
-            and styles.get("borderRadius") is not None
-        )
-        if is_capsule:
-            return current
-
-
-def _assert_equal_independent_business_capsules(
-    a2ui: str,
-    first_descendant: dict[str, Any],
-    second_descendant: dict[str, Any],
-) -> None:
-    first_capsule = _business_capsule(a2ui, first_descendant)
-    second_capsule = _business_capsule(a2ui, second_descendant)
-    assert first_capsule.get("id") != second_capsule.get("id")
-
-    first_styles = first_capsule.get("styles", {})
-    second_styles = second_capsule.get("styles", {})
-    assert first_styles.get("backgroundColor") == second_styles.get("backgroundColor")
-    assert first_styles.get("borderRadius") == second_styles.get("borderRadius")
-
-    content_region = _parent_component(a2ui, first_capsule)
-    assert content_region.get("id") == _parent_component(a2ui, second_capsule).get("id")
-    assert content_region.get("itemMargin") == 8
-
-
-def _action_owner_before_capsule(
-    a2ui: str,
-    descendant: dict[str, Any],
-) -> dict[str, Any] | None:
-    capsule = _business_capsule(a2ui, descendant)
-    current = descendant
-    while current.get("id") != capsule.get("id"):
-        if current.get("onClick"):
-            return current
-        current = _parent_component(a2ui, current)
-    return None
-
-
-def _assert_only_click_action_is_on(a2ui: str, expected_owner: dict[str, Any]) -> None:
-    clickable = []
-    for component in _a2ui_components(a2ui):
-        if component.get("onClick"):
-            clickable.append(component)
-    assert len(clickable) == 1
-    assert clickable[0].get("id") == expected_owner.get("id")
-    on_click = clickable[0].get("onClick")
-    assert isinstance(on_click, list)
-    assert on_click[0].get("call") == "clickToDeeplink"
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
+)
 
 
 def _field(data_type: str, sample_value: object) -> dict[str, object]:
@@ -200,8 +124,7 @@ class _TravelTemplateModel:
         return self.body
 
 
-@pytest.mark.asyncio
-async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
+async def _render_q008_daily2_support() -> dict[str, Any]:
     weather_fields = (
         "/daily/2/condition",
         "/daily/2/temperatureRangeText",
@@ -241,18 +164,10 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
         bindings,
         model,
     )
-
-    assert "WeatherOverviewDaily2TravelSupport@1" in output.template_ids
-    assert "CountdownOverviewSupport@1" in output.template_ids
-    assert "${/data/weather/daily/2/condition}" in output.a2ui
-    assert "${/data/weather/daily/2/temperatureRangeText}" in output.a2ui
-    assert output.a2ui.count('"backgroundColor":"#1A2E529E"') == 2
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
-    assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
+    return a2ui_messages(output)
 
 
-@pytest.mark.asyncio
-async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
+async def _render_q026_alarm_on_countdown_capsule() -> dict[str, Any]:
     weather_fields = (
         "/daily/4/condition",
         "/daily/4/temperatureRangeText",
@@ -306,55 +221,10 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
         bindings,
         model,
     )
-
-    assert "CountdownOverviewTravelSupport@1" in output.template_ids
-    assert "WeatherOverviewTravelSupport@1" in output.template_ids
-    assert "PillAction@1" not in output.template_ids
-    assert "${/data/weather/daily/4/condition}" in output.a2ui
-    assert "${/data/weather/daily/4/rainProbabilityPercent}" in output.a2ui
-    assert "clickToDeeplink" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" not in output.a2ui
-    assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
-    condition = _component_for_content(
-        output.a2ui,
-        "{{ ${/data/weather/daily/4/condition} }}",
-    )
-    temperature = _component_for_content(
-        output.a2ui,
-        "{{ ${/data/weather/daily/4/temperatureRangeText} }}",
-    )
-    rain_probability = _component_for_content(
-        output.a2ui,
-        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} }}",
-    )
-    # 基底布局以温度范围为主行、天气现象与降雨概率为副行。
-    assert temperature.get("styles", {}).get("fontSize") == 14
-    assert temperature.get("styles", {}).get("fontWeight") == 700
-    assert condition.get("styles", {}).get("fontSize") == 10
-    assert rain_probability.get("styles", {}).get("fontSize") == 10
-    travel_title = _component_for_content(output.a2ui, "西安出行")
-    assert travel_title.get("styles", {}).get("fontSize") == 10
-    assert _parent_component(output.a2ui, travel_title).get("itemMargin") == 3
-    assert _parent_component(output.a2ui, temperature).get("itemMargin") == 3
-    countdown = _component_for_content(
-        output.a2ui,
-        "{{ '剩余' + ${/data/countdown/countdownDays} + '天' }}",
-    )
-    assert countdown.get("styles", {}).get("fontSize") == 14
-    _assert_equal_independent_business_capsules(
-        output.a2ui,
-        travel_title,
-        condition,
-    )
-    travel_action = _action_owner_before_capsule(output.a2ui, travel_title)
-    assert travel_action is not None
-    assert travel_action.get("styles", {}).get("padding") == {"left": 8, "right": 8}
-    assert _action_owner_before_capsule(output.a2ui, condition) is None
-    _assert_only_click_action_is_on(output.a2ui, travel_action)
+    return a2ui_messages(output)
 
 
-@pytest.mark.asyncio
-async def test_q042_binds_weather_action_to_weather_capsule() -> None:
+async def _render_q042_weather_action_capsule() -> dict[str, Any]:
     weather_fields = ("/current/temperatureC", "/current/condition")
     bindings = _bindings(weather_fields, forecast_days=1)
     task_spec = TaskSpec(
@@ -403,44 +273,31 @@ async def test_q042_binds_weather_action_to_weather_capsule() -> None:
         bindings,
         model,
     )
+    return a2ui_messages(output)
 
-    assert "CountdownOverviewTravelSupport@1" in output.template_ids
-    assert "WeatherOverviewTemperatureSupport@1" in output.template_ids
-    assert "PillAction@1" not in output.template_ids
-    assert "${/data/weather/current/temperatureC}" in output.a2ui
-    assert "${/data/weather/current/condition}" in output.a2ui
-    assert "${/data/weather/location/cityCode}" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" not in output.a2ui
-    assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
-    condition = _component_for_content(
-        output.a2ui,
-        "{{ ${/data/weather/current/condition} }}",
-    )
-    temperature = _component_for_content(
-        output.a2ui,
-        "{{ ${/data/weather/current/temperatureC} + '℃' }}",
-    )
-    # 基础温度 Support 主行为城市与温度（14vp），天气现象为辅助行（12vp）。
-    assert temperature.get("styles", {}).get("fontSize") == 14
-    assert temperature.get("styles", {}).get("fontWeight") == 700
-    assert condition.get("styles", {}).get("fontSize") == 12
-    travel_title = _component_for_content(output.a2ui, "出差倒计时")
-    assert travel_title.get("styles", {}).get("fontSize") == 10
-    assert _parent_component(output.a2ui, travel_title).get("itemMargin") == 3
-    assert _parent_component(output.a2ui, temperature).get("itemMargin") == 2
-    countdown = _component_for_content(
-        output.a2ui,
-        "{{ '剩余' + ${/data/countdown/countdownDays} + '天' }}",
-    )
-    assert countdown.get("styles", {}).get("fontSize") == 14
-    _assert_equal_independent_business_capsules(
-        output.a2ui,
-        travel_title,
-        temperature,
-    )
-    assert _action_owner_before_capsule(output.a2ui, travel_title) is None
-    weather_action = _action_owner_before_capsule(output.a2ui, temperature)
-    assert weather_action is not None
-    expected_padding = {"left": 8, "right": 8, "top": 0, "bottom": 0}
-    assert weather_action.get("styles", {}).get("padding") == expected_padding
-    _assert_only_click_action_is_on(output.a2ui, weather_action)
+
+@scenario("travel_weather__q008_daily2_support")
+def _build_q008_daily2_support() -> dict:
+    return asyncio.run(_render_q008_daily2_support())
+
+
+@scenario("travel_weather__q026_alarm_on_countdown_capsule")
+def _build_q026_alarm_on_countdown_capsule() -> dict:
+    return asyncio.run(_render_q026_alarm_on_countdown_capsule())
+
+
+@scenario("travel_weather__q042_weather_action_capsule")
+def _build_q042_weather_action_capsule() -> dict:
+    return asyncio.run(_render_q042_weather_action_capsule())
+
+
+def test_q008_uses_daily2_weather_support_with_countdown() -> None:
+    assert_golden_scenario("travel_weather__q008_daily2_support")
+
+
+def test_q026_binds_alarm_action_to_travel_capsule() -> None:
+    assert_golden_scenario("travel_weather__q026_alarm_on_countdown_capsule")
+
+
+def test_q042_binds_weather_action_to_weather_capsule() -> None:
+    assert_golden_scenario("travel_weather__q042_weather_action_capsule")

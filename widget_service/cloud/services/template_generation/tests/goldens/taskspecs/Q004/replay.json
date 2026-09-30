@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "25ebd25fe9edda59f1cfedbc24fc9ffd9707a4f5258a831a0c834e1af2dc6ad9",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewAlertFull@1\", {\"location\": \"长沙市\", \"alertIcon\": \"resources/base/media/bell_fill.svg\", \"timeIcon\": \"resources/base/media/clock.svg\"}));"
+    },
+    {
+      "key": "88acba06804488e23367edec061d187145f5855fafbea0d4955c040aec83ee44",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/alertLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"ViewWeather\":\"/current/alertLevel\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

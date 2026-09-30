@@ -1,0 +1,66 @@
+{
+  "a2uiMessages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Stack",
+            "id": "root",
+            "styles": {
+              "alignContent": "topStart",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "padding": 0,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "__genui_render_component__root_1"
+            ],
+            "component": "Stack",
+            "id": "template_root",
+            "styles": {
+              "height": "matchParent",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [],
+            "component": "Column",
+            "id": "__genui_render_component__root_1"
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "ui": {
+            "state": "ready"
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "returnedSameObject": false,
+  "terselTree": "Stack(\"card\", {\"_id\":\"root\",\"padding\":0,\"alignContent\":\"topStart\"}, Stack(\"overlay\", {\"_id\":\"template_root\",\"padding\":12}, Column({\"_id\":\"__genui_render_component__root_1\"})));"
+}

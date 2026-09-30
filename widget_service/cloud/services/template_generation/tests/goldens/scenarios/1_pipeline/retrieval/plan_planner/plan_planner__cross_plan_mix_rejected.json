@@ -1,0 +1,8 @@
+{
+  "matchedPlanId": "plan-1",
+  "mixedError": {
+    "errorType": "TerselConversionError",
+    "message": "UX Layout output must match exactly one atomic Template Plan."
+  },
+  "planCount": 2
+}

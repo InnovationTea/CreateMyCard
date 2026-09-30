@@ -1,18 +1,23 @@
+"""日历 Full 扩展模板的检索准入、投影与页眉几何回归。
+
+五个 Full 扩展模板在 3 组 headerLabel（缺省 / 短 / 长）× 日历图标开关
+下的完整蓝图渲染已固化为场景金样（Layer C，``calendar_fullext__*``）：
+标题文本与缺省文案、layoutWeight 让位、可选 20x20 图标占位及页眉间距由
+快照整体冻结。原始模板的整卡 sha256 预览钉死由 Layer A 字节级模板金样
+取代，已删除。检索准入与拒绝矩阵、投影集合、动作路由与合同隔离仍为
+内联精度断言，保持不变。
+"""
+
 from __future__ import annotations
 
-import hashlib
-import json
-from pathlib import Path
 from typing import Any, NamedTuple
 
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
-from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.controls import TemplateControls
 from services.template_generation.engine import pipeline
 from services.template_generation.engine.advanced import content_selectors
-from services.template_generation.engine.cardplan import preview_dataset
 from services.template_generation.engine.cardplan.calendar_action_policy import (
     resolve_calendar_view_fallback,
 )
@@ -25,10 +30,15 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateSearchIntent,
     search_template_variants,
 )
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_calendar_requested_case_templates import (
     _expanded,
-    _options,
+    _node_payload,
     _schema,
+    _template_slug,
     _walk,
 )
 
@@ -49,10 +59,14 @@ _CASES = {
         "/updatedAt",
     ),
 }
-_SNAPSHOTS = json.loads(
-    (Path(__file__).parent / "fixtures/calendar_existing_preview_hashes.json").read_text(
-        encoding="utf-8",
-    )
+_HEADER_SUFFIXES = (
+    "TimezoneTimeFull", "DateLocationFull", "ReminderDetailsFull",
+    "LocationDescriptionEndFull", "NextEventLocationFull",
+)
+_HEADER_LABELS = (
+    (None, "default"),
+    ("我的日程详情", "short"),
+    ("跨时区项目联合评审及下一阶段计划安排", "long"),
 )
 
 
@@ -88,23 +102,37 @@ def _inputs(fields: tuple[str, ...], *, view_candidate: bool = False) -> Calenda
     return CalendarInputs(task, bindings, card, intent)
 
 
-@pytest.mark.parametrize("template_id", tuple(_SNAPSHOTS))
-def test_original_templates_match_approved_previews(
-    monkeypatch: pytest.MonkeyPatch, template_id: str,
-) -> None:
-    registry = get_cardplan_registry(True)
-    definition = registry.require_template(template_id)
-    index = list(_SNAPSHOTS).index(template_id)
-    profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
-    preview = preview_dataset._build_case(f"snapshot-{index}", definition, profile, registry)
-    payload = json.dumps(list(preview.messages), ensure_ascii=False, sort_keys=True)
-    assert hashlib.sha256(payload.encode()).hexdigest() == _SNAPSHOTS.get(template_id)
-    schema = preview_dataset._build_data_schema(definition)
-    projected = content_selectors.extract_schedule_template_variant_fields(schema)
-    with monkeypatch.context() as context:
-        context.setattr(content_selectors, "_schedule_date_location_fields", lambda _p: {})
-        previous = content_selectors.extract_schedule_template_variant_fields(schema)
-    assert projected == previous
+def _header_payload(suffix: str) -> dict[str, Any]:
+    variants: dict[str, Any] = {}
+    for header_label, label_slug in _HEADER_LABELS:
+        for with_icon in (False, True):
+            props: dict[str, Any] = {}
+            if header_label is not None:
+                props["headerLabel"] = header_label
+            if with_icon:
+                props["calendarIcon"] = "calendar"
+            root = _expanded(f"ScheduleOverview{suffix}@1", props=props)
+            variants[f"{label_slug}__{'icon' if with_icon else 'no_icon'}"] = {
+                "props": props,
+                "root": _node_payload(root),
+            }
+    return {"templateId": f"ScheduleOverview{suffix}@1", "variants": variants}
+
+
+def _register_header_scenarios() -> None:
+    for suffix in _HEADER_SUFFIXES:
+        def _build(suffix: str = suffix) -> dict[str, Any]:
+            return _header_payload(suffix)
+
+        scenario(f"calendar_fullext__{_template_slug(suffix)}")(_build)
+
+
+_register_header_scenarios()
+
+
+@pytest.mark.parametrize("suffix", _HEADER_SUFFIXES)
+def test_full_extension_headers_match_golden_scenarios(suffix: str) -> None:
+    assert_golden_scenario(f"calendar_fullext__{_template_slug(suffix)}")
 
 
 def test_date_location_projection_only_runs_when_existing_shapes_miss() -> None:
@@ -116,52 +144,6 @@ def test_date_location_projection_only_runs_when_existing_shapes_miss() -> None:
     old_shape = _schema((*fields, "/events/0/dtStart"))
     existing = content_selectors.extract_schedule_template_variant_fields(old_shape)
     assert set(existing) == {"eventLocation", "dtStart"}
-
-
-@pytest.mark.parametrize("suffix", (
-    "TimezoneTimeFull", "DateLocationFull", "ReminderDetailsFull",
-    "LocationDescriptionEndFull", "NextEventLocationFull",
-))
-@pytest.mark.parametrize("header_label", [
-    None, "我的日程详情", "跨时区项目联合评审及下一阶段计划安排",
-])
-@pytest.mark.parametrize("with_icon", [False, True])
-def test_new_full_headers_reserve_space_for_optional_icon(
-    suffix: str, header_label: str | None, with_icon: bool,
-) -> None:
-    props: dict[str, Any] = {}
-    if header_label is not None:
-        props["headerLabel"] = header_label
-    if with_icon:
-        props["calendarIcon"] = "calendar"
-    root = _expanded(f"ScheduleOverview{suffix}@1", props=props)
-    if suffix == "ReminderDetailsFull":
-        header = root.children[0]
-        default_label = "日程详情"
-    else:
-        top = root.children[0]
-        assert top.component_type == "Column"
-        assert _options(top).get("itemMargin") == 8
-        header = top.children[0]
-        default_label = "下一个日程"
-    assert header.component_type == "Row"
-    assert _options(header).get("width") == "matchParent"
-    title = header.children[0]
-    assert title.component_type == "Text"
-    assert title.values[0] == (header_label or default_label)
-    # 150vp 卡片内宽只有 126vp；标题必须让出可选图标和间距所占的空间。
-    title_options = _options(title)
-    assert title_options.get("layoutWeight") == 1
-    assert "width" not in title_options
-    assert title_options.get("maxLines") == 1
-    assert title_options.get("textOverflow") == "ellipsis"
-    assert len(header.children) == (2 if with_icon else 1)
-    if with_icon:
-        icon = header.children[1]
-        assert icon.component_type == "Image"
-        assert _options(icon).get("width") == _options(icon).get("height") == 20
-        assert _options(icon).get("flexShrink") == 0
-        assert _options(header).get("itemMargin") == 4
 
 
 @pytest.mark.parametrize("suffix", tuple(_CASES))

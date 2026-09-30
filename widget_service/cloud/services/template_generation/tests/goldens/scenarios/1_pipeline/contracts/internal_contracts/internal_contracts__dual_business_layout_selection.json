@@ -1,0 +1,36 @@
+{
+  "businessLayoutKindsByPosition": [
+    "HeroTitle",
+    "HeroContent"
+  ],
+  "filteredCandidates": {
+    "CalendarOverview": [
+      "ScheduleOverviewHeroContent@1"
+    ],
+    "WeatherOverview": [
+      "WeatherOverviewHeroTitle@1"
+    ]
+  },
+  "layoutIds": [
+    "HeroTitleContentActionLayout"
+  ],
+  "outputOption": {
+    "actionChildren": [
+      {
+        "position": 2,
+        "syntax": "Template(\"PillAction@1\",{\"actionId\":\"action-0\",\"label\":\"查看详情\"})",
+        "templateId": "PillAction@1"
+      }
+    ],
+    "businessTemplateIdsByPosition": [
+      [
+        "WeatherOverviewHeroTitle@1"
+      ],
+      [
+        "ScheduleOverviewHeroContent@1"
+      ]
+    ],
+    "layoutKind": "HeroTitle+HeroContent",
+    "root": "Template(\"HeroTitleContentActionLayout@1\", {}, ...children);"
+  }
+}

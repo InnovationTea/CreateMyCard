@@ -1,0 +1,135 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，看今天走了多少步、走了多远、消耗多少热量，以及手机剩余电量、充电状态和电池温度，点击可以开省电模式。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailySteps",
+          "/dailyDistanceText",
+          "/dailyTotalCaloriesText"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/chargingStatusDesc",
+          "/batteryTemperatureText"
+        ]
+      }
+    ],
+    "title": "运动续航",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.setPowerSavingMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode",
+              "switchFlag": 0
+            }
+          }
+        }
+      }
+    ],
+    "description": "今日活动+电量充电温度+省电",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.flame_fill",
+      "asset.battery_leaf_fill",
+      "asset.heat_generation"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "075",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，看今天走了多少步、走了多远、消耗多少热量，以及手机剩余电量、充电状态和电池温度，点击可以开省电模式。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，看今天走了多少步、走了多远、消耗多少热量，以及手机剩余电量、充电状态和电池温度，点击可以开省电模式。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/dailySteps",
+        "/dailyDistanceText",
+        "/dailyTotalCaloriesText"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/chargingStatusDesc",
+        "/batteryTemperatureText"
+      ]
+    }
+  ],
+  "title": "运动续航",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.setPowerSavingMode",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode",
+            "switchFlag": 0
+          }
+        }
+      }
+    }
+  ],
+  "description": "今日活动+电量充电温度+省电",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.flame_fill",
+    "asset.battery_leaf_fill",
+    "asset.heat_generation"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "019d807d02732081637e3263b133f9fce762f81a7891a84e31e094d90752fed7",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/healthStatusDesc\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
+    },
+    {
+      "key": "d6affc21eff179c344845568aa6253268fb92c8c970884fc033e820de8901bf3",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewChargingProgressFull@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\"}));"
+    }
+  ]
+}

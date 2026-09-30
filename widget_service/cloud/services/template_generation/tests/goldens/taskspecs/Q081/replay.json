@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "039393d8f2a62835e7f780aee331b3465576b7561fe8dffb3a183021965c8274",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/nightSleepDurationText\",\"/deepSleepDurationText\",\"/exerciseHeartRateMin\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.settings.parentControl\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "3dd51e45c34a42aa6be27deccc258c46059d870e8734b7ed4139c4b0c6f0347e",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewScoreFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"GenericMetricOverviewCompact@1\", {\"title\": \"最低心率\", \"valuePath\": \"/exerciseHeartRateMin\", \"sourceIcon\": \"resources/base/media/heart_fill.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\", \"icon\": \"resources/base/media/hourglass_fill.svg\"}));"
+    }
+  ]
+}

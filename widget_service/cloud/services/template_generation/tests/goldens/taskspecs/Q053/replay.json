@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "2372de767bfa5f781f92a484c3e77b3a2d7e314364b64bc7df87f9a856d6aa7f",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarbudChargingWideFull@1\", {\"actionId\": \"event.open.music.favorite\", \"leftEarIcon\": \"resources/base/media/icon_left.svg\", \"rightEarIcon\": \"resources/base/media/icon_right.svg\"}));"
+    },
+    {
+      "key": "6abd8e72ac21245802b580c9141e58840f27d2c32cbb4bb3757f998064e96edd",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/leftBatteryLevel\",\"/leftChargingStatusDesc\",\"/rightBatteryLevel\",\"/rightChargingStatusDesc\"]},\"action\":[\"event.open.music.favorite\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

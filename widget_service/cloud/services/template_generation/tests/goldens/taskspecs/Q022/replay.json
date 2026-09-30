@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "87cca61c936a14a3c61143b6926db4c4e606e9f36e5581b79c796f17874e66b8",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseDurationText\",\"/exerciseCalorieText\",\"/exerciseHeartRateAvg\"]},\"action\":[\"event.open.music.daily\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

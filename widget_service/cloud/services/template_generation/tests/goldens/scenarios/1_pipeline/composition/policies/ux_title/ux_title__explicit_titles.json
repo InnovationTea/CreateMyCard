@@ -1,0 +1,64 @@
+{
+  "2x2_explicit": {
+    "cardSpecAfter": {
+      "description": "显示天气",
+      "suggestSize": "2x2",
+      "title": "天气卡片名称"
+    },
+    "cardSpecBefore": {
+      "description": "显示天气",
+      "suggestSize": "2x2",
+      "title": "天气卡片名称"
+    },
+    "texts": [
+      "天气卡片名称",
+      "晴"
+    ]
+  },
+  "2x2_implicit": {
+    "cardSpecAfter": {
+      "description": "显示天气",
+      "suggestSize": "2x2",
+      "title": "天气卡片名称"
+    },
+    "cardSpecBefore": {
+      "description": "显示天气",
+      "suggestSize": "2x2",
+      "title": "天气卡片名称"
+    },
+    "texts": [
+      "晴"
+    ]
+  },
+  "2x4_explicit": {
+    "cardSpecAfter": {
+      "description": "显示天气",
+      "suggestSize": "2x4",
+      "title": "天气卡片名称"
+    },
+    "cardSpecBefore": {
+      "description": "显示天气",
+      "suggestSize": "2x4",
+      "title": "天气卡片名称"
+    },
+    "texts": [
+      "天气卡片名称",
+      "晴"
+    ]
+  },
+  "2x4_implicit": {
+    "cardSpecAfter": {
+      "description": "显示天气",
+      "suggestSize": "2x4",
+      "title": "天气卡片名称"
+    },
+    "cardSpecBefore": {
+      "description": "显示天气",
+      "suggestSize": "2x4",
+      "title": "天气卡片名称"
+    },
+    "texts": [
+      "晴"
+    ]
+  }
+}

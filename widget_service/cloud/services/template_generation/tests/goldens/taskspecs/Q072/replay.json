@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "b43f0dbbaee4c26699abb3e2ede29c198b616218f27760feb75b88fe14fb2fee",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/0/date\",\"/daily/0/weekday\",\"/daily/0/condition\",\"/daily/0/temperatureRangeText\",\"/daily/0/rainProbabilityPercent\",\"/daily/1/date\",\"/daily/1/weekday\",\"/daily/1/condition\",\"/daily/1/temperatureRangeText\",\"/daily/1/rainProbabilityPercent\",\"/daily/2/date\",\"/daily/2/weekday\",\"/daily/2/condition\",\"/daily/2/temperatureRangeText\",\"/daily/2/rainProbabilityPercent\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "c1cbd7400dbaa341c95ae4d66382436f6055791b92e42c916bac7f25666dea60",
+      "response": "Template(\"WideHeroActionFullLayout@1\", {}, Template(\"WeatherOverviewThreeDayForecastFull@1\", {\"location\": \"重庆市\"}), Template(\"CountdownOverviewEventHero@1\", {\"title\": \"重庆返乡\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
+    }
+  ]
+}

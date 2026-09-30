@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "316befb06df1302f689938a2ccb46e2a1039e14f4bbb0503f6b5a592d388c20a",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCalendarEvents\": [\n      \"/events/0/dtStart\"\n    ],\n    \"GetEarphoneInfo\": [\n      \"/isConnected\",\n      \"/batteryLevel\"\n    ]\n  },\n  \"action\": [\n    \"event.enter.meeting\"\n  ],\n  \"allowCalendarViewFallback\": false\n}"
+    },
+    {
+      "key": "b05105c5a0b23fc136c4a46c308a5bab5c1ba07becdecb263410045ef4dd2b12",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"ScheduleOverviewTimeSupport@1\", {\"meetingIcon\": \"resources/base/media/icon_meeting.svg\", \"actionId\": \"event.enter.meeting\"}), Template(\"BluetoothDeviceOverviewConnectionSupport@1\", {\"deviceIcon\": \"resources/base/media/icon_earphone.svg\"}));"
+    }
+  ]
+}

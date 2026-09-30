@@ -1,0 +1,312 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 11,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": 37,
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "目的地天气",
+                "id": "root_1_0_0_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 14,
+                  "fontWeight": 700,
+                  "height": 19,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "出发当天",
+                "id": "root_1_0_0_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "height": 16,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0",
+                  "root_1_0_1_1",
+                  "root_1_0_1_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1",
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "spaceBetween",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0",
+                "styles": {
+                  "alignItems": "center",
+                  "height": 16,
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "温度",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather/daily/3/temperatureRangeText} }}",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "layoutWeight": 1,
+                  "maxLines": 1,
+                  "minFontSize": 10,
+                  "textAlign": "right",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_1_0",
+                  "root_1_0_1_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_1",
+                "styles": {
+                  "alignItems": "center",
+                  "height": 16,
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "降雨",
+                "id": "root_1_0_1_1_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather/daily/3/rainProbabilityPercent} }}",
+                "id": "root_1_0_1_1_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_2_0",
+                  "root_1_0_1_2_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_2",
+                "styles": {
+                  "alignItems": "center",
+                  "height": 16,
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "空气质量",
+                "id": "root_1_0_1_2_0",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather/daily/3/airQuality} }}",
+                "id": "root_1_0_1_2_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "weather": {
+                  "daily": [
+                    null,
+                    null,
+                    null,
+                    {
+                      "airQuality": "样例文本",
+                      "rainProbabilityPercent": "样例文本",
+                      "temperatureRangeText": "样例文本"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WeatherOverviewDestinationDayFull@1",
+        "SingleFocusLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "SingleFocusLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C550"
+  },
+  "size": "2x2",
+  "templateId": "WeatherOverviewDestinationDayFull@1"
+}

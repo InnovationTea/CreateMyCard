@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "9be868105d79635fc8a7450761697a7c6eba58b136300d456dbde226ea628c30",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"GetHealthAndSportSummary\": [\"/dailySteps\", \"/dailyDistanceText\", \"/dailyTotalCaloriesText\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\", \"/chargingStatusDesc\", \"/batteryTemperatureText\"]}, \"action\": [\"event.setPowerSavingMode\"], \"allowCalendarViewFallback\": false}"
+    },
+    {
+      "key": "b3ce884116e4582c271cef377fb76d052a1cd47820b5d995ecccc1909f68bdfe",
+      "response": "Template(\"WideFullHeroActionLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {}), Template(\"BatteryOverviewTemperatureRingHero@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.setPowerSavingMode\", \"label\": \"省电模式\"}));"
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "今晚准备去成都锦城湖骑车，帮我做个卡片，看当前体感温度、风力、今天走了多少步和最近一次运动平均心率，点一下打开收藏歌单。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "成都市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/feelsLikeC",
+          "/current/windLevel"
+        ]
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailySteps",
+          "/exerciseHeartRateAvg"
+        ]
+      }
+    ],
+    "title": "骑行状态",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.favorite",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          }
+        }
+      }
+    ],
+    "description": "天气运动和歌单",
+    "candidateAssetIds": [
+      "asset.heat_generation",
+      "asset.icon_weather_wind",
+      "asset.figure_run",
+      "asset.music_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260831000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "086",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "今晚准备去成都锦城湖骑车，帮我做个卡片，看当前体感温度、风力、今天走了多少步和最近一次运动平均心率，点一下打开收藏歌单。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "今晚准备去成都锦城湖骑车，帮我做个卡片，看当前体感温度、风力、今天走了多少步和最近一次运动平均心率，点一下打开收藏歌单。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "成都市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/feelsLikeC",
+        "/current/windLevel"
+      ]
+    },
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/dailySteps",
+        "/exerciseHeartRateAvg"
+      ]
+    }
+  ],
+  "title": "骑行状态",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.favorite",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      }
+    }
+  ],
+  "description": "天气运动和歌单",
+  "candidateAssetIds": [
+    "asset.heat_generation",
+    "asset.icon_weather_wind",
+    "asset.figure_run",
+    "asset.music_fill"
+  ]
+}

@@ -1,0 +1,722 @@
+{
+  "font12TextHeights": {
+    "ActivityOverviewCompact@1": [
+      null
+    ],
+    "ActivityOverviewExerciseWideHero@1": [
+      null,
+      null,
+      null
+    ],
+    "ActivityOverviewFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "ActivityOverviewGoalProgressWideFull@1": [
+      null
+    ],
+    "ActivityOverviewHero@1": [
+      null,
+      null
+    ],
+    "ActivityOverviewSupport@1": [
+      null
+    ],
+    "ActivityOverviewTrainingSummaryFull@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "ActivityOverviewWideFull@1": [
+      null,
+      null,
+      null
+    ],
+    "ActivityOverviewWideHero@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "ActivityOverviewYesterdayStepsSleepCompact@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewChargeStatusHero@1": [
+      20,
+      20
+    ],
+    "BatteryOverviewChargingDiagnosticsHero@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "BatteryOverviewChargingDiagnosticsWideFull@1": [
+      null
+    ],
+    "BatteryOverviewChargingProgressFull@1": [
+      16,
+      16,
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewChargingProgressHero@1": [
+      16,
+      16,
+      16
+    ],
+    "BatteryOverviewCompact@1": [
+      null
+    ],
+    "BatteryOverviewFull@1": [
+      null
+    ],
+    "BatteryOverviewHealthLevelHero@1": [
+      16
+    ],
+    "BatteryOverviewPercentLevelHero@1": [
+      16,
+      16
+    ],
+    "BatteryOverviewPercentRingCompact@1": [
+      null
+    ],
+    "BatteryOverviewPercentStatusCompact@1": [
+      null
+    ],
+    "BatteryOverviewStatusRingHero@1": [
+      20,
+      null
+    ],
+    "BatteryOverviewStatusSupport@1": [
+      null
+    ],
+    "BatteryOverviewStatusWideFull@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewSupport@1": [
+      null,
+      null
+    ],
+    "BatteryOverviewSupportHero@1": [
+      null,
+      null
+    ],
+    "BatteryOverviewTemperatureFull@1": [
+      null,
+      null
+    ],
+    "BatteryOverviewTemperatureHero@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BatteryOverviewTemperatureRingHero@1": [
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewCaseConnectionCompact@1": [
+      null
+    ],
+    "BluetoothDeviceOverviewCaseConnectionHero@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewCaseSettingsHero@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewChargeSupport@1": [
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1": [
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewCompleteWideFull@1": [
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewConnectionSupport@1": [
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudChargingWideFull@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewEarbudPairCompact@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudPairFull@1": [
+      18,
+      18,
+      18,
+      16,
+      16,
+      16
+    ],
+    "BluetoothDeviceOverviewEarbudPairHero@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewEarbudTripleHero@1": [
+      16,
+      16,
+      16
+    ],
+    "BluetoothDeviceOverviewEarbudsChargingWideFull@1": [
+      16,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudsDynamicWideFull@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudsFull@1": [
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": [
+      null,
+      null,
+      null
+    ],
+    "BluetoothDeviceOverviewEarbudsSupport@1": [
+      16
+    ],
+    "BluetoothDeviceOverviewHero@1": [
+      16,
+      16,
+      null,
+      null,
+      null,
+      null,
+      16
+    ],
+    "BluetoothDeviceOverviewMusicFull@1": [
+      16,
+      16
+    ],
+    "BluetoothDeviceOverviewTripleBatteryWideHalf@1": [
+      16,
+      17.5,
+      16,
+      17.5,
+      16
+    ],
+    "CompactSubtitleAction@1": [
+      null
+    ],
+    "CountdownOverviewDepartureHero@1": [
+      16,
+      16,
+      16
+    ],
+    "CountdownOverviewEventHero@1": [
+      16
+    ],
+    "CountdownOverviewTargetDetailFull@1": [
+      16,
+      16
+    ],
+    "CountdownOverviewWideFull@1": [
+      null
+    ],
+    "CountdownOverviewWideHero@1": [
+      null
+    ],
+    "GenericMetricOverviewDualCompact@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "HeartRateOverviewCompact@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewFull@1": [
+      null
+    ],
+    "HeartRateOverviewHero@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewIconCompact@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewIconHero@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewMinMaxFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "HeartRateOverviewSupport@1": [
+      null
+    ],
+    "HeartRateOverviewUpdatedFull@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewUpdatedHero@1": [
+      null,
+      null
+    ],
+    "HeartRateOverviewUpdatedIconHero@1": [
+      null,
+      null
+    ],
+    "ResourceUsageOverviewFull@1": [
+      null
+    ],
+    "ResourceUsageOverviewSupport@1": [
+      null,
+      null
+    ],
+    "ScheduleOverviewDateFull@1": [
+      null,
+      16
+    ],
+    "ScheduleOverviewDateLocationFull@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "ScheduleOverviewDateSupport@1": [
+      null
+    ],
+    "ScheduleOverviewDatedAllDayHero@1": [
+      16
+    ],
+    "ScheduleOverviewDatedMeetingHero@1": [
+      16
+    ],
+    "ScheduleOverviewEventCountDetailsFull@1": [
+      null,
+      null
+    ],
+    "ScheduleOverviewEventCountDetailsHero@1": [
+      16
+    ],
+    "ScheduleOverviewEventCountTwoEventsFull@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewLocationDescriptionEndFull@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "ScheduleOverviewLocationHero@1": [
+      null,
+      null,
+      16,
+      16
+    ],
+    "ScheduleOverviewLocationSupport@1": [
+      null
+    ],
+    "ScheduleOverviewMeetingEntryHero@1": [
+      16,
+      32
+    ],
+    "ScheduleOverviewMeetingSourceWideFull@1": [
+      null
+    ],
+    "ScheduleOverviewNextEventHero@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewNextEventLocationFull@1": [
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "ScheduleOverviewReminderDetailsFull@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewReminderDetailsHero@1": [
+      16
+    ],
+    "ScheduleOverviewReminderHero@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewStartTimeSupport@1": [
+      null
+    ],
+    "ScheduleOverviewThreeMeetingsFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "ScheduleOverviewTimeSupport@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "ScheduleOverviewTimezoneAllDayFull@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewTimezoneDateEndFull@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewTimezoneFull@1": [
+      16,
+      16
+    ],
+    "ScheduleOverviewTimezoneTimeFull@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "ScheduleOverviewTitleHero@1": [
+      16,
+      16,
+      16,
+      16
+    ],
+    "SleepOverviewFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewHero@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewNapFull@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewNapHero@1": [
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewScoreDetailWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewScoreFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "SleepOverviewSupport@1": [
+      null
+    ],
+    "WeatherOverviewAirQualityHero@1": [
+      null,
+      20,
+      20,
+      20
+    ],
+    "WeatherOverviewAlertFull@1": [
+      null
+    ],
+    "WeatherOverviewAlertInfoFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewCareAlertFull@1": [
+      null,
+      20,
+      20,
+      20
+    ],
+    "WeatherOverviewCompact@1": [
+      16,
+      16
+    ],
+    "WeatherOverviewConditionFeelsLikeAlertFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewConditionHero@1": [
+      null,
+      20
+    ],
+    "WeatherOverviewDailyDateFull@1": [
+      null,
+      20
+    ],
+    "WeatherOverviewDailyHealthFull@1": [
+      null,
+      20,
+      20,
+      20
+    ],
+    "WeatherOverviewDailyRainFull@1": [
+      null,
+      20,
+      20,
+      20
+    ],
+    "WeatherOverviewDailySummaryFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewDestinationDayFull@1": [
+      16,
+      16,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeAlertFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeHero@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewFeelsLikeWindSupport@1": [
+      13
+    ],
+    "WeatherOverviewFull@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHero@1": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHeroTitle@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHumidityFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHumidityWindFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewHumidityWindLevelHero@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewRainWindFull@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewTemperatureSupport@1": [
+      16,
+      16
+    ],
+    "WeatherOverviewTemperatureUvSupport@1": [
+      16
+    ],
+    "WeatherOverviewTemperaturecoldLevelSupport@1": [
+      16
+    ],
+    "WeatherOverviewThreeDayForecastFull@1": [
+      null,
+      null
+    ],
+    "WeatherOverviewUpdatedAtFull@1": [
+      20,
+      20
+    ],
+    "WeatherOverviewUvColdFull@1": [
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewUvCompact@1": [
+      16
+    ],
+    "WeatherOverviewUvFull@1": [
+      null,
+      20,
+      20,
+      20,
+      20,
+      20
+    ],
+    "WeatherOverviewWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewWideHalf@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewWideHero@1": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "WeatherOverviewWindFull@1": [
+      null,
+      20,
+      20
+    ],
+    "WeatherOverviewWindHero@1": [
+      null,
+      20
+    ],
+    "WorkoutOverviewCompact@1": [
+      null,
+      null
+    ],
+    "WorkoutOverviewFull@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WorkoutOverviewHero@1": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "WorkoutOverviewSupport@1": [
+      null,
+      null
+    ],
+    "WorkoutOverviewTrainingRecordWideFull@1": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "headerRows": {
+    "ScheduleOverviewDateFull@1": {
+      "component": "Row",
+      "height": 20
+    },
+    "ScheduleOverviewTimezoneFull@1": {
+      "component": "Row",
+      "height": 16
+    }
+  }
+}

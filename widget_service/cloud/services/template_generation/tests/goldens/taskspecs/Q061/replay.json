@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "76e7018964e27d1a80b858cd33aa0067f929001209006c93ee72b0d42c45b769",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/dailySteps\"],\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/feelsLikeC\",\"/current/alertLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\",\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

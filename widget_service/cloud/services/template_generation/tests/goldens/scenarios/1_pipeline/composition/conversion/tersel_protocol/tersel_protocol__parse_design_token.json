@@ -1,0 +1,61 @@
+{
+  "design_token": {
+    "children": [
+      {
+        "children": [],
+        "component": "Text",
+        "values": [
+          "hello world",
+          "title"
+        ]
+      }
+    ],
+    "component": "Column",
+    "values": [
+      "Compact"
+    ]
+  },
+  "inline_only": {
+    "children": [
+      {
+        "children": [],
+        "component": "Text",
+        "values": [
+          "hello world",
+          {
+            "fontColor": "#FF1122",
+            "fontSize": 30
+          }
+        ]
+      }
+    ],
+    "component": "Column",
+    "values": [
+      {
+        "width": 120
+      }
+    ]
+  },
+  "token_and_inline": {
+    "children": [
+      {
+        "children": [],
+        "component": "Text",
+        "values": [
+          "hello world",
+          "title",
+          {
+            "fontColor": "#FF1122"
+          }
+        ]
+      }
+    ],
+    "component": "Column",
+    "values": [
+      "Compact",
+      {
+        "width": 120
+      }
+    ]
+  }
+}

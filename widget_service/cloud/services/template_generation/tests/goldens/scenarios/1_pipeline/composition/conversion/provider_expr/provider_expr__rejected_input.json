@@ -1,0 +1,110 @@
+{
+  "Expr(\"data.value\")": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expr must reference at least one DataModel path."
+  },
+  "Expr($__dataModel.data.private)": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr references must use declared data.xxx"
+  },
+  "Expr(${/data/private})": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr references must use declared data.xxx"
+  },
+  "Expr((data.value])": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr delimiters do not match"
+  },
+  "Expr()": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expr requires one non-empty string body."
+  },
+  "Expr(1 + 2)": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expr must reference at least one DataModel path."
+  },
+  "Expr(data.missing)": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template data reference: ['missing']"
+  },
+  "Expr(data.value + \"bad\\q\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr string contains an unsupported escape"
+  },
+  "Expr(data.value + \"unterminated)": {
+    "errorType": "ValueError",
+    "message": "Provider Template string literal is not closed"
+  },
+  "Expr(data.value + (1)": {
+    "errorType": "ValueError",
+    "message": "Theme reference tokenization failed: unexpected EOF in multi-line statement"
+  },
+  "Expr(data.value + {a: 1})": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr identifier is not supported: a"
+  },
+  "Expr(data.value = 1)": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 14."
+  },
+  "Expr(data.value ? 1)": {
+    "errorType": "A2UIExpressionError",
+    "message": "Invalid A2UI expression (expected \":\") at offset 17."
+  },
+  "Expr(data.value ? `${/data/private}` : \"\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr interpolation requires ${data.xxx}"
+  },
+  "Expr(data.value ? `${data.missing}` : \"\")": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template data reference: ['missing']"
+  },
+  "Expr(data.value ? `${data.value + 1}` : \"\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr interpolation requires ${data.xxx}"
+  },
+  "Expr(data.value ? `${data.value.extra}` : \"\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr interpolation requires ${data.xxx}"
+  },
+  "Expr(data.value ? `${props.value}` : \"\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr interpolation requires ${data.xxx}"
+  },
+  "Expr(data.value ? `unclosed : \"\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template string literal is not closed"
+  },
+  "Expr(data.value, 1)": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 13."
+  },
+  "Expr(data.value.toString())": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr identifier is not supported: toString"
+  },
+  "Expr(data.value; evil())": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr identifier is not supported: evil"
+  },
+  "Expr(data.value[0])": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression contains unsupported syntax at offset 13."
+  },
+  "Expr(fetch(data.value))": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr identifier is not supported: fetch"
+  },
+  "Expr(props.value)": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr identifier is not supported: props"
+  },
+  "SomeExpr(data.value)": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: SomeExpr"
+  },
+  "_CardTplRuntimeExpr(\"data.value\")": {
+    "errorType": "ValueError",
+    "message": "Provider Template uses a reserved internal name"
+  }
+}

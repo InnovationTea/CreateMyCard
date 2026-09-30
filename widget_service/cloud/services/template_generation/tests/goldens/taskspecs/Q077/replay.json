@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "029d98462b190c6a0f067bf21abf583cc4352eb10d87f722875c1afeabd97212",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/dtEnd\",\"/events/0/eventLocation\",\"/events/0/oneClickServiceLink\",\"/events/0/title\"]},\"action\":[\"event.open.settings.dnd\",\"event.enter.meeting\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}

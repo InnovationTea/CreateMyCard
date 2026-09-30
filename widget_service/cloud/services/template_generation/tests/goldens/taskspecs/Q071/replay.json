@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1aeff98dc739c194af0cfdd241786440f1fb0c21f975d24355e26ec139ec694d",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"WorkoutOverviewTrainingRecordWideFull@1\", {\"timeIcon\": \"resources/base/media/stopwatch_fill.svg\", \"actionIcon\": \"resources/base/media/figure_run.svg\", \"actionId\": \"event.open.health.sport\"}));"
+    },
+    {
+      "key": "298265fd45cbb9e14f037f569da3bc8f3a60ae9e8549eef74830e3d64b4ecb6f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/targetDateText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseStartTimeText\",\"/exerciseEndTimeText\",\"/exerciseHeartRateAvg\",\"/exerciseHeartRateMax\"]},\"action\":[\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

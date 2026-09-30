@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "9817b4b7d9c1c52cd31dd816def71c48e694ff143b087dbd488138ecd93e2b0c",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCountdownDays\": [\n      \"/countdownDays\"\n    ],\n    \"ViewWeather\": [\n      \"/current/condition\",\n      \"/current/temperatureC\",\n      \"/location/cityCode\"\n    ]\n  },\n  \"action\": [\n    \"event.open.weather\"\n  ]\n}"
+    }
+  ]
+}

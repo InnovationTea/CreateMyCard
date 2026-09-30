@@ -1,0 +1,38 @@
+{
+  "child_slot_duplicate_index": {
+    "errorType": "ValueError",
+    "message": "Provider Template children indexes must be unique"
+  },
+  "child_slot_mixed_spread_and_indexed": {
+    "errorType": "ValueError",
+    "message": "Provider Template cannot mix children and children[index] slots"
+  },
+  "child_slot_non_contiguous_indexes": {
+    "errorType": "ValueError",
+    "message": "Provider Template children indexes must be contiguous from zero"
+  },
+  "deprecated_variant_syntax": {
+    "errorType": "ValueError",
+    "message": "Provider Template must use the cardtpl/1 UI syntax"
+  },
+  "event_action_literal_event_value": {
+    "errorType": "ValueError",
+    "message": "EventAction requires one props parameter"
+  },
+  "event_action_outside_onclick_option": {
+    "errorType": "ValueError",
+    "message": "EventAction must be the direct onClick option"
+  },
+  "event_action_required_prop": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional props access requires an optional prop: actionId"
+  },
+  "parser_three_argument_template": {
+    "errorType": "TerselConversionError",
+    "message": "Local Template requires a versioned ID, one props object and optional children."
+  },
+  "unknown_theme_reference": {
+    "errorType": "ValueError",
+    "message": "$theme requires one approved Theme path"
+  }
+}
