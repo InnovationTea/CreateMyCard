@@ -8,7 +8,7 @@ type Box = Record<Axis, number | undefined>;
 const regions = new Set(["Row", "Column", "InfoBlock", "CardButton"]);
 const widthFill = new Set([...regions, "Text", "Button", "PillButton", "CardHeader"]);
 const actions = new Set(["Button", "PillButton", "CircleButton", "ActionUnit"]);
-const constraints = ["aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight"];
+const constraints = ["aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight", "borderWidth"];
 const axes: Axis[] = ["width", "height"];
 const number = (value: unknown): number | undefined =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
@@ -92,6 +92,7 @@ export function adaptCompactRegions(
     const node = input.get(id)!;
     const explicit = number(node.props[axis]);
     if (explicit !== undefined || seen.has(id)) return explicit;
+    if ((node.props.borderWidth ?? 0) !== 0) return undefined;
     const main = mainAxis(node), ids = children(node);
     if (main === undefined || !ids.length) return undefined;
     const nextSeen = new Set([...seen, id]);
@@ -109,6 +110,7 @@ export function adaptCompactRegions(
   }
   function inner(node: MiniNode, box: Box): Box {
     const result: Box = { width: undefined, height: undefined };
+    if ((node.props.borderWidth ?? 0) !== 0) return result;
     for (const axis of axes) {
       const padding = inset(node, "padding", axis), extent = box[axis];
       if (padding !== undefined && extent !== undefined) result[axis] = Math.max(0, extent - padding);
@@ -151,6 +153,19 @@ export function adaptCompactRegions(
   }
   const reference = referenceProfile.sizes[size];
   visit("root", { width: reference.width, height: reference.height });
+  // 上层实际压缩会让下层参考盒失真；已知超占用时保留整卡原几何。
+  for (const [id, box] of boxes) {
+    const node = input.get(id)!, axis = mainAxis(node), spacing = gap(node);
+    if (axis === undefined || spacing === undefined) continue;
+    const available = inner(node, box)[axis];
+    if (available === undefined) continue;
+    const ids = children(node);
+    let used = spacing * Math.max(0, ids.length - 1);
+    for (const child of ids) {
+      used += (boxes.get(child)?.[axis] ?? 0) + (inset(input.get(child)!, "margin", axis) ?? 0);
+    }
+    if (used > available + 1e-7) return output;
+  }
   for (const [id, box] of boxes) {
     if (!authors.has(id)) continue;
     const parent = input.get(id)!, main = mainAxis(parent), space = inner(parent, box);
@@ -162,7 +177,7 @@ export function adaptCompactRegions(
         if (axis === main || !(axis === "width" ? widthFill : regions).has(kind)) continue;
         if (inset(node, "margin", axis) !== 0) continue;
         const value = number(props[axis]), available = space[axis];
-        if (value !== undefined && value > 0 && available !== undefined && Math.abs(value - available) < 1e-7) {
+        if (value !== undefined && value > 0 && available !== undefined && Math.abs(value - available) <= 1e-7) {
           output.get(child)!.props[axis] = "matchParent";
         }
       }
@@ -183,13 +198,13 @@ export function adaptCompactRegions(
       if (main === "height" && fixedAction(child) && !slots.has(child)) continue;
       candidates.push([child, length]);
     }
-    if (!known || Math.abs(used - space[main]!) >= 1e-7) continue;
+    if (!known || Math.abs(used - space[main]!) > 1e-7) continue;
     // Web flex 的 padding 不参与权重分配；原盒比例无法保持时不转换。
     const ratios = candidates.map(([child, length]) => {
       const padding = inset(input.get(child)!, "padding", main);
       return padding === undefined ? undefined : padding / length;
     });
-    if (ratios.some(ratio => ratio === undefined || Math.abs(ratio - ratios[0]!) >= 1e-7)) continue;
+    if (ratios.some(ratio => ratio === undefined || Math.abs(ratio - ratios[0]!) > 1e-7)) continue;
     for (const [child, length] of candidates) {
       const props = output.get(child)!.props;
       delete props[main]; props.layoutWeight = length;

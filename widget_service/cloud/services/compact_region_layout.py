@@ -14,7 +14,15 @@ _REGIONS = frozenset({"Row", "Column", "InfoBlock", "CardButton"})
 _WIDTH_FILL = _REGIONS | {"Text", "Button", "PillButton", "CardHeader"}
 _FIXED_ACTIONS = frozenset({"Button", "PillButton", "CircleButton", "ActionUnit"})
 _CONSTRAINTS = frozenset(
-    {"aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight"}
+    {
+        "aspectRatio",
+        "constraintSize",
+        "minWidth",
+        "maxWidth",
+        "minHeight",
+        "maxHeight",
+        "borderWidth",
+    }
 )
 
 
@@ -83,6 +91,8 @@ class _ReferenceGeometry:
         identifier = node.get("id")
         if value is not None or identifier in seen:
             return value
+        if _styles(node).get("borderWidth", 0) != 0:
+            return None
         seen = seen | {identifier}
         main = _main_axis(node)
         children = self.children(node)
@@ -149,8 +159,34 @@ class _ReferenceGeometry:
                 child.get("id"), RegionBox(widths[index], heights[index]), seen | {identifier}
             )
 
+    def has_known_overflow(self) -> bool:
+        """上层实际压缩会使下层参考盒失真；发现超占用时不做局部推断。"""
+        for identifier, box in self.boxes.items():
+            node = self.nodes.get(identifier)
+            if node is None:
+                continue
+            axis, gap = _main_axis(node), _gap(node)
+            if axis is None or gap is None:
+                continue
+            available = self.inner(node, box).axis(axis)
+            if available is None:
+                continue
+            children = self.children(node)
+            used = gap * max(0, len(children) - 1)
+            for child in children:
+                child_box = self.boxes.get(child.get("id"))
+                length = child_box.axis(axis) if child_box is not None else None
+                margin = _inset(child, "margin", axis)
+                used += (length or 0.0) + (margin or 0.0)
+            if used > available + 1e-7:
+                return True
+        return False
+
     @staticmethod
     def inner(node: dict[str, Any], box: RegionBox) -> RegionBox:
+        # 不假设不同宿主的边框盒模型一致，未知内区不能用于闭合证明。
+        if _styles(node).get("borderWidth", 0) != 0:
+            return RegionBox(None, None)
         lengths: list[float | None] = []
         for axis in _AXES:
             length, padding = box.axis(axis), _inset(node, "padding", axis)
@@ -226,7 +262,7 @@ def _grow_main_regions(
         if axis == "height" and fixed_action and identifier not in slots:
             continue
         candidates.append((identifier, length))
-    if not math.isclose(used, available, abs_tol=1e-7):
+    if not math.isclose(used, available, rel_tol=0, abs_tol=1e-7):
         return
     # Web flex 的 padding 不参与权重分配；不能证明原盒比例不变时保留固定尺寸。
     padding_ratios: list[float] = []
@@ -238,7 +274,8 @@ def _grow_main_regions(
         padding_ratios.append(padding / length)
     if padding_ratios:
         if any(
-            not math.isclose(ratio, padding_ratios[0], abs_tol=1e-7) for ratio in padding_ratios
+            not math.isclose(ratio, padding_ratios[0], rel_tol=0, abs_tol=1e-7)
+            for ratio in padding_ratios
         ):
             return
     for identifier, length in candidates:
@@ -275,6 +312,8 @@ def adapt_region_layout(
         ),
         set(),
     )
+    if geometry.has_known_overflow():
+        return result
     output: dict[str, dict[str, Any]] = {}
     for node in result:
         identifier = node.get("id")
@@ -299,7 +338,7 @@ def adapt_region_layout(
                     continue
                 value, available = _number(props.get(axis)), inner.axis(axis)
                 if value is not None and available is not None:
-                    if value > 0 and math.isclose(value, available, abs_tol=1e-7):
+                    if value > 0 and math.isclose(value, available, rel_tol=0, abs_tol=1e-7):
                         target[axis] = "matchParent"
         _grow_main_regions(parent, geometry, inner, author_types, output, slots, slot_actions)
     return result
