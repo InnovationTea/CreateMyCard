@@ -1,0 +1,6 @@
+{
+  "COMPACT_LAYOUT_HEIGHT_OVERFLOW": "检查并调整子组件高度、边距或间距，保留必要内容；调整后重新校验。",
+  "COMPACT_BINDING_DATA_MISSING": "检查绑定路径与本轮允许的数据声明，使用有对应首帧数据的合法路径；不要编造动态数据。",
+  "COMPACT_BINDING_PROGRESS_TYPE": "检查进度组件的绑定是否指向已声明的数值字段；不要仅为通过校验而将字符串或布尔值强制转成数值。",
+  "COMPACT_CROSS_FILE_UNDECLARED_PATH": "对照本轮已声明的数据字段修正引用，保留用户必需内容；不要改写服务端的数据声明。"
+}
