@@ -19,6 +19,10 @@ from services.compact_dsl_a2ui_converter import (
     parse_compact_dsl_rows,
     validate_card_header_layout,
 )
+from services.compact_layout_runtime import (
+    CompactLayoutRuntimeError,
+    match_compact_layout,
+)
 from services.compact_reference_canvas import reference_dimension
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
@@ -191,6 +195,7 @@ def validate_compact_dsl(
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
     protocol_profile: dict[str, Any] | None = None,
+    layout_scope: str | None = None,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
@@ -201,6 +206,21 @@ def validate_compact_dsl(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     size = card_spec.get("suggestSize") or task_spec.get("size")
+    layout_errors: list[str] = []
+    if layout_scope is not None:
+        if not isinstance(size, str):
+            layout_errors.append(
+                "Compact layout validation requires a valid widget size."
+            )
+        else:
+            try:
+                match_compact_layout(
+                    components,
+                    size=size,
+                    layout_scope=layout_scope,
+                )
+            except CompactLayoutRuntimeError as exc:
+                layout_errors.append(str(exc))
     try:
         components = expand_high_level_component_rows(components, size=size)
     except CompactDslConversionError as exc:
@@ -242,6 +262,7 @@ def validate_compact_dsl(
         task_spec,
         errors,
     )
+    errors.extend(layout_errors)
     if errors:
         raise CompactDslValidationError(errors)
 

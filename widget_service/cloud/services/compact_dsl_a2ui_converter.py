@@ -958,7 +958,6 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
         "backgroundColor",
         "icon",
         "fillColor",
-        "onClick",
     }
     _validate_high_level_props(
         component,
@@ -975,9 +974,6 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
     _require_color(component, "fontColor")
     _require_color(component, "backgroundColor")
     _validate_optional_icon(component)
-    if "onClick" in component.props:
-        _validate_high_level_on_click(component)
-
     variant = component.props.get("variant")
     _info_block_profile(size, variant)
     icon = component.props.get("icon")
@@ -992,8 +988,6 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
     container_props: dict[str, Any] = {
         "backgroundColor": component.props["backgroundColor"],
     }
-    if "onClick" in component.props:
-        container_props["onClick"] = copy.deepcopy(component.props["onClick"])
     root_part = "root" if icon else "rootNoVisual"
     rows = [
         _visual_row(
@@ -2045,48 +2039,57 @@ def _validate_item_component(
 def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
     icon = props.get("icon")
+    variant = "withIcon" if icon else None
+    root_type, root_styles = _visual_recipe_part_for_converter(
+        "CardHeader",
+        "root",
+        size=size,
+        variant=variant,
+    )
+    title_type, title_styles = _visual_recipe_part_for_converter(
+        "CardHeader",
+        "title",
+        size=size,
+        variant=variant,
+    )
+    root_styles.pop("_visualRecipe", None)
+    title_styles.pop("_visualRecipe", None)
+    item_margin = root_styles.pop("itemMargin", 0)
     title_id = f"{component.component_id}_title"
     icon_id = f"{component.component_id}_icon"
     children = [title_id, icon_id] if icon else [title_id]
     row = {
         "id": component.component_id,
-        "component": "Row",
+        "component": root_type,
         "children": children,
-        "itemMargin": 8 if icon else 0,
-        "styles": {
-            "width": "matchParent",
-            "height": 20,
-            "flexShrink": 0,
-            "justifyContent": "start",
-            "alignItems": "center",
-        },
+        "itemMargin": item_margin,
+        "styles": root_styles,
     }
+    title_styles["fontColor"] = props.get("fontColor")
     title = {
         "id": title_id,
-        "component": "Text",
+        "component": title_type,
         "content": _convert_path_bindings(props.get("title")),
-        "styles": {
-            "layoutWeight": 1,
-            "fontSize": 12,
-            "fontWeight": 400,
-            "fontColor": props.get("fontColor"),
-            "textAlign": "start",
-            "maxLines": 1,
-            "flexShrink": 0,
-        },
+        "styles": title_styles,
     }
     for name in _PLACEMENT_PROPS:
         if name in props:
             row["styles"][name] = copy.deepcopy(props[name])
     converted = [row, title]
     if icon:
-        image_styles = {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+        icon_type, image_styles = _visual_recipe_part_for_converter(
+            "CardHeader",
+            "icon",
+            size=size,
+            variant=variant,
+        )
+        image_styles.pop("_visualRecipe", None)
         if "fillColor" in props:
             image_styles["fillColor"] = props.get("fillColor")
         converted.append(
             {
                 "id": icon_id,
-                "component": "Image",
+                "component": icon_type,
                 "src": icon,
                 "styles": image_styles,
             }

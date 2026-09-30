@@ -80,8 +80,8 @@ Props 由 components 规定，具体骨架、槽位、尺寸、间距和对齐�
 - Progress 与环只用于满足比例条件的数据；形态、Props、尺寸和颜色完全服从 components 与 layouts。
 - 操作使用当前骨架允许的 Button、PillButton、CircleButton、CardButton 或可点击 Row；事件只放在
   对应点击容器，内部 Image/Text 不重复绑定。
-- 固定信息槽使用 InfoBlock，固定操作槽使用 CardButton。是否允许槽本身点击以 core、components 与
-  当前布局合同为准，组合不能扩大事件能力。
+- 固定信息槽使用 InfoBlock，外层和内部组件均不支持事件；固定操作槽使用 CardButton 并由其承载事件。
+  组合不能扩大任何组件的事件能力。
 
 ## 11.4 共同排除条件
 

@@ -2983,13 +2983,13 @@ async def test_a2ui_model_client_returns_mock_dat_without_processing():
 
 
 @pytest.mark.parametrize(
-    ("size", "expected_width"),
-    [("2x2", 160), ("2x4", 320)],
+    ("size", "expected_component"),
+    [("2x2", "Column"), ("2x4", "Stack")],
 )
 @pytest.mark.asyncio
 async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     size,
-    expected_width,
+    expected_component,
 ):
     """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
     prompt = [
@@ -3014,9 +3014,9 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     )
     converted_rows = [json_module.loads(line) for line in converted.splitlines()]
 
-    assert root[0:2] == ["root", "Column"]
-    assert root[2]["width"] == expected_width
-    assert root[2]["height"] == 160
+    assert root[0:2] == ["root", expected_component]
+    assert root[2]["width"] == "matchParent"
+    assert root[2]["height"] == "matchParent"
     assert len(converted_rows) == 3
     assert "width" not in converted_rows[0]["createSurface"]
     assert "height" not in converted_rows[0]["createSurface"]

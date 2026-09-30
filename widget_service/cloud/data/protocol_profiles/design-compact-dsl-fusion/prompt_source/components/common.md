@@ -42,7 +42,7 @@
 | 组件 | 语义合同 | Props | 正式 Few-shot |
 |---|---|---|---|
 | `EmphasizedData` | 一个核心数值与可选静态单位；值已含单位时不再传单位 | `value`、`fontColor` 必填；`unit` 可选 | 2x2 V18；2x4 V04 |
-| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor`、`onClick` 可选 | 2x2 V05/V20；2x4 V04/V18 |
+| `InfoBlock` | 固定小槽内的一组主信息、辅助信息与可选右侧图标；不承载完整业务区或事件 | `primaryText`、`secondaryText`、`fontColor`、`backgroundColor` 必填；`variant`、`icon`、`fillColor` 可选 | 2x2 V05/V20；2x4 V04/V18 |
 | `ProgressLine2` | 可见读数与同一真实比例的线性进度；不能只显示进度条 | `value`、`total`、`displayValue`、`fontColor`、`color`、`backgroundColor` 必填；`unit` 可选 | - |
 | `TableText` | 同一主题下 2–3 行对齐的标签—值，不制造单一 hero | `items`、`fontColor` 必填；每项包含 `label`、`value` | - |
 | `TextBlock` | 两个同级详情背板；每项是一组标签和值 | `items`、`fontColor`、`backgroundColor` 必填 | - |
@@ -59,7 +59,7 @@ PathBinding。内部字号、行高、间距、图标和子节点 ID 由视觉 R
 横向填充组件默认跟随父槽位；放入 Row 时未显式指定宽度则等权分配。内部排版不能用外部 Props 覆盖。
 高阶组件的 `fontColor` 表示 100% 内容色；设计系统规定的辅助文字、单位、时间线和环心图标由转换器
 确定性派生为 60% 内容色，模型不额外传辅助色。
-`InfoBlock.onClick` 必须逐字使用当前事件候选；`InfoBlock` 无图标时不生成图标节点或空槽。
+`InfoBlock` 的外层和内部组件均不支持事件；无图标时不生成图标节点或空槽。
 `CardButton` 无图标时由确定性视觉配方补充中性的固定视觉占位，模型仍不得伪造图标路径。环形 Progress、
 完整业务父级完整内容区不属于 `InfoBlock`。
 
@@ -338,7 +338,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 选择条件
 
-用于固定小槽中天然属于同一对象或指标的一组“主信息 + 辅助信息”。可附加一个语义匹配图标或一个真实
+用于固定小槽中天然属于同一对象或指标的一组“主信息 + 辅助信息”。可附加一个语义匹配图标，但不承载
 点击动作；完整业务区、两个同级指标以及无主辅关系的字段不使用该组件。
 
 #### 组件属性
@@ -352,7 +352,6 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 | `variant` | string | 按尺寸文件填写；2x2 可省略，2x4 必填 |
 | `icon` | string | 可选；逐字使用当前素材候选的本地路径 |
 | `fillColor` | `#AARRGGBB` | 可选；仅在传入可着色 `icon` 时使用 |
-| `onClick` | EventHandler[] | 可选；必须恰好一个当前事件候选中的 handler |
 
 #### 槽位与容量
 
@@ -372,8 +371,8 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 注意事项
 
-无图标时不生成图标节点或空槽。`fillColor` 不能脱离 `icon` 单独出现；`onClick` 不得新增、拼接或改写候选
-动作。环形 Progress 和 `W-split-panels` 的完整父区不属于 `InfoBlock`。
+无图标时不生成图标节点或空槽。`fillColor` 不能脱离 `icon` 单独出现；外层和内部组件均不得写
+`onClick`。环形 Progress 和 `W-split-panels` 的完整父区不属于 `InfoBlock`。
 
 ### 5.12.4 `ProgressLine2`
 

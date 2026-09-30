@@ -32,7 +32,12 @@ from custom.a2ui_model_client import (
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
-from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
+from models.generation import (
+    DEFAULT_WIDGET_SIZE,
+    ModelRequestContext,
+    TaskSpec,
+    WidgetSize,
+)
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
@@ -593,6 +598,8 @@ class WidgetGenerationService:
             repair_prompt_type = "create"
 
         processor = get_dsl_processor(policy.processor_kind)
+        from services.prompt_builder import PromptBuilder
+
         report_ops_metrics(body={
             "cardSizeCode": 1 if card_spec.suggestSize == "2x4" else 0
         })
@@ -604,6 +611,11 @@ class WidgetGenerationService:
             design_profile_id=policy.design_profile_id,
             data_capabilities=effective_data_capabilities,
             event_candidates=effective_events,
+            layout_scope=(
+                PromptBuilder.layout_scope(task_spec)
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                else None
+            ),
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
@@ -1493,6 +1505,8 @@ class WidgetGenerationService:
         conversion_protocol_profile: dict,
     ) -> bool:
         """用目标接口对应 Processor 验证上一轮 Token，防止跨源格式编辑。"""
+        from services.prompt_builder import PromptBuilder
+
         if source is None:
             return False
         source_card_spec = source.artifact.cardSpec
@@ -1505,6 +1519,13 @@ class WidgetGenerationService:
             task_spec=source.artifact.taskSpec,
             protocol_profile=conversion_protocol_profile,
             design_profile_id=policy.design_profile_id,
+            layout_scope=(
+                PromptBuilder.layout_scope(
+                    TaskSpec.model_validate(source.artifact.taskSpec)
+                )
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                else None
+            ),
         )
         processor = get_dsl_processor(policy.processor_kind)
         result = await to_thread.run_sync(processor.process, design_token, context)

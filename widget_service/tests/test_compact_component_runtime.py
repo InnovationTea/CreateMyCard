@@ -1,5 +1,7 @@
 """Tests for the versioned Compact high-level component visual contract."""
 
+import json
+
 import pytest
 
 from services.compact_component_runtime import (
@@ -16,6 +18,7 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
 
     assert contract["version"] == VISUAL_RECIPE_VERSION
     assert set(contract["components"]) == {
+        "CardHeader",
         "PillButton",
         "CircleButton",
         "EmphasizedData",
@@ -35,17 +38,49 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
     assert contract["components"]["ProgressCircleSingle"]["alignment"] == "aligned"
     assert contract["components"]["DataDisplay"]["alignment"] == "aligned"
     assert contract["components"]["SummaryList"]["alignment"] == "native"
+    assert contract["components"]["CardHeader"]["alignment"] == "aligned"
 
 
 def test_visual_recipe_resolves_size_overrides_without_mutating_cache() -> None:
     first = component_visual_recipe("InfoBlock", size="2x4")
     second = component_visual_recipe("InfoBlock", size="2x4")
 
-    assert first["parts"]["root"]["styles"]["width"] == 132
+    assert first["parts"]["root"]["styles"]["width"] == "matchParent"
     assert first["parts"]["root"]["styles"]["height"] == 57
     assert first["parts"]["root"]["styles"]["borderRadius"] == 16
     first["parts"]["root"]["styles"]["width"] = 999
-    assert second["parts"]["root"]["styles"]["width"] == 132
+    assert second["parts"]["root"]["styles"]["width"] == "matchParent"
+
+
+def test_card_header_visual_recipe_resolves_icon_spacing() -> None:
+    without_icon = component_visual_recipe("CardHeader", size="2x2")
+    with_icon = component_visual_recipe(
+        "CardHeader",
+        size="2x2",
+        variant="withIcon",
+    )
+
+    assert without_icon["parts"]["root"]["styles"]["itemMargin"] == 0
+    assert with_icon["parts"]["root"]["styles"]["itemMargin"] == 8
+
+
+def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> None:
+    contract = load_visual_recipe_contract()
+    components = contract["components"]
+
+    assert components["InfoBlock"]["parts"]["icon"]["styles"] == {
+        "width": 20,
+        "height": 20,
+        "objectFit": "contain",
+        "flexShrink": 0,
+    }
+    assert components["CardHeader"]["parts"]["icon"]["styles"]["width"] == 20
+    assert components["CardHeader"]["parts"]["icon"]["styles"]["height"] == 20
+    assert components["CardButton"]["parts"]["icon"]["styles"]["width"] == 20
+    assert components["CardButton"]["parts"]["icon"]["styles"]["height"] == 20
+    assert components["CardButton"]["parts"]["placeholder"]["styles"]["width"] == 20
+    assert components["CardButton"]["parts"]["placeholder"]["styles"]["height"] == 20
+    assert "ellipsis" not in json.dumps(contract)
 
 
 def test_visual_recipe_part_marks_only_internal_expansion_rows() -> None:

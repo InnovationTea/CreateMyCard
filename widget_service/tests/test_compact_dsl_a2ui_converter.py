@@ -113,6 +113,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         ]
         self.compact_dsl = _serialize(rows)
+
         self.task_spec = {
             "dataModelSchema": {
                 "data": {
@@ -161,6 +162,45 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 },
             ],
         }
+
+    def test_card_header_uses_visual_recipe(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["header"],
+                ],
+                [
+                    "header",
+                    "CardHeader",
+                    {
+                        "title": "今日概览",
+                        "fontColor": "#FF1F4799",
+                        "icon": "resources/base/media/calendar.svg",
+                        "fillColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["header"]["component"], "Row")
+        self.assertEqual(components["header"]["itemMargin"], 8)
+        self.assertEqual(components["header"]["styles"]["height"], 20)
+        self.assertEqual(components["header_title"]["styles"]["fontSize"], 12)
+        self.assertEqual(components["header_title"]["styles"]["fontWeight"], 400)
+        self.assertEqual(components["header_icon"]["styles"]["width"], 20)
+        self.assertEqual(components["header_icon"]["styles"]["height"], 20)
+        self.assertNotIn("_visualRecipe", result)
 
     def test_expands_action_icon_round_design(self) -> None:
         compact_dsl = _serialize(
@@ -766,6 +806,39 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["action_label"]["styles"]["fontSize"], 14)
         self.assertEqual(components["action_visual"]["component"], "Divider")
+
+    def test_info_block_rejects_on_click(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["info"],
+                ],
+                [
+                    "info",
+                    "InfoBlock",
+                    {
+                        "primaryText": "手机电量",
+                        "secondaryText": "68%",
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#CCFFFFFF",
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "InfoBlock does not allow onClick",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
 
     def test_visual_recipe_preserves_bindings_expressions_and_events(self) -> None:
         display_expression = "{{ ${/data/sleep/score} + '分' }}"

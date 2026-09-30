@@ -66,6 +66,7 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
+    layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
 
 
@@ -161,6 +162,7 @@ class DesignCompactProcessor:
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
                     protocol_profile=design_protocol,
+                    layout_scope=context.layout_scope,
                 )
             except CompactDslValidationError as exc:
                 return self._validation_failure(source_dsl, exc.errors)

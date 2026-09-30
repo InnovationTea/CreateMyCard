@@ -125,6 +125,7 @@ async def _repair_compact_dsl_source(
         task_spec=task_spec_value,
         protocol_profile=design_protocol,
         design_profile_id=design_profile_id,
+        layout_scope=PromptBuilder.layout_scope(source.task_spec),
     )
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
     latest_dsl = ""

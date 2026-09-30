@@ -913,6 +913,11 @@ class PromptBuilder:
         return "W-adaptive-single-business"
 
     @staticmethod
+    def layout_scope(task_spec: TaskSpec) -> str:
+        """返回生成、校验和修复共同使用的布局范围。"""
+        return PromptBuilder._layout_scope(task_spec)
+
+    @staticmethod
     def _query_mentions_weather(task_spec: TaskSpec) -> bool:
         return _contains_any(task_spec.userQuery, ("天气", "温度", "空气质量"))
 
@@ -1040,7 +1045,7 @@ class PromptBuilder:
         layout_scope: str | None = None,
     ) -> str:
         if layout_scope is None:
-            layout_scope = PromptBuilder._layout_scope(task_spec)
+            layout_scope = PromptBuilder.layout_scope(task_spec)
         route, example_ids = PromptBuilder._visual_route(task_spec)
         examples = "、".join(example_ids)
         instruction = _VISUAL_ROUTE_INSTRUCTIONS[route]
@@ -1486,7 +1491,7 @@ class PromptBuilder:
 
     @staticmethod
     def _with_size_few_shot(system_prompt: str, task_spec: TaskSpec) -> str:
-        layout_scope = PromptBuilder._layout_scope(task_spec)
+        layout_scope = PromptBuilder.layout_scope(task_spec)
         system_prompt = PromptBuilder._prune_prompt_for_route(
             system_prompt,
             task_spec,

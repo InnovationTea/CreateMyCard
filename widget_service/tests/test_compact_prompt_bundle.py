@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from config.config import get_settings
+from services.compact_layout_runtime import layout_ids_for_size
 from services.compact_prompt_loader import (
     FRAGMENT,
     PROMPT_NAMES,
@@ -32,6 +33,15 @@ def test_assembled_prompts_are_model_facing() -> None:
     for content in prompts.values():
         assert "<!-- prompt:" not in content
         assert "维护源" not in content
+
+
+def test_info_block_contract_is_noninteractive() -> None:
+    create_prompt = assemble_prompts(DEFAULT_SOURCE).get("create")
+
+    assert isinstance(create_prompt, str)
+    assert "InfoBlock.onClick" not in create_prompt
+    assert "合法可点击 InfoBlock" not in create_prompt
+    assert "不得绑定到 `InfoBlock`" in create_prompt
 
 
 def test_runtime_does_not_depend_on_generated_products() -> None:
@@ -141,19 +151,9 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
     two_by_four = bodies.get("2x4.md")
     assert isinstance(two_by_two, str)
     assert isinstance(two_by_four, str)
-    for layout_id in (
-        "S-center",
-        "S-title-content-action",
-        "S-content-dual-action",
-        "S-dual-info",
-    ):
+    for layout_id in layout_ids_for_size("2x2"):
         assert layout_id in two_by_two
-    for layout_id in (
-        "W-top-bottom",
-        "W-split-panels",
-        "W-content-side-slots",
-        "W-four-slots",
-    ):
+    for layout_id in layout_ids_for_size("2x4"):
         assert layout_id in two_by_four
 
     manifest_path = DEFAULT_BUNDLE / "prompt_source/manifest.yaml"
@@ -179,7 +179,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     assert not list((DEFAULT_SOURCE / "fewshots" / size).rglob("*.md"))
     fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
     expected = ["preamble"]
-    example_count = 10 if size == "2x2" else 7
+    example_count = 33 if size == "2x2" else 27
     expected.extend(f"example-v{index:02d}" for index in range(example_count))
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))

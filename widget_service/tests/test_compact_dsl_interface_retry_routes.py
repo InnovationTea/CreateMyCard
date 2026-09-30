@@ -262,7 +262,21 @@ def test_real_generation_pipeline_retries_to_valid_artifact(monkeypatch, tmp_pat
     original_save = ArtifactStore.save
     original_upload = artifact_store.file_obs.upload_file
     token_rows = [
-        ["root", "Column", {"padding": 12, "backgroundColor": "#FFFFFFFF"}, ["title"]],
+        [
+            "root",
+            "Column",
+            {
+                "width": "matchParent",
+                "height": "matchParent",
+                "padding": 12,
+                "borderRadius": 20,
+                "clip": True,
+                "alignItems": "center",
+                "justifyContent": "center",
+                "backgroundColor": "#FFFFFFFF",
+            },
+            ["title"],
+        ],
         ["title", "Text", {"content": "天气", "fontSize": 16, "fontColor": "#FF000000"}],
         ["/ui/state", "ready"],
     ]
