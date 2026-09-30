@@ -1,0 +1,6197 @@
+{
+  "baselineCommit": "9d567c5f994903882802dab620171d010124ad90",
+  "sourceSha256": "43f4a940390993db8b028388cb120a09c2cf52d92a14e479ef22689523d7ca78",
+  "cases": [
+    {
+      "name": "small-Column-False-3-None",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {
+            "width": 138,
+            "height": 63,
+            "justifyContent": null
+          },
+          [
+            "t0",
+            "t1",
+            "t2"
+          ]
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 small backboard zone may contain at most two Text nodes. Keep one primary line and one supporting line instead of clipping a third line.",
+        "2x4 small backboard zone without a visual must vertically center its one or two Text lines."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_SMALL_TEXT_COUNT",
+        "COMPACT_LAYOUT_2X4_SMALL_TEXT_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "small-Row-False-2-None",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Row",
+          {
+            "width": 138,
+            "height": 63,
+            "justifyContent": null
+          },
+          [
+            "t0",
+            "t1"
+          ]
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 small backboard zone without a visual must use Column; do not place two Text nodes side by side where the second line can be clipped."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_SMALL_TEXT_COLUMN"
+      ]
+    },
+    {
+      "name": "small-Column-True-2-None",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {
+            "width": 138,
+            "height": 63,
+            "justifyContent": null
+          },
+          [
+            "t0",
+            "t1",
+            "image"
+          ]
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "image",
+          "Image",
+          {
+            "src": "asset"
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 small backboard zone with a visual must use Row so its text stays on the left and the visual stays on the right."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_SMALL_VISUAL_ROW"
+      ]
+    },
+    {
+      "name": "small-Column-False-2-center",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {
+            "width": 138,
+            "height": 63,
+            "justifyContent": "center"
+          },
+          [
+            "t0",
+            "t1"
+          ]
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "small-Row-True-1-None",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Row",
+          {
+            "width": 138,
+            "height": 63,
+            "justifyContent": null
+          },
+          [
+            "t0",
+            "image"
+          ]
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "image",
+          "Image",
+          {
+            "src": "asset"
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "action-backboard-order",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "action",
+            "content"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 114,
+            "height": 36
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 large backboard zone must place its action as the final direct child.",
+        "2x4 large backboard zone content must be a Column."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_ORDER",
+        "COMPACT_LAYOUT_2X4_BACKBOARD_CONTENT_TYPE"
+      ]
+    },
+    {
+      "name": "action-backboard-size",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 large backboard zone action must be 114x36."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_SIZE"
+      ]
+    },
+    {
+      "name": "action-backboard-siblings",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content",
+            "extra",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 114,
+            "height": 36
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 large backboard zone with a Button must have exactly [content, Button] as direct children."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_STRUCTURE"
+      ]
+    },
+    {
+      "name": "action-backboard-missing",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "missing",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 114,
+            "height": 36
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 large backboard zone content must be a Column."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_BACKBOARD_CONTENT_TYPE"
+      ]
+    },
+    {
+      "name": "action-backboard-weight-and-budget",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 114,
+            "height": 36
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {},
+          [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 large backboard zone content must use layoutWeight 1 so the Button stays at the bottom.",
+        "2x4 large backboard zone with a Button may contain at most four Text nodes across no more than three visual rows. Merge or remove lower-priority fields."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_BACKBOARD_CONTENT_WEIGHT",
+        "COMPACT_LAYOUT_2X4_BACKBOARD_TEXT_BUDGET"
+      ]
+    },
+    {
+      "name": "action-backboard-graphical",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Row",
+          {
+            "width": 114,
+            "height": 36,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 graphical action Row action must use itemMargin 8, at least 8vp left/right padding, justifyContent center, and alignItems center so its icon and label stay centered."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_ACTION_ROW_LAYOUT"
+      ]
+    },
+    {
+      "name": "action-backboard-valid",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 114,
+            "height": 36
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          [
+            "t0"
+          ]
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t4",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "full-action-wrong-parent",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "components": [
+        [
+          "parent",
+          "Row",
+          {
+            "width": "matchParent",
+            "height": "matchParent"
+          },
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 276,
+            "height": 36
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 full-width action action must be a direct child of the matchParent foreground Column; do not nest it inside a fixed-height main/body container where content can overlap."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_FULL_ACTION_PARENT"
+      ]
+    },
+    {
+      "name": "full-action-order",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "components": [
+        [
+          "parent",
+          "Column",
+          {
+            "width": "matchParent",
+            "height": "matchParent"
+          },
+          [
+            "action",
+            "content"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 276,
+            "height": 36
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 full-width action action must be the final direct child of foreground Column {parent.component_id}."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_FULL_ACTION_ORDER"
+      ]
+    },
+    {
+      "name": "full-action-content-weight",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "components": [
+        [
+          "parent",
+          "Column",
+          {
+            "width": "matchParent",
+            "height": "matchParent"
+          },
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": null
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 276,
+            "height": 36
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 content immediately above full-width action action must use layoutWeight 1 so the 276x36 action remains fixed at the bottom without overlapping content."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_FULL_ACTION_CONTENT_WEIGHT"
+      ]
+    },
+    {
+      "name": "full-action-valid",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "components": [
+        [
+          "parent",
+          "Column",
+          {
+            "width": "matchParent",
+            "height": "matchParent"
+          },
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {
+            "width": 276,
+            "height": 36
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "aux-icon-False",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_aux_icon_errors",
+      "components": [
+        [
+          "cell",
+          "Row",
+          {
+            "width": 130,
+            "height": 59,
+            "borderRadius": 12,
+            "backgroundColor": "#fff"
+          },
+          [
+            "label",
+            "icon"
+          ]
+        ],
+        [
+          "label",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12,
+            "maxLines": 2
+          },
+          []
+        ],
+        [
+          "icon",
+          "Image",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 130x59 auxiliary backboard cell with an icon must contain exactly one one-line Text or one 1-2 line text Column plus one Image. The converter normalizes the cell to left-aligned text and a 20x20vp Image on the right."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_AUX_ICON_STRUCTURE"
+      ]
+    },
+    {
+      "name": "aux-icon-True",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_aux_icon_errors",
+      "components": [
+        [
+          "cell",
+          "Row",
+          {
+            "width": 130,
+            "height": 59,
+            "borderRadius": 12,
+            "backgroundColor": "#fff"
+          },
+          [
+            "label",
+            "icon"
+          ]
+        ],
+        [
+          "label",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12,
+            "maxLines": 1
+          },
+          []
+        ],
+        [
+          "icon",
+          "Image",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "detached-unit",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_detached_unit_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/value"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "metric": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x4 numeric value value and unit unit must be adjacent Text children of the same Row. Use Row alignItems bottom without bottom padding on the smaller Text; do not place a non-countdown unit on the next line."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_DETACHED_UNIT"
+      ]
+    },
+    {
+      "name": "weather-calendar-alignment",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_weather_calendar_alignment_errors",
+      "components": [
+        [
+          "temp",
+          "Text",
+          {
+            "content": {
+              "path": "/data/weather/current/temperature"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "condition",
+          "Text",
+          {
+            "content": {
+              "path": "/data/weather/current/condition"
+            },
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "weather": {},
+              "calendar": {}
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x4 weather-and-calendar cards must combine current temperature and condition in one single-line Text, such as 29° · 多云. Do not split them into separate Text nodes with different font metrics because their visible baselines will not align."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_WEATHER_CALENDAR_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "countdown-order-and-alignment",
+      "module": "semantic.layout.two_by_four",
+      "function": "_collect_two_by_four_countdown_backboard_errors",
+      "components": [
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "value",
+            "title",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "title",
+          "Text",
+          {
+            "content": "生日",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "日",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "backboard": {
+          "$ref": "component",
+          "id": "zone"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x4 countdown backboard zone must order its three Text children as target title, countdownDays value, and unit `天`.",
+        "2x4 countdown backboard zone must use justifyContent \"spaceBetween\" and alignItems \"center\" so the title, number, and unit have balanced vertical spacing.",
+        "2x4 countdown Text value must use width 114 and textAlign center inside the balanced countdown backboard.",
+        "2x4 countdown Text title must use width 114 and textAlign center inside the balanced countdown backboard.",
+        "2x4 countdown Text unit must use width 114 and textAlign center inside the balanced countdown backboard."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_COUNTDOWN_ORDER",
+        "COMPACT_LAYOUT_2X4_COUNTDOWN_DISTRIBUTION",
+        "COMPACT_LAYOUT_2X4_COUNTDOWN_TEXT_WIDTH",
+        "COMPACT_LAYOUT_2X4_COUNTDOWN_TEXT_WIDTH",
+        "COMPACT_LAYOUT_2X4_COUNTDOWN_TEXT_WIDTH"
+      ]
+    },
+    {
+      "name": "w1-dense",
+      "module": "flows.w1",
+      "function": "_collect_two_by_four_w1_focus_aux_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "focus",
+            "aux"
+          ]
+        ],
+        [
+          "focus",
+          "Column",
+          {},
+          [
+            "f0",
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "image",
+            "progress"
+          ]
+        ],
+        [
+          "aux",
+          "Column",
+          {},
+          [
+            "cell1",
+            "cell2"
+          ]
+        ],
+        [
+          "f0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value0"
+            },
+            "fontSize": 20,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "f1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value1"
+            },
+            "fontSize": 20,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "f2",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value2"
+            },
+            "fontSize": 20,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "f3",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value3"
+            },
+            "fontSize": 20,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "f4",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value4"
+            },
+            "fontSize": 20,
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ],
+        [
+          "image",
+          "Image",
+          {},
+          []
+        ],
+        [
+          "progress",
+          "Progress",
+          {
+            "type": "linear"
+          },
+          []
+        ],
+        [
+          "cell1",
+          "Column",
+          {
+            "alignItems": "center"
+          },
+          [
+            "labels",
+            "values",
+            "nested"
+          ]
+        ],
+        [
+          "labels",
+          "Text",
+          {
+            "content": "电量 | 状态",
+            "fontSize": 12,
+            "textAlign": "center"
+          },
+          []
+        ],
+        [
+          "values",
+          "Text",
+          {
+            "content": "{{ ${/data/phonebattery/value0} + ${/data/earphone/value1} }}",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "nested",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "cell2",
+          "Column",
+          {},
+          [
+            "three"
+          ]
+        ],
+        [
+          "three",
+          "Text",
+          {
+            "content": "{{ ${/data/earphone/a} + ${/data/earphone/b} + ${/data/earphone/c} }}",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "earphone": {},
+              "phonebattery": {}
+            }
+          },
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "打开两个入口"
+        }
+      },
+      "expectedErrors": [
+        "2x4 W1-focus-aux must not repeat the same visible fact in the left focus and a right auxiliary cell. Reassign each requested field to one region only; duplicated paths: ['/data/phonebattery/value0'].",
+        "2x4 W1-focus-aux left focus Image image is decorative and must be removed. Only an Image centered inside a Stack that also contains a valid ring Progress is allowed there.",
+        "2x4 W1-focus-aux may contain only one 20fp-or-larger primary focus in the left zone. Keep peer metrics as ordinary auxiliary content instead of manufacturing a second hero.",
+        "2x4 W1-focus-aux actions must occupy a right auxiliary cell; do not bind actions inside the left focus zone.",
+        "2x4 W1-focus-aux must not add Progress unless the user explicitly requests a progress visualization. Use the left focus for the primary value and its necessary status instead.",
+        "2x4 W1-focus-aux left focus may contain at most four Text nodes. Use at most three visual layers for value-led content, merge a closely related pair, or move one necessary fact to an auxiliary cell instead of filling the left zone with a dense list.",
+        "2x4 phone-and-earphone W1 focus must use a compact ring Progress for numeric phone battery percentage; do not use a horizontal linear bar. If only formatted battery text exists, remove Progress and display that complete text instead.",
+        "2x4 W1-focus-aux must reserve right auxiliary cells for explicit actions (0/2). Drop or merge lower-priority facts instead of omitting the requested action.",
+        "2x4 W1-focus-aux cell cell1 must keep its text group left-aligned. Use Row justifyContent start or Column alignItems start, and Text textAlign start; only vertical centering is allowed.",
+        "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line.",
+        "2x4 W1-focus-aux cell cell1 must bind onClick to the auxiliary backboard itself; do not nest a Button or ActionUnit inside it.",
+        "2x4 W1-focus-aux cell cell1 mixes data roots ['earphone', 'phonebattery']. Each auxiliary cell must belong to one business object.",
+        "2x4 W1-focus-aux cell cell2 references 3 dynamic facts. Keep at most two facts that fit as two short lines; drop lower-priority fields."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_W1_DUPLICATE_FACT",
+        "COMPACT_LAYOUT_W1_FOCUS_DECORATION",
+        "COMPACT_LAYOUT_W1_PRIMARY_FOCUS_COUNT",
+        "COMPACT_LAYOUT_W1_ACTION_PLACEMENT",
+        "COMPACT_DISPLAY_W1_PROGRESS_NOT_REQUESTED",
+        "COMPACT_LAYOUT_W1_FOCUS_TEXT_BUDGET",
+        "COMPACT_LAYOUT_W1_BATTERY_PROGRESS_SHAPE",
+        "COMPACT_DISPLAY_W1_REQUIRED_ACTION_CELLS",
+        "COMPACT_LAYOUT_W1_CELL_TEXT_ALIGNMENT",
+        "COMPACT_DISPLAY_W1_COMPLETE_FACT_LINES",
+        "COMPACT_LAYOUT_W1_CELL_NESTED_ACTION",
+        "COMPACT_DISPLAY_W1_CELL_BUSINESS_ROOTS",
+        "COMPACT_LAYOUT_W1_CELL_FACT_DENSITY"
+      ]
+    },
+    {
+      "name": "w1-sparse",
+      "module": "flows.w1",
+      "function": "_collect_two_by_four_w1_focus_aux_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "focus",
+            "aux"
+          ]
+        ],
+        [
+          "focus",
+          "Column",
+          {},
+          [
+            "f0",
+            "f1"
+          ]
+        ],
+        [
+          "aux",
+          "Column",
+          {},
+          [
+            "cell1",
+            "cell2"
+          ]
+        ],
+        [
+          "f0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value0"
+            },
+            "fontSize": 12,
+            "onClick": null
+          },
+          []
+        ],
+        [
+          "f1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value1"
+            },
+            "fontSize": 12,
+            "onClick": null
+          },
+          []
+        ],
+        [
+          "image",
+          "Image",
+          {},
+          []
+        ],
+        [
+          "progress",
+          "Progress",
+          {
+            "type": "linear"
+          },
+          []
+        ],
+        [
+          "cell1",
+          "Column",
+          {
+            "alignItems": "center"
+          },
+          [
+            "labels",
+            "values",
+            "nested"
+          ]
+        ],
+        [
+          "labels",
+          "Text",
+          {
+            "content": "电量 | 状态",
+            "fontSize": 12,
+            "textAlign": "center"
+          },
+          []
+        ],
+        [
+          "values",
+          "Text",
+          {
+            "content": "{{ ${/data/phonebattery/value0} + ${/data/earphone/value1} }}",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "nested",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "cell2",
+          "Column",
+          {},
+          [
+            "three"
+          ]
+        ],
+        [
+          "three",
+          "Text",
+          {
+            "content": "{{ ${/data/earphone/a} + ${/data/earphone/b} + ${/data/earphone/c} }}",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "earphone": {},
+              "phonebattery": {}
+            }
+          },
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "打开两个入口"
+        }
+      },
+      "expectedErrors": [
+        "2x4 W1-focus-aux must not repeat the same visible fact in the left focus and a right auxiliary cell. Reassign each requested field to one region only; duplicated paths: ['/data/phonebattery/value0'].",
+        "2x4 W1-focus-aux compact left content must use justifyContent center so its information group is vertically centered instead of being pinned to the top.",
+        "2x4 W1-focus-aux sparse or value-led left content must use alignItems center. Event lists and dense summaries may remain left-aligned, but their full group must still be vertically centered.",
+        "2x4 W1-focus-aux must reserve right auxiliary cells for explicit actions (0/2). Drop or merge lower-priority facts instead of omitting the requested action.",
+        "2x4 W1-focus-aux cell cell1 must keep its text group left-aligned. Use Row justifyContent start or Column alignItems start, and Text textAlign start; only vertical centering is allowed.",
+        "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line.",
+        "2x4 W1-focus-aux cell cell1 must bind onClick to the auxiliary backboard itself; do not nest a Button or ActionUnit inside it.",
+        "2x4 W1-focus-aux cell cell1 mixes data roots ['earphone', 'phonebattery']. Each auxiliary cell must belong to one business object.",
+        "2x4 W1-focus-aux cell cell2 references 3 dynamic facts. Keep at most two facts that fit as two short lines; drop lower-priority fields."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_W1_DUPLICATE_FACT",
+        "COMPACT_LAYOUT_W1_FOCUS_VERTICAL_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_FOCUS_HORIZONTAL_ALIGNMENT",
+        "COMPACT_DISPLAY_W1_REQUIRED_ACTION_CELLS",
+        "COMPACT_LAYOUT_W1_CELL_TEXT_ALIGNMENT",
+        "COMPACT_DISPLAY_W1_COMPLETE_FACT_LINES",
+        "COMPACT_LAYOUT_W1_CELL_NESTED_ACTION",
+        "COMPACT_DISPLAY_W1_CELL_BUSINESS_ROOTS",
+        "COMPACT_LAYOUT_W1_CELL_FACT_DENSITY"
+      ]
+    },
+    {
+      "name": "w1-progress",
+      "module": "flows.w1",
+      "function": "_collect_two_by_four_w1_focus_aux_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "focus",
+            "aux"
+          ]
+        ],
+        [
+          "focus",
+          "Column",
+          {},
+          [
+            "f0",
+            "f1",
+            "image",
+            "progress"
+          ]
+        ],
+        [
+          "aux",
+          "Column",
+          {},
+          [
+            "cell1",
+            "cell2"
+          ]
+        ],
+        [
+          "f0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value0"
+            },
+            "fontSize": 12,
+            "onClick": null
+          },
+          []
+        ],
+        [
+          "f1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value1"
+            },
+            "fontSize": 12,
+            "onClick": null
+          },
+          []
+        ],
+        [
+          "image",
+          "Image",
+          {},
+          []
+        ],
+        [
+          "progress",
+          "Progress",
+          {
+            "type": "linear"
+          },
+          []
+        ],
+        [
+          "cell1",
+          "Column",
+          {
+            "alignItems": "center"
+          },
+          [
+            "labels",
+            "values",
+            "nested"
+          ]
+        ],
+        [
+          "labels",
+          "Text",
+          {
+            "content": "电量 | 状态",
+            "fontSize": 12,
+            "textAlign": "center"
+          },
+          []
+        ],
+        [
+          "values",
+          "Text",
+          {
+            "content": "{{ ${/data/phonebattery/value0} + ${/data/earphone/value1} }}",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "nested",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "cell2",
+          "Column",
+          {},
+          [
+            "three"
+          ]
+        ],
+        [
+          "three",
+          "Text",
+          {
+            "content": "{{ ${/data/earphone/a} + ${/data/earphone/b} + ${/data/earphone/c} }}",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "earphone": {},
+              "phonebattery": {}
+            }
+          },
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "进度"
+        }
+      },
+      "expectedErrors": [
+        "2x4 W1-focus-aux must not repeat the same visible fact in the left focus and a right auxiliary cell. Reassign each requested field to one region only; duplicated paths: ['/data/phonebattery/value0'].",
+        "2x4 W1-focus-aux left focus Image image is decorative and must be removed. Only an Image centered inside a Stack that also contains a valid ring Progress is allowed there.",
+        "2x4 W1-focus-aux Progress must be paired with a visible primary value Text of at least 18fp in the left focus zone. Do not output a standalone progress line or ring without its readout.",
+        "2x4 W1-focus-aux compact left content must use justifyContent center so its information group is vertically centered instead of being pinned to the top.",
+        "2x4 W1-focus-aux sparse or value-led left content must use alignItems center. Event lists and dense summaries may remain left-aligned, but their full group must still be vertically centered.",
+        "2x4 phone-and-earphone W1 focus must use a compact ring Progress for numeric phone battery percentage; do not use a horizontal linear bar. If only formatted battery text exists, remove Progress and display that complete text instead.",
+        "2x4 W1-focus-aux cell cell1 must keep its text group left-aligned. Use Row justifyContent start or Column alignItems start, and Text textAlign start; only vertical centering is allowed.",
+        "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line.",
+        "2x4 W1-focus-aux cell cell1 must bind onClick to the auxiliary backboard itself; do not nest a Button or ActionUnit inside it.",
+        "2x4 W1-focus-aux cell cell1 mixes data roots ['earphone', 'phonebattery']. Each auxiliary cell must belong to one business object.",
+        "2x4 W1-focus-aux cell cell2 references 3 dynamic facts. Keep at most two facts that fit as two short lines; drop lower-priority fields."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_W1_DUPLICATE_FACT",
+        "COMPACT_LAYOUT_W1_FOCUS_DECORATION",
+        "COMPACT_LAYOUT_W1_PROGRESS_READOUT",
+        "COMPACT_LAYOUT_W1_FOCUS_VERTICAL_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_FOCUS_HORIZONTAL_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_BATTERY_PROGRESS_SHAPE",
+        "COMPACT_LAYOUT_W1_CELL_TEXT_ALIGNMENT",
+        "COMPACT_DISPLAY_W1_COMPLETE_FACT_LINES",
+        "COMPACT_LAYOUT_W1_CELL_NESTED_ACTION",
+        "COMPACT_DISPLAY_W1_CELL_BUSINESS_ROOTS",
+        "COMPACT_LAYOUT_W1_CELL_FACT_DENSITY"
+      ]
+    },
+    {
+      "name": "w1-valid",
+      "module": "flows.w1",
+      "function": "_collect_two_by_four_w1_focus_aux_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "focus",
+            "aux"
+          ]
+        ],
+        [
+          "focus",
+          "Column",
+          {
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "value"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/phonebattery/value0"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "aux",
+          "Column",
+          {},
+          [
+            "cell1",
+            "cell2"
+          ]
+        ],
+        [
+          "cell1",
+          "Column",
+          {},
+          [
+            "earphone"
+          ]
+        ],
+        [
+          "earphone",
+          "Text",
+          {
+            "content": {
+              "path": "/data/earphone/value1"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "cell2",
+          "Column",
+          {},
+          [
+            "status"
+          ]
+        ],
+        [
+          "status",
+          "Text",
+          {
+            "content": "已连接",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "earphone": {},
+              "phonebattery": {}
+            }
+          },
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "状态"
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "s4-text-mixed",
+      "module": "flows.two_by_two",
+      "function": "_collect_two_by_two_s4_text_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {
+            "onClick": []
+          },
+          [
+            "hint",
+            "long",
+            "time"
+          ]
+        ],
+        [
+          "hint",
+          "Text",
+          {
+            "content": "点击查看",
+            "fontSize": 12,
+            "width": 10
+          },
+          []
+        ],
+        [
+          "long",
+          "Text",
+          {
+            "content": "长文本内容",
+            "fontSize": 12,
+            "width": 5
+          },
+          []
+        ],
+        [
+          "time",
+          "Text",
+          {
+            "content": {
+              "path": "/data/calendar/dtStart"
+            },
+            "fontSize": 20
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 S4 backboard zone contains 3 Text rows; keep at most two single-line Text components.",
+        "2x2 S4 Text time must use maxLines 1; a backboard must never render a third line.",
+        "2x2 S4 Text long must use maxLines 1; a backboard must never render a third line.",
+        "2x2 S4 static Text long exceeds its 5vp single-line width; shorten the wording while keeping its meaning. Do not wrap it, add a third line, or move the visual.",
+        "2x2 S4 Text hint must use maxLines 1; a backboard must never render a third line.",
+        "2x2 S4 static Text hint exceeds its 10vp single-line width; shorten the wording while keeping its meaning. Do not wrap it, add a third line, or move the visual.",
+        "2x2 S4 clickable backboard zone must not show action hint Text hint; bind the action only to the backboard.",
+        "2x2 S4 meeting time time must use its own 12fp/400 auxiliary row; do not combine it with the 14fp/700 meeting title.",
+        "2x2 S4 calendar backboard zone must keep a separate 14fp/700 meeting title above its 12fp/400 time row."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_TEXT_COUNT",
+        "COMPACT_LAYOUT_S4_TEXT_MAX_LINES",
+        "COMPACT_LAYOUT_S4_TEXT_MAX_LINES",
+        "COMPACT_LAYOUT_S4_STATIC_TEXT_WIDTH",
+        "COMPACT_LAYOUT_S4_TEXT_MAX_LINES",
+        "COMPACT_LAYOUT_S4_STATIC_TEXT_WIDTH",
+        "COMPACT_DISPLAY_S4_ACTION_HINT",
+        "COMPACT_LAYOUT_S4_MEETING_TIME",
+        "COMPACT_LAYOUT_S4_MEETING_TITLE"
+      ]
+    },
+    {
+      "name": "s4-vertical-False",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "label"
+          ]
+        ],
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "label"
+          ]
+        ],
+        [
+          "label",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "icon",
+          "Image",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 S4 backboard zone without a visual must vertically center its one or two text lines with justifyContent center; do not reserve an empty third line."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_TEXT_ONLY_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "s4-vertical-True",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "group",
+            "icon"
+          ]
+        ],
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "label"
+          ]
+        ],
+        [
+          "label",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "icon",
+          "Image",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 S4 text group group must use justifyContent center so its one or two lines remain vertically centered beside the visual."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_TEXT_GROUP_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "s4-palette",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_s4_palette_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "one",
+            "two"
+          ]
+        ],
+        [
+          "one",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12,
+            "fontColor": "#FF112233"
+          },
+          []
+        ],
+        [
+          "two",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12,
+            "fontColor": "#FF332211"
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 S4 must use one card palette across both business zones. Text, tintable Image, Progress, and Divider colors must share one RGB and may differ only in alpha. Found mixed palette colors: #112233: one.fontColor, #332211: two.fontColor."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_PALETTE"
+      ]
+    },
+    {
+      "name": "ring-group",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_ring_group_alignment_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "ring",
+            "label"
+          ]
+        ],
+        [
+          "ring",
+          "Stack",
+          {},
+          [
+            "progress"
+          ]
+        ],
+        [
+          "progress",
+          "Progress",
+          {
+            "type": "ring"
+          },
+          []
+        ],
+        [
+          "label",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 compact ring group group must use alignItems \"center\" so the ring and its single status line remain horizontally centered."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_RING_GROUP_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "countdown-duplicate-unit",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit2",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 countdown must display the day unit exactly once; do not place '天' beside the value and repeat it again in a second metadata row."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_2X2_COUNTDOWN_DUPLICATE_UNIT"
+      ]
+    },
+    {
+      "name": "countdown-expanded-no-row",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays",
+          "/data/countdown/name"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 countdown with an action or additional visible data must place the countdown number in a left-aligned value_row; do not keep the V01 centered vertical number/unit layout."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_VALUE_ROW"
+      ]
+    },
+    {
+      "name": "countdown-expanded-no-column",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "vr",
+          "Row",
+          {},
+          [
+            "value"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays",
+          "/data/countdown/name"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 expanded countdown value_row must belong to a full-width value_group Column."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_VALUE_GROUP"
+      ]
+    },
+    {
+      "name": "countdown-expanded-wrong-order",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "extra",
+            "vr"
+          ]
+        ],
+        [
+          "vr",
+          "Row",
+          {},
+          [
+            "value"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "another",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays",
+          "/data/countdown/name"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 countdown with an action or additional visible data must left-align value_group and value_row; centered countdown values are reserved for the display-only V01 layout.",
+        "2x2 expanded countdown value_row must be the first child of value_group."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_ALIGNMENT",
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_ROW_ORDER"
+      ]
+    },
+    {
+      "name": "countdown-expanded-many-rows",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "vr",
+            "extra",
+            "another"
+          ]
+        ],
+        [
+          "vr",
+          "Row",
+          {},
+          [
+            "value"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "another",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays",
+          "/data/countdown/name"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 countdown with an action or additional visible data must left-align value_group and value_row; centered countdown values are reserved for the display-only V01 layout.",
+        "2x2 expanded countdown value_group may contain only the value_row and one optional auxiliary-data row."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_ALIGNMENT",
+        "COMPACT_LAYOUT_2X2_COUNTDOWN_GROUP_ROWS"
+      ]
+    },
+    {
+      "name": "countdown-v01-three-rows",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "unit",
+            "extra"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 V01 countdown value_group must contain exactly two visual rows: the countdown number and a second-line unit/meta row. Do not add a third aux_text or repeat the target name."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_V01_COUNTDOWN_ROWS"
+      ]
+    },
+    {
+      "name": "countdown-v01-meta",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "meta"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "meta",
+          "Row",
+          {},
+          [
+            "unit",
+            "time",
+            "extra"
+          ]
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "time",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "extra",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x2 V01 countdown meta_row may contain only the unit and the optional time on the same line."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_V01_META_ROW"
+      ]
+    },
+    {
+      "name": "countdown-v01-valid",
+      "module": "flows.two_by_two",
+      "function": "_collect_2x2_countdown_group_errors",
+      "components": [
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays"
+        ],
+        "task_spec": {
+          "size": "2x2",
+          "userQuery": "倒计时",
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "handler-0",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": null
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick: onClick must contain exactly one handler."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_HANDLER_COUNT"
+      ]
+    },
+    {
+      "name": "handler-1",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": []
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick: onClick must contain exactly one handler."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_HANDLER_COUNT"
+      ]
+    },
+    {
+      "name": "handler-2",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": [
+              0
+            ]
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick[0]: handler must be an object."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_HANDLER_OBJECT"
+      ]
+    },
+    {
+      "name": "handler-3",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": [
+              {}
+            ]
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick[0]: handler must contain only call and args."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_HANDLER_FIELDS"
+      ]
+    },
+    {
+      "name": "handler-4",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": [
+              {
+                "call": "",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick[0].call: call must be a non-empty string."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_CALL_INVALID"
+      ]
+    },
+    {
+      "name": "handler-5",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": [
+              {
+                "call": "open",
+                "args": []
+              }
+            ]
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick[0].args: args must be an object."
+      ],
+      "expectedCodes": [
+        "COMPACT_CLICK_ARGS_INVALID"
+      ]
+    },
+    {
+      "name": "handler-6",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "button",
+          "Button",
+          {
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component button.props.onClick[0]: handler must exactly match a TaskSpec eventCandidate."
+      ],
+      "expectedCodes": [
+        "COMPACT_EVENT_NOT_ALLOWED"
+      ]
+    },
+    {
+      "name": "action-shape-invalid",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "action",
+          "ActionUnit",
+          {
+            "state": "invalid",
+            "label": "",
+            "icon": 0
+          },
+          [
+            "child"
+          ]
+        ],
+        [
+          "child",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component action: ActionUnit.state must be \"capsule\" or \"icon-round\"."
+      ],
+      "expectedCodes": [
+        "COMPACT_ACTION_STATE_INVALID"
+      ]
+    },
+    {
+      "name": "action-shape-capsule",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "action",
+          "ActionUnit",
+          {
+            "state": "capsule",
+            "label": "",
+            "icon": 0
+          },
+          [
+            "child"
+          ]
+        ],
+        [
+          "child",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component action: ActionUnit must not declare children.",
+        "component action: ActionUnit.onClick is required.",
+        "component action: capsule ActionUnit.label must be a non-empty string.",
+        "component action: capsule ActionUnit.icon must be a non-empty string when provided."
+      ],
+      "expectedCodes": [
+        "COMPACT_ACTION_CHILDREN_FORBIDDEN",
+        "COMPACT_ACTION_CLICK_REQUIRED",
+        "COMPACT_COMPONENT_REQUIRED_STRING",
+        "COMPACT_ACTION_ICON_INVALID"
+      ]
+    },
+    {
+      "name": "action-shape-icon-round",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "action",
+          "ActionUnit",
+          {
+            "state": "icon-round",
+            "label": "",
+            "icon": 0
+          },
+          [
+            "child"
+          ]
+        ],
+        [
+          "child",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component action: ActionUnit must not declare children.",
+        "component action: ActionUnit.onClick is required.",
+        "component action: icon-round ActionUnit.icon must be a non-empty string.",
+        "component action: icon-round ActionUnit must not declare label."
+      ],
+      "expectedCodes": [
+        "COMPACT_ACTION_CHILDREN_FORBIDDEN",
+        "COMPACT_ACTION_CLICK_REQUIRED",
+        "COMPACT_COMPONENT_REQUIRED_STRING",
+        "COMPACT_ACTION_ICON_LABEL_FORBIDDEN"
+      ]
+    },
+    {
+      "name": "duplicate-and-multiple-parents",
+      "module": "api",
+      "function": "_collect_component_contract_errors",
+      "components": [
+        [
+          "first",
+          "Column",
+          {},
+          [
+            "text",
+            "text"
+          ]
+        ],
+        [
+          "second",
+          "Row",
+          {},
+          [
+            "text"
+          ]
+        ],
+        [
+          "text",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "empty",
+          "Stack",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component first.children references text more than once.",
+        "component text has multiple parents: first and second. Each component may appear in exactly one parent children list.",
+        "component empty: Stack.children must be non-empty; use parent itemMargin, padding, or layout alignment instead of an empty spacer container."
+      ],
+      "expectedCodes": [
+        "COMPACT_COMPONENT_DUPLICATE_CHILD",
+        "COMPACT_COMPONENT_MULTIPLE_PARENTS",
+        "COMPACT_COMPONENT_EMPTY_CONTAINER"
+      ]
+    },
+    {
+      "name": "expression-0",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "${/data/x}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: expression must occupy the full string as \"{{ ... }}\" and contain exactly one wrapper."
+      ],
+      "expectedCodes": [
+        "COMPACT_EXPRESSION_WRAPPER"
+      ]
+    },
+    {
+      "name": "expression-1",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "{{ 12 }}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: expression has no ${/json/pointer} reference; use a plain static value instead."
+      ],
+      "expectedCodes": [
+        "COMPACT_EXPRESSION_REFERENCE_MISSING"
+      ]
+    },
+    {
+      "name": "expression-2",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "{{ '/data/x' }}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: expression wraps quoted JSON Pointer \"/data/x\"; use ${/data/x} for a dynamic binding, or use a plain static value without {{ }}."
+      ],
+      "expectedCodes": [
+        "COMPACT_EXPRESSION_QUOTED_POINTER"
+      ]
+    },
+    {
+      "name": "expression-3",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "{{ ${/data/x} + ${/data/y }}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: expression contains an incomplete ${...} reference."
+      ],
+      "expectedCodes": [
+        "COMPACT_EXPRESSION_REFERENCE_INCOMPLETE"
+      ]
+    },
+    {
+      "name": "expression-4",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "{{ ${relative} }}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: expression reference \"relative\" must be an absolute JSON Pointer."
+      ],
+      "expectedCodes": [
+        "COMPACT_EXPRESSION_REFERENCE_ABSOLUTE"
+      ]
+    },
+    {
+      "name": "expression-5",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": {
+          "path": "relative"
+        },
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [
+        "component value.props.content: PathBinding.path must be an absolute JSON Pointer."
+      ],
+      "expectedCodes": [
+        "COMPACT_PATH_BINDING_ABSOLUTE"
+      ]
+    },
+    {
+      "name": "expression-6",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": {
+          "path": "/data/x"
+        },
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "expression-7",
+      "module": "syntax.expressions",
+      "function": "_collect_binding_context",
+      "components": [],
+      "arguments": {
+        "value": "{{ ${/data/x} }}",
+        "location": "component value.props.content",
+        "binding_paths": []
+      },
+      "expectedErrors": [],
+      "expectedCodes": []
+    },
+    {
+      "name": "asset-outside-candidates",
+      "module": "semantic.effective",
+      "function": "_collect_asset_source_errors",
+      "components": [
+        [
+          "image",
+          "Image",
+          {
+            "src": "outside"
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "assetCandidates": [
+            {
+              "src": "allowed"
+            }
+          ]
+        }
+      },
+      "expectedErrors": [
+        "component image.props.src: asset must use an original src from TaskSpec.assetCandidates."
+      ],
+      "expectedCodes": [
+        "COMPACT_ASSET_NOT_ALLOWED"
+      ]
+    },
+    {
+      "name": "progress-string-binding",
+      "module": "semantic.bindings",
+      "function": "_collect_progress_value_errors",
+      "components": [
+        [
+          "progress",
+          "Progress",
+          {
+            "value": {
+              "path": "/data/a/value"
+            }
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "component progress: Progress.value path /data/a/value has schema type string; bind a number/integer field such as 68, not formatted text such as '68%'. If only formatted text exists, remove Progress and show the complete value with Text."
+      ],
+      "expectedCodes": [
+        "COMPACT_BINDING_PROGRESS_TYPE"
+      ]
+    },
+    {
+      "name": "missing-service-schema",
+      "module": "api",
+      "function": "_collect_data_context_errors",
+      "components": [],
+      "arguments": {
+        "binding_paths": [],
+        "data_rows": [],
+        "data_model": {},
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "TaskSpec.dataModelSchema must be an object."
+      ],
+      "expectedCodes": [
+        "COMPACT_CONTEXT_SCHEMA_INVALID"
+      ]
+    },
+    {
+      "name": "wrong-data-type",
+      "module": "semantic.cross_file",
+      "function": "_collect_data_type_error",
+      "components": [],
+      "arguments": {
+        "row": {
+          "$ref": "dataRow",
+          "path": "/data/a/value",
+          "value": "text"
+        },
+        "data_model_schema": {
+          "data": {
+            "a": {
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "/data/a/value: data row type string does not match schema type number declared by TaskSpec."
+      ],
+      "expectedCodes": [
+        "COMPACT_CROSS_FILE_DATA_TYPE"
+      ]
+    },
+    {
+      "name": "reminder-and-range",
+      "module": "semantic.display",
+      "function": "_collect_semantic_text_errors",
+      "components": [
+        [
+          "reminder",
+          "Text",
+          {
+            "content": {
+              "path": "/data/calendar/remindMinutes"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "range",
+          "Text",
+          {
+            "content": "{{ ${/data/calendar/start} + '-' }}",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "component reminder: reminder value must keep its minute semantics, such as 提前 15 分钟; do not display a bare numeric reminder value.",
+        "component range: time/date range ends with a dangling separator. Bind both start and end values, or remove the separator and display the available value only."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_REMINDER_UNIT",
+        "COMPACT_DISPLAY_DANGLING_RANGE"
+      ]
+    },
+    {
+      "name": "unbound-action-hint",
+      "module": "semantic.display",
+      "function": "_collect_unbound_action_hint_errors",
+      "components": [
+        [
+          "hint",
+          "Text",
+          {
+            "content": "点击查看",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        }
+      },
+      "expectedErrors": [
+        "component hint: action-like Text '点击查看' has no clickable ancestor. Bind the matching event to its action slot or remove the action wording."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_UNBOUND_ACTION_HINT"
+      ]
+    },
+    {
+      "name": "weather-date-weekday",
+      "module": "semantic.display",
+      "function": "_collect_two_by_two_weather_date_errors",
+      "components": [
+        [
+          "day",
+          "Text",
+          {
+            "content": "{{ ${/data/weather/date} + ${/data/weather/weekday} }}",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "weather": {}
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "component day: 2x2 single-day weather must not concatenate date and weekday in one Text. Keep weekday by default, or keep date alone when the user explicitly requests the exact date."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_WEATHER_DATE_WEEKDAY"
+      ]
+    },
+    {
+      "name": "adjacent-string-30",
+      "module": "flows.hero",
+      "function": "_collect_adjacent_display_unit_errors",
+      "components": [
+        [
+          "row",
+          "Row",
+          {
+            "alignItems": "center",
+            "itemMargin": 10
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/value"
+            },
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "分",
+            "fontSize": 16,
+            "height": 30,
+            "width": 30
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "data_model_schema": {
+          "data": {
+            "metric": {
+              "value": {
+                "type": "string",
+                "description": "单位米"
+              }
+            }
+          }
+        },
+        "enforce_all_numeric_sizes": true
+      },
+      "expectedErrors": [
+        "component row: large primary Text value binds non-numeric field /data/metric/value and must occupy its own row; do not append unit as a unit or label."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_NON_NUMERIC_PRIMARY_SUFFIX"
+      ]
+    },
+    {
+      "name": "adjacent-string-12",
+      "module": "flows.hero",
+      "function": "_collect_adjacent_display_unit_errors",
+      "components": [
+        [
+          "row",
+          "Row",
+          {
+            "alignItems": "center",
+            "itemMargin": 10
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/value"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "分",
+            "fontSize": 16,
+            "height": 30,
+            "width": 30
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "data_model_schema": {
+          "data": {
+            "metric": {
+              "value": {
+                "type": "string",
+                "description": "单位米"
+              }
+            }
+          }
+        },
+        "enforce_all_numeric_sizes": true
+      },
+      "expectedErrors": [
+        "component row: display unit '分' cannot follow non-numeric binding /data/metric/value. Remove the unit or bind a number/integer value."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_UNIT_ON_NON_NUMERIC"
+      ]
+    },
+    {
+      "name": "adjacent-number-30",
+      "module": "flows.hero",
+      "function": "_collect_adjacent_display_unit_errors",
+      "components": [
+        [
+          "row",
+          "Row",
+          {
+            "alignItems": "center",
+            "itemMargin": 10
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/value"
+            },
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 16,
+            "height": 30,
+            "width": 30
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "data_model_schema": {
+          "data": {
+            "metric": {
+              "value": {
+                "type": "number",
+                "description": "单位米"
+              }
+            }
+          }
+        },
+        "enforce_all_numeric_sizes": true
+      },
+      "expectedErrors": [
+        "component row: numeric value and unit unit must use Row alignItems \"bottom\"; the unit must use capped visual bottom padding for its font-size difference and must not use the numeric value's fixed height; both Text nodes must use intrinsic width and their Row itemMargin must not exceed 4."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_NUMERIC_UNIT_ALIGNMENT"
+      ]
+    },
+    {
+      "name": "mixed-font-row",
+      "module": "semantic.layout.typography",
+      "function": "_collect_mixed_font_row_alignment_errors",
+      "components": [
+        [
+          "row",
+          "Row",
+          {
+            "alignItems": "center"
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": "30",
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "component row: a Row containing mixed Text font sizes must use alignItems bottom so every visible text bottom aligns.",
+        "component unit: smaller Text in mixed-size Row row must use padding.bottom 5 to compensate the visible glyph baseline after Row alignItems \"bottom\" aligns the Text boxes."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_MIXED_FONT_ROW_ALIGNMENT",
+        "COMPACT_LAYOUT_MIXED_FONT_PADDING"
+      ]
+    },
+    {
+      "name": "w9-hero-density",
+      "module": "flows.w9",
+      "function": "_collect_two_by_four_w9_content_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "one",
+            "two",
+            "three",
+            "four",
+            "five"
+          ]
+        ],
+        [
+          "one",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/a"
+            },
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "two",
+          "Text",
+          {
+            "content": {
+              "path": "/data/metric/b"
+            },
+            "fontSize": 38
+          },
+          []
+        ],
+        [
+          "three",
+          "Text",
+          {
+            "content": "{{ ${/data/metric/a} + ${/data/metric/b} + ${/data/metric/c} }}",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "four",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "five",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "dataModelSchema": {
+            "data": {
+              "metric": {
+                "a": {
+                  "type": "number"
+                },
+                "b": {
+                  "type": "number"
+                },
+                "c": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "2x4 W9 backboard zone displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero.",
+        "2x4 W9 backboard zone contains multiple 30fp/38fp values. Keep peer metrics as ordinary complete text lines instead of manufacturing multiple hero values.",
+        "2x4 W9 backboard zone with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line after its business title. Merge auxiliary fields with ' | '.",
+        "2x4 W9 backboard zone may contain at most four content Text rows. Merge same-object fields instead of stacking additional rows.",
+        "2x4 W9 text three joins 3 dynamic facts in one narrow row. Keep at most two short facts per Text; split them into separate 12fp rows or remove the lowest-priority field. A compact multi-day weather row is the only exception."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W9_PEER_METRIC_TYPOGRAPHY",
+        "COMPACT_LAYOUT_W9_HERO_COUNT",
+        "COMPACT_LAYOUT_W9_HERO_LINE_BUDGET",
+        "COMPACT_LAYOUT_W9_CONTENT_ROW_LIMIT",
+        "COMPACT_LAYOUT_W9_TEXT_FACT_DENSITY"
+      ]
+    },
+    {
+      "name": "w9-countdown-unit",
+      "module": "flows.w9",
+      "function": "_collect_two_by_four_w9_content_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "readout",
+            "unit2"
+          ]
+        ],
+        [
+          "readout",
+          "Row",
+          {},
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 30,
+            "fontWeight": 400
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "unit2",
+          "Text",
+          {
+            "content": "天",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "2x4 W9 countdown value must use a 30fp/38fp, 700-weight numeric hero in its own backboard.",
+        "2x4 W9 countdown backboard zone must contain exactly one unit Text `天`, placed below the numeric hero. Do not generate both an inline unit and another unit below it.",
+        "2x4 W9 countdown value value must not share a Row with unit `天`; keep the single unit below the numeric hero."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W9_COUNTDOWN_TYPOGRAPHY",
+        "COMPACT_DISPLAY_W9_COUNTDOWN_UNIT",
+        "COMPACT_LAYOUT_W9_COUNTDOWN_UNIT_POSITION"
+      ]
+    },
+    {
+      "name": "w9-multi-day",
+      "module": "flows.w9",
+      "function": "_collect_two_by_four_w9_content_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "zone"
+          ]
+        ],
+        [
+          "zone",
+          "Column",
+          {},
+          [
+            "content"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {},
+          [
+            "day0",
+            "day1a",
+            "day1b",
+            "divider"
+          ]
+        ],
+        [
+          "day0",
+          "Text",
+          {
+            "content": "{{ ${/data/weather/daily/0/date} + ${/data/weather/daily/0/weekday} }}",
+            "fontSize": 14
+          },
+          []
+        ],
+        [
+          "day1a",
+          "Text",
+          {
+            "content": {
+              "path": "/data/weather/daily/1/temperature"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "day1b",
+          "Text",
+          {
+            "content": {
+              "path": "/data/weather/daily/1/condition"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "divider",
+          "Divider",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "2x4 W9 sparse backboard zone must use a direct content Column with layoutWeight 1 and justifyContent center so the primary content group remains vertically centered.",
+        "2x4 W9 weather day 1 in backboard zone is split across multiple Text rows ['day1a', 'day1b']. Merge each day into one 12fp/400 row.",
+        "2x4 W9 compact weather day day0 must not show both full date and weekday in the same 114vp row. Keep the weekday and remove the redundant date.",
+        "2x4 W9 compact weather day day0 must use 12fp/400 auxiliary text.",
+        "2x4 W9 multi-day weather backboard zone must not insert Divider components between compact day rows."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W9_WEATHER_DAY_ROWS",
+        "COMPACT_DISPLAY_W9_WEATHER_DATE_WEEKDAY",
+        "COMPACT_LAYOUT_W9_WEATHER_DAY_TYPOGRAPHY",
+        "COMPACT_LAYOUT_W9_WEATHER_DIVIDER"
+      ]
+    },
+    {
+      "name": "w9-actions-duplicate",
+      "module": "flows.w9",
+      "function": "_collect_two_by_four_w9_content_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "left",
+            "right"
+          ]
+        ],
+        [
+          "left",
+          "Column",
+          {
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          [
+            "left_content"
+          ]
+        ],
+        [
+          "right",
+          "Column",
+          {
+            "onClick": [
+              {
+                "call": "open",
+                "args": {}
+              }
+            ]
+          },
+          [
+            "right_content"
+          ]
+        ],
+        [
+          "left_content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "a"
+          ]
+        ],
+        [
+          "right_content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "b"
+          ]
+        ],
+        [
+          "a",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "b",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "打开两个"
+        }
+      },
+      "expectedErrors": [
+        "2x4 W9 must not duplicate the same action across both backboards. Keep each requested candidate action exactly once."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_W9_DUPLICATE_ACTION"
+      ]
+    },
+    {
+      "name": "w9-actions-missing",
+      "module": "flows.w9",
+      "function": "_collect_two_by_four_w9_content_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "left",
+            "right"
+          ]
+        ],
+        [
+          "left",
+          "Column",
+          {},
+          [
+            "left_content"
+          ]
+        ],
+        [
+          "right",
+          "Column",
+          {},
+          [
+            "right_content"
+          ]
+        ],
+        [
+          "left_content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "a"
+          ]
+        ],
+        [
+          "right_content",
+          "Column",
+          {
+            "layoutWeight": 1,
+            "justifyContent": "center"
+          },
+          [
+            "b"
+          ]
+        ],
+        [
+          "a",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "b",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {
+          "eventCandidates": [
+            {},
+            {}
+          ],
+          "userQuery": "打开两个"
+        }
+      },
+      "expectedErrors": [
+        "2x4 W9 must keep explicitly requested actions inside their owning backboards (0/2). Remove lower-priority text before dropping an action."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_W9_REQUIRED_ACTIONS"
+      ]
+    },
+    {
+      "name": "w1-nested-and-cell-budget",
+      "module": "flows.w1",
+      "function": "_collect_two_by_four_w1_focus_aux_errors",
+      "components": [
+        [
+          "root",
+          "Row",
+          {},
+          [
+            "focus",
+            "aux"
+          ]
+        ],
+        [
+          "focus",
+          "Column",
+          {},
+          [
+            "group"
+          ]
+        ],
+        [
+          "group",
+          "Column",
+          {},
+          [
+            "primary"
+          ]
+        ],
+        [
+          "primary",
+          "Text",
+          {
+            "content": "42",
+            "fontSize": 20
+          },
+          []
+        ],
+        [
+          "aux",
+          "Column",
+          {},
+          [
+            "cell1",
+            "cell2"
+          ]
+        ],
+        [
+          "cell1",
+          "Column",
+          {},
+          [
+            "twofacts"
+          ]
+        ],
+        [
+          "twofacts",
+          "Text",
+          {
+            "content": "{{ ${/data/a/one} + ${/data/a/two} }}",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "cell2",
+          "Column",
+          {},
+          [
+            "a",
+            "b",
+            "c"
+          ]
+        ],
+        [
+          "a",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "b",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "c",
+          "Text",
+          {
+            "content": "文字",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        },
+        "task_spec": {}
+      },
+      "expectedErrors": [
+        "2x4 W1-focus-aux compact left content must use justifyContent center so its information group is vertically centered instead of being pinned to the top.",
+        "2x4 W1-focus-aux sparse or value-led left content must use alignItems center. Event lists and dense summaries may remain left-aligned, but their full group must still be vertically centered.",
+        "2x4 W1-focus-aux left content group group must use justifyContent center so its compact text group is not pinned to the top or left.",
+        "2x4 W1-focus-aux left content Column group must use alignItems center.",
+        "2x4 W1-focus-aux cell cell1 displays two dynamic facts in one Text. Use two single-line Text nodes, one fact per line, instead of joining them with '|'.",
+        "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line.",
+        "2x4 W1-focus-aux cell cell2 may contain at most two Text nodes. Merge its auxiliary information."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W1_FOCUS_VERTICAL_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_FOCUS_HORIZONTAL_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_FOCUS_GROUP_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_FOCUS_COLUMN_ALIGNMENT",
+        "COMPACT_LAYOUT_W1_CELL_FACT_LINES",
+        "COMPACT_DISPLAY_W1_COMPLETE_FACT_LINES",
+        "COMPACT_LAYOUT_W1_CELL_TEXT_BUDGET"
+      ]
+    },
+    {
+      "name": "route-2x4-2",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x4",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "b": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value",
+          "/data/b/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x4 card displays two semantic data blocks (a, b) and must use W9: root must be a Row with padding 8 and exactly two direct 138x134 Column backboards with itemMargin 8. Do not use a shared title, a shared action area, or stacked full-width business rows."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W9_SKELETON"
+      ]
+    },
+    {
+      "name": "route-2x4-3",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x4",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "b": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "c": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value",
+          "/data/b/value",
+          "/data/c/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x4 card displays three semantic data blocks and must use W10: root must be a Row with padding 8 and itemMargin 8, containing one 138x134 large backboard and one 138x134 Column with two 138x63 backboards separated by itemMargin 8."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W10_SKELETON"
+      ]
+    },
+    {
+      "name": "route-2x4-4",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x4",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "b": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "c": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "d": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value",
+          "/data/b/value",
+          "/data/c/value",
+          "/data/d/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x4 card displays at least four semantic metric groups and must use W8: root must be a Column with padding 8 and two direct 284x63 Rows separated by itemMargin 8; each Row must contain two 138x63 backboards separated by itemMargin 8. Merge naturally related weather facts before dropping the lowest-priority group."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W8_SKELETON"
+      ]
+    },
+    {
+      "name": "route-2x2-2",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "b": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value",
+          "/data/b/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x2 card displays two data roots (a, b) and must use S4: root must be a Column with padding 8 and exactly two direct 134x63 Row/Column backboards with itemMargin 8. Countdown remains ordinary 14fp/700 primary text inside its backboard."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_SKELETON"
+      ]
+    },
+    {
+      "name": "route-focus-aux",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x4",
+          "dataModelSchema": {
+            "data": {
+              "healthSport": {
+                "0": {
+                  "type": "number"
+                },
+                "1": {
+                  "type": "number"
+                },
+                "2": {
+                  "type": "number"
+                },
+                "3": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/healthSport/0"
+        ]
+      },
+      "expectedErrors": [
+        "2x4 card has one dominant focus and at most two auxiliary slots and must use W1-focus-aux: root Row padding 12/itemMargin 10, a left 136x126 focus zone without a backboard, and a right 130x126 Column containing two 130x59 backboards separated by itemMargin 8."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_W1_FOCUS_AUX_SKELETON"
+      ]
+    },
+    {
+      "name": "route-isolated-small",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "small"
+          ]
+        ],
+        [
+          "small",
+          "Column",
+          {
+            "width": 134,
+            "height": 63,
+            "borderRadius": 12,
+            "backgroundColor": "#fff"
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {}
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x2 card has one data root and must use a full-width single-business layout; do not generate an isolated 134x63 S4 backboard."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_SINGLE_BUSINESS_WIDTH"
+      ]
+    },
+    {
+      "name": "route-stacked-and-actions",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "one",
+            "two",
+            "large"
+          ]
+        ],
+        [
+          "one",
+          "Column",
+          {
+            "width": 296,
+            "height": 64,
+            "borderRadius": 12
+          },
+          []
+        ],
+        [
+          "two",
+          "Row",
+          {
+            "width": 296,
+            "height": 64,
+            "borderRadius": 12
+          },
+          []
+        ],
+        [
+          "large",
+          "Column",
+          {
+            "width": 138,
+            "height": 134,
+            "padding": 12
+          },
+          [
+            "a",
+            "b"
+          ]
+        ],
+        [
+          "a",
+          "Button",
+          {
+            "onClick": []
+          },
+          []
+        ],
+        [
+          "b",
+          "Button",
+          {
+            "onClick": []
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x4"
+        },
+        "visible_binding_paths": []
+      },
+      "expectedErrors": [
+        "2x4 cards must not stack two or more full-width 276x48-59 content backboards vertically. Select the matching W skeleton; two semantic data blocks must use W9 left/right backboards.",
+        "2x4 large backboard large may contain at most one action control. Do not stack two buttons inside a 138x134 backboard; remove duplicate or lower-priority actions."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X4_STACKED_FULL_BACKBOARDS",
+        "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_COUNT"
+      ]
+    },
+    {
+      "name": "formatted-hero-suffix",
+      "module": "flows.hero",
+      "function": "_collect_hero_value_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {
+            "width": 126
+          },
+          [
+            "readout"
+          ]
+        ],
+        [
+          "readout",
+          "Row",
+          {
+            "width": 126
+          },
+          [
+            "value",
+            "suffix"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/weather/temperature"
+            },
+            "fontSize": 20,
+            "width": 126,
+            "height": 28,
+            "maxLines": 1
+          },
+          []
+        ],
+        [
+          "suffix",
+          "Text",
+          {
+            "content": "温度",
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "weather": {
+                "temperature": {
+                  "type": "string",
+                  "description": "温度",
+                  "sampleValue": "20℃"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expectedErrors": [
+        "component readout: formatted value value already contains its unit; do not append Text suffix or a field label."
+      ],
+      "expectedCodes": [
+        "COMPACT_DISPLAY_FORMATTED_VALUE_SUFFIX"
+      ]
+    },
+    {
+      "name": "density-multiple-heroes",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_content_density_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {},
+          [
+            "t0",
+            "t1",
+            "t2"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value0"
+            },
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value1"
+            },
+            "fontSize": 30
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value2"
+            },
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value0": {
+                  "type": "number"
+                },
+                "value1": {
+                  "type": "number"
+                },
+                "value2": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 150vp single-business content displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero.",
+        "2x2 150vp single-business content contains multiple 30fp/38fp values. Treat peer metrics as ordinary complete text lines instead of manufacturing multiple hero values.",
+        "2x2 150vp single-business content with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line. Merge auxiliary fields into that line with ' | '."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_PEER_METRIC_TYPOGRAPHY",
+        "COMPACT_LAYOUT_2X2_HERO_COUNT",
+        "COMPACT_LAYOUT_2X2_HERO_LINE_BUDGET"
+      ]
+    },
+    {
+      "name": "density-four-action-lines",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_content_density_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {},
+          [
+            "t0",
+            "t1",
+            "t2",
+            "t3"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value0"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value1"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value2"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t3",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value3"
+            },
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value0": {
+                  "type": "number"
+                },
+                "value1": {
+                  "type": "number"
+                },
+                "value2": {
+                  "type": "number"
+                },
+                "value3": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 150vp single-business pure-text content with an action may contain at most one prominent line and two 12fp/400 auxiliary lines. Merge related auxiliary fields with ' | ' and remove lower-priority update text."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_ACTION_CONTENT_LINES"
+      ]
+    },
+    {
+      "name": "density-three-large-action-lines",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_content_density_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "content",
+          "Column",
+          {},
+          [
+            "t0",
+            "t1",
+            "t2"
+          ]
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ],
+        [
+          "t0",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value0"
+            },
+            "fontSize": 20
+          },
+          []
+        ],
+        [
+          "t1",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value1"
+            },
+            "fontSize": 12
+          },
+          []
+        ],
+        [
+          "t2",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value2"
+            },
+            "fontSize": 12
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value0": {
+                  "type": "number"
+                },
+                "value1": {
+                  "type": "number"
+                },
+                "value2": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 150vp single-business content with an action and three information lines must keep its prominent text at 18fp or smaller so the 36vp action remains unobstructed."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_ACTION_CONTENT_FONT"
+      ]
+    },
+    {
+      "name": "centered-hero-value-tier",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "title",
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "title",
+          "Text",
+          {
+            "content": "里程",
+            "fontSize": 12,
+            "height": 20
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "width": 126,
+            "layoutWeight": 1,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "box"
+          ]
+        ],
+        [
+          "box",
+          "Column",
+          {
+            "width": 106,
+            "height": 58,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "value_row"
+          ]
+        ],
+        [
+          "value_row",
+          "Row",
+          {
+            "width": 106,
+            "justifyContent": "center",
+            "alignItems": "bottom"
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 16
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 16
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number",
+                  "description": "单位米",
+                  "sampleValue": 3
+                }
+              }
+            }
+          }
+        },
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row.",
+        "2x2 centered single-value Hero must use one approved value font tier: 38fp, 30fp, 24fp, or 20fp."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_HERO_SAFE_BOX",
+        "COMPACT_LAYOUT_2X2_HERO_FONT_TIER"
+      ]
+    },
+    {
+      "name": "centered-hero-unit-font-missing",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "title",
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "title",
+          "Text",
+          {
+            "content": "里程",
+            "fontSize": 12,
+            "height": 20
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "width": 126,
+            "layoutWeight": 1,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "box"
+          ]
+        ],
+        [
+          "box",
+          "Column",
+          {
+            "width": 106,
+            "height": 58,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "value_row"
+          ]
+        ],
+        [
+          "value_row",
+          "Row",
+          {
+            "width": 106,
+            "justifyContent": "center",
+            "alignItems": "bottom"
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 38
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米"
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number",
+                  "description": "单位米",
+                  "sampleValue": 3
+                }
+              }
+            }
+          }
+        },
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row.",
+        "2x2 centered single-value Hero unit must declare a fontSize."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_HERO_SAFE_BOX",
+        "COMPACT_LAYOUT_2X2_HERO_UNIT_FONT"
+      ]
+    },
+    {
+      "name": "centered-hero-unit-font-large",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "title",
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "title",
+          "Text",
+          {
+            "content": "里程",
+            "fontSize": 12,
+            "height": 20
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "width": 126,
+            "layoutWeight": 1,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "box"
+          ]
+        ],
+        [
+          "box",
+          "Column",
+          {
+            "width": 106,
+            "height": 58,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "value_row"
+          ]
+        ],
+        [
+          "value_row",
+          "Row",
+          {
+            "width": 106,
+            "justifyContent": "center",
+            "alignItems": "bottom"
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 38
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 20
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number",
+                  "description": "单位米",
+                  "sampleValue": 3
+                }
+              }
+            }
+          }
+        },
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row.",
+        "2x2 centered single-value Hero must downgrade value and unit together using 38/16fp, 30/14fp, 24/12fp, or 20/12fp limits.",
+        "2x2 centered single-value Hero exceeds the 106vp width pressure budget; downgrade value/unit together through 38/16fp -> 30/14fp -> 24/12fp -> 20/12fp until it fits."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_HERO_SAFE_BOX",
+        "COMPACT_LAYOUT_2X2_HERO_UNIT_FONT_PAIR",
+        "COMPACT_LAYOUT_2X2_HERO_WIDTH_BUDGET"
+      ]
+    },
+    {
+      "name": "centered-hero-valid",
+      "module": "semantic.layout.two_by_two",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {},
+          [
+            "title",
+            "content",
+            "action"
+          ]
+        ],
+        [
+          "title",
+          "Text",
+          {
+            "content": "里程",
+            "fontSize": 12,
+            "height": 20
+          },
+          []
+        ],
+        [
+          "content",
+          "Column",
+          {
+            "width": 126,
+            "layoutWeight": 1,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "box"
+          ]
+        ],
+        [
+          "box",
+          "Column",
+          {
+            "width": 106,
+            "height": 58,
+            "justifyContent": "center",
+            "alignItems": "center"
+          },
+          [
+            "value_row"
+          ]
+        ],
+        [
+          "value_row",
+          "Row",
+          {
+            "width": 106,
+            "justifyContent": "center",
+            "alignItems": "bottom"
+          },
+          [
+            "value",
+            "unit"
+          ]
+        ],
+        [
+          "value",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 38
+          },
+          []
+        ],
+        [
+          "unit",
+          "Text",
+          {
+            "content": "米",
+            "fontSize": 16
+          },
+          []
+        ],
+        [
+          "action",
+          "Button",
+          {},
+          []
+        ]
+      ],
+      "arguments": {
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number",
+                  "description": "单位米",
+                  "sampleValue": 3
+                }
+              }
+            }
+          }
+        },
+        "root": {
+          "$ref": "component",
+          "id": "root"
+        },
+        "components_by_id": {
+          "$ref": "index"
+        }
+      },
+      "expectedErrors": [
+        "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_2X2_HERO_SAFE_BOX"
+      ]
+    },
+    {
+      "name": "s4-route-one-object",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {
+            "padding": 8,
+            "itemMargin": 8
+          },
+          [
+            "left",
+            "right"
+          ]
+        ],
+        [
+          "left",
+          "Column",
+          {
+            "width": 134,
+            "height": 63,
+            "justifyContent": "center"
+          },
+          [
+            "one"
+          ]
+        ],
+        [
+          "right",
+          "Column",
+          {
+            "width": 134,
+            "height": 63,
+            "justifyContent": "center"
+          },
+          [
+            "two"
+          ]
+        ],
+        [
+          "one",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 12,
+            "maxLines": 1
+          },
+          []
+        ],
+        [
+          "two",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 12,
+            "maxLines": 1
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/a/value",
+          "/data/a/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x2 S4 requires exactly two independent display objects. Fields from one object must remain in one single-business layout instead of being split across two 134x63 backboards."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_OBJECT_COUNT"
+      ]
+    },
+    {
+      "name": "s4-route-countdown-typography",
+      "module": "flows.layout",
+      "function": "_collect_layout_route_errors",
+      "components": [
+        [
+          "root",
+          "Column",
+          {
+            "padding": 8,
+            "itemMargin": 8
+          },
+          [
+            "left",
+            "right"
+          ]
+        ],
+        [
+          "left",
+          "Column",
+          {
+            "width": 134,
+            "height": 63,
+            "justifyContent": "center"
+          },
+          [
+            "one"
+          ]
+        ],
+        [
+          "right",
+          "Column",
+          {
+            "width": 134,
+            "height": 63,
+            "justifyContent": "center"
+          },
+          [
+            "two"
+          ]
+        ],
+        [
+          "one",
+          "Text",
+          {
+            "content": {
+              "path": "/data/countdown/countdownDays"
+            },
+            "fontSize": 30,
+            "maxLines": 1
+          },
+          []
+        ],
+        [
+          "two",
+          "Text",
+          {
+            "content": {
+              "path": "/data/a/value"
+            },
+            "fontSize": 12,
+            "maxLines": 1
+          },
+          []
+        ]
+      ],
+      "arguments": {
+        "components": {
+          "$ref": "components"
+        },
+        "task_spec": {
+          "size": "2x2",
+          "dataModelSchema": {
+            "data": {
+              "a": {
+                "value": {
+                  "type": "number"
+                }
+              },
+              "countdown": {
+                "countdownDays": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "visible_binding_paths": [
+          "/data/countdown/countdownDays",
+          "/data/a/value"
+        ]
+      },
+      "expectedErrors": [
+        "2x2 S4 countdown must be displayed as ordinary 14fp/700 primary text inside its backboard; do not reuse the V01 30fp/38fp hero or standalone countdown group."
+      ],
+      "expectedCodes": [
+        "COMPACT_LAYOUT_S4_COUNTDOWN_TYPOGRAPHY"
+      ]
+    }
+  ]
+}
