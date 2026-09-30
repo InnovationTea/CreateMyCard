@@ -50,6 +50,7 @@
 ## 8.2 数值预算
 
 - 每个 Row/Column 都按父容器扣除 padding 后的宽高计算；子项尺寸、margin 和 `itemMargin` 全部计入。
+- Row/Column 省略 `itemMargin` 按 `0` 计算并由转换器显式输出；不得假设端侧会自动补间距。独立信息组仍须按下述规范显式设置间距并计入预算。
 - `start|center|end` 和 `spaceAround|spaceBetween|spaceEvenly` 都必须先满足最小占用量不超界。
 - 动态 Text、Button 或图文动作完成压力预算后，主轴至少保留 `4vp` 余量。
 - 间距只使用 `2、4、6、8、10、12、14、16vp`；紧密内容用 `2-6vp`，独立信息组至少 `8vp`。
