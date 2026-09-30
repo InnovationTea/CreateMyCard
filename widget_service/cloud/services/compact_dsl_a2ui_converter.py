@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.adaptive_region_layout import adapt_region_layout
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
@@ -756,6 +757,8 @@ def convert_compact_dsl_to_a2ui(
                 card_size=size,
             )
         )
+    if profile.get("adaptiveRegions") is True:
+        converted_components = adapt_region_layout(converted_components, size=size)
     if fusion_palette is not None:
         try:
             converted_components = expand_fusion_ball_components(

@@ -1,6 +1,7 @@
 {
   "version": "v0.9",
   "catalogId": "ohos.a2ui.extended.catalog.form",
+  "adaptiveRegions": true,
   "sizes": {
     "2x2": {
       "width": 140,

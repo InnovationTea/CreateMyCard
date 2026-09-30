@@ -159,6 +159,8 @@ class DesignCompactProcessor:
                 design_profile_id
             )
             design_protocol["appVersion"] = context.task_spec["appVersion"]
+            if context.skip_compact_dsl_validation:
+                design_protocol["adaptiveRegions"] = False
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,
