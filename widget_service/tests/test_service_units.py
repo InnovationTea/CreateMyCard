@@ -3998,7 +3998,9 @@ async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch
     issue = repair_payload["qualityErrors"][0]
     assert issue["stage"] == "validation"
     assert issue["code"] == "COMPACT_DSL_VALIDATION_FAILED"
-    assert "ActionUnit.onClick is required" in issue["message"]
+    assert "COMPACT_ACTION_CLICK_REQUIRED" in issue["message"]
+    assert "约束：" in issue["message"]
+    assert "compactDiagnostics" not in issue
 
 
 @pytest.mark.asyncio
