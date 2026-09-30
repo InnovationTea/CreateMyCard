@@ -1,6 +1,24 @@
 {
   "version": "layout-contracts-v1",
   "scopes": {
+    "S-plan-guided": [
+      "S-center",
+      "S-title-content",
+      "S-title-dual-content",
+      "S-title-content-action",
+      "S-title-primary-secondary-action",
+      "S-title-dual-column-action",
+      "S-title-anchor",
+      "S-content-dual-action",
+      "S-dual-info",
+      "S-quad-content"
+    ],
+    "W-plan-guided": [
+      "W-top-bottom",
+      "W-split-panels",
+      "W-content-side-slots",
+      "W-four-slots"
+    ],
     "S-adaptive-single-business": [
       "S-center",
       "S-title-content",

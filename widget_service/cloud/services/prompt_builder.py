@@ -6,6 +6,8 @@ import re
 from typing import Any
 
 from models.generation import TaskSpec
+from services.compact_fewshot_selection import select_plan_fewshots
+from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
 from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
@@ -914,8 +916,10 @@ class PromptBuilder:
 
     @staticmethod
     def layout_scope(task_spec: TaskSpec) -> str:
-        """返回生成、校验和修复共同使用的布局范围。"""
-        return PromptBuilder._layout_scope(task_spec)
+        """生成、校验和修复共享同尺寸全集；Plan 候选不冻结布局。"""
+        if task_spec.size not in {"2x2", "2x4"}:
+            raise ValueError(f"Unsupported Compact size: {task_spec.size}")
+        return "S-plan-guided" if task_spec.size == "2x2" else "W-plan-guided"
 
     @staticmethod
     def _query_mentions_weather(task_spec: TaskSpec) -> bool:
@@ -964,7 +968,9 @@ class PromptBuilder:
         chapter_intro = lines[chapter_start:two_by_two_start]
         if task_spec.size == "2x2":
             layout_lines = lines[two_by_two_start:two_by_four_start]
-            if layout_scope == "S-adaptive-single-business":
+            if layout_scope == "S-plan-guided":
+                allowed = allowed_layout_ids(task_spec.size, layout_scope)
+            elif layout_scope == "S-adaptive-single-business":
                 allowed = (
                     "S-center",
                     "S-title-content",
@@ -989,7 +995,9 @@ class PromptBuilder:
             )
             tail = layout_lines[tail_start:]
             layout_lines = layout_lines[:tail_start]
-            if layout_scope == "W-adaptive-single-business":
+            if layout_scope == "W-plan-guided":
+                allowed = allowed_layout_ids(task_spec.size, layout_scope)
+            elif layout_scope == "W-adaptive-single-business":
                 allowed = (
                     "W-top-bottom",
                     "W-split-panels",
@@ -1490,45 +1498,48 @@ class PromptBuilder:
         return False
 
     @staticmethod
-    def _with_size_few_shot(system_prompt: str, task_spec: TaskSpec) -> str:
+    def _with_size_few_shot(
+        system_prompt: str,
+        task_spec: TaskSpec,
+        plan: dict[str, Any] | None = None,
+        *,
+        include_examples: bool = True,
+    ) -> str:
         layout_scope = PromptBuilder.layout_scope(task_spec)
         system_prompt = PromptBuilder._prune_prompt_for_route(
             system_prompt,
             task_spec,
             layout_scope,
         )
-        few_shot = A2UIProtocolRegistry.read_design_few_shot(
-            DESIGN_COMPACT_PROFILE_ID, task_spec.size
-        )
-        few_shot = PromptBuilder._select_few_shot(few_shot, task_spec)
+        prompt = system_prompt
+        if include_examples:
+            examples = A2UIProtocolRegistry.read_design_few_shot(
+                DESIGN_COMPACT_PROFILE_ID, task_spec.size
+            )
+            selection_input = {
+                "dataModelSchema": task_spec.dataModelSchema,
+                "eventCandidates": task_spec.eventCandidates,
+            }
+            selected = select_plan_fewshots(examples, selection_input, plan)
+            prompt = (
+                f"{prompt}\n\n{selected.content}\n\n"
+                f"本轮实现参考：{'、'.join(selected.identifiers)}。"
+                "示例按必要信息容量、动作与组件候选选取，不冻结布局；"
+                "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
+            )
+        layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))
         prompt = (
-            f"{system_prompt}\n\n{few_shot}\n\n"
-            f"{PromptBuilder._visual_route_instruction(task_spec, layout_scope)}\n\n"
-            f"{PromptBuilder._layout_route_lock(task_spec, layout_scope)}"
+            f"{prompt}\n\n# 本轮组件与布局选择\n\n"
+            f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
+            "以已接受 Plan 的必要事实与动作为硬合同；优先落实语义、类型和容量匹配的"
+            "高阶组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
+            "不能按业务名称、候选字段总数或示例强制构图。"
+            "组件不适配时允许基础组合，不能改变内部 Recipe、删事实或动作来提高使用率。"
+            "最终 DSL 只输出已注册的基础/高阶组件，不输出布局 ID、Card 或 Region 节点。"
         )
         formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
         if formatted_percent_instruction:
             prompt = f"{prompt}\n\n{formatted_percent_instruction}"
-        cross_domain_lock = PromptBuilder._two_by_four_cross_domain_lock(task_spec)
-        if cross_domain_lock:
-            prompt = f"{prompt}\n\n{cross_domain_lock}"
-        if PromptBuilder._uses_single_countdown(task_spec):
-            route_lock = (
-                _COUNTDOWN_ACTION_ROUTE_LOCK
-                if PromptBuilder._uses_expanded_countdown_layout(task_spec)
-                else _COUNTDOWN_DISPLAY_ROUTE_LOCK
-            )
-            return f"{prompt}\n\n{route_lock}"
-        if PromptBuilder._uses_two_by_two_countdown_weather_layout(task_spec):
-            return f"{prompt}\n\n{_TWO_BY_TWO_COUNTDOWN_WEATHER_ROUTE_LOCK}"
-        if PromptBuilder._uses_two_by_four_countdown_multi_layout(task_spec):
-            return f"{prompt}\n\n{_TWO_BY_FOUR_COUNTDOWN_MULTI_ROUTE_LOCK}"
-        if PromptBuilder._uses_two_by_four_focus_aux_layout(task_spec):
-            domain_lock = PromptBuilder._two_by_four_focus_aux_domain_lock(
-                task_spec
-            )
-            suffix = f"\n\n{domain_lock}" if domain_lock else ""
-            return f"{prompt}\n\n{_TWO_BY_FOUR_FOCUS_AUX_ROUTE_LOCK}{suffix}"
         return prompt
 
     @staticmethod
@@ -1586,12 +1597,16 @@ class PromptBuilder:
         *,
         previous_design_token: str | None = None,
         extrainfo: list[str] | None = None,
+        compact_plan: dict[str, Any] | None = None,
+        defer_compact_examples: bool = False,
     ) -> list[dict[str, str]]:
         """首次生成使用 PROMPT，编辑时叠加文件化多轮规则。"""
         effective_system_prompt = self._design_token_system_prompt(
             task_spec,
             system_prompt,
             source_format,
+            compact_plan=compact_plan,
+            include_examples=not defer_compact_examples,
         )
         effective_system_prompt = self._append_extrainfo_context(
             effective_system_prompt,
@@ -1717,10 +1732,17 @@ class PromptBuilder:
         task_spec: TaskSpec,
         system_prompt: str,
         source_format: str,
+        *,
+        compact_plan: dict[str, Any] | None = None,
+        include_examples: bool = True,
     ) -> str:
         if source_format != DESIGN_COMPACT_PROFILE_ID:
             return system_prompt
-        system_prompt = PromptBuilder._with_size_few_shot(system_prompt, task_spec)
+        system_prompt = PromptBuilder._with_size_few_shot(
+            system_prompt, task_spec, compact_plan, include_examples=include_examples,
+        )
+        if compact_plan is not None:
+            system_prompt = f"{system_prompt}\n\n{compact_plan_context(compact_plan)}"
         if fusion_ball_enabled(task_spec.appVersion):
             recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
             if recommendation:

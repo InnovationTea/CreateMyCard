@@ -27,7 +27,7 @@
 | 明细信息 | `TextBlock` | 两组标签—值背板 | 2x4 双详情 | 恰好两项；只进入 `W-top-bottom` 的 progress-detail 预设 |
 | 摘要列表 | `SummaryList` | 2–3 条同级摘要 | 2x4 短列表 | 每项固定为单行背板 |
 | 线性进度 | `ProgressLine2` | 可见读数 + 线性进度 | 当前值相对明确总量 | 只进入 `W-top-bottom` 的 progress-detail 预设 |
-| 环形进度 | `ProgressCircleSingle` | 单环主指标 + 右侧说明 | 单个真实比例及同对象说明 | 只进入 `W-split-panels` 的 ring-detail 预设 |
+| 环形进度 | `ProgressCircleSingle` | 紧凑环形读数组 | 单个真实比例及同对象说明 | `W-top-bottom` 的 ring-summary 内容预设 |
 | 日程 | `EventCard` | 时间线 + 标题 + 时间 + 可选地点 | 2x2 单会议 | 单事件；只用于 calendar 唯一业务 |
 | 等权指标 | `TopTextBottomValue` | 三组标签—数值—单位 | 2x4 三个同级指标 | 恰好三项；只进入 `W-top-bottom` 的 metric-triple 预设 |
 | 操作 | `PillButton` | 操作文案 + 可选图标 | 2x2 底部卡级 CTA | 一个实例绑定一个真实动作 |
@@ -70,9 +70,31 @@ PathBinding。内部字号、行高、间距、图标和子节点 ID 由视觉 R
 | `progress-type` |
 | `progress-trigger` |
 | `catalog` |
+| `selection` |
 | `icon-style` |
 
 片段由 manifest 编排；修改正文后运行构建与回归，禁止手改 generated。
+
+<!-- prompt:selection -->
+## 高阶组件选型：先看语义，再看可绑定内容与容量
+
+Plan 和 DSL 使用同一选型规则。组件不是按业务名分配的模板；先识别对象、核心/辅助/并列关系、
+必须展示的事实与动作，再选能完整承载它们的组件。不要对每条事实机械推荐三个名字；没有合适的
+高阶组件时推荐 Text/合法基础组合或省略软候选，不删除事实。
+
+| 组件 | 适用内容与可见绑定 | 不适用情况 |
+|---|---|---|
+| CardHeader | 稳定主题，title 可绑定真实名称；是否存在标题由最终布局决定 | 不用温度、状态、日期时间或数量冒充标题；不承载动作 |
+| EmphasizedData | 一个短的核心量化读数，value 与可选 unit；名称和指标标签留在所属信息组 | 地区、天气现象、连接状态、长日期时间不是大数值；多个同级值不能各自强造主焦点 |
+| InfoBlock | 一个对象的两行短信息，primaryText/secondaryText，可选准确图标 | 不承载动作、第三行或完整密集记录；图标不能挤掉读数；尺寸变体见下表 |
+
+数值进度组件只用于真实比例：动态 value 必须为 number/integer，total 来自可靠范围或真实字段；
+displayValue 可以是同对象同指标的格式化文字。两者都必须来自当前输入，不借用另一对象数值，
+不从样例截取数字、不把普通绝对量除以猜测的总量。若只有格式化字符串，保留完整文字，不推荐进度。
+Plan 将组件候选写在它实际承载的事实上；动作只能推荐真实支持事件的按钮，不能推荐 EventCard
+或 InfoBlock。多个事实推荐同一组件表示可以合并到一个实例，不表示每条事实创建一个实例。
+内部字体、图标、间距和颜色角色由现有 Recipe 决定；外部尺寸不得改变内部视觉或掩盖溢出。
+<!-- /prompt:selection -->
 
 <!-- prompt:progress-type -->
 **Progress 数值类型前置约束**：`Progress.value` 必须绑定 number/integer 字段。若 TaskSpec 只有 `batterySOCText:"68%"` 一类格式化字符串，即使用户要求进度条也不得生成空环或空进度条，改用完整 Text 主读数；禁止从字符串中猜测、截取或隐式转换数值。
@@ -309,8 +331,8 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 选择条件
 
-用于一个内容区中唯一需要突出的核心数值或完整格式化数值。没有真实主次时保持并列；真实进度、多个同级
-指标和普通文本结论不使用该组件。
+用于一个内容区中唯一需要突出的核心数值或完整格式化数值。没有真实主次时保持并列；多个同级
+指标和普通文本结论不使用该组件；真实进度的可见读数可以使用它，并与同指标进度图保持一组。
 
 #### 组件属性
 

@@ -60,12 +60,16 @@ def _read_sources(source_root: Path, modules: list) -> dict[str, dict[str, str]]
     return sources
 
 
-def assemble_prompts(source_root: Path) -> dict[str, str]:
+def assemble_prompts(source_root: Path, size: str | None = None) -> dict[str, str]:
     """按 manifest 顺序组装全部模型文本；维护说明和标记不进入正文。"""
     manifest = json.loads((source_root / "manifest.yaml").read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or manifest.get("version") != 1:
         raise ValueError("不支持的 manifest 版本")
-    sources = _read_sources(source_root, _required(manifest, "modules", list))
+    if size is not None and size not in {"2x2", "2x4"}:
+        raise ValueError(f"Unsupported Compact prompt size: {size}")
+    modules = _required(manifest, "modules", list)
+    sources = _read_sources(source_root, modules)
+    module_sizes = {module["file"]: module["sizes"] for module in modules}
     for path in source_root.rglob("*.md"):
         if path.relative_to(source_root).as_posix() in sources:
             continue
@@ -80,6 +84,7 @@ def assemble_prompts(source_root: Path) -> dict[str, str]:
         if not isinstance(references, list) or not references:
             raise ValueError(f"提示词无片段：{prompt_name}")
         parts = []
+        prompt_used = set()
         for reference in references:
             if not isinstance(reference, str):
                 raise ValueError(f"提示词片段引用必须是字符串：{prompt_name}")
@@ -87,10 +92,12 @@ def assemble_prompts(source_root: Path) -> dict[str, str]:
             source = sources.get(file)
             if not separator or source is None or name not in source:
                 raise ValueError(f"不存在的片段：{reference}")
-            if reference in used:
+            if reference in prompt_used:
                 raise ValueError(f"片段重复加载：{reference}")
+            prompt_used.add(reference)
             used.add(reference)
-            parts.append(source[name])
+            if size is None or size in module_sizes[file]:
+                parts.append(source[name])
         result[prompt_name] = "".join(parts)
     declared = set()
     for file, fragments in sources.items():
@@ -132,18 +139,18 @@ def _check_fewshots(manifest: dict, sources: dict[str, dict[str, str]], prompts:
 
 
 @lru_cache(maxsize=16)
-def _cached_prompts(source_root: Path) -> dict[str, str]:
+def _cached_prompts(source_root: Path, size: str | None = None) -> dict[str, str]:
     try:
-        return assemble_prompts(source_root)
+        return assemble_prompts(source_root, size)
     except OSError as error:
         raise ValueError(f"Compact prompt source not found or unreadable: {source_root}") from error
 
 
-def read_prompt(source_root: Path, name: str) -> str:
+def read_prompt(source_root: Path, name: str, size: str | None = None) -> str:
     """同一源目录只加载一次；发布源模块后重启服务刷新缓存。"""
     if name not in PROMPT_NAMES:
         raise ValueError(f"Unknown Compact prompt: {name}")
-    prompts = _cached_prompts(source_root.resolve())
+    prompts = _cached_prompts(source_root.resolve(), size)
     content = prompts.get(name)
     if content is None:
         raise ValueError(f"Compact prompt not found: {name}")

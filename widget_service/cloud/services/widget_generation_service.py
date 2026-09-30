@@ -544,7 +544,7 @@ class WidgetGenerationService:
 
             if policy.stores_design_token:
                 design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                    policy.model_profile_id
+                    policy.model_profile_id, size=task_spec.size,
                 )
                 prompt = PromptBuilder().build_design_token(
                     task_spec,
@@ -552,6 +552,10 @@ class WidgetGenerationService:
                     policy.source_format,
                     previous_design_token=previous_design_token,
                     extrainfo=request.extrainfo,
+                    defer_compact_examples=(
+                        policy.operation == "generateWidgetCardCompactDsl"
+                        and not settings.enable_a2ui_model_mock
+                    ),
                 )
             else:
                 prompt = PromptBuilder().build(
@@ -629,7 +633,7 @@ class WidgetGenerationService:
 
             nonlocal model_call_phase
             plan_system_prompt = A2UIProtocolRegistry.read_design_plan_prompt(
-                policy.model_profile_id
+                policy.model_profile_id, size=task_spec.size,
             )
             plan_prompt = PromptBuilder().build_compact_plan(
                 task_spec,
@@ -764,9 +768,13 @@ class WidgetGenerationService:
                 and not model_client.use_mock
             ):
                 accepted_compact_plan = await generate_compact_plan()
-                effective_generation_prompt = PromptBuilder.apply_compact_plan(
-                    prompt,
-                    accepted_compact_plan,
+                effective_generation_prompt = PromptBuilder().build_design_token(
+                    task_spec,
+                    design_system_prompt,
+                    policy.source_format,
+                    previous_design_token=previous_design_token,
+                    extrainfo=request.extrainfo,
+                    compact_plan=accepted_compact_plan,
                 )
             elif policy.operation == "generateWidgetCardCompactDsl":
                 logger.info(
