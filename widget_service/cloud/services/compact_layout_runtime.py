@@ -149,6 +149,32 @@ def match_compact_layout(
     )
 
 
+def adaptive_slot_ids(components: list[ComponentRow], *, size: str) -> frozenset[str]:
+    """读取已匹配布局的区域槽身份，区分动作背板与固定高度文字按钮。"""
+    by_id = {component.component_id: component for component in components}
+    root = by_id.get("root")
+    if root is None:
+        return frozenset()
+    layouts = _load_contract().get("layouts", {})
+    for layout in layouts.values():
+        if layout.get("size") != size:
+            continue
+        for pattern in layout.get("patterns", []):
+            if _pattern_mismatches(pattern, root, by_id, size=size):
+                continue
+            if _action_count_mismatches(layout, components):
+                continue
+            slots: set[str] = set()
+            for rule in pattern.get("rules", []):
+                if not isinstance(rule.get("slotSize"), dict):
+                    continue
+                component = _component_at_path(root, by_id, rule.get("path"))
+                if component is not None:
+                    slots.add(component.component_id)
+            return frozenset(slots)
+    return frozenset()
+
+
 def _pattern_mismatches(
     pattern: Any,
     root: ComponentRow,
