@@ -28,7 +28,7 @@
 | 摘要列表 | `SummaryList` | 2–3 条同级摘要 | 2x4 短列表 | 每项固定为单行背板 |
 | 线性进度 | `ProgressLine2` | 可见读数 + 线性进度 | 当前值相对明确总量 | 只进入 `W-top-bottom` 的 progress-detail 预设 |
 | 环形进度 | `ProgressCircleSingle` | 紧凑环形读数组 | 单个真实比例及同对象说明 | `W-top-bottom` 的 ring-summary 内容预设 |
-| 日程 | `EventCard` | 时间线 + 标题 + 时间 + 可选地点 | 2x2 单会议 | 单事件；只用于 calendar 唯一业务 |
+| 日程 | `EventCard` | 时间线 + 标题 + 时间 + 可选地点 | 2x2 单事件 | 内容必须来自同一事件，完整信息与布局预算成立 |
 | 等权指标 | `TopTextBottomValue` | 三组标签—数值—单位 | 2x4 三个同级指标 | 恰好三项；只进入 `W-top-bottom` 的 metric-triple 预设 |
 | 操作 | `PillButton` | 操作文案 + 可选图标 | 2x2 底部卡级 CTA | 一个实例绑定一个真实动作 |
 | 操作 | `CircleButton` | 纯图标操作 | 2x2 右下锚点 CTA | `36×36vp` 按钮进入 `40×40vp` 槽 |

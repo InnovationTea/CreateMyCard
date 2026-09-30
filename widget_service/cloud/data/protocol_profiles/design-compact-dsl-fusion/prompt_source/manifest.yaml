@@ -2,7 +2,7 @@
   "version": 1,
   "protocol_id": "design-compact-dsl",
   "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
-  "size_policy": "sizes 用于阶段提示词的尺寸过滤；共享选型片段供 Plan 与 DSL 复用，单个提示词内不重复加载。Plan 接受后按事实容量、动作与组件候选选择同尺寸案例。",
+  "size_policy": "sizes 用于阶段提示词的尺寸过滤；共享选型片段供 Plan 与 DSL 复用，单个提示词内不重复加载。Plan 接受后组装同尺寸整卡参考及组件局部用法，不把示例字段数当成实际容量。",
   "modules": [
     {
       "file": "core.md",

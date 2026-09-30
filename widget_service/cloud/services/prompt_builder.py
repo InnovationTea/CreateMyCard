@@ -1516,15 +1516,13 @@ class PromptBuilder:
             examples = A2UIProtocolRegistry.read_design_few_shot(
                 DESIGN_COMPACT_PROFILE_ID, task_spec.size
             )
-            selection_input = {
-                "dataModelSchema": task_spec.dataModelSchema,
-                "eventCandidates": task_spec.eventCandidates,
-            }
-            selected = select_plan_fewshots(examples, selection_input, plan)
+            reference = PromptBuilder._select_few_shot(examples, task_spec)
+            selected = select_plan_fewshots(examples, plan, reference_source=reference)
             prompt = (
                 f"{prompt}\n\n{selected.content}\n\n"
                 f"本轮实现参考：{'、'.join(selected.identifiers)}。"
-                "示例按必要信息容量、动作与组件候选选取，不冻结布局；"
+                "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
+                "两者都不冻结布局；"
                 "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
             )
         layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))

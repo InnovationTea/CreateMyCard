@@ -1,82 +1,43 @@
-"""依据已接受 Plan 的信息容量与组件候选选例，不按业务名决定布局。"""
+"""保留完整语义参考，为 Plan 软候选补充同尺寸组件局部用法。"""
 
 from __future__ import annotations
 
 import json
 import re
-from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
-from services.compact_plan import compact_plan_data_paths
-
-_PATH = re.compile(r"/data/[^\s'\"${}()+,]+")
-_BASE_COMPONENTS = frozenset(
-    {"Row", "Column", "Stack", "List", "Text", "Image", "Divider", "Button", "Progress"}
-)
+from services.compact_component_runtime import load_visual_recipe_contract
 
 
 @dataclass(frozen=True)
 class Example:
     identifier: str
-    content: str
     components: frozenset[str]
-    facts: int
-    actions: int
-    objects: int
+    component_rows: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
 class Selection:
     content: str
     identifiers: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class Requirements:
-    facts: int
-    actions: int
-    objects: int
-    hints: Counter[str]
-
-
-def _paths(value: Any) -> set[str]:
-    paths: set[str] = set()
-    if isinstance(value, str):
-        paths.update(_PATH.findall(value))
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            if key not in {"onClick", "accessibility"}:
-                paths.update(_paths(item))
-    elif isinstance(value, list):
-        for item in value:
-            paths.update(_paths(item))
-    return paths
-
-
-def _objects(paths: set[str]) -> int:
-    roots: set[str] = set()
-    for path in paths:
-        parts = path.split("/")
-        if len(parts) > 2:
-            roots.add(parts[2])
-    return len(roots)
+    component_names: tuple[str, ...]
+    component_identifiers: tuple[str, ...]
 
 
 @lru_cache(maxsize=8)
-def _examples(source: str) -> tuple[str, tuple[Example, ...]]:
+def _examples(source: str) -> tuple[Example, ...]:
     sections = re.split(r"(?m)(?=^## )", source)
-    preamble = sections[0]
     examples: list[Example] = []
+    registered = load_visual_recipe_contract().get("components", {})
     for section in sections[1:]:
         identifier = re.search(r"2x[24]-V\d+", section.splitlines()[0])
         dsl = re.search(r"```genui\s*\n(.*?)\n```", section, re.S)
         if identifier is None or dsl is None:
             raise ValueError("Compact few-shot 缺少编号或完整 DSL")
         components: set[str] = set()
-        paths: set[str] = set()
-        actions: set[str] = set()
+        component_rows: list[tuple[str, str]] = []
         for line in dsl.group(1).splitlines():
             row = json.loads(line)
             if not isinstance(row, list) or len(row) < 3:
@@ -85,87 +46,72 @@ def _examples(source: str) -> tuple[str, tuple[Example, ...]]:
             if not isinstance(name, str) or not isinstance(props, dict):
                 raise ValueError(f"Invalid Compact example: {identifier.group()}")
             components.add(name)
-            paths.update(_paths(props))
-            for event in props.get("onClick", []):
-                actions.add(json.dumps(event, sort_keys=True))
-        examples.append(
-            Example(
-                identifier.group(), section, frozenset(components),
-                len(paths), len(actions), _objects(paths),
-            )
-        )
+            # 只提取已注册、无 children 的高阶组件，不提取根布局或基础子树。
+            if name in registered and len(row) == 3:
+                component_rows.append((name, line))
+        examples.append(Example(identifier.group(), frozenset(components), tuple(component_rows)))
     if not examples:
         raise ValueError("Compact few-shot 不能为空")
-    return preamble, tuple(examples)
+    return tuple(examples)
 
 
-def _requirements(
-    task_spec: dict[str, Any], plan: dict[str, Any] | None,
-) -> Requirements:
-    hints: Counter[str] = Counter()
+def _component_preferences(plan: dict[str, Any] | None) -> dict[str, int]:
+    preferences: dict[str, int] = {}
     if plan is None:
-        paths = set(compact_plan_data_paths(task_spec))
-        return Requirements(
-            len(paths), len(task_spec.get("eventCandidates", [])), _objects(paths), hints,
-        )
-    paths: set[str] = set()
-    actions: set[str] = set()
-    static_facts: set[str] = set()
+        return preferences
     for fact in plan.get("info_required", []):
         if not isinstance(fact, dict):
             continue
-        data_id = fact.get("dataId")
-        action_id = fact.get("actionId")
-        text = fact.get("text")
-        if isinstance(data_id, str):
-            paths.add(data_id)
-        if isinstance(action_id, str):
-            actions.add(action_id)
-        if isinstance(text, str):
-            static_facts.add(text)
-        for priority, hint in enumerate(fact.get("componentHints", [])):
-            if isinstance(hint, str) and hint not in _BASE_COMPONENTS:
-                hints[hint] += max(1, 3 - priority)
-    return Requirements(len(paths) + len(static_facts), len(actions), _objects(paths), hints)
+        for priority, name in enumerate(fact.get("componentHints", [])):
+            if isinstance(name, str):
+                # 多个事实可合入同一组件，重复出现不意味着更多示范或更多实例。
+                preferences[name] = max(preferences.get(name, 0), max(1, 3 - priority))
+    return preferences
 
 
 def select_plan_fewshots(
-    source: str, task_spec: dict[str, Any], plan: dict[str, Any] | None,
+    source: str,
+    plan: dict[str, Any] | None,
+    *,
+    reference_source: str,
 ) -> Selection:
-    """优先避免动作/容量不足，再匹配软候选；选例不证明最终布局能放下。"""
-    preamble, examples = _examples(source)
-    required = _requirements(task_spec, plan)
-
-    def capacity(example: Example) -> tuple[int, int, int]:
-        return (
-            max(0, required.actions - example.actions),
-            max(0, required.facts - example.facts),
-            max(0, required.objects - example.objects),
-        )
-
-    def rank(example: Example) -> tuple:
-        matches = sum(required.hints[name] for name in example.components)
-        return (
-            *capacity(example),
-            abs(required.actions - example.actions),
-            -matches,
-            abs(required.facts - example.facts),
-            abs(required.objects - example.objects),
-            example.identifier,
-        )
-
-    ranked = sorted(examples, key=rank)
-    first = ranked[0]
-    chosen = [first]
-    missing = set(required.hints) - first.components
-    # 第二例只补充尚未示范的候选，不仅为了凑足两个例子而加入另一种构图。
-    for example in ranked[1:]:
-        if capacity(example) > capacity(first) or example.actions != first.actions:
+    """整卡参考保持原样；最多补充两种未示范组件，不据字段计数改选整卡。"""
+    references = _examples(reference_source)
+    identifiers = tuple(example.identifier for example in references)
+    used: set[str] = set()
+    for example in references:
+        used.update(example.components)
+    preferences = _component_preferences(plan)
+    names = sorted(preferences, key=lambda name: -preferences.get(name, 0))
+    snippets: list[str] = []
+    selected_names: list[str] = []
+    selected_ids: list[str] = []
+    examples = _examples(source)
+    for name in names:
+        if name in used:
             continue
-        if missing.intersection(example.components):
-            chosen.append(example)
+        for example in examples:
+            rows = dict(example.component_rows)
+            row = rows.get(name)
+            if row is None:
+                continue
+            snippets.append(
+                f"### {name} 局部用法（来源 {example.identifier}，不是整卡模板）\n\n"
+                f"```genui\n{row}\n```"
+            )
+            selected_names.append(name)
+            selected_ids.append(example.identifier)
             break
-    return Selection(
-        content=preamble + "\n".join(example.content for example in chosen),
-        identifiers=tuple(example.identifier for example in chosen),
-    )
+        if len(selected_names) == 2:
+            break
+    content = reference_source
+    if snippets:
+        content += (
+            "\n\n# Plan 候选组件的局部用法\n\n"
+            "以下仅说明单个组件的 Props 与绑定形式，不提供另一套整卡结构。"
+            "示例路径、值、颜色、图标及事件不是当前输入，不得照抄；不补造字段或动作。"
+            "先核对本轮语义、真实字段类型、组件合法槽位及展开预算，再决定是否采用。"
+            "完整参考案例与 Plan 中其余必要事实和动作必须保留；不合适时继续用基础组合。\n\n"
+            + "\n\n".join(snippets)
+        )
+    return Selection(content, identifiers, tuple(selected_names), tuple(selected_ids))
