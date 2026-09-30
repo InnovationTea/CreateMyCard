@@ -2,7 +2,7 @@
   "version": 1,
   "protocol_id": "design-compact-dsl",
   "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",
-  "size_policy": "sizes 为模块归属与案例尺寸索引；内存组装完整正文，按请求裁剪第九节布局并选择同尺寸案例，不按尺寸过滤整个模块文件。",
+  "size_policy": "sizes 用于阶段提示词的尺寸过滤；共享选型片段供 Plan 与 DSL 复用，单个提示词内不重复加载。Plan 接受后组装同尺寸整卡参考及组件局部用法，不把示例字段数当成实际容量。",
   "modules": [
     {
       "file": "core.md",
@@ -152,6 +152,10 @@
       "information/2x2.md#capacity",
       "information/2x4.md#capacity",
       "combinations/common.md#contract",
+      "components/common.md#selection",
+      "components/2x2.md#selection",
+      "components/2x4.md#selection",
+      "combinations/common.md#selection",
       "composition.md#precedence",
       "core.md#output",
       "layouts/common.md#height-gate",
@@ -252,6 +256,11 @@
       "fewshots/2x4.md#example-v26"
     ],
     "plan": [
+      "information/common.md#contract",
+      "components/common.md#selection",
+      "components/2x2.md#selection",
+      "components/2x4.md#selection",
+      "combinations/common.md#selection",
       "plan.md#contract"
     ]
   },

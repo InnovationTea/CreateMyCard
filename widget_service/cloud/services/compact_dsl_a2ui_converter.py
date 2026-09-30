@@ -721,6 +721,10 @@ def convert_compact_dsl_to_a2ui(
             )
         except FusionBallExpansionError as exc:
             raise CompactDslConversionError(str(exc)) from exc
+    # Compact / Web 的缺省间距为 0，不继承宿主 Row / Column 的不同默认值。
+    for converted in converted_components:
+        if converted.get("component") in {"Row", "Column"}:
+            converted.setdefault("itemMargin", 0)
     version = str(profile.get("version") or "v0.9")
     create_surface = {
         "surfaceId": surface_id,
