@@ -35,3 +35,15 @@
   这两个字段，需要向用户展示充电状态时改选 `BatteryOverviewStatusHero@1`。电池温度为可选数据，
   可用时替换该模板顶部“手机”标题为电池温度文本；`2x4` 多业务场景中用户显式要求电池温度时，
   优先选择该模板展示电池温度。
+
+
+### 单电量 2x2 的字段筛选优先规则
+
+- 先读取本轮 userQuery，区分明确要求与可选候选；标题、描述、样例值、输入候选齐全都不能扩大明确需求。
+- 明确要求的字段必须保留。非必选、且未被用户明确禁止的字段才作为候选，模板有且输入存在时可附带展示；不要将候选放入 requiredOutputFieldsByCapability，不新增协议字段。
+- 对“电池情况”“电池状态”等模糊概览，先以剩余电量为基本需求，结合明确提到的充电状态或健康等目标；不能自动展开为充电器类型、温度、电流、电压、更新时间等全部候选。
+- 使用 batteryTemplateReference 核对当前全部可用模板的 displayFields、requiredInputFields、optionalInputFields 和 missingInputFields。先保证 query 明确需求被覆盖、模板输入齐全，再优先选择有完整方案的合理字段解释；不能为命中模板删掉明确需求，也不能伪造缺失的数值字段。
+- “充电状态和电池情况”通常保留 /chargingStatusDesc 和可用的电量字段；有 /batterySOCText 时可用该文本字段。/healthStatusDesc、/pluggedTypeDesc、/batteryTemperatureText 未被明确要求且未被禁止时才作为候选。不能因为输入提供 /pluggedTypeDesc 就强制模板显示充电类型。
+- 没有明确动作时，无合法候选动作或用户禁止交互则采用 Full；有合法候选动作且允许交互则 Full 与 Hero 加动作平等参与候选字段数量比较，不设 Full 优先；候选字段仍原样保留供后续模板绑定，不输出新的候选字段协议，不直接输出模板或布局。
+
+- 多个模板完整覆盖必选字段且输入与动作布局满足时，尊重用户明确禁止的展示要求，并保证 primaryOutputFieldByCapability 所表达的显式唯一主焦点，最后比较实际展示的候选字段数量。仅声明、仅充当编译期条件或条件未满足而未渲染的字段不计入收益，不把候选提升为必选、不编造缺失字段。

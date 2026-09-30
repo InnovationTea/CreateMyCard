@@ -1,4 +1,4 @@
-#Template BatteryOverviewFull@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewFull@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -30,15 +30,13 @@ Column(
                       "height": 52,
                       "strokeWidth": 6}
                   ),
-            #if props.batteryIcon
-              Image(
-                        props.batteryIcon,
-                        {"width": 24,
-                          "height": 24,
-                          "objectFit": "contain",
-                          "fillColor": $theme('supportContentColor')}
-                      )
-            #endif
+            Image(
+                      props.batteryIcon,
+                      {"width": 24,
+                        "height": 24,
+                        "objectFit": "contain",
+                        "fillColor": $theme('supportContentColor')}
+                    )
           )
     )
 )
@@ -172,7 +170,7 @@ Row(
 )
 #End
 
-#Template BatteryOverviewSupportHero@1(props: { batteryIcon?: asset, actionId?: string })
+#Template BatteryOverviewSupportHero@1(props: { batteryIcon: asset, actionId?: string })
 data = {
     percent: $path("/batterySOC"),
     percentText: $optionalPath("/batterySOCText"),
@@ -284,17 +282,15 @@ Row(
           "strokeWidth": 6
         }
       ),
-      #if props.batteryIcon
       Image(
-        props.batteryIcon,
-        {
-          "width": 16,
-          "height": 16,
-          "objectFit": "contain",
-          "fillColor": $theme('supportContentColor')
-        }
+      props.batteryIcon,
+      {
+        "width": 16,
+        "height": 16,
+        "objectFit": "contain",
+        "fillColor": $theme('supportContentColor')
+      }
       )
-      #endif
     ),
   )
 )
@@ -368,7 +364,7 @@ Row(
 )
 #End
 
-#Template BatteryOverviewHero@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewHero@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     level: $path("/batteryCapacityLevelDesc")
@@ -407,15 +403,13 @@ Column(
                       "strokeWidth": 6
                     }
                   ),
-            #if props.batteryIcon
-              Image(
-                        props.batteryIcon,
-                        {"width": 24,
-                          "height": 24,
-                          "objectFit": "contain",
-                          "fillColor": $theme('supportContentColor')}
-                      )
-            #endif
+            Image(
+                      props.batteryIcon,
+                      {"width": 24,
+                        "height": 24,
+                        "objectFit": "contain",
+                        "fillColor": $theme('supportContentColor')}
+                    )
           ),
       Column(
             {"itemMargin":4,
@@ -499,7 +493,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewCompact@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewCompact@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     charging: $path("/chargingStatusDesc")
@@ -539,17 +533,15 @@ Column(
           "strokeWidth": 6
         }
       ),
-      #if props.batteryIcon
       Image(
-        props.batteryIcon,
-        {
-          "width": 12,
-          "height": 12,
-          "objectFit": "contain",
-          "fillColor": $theme('supportContentColor')
-        }
+      props.batteryIcon,
+      {
+        "width": 12,
+        "height": 12,
+        "objectFit": "contain",
+        "fillColor": $theme('supportContentColor')
+      }
       )
-      #endif
     ),
     Column(
       {
@@ -624,6 +616,8 @@ data = {
     percentText: $path("/batterySOCText"),
     charging: $optionalPath("/chargingStatusDesc"),
     health: $optionalPath("/healthStatusDesc"),
+    level: $optionalPath("/batteryCapacityLevelDesc"),
+    temperature: $optionalPath("/batteryTemperatureText"),
 }
 
 Column(
@@ -654,7 +648,7 @@ Column(
       {
         "width": "matchParent",
         "itemMargin": 2,
-        "margin": { "top": 6 },
+        "margin": { "top": #Expr(data.charging ? 0 : (data.level ? 0 : (data.temperature ? 0 : 6))) },
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -665,11 +659,53 @@ Column(
           { "height": 40, "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
-  #if data.charging
-    Text(
-      `状态：${data.charging}`,
-      {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
+  #if data.temperature
+    #if data.charging
+      #if data.level
+        Text(
+          Expr(data.charging + ' · ' + (data.level == '满电量' ? '满电' : (data.level == '高电量' ? '高' : (data.level == '正常电量' ? '正常' : (data.level == '低电量' ? '低' : (data.level == '告警电量' ? '告警' : (data.level == '极低电量' ? '极低' : (data.level == '关机电量' ? '关机' : (data.level)))))))) + ' · ' + data.temperature),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #else
+        Text(
+          Expr(data.charging + ' · ' + data.temperature),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #endif
+    #else
+      #if data.level
+        Text(
+          Expr((data.level == '满电量' ? '满电' : (data.level == '高电量' ? '高' : (data.level == '正常电量' ? '正常' : (data.level == '低电量' ? '低' : (data.level == '告警电量' ? '告警' : (data.level == '极低电量' ? '极低' : (data.level == '关机电量' ? '关机' : (data.level)))))))) + ' · ' + data.temperature),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #else
+        Text(
+          Expr('电池温度：' + data.temperature),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #endif
+    #endif
+  #else
+    #if data.level
+      #if data.charging
+        Text(
+          Expr(data.charging + ' · ' + (data.level == '满电量' ? '满电' : (data.level == '高电量' ? '高' : (data.level == '正常电量' ? '正常' : (data.level == '低电量' ? '低' : (data.level == '告警电量' ? '告警' : (data.level == '极低电量' ? '极低' : (data.level == '关机电量' ? '关机' : (data.level))))))))),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #else
+        Text(
+          Expr('电量等级：' + (data.level == '满电量' ? '满电' : (data.level == '高电量' ? '高' : (data.level == '正常电量' ? '正常' : (data.level == '低电量' ? '低' : (data.level == '告警电量' ? '告警' : (data.level == '极低电量' ? '极低' : (data.level == '关机电量' ? '关机' : (data.level))))))))),
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #endif
+    #else
+      #if data.charging
+        Text(
+          `状态：${data.charging}`,
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+      #endif
+    #endif
   #endif
 )
 #End
@@ -1203,7 +1239,7 @@ Column(
 #End
 
 
-#Template BatteryOverviewStatusHero@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewStatusHero@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     status: $path("/chargingStatusDesc")
@@ -1239,18 +1275,16 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
       }
     ),
-    #if props.batteryIcon
-      Image(
-        props.batteryIcon,
-        {
-          "width": 20,
-          "height": 20,
-          "objectFit": "contain",
-          "flexShrink": 0,
-          "fillColor": $theme('supportContentColor')
-        }
-      )
-    #endif
+    Image(
+      props.batteryIcon,
+      {
+        "width": 20,
+        "height": 20,
+        "objectFit": "contain",
+        "flexShrink": 0,
+        "fillColor": $theme('supportContentColor')
+      }
+    )
   ),
   Column(
     {
@@ -1289,7 +1323,7 @@ Column(
 #End
 
 
-#Template BatteryOverviewChargeStatusHero@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargeStatusHero@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     temperature: $optionalPath("/batteryTemperatureText")
@@ -1355,20 +1389,18 @@ Column(
           "backgroundColor": $theme('progressBackgroundColor'),
           "width": 44,
           "height": 44,
-          "strokeWidth": 5
+          "strokeWidth": 6
         }
       ),
-      #if props.batteryIcon
-        Image(
-          props.batteryIcon,
-          {
-            "width": 20,
-            "height": 20,
-            "objectFit": "contain",
-            "fillColor": $theme('supportContentColor')
-          }
-        )
-      #endif
+      Image(
+        props.batteryIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
     ),
     Column(
       {
@@ -1767,7 +1799,7 @@ Column(
 
 #End
 
-#Template BatteryOverviewPercentRingCompact@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewPercentRingCompact@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC")
 }
@@ -1828,21 +1860,19 @@ Row(
             }
         )
     ),
-    #if props.batteryIcon
-      Image(
-          props.batteryIcon,
-          {
-              "width": 24,
-              "height": 24,
-              "objectFit": "contain",
-              "fillColor": $theme('supportContentColor')
-          }
-      )
-    #endif
+    Image(
+        props.batteryIcon,
+        {
+            "width": 24,
+            "height": 24,
+            "objectFit": "contain",
+            "fillColor": $theme('supportContentColor')
+        }
+    )
 )
 #End
 
-#Template BatteryOverviewPercentStatusCompact@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewPercentStatusCompact@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     charging: $path("/chargingStatusDesc")
@@ -1892,17 +1922,15 @@ Row(
       }
     )
   ),
-  #if props.batteryIcon
-    Image(
-      props.batteryIcon,
-      {
-        "width": 24,
-        "height": 24,
-        "objectFit": "contain",
-        "fillColor": $theme('supportContentColor')
-      }
-    )
-  #endif
+  Image(
+    props.batteryIcon,
+    {
+      "width": 24,
+      "height": 24,
+      "objectFit": "contain",
+      "fillColor": $theme('supportContentColor')
+    }
+  )
 )
 #End
 

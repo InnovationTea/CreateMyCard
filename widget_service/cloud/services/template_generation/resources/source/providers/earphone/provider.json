@@ -279,9 +279,12 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1",
+      "assetParameterSemanticTags": {
+        "deviceIcon": ["earphone-case"]
+      },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机仓 Hero，展示充电盒电量进度环和充电状态文本，可选充电盒图标。",
+      "description": "耳机仓 Hero，展示充电盒电量进度环和充电状态文本，必需充电盒图标 deviceIcon。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/batteryLevel"
@@ -307,9 +310,12 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarphoneHero@1",
+      "assetParameterSemanticTags": {
+        "deviceIcon": ["earphone-body"]
+      },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机 Hero，展示耳机电量进度环和耳机名称文本，可选耳机图标。",
+      "description": "耳机 Hero，展示耳机电量进度环和耳机名称文本，必需耳机本体图标 deviceIcon。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/earphoneName"
@@ -354,9 +360,12 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewMusicFull@1",
+      "assetParameterSemanticTags": {
+        "deviceIcon": ["earphone-case"]
+      },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "Q059 耳机音乐 Full：名称、电量环、电量、连接状态与更新时间，可独立组合。",
+      "description": "Q059 耳机音乐 Full：名称、电量环、电量、连接状态与更新时间，必需充电盒图标 deviceIcon，可独立组合。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/earphoneName",

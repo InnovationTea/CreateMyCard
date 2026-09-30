@@ -485,12 +485,6 @@ def compile_ux_layout_card(
         registry,
         size=task_spec.size,
     )
-    content = _inject_phone_earphone_title(
-        content,
-        contract,
-        registry,
-        template_ids=tuple(state.template_ids),
-    )
     content = _deduplicate_ux_business_title_fragments(content, business_title)
     content = _lower_capsule_progress(content)
     content = _deduplicate_visible_text(content, task_spec)
@@ -1184,12 +1178,19 @@ def _validate_provider_template_state(
             "compact",
             "chargingDiagnosticsHero",
             "chargingDiagnosticsWideFull",
+
+            "statusSummaryHero",
+            "statusLevelSummaryHero",
+            "chargingLevelSummaryHero",
             "chargingProgressFull",
             "chargingProgressHero",
             "chargingRingHero",
             "full",
             "hero",
             "healthLevelHero",
+            "healthTemperatureHero",
+            "percentTextFull",
+            "percentDetailsFull",
             "percentLevelHero",
             "percentRingCompact",
             "percentRingHero",
@@ -5109,12 +5110,11 @@ def _template_value(
     return resolved_value
 
 
-def _provider_compile_time_conditional(
+def _selected_compile_time_value(
     value: TemplateValue,
     params: dict[str, Any],
     bindings: dict[str, str],
-    theme_values: dict[str, object],
-) -> Any:
+) -> TemplateValue:
     if len(value.items) != 3:
         raise TerselConversionError("Template compile-time conditional is invalid.")
     condition, present_value, fallback_value = value.items
@@ -5126,8 +5126,56 @@ def _provider_compile_time_conditional(
         raise TerselConversionError(
             "Template compile-time conditional condition must be data or props."
         )
-    selected = present_value if present else fallback_value
+    return present_value if present else fallback_value
+
+
+def _provider_compile_time_conditional(
+    value: TemplateValue,
+    params: dict[str, Any],
+    bindings: dict[str, str],
+    theme_values: dict[str, object],
+) -> Any:
+    selected = _selected_compile_time_value(value, params, bindings)
     return _template_value(selected, params, bindings, theme_values)
+
+
+def template_displayed_binding_names(
+    variant: TemplateVariant,
+    available_bindings: set[str],
+    available_parameters: set[str],
+) -> set[str]:
+    """按生产编译期分支收集正文引用；声明和条件守卫本身不代表展示。"""
+    binding_symbols = {name: name for name in available_bindings}
+    parameter_presence = dict.fromkeys(available_parameters, True)
+    displayed: set[str] = set()
+
+    def visit_value(value: TemplateValue) -> None:
+        if value.kind == "compile-time-conditional":
+            selected = _selected_compile_time_value(value, parameter_presence, binding_symbols)
+            visit_value(selected)
+            return
+        if value.kind == "binding":
+            if value.name in available_bindings:
+                displayed.add(value.name)
+            return
+        for item in value.items:
+            visit_value(item)
+        for name, item in value.properties.items():
+            if name not in _DANGEROUS_EVENT_KEYS:
+                visit_value(item)
+
+    def visit_node(node: TemplateNode) -> None:
+        if node.component in _TEMPLATE_CONDITIONS:
+            if not _template_condition_should_render(node, parameter_presence, binding_symbols):
+                return
+        else:
+            for value in node.values:
+                visit_value(value)
+        for child in node.children:
+            visit_node(child)
+
+    visit_node(variant.root)
+    return displayed
 
 
 def _instantiate_interpolated_text(
@@ -7706,46 +7754,6 @@ def _is_literal_component_header(node: Nested2Node) -> bool:
 
 def _is_plain_literal_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip()) and "${" not in value
-
-
-def _inject_phone_earphone_title(
-    node: Nested2Node,
-    contract: HybridBodyContract,
-    registry: CardPlanRegistry,
-    *,
-    template_ids: tuple[str, ...] = (),
-) -> Nested2Node:
-    if _contract_ux_business_component_names(contract, registry) != {
-        "BatteryOverview",
-        "BluetoothDeviceOverview",
-    }:
-        return node
-    if "TwoSupportLayout@1" in template_ids:
-        # 双业务 Support 行各自占满半卡片高度，不再挤入一行“设备电量”标题。
-        return node
-    if "WideHalfTwoCompactLayout@1" in template_ids:
-        # 三个槽位已有业务标签，并已占满 136vp 安全区。
-        return node
-    if any(template_id.startswith("WideTwoFocus") for template_id in template_ids):
-        # 双焦点拼接布局的左右面板自带业务标签行，不再注入整卡“设备电量”标题。
-        return node
-    title = _bluetooth_text("设备电量", "subtitle", 12, 400, align="start")
-    body = _with_flex_weight(node, 1, axis="vertical")
-    return Nested2Node(
-        "Column",
-        (
-            "section",
-            {
-                "width": "100%",
-                "height": "100%",
-                "itemMargin": registry.ux_tokens["moduleGap"],
-                "justifyContent": "start",
-                "alignItems": "start",
-                "clip": True,
-            },
-        ),
-        (title, body),
-    )
 
 
 def _inject_resource_battery_title(

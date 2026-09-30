@@ -1,0 +1,45 @@
+#Template BatteryOverviewPercentDetailsFull@1(props: {})
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    level: $path("/batteryCapacityLevelDesc"),
+    pluggedType: $path("/pluggedTypeDesc")
+}
+
+Column(
+  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
+   "itemMargin": 4, "justifyContent": "start", "alignItems": "start",
+   "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text("手机电量", {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+    "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+  Text(data.percentText, {"width": "matchParent", "height": 32, "fontSize": 28, "fontWeight": 700,
+    "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center"},
+    Text("充电状态", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.charging, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "right",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  ),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center"},
+    Text("电量等级", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.level, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "right",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  ),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center"},
+    Text("充电类型", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.pluggedType, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "right",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  )
+)
+#End
