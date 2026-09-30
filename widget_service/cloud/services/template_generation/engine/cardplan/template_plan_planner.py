@@ -168,10 +168,12 @@ def plan_template_candidates(
     if battery_ranking:
         ranked_drafts: list[_PlanDraft] = []
         for draft in drafts:
-            coverage = _battery_candidate_coverage(draft.plan, intent, registry, candidate_bindings)
+            coverage = _battery_candidate_coverage(
+                draft.plan, intent, search_result, candidate_bindings,
+            )
             ranked_drafts.append(replace(draft, score=(coverage, *draft.score)))
         drafts = ranked_drafts
-    if len(requested_capabilities) == 1 and not battery_ranking:
+    if len(requested_capabilities) == 1:
         focus = intent.primary_output_field_by_capability.get(requested_capabilities[0])
         focused = [
             draft
@@ -230,21 +232,23 @@ def _verify_plans_cover_request(
 def _battery_candidate_coverage(
     plan: TemplatePlan,
     intent: TemplateSearchIntent,
-    registry: CardPlanRegistry,
+    search_result: TemplateSearchResult,
     bindings: tuple[CandidateDataBinding, ...],
 ) -> int:
     available: set[str] = set()
+    required = intent.required_output_fields_by_capability.get("GetPhoneBatteryInfo", ())
     for binding in bindings:
         if binding.capabilityId == "GetPhoneBatteryInfo":
-            available.update(binding.candidateOutputFields)
-    required = intent.required_output_fields_by_capability.get("GetPhoneBatteryInfo", ())
-    available.difference_update(required)
+            for path in binding.candidateOutputFields:
+                if path not in required:
+                    available.add(f"{binding.writeResultTo.rstrip('/')}{path}")
+    fields_by_template: dict[str, tuple[str, ...]] = {}
+    for group in search_result.business_candidates:
+        for candidate in group.candidates:
+            fields_by_template[candidate.template_id] = candidate.available_data_fields
     displayed: set[str] = set()
     for slot in plan.business_slots:
-        definition = registry.require_template(slot.template_id)
-        displayed.update(definition.primary_data)
-        displayed.update(definition.secondary_data)
-        displayed.update(definition.optional_data)
+        displayed.update(fields_by_template.get(slot.template_id, ()))
     return len(available.intersection(displayed))
 
 

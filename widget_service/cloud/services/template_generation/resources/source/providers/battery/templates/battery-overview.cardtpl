@@ -1389,7 +1389,7 @@ Column(
           "backgroundColor": $theme('progressBackgroundColor'),
           "width": 44,
           "height": 44,
-          "strokeWidth": 5
+          "strokeWidth": 6
         }
       ),
       Image(

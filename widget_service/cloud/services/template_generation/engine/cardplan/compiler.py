@@ -5116,12 +5116,11 @@ def _template_value(
     return resolved_value
 
 
-def _provider_compile_time_conditional(
+def _selected_compile_time_value(
     value: TemplateValue,
     params: dict[str, Any],
     bindings: dict[str, str],
-    theme_values: dict[str, object],
-) -> Any:
+) -> TemplateValue:
     if len(value.items) != 3:
         raise TerselConversionError("Template compile-time conditional is invalid.")
     condition, present_value, fallback_value = value.items
@@ -5133,8 +5132,56 @@ def _provider_compile_time_conditional(
         raise TerselConversionError(
             "Template compile-time conditional condition must be data or props."
         )
-    selected = present_value if present else fallback_value
+    return present_value if present else fallback_value
+
+
+def _provider_compile_time_conditional(
+    value: TemplateValue,
+    params: dict[str, Any],
+    bindings: dict[str, str],
+    theme_values: dict[str, object],
+) -> Any:
+    selected = _selected_compile_time_value(value, params, bindings)
     return _template_value(selected, params, bindings, theme_values)
+
+
+def template_displayed_binding_names(
+    variant: TemplateVariant,
+    available_bindings: set[str],
+    available_parameters: set[str],
+) -> set[str]:
+    """按生产编译期分支收集正文引用；声明和条件守卫本身不代表展示。"""
+    binding_symbols = {name: name for name in available_bindings}
+    parameter_presence = dict.fromkeys(available_parameters, True)
+    displayed: set[str] = set()
+
+    def visit_value(value: TemplateValue) -> None:
+        if value.kind == "compile-time-conditional":
+            selected = _selected_compile_time_value(value, parameter_presence, binding_symbols)
+            visit_value(selected)
+            return
+        if value.kind == "binding":
+            if value.name in available_bindings:
+                displayed.add(value.name)
+            return
+        for item in value.items:
+            visit_value(item)
+        for name, item in value.properties.items():
+            if name not in _DANGEROUS_EVENT_KEYS:
+                visit_value(item)
+
+    def visit_node(node: TemplateNode) -> None:
+        if node.component in _TEMPLATE_CONDITIONS:
+            if not _template_condition_should_render(node, parameter_presence, binding_symbols):
+                return
+        else:
+            for value in node.values:
+                visit_value(value)
+        for child in node.children:
+            visit_node(child)
+
+    visit_node(variant.root)
+    return displayed
 
 
 def _instantiate_interpolated_text(
