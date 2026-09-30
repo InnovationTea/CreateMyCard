@@ -78,9 +78,7 @@
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         }
       }
     },
@@ -148,8 +146,7 @@
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ]
         },
         "EnterSettingPage": {
@@ -176,9 +173,7 @@
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetScreenUseTimeManageSwitch": {
           "params": {
@@ -190,9 +185,7 @@
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetMicSettingSwicth": {
           "params": {
@@ -204,9 +197,7 @@
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetSettingOption": {
           "params": {

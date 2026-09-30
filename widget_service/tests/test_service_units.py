@@ -1791,6 +1791,85 @@ def test_event_capability_registry_uses_package_dependencies_only():
     )
 
 
+def test_new_registry_uses_numeric_rain_probability_and_parameterless_toggles():
+    legacy_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    legacy_weather = legacy_registry.get_data_capability("ViewWeather")
+    assert legacy_weather is not None
+    legacy_rain_probability = legacy_weather.outputSchema["properties"]["daily"][
+        "items"
+    ]["properties"]["rainProbabilityPercent"]
+    assert legacy_rain_probability["type"] == "string"
+    assert legacy_rain_probability["sampleValue"] == "20%"
+
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
+    weather = registry.get_data_capability("ViewWeather")
+    assert weather is not None
+    rain_probability = weather.outputSchema["properties"]["daily"]["items"][
+        "properties"
+    ]["rainProbabilityPercent"]
+    assert rain_probability["type"] == "number"
+    assert rain_probability["sampleValue"] == 20
+    assert rain_probability["minimum"] == 0
+    assert rain_probability["maximum"] == 100
+    assert rain_probability["displayUnits"] == ["%"]
+    assert rain_probability["unitIncluded"] is False
+
+    toggle_ids = {
+        "event.setPowerSavingMode",
+        "event.setMobileData",
+        "event.setNearLinkMode",
+        "event.setBluetoothMode",
+        "event.setWifiMode",
+        "event.setLocationSwitch",
+        "event.setScreenUseTimeManageSwitch",
+        "event.setMicPermissionSwitch",
+    }
+    event_by_id = {
+        item.id: item
+        for item in registry.list_event_capabilities()
+        if item.id in toggle_ids
+    }
+    assert set(event_by_id) == toggle_ids
+    for event in event_by_id.values():
+        params = event.actionTemplate.args["params"]
+        params_schema = event.parametersSchema["properties"]["params"]
+        assert "switchFlag" not in params
+        assert event.dynamicArguments == []
+        assert "switchFlag" not in params_schema["properties"]
+        assert "switchFlag" not in params_schema["required"]
+
+
+def test_shared_validation_schemas_accept_old_and_new_capability_shapes():
+    schemas_dir = CLOUD_ROOT / "data" / "validator_rules" / "schemas"
+    weather_schema = json_module.loads(
+        (schemas_dir / "capability.weather.schema.json").read_text(encoding="utf-8")
+    )
+    rain_probability = weather_schema["outputSchema"]["properties"]["daily"]["items"][
+        "properties"
+    ]["rainProbabilityPercent"]
+    assert rain_probability["oneOf"] == [
+        {"type": "number", "minimum": 0, "maximum": 100},
+        {"type": "string", "pattern": r"^\d+(?:\.\d+)?%$"},
+    ]
+
+    event_schema = json_module.loads(
+        (schemas_dir / "event.click.schema.json").read_text(encoding="utf-8")
+    )
+    click_to_api = event_schema["functions"]["clickToApi"]["supportedIntents"]
+    assert click_to_api["SetMobileData"]["required"] == []
+    click_to_intent = event_schema["functions"]["clickToIntent"]["supportedIntents"]
+    assert click_to_intent["SetSettingSwitch"]["required"] == [
+        "appBundleName",
+        "itemName",
+    ]
+    for intent_name in (
+        "SetLocationSettingSwicth",
+        "SetScreenUseTimeManageSwitch",
+        "SetMicSettingSwicth",
+    ):
+        assert click_to_intent[intent_name]["required"] == []
+
+
 def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata():
     """验证第一接口事件结构可直接复制，且不暴露完整参数 schema。"""
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)

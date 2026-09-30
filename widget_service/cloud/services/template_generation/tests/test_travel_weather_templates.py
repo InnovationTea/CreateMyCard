@@ -272,7 +272,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
                         {
                             "condition": _field("string", "小雨"),
                             "temperatureRangeText": _field("string", "20℃ / 28℃"),
-                            "rainProbabilityPercent": _field("string", "60%"),
+                            "rainProbabilityPercent": _field("number", 60),
                         },
                     )
                 },
@@ -325,7 +325,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     )
     rain_probability = _component_for_content(
         output.a2ui,
-        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} }}",
+        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} + '%' }}",
     )
     # 基底布局以温度范围为主行、天气现象与降雨概率为副行。
     assert temperature.get("styles", {}).get("fontSize") == 14

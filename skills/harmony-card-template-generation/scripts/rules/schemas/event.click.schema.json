@@ -47,7 +47,7 @@
             "itemName": {"const": "battery_saving_mode"},
             "switchFlag": {"type": "number", "enum": [0, 1]}
           },
-          "required": ["appBundleName", "itemName", "switchFlag"]
+          "required": ["appBundleName", "itemName"]
         }
       }
     }

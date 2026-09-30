@@ -24,6 +24,7 @@ from services.template_generation.engine.theme_reference import (
     translate_theme_reference_calls,
 )
 
+from .field_type_compatibility import field_types_are_compatible
 from .models import (
     CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -2863,7 +2864,11 @@ def _provider_variant_binding_admission(
                 expected_type=binding.data_type,
             )
         actual_type = leaf.get("type")
-        if not _provider_binding_types_match(binding.data_type, actual_type):
+        if not _provider_binding_types_match(
+            binding.path,
+            binding.data_type,
+            actual_type,
+        ):
             return ProviderTemplateAdmission(
                 False,
                 "binding-type-mismatch",
@@ -2986,8 +2991,14 @@ def _task_spec_schema_leaf(
     return current
 
 
-def _provider_binding_types_match(provider_type: str, data_type: Any) -> bool:
-    return provider_type == data_type or (provider_type == "integer" and data_type == "number")
+def _provider_binding_types_match(
+    path: str,
+    provider_type: str,
+    data_type: Any,
+) -> bool:
+    if field_types_are_compatible(path, provider_type, data_type):
+        return True
+    return provider_type == "integer" and data_type == "number"
 
 
 __all__ = [

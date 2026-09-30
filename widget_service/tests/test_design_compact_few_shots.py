@@ -449,9 +449,9 @@ def test_adaptive_primary_percentage_allows_renderer_sized_font() -> None:
                     "daily": [
                         {
                             "rainProbabilityPercent": {
-                                "type": "string",
+                                "type": "number",
                                 "description": "降雨概率百分比",
-                                "sampleValue": "20%",
+                                "sampleValue": 20,
                             }
                         }
                     ]
@@ -464,7 +464,7 @@ def test_adaptive_primary_percentage_allows_renderer_sized_font() -> None:
             '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
             '["main","Column",{"width":136,"height":54,"padding":0},["rain"]]',
             '["rain","Text",{"content":{"path":"/data/weather/daily/1/rainProbabilityPercent"},"fontSize":38,"maxLines":1}]',
-            '["/data/weather/daily/1/rainProbabilityPercent","20%"]',
+            '["/data/weather/daily/1/rainProbabilityPercent",20]',
         ]
     )
     result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})

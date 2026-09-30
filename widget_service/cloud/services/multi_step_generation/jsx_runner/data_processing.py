@@ -40,7 +40,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 if str(SKILL_DIR) not in sys.path:
@@ -51,7 +50,6 @@ from jsx_to_a2ui.catalog.display_units import (  # noqa: E402
     format_display_unit,
     has_display_unit,
 )
-
 
 DEFAULT_INPUT = SKILL_DIR / "data" / "20_tasks_2x2_raw.json"
 DEFAULT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_processed.json"
@@ -175,6 +173,18 @@ DISPLAY_UNIT_SUFFIX_BY_BINDING_ID: dict[str, str] = {
     "weather1.current.temperatureC": "℃",
     "weather2.current.temperatureC": "℃",
 }
+_WEATHER_RAIN_PROBABILITY_ID_PATTERN = re.compile(
+    r"^weather(?:\d+)?\.daily\.\d+\.rainProbabilityPercent$"
+)
+
+
+def _display_unit_for_binding(binding_id: str) -> str | None:
+    unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(binding_id)
+    if unit is not None:
+        return unit
+    if _WEATHER_RAIN_PROBABILITY_ID_PATTERN.fullmatch(binding_id):
+        return "%"
+    return None
 
 
 def _format_binding_value(binding_id: str, value: Any) -> tuple[Any, bool]:
@@ -184,7 +194,7 @@ def _format_binding_value(binding_id: str, value: Any) -> tuple[Any, bool]:
     making preprocessing idempotent and preventing values such as ``"68%"``
     from becoming ``"68%%"``.
     """
-    unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(binding_id)
+    unit = _display_unit_for_binding(binding_id)
     if unit is None:
         return copy.deepcopy(value), False
     if has_display_unit(value, unit):
@@ -214,7 +224,11 @@ def _data_type(value: Any, declared: Any = None) -> str:
         else:
             compatible = True
         if not compatible:
-            raise ValueError(f"数据字段声明为 {normalized!r}，但 sample/value 的实际类型是 {_data_type(value)!r}。")
+            actual_type = _data_type(value)
+            raise ValueError(
+                f"数据字段声明为 {normalized!r}，"
+                f"但 sample/value 的实际类型是 {actual_type!r}。"
+            )
         return normalized
     if isinstance(value, bool):
         return "boolean"
@@ -284,7 +298,10 @@ def convert_data(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str,
     if _is_schema_leaf_candidate(value):
         missing = _SCHEMA_LEAF_KEYS - set(value)
         if missing:
-            raise ValueError(f"数据字段 {_json_pointer(path)} 缺少 schema 元数据：" + ", ".join(sorted(missing)) + "。")
+            missing_text = ", ".join(sorted(missing))
+            raise ValueError(
+                f"数据字段 {_json_pointer(path)} 缺少 schema 元数据：{missing_text}。"
+            )
         description = value["description"]
         if not isinstance(description, str) or not description.strip():
             raise ValueError(f"数据字段 {_json_pointer(path)} 的 description 必须是非空字符串。")
@@ -331,8 +348,13 @@ def convert_actions(value: Any, task_label: Any) -> list[dict[str, Any]]:
         if not isinstance(event.get("args"), dict):
             raise ValueError(f"任务 {task_label!r} 的事件 {action_id!r} 的 args 必须是对象。")
         description = event.get("description")
-        if description is not None and (not isinstance(description, str) or not description.strip()):
-            raise ValueError(f"任务 {task_label!r} 的事件 {action_id!r} 的 description 必须是非空字符串。")
+        has_invalid_description = description is not None and (
+            not isinstance(description, str) or not description.strip()
+        )
+        if has_invalid_description:
+            raise ValueError(
+                f"任务 {task_label!r} 的事件 {action_id!r} 的 description 必须是非空字符串。"
+            )
         seen_ids.add(action_id)
         actions.append(copy.deepcopy(event))
     return actions
@@ -433,7 +455,9 @@ def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]
             raise ValueError(f"任务 {task_label!r} 的资源 {asset_id!r}.src 不得包含首尾空白。")
         description = asset.get("description")
         if not isinstance(description, str) or not description.strip():
-            raise ValueError(f"任务 {task_label!r} 的资源 {asset_id!r} 缺少非空字符串 description。")
+            raise ValueError(
+                f"任务 {task_label!r} 的资源 {asset_id!r} 缺少非空字符串 description。"
+            )
         if asset_id in seen_ids:
             raise ValueError(f"任务 {task_label!r} 存在重复资源 id：{asset_id!r}。")
         normalized_source = source.replace("\\", "/")
@@ -454,9 +478,17 @@ def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]
 def _filtered_data_fields(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str, str]]:
     """Explain historical filtering without changing the input contract."""
     if path in OMITTED_DATA_PATHS:
-        return [{"dataId": _binding_id(path), "reason": "excluded by existing OMITTED_DATA_PATHS policy"}]
+        return [
+            {
+                "dataId": _binding_id(path),
+                "reason": "excluded by existing OMITTED_DATA_PATHS policy",
+            }
+        ]
     if isinstance(value, list):
-        return [item for index, child in enumerate(value) for item in _filtered_data_fields(child, path + (index,))]
+        filtered: list[dict[str, str]] = []
+        for index, child in enumerate(value):
+            filtered.extend(_filtered_data_fields(child, path + (index,)))
+        return filtered
     if not isinstance(value, dict) or "sampleValue" in value:
         return []
     result = []
@@ -505,7 +537,10 @@ def is_raw_task(task: dict[str, Any]) -> bool:
     return bool(RAW_TASK_MARKERS.intersection(task))
 
 
-def prepare_task_for_prompt(task: dict[str, Any], fallback_index: int | None = None) -> dict[str, Any]:
+def prepare_task_for_prompt(
+    task: dict[str, Any],
+    fallback_index: int | None = None,
+) -> dict[str, Any]:
     """Return only the compact model-facing view of one task."""
     return prepare_task(task, fallback_index).prompt_task
 
@@ -539,7 +574,7 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
         normalized_item = copy.deepcopy(item)
         normalized_item["description"] = description.strip()
         normalized_item["type"] = normalized_type
-        unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(item["id"])
+        unit = _display_unit_for_binding(item["id"])
         _, value_was_formatted = _format_binding_value(item["id"], item["value"])
         if value_was_formatted:
             normalized_item["displayUnit"] = unit
@@ -562,7 +597,10 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
             )
         prompt_data.append(prompt_item)
 
-    compile_actions = convert_actions(processed.get("actions", []), processed.get("id", fallback_index))
+    compile_actions = convert_actions(
+        processed.get("actions", []),
+        processed.get("id", fallback_index),
+    )
     prompt_actions = []
     for item in compile_actions:
         prompt_action = {"id": item["id"]}
@@ -572,7 +610,10 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
         prompt_actions.append(prompt_action)
 
     if "icons" in processed and "assetCandidates" not in processed:
-        raise ValueError(f"任务 {task_label!r} 使用了旧版 icons 字段；请从 raw 数据重新生成 processed 数据。")
+        raise ValueError(
+            f"任务 {task_label!r} 使用了旧版 icons 字段；"
+            "请从 raw 数据重新生成 processed 数据。"
+        )
     compile_assets = convert_asset_candidates(
         processed.get("assetCandidates", []),
         task_label,
@@ -613,12 +654,18 @@ def prepare_tasks_from_views(
 ) -> list[PreparedTask]:
     """Rejoin persisted model views with their private contexts safely."""
     if len(prompt_tasks) != len(context_records):
-        raise ValueError(f"模型输入与私有上下文条数不一致：{len(prompt_tasks)} != {len(context_records)}。")
+        raise ValueError(
+            "模型输入与私有上下文条数不一致："
+            f"{len(prompt_tasks)} != {len(context_records)}。"
+        )
 
     if source_indices is None:
         source_indices = list(range(1, len(prompt_tasks) + 1))
     if len(source_indices) != len(prompt_tasks):
-        raise ValueError(f"source_indices 与模型输入条数不一致：{len(source_indices)} != {len(prompt_tasks)}。")
+        raise ValueError(
+            "source_indices 与模型输入条数不一致："
+            f"{len(source_indices)} != {len(prompt_tasks)}。"
+        )
     if any(not isinstance(value, int) or value < 1 for value in source_indices):
         raise ValueError("source_indices 必须全部是从 1 开始的正整数。")
     if len(set(source_indices)) != len(source_indices):
@@ -636,7 +683,8 @@ def prepare_tasks_from_views(
         if context_record.get("sourceIndex") != source_index:
             raise ValueError(f"私有上下文第 {source_index} 项的 sourceIndex 不匹配。")
         prompt_id = prompt_task.get("id")
-        if context_record.get("id") != prompt_id and ("id" in context_record or prompt_id is not None):
+        id_is_present = "id" in context_record or prompt_id is not None
+        if context_record.get("id") != prompt_id and id_is_present:
             raise ValueError(f"模型输入与私有上下文第 {source_index} 项的 id 不匹配。")
         merged = copy.deepcopy(prompt_task)
         merged["data"] = copy.deepcopy(context_record.get("data", []))

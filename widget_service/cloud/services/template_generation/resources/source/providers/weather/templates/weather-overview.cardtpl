@@ -202,7 +202,7 @@ Column(
             #endif
             #if data.daily4RainProbability
             Text(
-              Expr("降雨概率 " + data.daily4RainProbability),
+              Expr("降雨概率 " + data.daily4RainProbability + "%"),
               {
                 "fontSize": 10,
                 "fontWeight": 400,
@@ -1210,7 +1210,7 @@ Column(
     ),
     Column(
       { "width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-      Text(data.rainProbability, { "height": 40, "width": "matchParent", "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis" }),
+      Text(Expr(data.rainProbability + "%"), { "height": 40, "width": "matchParent", "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis" }),
       Text("降雨概率", { "width": "matchParent", "fontSize": 12, "height": 20, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 })
     ),
   ),
