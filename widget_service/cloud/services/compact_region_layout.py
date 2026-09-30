@@ -91,6 +91,9 @@ class _ReferenceGeometry:
         identifier = node.get("id")
         if value is not None or identifier in seen:
             return value
+        # 百分比或表达式不是自然尺寸，不能用后代内容代替作者的显式关系。
+        if axis in _styles(node):
+            return None
         if _styles(node).get("borderWidth", 0) != 0:
             return None
         seen = seen | {identifier}

@@ -92,6 +92,7 @@ export function adaptCompactRegions(
     const node = input.get(id)!;
     const explicit = number(node.props[axis]);
     if (explicit !== undefined || seen.has(id)) return explicit;
+    if (axis in node.props) return undefined;
     if ((node.props.borderWidth ?? 0) !== 0) return undefined;
     const main = mainAxis(node), ids = children(node);
     if (main === undefined || !ids.length) return undefined;
