@@ -197,15 +197,6 @@ class _ReferenceGeometry:
         return RegionBox(*lengths)
 
 
-def reference_region_boxes(
-    nodes: list[dict[str, Any]], *, width: float, height: float
-) -> dict[str, RegionBox]:
-    """离线核验布局关系；线上适配不需要实际宿主宽高。"""
-    geometry = _ReferenceGeometry(nodes)
-    geometry.visit("root", RegionBox(width, height), set())
-    return geometry.boxes
-
-
 def _fixed_action_branch(
     node: dict[str, Any], geometry: _ReferenceGeometry, author_types: dict[str, str], seen: set[str]
 ) -> bool:
