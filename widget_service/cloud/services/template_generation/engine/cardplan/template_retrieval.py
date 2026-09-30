@@ -67,10 +67,6 @@ class TemplateSearchIntent(BaseModel):
         default_factory=dict,
         alias="primaryOutputFieldByCapability",
     )
-    excluded_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
-        default_factory=dict,
-        alias="excludedOutputFieldsByCapability",
-    )
     action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=4)
     excluded_action_ids: tuple[str, ...] = Field(default=(), alias="excludedActionIds")
     allow_earphone_candidate_actions: bool = Field(
@@ -83,7 +79,7 @@ class TemplateSearchIntent(BaseModel):
         default=False, alias="allowBatterySettingsFallback", strict=True,
     )
 
-    @field_validator("required_output_fields_by_capability", "excluded_output_fields_by_capability")
+    @field_validator("required_output_fields_by_capability")
     @classmethod
     def valid_fields(cls, values: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
         _validate_output_fields(values)
@@ -97,9 +93,6 @@ class TemplateSearchIntent(BaseModel):
     @model_validator(mode="after")
     def valid_primary_fields(self) -> TemplateSearchIntent:
         required = self.required_output_fields_by_capability
-        for capability_id, paths in self.excluded_output_fields_by_capability.items():
-            if set(paths).intersection(required.get(capability_id, ())):
-                raise ValueError("excluded output fields must not overlap required output fields")
         for capability_id, path in self.primary_output_field_by_capability.items():
             if capability_id not in required:
                 raise ValueError("primary output capability must have explicit output fields")
@@ -236,10 +229,6 @@ def build_template_retrieval_prompt(
     action_limit = 4 if task_spec.size == "2x4" else 2
     schema["properties"]["action"]["maxItems"] = action_limit
     battery_only = set(capability_ids) == {"GetPhoneBatteryInfo"} and task_spec.size == "2x2"
-    if not battery_only:
-        properties = schema.get("properties")
-        if isinstance(properties, dict):
-            properties.pop("excludedOutputFieldsByCapability", None)
     battery_rule = ""
     if battery_only:
         payload["batteryTemplateReference"] = _battery_template_reference(
@@ -356,20 +345,18 @@ def build_template_retrieval_prompt(
         system = (
             "\n【单手机电量字段筛选优先规则】本规则优先于通用的不得参考模板反推字段规则。"
             "只以userQuery确定必须展示字段；title、description和候选字段不能扩大需求。"
-            "区分必选、未提及的候选和明确禁止：必须输出excludedOutputFieldsByCapability，"
-            "将用户明确不要展示的输入字段放入该映射，没有禁止项时输出{}；"
-            "禁止项不得同时进入requiredOutputFieldsByCapability，也不得作为可附带候选。"
-            "例如不要显示健康和温度时，排除/healthStatusDesc和/batteryTemperatureText。"
-            "未提及且未禁止的输入字段仅为可选候选，保留原输入但不要放入requiredOutputFieldsByCapability；"
+            "非必选、且未被用户明确禁止的输入字段才作为可选候选，"
+            "保留原输入但不要放入requiredOutputFieldsByCapability；"
+            "用户明确禁止的字段不得作为附带展示的候选。"
             "模板有该字段且输入存在可以附带展示，模板没有就不展示。"
             "batteryTemplateReference提供当前启用模板的真实字段；比较displayFields覆盖需求、"
             "missingInputFields为空且动作数量合适的完整方案，优先采用可被模板满足的合理概览解释。"
-            "所有必选字段被覆盖且输入齐全后，先排除显示禁止字段的方案、保证显式主焦点，"
+            "所有必选字段被覆盖且输入齐全后，尊重用户的禁止要求、保证显式主焦点，"
             "再优先匹配实际展示候选字段更多的模板；仅声明、不渲染或条件未满足的字段不计分。"
             "仅统计本次输入实际提供且模板能够展示的不同字段，不为提高数量把候选变为必选。"
             "不得删除用户明确要求，也不得把/batterySOCText当作缺失的/batterySOC。"
             "例如query为充电状态和电池情况且提供文本电量时，必须字段通常为"
-            "/batterySOCText和/chargingStatusDesc；未明确要求的健康、充电类型、温度只作候选。"
+            "/batterySOCText和/chargingStatusDesc；非必选且未被禁止的健康、充电类型、温度才作为候选。"
             "明确要求充电类型时仍必须保留/pluggedTypeDesc，即使没有模板覆盖。"
             "动作沿用allowBatterySettingsFallback规则，不直接输出模板ID或布局。"
         ) + "\n" + system
@@ -509,13 +496,6 @@ def search_template_variants(
     if not requested_ids.issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
     battery_only = task_spec.size == "2x2" and requested_ids == {"GetPhoneBatteryInfo"}
-    exclusions = intent.excluded_output_fields_by_capability
-    if exclusions:
-        if not battery_only or not set(exclusions).issubset(requested_ids):
-            raise TemplateRetrievalMiss("output field exclusions require single 2x2 battery")
-        for capability_id, paths in exclusions.items():
-            if not set(paths).issubset(_candidate_paths(coverage_bindings, capability_id)):
-                raise TemplateRetrievalMiss("excluded output fields must come from candidates")
 
     result_groups: list[TemplateBusinessCandidates] = []
     matched_preferred_ids: set[str] = set()
@@ -573,8 +553,6 @@ def search_template_variants(
                             if pointer.startswith(root.rstrip('/') + '/'):
                                 displayed_relative.add(pointer.removeprefix(root.rstrip('/')))
                     if not set(explicit_fields).issubset(displayed_relative):
-                        continue
-                    if displayed_relative.intersection(exclusions.get(capability_id, ())):
                         continue
                 candidates.append(
                     TemplateSearchCandidate(

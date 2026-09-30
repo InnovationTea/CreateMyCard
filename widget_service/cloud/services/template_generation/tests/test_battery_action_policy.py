@@ -556,9 +556,8 @@ async def test_q144_full_and_hero_compete_by_candidate_coverage(
 def _review_case(issue: str) -> BatteryCase:
     fields = (*_FULL_FIELDS, "/healthStatusDesc", "/batteryTemperatureText")
     required = _TEXT_FIELDS
-    excluded: tuple[str, ...] = ()
     focus: dict[str, str] = {}
-    query = "显示剩余电量和充电状态，不要显示电池健康和温度"
+    query = "显示剩余电量和充电状态"
     if issue == "rendered":
         fields = ("/batterySOC", "/chargingStatusDesc", "/pluggedTypeDesc",
                   "/batteryTemperatureText")
@@ -568,8 +567,6 @@ def _review_case(issue: str) -> BatteryCase:
         required = ("/healthStatusDesc",)
         focus = {_CAPABILITY: "/healthStatusDesc"}
         query = "以电池健康状态为唯一重点"
-    else:
-        excluded = ("/healthStatusDesc", "/batteryTemperatureText")
     case = _case(fields)
     task = case.task.model_copy(update={
         "userQuery": query,
@@ -581,7 +578,6 @@ def _review_case(issue: str) -> BatteryCase:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={_CAPABILITY: required},
         primaryOutputFieldByCapability=focus,
-        excludedOutputFieldsByCapability={_CAPABILITY: excluded} if excluded else {},
         allowBatterySettingsFallback=True,
     )
     return replace(case, task=task, intent=intent)
@@ -589,7 +585,7 @@ def _review_case(issue: str) -> BatteryCase:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("issue", ["rendered", "excluded", "focus"])
+@pytest.mark.parametrize("issue", ["rendered", "focus"])
 async def test_review_constraints_survive_planning_and_generation(
     monkeypatch: pytest.MonkeyPatch, issue: str, fusion: bool,
 ) -> None:
@@ -619,11 +615,6 @@ async def test_review_constraints_survive_planning_and_generation(
         assert template_id in {
             "BatteryOverviewHealthLevelHero@1", "BatteryOverviewHealthTemperatureHero@1",
         }
-    else:
-        for candidate in search.business_candidates[0].candidates:
-            assert not set(candidate.available_data_fields).intersection({
-                "/data/phoneBattery/healthStatusDesc", "/data/phoneBattery/batteryTemperatureText",
-            })
     monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
         schemaVersion="template-controls/1", firstLayerComponentSelector="search",
     ))
@@ -663,66 +654,10 @@ async def test_review_constraints_survive_planning_and_generation(
     if issue == "rendered":
         assert "/data/phoneBattery/chargingStatusDesc" in component_text
         assert "/data/phoneBattery/pluggedTypeDesc" not in component_text
-    elif issue == "excluded":
-        assert "healthStatusDesc" not in component_text
-        assert "batteryTemperatureText" not in component_text
     else:
         assert "/data/phoneBattery/healthStatusDesc" in component_text
         assert "batterySOCText" not in component_text
     assert case.task.model_dump() == original
-
-
-@pytest.mark.parametrize("fields", [
-    {"GetPhoneBatteryInfo": ("/batterySOCText",)},
-    {"GetPhoneBatteryInfo": ("bad-pointer",)},
-    {"GetPhoneBatteryInfo": ("/healthStatusDesc", "/healthStatusDesc")},
-])
-def test_battery_exclusions_reject_conflicts_and_invalid_pointers(fields: dict) -> None:
-    with pytest.raises(ValidationError):
-        TemplateSearchIntent(
-            requiredOutputFieldsByCapability={_CAPABILITY: _TEXT_FIELDS},
-            excludedOutputFieldsByCapability=fields,
-        )
-
-
-@pytest.mark.parametrize("invalid", ["unknown-field", "other-capability", "wide"])
-def test_battery_exclusions_are_validated_before_planning(invalid: str) -> None:
-    case = _review_case("excluded")
-    if invalid == "wide":
-        case = replace(case, task=case.task.model_copy(update={"size": "2x4"}))
-    else:
-        excluded = (
-            {_CAPABILITY: ("/unknown",)} if invalid == "unknown-field"
-            else {"GetEarphoneInfo": ("/earphoneName",)}
-        )
-        case = replace(case, intent=case.intent.model_copy(update={
-            "excluded_output_fields_by_capability": excluded,
-        }))
-    with pytest.raises(TemplateRetrievalMiss):
-        _search(case, CardPlanRegistry())
-
-
-@pytest.mark.asyncio
-async def test_exclusions_without_eligible_template_skip_body_model(monkeypatch) -> None:
-    case = _case(("/healthStatusDesc", "/batteryTemperatureText"))
-    intent = TemplateSearchIntent(
-        requiredOutputFieldsByCapability={_CAPABILITY: ("/healthStatusDesc",)},
-        excludedOutputFieldsByCapability={_CAPABILITY: ("/batteryTemperatureText",)},
-        allowBatterySettingsFallback=True,
-    )
-    monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
-        schemaVersion="template-controls/1", firstLayerComponentSelector="search",
-    ))
-
-    class Model:
-        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-            return intent.model_dump(mode="json", by_alias=True)
-
-        async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
-            raise AssertionError("不满足禁止项时不应调用正文模型")
-
-    with pytest.raises(pipeline.TemplateRouteNotApplicable, match="no provider template covers"):
-        await pipeline.generate_template_a2ui(case.task, case.card, (case.binding,), Model())
 
 
 @pytest.mark.parametrize("complete", [False, True])
@@ -745,11 +680,12 @@ def test_displayed_fields_follow_grouped_compiler_conditions(complete: bool) -> 
     assert displayed_paths.intersection(states) == (states if complete else set())
 
 
-def test_battery_prompt_exposes_forbidden_fields_and_preserves_explicit_focus() -> None:
-    case = _review_case("excluded")
+def test_battery_prompt_limits_candidates_without_expanding_protocol() -> None:
+    case = _review_case("rendered")
     prompt = build_template_retrieval_prompt(case.task, CardPlanRegistry(), (case.binding,))
     text = json.dumps(prompt, ensure_ascii=False)
-    assert "excludedOutputFieldsByCapability" in text
+    assert "excludedOutputFieldsByCapability" not in text
+    assert "非必选、且未被用户明确禁止的输入字段才作为可选候选" in text
     assert "明确禁止" in text and "显式主焦点" in text
     payload_text = prompt[1].get("content")
     assert isinstance(payload_text, str)
