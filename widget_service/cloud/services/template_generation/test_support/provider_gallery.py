@@ -11,7 +11,7 @@ from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from unittest.mock import patch
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -163,6 +163,14 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.l_circle_fill",
         "asset.r_circle_fill",
     ),
+    "BluetoothDeviceOverviewMusicCompact": ("asset.music_fill",),
+    "BluetoothDeviceOverviewCaseConnectionHero": ("asset.earphone_case_16644",),
+}
+
+# 仅补齐测试上下文，不改变目标模板、展示字段或生产提取规则。
+_RUNTIME_FIELDS_BY_TEMPLATE = {
+    "ScheduleOverviewReminderCompact@1": ("/events/0/title", "/events/0/dtStart"),
+    "SleepOverviewScoreCompact@1": ("/nightSleepDurationText",),
 }
 
 _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
@@ -176,6 +184,7 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewFeelsLikeWindSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
     "CountdownOverviewSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
@@ -207,6 +216,7 @@ class GalleryInputCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     caseId: str
+    cardSize: Literal["2x2", "2x4"] = "2x2"
     providerId: str
     providerName: str
     providerSlug: str
@@ -394,6 +404,7 @@ def _template_suffix(template_id: str) -> str:
     for suffix in (
         "WideHero",
         "WideFull",
+        "WideHalf",
         "HeroTitle",
         "HeroContent",
         "Support",
@@ -560,6 +571,8 @@ def _data_binding(
         fields = _ordered_unique([*fields, *_WORKOUT_RUNTIME_FIELDS])
     if definition.business_id == "BluetoothDeviceOverview":
         fields = _ordered_unique([*fields, "/isConnected", "/earphoneName"])
+    runtime_fields = _RUNTIME_FIELDS_BY_TEMPLATE.get(template_id, ())
+    fields = _ordered_unique([*fields, *runtime_fields])
     return {
         "arguments": deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id]),
         "candidateOutputFields": list(fields),
@@ -683,7 +696,12 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        condition_paths = weather_template.fields
+        if "/current/condition" in condition_paths:
+            condition_paths = ("/current/condition",)
+        for path in condition_paths:
+            if path.endswith("/condition"):
+                sample_overrides[f"/data/weather{path}"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
         (
             template
@@ -880,8 +898,14 @@ def write_gallery_input_dataset(
     provider_root: Path = _PROVIDER_ROOT,
     capability_root: Path = _CAPABILITY_ROOT,
     theme_root: Path = _THEME_ROOT,
+    card_sizes: tuple[str, ...] = ("2x2",),
+    appearances: tuple[str, ...] = ("fusion",),
 ) -> GalleryInputManifest:
-    """根据当前 Provider 和能力注册表为每个模板构建适用的 2x2 模拟输入。"""
+    """按尺寸构建画廊；保留旧调用默认值，命令行默认生成两种尺寸和外观。"""
+    if not card_sizes or not set(card_sizes) <= {"2x2", "2x4"}:
+        raise ValueError("card_sizes must contain 2x2 and/or 2x4")
+    if not appearances or not set(appearances) <= {"fusion", "plain"}:
+        raise ValueError("appearances must contain fusion and/or plain")
     definitions = _load_business_definitions(provider_root)
     data_capability_ids = _load_data_capability_ids(capability_root)
     asset_capabilities = _load_asset_capabilities(capability_root)
@@ -1022,7 +1046,15 @@ def write_gallery_input_dataset(
     )
     if support_provider.cases:
         providers.append(support_provider)
-    manifest = GalleryInputManifest(providers=providers)
+    from .provider_gallery_wide import extend_gallery_inputs
+
+    providers = extend_gallery_inputs(
+        output_root, providers, definitions, controls, data_capability_ids,
+        event_capabilities, asset_capabilities, fusion_business_ids,
+        card_sizes=card_sizes, appearances=appearances,
+    )
+    card_size = card_sizes[0] if len(set(card_sizes)) == 1 else "mixed"
+    manifest = GalleryInputManifest(providers=providers, cardSize=card_size)
     output_root.mkdir(parents=True, exist_ok=True)
     manifest_path = output_root / "manifest.json"
     manifest_path.write_text(
@@ -1470,7 +1502,15 @@ def _expected_action_count(scenario_id: str) -> int:
         "dual-support-content": 0,
         "dual-support-one-action": 1,
         "dual-support-two-actions": 2,
+        "wide-content": 0,
+        "wide-one-action": 1,
+        "wide-two-half": 0,
     }[scenario_id]
+
+
+def _output_card_size(cases: list[dict[str, Any]]) -> str:
+    sizes = {case.get("cardSize", "2x2") for case in cases}
+    return next(iter(sizes)) if len(sizes) == 1 else "mixed"
 
 
 class ProviderGalleryBatchRunner:
@@ -1568,6 +1608,8 @@ class ProviderGalleryBatchRunner:
         request_path = _safe_request_path(input_root, case.requestFile)
         payload = json.loads(request_path.read_text(encoding="utf-8"))
         request = _request_from_envelope(payload)
+        if request.size != case.cardSize:
+            raise ValueError(f"gallery case/request size mismatch: {case.caseId}")
         trusted_template_candidate_ids = tuple(
             template_id
             for template_id in (case.targetTemplateId, case.partnerTemplateId)
@@ -1610,6 +1652,11 @@ class ProviderGalleryBatchRunner:
                 generation_status=response.status.value,
             )
         messages = _parse_genui_messages(artifact.genui)
+        if artifact.cardSpec.get("suggestSize") != case.cardSize:
+            return self._base_result(
+                case, "failed", "生成尺寸与画廊请求不一致",
+                generation_status=response.status.value,
+            )
         expected_action_count = _expected_action_count(case.scenarioId)
         actual_action_count = _count_a2ui_actions(messages)
         if actual_action_count != expected_action_count:
@@ -1677,6 +1724,7 @@ class ProviderGalleryBatchRunner:
     ) -> dict[str, Any]:
         return {
             "caseId": case.caseId,
+            "cardSize": case.cardSize,
             "providerId": case.providerId,
             "providerName": case.providerName,
             "providerSlug": case.providerSlug,
@@ -1726,7 +1774,7 @@ class ProviderGalleryBatchRunner:
         return {
             "schemaVersion": OUTPUT_SCHEMA_VERSION,
             "operation": "generate_widget_card_terse_dsl_nested2",
-            "cardSize": "2x2",
+            "cardSize": _output_card_size(all_results),
             "counts": {
                 "total": len(all_results),
                 "success": sum(item["status"] == "success" for item in all_results),
@@ -1748,9 +1796,10 @@ async def generate_provider_gallery(
     provider_ids: set[str] | None = None,
     dry_run: bool = False,
     model_failure_attempts: int = 2,
+    runtime: ModelExecutionRuntime | None = None,
 ) -> GalleryRunSummary:
     """创建共享模型运行时并执行一次完整 Provider 画廊批跑。"""
-    runtime = ModelExecutionRuntime()
+    runtime = runtime or ModelExecutionRuntime()
     try:
         service = WidgetGenerationService(model_runtime=runtime)
         runner = ProviderGalleryBatchRunner(service)
