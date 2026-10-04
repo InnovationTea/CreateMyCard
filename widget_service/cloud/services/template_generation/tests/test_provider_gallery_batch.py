@@ -74,11 +74,12 @@ class _GalleryService:
             template_id.split("@", maxsplit=1)[0]
             for template_id in trusted_template_candidate_ids
         }
-        eligible_templates = {
-            template_id
-            for template_id in template_suffixes
-            if template_id.endswith(("Compact", "Full", "Hero"))
-        }
+        eligible_templates: set[str] = set()
+        for template_id in template_suffixes:
+            if template_id.endswith("WideHero"):
+                continue
+            if template_id.endswith(("Compact", "Full", "Hero")):
+                eligible_templates.add(template_id)
         is_single_business = len(trusted_template_candidate_ids) == 1
         fusion_enabled = request.prdVer == FUSION_PRD_VERSION and supports_fusion
         single_fusion = is_single_business and bool(eligible_templates)
@@ -113,10 +114,10 @@ class _GalleryService:
                 + "\n"
                 + '{"updateDataModel":{"surfaceId":"main","path":"/","value":{}}}'
             ),
-            cardSpec={"title": request.title, "suggestSize": "2x2"},
+            cardSpec={"title": request.title, "suggestSize": request.size},
             taskSpec={
                 "userQuery": request.userQuery,
-                "size": "2x2",
+                "size": request.size,
                 "eventCandidates": [],
                 "dataModelSchema": {"data": {}},
                 "assetCandidates": [],
@@ -134,7 +135,7 @@ class _GalleryService:
             status=GenerationStatus.SUCCESS,
             artifactUrl=saved.artifactUrl,
             artifactDigest=saved.artifactDigest,
-            suggestSize="2x2",
+            suggestSize=request.size,
             message="ok",
         )
 
@@ -208,7 +209,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
     # 合并横版模板与上游每种 Support 的可行 0/1/2 动作场景。
-    assert len(all_cases) == 188
+    assert len(all_cases) == 187
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -297,7 +298,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 187
+    assert len(targeted_cases) == 186
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -645,10 +646,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 188
+    assert summary.total == 187
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 182
+    assert summary.not_generated == 181
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9

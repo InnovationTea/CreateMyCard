@@ -2,10 +2,32 @@
 
 ## 用途
 
-该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2 场景画廊，验证当前模板能否通过正式
+该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2、2×4 场景画廊，验证当前模板能否通过正式
 `generate_widget_card_terse_dsl_nested2` 服务入口完成能力裁决、模板路由、A2UI 转换和最终校验。每个场景
-只生成一种高版本外观，请求中的 `deviceInfo.prdVer` 固定使用 `11.7.5.206`，经公共构建链写入
+默认生成高版本和非融球两个版本，请求中的 `deviceInfo.prdVer` 分别使用 `11.7.5.206`、`11.7.5.205`，经公共构建链写入
 `TaskSpec.appVersion`，模板生成器再使用该已有字段完成请求级裁决。
+
+命令行默认包含两种尺寸和两种版本；Python 输入构建函数保留历史默认值，以兼容现有调用。
+使用 `--size 2x4` 或 `--appearance fusion` 可以限制矩阵，两个参数均可重复。显式选择会重建输入。
+每项以 `cardSize` 为尺寸依据，混合清单的顶层 `cardSize` 为 `mixed`，历史用例缺省为 `2x2`。
+WideFull 使用 `WideFullOnlyLayout`，WideHero 使用 `WideSingleFocusLayout + PillAction`；WideHalf
+选择独立能力的 WideHalf 搭档，通过 `WideTwoHalfLayout` 生成。高版本只表示融球门禁开启，实际是否
+使用融球仍服从正式模板规则，不能把所有宽版都标记为融球。
+
+本地配置沿用旧 `.env` 时可显式传入 `--env-file widget_service/.env`，仅在测试进程中将
+`WIDGET_SERVICE_` 字段映射到当前配置。`deepseek_http` 经既有共享 runtime 的传输注入点调用真实
+HTTP 模型；仍执行正式能力过滤、两层模板路由和最终校验。配置文件不打包到结果中，也不打印凭据。
+示例（在仓库根目录执行，使用独立输出避免覆盖上次有效数据）：
+
+```bash
+LOCAL_FLAG=true widget_service/.venv312/bin/python \
+  widget_service/cloud/services/template_generation/tools/generate_provider_template_gallery.py \
+  --env-file widget_service/.env --refresh-inputs --concurrency 8 \
+  --input-root outputs/gallery-run/inputs --output-root outputs/gallery-run/generated
+```
+
+当前所有计数以运行生成的 manifest 为准；下文旧基线数量只反映当时模板库存。全量生成矩阵与端侧
+展示矩阵分别统计，端侧仍按现有规则对同一 Support 配对选择最多操作版本，同时保留尺寸与外观差异。
 
 它与 [Provider 原子模板预览](provider-template-preview-gallery.md) 的定位不同：原子预览不调用模型，适合逐个
 检查 `.cardtpl`；本工具调用正式生成服务，适合检查真实组合是否可用。批跑时只在本地截获最终 Artifact，
@@ -41,18 +63,19 @@ Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺
 Support 作为首段一次，优先匹配可用天气 Support；天气模板匹配第一个可用且数据根独立的其他业务。
 每对展开 0/1/2 个操作，两个操作分别绑定两个业务的首个注册动作；不配对同能力或重叠数据根。
 
-每个上述用例只生成一种高版本外观：
+命令行默认对上述用例生成两个版本，可用 `--appearance` 限定：
 
 | 外观 | 路由请求版本来源 | 预期 |
 | --- | --- | --- |
-| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 达到配置最低版本；单业务 2x2 Compact/Full/Hero 与 2x4 WideFull 命中融球 Theme 时展开融球背景 |
+| 高版本 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 达到配置最低版本；单业务 2x2 Compact/Full/Hero 与 2x4 WideFull 命中融球 Theme 时展开融球背景 |
+| 非融球 | 请求 `deviceInfo.prdVer = 11.7.5.205` | 未达到配置最低版本，保留相同尺寸与目标模板，不展开融球背景 |
 
 画廊验证前需在服务 `CONFIG` 中配置 `fusion_ball_min_prd_version=11.7.5.206`。批跑结果会校验路由请求版本
 门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 中的 `appVersion` 应与请求版本一致。
-没有融球 Theme 的业务即使使用 11.7.5.206 也不应伪造融球背景。画廊不再生成低版本非融球对照用例。
-双业务组合同样只使用高版本，并以 `HeroContent` 主业务确定整卡主题；主业务具有融球主题时，整卡统一展开
-一次该业务的背景。当前天气标题 + 日程内容组合应呈现日程融球主题，不使用天气主题。画廊按主业务支持情况
-标注并校验实际融球结果。
+没有融球 Theme 的业务即使使用 11.7.5.206 也不应伪造融球背景。
+双业务组合也覆盖两种版本，并以 `HeroContent` 主业务确定整卡主题；高版本且主业务具有融球主题时，
+整卡统一展开一次该业务的背景。当前天气标题 + 日程内容组合在高版本下应呈现日程融球主题，
+不使用天气主题。画廊按请求版本和主业务支持情况标注并校验实际融球结果。
 `TwoSupportLayout` 使用统一双段落主题，高版本下也应保持非融球，画廊会对此独立断言。
 
 模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
@@ -61,6 +84,18 @@ Support 作为首段一次，优先匹配可用天气 Support；天气模板匹�
 Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还会检查 A2UI 的 Action 数量，不符合场景
 预期的结果按失败记录。Provider 或单模板被当前管控配置禁用时，用例仍会出现在清单中，但直接标记为禁用，
 不调用模型。
+
+画廊为 `ScheduleOverviewReminderCompact@1` 补充 `/events/0/title`、`/events/0/dtStart`，
+为 `SleepOverviewScoreCompact@1` 补充 `/nightSleepDurationText`，满足既有云侧数据提取前提。
+这些字段仅作为测试上下文，目标模板和显示需求不变，不代表线上仅传提醒或评分字段的请求已获支持。
+音乐 Compact 使用已注册的音乐素材，耳机仓连接 Hero 使用已注册的充电盒素材；不放宽必需素材校验。
+Support 天气样例按目标模板实际字段覆盖：后日天气写入 `/daily/2/condition`，体感温度与风力模板
+不写入不存在的 `/current/condition`，并提供其必需的温度计素材。
+
+已知限制：`BluetoothDeviceOverviewEarbudsPhoneWideFull@1` 和
+`BluetoothDeviceOverviewCompletePhoneWideFull@1` 的编译校验要求手机与耳机双业务，但宽版规划器
+只为 WideFull 提供单槽布局。两种版本共四条用例仍会记录生成失败；画廊不通过替换目标模板、
+放宽校验或伪造成功来规避此限制。
 
 双城市天气 `WeatherOverviewDualCityFull@1` 使用两个 `ViewWeather` 绑定，按成都市、上海市的顺序分别写入
 `/data/weather1`、`/data/weather2`，各自携带模板所需字段。请求明确两座城市，两个根分别注入城市、数值温度
