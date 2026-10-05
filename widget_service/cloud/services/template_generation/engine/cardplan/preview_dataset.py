@@ -110,6 +110,7 @@ _GENERIC_PREVIEW_VALUES = {
     "/exerciseHeartRateAvg": {"type": "integer", "description": "平均心率", "sampleValue": 88},
 }
 _TEXT_BY_TEMPLATE_PARAMETER = {
+    ("ScheduleOverviewMeetingSenderFull@1", "title"): "今日日程",
     ("GenericMetricOverviewCompact@1", "title"): "步数",
     ("GenericMetricOverviewCompact@1", "valuePath"): "/dailySteps",
     ("GenericMetricOverviewDualCompact@1", "firstTitle"): "步数",

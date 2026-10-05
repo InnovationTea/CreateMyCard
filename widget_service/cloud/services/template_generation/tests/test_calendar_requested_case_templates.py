@@ -453,7 +453,6 @@ def test_title_and_location_are_mutually_exclusive_for_new_hero_templates() -> N
         complete.intersection_update(group)
     assert complete == {
         "ScheduleOverviewNextEventLocationFull@1",
-        "ScheduleOverviewMeetingSenderFull@1",
     }
 
 

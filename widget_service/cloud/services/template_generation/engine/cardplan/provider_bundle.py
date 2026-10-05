@@ -2788,6 +2788,7 @@ def provider_template_admission(
             variant,
             task_spec,
             roots,
+            card_spec=card_spec,
         )
         if admission.admitted:
             return admission
@@ -2817,7 +2818,9 @@ def provider_template_variant_admission(
     if definition.binding_count == 1 and definition.data_domain is not None:
         if roots[0] != definition.data_domain:
             return ProviderTemplateAdmission(False, "data-domain-mismatch", path=roots[0])
-    return _provider_variant_binding_admission(definition, variant, task_spec, roots)
+    return _provider_variant_binding_admission(
+        definition, variant, task_spec, roots, card_spec=card_spec,
+    )
 
 
 def provider_template_context_admission(
@@ -2839,6 +2842,8 @@ def _provider_variant_binding_admission(
     variant: TemplateVariant,
     task_spec: TaskSpec,
     roots: tuple[str, ...],
+    *,
+    card_spec: dict[str, Any] | None = None,
 ) -> ProviderTemplateAdmission:
     for root in roots:
         for relative_path in definition.required_data:
@@ -2879,7 +2884,15 @@ def _provider_variant_binding_admission(
             continue
         if name in definition.asset_parameter_semantic_tags:
             continue
-        candidates = list(dict.fromkeys(values_by_field.get(name, ())))
+        if definition.wire_id == "ScheduleOverviewMeetingSenderFull@1" and name == "title":
+            title = (card_spec or {}).get("title")
+            if not isinstance(title, str) or not title.strip():
+                return ProviderTemplateAdmission(
+                    False, "parameter-value-unavailable", binding_name=name,
+                )
+            candidates = [title]
+        else:
+            candidates = list(dict.fromkeys(values_by_field.get(name, ())))
         if len(candidates) != 1:
             return ProviderTemplateAdmission(
                 False,

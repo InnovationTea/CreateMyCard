@@ -24,6 +24,36 @@ from services.template_generation.test_support.provider_gallery import (
 
 _WEATHER_ASSET_IDS: list[str] = []
 
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("status", ["success", "failed", "missing", "not_generated"])
+def test_gallery_result_preserves_declared_size_for_every_status(
+    tmp_path: Path, size: str, status: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = manifest.providers[0].cases[0].model_copy(update={"cardSize": size})
+    result = ProviderGalleryBatchRunner._base_result(case, status, "reason")
+    assert result.get("cardSize") == size
+    assert result.get("status") == status
+    assert result.get("errorMessage") == "reason"
+
+
+def test_gallery_output_declares_mixed_sizes_without_relabeling_cases(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    provider = manifest.providers[0]
+    case = provider.cases[0]
+    square = ProviderGalleryBatchRunner._base_result(case, "success", "")
+    wide = ProviderGalleryBatchRunner._base_result(
+        case.model_copy(update={"cardSize": "2x4"}), "failed", "wide failure",
+    )
+    output = ProviderGalleryBatchRunner._output_manifest(
+        [provider], {provider.providerId: [square, wide]},
+    )
+    assert output.get("cardSize") == "mixed"
+    assert output.get("counts") == {
+        "total": 2, "success": 1, "failed": 1, "missing": 0, "notGenerated": 0,
+    }
+
 _FUSION_CAPABILITY_IDS = {
     "GetCalendarEvents",
     "GetCountdownDays",

@@ -548,7 +548,7 @@
       "templateId": "ScheduleOverviewMeetingSenderFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "Q077 会议详情 Full：顶部展示今日日程标题，时间轴依次展示首项日程标题（可选，缺失时隐藏）、时间段（缺结束时间时仅开始时间）、两行地点；用于 2x4 组合布局的整列业务槽位（如 WideFullTwoCompactLayout 的 Full 槽位），不内嵌 Action。标题 14vp/700，副标题 10vp/400。",
+      "description": "Q077 会议详情 Full：居中展示可信静态标题、首项日程时间和地点，不展示时间轴或动态日程标题。title 必填并逐字复用 businessTitleCandidate；标题与地点 16fp/500、最小 12fp、最多两行，时间段或单独开始时间统一为 24fp/800、最小 18fp、单行。三行统一间距 8vp，时间无额外上边距，时间段连接符两侧不加空格。用于 2x4 组合布局的整列业务槽位（如 WideFullTwoCompactLayout 的 Full 槽位），不内嵌 Action。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/dtStart"
@@ -557,7 +557,6 @@
         "/events/0/eventLocation"
       ],
       "optionalData": [
-        "/events/0/title",
         "/events/0/dtEnd",
         "/events/0/oneClickServiceLink"
       ]

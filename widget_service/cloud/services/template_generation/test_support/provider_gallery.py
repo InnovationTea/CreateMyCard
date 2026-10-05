@@ -11,7 +11,7 @@ from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from unittest.mock import patch
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -207,6 +207,7 @@ class GalleryInputCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     caseId: str
+    cardSize: Literal["2x2", "2x4"] = "2x2"
     providerId: str
     providerName: str
     providerSlug: str
@@ -1677,6 +1678,7 @@ class ProviderGalleryBatchRunner:
     ) -> dict[str, Any]:
         return {
             "caseId": case.caseId,
+            "cardSize": case.cardSize,
             "providerId": case.providerId,
             "providerName": case.providerName,
             "providerSlug": case.providerSlug,
@@ -1723,10 +1725,12 @@ class ProviderGalleryBatchRunner:
                     "cases": cases,
                 }
             )
+        card_sizes = {item["cardSize"] for item in all_results}
+        card_size = next(iter(card_sizes)) if len(card_sizes) == 1 else "mixed"
         return {
             "schemaVersion": OUTPUT_SCHEMA_VERSION,
             "operation": "generate_widget_card_terse_dsl_nested2",
-            "cardSize": "2x2",
+            "cardSize": card_size if all_results else "2x2",
             "counts": {
                 "total": len(all_results),
                 "success": sum(item["status"] == "success" for item in all_results),
