@@ -57,7 +57,7 @@
     `timeIcon` 与 `locationIcon` 可选。
   - `ScheduleOverviewTwoEventsFull@1`：双日程 Full；按顺序展示前两项日程各自的标题和开始时间，
     不接收展示 Prop。
-  - `ScheduleOverviewThreeMeetingsFull@1`：三场会议 Full；无背板，按顺序展示前三项日程各自的
+  - `ScheduleOverviewThreeMeetingsFull@1`：三场会议 Full；无背板，条目间距设为 2vp，按顺序展示前三项日程各自的
     开始时间、标题和地点，每场会议以时间轴圆点开始；不接收展示 Prop，用于 2x4 组合布局的整列
     业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action。
   - `ScheduleOverviewLocationDescriptionEndFull@1`：备注详情 Full；展示首项日程的备注、结束时间和地点；
@@ -90,7 +90,9 @@
   - `ScheduleOverviewEventCountDetailsFull@1`：近期日程清点 Full；主数据 `/eventCount`、
     `/events/0/title`；次要数据 `/events/0/dtStart`、`/events/0/isAllDay`；可选数据
     `/events/0/description`；可选 `calendarIcon` 与 `headerLabel`；全天状态由端侧 `Expr`
-    按运行时布尔值渲染，备注缺失时整行隐藏。2x4 单业务双操作时，使用
+    按运行时布尔值渲染。上方分组展示高 24vp、顶部对齐的标题与数量徽标行、20fp/700 日程标题，
+    间距 4vp；下方辅助信息为 12fp/400、16vp 行高、4vp 间距。有备注时时间和全天状态同排、备注单独一行，无备注时时间和
+    全天状态各占一行；不显示时间轴。2x4 单业务双操作时，使用
     `WideFullTwoCompactLayout@1`，依次组合本 Full 与两个 `CompactAction@1`（按各自
     `allowedActionIds` 语义绑定，如查看日程详情 + 打开闹钟）；素材仅从本轮候选按语义匹配
     （日历/闹钟语义）。

@@ -205,7 +205,7 @@
       "templateId": "ScheduleOverviewThreeMeetingsFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "三场会议 Full：无背板，按时间顺序展示三场会议各自的开始时间、标题和地点，每场会议以时间轴圆点开始；用于 2x4 组合布局的整列业务槽位。",
+      "description": "三场会议 Full：无背板，按时间顺序展示三场会议各自的开始时间、标题和地点，每场会议以时间轴圆点开始，条目间距设为 2vp；用于 2x4 组合布局的整列业务槽位。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title",
@@ -356,7 +356,7 @@
       "templateId": "ScheduleOverviewEventCountDetailsFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "近期日程清点 Full，并列展示日程总数、首项日程标题/开始时间/全天状态，备注为可选；可选日历图标与标题文案。",
+      "description": "近期日程清点 Full，上方以 4vp 间距展示高 24vp、顶部对齐的标题与数量徽标行及 20fp 日程标题，下方以 4vp 间距展示开始时间、全天状态和可选备注；有备注时，时间与全天状态同排、备注单独一行，无备注时，时间与全天状态各占一行，不显示时间轴；可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/eventCount",
