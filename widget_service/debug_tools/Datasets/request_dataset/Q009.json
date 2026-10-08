@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个耳机状态卡片，分别看左右耳机电量，再看各自是否在充电。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "左右耳机",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "双耳电量和充电状态",
+    "candidateAssetIds": [
+      "asset.icon_left",
+      "asset.icon_right",
+      "asset.icon_earphone",
+      "asset.bolt_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "12.0.0.1",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "009",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个耳机状态卡片，分别看左右耳机电量，再看各自是否在充电。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个耳机状态卡片，分别看左右耳机电量，再看各自是否在充电。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "左右耳机",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "双耳电量和充电状态",
+  "candidateAssetIds": [
+    "asset.icon_left",
+    "asset.icon_right",
+    "asset.icon_earphone",
+    "asset.bolt_fill"
+  ]
+}

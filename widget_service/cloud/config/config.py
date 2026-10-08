@@ -28,19 +28,27 @@ def _parse_json_config(value: str, fallback):
         return fallback
 
 
+def _config_aliases(field_name: str) -> AliasChoices:
+    return AliasChoices(
+        f"WIDGET_SERVICE_{field_name.upper()}",
+        field_name.upper(),
+        field_name,
+    )
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file=(
+            Path(__file__).resolve().parents[2] / ".env"
+            if platform.system() == "Windows"
+            else None
+        ),
+        env_file_encoding="utf-8",
         env_prefix="",
         case_sensitive=False,
         extra="ignore",
         populate_by_name=True,
-        alias_generator=AliasGenerator(
-            validation_alias=lambda field_name: AliasChoices(
-                f"WIDGET_SERVICE_{field_name.upper()}",
-                field_name.upper(),
-            )
-        ),
+        alias_generator=AliasGenerator(validation_alias=_config_aliases),
     )
 
     container_ip: str = get_container_ip()
@@ -58,6 +66,7 @@ class Settings(BaseSettings):
         CONFIG: ConfigHelper = ConfigHelper("local")
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
+    WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
     osms_complete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_complete_url"))
@@ -230,6 +239,12 @@ class Settings(BaseSettings):
     )
     enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
     enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    enable_generation_trace_recording: bool = (
+        CONFIG.get("enable_generation_trace_recording", "false") == "true"
+    )
+    generation_trace_root: Path = Path(
+        CONFIG.get("generation_trace_root", "workspace/traces")
+    )
     ids_installation_filter_package_names: tuple[str, ...] = (
         "com.huawei.hmsapp.totemweather",
         "com.huawei.hmos.health",
@@ -238,6 +253,7 @@ class Settings(BaseSettings):
 
     # deepseek v4 flash model config
     deepseek_ws_url: str = CONFIG.get("deepseek_ws_url")
+    deepseek_http_url: str = CONFIG.get("deepseek_http_url", "")
     deepseek_model: str = CONFIG.get("deepseek_model")
     deepseek_api_key: str = CONFIG.get("deepseek_api_key")
     deepseek_user: str = CONFIG.get("deepseek_user")

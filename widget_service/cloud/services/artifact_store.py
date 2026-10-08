@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,6 +12,7 @@ from app.logger import _sanitize_json_log_value, logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
+from services.generation_trace_recorder import trace_operation, trace_step
 from services.source_artifact_repository import calculate_artifact_digest
 from utils.file import save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
@@ -52,6 +54,7 @@ class ArtifactStore:
         self.request_body = {} if request_body is None else request_body
         self.repair_records = list(repair_records or [])
 
+    @trace_operation("artifact.store", kind="step")
     async def save(self, artifact: WidgetArtifact) -> ArtifactSaveResult:
         """保存 artifact 并返回访问地址和摘要。
 
@@ -59,6 +62,7 @@ class ArtifactStore:
         - artifact：完整卡片产物。
         出参：artifact 保存结果，包含访问 URL 和 sha256 摘要。
         """
+        build_started_at = time.perf_counter()
         artifact_data = artifact.model_dump(mode="json", exclude_none=True)
         payload_bytes = len(
             json.dumps(
@@ -68,10 +72,40 @@ class ArtifactStore:
                 separators=(",", ":"),
             ).encode("utf-8")
         )
-        digest = calculate_artifact_digest(artifact)
+        build_duration_ms = _elapsed_ms(build_started_at)
+        trace_step(
+            "artifact.payload_built",
+            stage="artifactBuild",
+            status="success",
+            duration_ms=build_duration_ms,
+            details={"payloadBytes": payload_bytes},
+            json_artifacts={"final_artifact": artifact_data},
+        )
+        digest_started_at = time.perf_counter()
+        try:
+            digest = calculate_artifact_digest(artifact)
+        except Exception as exc:
+            trace_step(
+                "artifact.digest_calculated",
+                stage="artifact.digest",
+                status="failed",
+                duration_ms=_elapsed_ms(digest_started_at),
+                details={
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
+            raise
+        digest_duration_ms = _elapsed_ms(digest_started_at)
+        trace_step(
+            "artifact.digest_calculated",
+            stage="artifact.digest",
+            status="success",
+            duration_ms=digest_duration_ms,
+            details={"digest": digest},
+        )
         logger.info(
-            f"{_MODULE} artifact_payload_built "
-            f"payload_bytes={payload_bytes} digest={digest}"
+            f"{_MODULE} artifact_payload_built payload_bytes={payload_bytes} digest={digest}"
         )
 
         # Artifact 以具名 Markdown 代码块上传。每个块名与对应契约字段一致，
@@ -92,9 +126,7 @@ class ArtifactStore:
             f"```genui\n{artifact.genui}\n```",
         ]
         blocks.extend(
-            "```" + name + "\n"
-            + json.dumps(value, ensure_ascii=False, indent=2)
-            + "\n```"
+            "```" + name + "\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```"
             for name, value in json_blocks.items()
             if name != "cardspec"
         )
@@ -102,9 +134,7 @@ class ArtifactStore:
             blocks.append(f"```designcompactdsl\n{self.design_token}\n```")
         request_block_body = self._request_block_body()
         request_block_separator = "" if request_block_body.endswith("\n") else "\n"
-        blocks.append(
-            f"```request\n{request_block_body}{request_block_separator}```"
-        )
+        blocks.append(f"```request\n{request_block_body}{request_block_separator}```")
         blocks.extend(
             f"```repair-{index}\n"
             + json.dumps(record.to_payload(), ensure_ascii=False, indent=2)
@@ -116,17 +146,84 @@ class ArtifactStore:
         # UUID 同时进入 meta 和对象名，避免毫秒时间戳在并发生成时发生覆盖。
         file_name = f"artifact_{artifact.meta.artifactId}.md"
         file_path = os.path.join(str(get_settings().WORKSPACE_ROOT), file_name)
-        await to_thread.run_sync(save_txt_file, file_path, file_content)
+        local_write_started_at = time.perf_counter()
+        try:
+            await to_thread.run_sync(save_txt_file, file_path, file_content)
+        except Exception as exc:
+            trace_step(
+                "artifact.local_write",
+                stage="artifact.localWrite",
+                status="failed",
+                duration_ms=_elapsed_ms(local_write_started_at),
+                details={
+                    "path": file_path,
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
+            raise
+        local_write_duration_ms = _elapsed_ms(local_write_started_at)
+        trace_step(
+            "artifact.local_write",
+            stage="artifact.localWrite",
+            status="success",
+            duration_ms=local_write_duration_ms,
+            details={"path": file_path, "contentChars": len(file_content)},
+        )
         logger.info(f"{_MODULE} artifact_file_saved path={file_path}")
 
         # 上传只产生远端或 mock OBS 副本，本地 artifact 暂时保留在 workspace，
         # 便于排障和人工核对；后续如需清理应由独立生命周期策略处理。
+        upload_started_at = time.perf_counter()
         try:
             artifact_url = await file_obs.upload_file(file_path)
         except (TimeoutError, ConnectionError) as exc:
+            trace_step(
+                "artifact.upload",
+                stage="artifact.upload",
+                status="failed",
+                duration_ms=_elapsed_ms(upload_started_at),
+                details={
+                    "path": file_path,
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
             raise ArtifactUploadError("artifact upload to OBS failed") from exc
+        except Exception as exc:
+            trace_step(
+                "artifact.upload",
+                stage="artifact.upload",
+                status="failed",
+                duration_ms=_elapsed_ms(upload_started_at),
+                details={
+                    "path": file_path,
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
+            raise
         if not artifact_url:
+            trace_step(
+                "artifact.upload",
+                stage="artifact.upload",
+                status="failed",
+                duration_ms=_elapsed_ms(upload_started_at),
+                details={"path": file_path, "reason": "empty_url"},
+            )
             raise ArtifactUploadError("artifact upload to OBS failed")
+        upload_duration_ms = _elapsed_ms(upload_started_at)
+        trace_step(
+            "artifact.upload",
+            stage="artifact.upload",
+            status="success",
+            duration_ms=upload_duration_ms,
+            details={
+                "path": file_path,
+                "artifactUrl": artifact_url,
+                "digest": digest,
+            },
+        )
         logger.info(
             f"{_MODULE} artifact_uploaded artifact_url={artifact_url} "
             f"local_file_retained={file_path}"
@@ -175,3 +272,7 @@ def _remove_extrainfo(value: Any) -> Any:
     if isinstance(value, list):
         return [_remove_extrainfo(item) for item in value]
     return value
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return round((time.perf_counter() - started_at) * 1000, 2)

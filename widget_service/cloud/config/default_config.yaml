@@ -14,8 +14,9 @@ obs.use.edge: false
 obs.expire.time: 3600
 # 模型使用原始 src；转换成标准 A2UI 后按本映射替换，未命中保留原路径。
 asset.src.url.mapping: ""
+workspace_root: "D:/WorkSpace/CreateMyCard/widget_service/cloud"
 
-enable_artifact_validation: true
+enable_artifact_validation: false
 enable_a2ui_model_mock: true
 enable_ids_mock: true
 ai_widget_data_huashan_enable: false
@@ -34,6 +35,8 @@ enable_compact_dsl_interface_retry: false
 compact_dsl_interface_retry_count: 1
 enable_openai_fallback: true
 enable_sensitive_log_fields: true
+enable_generation_trace_recording: false
+generation_trace_root: workspace/traces
 enable_card_template: false
 enable_jsx_generation: false
 fusion_ball_min_prd_version: 11.7.5.206
@@ -54,7 +57,7 @@ model_queue_timeout_seconds: 120
 model_request_timeout_seconds: 120
 model_prompt_log_preview_chars: 30
 
-openai_master_client: deepseek_platform
+openai_master_client: llmclient
 openai_fallback_client: llmclient
 deepseek_official_http_url: https://api.deepseek.com/chat/completions
 deepseek_official_http_api_key: ""
@@ -81,6 +84,7 @@ model_failure_retry_backoff_multiplier: 2.0
 model_failure_retry_jitter_ratio: 0.2
 
 deepseek_ws_url: ""
+deepseek_http_url: "https://api.deepseek.com/chat/completions"
 deepseek_model: deepseek-ai/DeepSeek-V4-Flash
 deepseek_api_key: AccessService
 deepseek_user: genui_user
@@ -93,3 +97,5 @@ deepseek_enable_thinking: false
 deepseek_include_usage: true
 deepseek_debug_usage: true
 deepseek_recv_timeout: 120
+
+ai_widget_data_huashan_enable: false

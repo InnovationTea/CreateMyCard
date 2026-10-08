@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/sleepTypeDesc",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText"
+        ]
+      }
+    ],
+    "title": "睡眠分析",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "睡眠时长与记录",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.clock_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "12.0.0.1",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "012",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText"
+      ]
+    }
+  ],
+  "title": "睡眠分析",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "睡眠时长与记录",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.clock_fill"
+  ]
+}

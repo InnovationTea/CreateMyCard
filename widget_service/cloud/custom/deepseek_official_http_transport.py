@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """DeepSeek 官方 Chat Completions HTTP Transport。"""
+
 from __future__ import annotations
 
 import time
@@ -13,6 +14,7 @@ from app.logger import logger
 from config.config import Settings
 from custom.model_transport import ModelTransportError
 from models.generation import ModelRequestContext
+from services.generation_trace_recorder import trace_record
 from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[DeepSeek Official HTTP]"
@@ -109,6 +111,19 @@ class DeepSeekOfficialHttpTransport:
             raise
         usage = response_body.get("usage") if isinstance(response_body, Mapping) else None
         self._report_success_metrics(duration_ms, usage)
+        usage_summary = self._usage_summary(usage)
+        trace_record(
+            "model.transport_metrics",
+            stage="model.transport",
+            status="completed",
+            duration_ms=duration_ms,
+            metrics={
+                "inputTokens": usage_summary.get("prompt_tokens"),
+                "completionTokens": usage_summary.get("completion_tokens"),
+                "totalTokens": usage_summary.get("total_tokens"),
+                "outputChars": len(result),
+            },
+        )
         logger.info(
             f"{_MODULE} response_success duration_ms={duration_ms} "
             f"model={self.settings.deepseek_official_http_model} "

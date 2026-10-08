@@ -110,6 +110,49 @@ compact_dsl_interface_retry_count: 1
 - 内部模型重试及校验修复仍按各自配置执行，接口重试会再次执行它们，因此调用次数和耗时会叠加。
   此机制是有限次重试，不保证所有请求成功，也不绕过最终校验。
 
+## 2.2 开发调试 Trace 数据流
+
+仅当 `enable_generation_trace_recording=true` 且请求 UID 符合现有目录规则时，路由在取得合法 JSON 后为
+`generateWidgetCardCompactDsl` 建立请求级 Recorder。接口内部重试重复绑定同一请求时复用原 writer，
+最终由路由统一写入请求终态；直接调用 Service 的测试或调试链路则由 Service 自行完成终态。
+
+```text
+合法 JSON / 参数修复
+  → protocolSelection → sourceArtifact → registry → generationPreflight
+  → Plan：prompt → model 原文 → 提取 → 解析/校验 → accepted plan
+  → DSL：完整 prompt → model 原文 → 提取 → binding repair → plan coverage/compact validation
+  → convert → unit repair → asset mapping → ArtifactValidator
+  → 质量 repair（每轮 prompt/model/提取/转换/复验）
+  → artifact build → digest → local write → upload → response planning
+  → request.completed（总耗时、分阶段耗时和分层尝试/重试汇总）
+```
+
+输出结构：
+
+```text
+<trace_root>/<task_type>/<identifier>/<request_sequence>/<caller_retry>/
+├─ manifest.json
+├─ trace.jsonl
+└─ artifacts/
+   ├─ 0001_plan_prompt_attempt-1.json
+   ├─ 0002_plan_raw_output_attempt-1.txt
+   ├─ 0003_accepted_plan.json
+   └─ ...
+```
+
+- Trace 只接受 `generation-trace-v2`，不读取 v1 或 `model_trace.jsonl`。`manifest.json` 以原子替换方式
+  发布 `recording/complete/partial` 状态；路由在发出 final 帧前完成终结。
+- JSONL 使用请求根 Span 和显式父子 Span，保存 Trace/Span 标识、稳定分类、单调时钟相对偏移、状态、
+  耗时、分层 attempt、结构化属性/指标和附件引用；大段内容进入附件。
+- 附件按内容 SHA-256 去重，事件和附件使用同一请求 writer 的锁分配递增序号。
+- 附件引用包含 `input/output/diagnostic/snapshot` 角色、MIME、SHA-256 和字节数；完整请求、归一化请求、
+  CardSpec/TaskSpec、Plan/DSL/repair messages 与模型结果、转换/校验结果和最终 Artifact 均按节点挂载。
+- 重试层级分别统计 argument repair、interface、Plan contract、model physical、transport retry、provider
+  fallback、quality repair 和 validation evaluation，不能用单一 `retryCount` 推断实际模型调用次数。
+- 模型层通过 ContextVar 继承 phase、provider、角色和 attempt；llmclient 进入线程池前复制当前 context。
+  transport 已提供时补充排队、执行、退避、首 Token、推理耗时、Token 数和 finish reason。
+- Trace 写入属于旁路诊断；任意写入失败只记 warning，不参与业务异常分类和重试判断。
+
 ## 3. WebSocket 请求和归一化
 
 请求示例：

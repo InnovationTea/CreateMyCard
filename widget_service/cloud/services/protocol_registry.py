@@ -174,10 +174,12 @@ class A2UIProtocolRegistry:
         cls,
         design_profile_id: str,
         profiles_root: Path | None = None,
+        *,
+        size: str | None = None,
     ) -> str:
         """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
         return cls._read_design_text(
-            design_profile_id, profiles_root, "create", _DESIGN_PROMPT_FILE, "prompt"
+            design_profile_id, profiles_root, "create", _DESIGN_PROMPT_FILE, "prompt", size=size
         )
 
     @classmethod
@@ -185,6 +187,8 @@ class A2UIProtocolRegistry:
         cls,
         design_profile_id: str,
         profiles_root: Path | None = None,
+        *,
+        size: str | None = None,
     ) -> str:
         """读取 Compact 两阶段生成的 Info Plan 系统提示词。"""
         return cls._read_design_text(
@@ -193,6 +197,7 @@ class A2UIProtocolRegistry:
             "plan",
             _DESIGN_PLAN_PROMPT_FILE,
             "plan prompt",
+            size=size,
         )
 
     @classmethod
@@ -240,10 +245,12 @@ class A2UIProtocolRegistry:
         name: str,
         filename: str,
         label: str,
+        *,
+        size: str | None = None,
     ) -> str:
         directory = cls.design_prompt_directory(design_profile_id, profiles_root)
         if design_profile_id == DESIGN_COMPACT_PROFILE_ID:
-            return read_prompt(directory, name)
+            return read_prompt(directory, name, size)
         path = directory / filename
         if not path.is_file():
             raise ValueError(f"Design Compact {label} not found: {path}")
