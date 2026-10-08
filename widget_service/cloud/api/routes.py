@@ -41,6 +41,7 @@ from models.service import (
 )
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
+    CompactDslArgumentRepairExhaustedError,
     compact_dsl_argument_issue_tracker,
     has_explicit_stringified_arguments,
     recover_compact_dsl_content,
@@ -584,9 +585,9 @@ async def _repair_compact_dsl_content_if_needed(
             f"{_MODULE} compact_dsl_argument_repair_failed request_id={request_id} "
             f"exception_type={type(exc).__name__} traceback={traceback.format_exc()}"
         )
-        raise StringifiedToolArgumentsError(
-            model_called=True,
-            repair_failure_type=type(exc).__name__,
+        compact_dsl_argument_issue_tracker.reset(request_id)
+        raise CompactDslArgumentRepairExhaustedError(
+            "卡片生成失败，请重试一下。"
         ) from exc
     payload["content"] = recovery.content
     logger.info(
@@ -607,6 +608,8 @@ def _error_details(
     出参：可写入 WebSocket 错误消息的详情对象。
     """
     if isinstance(exc, StringifiedToolArgumentsError):
+        return exc.details()
+    if isinstance(exc, CompactDslArgumentRepairExhaustedError):
         return exc.details()
     if isinstance(exc, GenerationPreflightError):
         return exc.details()
@@ -638,6 +641,10 @@ def _build_plugin_stream_response(
     resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
     stream_content = str(legacy_message)
     error_explanation = _error_explanation(legacy_message.errorCode)
+    if isinstance(legacy_message, WidgetWebSocketErrorMessage):
+        details = legacy_message.error.get("details")
+        if isinstance(details, dict) and details.get("stage") == "argumentRepair":
+            error_explanation = "本次卡片生成失败，请提示用户重试一下；停止本轮自动调用"
     if error_explanation:
         stream_content = f"{error_explanation}：{stream_content}"
     return WidgetPluginStreamResponse(
@@ -1069,7 +1076,11 @@ async def _serve_operation_websocket(
                     requestId=request_id,
                     errorCode=error_code,
                     error={
-                        "message": f"Invalid {operation} arguments.",
+                        "message": (
+                            "本次 DSL 生成失败，请提示用户重试一下。"
+                            if isinstance(exc, CompactDslArgumentRepairExhaustedError)
+                            else f"Invalid {operation} arguments."
+                        ),
                         "details": _error_details(exc),
                     },
                 )

@@ -21,13 +21,12 @@ description: 收到合同、绑定或浏览器校验反馈后，按错误层级�
 />
 ```
 
-## 2×2 常见错误
+## 2×2 语义布局修复
 
-## 4. 常见错误
-
-- 不要把 `position`、`right`、`bottom` 传给 `CircleButton`；定位属于外层 `Stack`。
-- `CircleButton` 没有可用 Icon 或 action 需要显示文字时，改用带底部 `PillButton` 的布局，不得将 `PillButton` 塞进右下圆形操作槽。
-- 安全内容区内使用 `right={0}`、`bottom={0}`；`Card` 已提供 12vp padding，不要重复写 12。圆形操作槽固定为 40 × 40vp。
-- 不要同时用父级 `gap` 和空白 `Stack` 表示同一段间距。
-- 不要让整宽组件在 `align="flex-start"` 的父容器内按内容宽度收缩。
-- 带 `DoubleLineTitle` 的布局必须先计算剩余高度；不足以容纳业务组件时不得生成。
+- 普通修复与 compact 保留 Info Plan 事实和绑定；仅 Runner 明确进入 `drop_optional_component` 时，可按专用反馈省略一个非 Action 业务显示组件并记为 partial。任何阶段均不得删除 Action 或把动态值静态化。
+- 修复后仍只提交 `Card.layout + Region.slot/variant`；浏览器反馈中的 `Stack`、`Grid`、宽高、间距、flex 与定位是程序展开结果，不得复制或手改。
+- `CircleButton` 没有可用 Icon 或 Action 需要显示文字时，将 `wide-title-anchor-action` 改为带底部 `PillButton` 的合法 variant；不得把 `PillButton` 塞进圆形操作槽。
+- 当错误来自槽位数量或组件类型不匹配时，优先更换与现有业务组件数量相符的 variant；不得用容器把多个业务组件伪装成一个槽。
+- 整宽组件发生收缩时，改选能提供完整宽度的合法 variant；不得补写 width、align 或包装容器。
+- 带 `DoubleLineTitle` 的布局必须先计算剩余容量；不足以容纳业务组件时，改用更紧凑的合法组件或其他 variant。
+- 双信息块必须同时保留两个 `InfoBlock`；任一组缺少主副文本、有 Action 或需要第三个模块时，改用 `single` 与相符的 variant。

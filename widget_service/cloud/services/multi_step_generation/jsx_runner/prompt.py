@@ -20,10 +20,10 @@ LAYOUT_FALLBACK_PROMPTS = {
 允许：
 - 更换更为尺寸更小的其他组件或文本组件；
 - 当最后一次 findings 的 `browser-semantic-overlap` 涉及 `EmphasizedData` 时，先复核业务语义；若内容是可无损保留的短文本、状态或完整格式化字符串，优先尝试替换为 `EmphasisText`。有真实且必要的第二个文本字段时填写 `secondaryText`，否则省略。原 `value` 的完整可见内容与 `dataIds.value` 必须分别迁移到 `mainText` 与 `dataIds.mainText`；不得丢失、拆分或静态化动态值；
-- 两条日程必须合并在一个 EventCard.items 中，由组件自适应分配条目间距，不得生成两个 EventCard；高度不足时在这个组件上改用 density="compact"，并完整保留每条事件的 title、time、location 和全部 dataIds；紧凑日程组优先放入 140vp 连续内容区，不放入 118vp 子槽；
+- 两条日程必须合并在一个 EventCard.items 中，由组件自适应分配条目间距，不得生成两个 EventCard；容量不足时先在这个组件上改用 density="compact"，并完整保留每条事件的 title、time、location 和全部 dataIds；仍不闭合时改选能够承载两条完整日程的 Region.variant；
 - 合并语义相近的辅助字段；
-- 更换 Layout Pattern 或 Sub Pattern；
-- 2x2 可调整 Stack 的 direction、width、height、flex 和 gap；2x4 只通过 layout/variant 更换语义外壳和内容槽，禁止提交 Stack/Grid；多个紧凑占比使用 NumericRatioStack。
+- 更换 `Region.variant`；当前父布局的合法 variant 都无法闭合时再更换 `Card.layout`；
+- 2x2 与 2x4 都只通过 layout/variant 更换语义外壳和内容槽，禁止提交 Stack/Grid；多个紧凑占比使用当前尺寸组件规范允许的组合组件。
 
 禁止：
 - 删除信息或 Action；
@@ -40,11 +40,10 @@ LAYOUT_FALLBACK_PROMPTS = {
 3. 对主要任务影响最小的补充属性。
 
 必须满足：
-- 最多删除一个业务显示组件；
-- 允许删除 Info Plan 中的非 Action 信息；删除后本次结果记为 partial；
-- 不得删除任何 Action；
-- 不得把被删除的动态数据改成无绑定的静态文本；
-- 建议将省略事实在 Plan 中对应的 requirement 原文逐项写入 unmetRequirements，供产物说明使用；是否填写不影响 drop 阶段放行。
+- 最多删除一个业务显示组件，允许省略 Info Plan 中的非 Action 信息；省略后结果记为 partial；
+- 不得删除任何 Action，不得把省略的动态数据改成无绑定静态文本；
+- 建议把省略事实对应的 requirement 原文逐项写入 unmetRequirements；是否填写不影响 drop 阶段放行；
+- 仍只提交 Card.layout + Region.slot/variant 的语义 JSX，不提交 Stack/Grid；删减后选择与剩余组件匹配的 variant。
 
 后续重试只能重新分配剩余内容的空间，不得再删除第二个业务显示组件。
 完成后调用 submit_card_jsx 提交完整 JSX。""",
@@ -60,8 +59,8 @@ def build_layout_fallback_prompt(strategy: str) -> str:
 
 def build_plan_prompt() -> str:
     return (
-        "本轮不要生成 JSX，也不要选择布局，只调用 submit_card_plan 提交 Info Plan。"
-        "按照已读取的 info_process 规则，将用户要求展示的内容拆成原子事实；"
+        "本轮不要生成 JSX，只调用 submit_card_plan 提交 Info Plan。"
+        "按照信息处理规则，将用户要求展示的内容拆成原子事实；"
         "每项填写 requirement，并在真实 dataId、actionId 或用户原文静态 text 中恰好选择一个目标。"
         "动态信息必须使用真实 dataId；多个对象的标题、时间、地点等属性必须逐项列出，不能用一句话代替。"
         "输入 actions 中用户要求的每个动作都必须作为 actionId 事实保留。"
@@ -70,12 +69,14 @@ def build_plan_prompt() -> str:
         "用户未给具体值时省略二者，不得把样例值改成静态 text。"
         "可在每个事实的 componentHints 中按优先级填写一至多个组件软候选。候选必须能通过可绑定 Prop 承载该事实；"
         "同一组件同时出现在多项事实中表示这些事实可由一个组件合并展示，不表示生成多个实例。"
-        "componentHints 只辅助后续选组件，不冻结组件，也不包含 Stack、布局名称、Region、对齐或尺寸。"
+        "componentHints 只辅助后续选组件，不冻结组件，也不包含 Stack、Region、对齐或尺寸。"
+        "可选填 layoutHints：按偏好顺序写至多两个可容纳全部必要数据与 Action 的父布局；"
+        "这是检索相近容量示例的软线索，不冻结最终布局。没有把握就省略，不得为匹配候选删减事实。"
         "当同一事件集合包含三条或更多日程且候选组件为 EventCard 时，info_required 最多选择两个完整事件对象，"
         "最终由同一个 EventCard.items 承载；每个选中事件应成组保留标题、时间和可用地点，"
         "不得选择第三个事件的部分字段，也不得规划第二个 EventCard。优先保留用户明确点名的事件，"
         "其余按时间先后选择。"
-        "先判断事实是核心、补充说明还是同级属性，再依据 component_style 选择候选；"
+        "先判断事实是核心、补充说明还是同级属性，再依据组件规则选择候选；"
         "不得为了紧凑把核心信息降级为无层级的属性列表。"
         "多日天气清单的同一天同时提供完整日期和星期时，只把星期列为必需事实；完整日期保留为可选输入，"
         "不要同时冻结两种重复的日期标识。"
@@ -116,23 +117,23 @@ def build_plan_context(plan: dict[str, Any]) -> str:
         "描述性文字不是必须逐字展示的正文。"
         "非 drop_optional_component 阶段不得通过修改 coverage 或 unmetRequirements 解除必需事实。"
         "initialValue 已作为对应 ID 的统一初始值。"
-        "Info Plan 不冻结布局或具体组件；componentHints 只是软候选。"
-        "每次 submit_card_jsx 都应根据当前完整内容重新选择 layoutPattern、subPattern/variant 和组件。"
-        "2x4 的布局决定由 Runner 根据本轮 JSX 的 Card.layout/Region.variant 自动派生。修复时也可重新选择布局，"
-        "但不得因此删除冻结事实或 Action。"
+        "Info Plan 不冻结布局或具体组件；componentHints 与 layoutHints 只是软候选。"
+        "每次 submit_card_jsx 都应根据当前完整内容选择组件、Region.variant 和 Card.layout。"
+        "布局决定由 Runner 根据本轮 JSX 的 Card.layout/Region.variant 自动派生。修复时先保持合法结构，"
+        "按 findings 从组件密度、Region.variant 到 Card.layout 逐级扩大范围；除专用 drop 阶段外不得因此删除冻结事实，任何阶段不得删除 Action。"
         "下方事实归属表只规定必须展示的原子事实及候选组件，不规定最终布局。"
         "生成 JSX 前，在内部为每项事实选择恰好一个可见 Prop 作为 owner；标题也是可见 owner。"
         "Info Plan 中以 text 声明的静态事实必须由不带同名 dataIds/dataValueMaps 的可见 Prop 承载；"
         "不得为了形式上补绑定而给静态文字分配无关 dataId。"
-        "同时按已读取组件规则保留信息层级：普通多字段信息卡必须保留一个动态核心，静态类别标题不能替代核心；"
+        "同时按组件规则保留信息层级：普通多字段信息卡必须保留一个动态核心，静态类别标题不能替代核心；"
         "存在核心时不得把它降级到 TableText；多个补充字段按是否需要逐项标签选择一个 SecondaryBody 或一个 TableText，"
         "不得把三个及以上不同语义字段压入 EmphasisText.secondaryText；只有明确的列表、对比或等权查看意图才允许 TableText 成为唯一业务组件；"
-        "同一语义分区内 EmphasisText 与 EmphasizedData 合计最多一个；2x4 语义 JSX 不允许用 Stack/Grid 包装内容。"
+        "同一语义分区内 EmphasisText 与 EmphasizedData 合计最多一个；语义 JSX 不允许用 Stack/Grid 包装内容。"
         "同一 dataId 不得为了凑足 SecondaryBody、TableText 等组件的最少条目数而再次展示；"
         "静态标题已经表达某项 text 事实时，也不要在正文重复。"
         "若正文 owner 展示地点名、设备名或事件名，静态标题必须使用不包含该值的类别概括；"
         "地点名、设备名、事件名等动态字段需要与静态标题后缀合并时，优先使用标题组件的 `*Template`，"
-        "不要再增加一行正文重复该字段。若组件软候选与随后读取的 JSX 或布局规范冲突，以规范为准。\n"
+        "不要再增加一行正文重复该字段。若组件软候选与生成合同冲突，以生成合同为准。\n"
         f"<required_fact_ownership>\n{ownership_payload}\n</required_fact_ownership>\n"
         f"<info_plan>\n{payload}\n</info_plan>"
     )
@@ -155,14 +156,9 @@ def build_system_prompt(
             '- 根节点 Card.size 必须与输入顶层 size 完全一致：'
             '"2x2" 对应 150x150vp，"2x4" 对应 300x150vp。'
         )
-    if card_size == "2x2":
+    if card_size in {"2x2", "2x4"}:
         decision_rule = (
-            '- submit_card_jsx.decision 只填写当前布局文档中的中文顶层名称，例如 '
-            '{"layoutPattern":"标题单内容"}；2x2 不得填写 subPattern。'
-        )
-    elif card_size == "2x4":
-        decision_rule = (
-            '- 2x4 不填写 decision；程序根据 Card.layout 和每个 Region.variant 自动派生 '
+            f'- {card_size} 不填写 decision；程序根据 Card.layout 和每个 Region.variant 自动派生 '
             'layoutPattern 与 subPattern。模型只需保证语义 JSX 的布局标识与内容关系一致。'
         )
     else:
@@ -179,51 +175,48 @@ def build_system_prompt(
         if validation_enabled
         else (
             "- 本次运行只接受第一次 JSX 提交，不会返回校验 findings 或安排修复轮次；"
-            "请确保首次提交满足已读取合同。"
+            "请确保首次提交满足已提供合同。"
         )
     )
     lines = (
         "你是鸿蒙桌面卡片生成 Agent。你需要理解任务数据，选择必要信息和设计系统组件，"
         "最后生成符合当前组件合同的声明式 JSX。",
         "",
-        "必须严格按以下顺序，每轮只调用一个工具：",
-        "1. 读取 info_process：完成信息筛选与分组。",
-        "2. 读取 component_style：了解可选组件及其绑定能力。",
-        "3. 调用 submit_card_plan：只提交必要事实和组件软候选，不选择布局。",
-        "4. 读取 jsx_contract：了解 JSX 与布局原语合同。",
-        "5. 读取 layout_patterns：了解当前尺寸的布局与子布局规则。",
+        "完整生成合同已在本系统消息中一次性提供。必须严格按以下顺序，每轮只调用一个工具：",
+        "1. 调用 submit_card_plan：提交必要事实与组件软候选，可附至多两个父布局软候选。",
         (
-            "6. 调用 submit_card_jsx：提交完整 JSX；程序从 Card.layout/Region.variant 自动派生 decision。"
-            if card_size == "2x4" else
-            "6. 调用 submit_card_jsx：同时提交本轮 decision 与完整 JSX。"
+            "2. 调用 submit_card_jsx：提交完整 JSX；程序从 Card.layout/Region.variant 自动派生 decision。"
+            if card_size in {"2x2", "2x4"} else
+            "2. 调用 submit_card_jsx：同时提交本轮 decision 与完整 JSX。"
         ),
+        "3. 只有工具返回可修复的校验错误时，依据 findings 与随后提供的修复合同再次调用 submit_card_jsx。",
         "",
         (
             "调用 submit_card_jsx 时填写 jsx，不得重复填写 decision。"
-            if card_size == "2x4" else
+            if card_size in {"2x2", "2x4"} else
             "调用 submit_card_jsx 时先填写 decision，再填写 jsx。"
         )
         + "submit_card_jsx.jsx 只提交一个以 <Card> 为根的 JSX 表达式，"
         + "不要提交 function/import/export、Markdown 说明或代码围栏。"
-        + "每次修复都可重新选择 layoutPattern 和 subPattern/variant；"
+        + "修复必须按 findings 选择最小范围：先调整组件密度，再调整 Region.variant；"
+        + "只有当前父布局的合法 variant 都无法闭合时才更换 Card.layout；"
         +
         (
-            "2x4 的 decision 随本轮语义 JSX 自动更新，不需要沿用上一版布局。"
-            if card_size == "2x4" else
+            f"{card_size} 的 decision 随本轮语义 JSX 自动更新，不需要沿用上一版布局。"
+            if card_size in {"2x2", "2x4"} else
             "decision 只需与同一次提交的 JSX 一致，不需要沿用上一版布局。"
         ),
         "",
         "重要约束：",
-        "- 只能使用 component_style 和 jsx_contract 中明确允许的组件与属性；"
-        "组件用法以 component_style 为准，核心 JSX 与布局原语以 jsx_contract 为准。",
+        "- 只能使用本系统消息中组件与核心合同明确允许的组件、属性和布局接口。",
         (
-            "- 2x4 使用 Card.layout + Region.slot/variant 提交布局，禁止在语义 JSX 中输出 Stack/Grid。"
+            f"- {card_size} 使用 Card.layout + Region.slot/variant 提交布局，禁止在语义 JSX 中输出 Stack/Grid。"
             "程序从语义布局确定性派生中文 decision、统一展开外壳，再编译和浏览器校验。"
             "每个 Region 必须按 variant 直接放入规定数量的业务组件；需要核心与辅助上下分离时选择双内容 variant。"
             "多个紧凑占比使用 NumericRatioStack，并通过 direction 选择横排或纵排。"
             "修复仍提交语义 JSX，不编辑或复制程序展开后的 Stack/Grid 外壳。"
             "few-shot 同样使用语义提交，仅参考其信息组织与绑定，不照搬业务内容或布局组合。"
-            if card_size == "2x4" else
+            if card_size in {"2x2", "2x4"} else
             "- Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"；"
             "Stack/Grid 不得生成 basis 或 minWidth。固定槽使用 flex={0}，"
             "并按父容器 direction 显式填写主轴 width 或 height。"

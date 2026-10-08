@@ -718,7 +718,9 @@ def _trace_entry(result: CaseResult) -> dict[str, Any]:
         if _case_business_status(result) == "degraded" and semantic_status == "completed":
             semantic_status = "partial"
         browser_validation = trace.get("browser_validation")
-        validation_status = "passed" if browser_validation == "enabled" else "unverified"
+        python_validation = trace.get("python_validation")
+        validation_checked = browser_validation == "enabled" or python_validation == "enabled"
+        validation_status = "passed" if validation_checked else "unverified"
         if semantic_status == "completed":
             status = "completed" if validation_status == "passed" else "completed_unverified"
         elif semantic_status == "unverified":
@@ -830,6 +832,9 @@ def _build_manifest(
         "thinkingMode": _first_trace_value(traces, "thinking_mode", "unknown"),
         "validationMode": _first_trace_value(traces, "validation_mode", "unknown"),
         "browserValidationEnabled": browser_validation == "enabled",
+        "pythonValidationEnabled": _first_trace_value(
+            traces, "python_validation", "unknown"
+        ) == "enabled",
         "layoutBudgetValidationEnabled": layout_validation == "enabled",
         "input": str(paths[0].parent) if paths else "",
         "requestedTasks": len(paths),

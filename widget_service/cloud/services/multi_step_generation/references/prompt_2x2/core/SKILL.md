@@ -1,11 +1,11 @@
 ---
 name: phone-widget-2x2-core
-description: 生成 2×2 或 2×4 卡片时使用的 JSX 协议、绑定规则与布局原语合同。
+description: 生成 2×2 卡片时使用的 JSX 协议、绑定规则与语义布局接口合同。
 ---
 
 # Core Generation Contract
 
-本文件规定生成声明式卡片 JSX 时必须遵守的核心协议，以及 `Card`、`Stack`、`Grid` 三个布局原语的真实 API。Runner 会按输入 `size` 加载 [`components_common.md`](./components/components_common.md) 与对应的 [`components_2x2.md`](./components/components_2x2.md) 或 [`components_2x4.md`](./components/components_2x4.md)。布局几何规范根据输入 `size` 分别见 [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) 与 [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md)。生成侧可用资源只来自当前输入的 `assetCandidates`。
+本文件规定生成声明式卡片 JSX 时必须遵守的核心协议和 `Card + Region` 语义布局接口边界。Runner 会按输入 `size` 加载当前尺寸的 `components`、`component-combinations`、`layouts` 与 `composition` Skill。生成侧可用资源只来自当前输入的 `assetCandidates`。
 
 文档中的规则分为两层：
 
@@ -14,146 +14,64 @@ description: 生成 2×2 或 2×4 卡片时使用的 JSX 协议、绑定规则�
 
 当两者不同时，以生成侧约束为准。
 
-动态数据必须保留真实显示 Prop，并仅用 `dataIds` 记录输入中的数据 `id`。`dataIds` 不得用于 `Card`、`Stack`、`Grid` 或视觉与布局属性。
+动态数据必须保留真实显示 Prop，并仅用 `dataIds` 记录输入中的数据 `id`。`dataIds` 不得用于 `Card`、`Region` 或视觉与布局属性。
 
 `data[].value` 是动态字段的预览样例，不会覆盖 `userQuery` 明确给出的同义当前事实。单 ID 绑定冲突时，可见 Prop 使用 `userQuery` 中的具体值，但仍必须绑定原数据 `id`，以便后续实时数据继续更新同一显示 Prop。多 ID 组合字段不从查询文本反向猜测各字段值。
 
 `dataIds` 只能逐字引用当前输入 `data[].id` 中真实存在的值。通常一个显示 Prop 对应一个 ID；`EventCard.items[].time` 可按 `[dtStartId, dtEndId]` 绑定开始与结束两个 ID，`EmphasisText.mainText` 和 `secondaryText` 可使用包含两个或更多 ID 的有序数组，具体写法见当前尺寸加载的组件文档。`EmphasisText.secondaryText` 绑定多个 ID 时，必须通过 `secondaryTextTemplate` 为各值保留语义标签。根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案属于静态 UI 文案，不需要绑定；只有输入 `data[]` 明确提供了对应字段时，标题或副标题才绑定。不得按业务域猜测或虚构 `calendar.cardTitle`、`memory.cardTitle` 等 ID。
 
-## 2. 布局原语真实 API
+## 2. 语义布局提交接口
 
 2×4 的模型提交使用 `Card.layout + Region.slot/variant`，具体接口见布局资源中的 `semantic_layouts_2x4.md`。下述 Card 几何属性由程序展开生成，模型不直接设置；Stack/Grid API 仍适用于内容槽内的组合。2×2 提交规则不变。
 
 ### 2.1 通用数值语义
 
-- JSX 数值必须使用表达式，例如 `gap={8}`、`height={36}`；`Card.size` 是语义枚举，使用字符串 `size="2x2"` 或 `size="2x4"`。
-- 不要把 px 数值写成字符串，例如不要写 `gap="8"` 或 `height="36"`。
-- enum 和特殊关键字使用字符串，例如 `direction="row"`、`width="full"`。
-- 对布局尺寸 Props 传入数字时，React 会按 CSS px 使用；项目中 vp 与 px 使用相同数值进行 1:1 预览。
-- 规范文字统一使用：文本字号为 fp；行高、间距、圆角和宽高尺寸为 vp。HTML/CSS 预览中的 px 仅作同数值 1:1 映射。
-- `width="full"`、`height="full"` 会解析为 `100%`。
+- `Card.size` 是语义枚举，2×2 任务固定使用字符串 `size="2x2"`。
+- `Card.layout`、`Region.slot` 与 `Region.variant` 都使用文档列出的字符串枚举。
+- 模型不填写布局数值、方向、间距、尺寸、flex、定位或背板属性；这些由语义布局程序确定性生成。
 
 ### 2.2 Card
 
-`Card` 是每张生成卡片唯一允许的根组件。下表列出普通 runtime API；2×4 模型提交只使用语义接口的 size、appearance、layout、可选 flow 和 aria-label，不填写下表中的几何属性。2×2 仍使用普通 Card/Stack/Grid。
+`Card` 是每张生成卡片唯一允许的根组件。2×2 模型提交只使用语义接口，不填写底层几何属性。
 
 | Prop | JSX 类型 | runtime 默认值 | 生成侧规则 |
 |---|---|---|---|
 | `children` | `ReactNode` | — | 卡片内容，只放生成安全组件 |
-| `size` | `"2x2" \| "2x4"` | `"2x2"` | 生成侧必选；必须与输入任务顶层 `size` 完全一致 |
+| `size` | `"2x2"` | `"2x2"` | 生成侧必选；必须与输入任务顶层 `size` 完全一致 |
 | `appearance` | Card appearance enum | 无 | 生成卡片必选，合法值见第 3 节 |
-| `background` | CSS background string | 根据 appearance 或 surface | runtime 支持，但生成代码禁止使用 |
-| `padding` | `number \| string` | `12` | 通常省略；安全边距固定使用默认 12 |
-| `direction` | `"column" \| "row"` | `"column"` | 2×2 生成侧必选；2×4 由语义骨架生成 |
-| `gap` | `number` | `0` | 数字表示 px；常用 0、2、4、8 |
-| `align` | CSS `align-items` 值 | 未设置 | 推荐 `"stretch"`、`"flex-start"`、`"center"`、`"flex-end"` |
-| `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between"` | 未设置 | 使用标准 CSS Flex 对齐值 |
+| `layout` | `"single" \| "double-blocks"` | 无 | 生成侧必选；根据当前布局文档选择 |
+| `aria-label` | `string` | 未设置 | 可选；仅补充整卡可访问名称 |
 
-尺寸映射：
-
-| 输入任务 `size` | `Card.size` | Card 尺寸 | 默认 padding | 安全内容区 | 布局规范 |
-|---|---|---:|---:|---:|---|
-| `"2x2"` | `"2x2"` | 150 × 150vp | 12vp | 126 × 126vp | [`layout_patterns_2x2.md`](./layouts/layout_patterns_2x2.md) |
-| `"2x4"` | `"2x4"` | 300 × 150vp | 12vp | 276 × 126vp | [`layout_patterns_2x4.md`](./layouts/layout_patterns_2x4.md) |
+2×2 Card 的具体尺寸、安全边距和内容区由布局程序与当前尺寸 layouts Skill 维护，不写入模型提交。
 
 输入与生成链路：
 
 - 原始任务顶层的 `size` 是布局路由字段，不是业务数据绑定字段。
-- `jsx_runner/data_processing.py` 在 raw task 转换为 `userQuery/size/actions/data/icons` 时原样保留 `size`，不将它过滤或放入 `data`。
 - Runner 将处理后的 `size` 传给模型，并只加载对应尺寸的布局文档。
-- 生成的 `Card.size` 必须与任务 `size` 相同；不允许将 `"2x4"` 任务降级为 `"2x2"`，反之亦然。
+- 生成的 `Card.size` 必须与任务 `size` 相同，不允许改成其他尺寸。
+- 合法 `appearance` 会启用卡片调色板和生成卡专属组件样式；生成代码禁止使用 `background`、`className`、`style` 或原生 DOM 透传。
 
-行为说明：
+### 2.3 Region
 
-- runtime 将 `"2x2"` 解析为 150 × 150vp，将 `"2x4"` 解析为 300 × 150vp；浏览器预览使用相同数值的 px。
-- 为兼容旧 catalog 和历史预览，runtime 仍可容错数字 `size`，并将其解析为等宽高方形；新的生成 JSX 禁止使用该兼容路径。
-- 合法 `appearance` 会启用 20px 圆角、卡片调色板和生成卡专属组件样式。
-- 没有合法 `appearance` 时会使用 catalog／普通容器样式，不符合生成卡要求。
-- `className`、`style` 和原生 DOM 透传属于 runtime 能力，生成代码禁止使用。
+`Region` 是模型提交业务组件的语义槽。它只接受以下属性：
 
-### 2.3 Stack
+| Prop | JSX 类型 | 生成侧规则 |
+|---|---|---|
+| `slot` | `string` | 必选；必须是当前 `Card.layout` 明确列出的槽位 |
+| `variant` | `string` | 普通内容 Region 必选；固定槽禁止填写；必须来自当前 2×2 layouts Skill |
 
-`Stack` 是 Flex 布局原语，用于纵向流、横向分组、固定槽位、弹性内容区和锚点定位。
+模型只能提交 `Card → Region → 业务组件`。不得输出 `Stack`、`Grid`，也不得在 `Card` 或 `Region` 上填写 direction、gap、align、justify、padding、width、height、flex、position 或边距。程序会根据 `layout`、`slot` 与 `variant` 生成这些外壳。
 
-| Prop | JSX 类型 | runtime 默认值 | 生成侧语义 |
-|---|---|---|---|
-| `children` | `ReactNode` | — | 子组件 |
-| `direction` | `"column" \| "row"` | `"column"` | 生成侧必选；显式声明纵向或横向排列 |
-| `gap` | `number` | `0` | 子项间距，数字表示 px |
-| `align` | CSS `align-items` 值 | `"stretch"` | 推荐 `"stretch"`、`"flex-start"`、`"center"`、`"flex-end"` |
-| `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between"` | `"flex-start"` | 主轴对齐；生成代码统一使用标准 CSS Flex 对齐值 |
-| `wrap` | `boolean` | `false` | 浏览器 runtime 兼容能力；不属于正式生成合同，生成卡禁止使用 |
-| `flex` | `0 \| 1` | 未设置 | `1` 填充剩余空间；`0` 不伸缩，并使用内容自然尺寸或显式主轴尺寸 |
-| `width` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `height` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minHeight` | `number \| string` | `flex={1}` 时自动为 `0`，其他情况未设置 | 生成侧只在需要非零最小高度时显式填写；直接包裹自适应 `TextBlock` 时 runtime 也会局部推断为 `0` |
-| `mt` / `mb` / `ml` / `mr` | `number \| string` | 未设置 | 四方向外边距；优先使用 `gap`，必要时再使用 |
-| `position` | `"relative" \| "absolute"` | 未设置 | 建立定位上下文或锚点子项 |
-| `top` / `right` / `bottom` / `left` | `number \| string` | 未设置 | 只与定位 Stack 配合；数字表示 px |
-| `surface` | `"backplate"` | 未设置 | 为内容容器启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp、内边距 6vp |
-
-关键规则：
-
-- 2×2 的 `Card` 与模型编写的每个 `Stack` 必须显式填写 `direction="column"` 或 `direction="row"`；2×4 的 Card/Region 外壳方向由程序生成，以下 Stack 规则仅用于其内容槽内部组合。
-- `direction="column"` 时，`justify` 控制垂直方向，`align` 控制水平方向。例如左对齐且底端对齐写为 `align="flex-start" justify="flex-end"`。
-- 使用 `direction="row"` 时轴向互换：`justify` 控制水平方向，`align` 控制垂直方向。例如内容靠右且底端对齐写为 `justify="flex-end" align="flex-end"`。
-- 固定槽使用 `flex={0}`，并按父容器主轴显式填写尺寸：父级为 `column` 时填写 `height`，父级为 `row` 时填写 `width`。不要生成 `basis`；runtime 会让 `flex={0}` 的 `auto` basis 使用对应的显式主轴尺寸。
-- 不要生成 `minWidth={0}`；runtime 已默认应用该约束。
-- 弹性内容区只需使用 `flex={1}`；runtime 会自动应用 `minHeight:0`，避免内容把卡片撑出安全区。生成代码不要重复输出 `minHeight={0}`，只有需要非零最小高度时才显式填写 `minHeight`。
-- 右下角操作使用父级 `position="relative"`，子级 `position="absolute" right={0} bottom={0}`。
-- 只有需要边缘锚定的子项使用 `position="absolute"`；其余正文保持正常流式布局，不要改成手工 `top` 坐标。
-- 生成卡不得使用 `wrap` 或 `alignSelf`；需要换行时使用允许自然换行的文本组件，需要局部对齐时通过父 Stack 的 `align`／`justify` 或正式布局槽表达。
-- Card 已提供 12px padding，因此安全内容区中的 `right={0}`、`bottom={0}` 已对应卡片外边缘的 12px 安全距离。
-- `surface="backplate"` 仅用于布局规范明确要求背板的内容区域；颜色、圆角和内边距由 runtime 固定提供，禁止使用 `style` 重新实现。
-- `className`、`style` 和原生 DOM 透传属于 runtime 能力，生成代码禁止使用。
-
-### 2.4 Grid
-
-`Grid` 用于两个同级对象的双列布局和四个同级对象的 2 × 2 网格。
-
-| Prop | JSX 类型 | runtime 默认值 | 生成侧语义 |
-|---|---|---|---|
-| `children` | `ReactNode` | — | 网格子组件 |
-| `columns` | `positive integer \| string` | `2` | 数字生成等宽列；生成代码优先使用正整数 |
-| `rows` | CSS grid-template-rows string | 未设置 | 必须写完整尺寸字符串，例如 `"54px 54px"`；数字不是行数 |
-| `gap` | `number` | `0` | 同时设置行列间距 |
-| `rowGap` | `number` | 继承 `gap` | 单独覆盖行间距 |
-| `columnGap` | `number` | 继承 `gap` | 单独覆盖列间距 |
-| `flex` | `0 \| 1` | 未设置 | 与 Stack 相同，`1` 填充剩余空间；固定网格区使用 `0` 与显式 `width`／`height` |
-| `width` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `height` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minHeight` | `number \| string` | `flex={1}` 时自动为 `0`，其他情况未设置 | 生成侧只在需要非零最小高度时显式填写 |
-| `align` | CSS `align-items` 值 | 未设置 | 控制单元格内容在块轴的对齐 |
-| `justify` | CSS `justify-items` 值 | 未设置 | 推荐 `"start"`、`"center"`、`"end"`、`"stretch"`；该 Prop 映射 `justify-items`，不使用 `"space-between"` |
-| `mt` / `mb` | `number \| string` | 未设置 | 网格上下外边距 |
-
-`columns` 与 `rows` 的区别：
-
-```jsx
-<Grid columns={2} rows="54px 54px" gap={8}>
-  ...
-</Grid>
-```
-
-- `columns={2}` 表示两列，并由 runtime 转为 `repeat(2, minmax(0, 1fr))`。
-- `rows="54px 54px"` 是完整 CSS 行模板，表示两行，每行 54px。
-- 不要写 `columns="2"`，它会被当作原始 CSS 模板字符串。
-- 不要写 `rows={2}`，它不表示“两行”。
-- 生成代码中的 `Grid` 同样不得使用 `basis` 或显式 `minWidth={0}`；固定尺寸通过 `flex={0}` 与 `width`／`height` 表达。
-
-### 2.5 合法布局示例
+### 2.4 合法布局示例
 
 以下示例中的绑定仅在当前输入存在完全相同的 `data[].id`／`actions[].id` 时成立。静态标题来自 `userQuery` 的语义概括，因此不绑定；不得照抄或类推出示例 ID。
 
-流式标题、弹性内容区和底部操作区：
+标题、内容与底部操作区：
 
 ```jsx
-<Card direction="column" size="2x2" appearance="green-soft">
-  <Stack direction="column" flex={0}>
+<Card size="2x2" appearance="solid-green" layout="single">
+  <Region slot="main" variant="wide-title-content-action">
     <SingleLineTitle title="内存清理" />
-  </Stack>
-
-  <Stack direction="column" flex={1} width="full" mt={2} align="flex-start" justify="center">
     <ProgressCircleSingle
       value={43.75}
       icon="externaldrive_fill.svg"
@@ -166,41 +84,39 @@ description: 生成 2×2 或 2×4 卡片时使用的 JSX 协议、绑定规则�
         displayValue: "memory.availableText",
       }}
     />
-  </Stack>
-
-  <Stack direction="column" flex={0} height={36} width="full" mt={8}>
     <PillButton
       label="一键清理"
       appearance="card"
       actionId="memory.cleanNow"
     />
-  </Stack>
+  </Region>
 </Card>
 ```
 
 双列内容区：
 
 ```jsx
-<Grid columns={2} gap={8} flex={1} align="center">
-  <Stack direction="column" align="center">
+<Card size="2x2" appearance="solid-blue" layout="single">
+  <Region slot="main" variant="wide-two-column-action">
+    <SingleLineTitle title="设备电量" />
     <ProgressCircle
       icon="phone_fill.svg"
       externalText="68%"
+      size="sm"
       ariaLabel="手机电量68%"
       appearance="card"
       dataIds={{ externalText: "device.phoneBatteryText" }}
     />
-  </Stack>
-  <Stack direction="column" align="center">
     <ProgressCircle
       icon="kidswatch_fill.svg"
       externalText="52%"
+      size="sm"
       ariaLabel="手表电量52%"
       appearance="card"
       dataIds={{ externalText: "device.watchBatteryText" }}
     />
-  </Stack>
-</Grid>
+  </Region>
+</Card>
 ```
 
 ## 3. Card 模式与颜色责任
@@ -304,10 +220,51 @@ description: 生成 2×2 或 2×4 卡片时使用的 JSX 协议、绑定规则�
 
 | 规则类型 | JSX 责任方 | 示例 |
 |---|---|---|
-| 组件内部尺寸、字体、颜色和内部间距 | 业务组件自身 | `PillButton` 高 36vp、宽度由当前 Layout Pattern 决定；`CircleButton` 自身负责 36 × 36vp 和 20 × 20vp Icon 居中 |
-| 组件之间的间距 | 外层 `Stack` 或 `Grid` | Badge 与标题间距 8vp 使用 `Stack gap={8}` |
-| 卡片中的顶部、主内容、底部操作区 | 外层 `Card`、`Stack`、`Grid` | PillButton 放入固定 36vp 高的底部操作槽；外层布局按当前布局提供 116、126 或 132vp 宽度 |
-| 右下角绝对定位 | 具有 `position="relative"` 的父 `Stack` 和绝对定位子 `Stack` | CircleButton 使用 `right={0}`、`bottom={0}` 的 40 × 40vp 操作槽 |
+| 组件内部尺寸、字体、颜色和内部间距 | 业务组件自身 | `PillButton` 自身负责 126 × 36vp；`CircleButton` 自身负责 36 × 36vp 和 20 × 20vp Icon 居中 |
+| 组件之间的间距 | 语义布局程序 | 标题后的 Badge、内容模块和操作模块间距由 `Region.variant` 确定 |
+| 卡片中的顶部、主内容、底部操作区 | 语义布局程序 | `Region.variant` 决定标题、内容与操作槽，模型不提交几何外壳 |
+| 右下角锚点操作 | 语义布局程序 | `wide-title-anchor-action` 固定生成 CircleButton 右下操作槽 |
 | 背景、字体和按钮／Icon 调色板 | `Card.appearance` | 业务组件使用 `appearance="card"` 消费 Card 颜色 |
 
 不要把设计构成字段直接写成未知 Props。例如 `container`、`position` 不是 `PillButton` 或 `CircleButton` 的 JSX Props；`percent`、`current`、`total` 是业务字段，也必须先映射为具体进度组件的真实 Props。
+
+## 数据、动作与单位绑定
+
+### 数据与动作引用共同约定
+
+- `dataIds` 只记录可见显示 Prop 对应的输入 `data[].id`，不参与样式或布局计算。`data[].value` 是预览样例；若 `userQuery` 明确给出同一业务字段的当前具体值，单 ID 绑定的显示 Prop 使用 `userQuery` 中的值并继续绑定原 `dataId`；否则使用样例值。不得用 ID 字符串替代显示内容。
+- `dataIds` 的 key 必须是对应组件属性表明确允许绑定的 Prop。通常每个 value 原样引用一个输入中真实存在且当前任务内唯一的 `id`；`EventCard.items[].dataIds.time` 可按 `[dtStartId, dtEndId]` 顺序引用两个 ID，`EmphasisText.dataIds.secondaryText`、`InfoBlock.dataIds.secondaryText` 与 `TableText.items[].dataIds.parameter` 可使用包含两个或更多 ID 的有序数组。`EmphasisText.dataIds.mainText` 与 `TableText.items[].dataIds.label` 只允许一个 ID。不得缩写、改名或虚构 ID。
+- 根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案是静态 UI 文案，不绑定。标题或副标题只有在当前输入 `data[]` 明确提供对应字段时才绑定；不得按业务域构造 `*.cardTitle`、`*.subtitle` 等不存在的 ID。
+- `dataIds` 引用的数据类型必须与目标 Prop 的用途兼容。最终渲染为可见文本的 Prop 可绑定 string、integer 或 number，数字由文本组件直接显示；参与进度计算的 Prop 通常只能绑定 integer 或 number，`ProgressCircle.externalText` 可额外接受纯数字字符串或数字百分比字符串并在组件内部转换。Boolean 优先绑定 `done` 等 boolean Prop。确实需要把 Boolean 显示成双状态文案且输入没有描述性字符串时，必须同时为同一 Prop 提供完整的 `dataValueMaps`，其中 `true`／`false` 都是非空且不同的字符串；禁止只按当前样例值静态翻译。
+- `dataValueMaps` 只做 Boolean 到可见文本的响应式映射，不代替 `dataIds`，也不能用于进度值、布局或视觉属性。其 key 必须同时存在于同一对象的 `dataIds`；数组项需要映射时，将 `dataValueMaps` 与该项的 `dataIds` 写在同一个 item 内。
+- 布尔值使用表达式，例如 `disabled={true}`，不能写成字符串 `disabled="true"`。
+- Boolean 可直接用于 `disabled`、`done` 等 boolean Prop。文本 Prop 不接受裸 Boolean；只有同时通过同名 `dataIds` 和完整 `dataValueMaps={{ prop: { true: "…", false: "…" } }}` 声明双状态文案时，才允许把 Boolean 响应式显示为文本。
+- 所有来自输入 `data` 的可见业务值都必须绑定；通常一个显示 Prop 只绑定一个数据 ID。只有组件属性表明确声明数组形式时，才能让同一显示 Prop 绑定多个 ID。`Card`、`Region`、Icon、appearance、尺寸、位置和颜色等视觉属性不得绑定。
+- 每个原子业务事实在整张卡片中必须只有一个可见 owner，标题也计入 owner。一个 ID 已绑定到可见文本 Prop 或作为有序 ID 数组成员进入某段文本后，不得再绑定到另一段可见文本；也不得通过静态标题、标签或同义改写重复表达同一事实。同一数值可以同时驱动进度图形和该图形配套的唯一数值文本。若 `SecondaryBody`、`TableText` 等组件的最少条目数会迫使事实重复，应改选合同匹配的组件，不能复制数据凑数。
+- 多个输入字段不得在 JSX 中手工拼成一个动态字符串。应使用组件的多 item 模式、拆成多个组件，或使用合同明确允许的有序 ID 数组；`EventCard.items[].time` 用 ` – ` 组合开始／结束时间，`EmphasisText.secondaryText` 与 `InfoBlock.secondaryText` 可用 ` ｜ ` 组合多个紧密关联的短字段，`TableText.items[].dataIds.parameter` 使用紧凑连接符 `｜`；`EmphasisText.mainText` 不允许拼接多个业务字段。添加或删除绑定不得改变其余 Props、组件树和槽位尺寸。
+- 静态 `label`、`unit` 和 `separator` 可以说明动态值，但必须遵守对应组件合同，不得改变数值和业务语义。有单位槽的组件可为独立数字或纯数字字符串声明静态单位，保留原值及精度；完整带单位字符串必须保留完整，不得自行拆分或补写单位。
+- 格式化字符串只能绑定到接受字符串的显示 Prop；`EmphasizedData` 会自动拆分完整字符串，生成代码仍原样填写 `value="25 分钟"`。`ProgressCircle` 只绑定 `externalText`，由组件内部解析其中的数字驱动圆环；其他进度组件仍按各自属性表绑定实际进度值。`ProgressCircleSingle.value` 在没有独立数值字段时允许绑定完整的格式化百分比字符串。
+- `actionId` 只能原样引用输入 `actions[].id`。模型输入中的 `actions[].description` 是映射后的推荐按钮术语，不是上游原始动作描述或业务数据；只能用于选择动作，并可作为绑定该动作的按钮内简短 `label`／`text`／`ariaLabel`。禁止把该术语或改写后的操作说明放入标题、正文、摘要、数据项或按钮外的任何可见内容；按钮已经表达操作后，不得再生成“点击／点开／打开／查看／进入……”等引导文案重复说明该操作。一个控件最多引用一个动作，同一 `actionId` 在一张卡片中最多使用一次。
+
+### 1.2 动态数据与显式单位
+
+- 原始数据及其类型不变。有独立 `unit` 槽的组件（EmphasizedData、InfoBlock、NumericRatio、ProgressLine2 / ProgressLine2WithData），绑定无单位数字时，最终 JSX 使用原始数值加显式静态 `unit`，例如 `value={80} unit="%" dataIds={{value:"earphone.batteryLevel"}}`。
+- 纯数字字符串如 `"80.00"` 也可配合显式单位，但必须保留字符串及其精度，不能擅自改为数字 `80`。完整带单位文本如 `"80%"`、`"4.60 公里"`、`"7小时1分"` 原样绑定，不再添加静态单位，也不拆成写死的业务数据。
+- 单位依据当前输入的明确说明填写，不能根据字段名称猜测。显式 `unit=""` 关闭对裸数字的额外单位，独立 `dataIds.unit` 必须保留。单位冲突不得冒充单位换算。
+- 没有单位槽的普通文本属性继续使用绑定层兼容格式化；不得给 SecondaryBody.items 等不支持单位属性的结构添加 `unit`。进度计算参数始终保留原值，百分比组件既有的取整与默认百分比语义不变。
+- 动态完整文本仍由组件按原有设计拆为数字和小单位，生成代码不能把当前样例中的数字或单位拆成写死的业务数据。
+
+## 输入事实与字段表绑定
+
+9. 优先选择可直接展示的描述性字符串。原始 boolean 优先用于组件自身的 boolean 状态 Prop；没有描述性字符串但该状态对用户确有价值时，可通过完整 `dataValueMaps` 声明 `true`／`false` 两种文案。不得直接显示 `true`／`false`，也不得只根据当前样例值写死一个状态；不重要的状态仍应省略。
+10. `userQuery` 中明确给出的当前事件名、对象名、地点、时间或状态优先于同义单一数据字段的预览样例值。当两者冲突时，字段表保留 `userQuery` 中的具体值，并继续记录该动态字段原有的 `dataId`；预览样例只用于 `userQuery` 没有给出对应具体值的情况。同一显示 Prop 绑定多个 ID 时，不根据查询文本猜测各字段的拆分值。
+- 对最终展示的动态字段保留输入 `data` 中的原始数据 `id`。选定真实 JSX Prop 后，按当前尺寸的 `components` Skill 记录 `dataIds`／`actionId`。
+操作组件只在输入提供真实 Action 时创建。模型输入中的 `actions[].description` 是映射后的推荐按钮术语，不是上游原始动作描述或可展示的业务字段；只能用于对应按钮内部的短文案。禁止将该术语或改写内容作为标题、正文、摘要、数据项或其他按钮外文案展示。独立按钮计为一个布局模块，按钮内部的文本和 Icon 不重复计数；同一个 `actionId` 在一张卡片中最多使用一次，不得同时用 `PillButton`、`CircleButton` 或 `CardButton` 重复表达同一操作。
+
+## 2x2 生成补充约束
+
+- 同一 action 只能生成一个按钮，禁止同时用 `PillButton` 和 `CircleButton` 表示同一个 action。
+- 按钮颜色、背板和交互状态遵循 Design System；本文件只规定按钮槽位与其他模块的几何关系。圆角属于组件视觉规范，不生成未知的 `radius` Prop。
+- 需要 Card 语义配色的业务组件传入 `appearance="card"`。
+- 模板禁止 `style`、`className`、spread Props 和硬编码颜色。
+- 示例中的 `dataIds` 与 `actionId` 只说明绑定位置；实际生成必须换成输入中真实存在的 ID。

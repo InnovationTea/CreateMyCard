@@ -130,8 +130,68 @@ _BROWSER_LAYOUT_CODES = frozenset(
         "browser-button-clipping",
         "browser-pillbutton-gap",
         "browser-title-content-gap",
+        "browser-visible-horizontal-overflow",
     }
 )
+
+
+_BROWSER_SUBLAYOUT_CODES = frozenset(
+    {
+        "browser-height-overflow",
+        "browser-pillbutton-gap",
+        "browser-title-content-gap",
+    }
+)
+
+
+def _semantic_layout_repair_scope(item: dict[str, Any]) -> str:
+    explicit = str(item.get("repairScope") or "")
+    if explicit in {"component", "sublayout", "parent-layout"}:
+        return explicit
+    if item.get("layoutChangeRequired") is True:
+        return "parent-layout"
+    if str(item.get("code") or "") in _BROWSER_SUBLAYOUT_CODES:
+        return "sublayout"
+    return "component"
+
+
+def _semantic_layout_repair_suggestion(scope: str) -> str:
+    if scope == "parent-layout":
+        return (
+            "当前槽位容量已被证明不成立。先选择容量匹配的 Region.variant；"
+            "若当前 Card.layout 的合法 variant 都无法闭合，再更换 Card.layout。"
+            "保留全部必需 dataIds 和 actionId。"
+        )
+    if scope == "sublayout":
+        return (
+            "先无损合并内容或改用更高密度的业务组件，再为受影响区域选择容量匹配的 "
+            "Region.variant；只有合法 variant 都无法闭合时才更换 Card.layout。"
+        )
+    return (
+        "先在受影响区域内无损合并内容或改用语义等价的高密度组件；"
+        "组件级修复无法闭合时再升级到 Region.variant，最后才更换 Card.layout。"
+    )
+
+
+def _suggestion_exposes_expanded_geometry(value: Any) -> bool:
+    text = str(value or "")
+    return any(
+        marker in text
+        for marker in (
+            "Stack",
+            "Grid",
+            "direction",
+            "flex",
+            "width",
+            "height",
+            "gap",
+            "padding",
+            "position",
+            "固定尺寸",
+            "共同父级",
+            "共同父容器",
+        )
+    )
 
 
 def browser_has_pillbutton_gap_error(report: dict[str, Any]) -> bool:
@@ -150,6 +210,35 @@ def _error_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(findings, list):
         return []
     return [item for item in findings if isinstance(item, dict) and item.get("severity") == "error"]
+
+
+def semantic_runtime_template_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Classify browser failures that a valid semantic shell cannot repair.
+
+    A semantic submission has already passed Card.layout/Region.variant
+    validation and is lowered by program-owned templates. If Chromium then
+    measures the wrong title/content gap, changing business components or
+    selecting another semantic layout would only hide a runtime-template bug.
+    """
+
+    findings: list[dict[str, Any]] = []
+    for item in _error_findings(report):
+        if str(item.get("code") or "") != "browser-title-content-gap":
+            continue
+        findings.append(
+            {
+                "severity": "error",
+                "code": "runtime-template-title-content-gap",
+                "phase": "runtime_template",
+                "message": (
+                    "Card.layout 与 Region.variant 已通过语义合同，但程序展开模板"
+                    "仍未满足标题—内容间距。这是 runtime template 错误，"
+                    "不应通过更换业务组件、Region.variant 或 Card.layout 规避。"
+                ),
+                "semanticTarget": "runtime-template:title-content-gap",
+            }
+        )
+    return findings
 
 
 def browser_layout_fingerprints(report: dict[str, Any]) -> frozenset[str]:
@@ -338,12 +427,26 @@ def _compact_finding(item: dict[str, Any]) -> dict[str, Any]:
         "details",
         "relatedFindings",
         "layoutChangeRequired",
+        "repairScope",
+        "semanticTarget",
     ):
         value = item.get(field)
         if value is None:
             continue
         encoded = json.dumps(value, ensure_ascii=False, default=str)
         entry[field] = value if len(encoded) <= 3000 else encoded[:3000] + "…"
+    if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES:
+        repair_scope = _semantic_layout_repair_scope(item)
+        entry["repairScope"] = repair_scope
+        suggestion = str(entry.get("suggestion") or "")
+        if not suggestion or _suggestion_exposes_expanded_geometry(suggestion):
+            entry["suggestion"] = _semantic_layout_repair_suggestion(repair_scope)
+        elif "Region.variant" not in suggestion or "Card.layout" not in suggestion:
+            entry["suggestion"] = (
+                suggestion.rstrip("。")
+                + "。"
+                + _semantic_layout_repair_suggestion(repair_scope)
+            )
     return entry
 
 
@@ -383,20 +486,24 @@ def _aggregate_layout_findings(
     )
     if requires_pattern_change:
         suggestion = (
-            "至少一个业务组件的真实尺寸明显超过直接父槽，当前 Layout Pattern / Sub Pattern "
-            "容量不成立。必须更换布局或子布局并分配更大的连续区域；不要继续通过 flex、"
-            "justify、gap 或固定尺寸做局部微调，也不得删除必需的 dataIds 或 actionId。"
+            "至少一个业务组件的真实尺寸明显超过当前语义槽。先为受影响区域选择容量匹配的 "
+            "Region.variant；若当前 Card.layout 的合法 variant 都无法闭合，再更换 Card.layout。"
+            "不得删除必需的 dataIds 或 actionId。"
         )
+        repair_scope = "parent-layout"
     elif structural_repair:
         suggestion = (
-            "当前不是单个组件的轻微偏移。请重新分配整个正文区域：无损合并或替换"
-            "组件，重新分组并调整共同父级的 direction/flex/width/height/gap；不要继续逐个"
-            "移动组件，也不得删除必需的 dataIds、actionId 或把动态值改成静态文本。"
+            "当前不是单个组件的轻微偏移。先无损合并内容或改用高密度业务组件，再为受影响"
+            "区域选择容量匹配的 Region.variant；只有合法 variant 都无法闭合时才更换 "
+            "Card.layout。不得删除必需的 dataIds、actionId 或把动态值改成静态文本。"
         )
+        repair_scope = "sublayout"
     else:
         suggestion = (
-            "根据 evidence 调整这些组件的共同父级布局，一次解决全部冲突；不要通过裁剪、隐藏或删除必需信息规避问题。"
+            "先在受影响区域内无损合并内容或改用语义等价的高密度组件，一次解决全部冲突；"
+            "仍不闭合时再升级到 Region.variant，最后才更换 Card.layout。"
         )
+        repair_scope = "sublayout"
     return {
         "severity": "error",
         "code": "browser-layout-conflict",
@@ -408,6 +515,7 @@ def _aggregate_layout_findings(
         },
         "likelyCause": "当前内容总量、组件固定尺寸和父级槽位分配不兼容。",
         "suggestion": suggestion,
+        "repairScope": repair_scope,
         **({"layoutChangeRequired": True} if requires_pattern_change else {}),
     }
 
@@ -440,10 +548,14 @@ def compact_validation_feedback(
     elif structural_repair and layout_findings:
         layout_code = layout_findings[0].get("code")
         entry = next(item for item in compact if item.get("code") == layout_code)
-        entry["suggestion"] = (
-            "同类布局错误在修复后再次出现。不要继续局部移动组件；请重新分配整个正文区域，"
-            "保留已选事实与全部 dataIds/actionId，不得通过删信息消除布局错误。"
-        )
+        if entry.get("repairScope") == "parent-layout":
+            entry["suggestion"] = _semantic_layout_repair_suggestion("parent-layout")
+        else:
+            entry["suggestion"] = (
+                "同类布局错误在修复后再次出现。不要重复组件级微调；改为受影响区域选择容量匹配的 "
+                "Region.variant，仍不闭合时再更换 Card.layout。保留全部 dataIds/actionId。"
+            )
+            entry["repairScope"] = "sublayout"
         entry["repeated"] = True
     over_limit_with_layout = len(compact) > limit and layout_aggregated and limit > 0
     has_layout_tail = False
