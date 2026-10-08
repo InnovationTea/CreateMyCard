@@ -198,6 +198,7 @@ Column(
 data = {
     workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $optionalPath("/exerciseCalorieText"),
+    heartRateAvg: $optionalPath("/exerciseHeartRateAvg"),
     duration: $path("/exerciseDurationText")
 }
 
@@ -243,6 +244,12 @@ Column(
             { "width": "matchParent", "height": 34,"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
         ),
     #endif
+    #if data.heartRateAvg
+        Text(
+            data.heartRateAvg,
+            { "height": 26, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+    #endif
     Row(
         {
             "itemMargin": 4,
@@ -256,6 +263,12 @@ Column(
         #if data.workoutCalories
             Text(
                 data.duration,
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            ),
+        #endif
+        #if data.heartRateAvg
+            Text(
+                "平均心率",
                 {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
             )
         #endif
@@ -545,5 +558,71 @@ Column(
             #endif
         )
     )
+)
+#End
+
+#Template WorkoutOverviewTrainingRecordHero@1(props: { sourceIcon?: asset, actionId?: string })
+data = {
+    workoutDate: $path("/targetDateText"),
+    workoutType: $path("/exerciseTypeName"),
+    workoutDuration: $optionalPath("/exerciseDurationText"),
+    heartRateMin: $optionalPath("/exerciseHeartRateMin")
+}
+
+Column(
+    {
+        "_advancedComponent": "WorkoutOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 8,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0},
+        "onClick": EventAction(props?.actionId)
+    },
+    Row(
+        {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
+        Text(
+            data.workoutDate,
+            {"height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+        #if props.sourceIcon
+            Image(
+                props.sourceIcon,
+                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+            )
+        #endif
+    ),
+    Text(
+        data.workoutType,
+        {"width": "matchParent", "height": 26, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+    #if data.workoutDuration
+        Row(
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+            Text(
+                "运动时长",
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            ),
+            Text(
+                data.workoutDuration,
+                {"fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+            )
+        )
+    #endif
+    #if data.heartRateMin
+        Row(
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+            Text(
+                "最低心率",
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            ),
+            Text(
+                Expr(data.heartRateMin + " 次/分"),
+                {"fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+            )
+        )
+    #endif
 )
 #End

@@ -48,7 +48,8 @@ def test_compact_action_default_keeps_original_type_size():
         theme.reference_values,
     )
     row = root.children[0]
-    label = row.children[0]
+    # 上游重构后标签文本由 Row 下的 Column 包裹（图标是 Row 的另一个子节点）
+    label = row.children[0].children[0]
     styles = next(value for value in label.values if isinstance(value, dict))
     assert styles.get("fontSize") == 14
     assert styles.get("height") == 19

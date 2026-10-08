@@ -9,6 +9,7 @@
   - `BatteryOverviewFull@1`：完整 2x2 电量摘要；展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewHero@1`：约 2x1.7 的通用电量 Hero；展示电量进度环和电量等级，用于主内容加一个 `PillAction@1`。主数据：/batterySOC；次要数据：/batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewWideFull@1`：完整 4x2 电量摘要；横向展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewStatusWideFull@1`：电池状态完整横版（2x4）；左侧“电池状态”标题、44vp 电量环（`/batterySOC` 驱动，环内可选 16vp 电量图标）与剩余电量百分比，充电器类型或充电状态为可选辅行；右侧“电池温度”与“电池健康”两个圆角信息块（字段可选，缺失时展示占位符），各自支持可选 24vp 图标。事件在模板内部绑定 `actionId`（仅限打开电池设置、电池健康或省电模式）。主数据：/batterySOC；次要数据：无；可选数据：/healthStatusDesc, /batteryTemperatureText, /pluggedTypeDesc, /chargingStatusDesc。`batteryIcon`、`temperatureIcon`、`healthIcon` 均为可选参数，仅在本轮存在匹配素材时传入，否则省略。
   - `BatteryOverviewCompact@1`：约 2x1 的电量摘要，用于一个 Compact 加两个 `PillAction@1`；左侧以 36vp 环形进度展示 `/batterySOC`，环内可选电量图标，右侧展示“电量 /batterySOC%”和 `/chargingStatusDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
   - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；左侧展示电量主行，右侧 40vp 电量环，环内可选 16vp 手机设备图标。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
@@ -31,7 +32,7 @@
   - `BatteryOverviewChargingProgressHero@1`：手机充电状态 Hero，展示“手机电量”、包含百分号的
     `/batterySOCText`、充电状态和电池健康；不展示进度条或充电器类型。
     底部按钮必须由第二层组合 `PillAction@1`。主数据：/batterySOCText；
-    次要数据：无；可选数据：/chargingStatusDesc, /healthStatusDesc。两个可选字段都可用时合并展示，
+    次要数据：无；可选数据：/chargingStatusDesc, /healthStatusDesc, /batteryCapacityLevelDesc, /batteryTemperatureText, /updatedAt。电量等级可用时在百分比右侧以 12vp 展示；更新时间可用时并入顶部标题行末尾（10vp）；电池温度可用时以 12vp「电池温度 N」行展示，更新时间同时存在时并入该行末尾。充电状态和电池健康都可用时合并展示，
     仅一个可用时单独展示，都不可用时不生成状态行；分支只按字段是否存在于本轮绑定进行编译期选择，
     不按样例值选择分支。
   - `BatteryOverviewChargingProgressFull@1`：手机电量充电进度 Full；顶部为标题，中部以 44vp 环形进度和电量图标展示 `/batterySOC` 与 `/chargingStatusDesc`，底部以两行相邻 key-value 展示 `/healthStatusDesc` 和 `/pluggedTypeDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc, /healthStatusDesc, /pluggedTypeDesc；可选数据：无。

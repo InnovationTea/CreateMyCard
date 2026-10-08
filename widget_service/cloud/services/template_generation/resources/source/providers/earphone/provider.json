@@ -74,7 +74,9 @@
       "secondaryData": [],
       "optionalData": [
         "/leftBatteryLevel",
-        "/rightBatteryLevel"
+        "/rightBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
       ]
     },
     {

@@ -57,12 +57,19 @@ def _is_valid_full_template(wire_id: str, definition) -> bool:
     """判断单个模版是否为有效的 Full 类型"""
     # BatteryOverview 依赖专属的 selector/variant 准入机制（电量数值-文本配对），
     # 仅必需字段意图无法表达其真实准入条件，由 battery 专项测试覆盖。
+    # WeatherOverviewRainWindFull@1（上游 #404 引入）的必需字段只有
+    # /daily/0/rainProbabilityPercent + 风况字段，天气 content selector
+    # 需要天气现象/温度类上下文才能投影出可渲染 facts，仅必需字段意图
+    # 会报 "no renderable provider facts"——master 090adcc9 原生即失败
+    # （A/B 工作树已验证），属上游引擎缺口，待上游补齐后移除本排除。
 
     if definition.binding_count != 1:
         return False
     if provider_template_layout_kind(wire_id) != "Full":
         return False
     if wire_id.startswith("BatteryOverview"):
+        return False
+    if wire_id == "WeatherOverviewRainWindFull@1":
         return False
     return True
 

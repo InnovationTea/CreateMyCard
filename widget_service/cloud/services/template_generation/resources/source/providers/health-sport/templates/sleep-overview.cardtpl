@@ -683,11 +683,12 @@ Column(
 )
 #End
 
-#Template SleepOverviewNapHero@1(props: { sourceIcon?: asset })
+#Template SleepOverviewNapHero@1(props: { sourceIcon?: asset, actionId?: string })
 data = {
     duration: $path("/totalNapDurationText"),
     startTime: $optionalPath("/fallAsleepTimeText"),
     endTime: $optionalPath("/wakeupTimeText"),
+    steps: $optionalPath("/dailySteps"),
 }
 
 Column(
@@ -699,7 +700,8 @@ Column(
         "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        "constraintSize": { "minWidth": 0, "minHeight": 0 },
+        "onClick": EventAction(props?.actionId)
     },
     Row(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
@@ -730,6 +732,19 @@ Column(
             ),
             Text(
                 `${data.startTime}-${data.endTime}`,
+                { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+            )
+        )
+    #endif
+    #if data.steps
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+            Text(
+                "今日步数",
+                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+            ),
+            Text(
+                data.steps,
                 { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
         )

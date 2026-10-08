@@ -1,6 +1,6 @@
 # fusion-schedule-cool
 
-用于日期、日程或会议业务的蓝青融球视觉。单业务最终选择 2x2 Full、Hero 或 2x4 WideFull 模板时生成
+用于日期、日程或会议业务的蓝青融球视觉。单业务最终选择 2x2 Compact、Full、Hero 或 2x4 WideFull 模板时生成
 融球背景。
 
 双业务 `HeroTitle + HeroContent + PillAction` 组合以 HeroContent 为主业务；当其属于日历日程时，

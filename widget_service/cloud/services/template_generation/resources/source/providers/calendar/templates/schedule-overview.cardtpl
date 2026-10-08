@@ -3,7 +3,8 @@ data = {
     title: $path("/events/0/title"),
     start: $path("/events/0/dtStart"),
     end: $path("/events/0/dtEnd"),
-    location: $path("/events/0/eventLocation")
+    location: $path("/events/0/eventLocation"),
+    desc: $optionalPath("/events/0/description")
 }
 
 Column(
@@ -141,7 +142,13 @@ Column(
       Text(
         Expr(data.location == "" ? "" : data.location),
         { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-      )
+      ),
+      #if data.desc
+        Text(
+          data.desc,
+          { "width": "matchParent", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        )
+      #endif
     )
   )
 )
@@ -153,6 +160,7 @@ data = {
     start: $path("/events/0/dtStart"),
     end: $optionalPath("/events/0/dtEnd"),
     location: $optionalPath("/events/0/eventLocation"),
+    joinLink: $optionalPath("/events/0/oneClickServiceLink"),
 }
 
 Row(
@@ -1255,7 +1263,8 @@ Column(
 data = {
     location: $path("/events/0/eventLocation"),
     start: $path("/events/0/dtStart"),
-    end: $optionalPath("/events/0/dtEnd")
+    end: $optionalPath("/events/0/dtEnd"),
+    joinLink: $optionalPath("/events/0/oneClickServiceLink")
 }
 
 Column(
@@ -1315,7 +1324,10 @@ Column(
 data = {
     title: $path("/events/0/title"),
     start: $path("/events/0/dtStart"),
-    end: $optionalPath("/events/0/dtEnd")
+    end: $optionalPath("/events/0/dtEnd"),
+    date: $optionalPath("/events/0/startDate"),
+    countdown: $optionalPath("/events/0/countdownDays"),
+    joinLink: $optionalPath("/events/0/oneClickServiceLink")
 }
 
 Column(
@@ -1352,6 +1364,12 @@ Column(
   ),
   Column(
     {"width": "matchParent", "height": 48, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    #if data.date
+      Text(
+        data.date,
+        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      ),
+    #endif
     Text(
       data.title,
       {"width": "matchParent", "height": 28, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
@@ -1367,7 +1385,16 @@ Column(
         {"height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0, "maxWidth": 136}}
       )
     #endif
-  )
+  ),
+  #if data.countdown
+    Row(
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+      Text(
+        Expr("距会议还有 " + data.countdown + " 天"),
+        {"height": 16, "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+      )
+    )
+  #endif
 )
 #End
 
@@ -2828,7 +2855,8 @@ data = {
     start: $path("/events/0/dtStart"),
     location: $path("/events/0/eventLocation"),
     title: $optionalPath("/events/0/title"),
-    end: $optionalPath("/events/0/dtEnd")
+    end: $optionalPath("/events/0/dtEnd"),
+    joinLink: $optionalPath("/events/0/oneClickServiceLink")
 }
 
 Column(

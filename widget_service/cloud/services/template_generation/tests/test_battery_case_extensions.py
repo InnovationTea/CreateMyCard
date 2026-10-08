@@ -130,6 +130,14 @@ def test_new_variant_does_not_relax_required_data_or_controls(
         else:
             battery["batterySOCText"] = {"type": "integer", "sampleValue": 68}
         case = replace(case, task=task)
+    if reason == "disabled":
+        # 50434950 起 ChargingProgressHero 覆盖文本+等级字段，兜底变体下线后
+        # 查询仍由通用 Hero 服务（不缺数据、不回退到数值 /batterySOC）。
+        result = _search(case, registry)
+        assert [c.template_id for c in result.business_candidates[0].candidates] == [
+            "BatteryOverviewChargingProgressHero@1",
+        ]
+        return
     with pytest.raises(TemplateRetrievalMiss):
         _search(case, registry)
 
@@ -141,11 +149,15 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     kind: str, fusion: bool,
 ) -> None:
     fields = _HEALTH_FIELDS if kind == "health" else _LEVEL_FIELDS
-    template = "BatteryOverviewHealthLevelHero@1" if kind == "health" else _FALLBACK_TEMPLATE
+    # 50434950 起 level 查询由 ChargingProgressHero 服务（PercentLevelHero 退为
+    # 通用 Hero 缺席时的兜底，不再进入候选，二层无法选中）。
+    template = (
+        "BatteryOverviewHealthLevelHero@1"
+        if kind == "health" else "BatteryOverviewChargingProgressHero@1"
+    )
     event_id, label = _SETTINGS, "电池设置"
     if kind == "charging":
         fields = ("/batterySOCText", "/chargingStatusDesc")
-        template = "BatteryOverviewChargingProgressHero@1"
     case = _case(fields)
     task = case.task
     if kind == "health":
@@ -184,6 +196,11 @@ def test_mixed_business_does_not_gain_the_single_battery_fallback(
     registry: CardPlanRegistry,
 ) -> None:
     case = _case(_LEVEL_FIELDS)
+    # text-level 兜底只对单电量意图开放；把 50434950 后同样覆盖等级字段的
+    # 通用 Hero 一并关闭，让混合意图保持在检索层失败（而非获得兜底变体）。
+    registry = CardPlanRegistry(disabled_template_ids=(
+        "BatteryOverviewChargingProgressHero@1",
+    ))
     intent = case.intent.model_copy(update={"required_output_fields_by_capability": {
         _CAPABILITY: _LEVEL_FIELDS, "GetCalendarEvents": (),
     }})
@@ -205,7 +222,9 @@ def test_new_variant_cannot_bypass_a_trusted_template_restriction(
     with pytest.raises(TemplateRetrievalMiss):
         search_template_variants(
             case.intent, case.task, registry, (case.binding,), case.card,
-            preferred_template_ids=("BatteryOverviewChargingProgressHero@1",),
+            # ChargingProgressHero 自 50434950 起覆盖等级字段、已可入选；
+            # 改用仍不覆盖文本+等级的健康等级 Hero 验证受信模板必须来自 Search 结果。
+            preferred_template_ids=("BatteryOverviewHealthLevelHero@1",),
         )
 
 

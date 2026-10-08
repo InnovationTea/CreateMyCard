@@ -29,8 +29,9 @@
   - `ActivityOverviewWideFull@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideFull。 布局场景：完整 4x2；单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
   - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示该次热量和时长，可补充结束时间与运动类型。 组件形态：latest。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：/exerciseEndTimeText, /exerciseTypeName。
   - `WorkoutOverviewCompact@1`：最近一次单次运动训练摘要，展示该次热量和时长，可选展示运动类型，可使用运动图标。 组件形态：latestCompact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：/exerciseTypeName。
-  - `WorkoutOverviewHero@1`：最近一次单次运动训练摘要，展示该次时长，可选展示热量和运动类型，可使用运动图标。 组件形态：latestHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseDurationText；次要数据：无；可选数据：/exerciseTypeName, /exerciseCalorieText。
+  - `WorkoutOverviewHero@1`：最近一次单次运动训练摘要，展示该次时长，可选展示热量和运动类型，可使用运动图标。 组件形态：latestHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseDurationText；次要数据：无；可选数据：/exerciseTypeName, /exerciseCalorieText, /exerciseHeartRateAvg；平均心率可用时以 20vp 数值加「平均心率」标签展示。
   - `WorkoutOverviewTrainingRecordWideFull@1`：训练记录宽卡完整摘要，左侧顶部展示运动类型（不展示右上角图标），中部紧凑组合大号运动时长与运动日期副标题，底部展示平均、最高心率；右侧两个胶囊块均以图标收尾，上块展示运动开始-结束时间并配“运动时间”副标题，下块为左对齐“打开锻炼”入口。 组件形态：wideFull。 布局场景：完整 4x2；单独使用，单动作内嵌。主数据：/exerciseDurationText；次要数据：/exerciseTypeName, /targetDateText, /exerciseStartTimeText, /exerciseEndTimeText, /exerciseHeartRateAvg, /exerciseHeartRateMax；可选数据：无。
+  - `WorkoutOverviewTrainingRecordHero@1`：训练记录主视觉，顶部展示运动日期（/targetDateText）与运动图标，主行 20vp 展示运动类型（/exerciseTypeName），可选展示最低心率（/exerciseHeartRateMin，可用时以「最低心率 N 次/分」行展示）。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/targetDateText, /exerciseTypeName；次要数据：无；可选数据：/exerciseHeartRateMin。
   - `HeartRateOverviewFull@1`：运动平均心率摘要。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewMinMaxFull@1`：运动心率摘要，展示高低心率区间，可补充更新时间。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateMax, /exerciseHeartRateMin；次要数据：无；可选数据：/updatedAt。
   - `HeartRateOverviewCompact@1`：运动平均心率摘要。 组件形态：support。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
@@ -43,7 +44,7 @@
   - `SleepOverviewFull@1`：睡眠情况完整摘要，展示时长和状态，可选展示得分进度、完整睡眠时段或小睡时长，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/nightSleepDurationText；次要数据：/sleepStatus；可选数据：/sleepScore, /fallAsleepTimeText, /wakeupTimeText, /totalNapDurationText。
   - `SleepOverviewNapFull@1`：作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/totalNapDurationText；次要数据：无；可选数据：/fallAsleepTimeText, /wakeupTimeText。
   - `SleepOverviewHero@1`：睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：/sleepStatus, /sleepScore, /fallAsleepTimeText, /wakeupTimeText。
-  - `SleepOverviewNapHero@1`：作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/totalNapDurationText；次要数据：无；可选数据：/fallAsleepTimeText, /wakeupTimeText。
+  - `SleepOverviewNapHero@1`：作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/totalNapDurationText；次要数据：无；可选数据：/fallAsleepTimeText, /wakeupTimeText, /dailySteps；今日步数可选展示；`supportedEventIds` 含 `event.open.health.sport`，可在 2x4 组合中承载打开锻炼页动作胶囊。
   - `SleepOverviewCompact@1`：睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
   - `SleepOverviewScoreCompact@1`：睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/sleepScore；次要数据：无；可选数据：无。
   - `SleepOverviewScoreFull@1`：睡眠得分完整摘要，以大号数字展示睡眠得分并配“分”单位，顶部展示睡眠健康状态，底部展示总睡眠时长，可选展示深睡眠时长，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/sleepScore；次要数据：/nightSleepDurationText；可选数据：/sleepStatus, /deepSleepDurationText。
