@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "generation-trace-v2.schema.json",
+  "title": "Widget generation development trace record",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "traceId",
+    "spanId",
+    "sequence",
+    "timestamp",
+    "recordType",
+    "event",
+    "category",
+    "startOffsetMs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "generation-trace-v2" },
+    "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+    "spanId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "parentSpanId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "recordType": { "enum": ["span", "event"] },
+    "event": { "type": "string", "minLength": 1 },
+    "category": {
+      "enum": [
+        "request",
+        "protocol",
+        "source",
+        "preflight",
+        "prompt",
+        "plan",
+        "model",
+        "transform",
+        "validation",
+        "repair",
+        "artifact",
+        "response",
+        "other"
+      ]
+    },
+    "startOffsetMs": { "type": "number", "minimum": 0 },
+    "durationMs": { "type": "number", "minimum": 0 },
+    "eventId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+    "operation": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["group", "step", "model"] },
+    "stage": { "type": "string" },
+    "status": { "type": "string" },
+    "attempts": { "type": "object", "additionalProperties": { "type": "integer" } },
+    "details": { "type": "object" },
+    "metrics": { "type": "object" },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path", "sha256", "bytes", "chars", "mediaType", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "chars": { "type": "integer", "minimum": 0 },
+          "mediaType": { "enum": ["application/json", "text/plain"] },
+          "role": { "enum": ["input", "output", "diagnostic", "snapshot"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "recordType": { "const": "span" } } },
+      "then": { "required": ["operation", "kind", "durationMs", "status"] } },
+    { "if": { "properties": { "recordType": { "const": "event" } } },
+      "then": { "required": ["eventId"] } }
+  ],
+  "additionalProperties": false
+}

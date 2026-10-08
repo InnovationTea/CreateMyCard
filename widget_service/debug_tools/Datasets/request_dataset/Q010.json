@@ -1,0 +1,85 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "周末准备去杭州露营，帮我做个卡片，分别看杭州明天和后天的天气、空气质量。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "杭州市",
+          "forecastDays": 3
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/daily/1/condition",
+          "/daily/1/airQuality",
+          "/daily/2/condition",
+          "/daily/2/airQuality"
+        ]
+      }
+    ],
+    "title": "周末露营",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "天气和空气质量",
+    "candidateAssetIds": [
+      "asset.sun_max",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "12.0.0.1",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "010",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "周末准备去杭州露营，帮我做个卡片，分别看杭州明天和后天的天气、空气质量。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "周末准备去杭州露营，帮我做个卡片，分别看杭州明天和后天的天气、空气质量。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "杭州市",
+        "forecastDays": 3
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/daily/1/condition",
+        "/daily/1/airQuality",
+        "/daily/2/condition",
+        "/daily/2/airQuality"
+      ]
+    }
+  ],
+  "title": "周末露营",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "天气和空气质量",
+  "candidateAssetIds": [
+    "asset.sun_max",
+    "asset.local_fill"
+  ]
+}
