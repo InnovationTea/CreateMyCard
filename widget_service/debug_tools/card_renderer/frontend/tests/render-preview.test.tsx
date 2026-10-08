@@ -107,8 +107,8 @@ describe('Render 内核预览', () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByText(/320 × 160/)).toBeInTheDocument());
-    expect(container.querySelector('[data-renderer-size="320x160"]')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/300 × 150/)).toBeInTheDocument());
+    expect(container.querySelector('[data-renderer-size="300x150"]')).toBeTruthy();
     expect(screen.getByRole('combobox', { name: /画布/ })).toHaveValue('2x4');
   });
 
@@ -117,7 +117,7 @@ describe('Render 内核预览', () => {
       <CardRenderer initialValue='["root","Text",{"content":"自定义尺寸"}]' />,
     );
 
-    await waitFor(() => expect(screen.getByText(/160 × 160/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/150 × 150/)).toBeInTheDocument());
     expect(screen.queryByText('打开 JSONL')).not.toBeInTheDocument();
     expect(screen.queryByText('A2UI 示例')).not.toBeInTheDocument();
     expect(screen.queryByText('极简示例')).not.toBeInTheDocument();

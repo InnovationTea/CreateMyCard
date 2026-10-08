@@ -7,12 +7,15 @@ import { extname, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 const platformRoot = fileURLToPath(new URL('.', import.meta.url));
-const resourceRoot = fileURLToPath(
+const resourceRoot = resolve(fileURLToPath(
   new URL('../../../render/platform/public/resources/', import.meta.url),
-);
-const backgroundRoot = fileURLToPath(
+));
+const backgroundRoot = resolve(fileURLToPath(
   new URL('../../../render/platform/public/background_assets/', import.meta.url),
-);
+));
+const harmonyFontRoot = resolve(fileURLToPath(
+  new URL('../../../render/platform/public/fonts/harmonyos/', import.meta.url),
+));
 
 const CONTENT_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
@@ -20,6 +23,7 @@ const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf',
   '.webp': 'image/webp',
 };
 
@@ -55,6 +59,7 @@ function rendererAssets(): Plugin {
       };
       serve('/resources', resourceRoot);
       serve('/background_assets', backgroundRoot);
+      serve('/fonts/harmonyos', harmonyFontRoot);
     },
   };
 }
