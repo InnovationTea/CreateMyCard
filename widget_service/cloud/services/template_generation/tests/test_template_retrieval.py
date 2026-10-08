@@ -1488,7 +1488,10 @@ def test_q025_weather_wind_fields_match_wind_hero() -> None:
         _card_spec(),
     )
 
+    # 风况字段同时精确覆盖 WindFull（风向+风力为主数据）与 WindHero 的契约，
+    # 两者都进入候选（与 q001 的 Full+Hero 组合一致）。
     assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewWindFull@1",
         "WeatherOverviewWindHero@1",
     )
 
@@ -1909,11 +1912,12 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     )
 
     template_ids = set(result.component_candidates[0].available_template_ids)
-    # AlertInfoFull shares Full@1's primary/secondary contract, so the
-    # condition-only query matches both.
+    # AlertInfoFull / UpdatedAtFull share Full@1's primary/secondary contract,
+    # so the condition-only query matches them too.
     assert template_ids == {
         "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
         "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "WeatherOverviewUpdatedAtFull@1",
     }
 
 

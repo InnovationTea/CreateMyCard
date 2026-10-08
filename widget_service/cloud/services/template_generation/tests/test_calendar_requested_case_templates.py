@@ -323,9 +323,10 @@ _EXPECTED_COMPLETE: dict[str, set[str]] = {
         "ScheduleOverviewMeetingEntryHero@1",
         "ScheduleOverviewMeetingSenderFull@1",
     },
+    # Q035 不提供 /events/0/isAllDay，因此只补齐 Hero；Full 变体的次要数据
+    # 含 isAllDay（schedule-overview.cardtpl 时间轴的全天文案行），不再完整。
     "Q035": {
         "ScheduleOverviewEventCountDetailsHero@1",
-        "ScheduleOverviewEventCountDetailsFull@1",
     },
 }
 
@@ -364,13 +365,22 @@ def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) ->
     assert set(_PROJECTED_FIELDS[case.case_id]) <= set(calendar)
 
 
+# 一键入会链接（/events/0/oneClickServiceLink）只进入这些模板的绑定契约
+# （provider.json optionalData），由动作参数按字面复制消费，模板内不展示。
+_JOIN_LINK_CONTRACT_TEMPLATES = frozenset({"LocationHero", "TitleHero"})
+
 _CONTRACTS = {
     "TwoEventsFull": ("/events/0/title /events/1/title|/events/0/dtStart /events/1/dtStart|"),
     "LocationDescriptionEndFull": (
         "/events/0/description|/events/0/dtEnd /events/0/eventLocation|"
     ),
-    "LocationHero": "/events/0/eventLocation /events/0/dtStart||/events/0/dtEnd",
-    "TitleHero": "/events/0/title /events/0/dtStart||/events/0/dtEnd",
+    "LocationHero": (
+        "/events/0/eventLocation /events/0/dtStart||/events/0/dtEnd /events/0/oneClickServiceLink"
+    ),
+    "TitleHero": (
+        "/events/0/title /events/0/dtStart||"
+        "/events/0/dtEnd /events/0/startDate /events/0/countdownDays /events/0/oneClickServiceLink"
+    ),
     "ReminderDetailsHero": (
         "/events/0/senderName|/events/0/importantEventType /events/0/remindTime/0 /updatedAt|"
     ),
@@ -384,7 +394,7 @@ _CONTRACTS = {
         "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
     ),
     "EventCountDetailsFull": (
-        "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
+        "/eventCount /events/0/title|/events/0/dtStart /events/0/isAllDay|/events/0/description"
     ),
     "DatedAllDayHero": "/events/0/startDate /events/0/title|/events/0/isAllDay|",
 }
@@ -403,7 +413,10 @@ def test_new_template_provider_contract_is_exact(suffix: str) -> None:
     assert definition.optional_data == optional
     declared = {*primary, *secondary, *optional}
     assert "/events/0/entityId" not in declared
-    assert "/events/0/oneClickServiceLink" not in declared
+    # entityId 只作为动作参数消费；一键入会链接仅在上游声明了它的模板契约中出现。
+    assert ("/events/0/oneClickServiceLink" in declared) is (
+        suffix in _JOIN_LINK_CONTRACT_TEMPLATES
+    )
 
 
 @pytest.mark.parametrize("suffix", ("Title", "Location"))

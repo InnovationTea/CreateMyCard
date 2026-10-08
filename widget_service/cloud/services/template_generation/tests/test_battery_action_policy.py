@@ -214,10 +214,13 @@ def test_compact_and_support_without_hero_do_not_trigger_fallback() -> None:
     case = _case(("/batterySOC", "/chargingStatusDesc"))
     registry = CardPlanRegistry(disabled_template_ids=(
         "BatteryOverviewChargingRingHero@1", "BatteryOverviewStatusHero@1",
+        # #404 引入的同契约 Hero 兄弟模板一并关闭，保持"无 Hero 候选"的场景。
+        "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
     ))
     result = _search(case, registry)
     assert {c.template_id for c in result.business_candidates[0].candidates} == {
-        "BatteryOverviewCompact@1", "BatteryOverviewSupport@1",
+        "BatteryOverviewCompact@1", "BatteryOverviewPercentStatusCompact@1",
+        "BatteryOverviewSupport@1",
     }
     assert resolve_battery_settings_fallback(case.intent, result, case.task) is case.intent
 
@@ -226,8 +229,12 @@ def test_text_level_fallback_covers_both_fields_without_fabricating_numeric_data
     case = _case(("/batterySOCText", "/batteryCapacityLevelDesc"))
     registry = CardPlanRegistry()
     result = _search(case, registry)
+    # 50434950 起 ChargingProgressHero 的可选数据覆盖 /batteryCapacityLevelDesc，
+    # 文本+等级查询由通用 Hero 直接服务；引擎随后把 PercentLevelHero 兜底
+    # 从已覆盖的候选中移除（template_retrieval 的 text-level fallback 淘汰逻辑），
+    # 兜底变体仅在通用 Hero 缺席时出现（见 test_battery_case_extensions）。
     assert [c.template_id for c in result.business_candidates[0].candidates] == [
-        "BatteryOverviewPercentLevelHero@1",
+        "BatteryOverviewChargingProgressHero@1",
     ]
     assert "batterySOC\"" not in json.dumps(case.task.dataModelSchema)
     resolved = resolve_battery_settings_fallback(case.intent, result, case.task)

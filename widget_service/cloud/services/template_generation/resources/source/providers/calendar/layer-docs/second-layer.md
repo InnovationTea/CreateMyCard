@@ -12,7 +12,8 @@
   `HeroTitleContentActionLayout@1` 的第二个业务位置。
 - 可用模板：
   - `ScheduleOverviewNextEventHero@1`：下一个日程 Hero；标题为主数据，起止时间和地点为次要数据；
-    可选 `calendarIcon` 与 `headerLabel`。
+    可选 `calendarIcon` 与 `headerLabel`。日程备注（/events/0/description）可选，
+    可用时在地点下方以 10vp 单行展示。
   - `ScheduleOverviewReminderHero@1`：日程提醒 Hero；展示标题、开始时间和提前提醒；可选
     `headerLabel`。提醒文案通过端侧 Expr 判断开始时间是否为空，不在云侧读取样例值。
   - `ScheduleOverviewReminderCompact@1`：日程提醒 Compact；仅展示首项日程的提前提醒分钟数，
@@ -31,12 +32,14 @@
     可选 `title` Prop 只能逐字复用 `cardComposition.businessTitleCandidate` 作为标题兜底。用于 2x4
     组合布局的整列业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action；2x4 单业务
     双操作时依次组合本 Full 与两个 `CompactAction@1`（按各自 `allowedActionIds` 语义绑定，如免打扰
-    设置 + 一键入会）。
+    设置 + 一键入会）。一键入会链接（/events/0/oneClickServiceLink）仅作为可选数据进入字段覆盖契约，
+    由动作参数按字面复制消费，不在模板内展示。
   - `ScheduleOverviewHeroContent@1`：日程 HeroContent；展示标题、起止时间和地点；只用于
     `HeroTitleContentActionLayout@1` 的第二个业务 child。
   - `ScheduleOverviewTimeSupport@1`：开始时间必需，标题、结束时间和地点可选；有标题时主行显示标题、
     辅助行显示时间或“时间 · 地点”，无标题时主行显示开始时间、辅助行显示地点或查看提示。
-    仅在收到 `actionId` 时显示可选 24vp `calendarIcon` 或 `meetingIcon`。
+    仅在收到 `actionId` 时显示可选 24vp `calendarIcon` 或 `meetingIcon`。一键入会链接
+    （/events/0/oneClickServiceLink）仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `ScheduleOverviewLocationSupport@1`：首项标题及地点，两者必需。
   - `ScheduleOverviewStartTimeSupport@1`：首项标题及开始时间，两者必需。
   - `ScheduleOverviewDateSupport@1`：首项标题及真实日期，两者必需。
@@ -72,7 +75,9 @@
   - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
     提醒分钟数，不接收展示 Prop。
   - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选
-    `calendarIcon` 与 `headerLabel`。
+    `calendarIcon` 与 `headerLabel`。真实日期（/events/0/startDate）与距会议天数
+    （/events/0/countdownDays）可选，可用时分别在标题上方（12vp 日期行）和卡片底部
+    （12vp「距会议还有 N 天」）展示。
   - `ScheduleOverviewEventCountDetailsHero@1`：近期日程清点 Hero；展示日程总数及首项日程的标题、
     开始时间和备注，不接收展示 Prop。
   - `ScheduleOverviewEventCountTwoEventsFull@1`：双日程清点 Full；展示日程总数，以及前两项日程各自的

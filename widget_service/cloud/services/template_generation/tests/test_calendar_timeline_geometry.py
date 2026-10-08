@@ -37,6 +37,9 @@ _TIMEZONE_TEMPLATES = frozenset({
     "ScheduleOverviewTimezoneDateEndFull@1",
     "ScheduleOverviewTimezoneAllDayFull@1",
 })
+# EventCountDetailsFull 的时间轴内容列在“时间 · 全天”之后还有一行可选备注
+# （$optionalPath /events/0/description），比其他非时区模板多一个 Text。
+_DESCRIPTION_TEMPLATES = frozenset({"ScheduleOverviewEventCountDetailsFull@1"})
 
 
 def _options(node: Nested2Node) -> dict[str, Any]:
@@ -113,7 +116,10 @@ def _assert_timeline(row: Nested2Node, template_id: str) -> None:
     assert "layoutWeight" not in content_options
     texts = _texts(content)
     timezone = template_id in _TIMEZONE_TEMPLATES
-    assert len(texts) == (4 if timezone else 3)
+    expected_texts = 3 + (1 if timezone else 0) + (
+        1 if template_id in _DESCRIPTION_TEMPLATES else 0
+    )
+    assert len(texts) == expected_texts
     assert _options(texts[0]).get("height") == 20
     assert _options(texts[0]).get("fontSize") == 14
     reminder = template_id == "ScheduleOverviewReminderHero@1"

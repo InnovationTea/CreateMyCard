@@ -65,7 +65,9 @@ data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
     left: $optionalPath("/leftBatteryLevel"),
-    right: $optionalPath("/rightBatteryLevel")
+    right: $optionalPath("/rightBatteryLevel"),
+    leftChargingStatus: $optionalPath("/leftChargingStatusDesc"),
+    rightChargingStatus: $optionalPath("/rightChargingStatusDesc")
 }
 
 Column(
@@ -193,6 +195,58 @@ Column(
                 "textOverflow": "ellipsis",
                 "constraintSize": { "minWidth": 0, "minHeight": 0 }
             }
+        )
+    #endif
+    #if data.leftChargingStatus
+        Row(
+            {
+                "width": "matchParent",
+                "height": 16,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "center",
+            },
+            #if props.leftEarIcon
+                Image(
+                    props.leftEarIcon,
+                    { "width": 12, "height": 12, "fillColor": $theme('supportContentColor') }
+                ),
+            #else
+                Text(
+                    "左",
+                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
+                ),
+            #endif
+            Text(
+                data.leftChargingStatus,
+                { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 400, "maxLines": 1 }
+            )
+        )
+    #endif
+    #if data.rightChargingStatus
+        Row(
+            {
+                "width": "matchParent",
+                "height": 16,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "center",
+            },
+            #if props.rightEarIcon
+                Image(
+                    props.rightEarIcon,
+                    { "width": 12, "height": 12, "fillColor": $theme('supportContentColor') }
+                ),
+            #else
+                Text(
+                    "右",
+                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
+                ),
+            #endif
+            Text(
+                data.rightChargingStatus,
+                { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 400, "maxLines": 1 }
+            )
         )
     #endif
 )
