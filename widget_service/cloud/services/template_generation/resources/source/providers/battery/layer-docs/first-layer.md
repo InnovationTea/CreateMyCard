@@ -47,3 +47,11 @@
 - 没有明确动作时，无合法候选动作或用户禁止交互则采用 Full；有合法候选动作且允许交互则 Full 与 Hero 加动作平等参与候选字段数量比较，不设 Full 优先；候选字段仍原样保留供后续模板绑定，不输出新的候选字段协议，不直接输出模板或布局。
 
 - 多个模板完整覆盖必选字段且输入与动作布局满足时，尊重用户明确禁止的展示要求，并保证 primaryOutputFieldByCapability 所表达的显式唯一主焦点，最后比较实际展示的候选字段数量。仅声明、仅充当编译期条件或条件未满足而未渲染的字段不计入收益，不把候选提升为必选、不编造缺失字段。
+
+- `BatteryOverviewChargingDiagnosticsFull@1` 支持 2×2 无动作的电流、电压、电量等级和电池在位状态展示；四项输入都必需，无图标要求。电量等级为主值，其余三项为辅助行。
+
+- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。顶部“电池健康”，健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
+
+- `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
+
+- `BatteryOverviewCurrentVoltageFull@1`：2×2 电流电压 Full，仅必需 /nowCurrentText、/voltageText，可选 /batterySOCText、/batteryTemperatureText、/healthStatusDesc。标题12fp，所有数值12fp/500，标签12fp/400，各详情行高16vp，左对齐；无需图标或动作，字段存在时显示对应行，沿用通用检索和候选字段排序。

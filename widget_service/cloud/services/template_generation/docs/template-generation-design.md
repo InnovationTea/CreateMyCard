@@ -266,3 +266,22 @@ Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上�
 ### 2×2 电量环形进度条线宽
 
 所有 2×2 电量模板的环形进度条线宽统一为 6vp，圆环直径和其它布局保持不变。
+
+### 电量等级主值的无动作诊断 Full
+
+新增 BatteryOverviewChargingDiagnosticsFull@1，覆盖 2×2 无候选动作、同时提供 nowCurrentText、voltageText、batteryCapacityLevelDesc、isBatteryPresentText 的请求。主数据为电量等级，其余三项必需，使用 SingleFocusLayout；无需图标，不扩展动作、字段筛选或排序规则。
+
+参照 150×150vp UX：12vp 外边距、左对齐，标题“手机电量”12fp/400；主值从 y=36vp 开始，30fp/700、40vp 行高以容纳中文，长值可缩至18fp；三行从 y=82vp 开始、行高16vp、间距4vp，标签12fp/400、值12fp/500，依次为实时电流、电池电压、电池在位。标题用辅助色，主值和详情用主题主色，融球沿用电量青绿主题。保留既有诊断 Hero 与 WideFull。
+
+### 无动作健康等级 Full
+
+新增 BatteryOverviewHealthLevelFull@1：标题“电池健康”12fp/400，健康状态30fp/700，必需电量等级位于第一条12fp详情行；剩余电量文本和充电状态按输入字段存在与否追加，不输出空行或假数据。主值长文本允许缩至18fp，详情值12fp/500、允许缩至10fp。复用诊断 Full 的12vp外边距、标题与主值留白、三行最多56vp详情区，保留原健康等级 Hero。无素材、无动作也可以经现有检索与规划生成。
+
+### 无动作百分比等级 Full
+
+新增 BatteryOverviewPercentLevelFull@1：沿用 PercentTextFull 的居中三段式：标题“手机电量”16fp/400、24vp高，剩余电量文本38fp/700、60vp高，底部电量等级原始值12fp/400、16vp高；顶内边距4vp、段间距8vp，标题与底部使用辅助文本色，主值使用主色。两项数据必需，无素材和动作要求，不显示静态“电量状态”或“电量等级”标签，不修改既有 PercentTextFull 或诊断 Full，不新增按用例或 query 选择模板的特例。
+
+### 电流电压 Full
+
+新增 BatteryOverviewCurrentVoltageFull@1，仅电流 nowCurrentText 与电压 voltageText 必需，batterySOCText、batteryTemperatureText、healthStatusDesc 可选。标题“电池状态”12fp/400，电流、电压和可选详情均为12fp/500、各16vp高，所有行标签为12fp/400，统一4vp间距和12vp外边距，五行齐全时总内容高116vp，小于126vp可用高度。不假定读数正常、不生成诊断结论；原始含单位文本直接绑定，不重复加单位。不需要动作和素材，保留既有诊断模板。
+电量数据投影的已知字段补齐实时电流、电压、温度和电池在位状态。缺少百分比时仍保留实际输入的这些字段，避免合法诊断模板在正文生成前因旧字段清单不完整而失败；不补造缺失数据。

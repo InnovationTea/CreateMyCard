@@ -108,3 +108,11 @@
     `/pluggedTypeDesc` 与 `/batteryTemperatureText`（两个字段为可选数据，仅进入数据契约以保证
     字段覆盖）。
     主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：/pluggedTypeDesc, /batteryTemperatureText。
+
+- `BatteryOverviewChargingDiagnosticsFull@1`：2×2 诊断 Full，无按钮、无图标参数。手机电量标题 12fp/400，电量等级主值 30fp/700（长文本允许缩至18fp）；下方实时电流、电池电压、电池在位三行，12fp 标签400、值500，左对齐。主数据 /batteryCapacityLevelDesc；次要数据 /nowCurrentText、/voltageText、/isBatteryPresentText；均必需，无可选字段。沿用现有 Full 布局与模板排序。
+
+- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。顶部“电池健康”，健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
+
+- `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
+
+- `BatteryOverviewCurrentVoltageFull@1`：2×2 电流电压 Full，仅必需 /nowCurrentText、/voltageText，可选 /batterySOCText、/batteryTemperatureText、/healthStatusDesc。标题12fp，所有数值12fp/500，标签12fp/400，各详情行高16vp，左对齐；无需图标或动作，字段存在时显示对应行，沿用通用检索和候选字段排序。

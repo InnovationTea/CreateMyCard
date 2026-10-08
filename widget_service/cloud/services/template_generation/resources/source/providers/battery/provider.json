@@ -548,6 +548,70 @@
         "/batterySOCText"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewChargingDiagnosticsFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量诊断 Full，2x2 无按钮、无需图标。顶部手机电量，30fp 大字展示电量等级，下方三行左对齐展示实时电流、电池电压、电池在位；标签12fp常规，字段值12fp中等字重。四项数据均为必需。",
+      "entry": "templates/battery-charging-diagnostics-full.cardtpl",
+      "primaryData": [
+        "/batteryCapacityLevelDesc"
+      ],
+      "secondaryData": [
+        "/nowCurrentText",
+        "/voltageText",
+        "/isBatteryPresentText"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BatteryOverviewHealthLevelFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池健康等级 Full，2x2 无按钮、无需图标。顶部电池健康，30fp健康状态主值，下方必需电量等级，剩余电量文本与充电状态存在时分别追加；沿用左对齐标签和值的详情布局。",
+      "entry": "templates/battery-health-level-full.cardtpl",
+      "primaryData": [
+        "/healthStatusDesc"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentLevelFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比与等级 Full，2x2 无按钮、无需图标。居中三段式：顶部手机电量16fp，中部38fp剩余电量文本，底部12fp实际等级值，不带电量等级标签；两项字段均为必需。",
+      "entry": "templates/battery-percent-level-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BatteryOverviewCurrentVoltageFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电池电流电压 Full，2x2 无按钮、无需图标。实时电流、电池电压及可选的剩余电量、温度、健康状态统一为12fp详情行，数值统一500字重。只要求电流与电压，不依赖电量等级或电池在位状态。",
+      "entry": "templates/battery-current-voltage-full.cardtpl",
+      "primaryData": [
+        "/nowCurrentText",
+        "/voltageText"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/batterySOCText",
+        "/batteryTemperatureText",
+        "/healthStatusDesc"
+      ]
     }
   ],
   "compatibility": {

@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 209
+    assert len(registry.provider_template_ids) == 213
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -290,6 +290,10 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewChargingDiagnosticsHero@1",
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
         "BatteryOverviewChargingDiagnosticsWideFull@1",
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
@@ -3406,6 +3410,10 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
     registry = get_cardplan_registry()
     battery = registry.require_ux_business_component("BatteryOverview")
     expected_template_ids = {
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewWideFull@1",

@@ -242,7 +242,7 @@ def test_charging_hero_covers_text_and_level_without_fabricating_numeric_data() 
     registry = CardPlanRegistry()
     result = _search(case, registry)
     assert [c.template_id for c in result.business_candidates[0].candidates] == [
-        "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentLevelFull@1",
     ]
     assert "batterySOC\"" not in json.dumps(case.task.dataModelSchema)
     resolved = resolve_battery_settings_fallback(case.intent, result, case.task)
@@ -614,6 +614,7 @@ async def test_review_constraints_survive_planning_and_generation(
             assert "/healthStatusDesc" in plan.business_slots[0].primary_matched_fields
         assert template_id in {
             "BatteryOverviewHealthLevelHero@1", "BatteryOverviewHealthTemperatureHero@1",
+            "BatteryOverviewHealthLevelFull@1",
         }
     monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
         schemaVersion="template-controls/1", firstLayerComponentSelector="search",
@@ -646,17 +647,29 @@ async def test_review_constraints_survive_planning_and_generation(
         task_spec=case.task.model_dump(mode="json"), card_spec=case.card,
     )
     component_text = ""
+    rendered_components: list[dict[str, Any]] = []
     for line in output.a2ui.splitlines():
         message = json.loads(line)
         update = message.get("updateComponents")
         if isinstance(update, dict):
             component_text += json.dumps(update, ensure_ascii=False)
+            rendered_components.extend(update.get("components", []))
     if issue == "rendered":
         assert "/data/phoneBattery/chargingStatusDesc" in component_text
         assert "/data/phoneBattery/pluggedTypeDesc" not in component_text
     else:
         assert "/data/phoneBattery/healthStatusDesc" in component_text
-        assert "batterySOCText" not in component_text
+        health_value = next(
+            component for component in rendered_components
+            if "/healthStatusDesc" in str(component.get("content", ""))
+        )
+        health_styles = health_value.get("styles", {})
+        assert health_styles.get("fontSize", 0) >= 18
+        assert health_styles.get("fontWeight", 0) >= 700
+        for component in rendered_components:
+            if "/batterySOCText" not in str(component.get("content", "")):
+                continue
+            assert component.get("styles", {}).get("fontSize", 0) <= 12
     assert case.task.model_dump() == original
 
 

@@ -1177,6 +1177,8 @@ def _validate_provider_template_state(
         state_independent_variants = {
             "compact",
             "chargingDiagnosticsHero",
+            "chargingDiagnosticsFull",
+            "currentVoltageFull",
             "chargingDiagnosticsWideFull",
 
             "statusSummaryHero",
@@ -1188,10 +1190,12 @@ def _validate_provider_template_state(
             "full",
             "hero",
             "healthLevelHero",
+            "healthLevelFull",
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
             "percentLevelHero",
+            "percentLevelFull",
             "percentRingCompact",
             "percentRingHero",
             "percentStatusCompact",
