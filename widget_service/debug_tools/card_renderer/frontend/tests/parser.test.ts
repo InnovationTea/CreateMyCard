@@ -20,8 +20,8 @@ describe('card renderer parser', () => {
   });
 
   it('infers stable 2x2 and 2x4 surfaces', () => {
-    expect(sizeForCard('2x2')).toEqual({ width: 160, height: 160 });
-    expect(sizeForCard('2x4')).toEqual({ width: 320, height: 160 });
+    expect(sizeForCard('2x2')).toEqual({ width: 150, height: 150 });
+    expect(sizeForCard('2x4')).toEqual({ width: 300, height: 150 });
   });
 
   it('resolves size from final CardSpec before query and sample fallback', () => {
@@ -66,6 +66,6 @@ describe('card renderer parser', () => {
 
   it('honors an explicit card size over input dimensions', () => {
     const document = parseInput(SAMPLE_A2UI, { cardSize: '2x4' });
-    expect(document.surface).toEqual({ width: 320, height: 160 });
+    expect(document.surface).toEqual({ width: 300, height: 150 });
   });
 });

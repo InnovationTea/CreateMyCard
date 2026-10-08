@@ -4,6 +4,102 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Thin.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Thin.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HarmonyOS Sans SC";
+  src: url("/fonts/harmonyos/HarmonyOS_Sans_SC_Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 .card-renderer {
   --renderer-bg: #f5f7fb;
   --renderer-panel: #fff;
@@ -47,7 +143,7 @@
 .card-renderer__preview-toolbar input[type="number"]:focus { border-color: var(--renderer-brand); outline: none; box-shadow: 0 0 0 3px rgb(53 103 239 / 12%); }
 .card-renderer__preview-toolbar input:disabled { cursor: not-allowed; opacity: .55; }
 .card-renderer__stage { display: grid; place-items: center; min-height: 0; overflow: auto; border: 1px solid var(--renderer-line); border-radius: 14px; background: linear-gradient(45deg, rgb(0 0 0 / 3.5%) 25%, transparent 25%), linear-gradient(-45deg, rgb(0 0 0 / 3.5%) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgb(0 0 0 / 3.5%) 75%), linear-gradient(-45deg, transparent 75%, rgb(0 0 0 / 3.5%) 75%); background-position: 0 0, 0 12px, 12px -12px, -12px 0; background-size: 24px 24px; }
-.card-renderer__matte { padding: 18px; border-radius: 18px; background: #242424; transform-origin: center; box-shadow: 0 18px 40px rgb(31 41 55 / 18%); }
+.card-renderer__matte { overflow: hidden; border-radius: 20px; background: #fff; transform-origin: center; box-shadow: 0 12px 36px rgb(34 48 71 / 7%); isolation: isolate; }
 .card-renderer__empty { display: grid; place-items: center; width: 160px; height: 160px; color: #98a2b3; background: #fff; }
 .card-renderer__surface { position: relative; overflow: hidden; color: #1f2937; background: #fff; }
 .card-renderer__runtime-error { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; color: var(--renderer-danger); background: #fff5f4; font-size: 12px; text-align: center; }

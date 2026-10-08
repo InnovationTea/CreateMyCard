@@ -714,8 +714,8 @@ export function resolveCardSize(
 
 export function sizeForCard(value: unknown): SurfaceSize | null {
   const normalized = normalizedCardSize(value);
-  if (normalized === '2x2') return { width: 160, height: 160 };
-  if (normalized === '2x4') return { width: 320, height: 160 };
+  if (normalized === '2x2') return { width: 150, height: 150 };
+  if (normalized === '2x4') return { width: 300, height: 150 };
   return null;
 }
 

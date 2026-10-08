@@ -65,7 +65,7 @@ describe('RendererRoute Compact DSL history', () => {
     expect(editor).toHaveValue('');
     expect(editor).not.toHaveValue(RESULT_ENVELOPE);
     await waitFor(() => expect(editor).toHaveValue(genui));
-    await waitFor(() => expect(screen.getByText(/320 × 160/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/300 × 150/)).toBeInTheDocument());
     expect(screen.getByText('artifact 已下载')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       `/debug/artifact?url=${encodeURIComponent(ARTIFACT_URL)}&digest=sha256%3Atest`,

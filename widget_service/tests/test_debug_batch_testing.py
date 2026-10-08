@@ -530,3 +530,23 @@ def test_debug_apps_expose_batch_routes(app):
     assert "/debug/batch/runs" in paths
     assert "/debug/batch/runs/{run_id}/samples/{sample_id}" in paths
     assert "/debug/batch/runs/{run_id}/trace-artifacts/{digest}" in paths
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        create_frontend_app(),
+        create_full_app(DebugSettings(), production_settings=SimpleNamespace()),
+    ],
+    ids=["frontend", "full"],
+)
+def test_debug_apps_serve_harmonyos_fonts_from_render_assets(app):
+    client = TestClient(app)
+
+    response = client.get("/fonts/harmonyos/HarmonyOS_Sans_SC_Regular.ttf")
+    missing = client.get("/fonts/harmonyos/not-found.ttf")
+
+    assert response.status_code == 200
+    assert response.headers.get("content-type") == "font/ttf"
+    assert response.content
+    assert missing.status_code == 404

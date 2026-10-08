@@ -49,7 +49,7 @@ describe('BatchGalleryCaptureRoute', () => {
     );
 
     await waitFor(() => {
-      expect(container.querySelector('[data-renderer-size="320x160"]')).toBeTruthy();
+      expect(container.querySelector('[data-renderer-size="300x150"]')).toBeTruthy();
     });
     expect(container.querySelector('[data-card-size="2x4"]')).toBeTruthy();
     await waitFor(() => {
