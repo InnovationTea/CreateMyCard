@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
@@ -16,6 +17,7 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
 )
 from services.compact_plan import compact_plan_coverage_errors
+from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
 from utils.ops_metrics import report_ops_metrics
 
@@ -125,12 +127,30 @@ class StandardA2UIProcessor:
         return DslProcessingResult(source_dsl=source_dsl, standard_dsl=standard_dsl)
 
 
+def _capture_processing_result(span: TraceSpan, result: DslProcessingResult) -> None:
+    span.text_artifacts["dsl_processing_input"] = result.source_dsl
+    span.text_artifacts["dsl_processing_output"] = result.standard_dsl
+    span.json_artifacts["dsl_processing_issues"] = [
+        item.to_prompt_payload() for item in result.issues
+    ]
+    span.artifact_roles.update(
+        {
+            "dsl_processing_input": "input",
+            "dsl_processing_output": "output",
+            "dsl_processing_issues": "diagnostic",
+        }
+    )
+
+
 class DesignCompactProcessor:
+    @trace_operation("dsl.processing", kind="group", capture=_capture_processing_result)
     def process(
         self,
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        binding_repair_started_at = time.perf_counter()
+        original_source_dsl = source_dsl
         try:
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
@@ -138,24 +158,68 @@ class DesignCompactProcessor:
                 card_spec=context.card_spec,
             )
         except CompactDslConversionError as exc:
+            trace_step(
+                "dsl.binding_repair.completed",
+                stage="dsl.bindingRepair",
+                status="failed",
+                duration_ms=_elapsed_ms(binding_repair_started_at),
+                details={"message": str(exc)},
+            )
             report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
+        trace_step(
+            "dsl.binding_repair.completed",
+            stage="dsl.bindingRepair",
+            status="success",
+            duration_ms=_elapsed_ms(binding_repair_started_at),
+            text_artifacts={
+                "binding_repair_input": original_source_dsl,
+                "compact_dsl_binding_repaired": source_dsl,
+            },
+            artifact_roles={
+                "binding_repair_input": "input",
+                "compact_dsl_binding_repaired": "output",
+            },
+        )
 
+        plan_coverage_started_at = time.perf_counter()
         plan_errors = compact_plan_coverage_errors(
             source_dsl,
             context.compact_plan,
             context.task_spec,
         )
         if plan_errors:
+            trace_step(
+                "dsl.plan_coverage_validation.completed",
+                stage="dsl.planCoverageValidation",
+                status="failed",
+                duration_ms=_elapsed_ms(plan_coverage_started_at),
+                json_artifacts={"plan_coverage_errors": list(plan_errors)},
+                text_artifacts={"coverage_validation_input": source_dsl},
+                artifact_roles={"coverage_validation_input": "input"},
+            )
             return self._validation_failure(
                 source_dsl,
                 plan_errors,
                 code="COMPACT_PLAN_COVERAGE_FAILED",
             )
+        trace_step(
+            "dsl.plan_coverage_validation.completed",
+            stage="dsl.planCoverageValidation",
+            status="success",
+            duration_ms=_elapsed_ms(plan_coverage_started_at),
+            text_artifacts={"coverage_validation_input": source_dsl},
+            json_artifacts={"plan_coverage_result": {"errors": []}},
+            artifact_roles={
+                "coverage_validation_input": "input",
+                "plan_coverage_result": "diagnostic",
+            },
+        )
 
         design_profile_id = context.design_profile_id or "design-compact-dsl"
         design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         if not context.skip_compact_dsl_validation:
+            compact_validation_started_at = time.perf_counter()
             try:
                 validation_result = validate_compact_dsl(
                     source_dsl,
@@ -165,24 +229,88 @@ class DesignCompactProcessor:
                     layout_scope=context.layout_scope,
                 )
             except CompactDslValidationError as exc:
+                trace_step(
+                    "dsl.compact_validation.completed",
+                    stage="dsl.compactValidation",
+                    status="failed",
+                    duration_ms=_elapsed_ms(compact_validation_started_at),
+                    json_artifacts={"compact_validation_errors": list(exc.errors)},
+                    text_artifacts={"compact_validation_input": source_dsl},
+                    artifact_roles={"compact_validation_input": "input"},
+                )
                 return self._validation_failure(source_dsl, exc.errors)
+            trace_step(
+                "dsl.compact_validation.completed",
+                stage="dsl.compactValidation",
+                status="success",
+                duration_ms=_elapsed_ms(compact_validation_started_at),
+                details={"warningCount": len(validation_result.warnings)},
+                json_artifacts={
+                    "compact_validation_result": {
+                        "errors": [],
+                        "warnings": list(validation_result.warnings),
+                    }
+                },
+                text_artifacts={"compact_validation_input": source_dsl},
+                artifact_roles={
+                    "compact_validation_input": "input",
+                    "compact_validation_result": "diagnostic",
+                },
+            )
         else:
             # Template output intentionally bypasses the general Compact DSL
             # semantic rules. The converter keeps structural checks, and the
             # generated artifact is still checked by ArtifactValidator.
             validation_result = None
+            trace_record(
+                "dsl.compact_validation.skipped",
+                stage="dsl.compactValidation",
+                status="skipped",
+                details={"reason": "template_source"},
+            )
 
         try:
             design_protocol["appVersion"] = context.task_spec["appVersion"]
+            conversion_started_at = time.perf_counter()
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
             )
+            trace_step(
+                "dsl.conversion.completed",
+                stage="dsl.convert",
+                status="success",
+                duration_ms=_elapsed_ms(conversion_started_at),
+                text_artifacts={
+                    "conversion_input": source_dsl,
+                    "standard_a2ui_before_unit_repair": standard_dsl,
+                },
+                artifact_roles={
+                    "conversion_input": "input",
+                    "standard_a2ui_before_unit_repair": "output",
+                },
+            )
+            unit_repair_started_at = time.perf_counter()
+            unit_repair_input = standard_dsl
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,
                 context.card_spec,
                 context.data_capabilities,
+            )
+            trace_step(
+                "dsl.unit_repair.completed",
+                stage="dsl.unitRepair",
+                status="success",
+                duration_ms=_elapsed_ms(unit_repair_started_at),
+                text_artifacts={
+                    "unit_repair_input": unit_repair_input,
+                    "standard_a2ui_after_unit_repair": standard_dsl,
+                },
+                artifact_roles={
+                    "unit_repair_input": "input",
+                    "standard_a2ui_after_unit_repair": "output",
+                },
             )
             warnings = tuple(
                 QualityIssue(
@@ -199,6 +327,13 @@ class DesignCompactProcessor:
                 issues=warnings,
             )
         except CompactDslConversionError as exc:
+            trace_step(
+                "dsl.conversion.completed",
+                stage="dsl.convert",
+                status="failed",
+                duration_ms=_elapsed_ms(conversion_started_at),
+                details={"message": str(exc)},
+            )
             issue = QualityIssue(
                 stage="conversion",
                 code="DESIGN_CONVERSION_FAILED",
@@ -222,6 +357,10 @@ class DesignCompactProcessor:
             for message in errors
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return round((time.perf_counter() - started_at) * 1000, 2)
 
 
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {

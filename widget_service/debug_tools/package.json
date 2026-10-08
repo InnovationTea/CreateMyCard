@@ -1,0 +1,21 @@
+{
+  "name": "widget-debug-tools",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "platform",
+    "end_to_end_debug/frontend",
+    "interface_debug/frontend",
+    "card_renderer/frontend",
+    "card_renderer/runtime/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @widget-debug/platform run dev",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm --workspace @widget-debug/platform run build",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}

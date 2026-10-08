@@ -1,0 +1,56 @@
+.interface-debugger {
+  --interface-surface: #fff;
+  --interface-line: #dfe6ef;
+  --interface-muted: #718096;
+  --interface-accent: #3567ef;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: 12px;
+  overflow: hidden;
+  color: #1e293b;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.interface-debugger *, .interface-debugger *::before, .interface-debugger *::after { box-sizing: border-box; }
+.interface-debugger button, .interface-debugger input, .interface-debugger textarea, .interface-debugger select { font: inherit; }
+.interface-debugger button { cursor: pointer; }
+.interface-debugger .interface-toolbar { display: flex; align-items: center; flex: 0 0 auto; gap: 8px; min-height: 30px; padding: 0 2px; color: #65728a; font-size: 11px; }
+.interface-debugger .interface-toolbar strong { color: #344158; font-size: 13px; }
+.interface-debugger .interface-toolbar button { margin-left: auto; padding: 5px 8px; border: 1px solid var(--interface-line); border-radius: 6px; color: #75839a; background: #fff; font-size: 10px; }
+.interface-debugger .operation-tabs { display: flex; flex: 0 0 auto; overflow-x: auto; border: 1px solid var(--interface-line); border-radius: 9px; background: #f5f7fb; }
+.interface-debugger .operation-tabs button, .interface-debugger .response-tabs button { padding: 9px 13px; border: 0; border-bottom: 2px solid transparent; color: #76839a; background: transparent; font-size: 11px; white-space: nowrap; }
+.interface-debugger .operation-tabs button.active, .interface-debugger .response-tabs button.active { border-bottom-color: var(--interface-accent); color: #2e5bd8; background: #fff; }
+.interface-debugger .interface-grid { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(360px, 1.1fr); flex: 1 1 auto; gap: 14px; min-width: 0; min-height: 0; overflow: hidden; }
+.interface-debugger .interface-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; padding: 14px; border: 1px solid var(--interface-line); border-radius: 10px; background: var(--interface-surface); box-shadow: 0 6px 18px #203b6d0a; }
+.interface-debugger .panel-heading { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; margin-bottom: 10px; }
+.interface-debugger .panel-heading h3 { margin: 0; font-size: 14px; }
+.interface-debugger .panel-heading button, .interface-debugger .build-actions button { padding: 5px 9px; border: 1px solid #e0e6ef; border-radius: 6px; color: #75839a; background: #f5f7fb; font-size: 10px; }
+.interface-debugger .shared-config-note { flex: 0 0 auto; margin: 0 0 10px; padding: 7px 8px; border: 1px solid #e6ebf3; border-radius: 6px; color: #8490a3; background: #fafbfe; font-size: 10px; line-height: 1.45; }
+.interface-debugger .request-envelope-preview { flex: 0 1 auto; min-height: 0; margin: 0 0 10px; border: 1px solid #e6ebf3; border-radius: 6px; color: #718097; background: #fafbfe; font-size: 10px; }
+.interface-debugger .request-envelope-preview summary { cursor: pointer; padding: 7px 8px; }
+.interface-debugger .request-envelope-preview pre { max-height: 132px; margin: 0; overflow: auto; padding: 0 8px 8px; color: #66738a; font: 9px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.interface-debugger .business-form { flex: 0 1 auto; min-height: 0; overflow: auto; margin-top: 0; padding: 10px; border: 1px solid #edf1f6; border-radius: 7px; background: #fcfdff; }
+.interface-debugger .business-form-heading { display: flex; align-items: center; justify-content: space-between; color: #58667d; font-size: 11px; }
+.interface-debugger .business-form-heading button { padding: 3px 7px; border: 1px solid #dfe6ef; border-radius: 5px; color: #6f7d93; background: #fff; font-size: 10px; }
+.interface-debugger .business-field { display: grid; gap: 4px; margin-top: 9px; color: #7b879b; font-size: 10px; }
+.interface-debugger .business-field input, .interface-debugger .business-field select, .interface-debugger .business-field textarea, .interface-debugger .parsed-panel > input, .interface-debugger .build-panel textarea { width: 100%; padding: 7px 8px; border: 1px solid #dfe6ef; border-radius: 6px; outline: none; color: #344158; background: #fff; font-size: 11px; }
+.interface-debugger .business-field textarea { min-height: 74px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; line-height: 1.5; }
+.interface-debugger .business-field input:focus, .interface-debugger .business-field select:focus, .interface-debugger .business-field textarea:focus, .interface-debugger .parsed-panel > input:focus, .interface-debugger .build-panel textarea:focus { border-color: #8da9f6; box-shadow: 0 0 0 3px #3567ef14; }
+.interface-debugger .checkbox-field { display: flex; align-items: center; gap: 7px; }.interface-debugger .checkbox-field input { width: auto; }.interface-debugger .required-mark { margin-left: 3px; color: #d86679; }
+.interface-debugger .advanced-field { flex: 0 0 auto; margin-top: 10px; }.interface-debugger .advanced-field textarea { min-height: 78px; resize: vertical; }
+.interface-debugger .primary-action { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 8px; margin-top: 10px; padding: 9px 13px; border: 0; border-radius: 7px; color: #fff; background: var(--interface-accent); font-size: 11px; }.interface-debugger .primary-action span { opacity: .7; font-size: 9px; }
+.interface-debugger .response-panel { min-height: 0; }.interface-debugger .response-tabs { display: flex; flex: 0 0 auto; border-bottom: 1px solid #e5eaf1; }.interface-debugger .parsed-panel, .interface-debugger .build-panel, .interface-debugger .frame-list { flex: 1 1 auto; min-height: 0; overflow: auto; padding-top: 10px; }
+.interface-debugger .parsed-panel > input { margin-bottom: 10px; }.interface-debugger .empty-response { display: grid; min-height: 180px; place-items: center; color: #a0aabd; font-size: 11px; }
+.interface-debugger .frame { margin: 0 0 8px; padding: 10px; overflow: auto; border-left: 3px solid #aeb9c9; border-radius: 5px; color: #58667d; background: #f8fafc; font: 10px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.interface-debugger .frame.start { border-left-color: #5684ed; }.interface-debugger .frame.partial { border-left-color: #d99a35; }.interface-debugger .frame.final { border-left-color: #36a873; }.interface-debugger .frame.final_error { border-left-color: #d86679; }
+.interface-debugger .tree-node { padding-left: 9px; border-left: 1px solid #e7ecf3; }.interface-debugger .tree-node details { margin: 4px 0; }.interface-debugger .tree-node summary { cursor: pointer; color: #53627a; font-size: 11px; }
+.interface-debugger .array-limit { display: inline-flex; align-items: center; gap: 5px; margin: 4px 0 4px 14px; color: #8a96aa; font-size: 10px; }.interface-debugger .array-limit input { width: 46px; padding: 3px 4px; border: 1px solid #dfe6ef; border-radius: 4px; color: #53627a; font-size: 10px; }
+.interface-debugger .tree-leaf { display: flex; align-items: center; gap: 6px; padding: 4px 0 4px 14px; color: #5e6b80; font-size: 10px; }.interface-debugger .tree-leaf code { color: #2e5bd8; }.interface-debugger .tree-leaf span { overflow: hidden; color: #8a96aa; text-overflow: ellipsis; white-space: nowrap; }
+.interface-debugger .build-panel p { color: #7b879b; font-size: 10px; }.interface-debugger .quick-build-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }.interface-debugger .quick-build-actions button { padding: 5px 8px; border: 1px solid #dfe6ef; border-radius: 6px; color: #66738a; background: #f5f7fb; font-size: 10px; }.interface-debugger .quick-build-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.interface-debugger .build-panel textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; line-height: 1.5; }.interface-debugger .build-actions { display: flex; gap: 8px; }.interface-debugger .build-actions .primary-action { margin-top: 8px; }
+
+@media (max-width: 900px) { .interface-debugger .interface-grid { grid-template-columns: 1fr; overflow-y: auto; }.interface-debugger .interface-panel { min-height: 420px; } }
+@media (max-width: 560px) { .interface-debugger .interface-grid { gap: 10px; }.interface-debugger .interface-panel { padding: 11px; } }

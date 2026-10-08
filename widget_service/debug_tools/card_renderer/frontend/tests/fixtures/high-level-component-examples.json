@@ -1,0 +1,84 @@
+{
+  "examples": [
+    {
+      "name": "Runtime · DataDisplay 与 PillButton",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "DataDisplay 与 PillButton 均由共享视觉 Recipe 展开。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":4,\"alignItems\":\"center\"},[\"display\",\"action\"]]\n[\"display\",\"DataDisplay\",{\"label\":\"距离发布会\",\"value\":{\"path\":\"/days\"},\"supportingText\":\"天\",\"fontColor\":\"#FF1F4799\"}]\n[\"action\",\"PillButton\",{\"label\":\"查看详情\",\"actionSurface\":\"#331F4799\",\"actionInk\":\"#FF1F4799\",\"fontSize\":14,\"fontWeight\":500,\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"ViewEvent\"}}]}]\n[\"/days\",18]"
+    },
+    {
+      "name": "Runtime · 双 InfoBlock",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "同时覆盖带图标、无图标和容器点击。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":8,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":8},[\"phone\",\"earphone\"]]\n[\"phone\",\"InfoBlock\",{\"primaryText\":\"手机 68%\",\"secondaryText\":\"正常电量\",\"fontColor\":\"#FF1F4799\",\"backgroundColor\":\"#CCFFFFFF\",\"icon\":\"resources/base/media/phone_fill.svg\",\"fillColor\":\"#FF1F4799\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"battery\"}}]}]\n[\"earphone\",\"InfoBlock\",{\"primaryText\":\"耳机盒 90%\",\"secondaryText\":\"已连接\",\"fontColor\":\"#FF1F4799\",\"backgroundColor\":\"#CCFFFFFF\"}]"
+    },
+    {
+      "name": "Runtime · EventCard",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "EventCard 替代旧 TimelineUnit，并保留底部动作。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":4},[\"header\",\"event\",\"action\"]]\n[\"header\",\"CardHeader\",{\"title\":\"下一场会议\",\"fontColor\":\"#FF8C4B1C\"}]\n[\"event\",\"EventCard\",{\"title\":\"产品评审会议\",\"time\":\"今天 14:30\",\"location\":\"A3 会议室\",\"fontColor\":\"#FF8C4B1C\"}]\n[\"action\",\"PillButton\",{\"label\":\"加入会议\",\"actionSurface\":\"#338C4B1C\",\"actionInk\":\"#FF8C4B1C\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"meeting://join\"}}]}]"
+    },
+    {
+      "name": "Runtime · TableText 与 CircleButton",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "覆盖三行 TableText 和 36vp CircleButton。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":4},[\"header\",\"table\",\"actionRow\"]]\n[\"header\",\"CardHeader\",{\"title\":\"明日健康指数\",\"fontColor\":\"#FF1F4799\"}]\n[\"table\",\"TableText\",{\"items\":[{\"label\":\"紫外线\",\"value\":\"中等\"},{\"label\":\"空气质量\",\"value\":\"良\"},{\"label\":\"感冒指数\",\"value\":\"低\"}],\"fontColor\":\"#FF1F4799\"}]\n[\"actionRow\",\"Row\",{\"width\":126,\"height\":36,\"justifyContent\":\"end\"},[\"settings\"]]\n[\"settings\",\"CircleButton\",{\"icon\":\"resources/base/media/ic_Bluetooth.svg\",\"accessibility\":{\"label\":\"打开蓝牙设置\"},\"actionSurface\":\"#331F4799\",\"actionInk\":\"#FF1F4799\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"bluetooth_entry\"}}]}]"
+    },
+    {
+      "name": "Runtime · EmphasizedData",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "核心值与单位的基线、字号和间距来自共享 Recipe。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF6F2FF\",\"itemMargin\":12,\"justifyContent\":\"center\",\"alignItems\":\"center\"},[\"header\",\"metric\"]]\n[\"header\",\"CardHeader\",{\"title\":\"睡眠得分\",\"fontColor\":\"#FF563D99\"}]\n[\"metric\",\"EmphasizedData\",{\"value\":82,\"unit\":\"分\",\"fontColor\":\"#FF563D99\"}]"
+    },
+    {
+      "name": "Runtime · ProgressLine2 与 TextBlock",
+      "size": "2x4",
+      "width": 300,
+      "height": 150,
+      "note": "覆盖线性进度与两个详情背板。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF6F2FF\",\"itemMargin\":4},[\"header\",\"body\"]]\n[\"header\",\"CardHeader\",{\"title\":\"睡眠恢复度\",\"fontColor\":\"#FF563D99\"}]\n[\"body\",\"Column\",{\"width\":276,\"height\":102,\"itemMargin\":4},[\"progress\",\"details\"]]\n[\"progress\",\"ProgressLine2\",{\"value\":82,\"total\":100,\"displayValue\":82,\"unit\":\"分\",\"fontColor\":\"#FF563D99\",\"color\":\"#FF563D99\",\"backgroundColor\":\"#33563D99\"}]\n[\"details\",\"TextBlock\",{\"items\":[{\"label\":\"睡眠时长\",\"value\":\"7小时1分\"},{\"label\":\"深睡时长\",\"value\":\"2小时15分\"}],\"fontColor\":\"#FF563D99\",\"backgroundColor\":\"#99FFFFFF\"}]"
+    },
+    {
+      "name": "Runtime · ProgressCircleSingle",
+      "size": "2x4",
+      "width": 300,
+      "height": 150,
+      "note": "环形进度、环心图标与右侧读数均来自共享 Recipe。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":12,\"alignItems\":\"center\"},[\"header\",\"progress\"]]\n[\"header\",\"CardHeader\",{\"title\":\"手机电量\",\"fontColor\":\"#FF1F4799\"}]\n[\"progress\",\"ProgressCircleSingle\",{\"value\":68,\"total\":100,\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"displayValue\":\"68%\",\"label\":\"手机电量\",\"secondaryLabel\":\"未充电\",\"fontColor\":\"#FF1F4799\",\"color\":\"#FF1F4799\",\"backgroundColor\":\"#331F4799\"}]"
+    },
+    {
+      "name": "Runtime · CardButton",
+      "size": "2x4",
+      "width": 300,
+      "height": 150,
+      "note": "同时覆盖图标视觉位和无图标占位视觉。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":12},[\"header\",\"actions\"]]\n[\"header\",\"CardHeader\",{\"title\":\"快捷操作\",\"fontColor\":\"#FF8C4B1C\"}]\n[\"actions\",\"Row\",{\"width\":276,\"height\":57,\"itemMargin\":12},[\"calendar\",\"focus\"]]\n[\"calendar\",\"CardButton\",{\"label\":\"查看日程\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fillColor\":\"#FF8C4B1C\",\"fontColor\":\"#FF8C4B1C\",\"backgroundColor\":\"#99FFFFFF\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"Calendar\"}}]}]\n[\"focus\",\"CardButton\",{\"label\":\"专注模式\",\"fontColor\":\"#FF8C4B1C\",\"backgroundColor\":\"#99FFFFFF\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"focus\"}}]}]"
+    },
+    {
+      "name": "Runtime · TopTextBottomValue",
+      "size": "2x4",
+      "width": 300,
+      "height": 150,
+      "note": "三项同级指标与两个分隔线由组件展开。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF6F2FF\",\"itemMargin\":12},[\"header\",\"metrics\"]]\n[\"header\",\"CardHeader\",{\"title\":\"我的健康数据\",\"fontColor\":\"#FF563D99\"}]\n[\"metrics\",\"TopTextBottomValue\",{\"items\":[{\"label\":\"睡眠得分\",\"value\":80,\"unit\":\"分\"},{\"label\":\"消耗热量\",\"value\":92,\"unit\":\"千卡\"},{\"label\":\"今日步数\",\"value\":2031,\"unit\":\"步\"}],\"fontColor\":\"#FF563D99\",\"dividerColor\":\"#33563D99\"}]"
+    },
+    {
+      "name": "Runtime · SummaryList",
+      "size": "2x4",
+      "width": 300,
+      "height": 150,
+      "note": "SummaryList 使用与云侧转换器一致的原生固定三行展开。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":4},[\"header\",\"list\"]]\n[\"header\",\"CardHeader\",{\"title\":\"近期日程\",\"fontColor\":\"#FF8C4B1C\"}]\n[\"list\",\"SummaryList\",{\"items\":[\"项目阶段性汇报\",\"确认 Q3 设计需求\",\"申请下周出差\"],\"fontColor\":\"#FF8C4B1C\",\"backgroundColor\":\"#99FFFFFF\"}]"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "component-recall-ground-truth-v1",
+  "description": "首期代表性样本的高阶组件召回真值；结构组件和基础 Text 不计入召回单元。",
+  "samples": {
+    "Q001": {
+      "required": ["CardHeader"],
+      "anyOf": [["InfoBlock", "TextBlock"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q003": {
+      "required": ["CardHeader"],
+      "anyOf": [["EmphasizedData", "TopTextBottomValue", "DataDisplay"], ["EventCard", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q009": {
+      "required": ["CardHeader"],
+      "anyOf": [["InfoBlock", "SummaryList", "TableText"]]
+    },
+    "Q011": {
+      "required": ["CardHeader"],
+      "anyOf": [["EmphasizedData", "InfoBlock", "DataDisplay"]]
+    },
+    "Q012": {
+      "required": ["CardHeader"],
+      "anyOf": [["ProgressLine2", "ProgressCircleSingle", "DataDisplay"], ["SummaryList", "TableText"]]
+    },
+    "Q015": {
+      "required": ["CardHeader"],
+      "anyOf": [["ProgressCircleSingle", "EmphasizedData", "DataDisplay"]]
+    },
+    "Q022": {
+      "required": ["CardHeader"],
+      "anyOf": [["DataDisplay", "SummaryList", "TableText"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q034": {
+      "required": ["CardHeader"],
+      "anyOf": [["SummaryList", "TableText", "InfoBlock"]]
+    },
+    "Q053": {
+      "required": ["CardHeader"],
+      "anyOf": [["SummaryList", "TableText", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q054": {
+      "required": ["CardHeader"],
+      "anyOf": [["ProgressLine2", "ProgressCircleSingle", "DataDisplay"], ["SummaryList", "TableText"]]
+    },
+    "Q055": {
+      "required": ["CardHeader"],
+      "anyOf": [["SummaryList", "EventCard", "TableText"]]
+    },
+    "Q061": {
+      "required": ["CardHeader"],
+      "anyOf": [["EventCard", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q063": {
+      "required": ["CardHeader"],
+      "anyOf": [["ProgressLine2", "DataDisplay", "SummaryList"], ["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q064": {
+      "required": ["CardHeader"],
+      "anyOf": [["SummaryList", "TableText", "DataDisplay"]]
+    },
+    "Q065": {
+      "required": ["CardHeader", "EventCard", "InfoBlock"],
+      "anyOf": [["PillButton", "CircleButton", "CardButton"]]
+    },
+    "Q081": {
+      "required": ["CardHeader"],
+      "anyOf": [["SummaryList", "TableText"], ["ProgressLine2", "DataDisplay"]]
+    }
+  }
+}
