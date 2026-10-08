@@ -1443,7 +1443,7 @@ Column(
       },
       Text(
         "电池状态",
-        {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
       ),
       Row(
         {"width": "matchParent", "height": 70, "itemMargin": 8, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -1472,11 +1472,11 @@ Column(
           {"width": "matchParent", "height": 44, "layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
           Text(
             Expr("" + data.percent + "%"),
-            {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
           Text(
             "剩余电量",
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 700, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
         )
       ),
@@ -1484,12 +1484,12 @@ Column(
         #if data.pluggedType
           Text(
             `${data.pluggedType}`,
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
         #elseif data.charging
           Text(
             data.charging,
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
         #endif
       )
@@ -1512,7 +1512,7 @@ Column(
           "justifyContent": "center",
           "alignItems": "start",
           "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-          "backgroundColor": "#1A1F4799",
+          "backgroundColor": $theme('actionStyle.backgroundColor'),
           "borderRadius": 12,
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         },
@@ -1537,20 +1537,20 @@ Column(
             #if data.temperature
               Text(
                 data.temperature,
-                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               ),
               Text(
                 "电池温度",
-                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               )
             #else
               Text(
                 "--",
-                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               ),
               Text(
                 "电池温度",
-                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               )
             #endif
           ),
@@ -1570,7 +1570,7 @@ Column(
           "justifyContent": "center",
           "alignItems": "start",
           "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-          "backgroundColor": "#1A1F4799",
+          "backgroundColor": $theme('actionStyle.backgroundColor'),
           "borderRadius": 12,
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         },
@@ -1595,16 +1595,16 @@ Column(
             #if data.health
               Text(
                 "电池健康",
-                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               ),
               Text(
                 data.health,
-                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               )
             #else
               Text(
                 "电池健康",
-                {"width": "matchParent", "fontSize": 10, "fontWeight": 700, "fontColor": "#FF1F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"width": "matchParent", "fontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               )
             #endif
           ),

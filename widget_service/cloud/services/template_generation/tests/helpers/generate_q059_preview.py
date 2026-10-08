@@ -26,9 +26,10 @@ async def generate(source: Path, output: Path) -> None:
     assets = [item for item in catalog if item.get("id") in content.get("candidateAssetIds", [])]
     events = []
     for candidate in content.get("candidateEventCandidates", []):
-        action = candidate.get("action")
-        assert isinstance(action, dict)
         event_id = candidate.get("capabilityId")
+        action = candidate.get("action")
+        if not isinstance(action, dict):
+            raise AssertionError(f"{event_id} action must be a dict")
         events.append(EventAction(id=event_id, **action))
     schema = _build_data_schema(definition)
     _set_path(
@@ -50,7 +51,8 @@ async def generate(source: Path, output: Path) -> None:
 
     class LocalModel:
         async def generate_json(self, _prompt, *, phase):
-            assert phase == "template-retrieval-query"
+            if phase != "template-retrieval-query":
+                raise AssertionError(f"unexpected generation phase: {phase}")
             return {
                 "requiredOutputFieldsByCapability": {
                     "GetEarphoneInfo": bindings[0].candidateOutputFields,
@@ -59,7 +61,8 @@ async def generate(source: Path, output: Path) -> None:
             }
 
         async def generate(self, prompt, _profile, **_kwargs):
-            assert TEMPLATE_ID in str(prompt)
+            if TEMPLATE_ID not in str(prompt):
+                raise AssertionError("prompt does not contain the target template id")
             return (
                 'Template("WideFullTwoCompactLayout@1",{"compactRows":true},'
                 f'Template("{TEMPLATE_ID}",'

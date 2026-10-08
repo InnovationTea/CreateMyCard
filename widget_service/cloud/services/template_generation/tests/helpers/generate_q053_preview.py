@@ -35,7 +35,8 @@ def generate(source: Path, output: Path) -> None:
     events = content.get("candidateEventCandidates", [])
     event = next(item for item in events if item.get("capabilityId") == "event.open.music.favorite")
     action = event.get("action")
-    assert isinstance(action, dict)
+    if not isinstance(action, dict):
+        raise AssertionError("event.open.music.favorite action must be a dict")
     asset_file = (
         Path(__file__).resolve().parents[4]
         / "data/capabilities/app-11.7.7.300_rom-7.0/asset_capabilities.json"
@@ -64,7 +65,8 @@ def generate(source: Path, output: Path) -> None:
     )
     selection = retrieve_template_variants(query, task, registry, bindings, card_spec)
     plans = plan_embedded_wide_full(query, selection, task, registry)
-    assert plans and plans[0].business_slots[0].template_id == TEMPLATE_ID
+    if not plans or plans[0].business_slots[0].template_id != TEMPLATE_ID:
+        raise AssertionError("planner did not return the expected WideFull template plan")
     projection = build_ux_mixed_prompt(
         task_spec=task,
         card_spec=card_spec,
