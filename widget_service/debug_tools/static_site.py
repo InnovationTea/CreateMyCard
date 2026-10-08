@@ -14,6 +14,7 @@ FRONTEND_DIST = DEBUG_TOOLS_ROOT / "dist"
 REPOSITORY_ROOT = DEBUG_TOOLS_ROOT.parents[1]
 RESOURCE_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "resources"
 RENDER_BACKGROUND_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "background_assets"
+RENDER_FONT_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "fonts" / "harmonyos"
 
 
 def register_renderer_asset_routes(app: FastAPI) -> None:
@@ -26,6 +27,10 @@ def register_renderer_asset_routes(app: FastAPI) -> None:
     @app.get("/background_assets/{asset_path:path}")
     async def renderer_background(asset_path: str) -> Response:
         return asset_response(RENDER_BACKGROUND_ROOT, asset_path)
+
+    @app.get("/fonts/harmonyos/{asset_path:path}")
+    async def renderer_harmonyos_font(asset_path: str) -> Response:
+        return asset_response(RENDER_FONT_ROOT, asset_path, media_type="font/ttf")
 
 
 def create_frontend_app(
@@ -110,7 +115,12 @@ def static_response(static_dir: Path, asset_path: str) -> Response:
     )
 
 
-def asset_response(asset_root: Path, asset_path: str) -> Response:
+def asset_response(
+    asset_root: Path,
+    asset_path: str,
+    *,
+    media_type: str | None = None,
+) -> Response:
     """从固定资源根返回文件，不对目录或越界路径提供 SPA fallback。"""
 
     normalized = Path(asset_path)
@@ -124,4 +134,4 @@ def asset_response(asset_root: Path, asset_path: str) -> Response:
         return JSONResponse({"detail": "invalid asset path"}, status_code=400)
     if not candidate.is_file():
         return JSONResponse({"detail": "asset not found"}, status_code=404)
-    return FileResponse(candidate)
+    return FileResponse(candidate, media_type=media_type)

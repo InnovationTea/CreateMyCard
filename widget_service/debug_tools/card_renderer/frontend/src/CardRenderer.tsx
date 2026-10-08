@@ -36,8 +36,8 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', cardS
   const [internalZoom, setInternalZoom] = useState(220);
   const [autoRender, setAutoRender] = useState(true);
   const [document, setDocument] = useState<RendererDocument | null>(null);
-  const [containerWidth, setContainerWidth] = useState(160);
-  const [containerHeight, setContainerHeight] = useState(160);
+  const [containerWidth, setContainerWidth] = useState(150);
+  const [containerHeight, setContainerHeight] = useState(150);
   const [error, setError] = useState('');
   const [interaction, setInteraction] = useState('');
   const zoom = controlledZoom ?? internalZoom;
@@ -107,7 +107,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', cardS
       <div className="card-renderer__toolbar">
         <button type="button" className="is-primary" onClick={() => render()}>渲染</button>
         <button type="button" onClick={() => { setSource(''); render(''); }}>清空</button>
-        <label className="card-renderer__control">画布<select value={cardSize} onChange={(event) => setCardSize(event.target.value as CardSize)}><option value="auto">自动</option><option value="2x2">2×2 · 160×160</option><option value="2x4">2×4 · 320×160</option></select></label>
+        <label className="card-renderer__control">画布<select value={cardSize} onChange={(event) => setCardSize(event.target.value as CardSize)}><option value="auto">自动</option><option value="2x2">2×2 · 150×150</option><option value="2x4">2×4 · 300×150</option></select></label>
         <label className="card-renderer__check"><input type="checkbox" checked={autoRender} onChange={(event) => setAutoRender(event.target.checked)} />自动渲染</label>
       </div>
       <textarea value={source} onChange={(event) => setSource(event.target.value)} spellCheck={false} aria-label="DSL 输入" />

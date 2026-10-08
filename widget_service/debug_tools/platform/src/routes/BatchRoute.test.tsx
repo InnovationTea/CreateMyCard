@@ -89,7 +89,7 @@ describe('BatchRoute', () => {
     renderDetail();
 
     await userEvent.click(await screen.findByText('Q001'));
-    expect(await screen.findByText(/320 × 160/)).toBeInTheDocument();
+    expect(await screen.findByText(/300 × 150/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '渲染' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '清空' })).not.toBeInTheDocument();
     expect(screen.queryByText('自动渲染')).not.toBeInTheDocument();

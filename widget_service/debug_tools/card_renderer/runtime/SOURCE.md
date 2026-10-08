@@ -20,7 +20,8 @@
 | 布局契约 | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/layout-contracts-v1.json` | 当前不被浏览器运行时直接导入 | 间接契约。更新后应检查生成 DSL 是否引入新布局字段，并评估 parser、components、renderer 是否需要同步；不要为它创建本地副本。 |
 | 卡片素材 | `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。新增或替换素材会直接生效；目录迁移时必须同时修改 `debug_tools/static_site.py`、`debug_tools/platform/vite.config.ts` 和资源兼容测试。 |
 | 背景素材 | `render/platform/public/background_assets/` | Python `/background_assets/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。目录或命名规则变化时同步两套服务入口和测试。 |
-| Concert One 字体 | `render/platform/public/fonts/ConcertOne-Regular.ttf` | `widget_service/debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 二进制副本。源文件哈希变化时重新复制并执行 Vite build。HarmonyOS 字体不复制，继续使用系统字体回退。 |
+| Concert One 字体 | `render/platform/public/fonts/ConcertOne-Regular.ttf` | `widget_service/debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 二进制副本。源文件哈希变化时重新复制并执行 Vite build。 |
+| HarmonyOS 字体 | `render/platform/public/fonts/harmonyos/` | CSS `/fonts/harmonyos/` 引用、Python 资源路由和 Vite 本地中间件 | 实时目录依赖，不复制。字体目录变化时同步 `styles.css`、`debug_tools/static_site.py` 和两处 Vite 配置。 |
 | Render 示例 | `render/platform/src/example-dsl.ts` | `widget_service/debug_tools/card_renderer/frontend/tests/fixtures/example-dsl.ts` | 测试副本。示例协议或受支持组件变化时同步。 |
 | Render 测试数据 | `render/platform/fixtures/high-level-component-examples.json`、`fusion-examples.json` | `widget_service/debug_tools/card_renderer/frontend/tests/fixtures/` | 测试副本。新增高阶组件、Fusion 样例或素材引用时同步。 |
 | Render 测试逻辑 | `render/platform/tests/mini-renderer.test.ts`、`high-level-components.test.ts`、`fusion-compatibility.test.ts` | `frontend/tests/render-*.test.ts` | 适配后的测试副本。上游测试新增协议行为时同步相应用例，不以覆盖方式丢弃 Debug Tools 专属断言。 |
@@ -99,7 +100,7 @@ Copy-Item -Recurse -Force 'render/genui-sdk/renderer/src/*' 'widget_service/debu
 - `layout-contracts-v1.json` 更新时检查新增字段是否已经由 `compileMiniDsl` 和组件 registry 支持。
 - `resources/` 与 `background_assets/` 是实时读取目录，只需同步引用和测试；目录根变化时必须保持
   frontend/full Python 服务与 Vite 开发服务一致，并继续拒绝 `..` 等目录穿越。
-- Concert One 字体只有哈希变化时才重新复制。不要把根 `render` 的 HarmonyOS 字体目录迁入 Debug Tools。
+- Concert One 字体只有哈希变化时才重新复制。HarmonyOS 字体通过受限静态路由复用，不把根 `render` 的字体目录迁入 Debug Tools。
 - 同步上游测试和 fixture 时保留 Debug Tools 特有的 artifact 解包、尺寸、`assetBaseUrl`、`onArtifact`、
   `onAction`、TextInput/DataModel 和错误边界测试。
 
