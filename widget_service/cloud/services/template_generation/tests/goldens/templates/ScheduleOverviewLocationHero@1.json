@@ -188,7 +188,8 @@
                 {
                   "dtEnd": "15:30",
                   "dtStart": "14:00",
-                  "eventLocation": "深圳市龙岗区五和大道"
+                  "eventLocation": "深圳市龙岗区五和大道",
+                  "oneClickServiceLink": "示例数据"
                 }
               ]
             }

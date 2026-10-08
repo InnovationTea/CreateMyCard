@@ -1,8 +1,772 @@
 {
-  "artifact": null,
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "futureDays": 7
+          },
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "arguments": {
+            "districtName": "浦东新区",
+            "forecastDays": 1,
+            "prefectureName": "上海市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "description": "会议详情+浦东天气详情",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "会面天气"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.icon_meeting",
+        "asset.icon_weather_thermometer",
+        "asset.icon_weather_wind",
+        "asset.drop_1"
+      ],
+      "data": [
+        "GetCalendarEvents",
+        "ViewWeather"
+      ],
+      "event": []
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.icon_meeting",
+        "asset.icon_weather_thermometer",
+        "asset.icon_weather_wind",
+        "asset.drop_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "futureDays": 7
+          },
+          "candidateOutputFields": [
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+            "/events/0/description"
+          ],
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "arguments": {
+            "districtName": "浦东新区",
+            "forecastDays": 1,
+            "prefectureName": "上海市"
+          },
+          "candidateOutputFields": [
+            "/current/condition",
+            "/current/temperatureText",
+            "/current/feelsLikeC",
+            "/current/humidityPercent",
+            "/current/windDirection",
+            "/current/windLevel",
+            "/current/alertLevel"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "candidateEventCandidates": []
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121E59",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121E59",
+                      0
+                    ],
+                    [
+                      "#FF2BA2D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "backgroundColor": "#33CCEEFF",
+                "borderRadius": 20,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "会面天气",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_0_1",
+              "src": "resources/base/media/icon_meeting.svg",
+              "styles": {
+                "fillColor": "#B3CCEEFF",
+                "flexShrink": 0,
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "{{ ${/data/calendar/events/0/dtStart} == '' ? 24 : 54 }}",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "flexShrink": 0,
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "bottom": 2,
+                  "left": 0,
+                  "right": 0,
+                  "top": 4
+                },
+                "width": 8
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_1_0_0",
+              "styles": {
+                "alignContent": "center",
+                "backgroundColor": "#00FFFFFF",
+                "borderColor": "#FFCCEEFF",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "flexShrink": 0,
+                "height": 8,
+                "width": 8
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_0_0",
+              "styles": {
+                "color": "#00FFFFFF",
+                "height": 0,
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": 0
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_1",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "layoutWeight": 1,
+                "strokeWidth": 1,
+                "vertical": true,
+                "width": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0",
+                "root_1_0_0_1_1_1",
+                "root_1_0_0_1_1_2",
+                "root_1_0_0_1_1_3"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/title} }}",
+              "id": "root_1_0_0_1_1_0",
+              "styles": {
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "height": 20,
+                "margin": {
+                  "bottom": 2
+                },
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('' + ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} + '') }}",
+              "id": "root_1_0_0_1_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/eventLocation} == '' ? '' : ${/data/calendar/events/0/eventLocation} }}",
+              "id": "root_1_0_0_1_1_2",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/description} }}",
+              "id": "root_1_0_0_1_1_3",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "backgroundColor": "#33CCEEFF",
+                "borderRadius": 20,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0",
+                "root_1_1_0_1",
+                "root_1_1_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "styles": {
+                "alignItems": "top",
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "上海市",
+              "id": "root_1_1_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_1_0",
+                "root_1_1_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_1_0_0",
+                "root_1_1_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/temperatureText} }}",
+              "id": "root_1_1_0_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/condition} }}",
+              "id": "root_1_1_0_1_0_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '体感 ' + ${/data/weather/current/feelsLikeC} + '°' }}",
+              "id": "root_1_1_0_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_2_0",
+                "root_1_1_0_2_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_2",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '空气湿度 ' + ${/data/weather/current/humidityPercent} + '%' }}",
+              "id": "root_1_1_0_2_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/windDirection} + ${/data/weather/current/windLevel} + '级 | ' + ${/data/weather/current/alertLevel} }}",
+              "id": "root_1_1_0_2_1",
+              "styles": {
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "calendar": {
+                "events": [
+                  {
+                    "description": "周例会",
+                    "dtEnd": "15:00",
+                    "dtStart": "14:00",
+                    "eventLocation": "会议室",
+                    "title": "项目例会"
+                  }
+                ]
+              },
+              "weather": {
+                "current": {
+                  "alertLevel": "大风蓝色预警",
+                  "condition": "多云",
+                  "feelsLikeC": 31,
+                  "humidityPercent": 68,
+                  "temperatureText": "29℃",
+                  "windDirection": "东南风",
+                  "windLevel": 2
+                }
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。",
+          "id": "asset.icon_meeting",
+          "src": "resources/base/media/icon_meeting.svg"
+        },
+        {
+          "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+          "id": "asset.icon_weather_thermometer",
+          "src": "resources/base/media/icon_weather_thermometer.svg"
+        },
+        {
+          "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+          "id": "asset.icon_weather_wind",
+          "src": "resources/base/media/icon_weather_wind.svg"
+        },
+        {
+          "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+          "id": "asset.drop_1",
+          "src": "resources/base/media/drop_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "description": {
+                  "description": "日程的备注、摘要或补充叙述文本。",
+                  "sampleValue": "周例会",
+                  "type": "string"
+                },
+                "dtEnd": {
+                  "description": "格式化后的日程结束时间短文本，如 '05:00'。",
+                  "sampleValue": "15:00",
+                  "type": "string"
+                },
+                "dtStart": {
+                  "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                  "sampleValue": "14:00",
+                  "type": "string"
+                },
+                "eventLocation": {
+                  "description": "日程的具体地点描述，若未填写则为空字符串。",
+                  "sampleValue": "会议室",
+                  "type": "string"
+                },
+                "title": {
+                  "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
+                  "sampleValue": "项目例会",
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "weather": {
+            "current": {
+              "alertLevel": {
+                "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                "sampleValue": "大风蓝色预警",
+                "type": "string"
+              },
+              "condition": {
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云",
+                "type": "string"
+              },
+              "feelsLikeC": {
+                "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+                "sampleValue": 31,
+                "type": "number"
+              },
+              "humidityPercent": {
+                "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                "sampleValue": 68,
+                "type": "number"
+              },
+              "temperatureText": {
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃",
+                "type": "string"
+              },
+              "windDirection": {
+                "description": "当前风向。",
+                "sampleValue": "东南风",
+                "type": "string"
+              },
+              "windLevel": {
+                "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                "sampleValue": 2,
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，看上海浦东的会议标题、开始和结束时间、地点、备注，以及天气、气温、体感、湿度、风向、风力和天气预警。"
+    }
+  },
   "caseId": "Q065",
-  "errorCode": "A2UI_GENERATION_FAILED",
-  "message": "卡片创建过程遇到问题了，请稍后再试。",
-  "status": "failed",
+  "status": "success",
   "suggestSize": "2x4"
 }

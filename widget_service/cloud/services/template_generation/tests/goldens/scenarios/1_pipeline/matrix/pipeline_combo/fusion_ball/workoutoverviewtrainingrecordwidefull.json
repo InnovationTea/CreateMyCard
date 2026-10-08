@@ -536,8 +536,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C464"
+    "all": "C542"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "WorkoutOverviewTrainingRecordWideFull@1"
 }

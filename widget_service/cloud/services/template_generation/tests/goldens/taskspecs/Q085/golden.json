@@ -154,7 +154,8 @@
               "id": "__genui_render_component__root_1",
               "itemMargin": 8,
               "styles": {
-                "height": "matchParent",
+                "clip": true,
+                "height": 126,
                 "width": "matchParent"
               }
             },
@@ -164,38 +165,18 @@
               ],
               "component": "Column",
               "id": "root_1_0",
-              "itemMargin": 0,
               "styles": {
-                "backgroundColor": "#33FFFFFF",
-                "borderRadius": 20,
                 "height": "matchParent",
-                "layoutWeight": 1,
-                "padding": {
-                  "bottom": 8,
-                  "left": 12,
-                  "right": 12,
-                  "top": 8
-                }
+                "layoutWeight": 1
               }
             },
             {
               "children": [
-                "root_1_0_0_0"
+                "root_1_0_0_0",
+                "root_1_0_0_1"
               ],
               "component": "Column",
               "id": "root_1_0_0",
-              "styles": {
-                "layoutWeight": 1,
-                "width": "matchParent"
-              }
-            },
-            {
-              "children": [
-                "root_1_0_0_0_0",
-                "root_1_0_0_0_1"
-              ],
-              "component": "Column",
-              "id": "root_1_0_0_0",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "start",
@@ -211,11 +192,11 @@
             },
             {
               "children": [
-                "root_1_0_0_0_0_0",
-                "root_1_0_0_0_0_1"
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
               ],
               "component": "Column",
-              "id": "root_1_0_0_0_0",
+              "id": "root_1_0_0_0",
               "itemMargin": 8,
               "styles": {
                 "alignItems": "start",
@@ -229,10 +210,10 @@
             },
             {
               "children": [
-                "root_1_0_0_0_0_0_0"
+                "root_1_0_0_0_0_0"
               ],
               "component": "Row",
-              "id": "root_1_0_0_0_0_0",
+              "id": "root_1_0_0_0_0",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "top",
@@ -243,7 +224,7 @@
             {
               "component": "Text",
               "content": "睡眠监测",
-              "id": "root_1_0_0_0_0_0_0",
+              "id": "root_1_0_0_0_0_0",
               "styles": {
                 "fontColor": "#99D9CCFF",
                 "fontSize": 12,
@@ -254,11 +235,11 @@
             },
             {
               "children": [
-                "root_1_0_0_0_0_1_0",
-                "root_1_0_0_0_0_1_1"
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1"
               ],
               "component": "Row",
-              "id": "root_1_0_0_0_0_1",
+              "id": "root_1_0_0_0_1",
               "itemMargin": 2,
               "styles": {
                 "alignItems": "bottom",
@@ -269,7 +250,7 @@
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/sleepScore} }}",
-              "id": "root_1_0_0_0_0_1_0",
+              "id": "root_1_0_0_0_1_0",
               "styles": {
                 "fontColor": "#E6FFFFFF",
                 "fontSize": 34,
@@ -281,7 +262,7 @@
             {
               "component": "Text",
               "content": "分",
-              "id": "root_1_0_0_0_0_1_1",
+              "id": "root_1_0_0_0_1_1",
               "styles": {
                 "fontColor": "#E6FFFFFF",
                 "fontSize": 14,
@@ -295,10 +276,10 @@
             },
             {
               "children": [
-                "root_1_0_0_0_1_0"
+                "root_1_0_0_1_0"
               ],
               "component": "Column",
-              "id": "root_1_0_0_0_1",
+              "id": "root_1_0_0_1",
               "itemMargin": 8,
               "styles": {
                 "alignItems": "start",
@@ -312,11 +293,11 @@
             },
             {
               "children": [
-                "root_1_0_0_0_1_0_0",
-                "root_1_0_0_0_1_0_1"
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
               ],
               "component": "Row",
-              "id": "root_1_0_0_0_1_0",
+              "id": "root_1_0_0_1_0",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "center",
@@ -327,7 +308,7 @@
             {
               "component": "Text",
               "content": "总睡眠",
-              "id": "root_1_0_0_0_1_0_0",
+              "id": "root_1_0_0_1_0_0",
               "styles": {
                 "fontColor": "#99D9CCFF",
                 "fontSize": 12,
@@ -339,7 +320,7 @@
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
-              "id": "root_1_0_0_0_1_0_1",
+              "id": "root_1_0_0_1_0_1",
               "styles": {
                 "fontColor": "#E6FFFFFF",
                 "fontSize": 12,
@@ -355,18 +336,10 @@
               ],
               "component": "Column",
               "id": "root_1_1",
-              "itemMargin": 0,
+              "itemMargin": 8,
               "styles": {
-                "backgroundColor": "#33FFFFFF",
-                "borderRadius": 20,
                 "height": "matchParent",
-                "layoutWeight": 1,
-                "padding": {
-                  "bottom": 8,
-                  "left": 12,
-                  "right": 12,
-                  "top": 8
-                }
+                "layoutWeight": 1
               }
             },
             {
@@ -376,7 +349,7 @@
               "component": "Column",
               "id": "root_1_1_0",
               "styles": {
-                "layoutWeight": 1,
+                "height": 60,
                 "width": "matchParent"
               }
             },
@@ -385,22 +358,24 @@
                 "root_1_1_0_0_0",
                 "root_1_1_0_0_1"
               ],
-              "component": "Column",
+              "component": "Row",
               "id": "root_1_1_0_0",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "center",
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 20,
                 "clip": true,
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
                 "height": "matchParent",
-                "justifyContent": "start",
+                "justifyContent": "spaceBetween",
                 "padding": {
-                  "bottom": 0,
-                  "left": 0,
-                  "right": 0,
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
                   "top": 8
                 },
                 "width": "matchParent"
@@ -411,52 +386,22 @@
                 "root_1_1_0_0_0_0",
                 "root_1_1_0_0_0_1"
               ],
-              "component": "Stack",
+              "component": "Column",
               "id": "root_1_1_0_0_0",
-              "styles": {
-                "alignContent": "center",
-                "flexShrink": 0,
-                "height": 52,
-                "width": 52
-              }
-            },
-            {
-              "component": "Progress",
-              "id": "root_1_1_0_0_0_0",
-              "styles": {
-                "backgroundColor": "#33FFFFFF",
-                "color": "#FFE5E5E5",
-                "height": 52,
-                "strokeWidth": 6,
-                "type": "ring",
-                "width": 52
-              },
-              "total": 100,
-              "value": "{{ ${/data/phoneBattery/batterySOC} }}"
-            },
-            {
-              "children": [
-                "root_1_1_0_0_0_1_0",
-                "root_1_1_0_0_0_1_1"
-              ],
-              "component": "Row",
-              "id": "root_1_1_0_0_0_1",
               "itemMargin": 2,
               "styles": {
-                "alignItems": "bottom",
+                "alignItems": "start",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
-                "height": 20,
-                "justifyContent": "center",
-                "width": 40
+                "justifyContent": "start"
               }
             },
             {
               "component": "Text",
-              "content": "{{ ${/data/phoneBattery/batterySOC} }}",
-              "id": "root_1_1_0_0_0_1_0",
+              "content": "{{ ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "root_1_1_0_0_0_0",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
@@ -466,48 +411,34 @@
                 "fontSize": 16,
                 "fontWeight": 700,
                 "maxLines": 1,
-                "minFontSize": 12,
-                "textAlign": "center",
-                "textOverflow": "ellipsis"
-              }
-            },
-            {
-              "component": "Text",
-              "content": "%",
-              "id": "root_1_1_0_0_0_1_1",
-              "styles": {
-                "constraintSize": {
-                  "minHeight": 0,
-                  "minWidth": 0
-                },
-                "fontColor": "#99D9CCFF",
-                "fontSize": 10,
-                "fontWeight": 500,
-                "maxLines": 1,
-                "padding": {
-                  "bottom": 2
-                },
                 "textOverflow": "ellipsis"
               }
             },
             {
               "component": "Text",
               "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
-              "id": "root_1_1_0_0_1",
+              "id": "root_1_1_0_0_0_1",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
-                "fontColor": "#E6FFFFFF",
-                "fontSize": 14,
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
                 "fontWeight": 500,
-                "height": 28,
                 "maxLines": 1,
-                "minFontSize": 12,
-                "textAlign": "center",
-                "textOverflow": "ellipsis",
-                "width": "matchParent"
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#99D9CCFF",
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
               }
             },
             {
@@ -517,14 +448,16 @@
               "component": "Column",
               "id": "root_1_1_1",
               "styles": {
-                "height": 36,
+                "height": 60,
                 "width": "matchParent"
               }
             },
             {
-              "component": "Button",
+              "children": [
+                "root_1_1_1_0_0"
+              ],
+              "component": "Stack",
               "id": "root_1_1_1_0",
-              "label": "设置闹钟",
               "onClick": [
                 {
                   "args": {
@@ -537,13 +470,96 @@
                 }
               ],
               "styles": {
+                "alignContent": "center",
                 "backgroundColor": "#33FFFFFF",
-                "borderRadius": 18,
-                "fontColor": "#E6FFFFFF",
-                "fontSize": 14,
-                "fontWeight": 500,
-                "height": 36,
+                "borderRadius": 20,
+                "height": "matchParent",
                 "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0_0_0",
+                "root_1_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0_0_0_0",
+                "root_1_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "设置闹钟",
+              "id": "root_1_1_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#E6FFFFFF",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "闹钟应用",
+              "id": "root_1_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99D9CCFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_1_0_0_1",
+              "src": "resources/base/media/alarm_fill_1.svg",
+              "styles": {
+                "fillColor": "#99D9CCFF",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
               }
             }
           ],

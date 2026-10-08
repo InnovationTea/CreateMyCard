@@ -612,8 +612,8 @@
     "charging"
   ],
   "sampleIds": {
-    "all": "C053",
-    "none": "C054"
+    "all": "C081",
+    "none": "C082"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewTemperatureRingHero@1"

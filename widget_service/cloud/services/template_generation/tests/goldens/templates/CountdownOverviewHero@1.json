@@ -134,11 +134,11 @@
                 "minWidth": 0
               },
               "fontColor": "#9999521F",
-              "fontSize": 10,
+              "fontSize": 12,
               "fontWeight": 500,
               "height": 16,
               "margin": {
-                "bottom": 8
+                "bottom": 6
               },
               "maxLines": 1,
               "textOverflow": "ellipsis"

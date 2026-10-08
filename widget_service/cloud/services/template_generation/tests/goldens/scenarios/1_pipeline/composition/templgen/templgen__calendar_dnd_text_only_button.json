@@ -205,7 +205,8 @@
             "children": [
               "root_1_0_0_1_1_0",
               "root_1_0_0_1_1_1",
-              "root_1_0_0_1_1_2"
+              "root_1_0_0_1_1_2",
+              "root_1_0_0_1_1_3"
             ],
             "component": "Column",
             "id": "root_1_0_0_1_1",
@@ -273,6 +274,25 @@
               "maxLines": 1,
               "minFontSize": 10,
               "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/description} }}",
+            "id": "root_1_0_0_1_1_3",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "minFontSize": 10,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
             }
           },
           {

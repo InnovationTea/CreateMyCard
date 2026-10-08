@@ -1,8 +1,12 @@
 {
   "recordings": [
     {
-      "key": "76e7018964e27d1a80b858cd33aa0067f929001209006c93ee72b0d42c45b769",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/dailySteps\"],\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/feelsLikeC\",\"/current/alertLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\",\"event.open.health.sport\"],\"allowCalendarViewFallback\":false}"
+      "key": "b5932c46b4221fc6b2b098f07d978cd94136e0cd39ef642ad4dc0ddd8d8eef95",
+      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"SleepOverviewNapHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"WeatherOverviewHero@1\", {\"location\": \"武汉市\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.health.sport\", \"label\": \"今日训练\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
+    },
+    {
+      "key": "f6ba123bdb4a818d153a4bfffb0ec711785bc03b568aef04bdf1e7d8ebcd46ac",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetHealthAndSportSummary\": [\n      \"/totalNapDurationText\",\n      \"/dailySteps\"\n    ],\n    \"ViewWeather\": [\n      \"/location/prefectureName\",\n      \"/current/temperatureText\",\n      \"/current/condition\",\n      \"/current/feelsLikeC\",\n      \"/current/alertLevel\"\n    ]\n  },\n  \"primaryOutputFieldByCapability\": {},\n  \"action\": [\n    \"event.open.weather\",\n    \"event.open.health.sport\"\n  ],\n  \"allowCalendarViewFallback\": false\n}"
     }
   ]
 }

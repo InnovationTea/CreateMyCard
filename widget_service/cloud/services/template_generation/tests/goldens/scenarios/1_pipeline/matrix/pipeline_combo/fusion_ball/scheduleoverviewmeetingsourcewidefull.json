@@ -431,8 +431,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C075"
+    "all": "C109"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "ScheduleOverviewMeetingSourceWideFull@1"
 }

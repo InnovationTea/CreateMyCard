@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "9ed7ea5104032209dd5a9d297f1a7100beb4f9dd5eeef6a150ad22a2508a23d2",
+      "key": "8e4dfbcc40801e34ed05d1521af3f4584311456e55c281833fa0010aa26f9d12",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/leftBatteryLevel\",\"/leftChargingStatusDesc\",\"/rightBatteryLevel\",\"/rightChargingStatusDesc\"]},\"action\":[],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
     },
     {

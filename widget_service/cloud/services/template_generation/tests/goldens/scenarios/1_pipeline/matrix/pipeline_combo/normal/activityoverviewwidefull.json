@@ -379,8 +379,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C269"
+    "all": "C338"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "ActivityOverviewWideFull@1"
 }

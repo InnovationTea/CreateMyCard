@@ -772,8 +772,8 @@
     "description"
   ],
   "sampleIds": {
-    "all": "C061",
-    "none": "C062"
+    "all": "C089",
+    "none": "C090"
   },
   "size": "2x2",
   "templateId": "ScheduleOverviewEventCountDetailsFull@1"

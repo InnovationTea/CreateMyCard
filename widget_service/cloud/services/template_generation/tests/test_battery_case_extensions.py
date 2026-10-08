@@ -200,6 +200,11 @@ _RENDER_KINDS = ("health", "level", "charging")
 async def _render_case_extension(kind: str, fusion: bool) -> dict[str, Any]:
     fields = _HEALTH_FIELDS if kind == "health" else _LEVEL_FIELDS
     template = "BatteryOverviewHealthLevelHero@1" if kind == "health" else _FALLBACK_TEMPLATE
+    if kind == "level":
+        # ChargingProgressHero 扩展后覆盖 SOC+电量等级，文本等级兜底变体不再进入
+        # 精确二字段意图的候选（检索门在存在完整覆盖者时不再放行兜底），
+        # 渲染场景跟随现行计划选择充电状态 Hero。
+        template = "BatteryOverviewChargingProgressHero@1"
     event_id, label = _SETTINGS, "电池设置"
     if kind == "charging":
         fields = ("/batterySOCText", "/chargingStatusDesc")

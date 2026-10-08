@@ -1,20 +1,561 @@
 {
-  "artifact": null,
-  "blockingIssues": [
-    {
-      "actualType": "string",
-      "agentAction": "REFRESH_CAPABILITIES",
-      "capabilityId": "asset.icon_weather_temperature1",
-      "code": "UNKNOWN_CAPABILITY",
-      "expected": "重新获取能力概述，并只使用本轮返回的 ID",
-      "message": "素材 ID 未在当前注册表中声明。",
-      "path": "/candidateAssetIds/1",
-      "referenceSource": "getWidgetCapabilityOverview.assetCandidates[]",
-      "repairInstruction": "重新调用本轮能力概述；只从 referenceSource 对应列表选择 ID。数据候选变化后重新加载 schema 并检查权限。",
-      "retryable": true
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-09-01"
+          },
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "districtName": "雁塔区",
+            "forecastDays": 5,
+            "prefectureName": "西安市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "description": "倒数天气和详情",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x2",
+      "title": "西安出行"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.airplane_departure",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1",
+        "asset.alarm_fill_1"
+      ],
+      "data": [
+        "GetCountdownDays",
+        "ViewWeather"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.airplane_departure",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1",
+        "asset.alarm_fill_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-09-01"
+          },
+          "candidateOutputFields": [
+            "/countdownDays"
+          ],
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "districtName": "雁塔区",
+            "forecastDays": 5,
+            "prefectureName": "西安市"
+          },
+          "candidateOutputFields": [
+            "/daily/4/condition",
+            "/daily/4/temperatureRangeText",
+            "/daily/4/rainProbabilityPercent"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.clock.phone",
+              "bundleName": "com.huawei.hmos.clock",
+              "intentName": "Clock",
+              "uri": ""
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#1A0A59F7",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Column",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0",
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#1A2E529E",
+                "borderRadius": 16,
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "intentName": "Clock",
+                    "uri": ""
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "center",
+                "padding": {
+                  "left": 8,
+                  "right": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0_0",
+                "root_1_0_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_0",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '剩余' + ${/data/countdown/countdownDays} + '天' }}",
+              "id": "root_1_0_0_0_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#E61F4595",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "西安出行",
+              "id": "root_1_0_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1",
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#1A2E529E",
+                "borderRadius": 16,
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "center",
+                "padding": {
+                  "left": 8,
+                  "right": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0",
+                "root_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_0",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/4/temperatureRangeText} }}",
+              "id": "root_1_1_0_0_0_0",
+              "styles": {
+                "fontColor": "#E61F4595",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_1_0",
+                "root_1_1_0_0_0_1_1",
+                "root_1_1_0_0_0_1_2"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_0_1",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/4/condition} }}",
+              "id": "root_1_1_0_0_0_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": " | ",
+              "id": "root_1_1_0_0_0_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} }}",
+              "id": "root_1_1_0_0_0_1_2",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_1",
+              "src": "resources/base/media/icon_weather_thermometer.svg",
+              "styles": {
+                "fillColor": "#991F4595",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "countdown": {
+                "countdownDays": 30
+              },
+              "weather": {
+                "daily": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  {
+                    "condition": "多云",
+                    "rainProbabilityPercent": "20%",
+                    "temperatureRangeText": "25℃ / 32℃"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：飞机起飞图标，默认黑色，图形为飞机从跑道起飞的侧视图；适用：出行计划、航班出发信息、旅行日程。",
+          "id": "asset.airplane_departure",
+          "src": "resources/base/media/airplane_departure.svg"
+        },
+        {
+          "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+          "id": "asset.icon_weather_thermometer",
+          "src": "resources/base/media/icon_weather_thermometer.svg"
+        },
+        {
+          "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+          "id": "asset.drop_1",
+          "src": "resources/base/media/drop_1.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。",
+          "id": "asset.alarm_fill_1",
+          "src": "resources/base/media/alarm_fill_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "countdown": {
+            "countdownDays": {
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30,
+              "type": "integer"
+            }
+          },
+          "weather": {
+            "daily": [
+              {},
+              {},
+              {},
+              {},
+              {
+                "condition": {
+                  "description": "白天天气现象，来源于weather_icon。",
+                  "sampleValue": "多云",
+                  "type": "string"
+                },
+                "rainProbabilityPercent": {
+                  "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                  "sampleValue": "20%",
+                  "type": "string"
+                },
+                "temperatureRangeText": {
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ],
+      "size": "2x2",
+      "userQuery": "2026年9月1日要去西安市雁塔区出差，帮我做个卡片，看还有几天出发和当天的天气、温度范围、下雨概率，点一下打开闹钟应用设置出发提醒。"
     }
-  ],
+  },
   "caseId": "Q026",
-  "errorCode": "UNKNOWN_CAPABILITY",
-  "status": "preflight_rejected"
+  "status": "success",
+  "suggestSize": "2x2"
 }

@@ -21,8 +21,7 @@
     "description": "电量电流和电压",
     "candidateAssetIds": [
       "asset.battery_leaf_fill",
-      "asset.bolt_fill",
-      "asset.icon_phone"
+      "asset.bolt_fill"
     ]
   },
   "deviceInfo": {
@@ -75,7 +74,6 @@
   "description": "电量电流和电压",
   "candidateAssetIds": [
     "asset.battery_leaf_fill",
-    "asset.bolt_fill",
-    "asset.icon_phone"
+    "asset.bolt_fill"
   ]
 }

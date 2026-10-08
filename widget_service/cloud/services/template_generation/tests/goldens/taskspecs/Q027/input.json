@@ -12,6 +12,7 @@
         "candidateOutputFields": [
           "/targetDateText",
           "/exerciseTypeName",
+          "/exerciseDurationText",
           "/exerciseHeartRateMin"
         ]
       }
@@ -81,6 +82,7 @@
       "candidateOutputFields": [
         "/targetDateText",
         "/exerciseTypeName",
+        "/exerciseDurationText",
         "/exerciseHeartRateMin"
       ]
     }

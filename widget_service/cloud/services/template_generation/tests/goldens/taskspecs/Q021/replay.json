@@ -5,7 +5,7 @@
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/fallAsleepTimeText\",\"/wakeupTimeText\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "cb4588faa420dbffb2d7b958522127388385add067a276d03a6ce53e57f70240",
+      "key": "b23151924540d8a2a68d382033fb22e2ffd21f06bc40dced3c047a6861cc39be",
       "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewNapHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
     }
   ]

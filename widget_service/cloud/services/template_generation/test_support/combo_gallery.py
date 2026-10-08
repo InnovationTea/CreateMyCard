@@ -2,7 +2,7 @@
 """把 pipeline_combo 矩阵金样导出为端侧画廊数据集。
 
 读取 ``tests/goldens/scenarios/1_pipeline/matrix/pipeline_combo/{normal,
-fusion_ball}/`` 下的家庭金样（每个 2x2 模板 × 可选数据子集的端到端 DSL
+fusion_ball}/`` 下的家庭金样（每个 2x2 / 2x4 模板 × 可选数据子集的端到端 DSL
 快照，fusion_ball 为融球模式变体），在 eval 应用 rawfile 下生成
 ``pipeline_combo_gallery/`` 数据集：
 
@@ -56,8 +56,13 @@ MATRIX_DIR = (
 # 画廊数据集目录名（位于 eval 应用仓库的 rawfile/ 下；两个仓库各自独立，
 # 交叉路径一律由 --dataset-dir 显式传入，不做任何隐式拼接假设）。
 GALLERY_DIRECTORY = "pipeline_combo_gallery"
-SCHEMA_VERSION = "pipeline-combo-gallery/2"
+# /3：数据集同时携带 2x2 与 2x4 wide 家族，用例级 ``size`` 为渲染尺寸的
+# 唯一事实来源（/2 时代全部用例隐含 2x2，manifest 顶层 cardSize 已废弃）。
+SCHEMA_VERSION = "pipeline-combo-gallery/3"
 OPERATION = "generateWidgetCardTerseDslNested2"
+
+# Wide 布局种类 → 2x4 卡片（与矩阵测试 _collect_family_specs 的 size 规则一致）。
+WIDE_LAYOUT_KINDS = frozenset({"WideHero", "WideFull", "WideHalf"})
 
 # 矩阵变体：金样子目录 → (清单内变体名, 显示名, 是否融球模式)。
 VARIANTS: dict[str, tuple[str, str, bool]] = {
@@ -132,6 +137,8 @@ def build_combo_gallery() -> dict[str, Any]:
         meta[0]: {"families": 0, "rendered": 0, "refused": 0, "skipped": 0}
         for meta in VARIANTS.values()
     }
+    case_sizes: set[str] = set()
+    by_size: dict[str, int] = {}
 
     for sub_dir, (variant_name, _label, fusion_enabled) in VARIANTS.items():
         for family_path in sorted((MATRIX_DIR / sub_dir).glob("*.json")):
@@ -247,6 +254,9 @@ def build_combo_gallery() -> dict[str, Any]:
                 elif source["status"] == "refused":
                     by_variant[name]["refused"] += 1
             absent = absent_fields(key, optional_names)
+            case_size = ref_family.get("size", "2x2")
+            case_sizes.add(case_size)
+            by_size[case_size] = by_size.get(case_size, 0) + 1
             provider["cases"].append(
                 {
                     "a2uiFile": variant_normal["a2uiFile"],
@@ -262,7 +272,7 @@ def build_combo_gallery() -> dict[str, Any]:
                     "providerId": provider_id,
                     "providerName": provider_name,
                     "providerSlug": provider_slug,
-                    "size": ref_family.get("size", "2x2"),
+                    "size": case_size,
                     "status": case_status,
                     "templateId": template_id,
                     "templateSuffix": layout_kind,
@@ -287,6 +297,9 @@ def build_combo_gallery() -> dict[str, Any]:
             business_id = ""
         provider_name, provider_slug = _provider_meta(provider_id)
         provider = provider_tab(provider_id, provider_name, provider_slug)
+        skip_size = "2x4" if layout_kind in WIDE_LAYOUT_KINDS else "2x2"
+        case_sizes.add(skip_size)
+        by_size[skip_size] = by_size.get(skip_size, 0) + 1
         skip_source = {
             "a2uiFile": "",
             "messageCount": 0,
@@ -308,7 +321,7 @@ def build_combo_gallery() -> dict[str, Any]:
                 "providerId": provider_id,
                 "providerName": provider_name,
                 "providerSlug": provider_slug,
-                "size": "2x2",
+                "size": skip_size,
                 "status": "skipped",
                 "templateId": template_id,
                 "templateSuffix": layout_kind,
@@ -347,9 +360,10 @@ def build_combo_gallery() -> dict[str, Any]:
         "schemaVersion": SCHEMA_VERSION,
         "dataset": "pipelineCombo",
         "operation": OPERATION,
-        "cardSize": "2x2",
+        "cardSizes": sorted(case_sizes),
         "counts": {
             **totals,
+            "bySize": dict(sorted(by_size.items())),
             "byVariant": by_variant,
             "cases": total_cases,
             "total": total_cases,

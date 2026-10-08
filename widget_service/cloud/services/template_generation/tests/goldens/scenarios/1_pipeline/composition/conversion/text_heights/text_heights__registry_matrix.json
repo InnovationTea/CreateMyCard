@@ -72,9 +72,11 @@
       null
     ],
     "BatteryOverviewChargingProgressHero@1": [
+      null,
+      null,
+      null,
       16,
-      16,
-      16
+      null
     ],
     "BatteryOverviewCompact@1": [
       null
@@ -211,7 +213,11 @@
       null,
       null,
       null,
-      16
+      16,
+      null,
+      null,
+      null,
+      null
     ],
     "BluetoothDeviceOverviewMusicFull@1": [
       16,
@@ -233,6 +239,9 @@
       16
     ],
     "CountdownOverviewEventHero@1": [
+      16
+    ],
+    "CountdownOverviewHero@1": [
       16
     ],
     "CountdownOverviewTargetDetailFull@1": [
@@ -412,6 +421,8 @@
       16,
       16,
       16,
+      16,
+      16,
       16
     ],
     "SleepOverviewFull@1": [
@@ -448,6 +459,8 @@
       null
     ],
     "SleepOverviewNapHero@1": [
+      null,
+      null,
       null,
       null,
       null
@@ -495,6 +508,12 @@
       20,
       20,
       20
+    ],
+    "WeatherOverviewCareWideHero@1": [
+      null,
+      null,
+      null,
+      null
     ],
     "WeatherOverviewCompact@1": [
       16,
@@ -570,10 +589,13 @@
     ],
     "WeatherOverviewHero@1": [
       null,
+      16,
       null,
       null,
       null,
-      null
+      null,
+      16,
+      16
     ],
     "WeatherOverviewHeroTitle@1": [
       null,
@@ -600,12 +622,20 @@
     "WeatherOverviewHumidityWindLevelHero@1": [
       null,
       null,
+      null,
+      null,
       null
     ],
     "WeatherOverviewRainWindFull@1": [
       null,
       null,
       null
+    ],
+    "WeatherOverviewTargetDayHealthFull@1": [
+      null,
+      20,
+      20,
+      20
     ],
     "WeatherOverviewTemperatureSupport@1": [
       16,
@@ -676,6 +706,9 @@
     ],
     "WeatherOverviewWindHero@1": [
       null,
+      null,
+      null,
+      null,
       20
     ],
     "WorkoutOverviewCompact@1": [
@@ -692,9 +725,17 @@
       null,
       null,
       null,
+      null,
       null
     ],
     "WorkoutOverviewSupport@1": [
+      null,
+      null
+    ],
+    "WorkoutOverviewTrainingRecordHero@1": [
+      16,
+      null,
+      null,
       null,
       null
     ],

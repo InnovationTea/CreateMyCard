@@ -120,7 +120,8 @@
           },
           {
             "children": [
-              "template_root_0_1_0"
+              "template_root_0_1_0",
+              "template_root_0_1_1"
             ],
             "component": "Column",
             "id": "template_root_0_1",
@@ -138,14 +139,62 @@
             }
           },
           {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "bottom",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
             "component": "Text",
             "content": "{{ ${/data/weather/current/temperatureText} }}",
-            "id": "template_root_0_1_0",
+            "id": "template_root_0_1_0_0",
             "styles": {
+              "flexShrink": 0,
               "fontColor": "#FFCCDDFF",
               "fontSize": 20,
               "fontWeight": 700,
               "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/condition} }}",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#99CCDDFF",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '体感 ' + ${/data/weather/current/feelsLikeC} + '°' }}",
+            "id": "template_root_0_1_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#99CCDDFF",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
             }
           },
           {
@@ -207,12 +256,15 @@
             "weather": {
               "current": {
                 "alertLevel": "黄色",
+                "condition": "多云",
+                "feelsLikeC": 31.0,
                 "humidityPercent": 70.0,
                 "temperatureText": "29°C",
                 "windDirection": "东南风",
                 "windLevel": 3
               },
               "location": {
+                "cityCode": "示例数据",
                 "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }

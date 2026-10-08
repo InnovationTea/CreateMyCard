@@ -16,7 +16,9 @@
           "/current/windLevel",
           "/current/alertLevel",
           "/current/coldLevel",
-          "/location/cityCode"
+          "/location/cityCode",
+          "/location/prefectureName",
+          "/current/temperatureText"
         ]
       },
       {
@@ -112,7 +114,9 @@
         "/current/windLevel",
         "/current/alertLevel",
         "/current/coldLevel",
-        "/location/cityCode"
+        "/location/cityCode",
+        "/location/prefectureName",
+        "/current/temperatureText"
       ]
     },
     {

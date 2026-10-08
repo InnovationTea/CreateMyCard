@@ -2,10 +2,20 @@
   "BatteryOverviewChargingProgressHero@1": {
     "nodeComponents": [
       "Column",
+      "Row",
       "IfBind",
       "Text",
       "IfMissingBind",
       "Text",
+      "IfBind",
+      "Text",
+      "Row",
+      "Text",
+      "IfBind",
+      "Text",
+      "IfBind",
+      "Text",
+      "IfBind",
       "Row",
       "Text",
       "IfBind",
@@ -15,7 +25,8 @@
       "/batterySOCText"
     ],
     "textBindings": [
-      "percentText"
+      "percentText",
+      "level"
     ],
     "textFirstValues": [
       {
@@ -26,8 +37,21 @@
         "value": "手机电量"
       },
       {
+        "kind": "interpolation"
+      },
+      {
         "kind": "binding",
         "name": "percentText"
+      },
+      {
+        "kind": "binding",
+        "name": "level"
+      },
+      {
+        "kind": "interpolation"
+      },
+      {
+        "kind": "interpolation"
       },
       {
         "kind": "interpolation"

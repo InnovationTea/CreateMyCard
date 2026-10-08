@@ -32,7 +32,7 @@
     "description": "出发倒数和天气",
     "candidateAssetIds": [
       "asset.airplane_departure",
-      "asset.icon_weather_temperature1",
+      "asset.icon_weather_thermometer",
       "asset.icon_timing",
       "asset.calendar_fill"
     ]
@@ -98,7 +98,7 @@
   "description": "出发倒数和天气",
   "candidateAssetIds": [
     "asset.airplane_departure",
-    "asset.icon_weather_temperature1",
+    "asset.icon_weather_thermometer",
     "asset.icon_timing",
     "asset.calendar_fill"
   ]

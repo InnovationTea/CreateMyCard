@@ -190,8 +190,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C109"
+    "all": "C166"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "CountdownOverviewWideFull@1"
 }

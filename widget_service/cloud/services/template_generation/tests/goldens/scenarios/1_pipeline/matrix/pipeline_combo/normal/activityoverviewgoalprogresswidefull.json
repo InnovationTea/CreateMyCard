@@ -442,8 +442,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C264"
+    "all": "C333"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "ActivityOverviewGoalProgressWideFull@1"
 }

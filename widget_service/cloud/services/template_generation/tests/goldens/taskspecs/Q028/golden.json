@@ -347,15 +347,15 @@
                   "minWidth": 0
                 },
                 "fontColor": "#99FFFFFF",
-                "fontSize": 10,
+                "fontSize": 12,
                 "fontWeight": 500,
                 "height": 16,
                 "margin": {
-                  "bottom": 8
+                  "bottom": 6
                 },
                 "maxLines": 1,
                 "padding": {
-                  "bottom": 8
+                  "bottom": 7
                 },
                 "textOverflow": "ellipsis"
               }

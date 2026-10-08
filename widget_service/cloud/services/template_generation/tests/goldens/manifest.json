@@ -1,6 +1,6 @@
 {
   "goldenVersion": "template-goldens/1",
-  "templateCount": 173,
+  "templateCount": 176,
   "templates": [
     {
       "businessId": "ActivityOverview",
@@ -1061,6 +1061,14 @@
     {
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
+      "layoutKind": "WideHero",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x4",
+      "templateId": "WeatherOverviewCareWideHero@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "layoutKind": "Compact",
       "providerId": "com.huawei.weather.cli",
       "size": "2x2",
@@ -1229,6 +1237,14 @@
     {
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewTargetDayHealthFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "layoutKind": "Support",
       "providerId": "com.huawei.weather.cli",
       "size": "2x2",
@@ -1369,6 +1385,14 @@
       "providerId": "com.huawei.health-sport.cli",
       "size": "2x2",
       "templateId": "WorkoutOverviewSupport@1"
+    },
+    {
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "WorkoutOverviewTrainingRecordHero@1"
     },
     {
       "businessId": "WorkoutOverview",

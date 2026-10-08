@@ -1134,10 +1134,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C546",
-    "absent_district": "C547",
-    "all": "C548",
-    "none": "C549"
+    "absent_city": "C668",
+    "absent_district": "C669",
+    "all": "C670",
+    "none": "C671"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDailySummaryFull@1"

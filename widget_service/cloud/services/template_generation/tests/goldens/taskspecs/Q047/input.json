@@ -34,8 +34,7 @@
     "description": "充电参数+识别状态",
     "candidateAssetIds": [
       "asset.bolt_fill",
-      "asset.battery_leaf_fill",
-      "asset.icon_phone"
+      "asset.battery_leaf_fill"
     ]
   },
   "deviceInfo": {
@@ -101,7 +100,6 @@
   "description": "充电参数+识别状态",
   "candidateAssetIds": [
     "asset.bolt_fill",
-    "asset.battery_leaf_fill",
-    "asset.icon_phone"
+    "asset.battery_leaf_fill"
   ]
 }

@@ -1542,10 +1542,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C688",
-    "absent_district": "C689",
-    "all": "C690",
-    "none": "C691"
+    "absent_city": "C1142",
+    "absent_district": "C1143",
+    "all": "C1144",
+    "none": "C1145"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewTemperaturecoldLevelSupport@1"

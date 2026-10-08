@@ -469,8 +469,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C267"
+    "all": "C336"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "ActivityOverviewTrainingMetricsWideFull@1"
 }

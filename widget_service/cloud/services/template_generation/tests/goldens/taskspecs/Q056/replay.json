@@ -1,3 +1,12 @@
 {
-  "recordings": []
+  "recordings": [
+    {
+      "key": "6315c888840d639ea73cada4590e60e640535b6f486ee0cd2cc9736ac0151d55",
+      "response": "Template(\"WideTwoFocusActionLayout@1\", {}, Template(\"WeatherOverviewConditionHero@1\", {\"location\": \"北京市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"ScheduleOverviewLocationHero@1\", {\"calendarIcon\": \"resources/base/media/local_fill.svg\", \"headerLabel\": \"客户现场\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
+    },
+    {
+      "key": "fd194ea72bc68cdd3315f11e8f1608398994d0037797dc57ca179897e1dc387f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/cityCode\",\"/current/condition\",\"/current/temperatureC\"],\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
 }

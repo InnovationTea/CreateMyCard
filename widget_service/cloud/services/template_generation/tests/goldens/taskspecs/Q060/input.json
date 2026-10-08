@@ -54,8 +54,7 @@
     "candidateAssetIds": [
       "asset.earphone_case_16644",
       "asset.battery_leaf_fill",
-      "asset.bolt_fill",
-      "asset.icon_phone"
+      "asset.bolt_fill"
     ]
   },
   "deviceInfo": {
@@ -141,7 +140,6 @@
   "candidateAssetIds": [
     "asset.earphone_case_16644",
     "asset.battery_leaf_fill",
-    "asset.bolt_fill",
-    "asset.icon_phone"
+    "asset.bolt_fill"
   ]
 }

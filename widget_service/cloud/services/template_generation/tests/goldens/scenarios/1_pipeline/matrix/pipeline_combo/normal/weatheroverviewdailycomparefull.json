@@ -351,7 +351,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C541"
+    "all": "C663"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDailyCompareFull@1"

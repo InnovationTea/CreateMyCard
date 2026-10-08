@@ -26,7 +26,6 @@
     "candidateEventCandidates": [],
     "description": "手机和耳机状态",
     "candidateAssetIds": [
-      "asset.icon_phone",
       "asset.earphone_case_16644",
       "asset.icon_earphone"
     ]
@@ -86,7 +85,6 @@
   "candidateEventCandidates": [],
   "description": "手机和耳机状态",
   "candidateAssetIds": [
-    "asset.icon_phone",
     "asset.earphone_case_16644",
     "asset.icon_earphone"
   ]

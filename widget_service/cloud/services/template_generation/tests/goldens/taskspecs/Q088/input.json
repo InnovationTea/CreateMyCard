@@ -37,7 +37,6 @@
           "args": {
             "intentName": "CallPhone",
             "params": {
-              "relationship": "母亲",
               "phoneNumber": ""
             }
           }
@@ -118,7 +117,6 @@
         "args": {
           "intentName": "CallPhone",
           "params": {
-            "relationship": "母亲",
             "phoneNumber": ""
           }
         }

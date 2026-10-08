@@ -6,6 +6,7 @@ import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.template_generation.engine.cardplan.compiler import (
+    _constrain_content_height,
     _estimate_height,
     _instantiate_blueprint,
     _ux_layout_body_budget,
@@ -146,3 +147,75 @@ def test_prompt_row_budget_matches_validator(size, row_height, overflows):
             validate_compact_dsl(source, task_spec=task, card_spec={"dataBindings": []})
     else:
         validate_compact_dsl(source, task_spec=task, card_spec={"dataBindings": []})
+
+
+def _wide_action_wrapper_tree() -> Nested2Node:
+    """WideSingleFocusLayout@1 的包装结构:Column[内容槽(LW:1)[业务根], action 槽]。"""
+    button = Nested2Node(
+        "Button",
+        (
+            "今日训练",
+            {
+                "width": "matchParent",
+                "height": 36,
+                "onClick": [{"call": "clickToIntent", "args": {"intentName": "demo"}}],
+            },
+        ),
+        (),
+    )
+    action = Nested2Node(
+        "Column",
+        ({"width": "matchParent", "height": 36},),
+        (button,),
+    )
+    split_row = Nested2Node(
+        "Row",
+        (
+            {
+                "width": "100%",
+                "height": "100%",
+                "justifyContent": "spaceBetween",
+                "alignItems": "center",
+            },
+        ),
+        (),
+    )
+    content = Nested2Node(
+        "Column",
+        ({"width": "matchParent", "layoutWeight": 1},),
+        (split_row,),
+    )
+    return Nested2Node(
+        "Column",
+        ({"width": "matchParent", "height": "matchParent"},),
+        (content, action),
+    )
+
+
+def test_constrain_hoists_action_slot_into_content_on_2x4():
+    """C270 修复:action 槽嵌进内容槽(单子包装),业务根高度钉为 budget-44。
+
+    真机渲染器(genui_form)在包装 Column 同时持有内容槽+action 槽时,
+    会让内容槽内 matchParent 后代的宽度塌缩成内容宽;单子包装可规避。
+    """
+    root = _constrain_content_height(_wide_action_wrapper_tree(), 126, "2x4")
+    assert root.component_type == "Column"
+    assert len(root.children) == 1
+    content = root.children[0]
+    assert [child.component_type for child in content.children] == ["Row", "Column"]
+    row_options = next(v for v in content.children[0].values if isinstance(v, dict))
+    assert row_options["height"] == 82  # 126 - 36(action) - 8(gap)
+    action_options = next(v for v in content.children[1].values if isinstance(v, dict))
+    assert action_options["height"] == 36
+    button = content.children[1].children[0]
+    button_options = next(v for v in button.values if isinstance(v, dict))
+    assert button_options["onClick"][0]["call"] == "clickToIntent"
+
+
+def test_constrain_keeps_action_slot_sibling_on_2x2():
+    """2x2 不做 action 槽嵌套(塌缩未在 2x2 复现,保持原布局)。"""
+    root = _constrain_content_height(_wide_action_wrapper_tree(), 136, "2x2")
+    assert len(root.children) == 2
+    root_options = next(v for v in root.values if isinstance(v, dict))
+    assert root_options["height"] == 136
+    assert root_options["clip"] is True

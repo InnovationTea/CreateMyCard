@@ -358,8 +358,8 @@
   "layout": "WideTwoHalfLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C110"
+    "all": "C167"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "CountdownOverviewWideHalf@1"
 }

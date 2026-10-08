@@ -1,3 +1,12 @@
 {
-  "recordings": []
+  "recordings": [
+    {
+      "key": "3d33fa5bed8ab47e90118d1b7973f95343f49e08e506fa091aa16403505c66a4",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BatteryOverviewChargingDiagnosticsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
+    },
+    {
+      "key": "c819246feb57ca73dac3f31f762d03b9ea447dc6d8972e3db65fdbd8344ad3cc",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/nowCurrentText\",\"/voltageText\",\"/batteryCapacityLevelDesc\",\"/isBatteryPresentText\"]},\"action\":[\"event.open.settings.battery\"],\"allowBatterySettingsFallback\":false}"
+    }
+  ]
 }

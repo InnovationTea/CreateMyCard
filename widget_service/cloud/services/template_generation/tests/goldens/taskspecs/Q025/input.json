@@ -15,7 +15,9 @@
           "/current/windDirection",
           "/current/windLevel",
           "/updatedAt",
-          "/location/cityCode"
+          "/location/cityCode",
+          "/current/temperatureText",
+          "/current/condition"
         ]
       }
     ],
@@ -86,7 +88,9 @@
         "/current/windDirection",
         "/current/windLevel",
         "/updatedAt",
-        "/location/cityCode"
+        "/location/cityCode",
+        "/current/temperatureText",
+        "/current/condition"
       ]
     }
   ],

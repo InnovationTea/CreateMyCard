@@ -494,8 +494,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C121"
+    "all": "C178"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BluetoothDeviceOverviewEarbudChargingWideFull@1"
 }

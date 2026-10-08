@@ -9,15 +9,13 @@
   },
   "mixed-business": {
     "errorType": "TemplateRetrievalMiss",
-    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+    "message": "capability data root is unavailable or ambiguous"
   },
   "trusted-restriction": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+    "errorType": "NO_ERROR"
   },
   "variant-disabled": {
-    "errorType": "TemplateRetrievalMiss",
-    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+    "errorType": "NO_ERROR"
   },
   "wrong-type": {
     "errorType": "TemplateRetrievalMiss",

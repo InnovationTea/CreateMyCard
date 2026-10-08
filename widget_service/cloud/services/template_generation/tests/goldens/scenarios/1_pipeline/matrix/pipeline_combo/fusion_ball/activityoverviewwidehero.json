@@ -55,8 +55,7 @@
               },
               {
                 "children": [
-                  "root_1_0",
-                  "root_1_1"
+                  "root_1_0"
                 ],
                 "component": "Column",
                 "id": "__genui_render_component__root_1",
@@ -69,7 +68,8 @@
               },
               {
                 "children": [
-                  "root_1_0_0"
+                  "root_1_0_0",
+                  "root_1_0_1"
                 ],
                 "component": "Column",
                 "id": "root_1_0",
@@ -88,7 +88,7 @@
                 "itemMargin": 8,
                 "styles": {
                   "alignItems": "center",
-                  "height": "100%",
+                  "height": 82,
                   "justifyContent": "spaceBetween",
                   "width": "100%"
                 }
@@ -397,10 +397,10 @@
               },
               {
                 "children": [
-                  "root_1_1_0"
+                  "root_1_0_1_0"
                 ],
                 "component": "Column",
-                "id": "root_1_1",
+                "id": "root_1_0_1",
                 "styles": {
                   "height": 36,
                   "width": "matchParent"
@@ -408,7 +408,7 @@
               },
               {
                 "component": "Button",
-                "id": "root_1_1_0",
+                "id": "root_1_0_1_0",
                 "label": "今日训练",
                 "onClick": [
                   {
@@ -463,8 +463,8 @@
   "layout": "WideSingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C270"
+    "all": "C339"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "ActivityOverviewWideHero@1"
 }

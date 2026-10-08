@@ -310,8 +310,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C118"
+    "all": "C175"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BluetoothDeviceOverviewCompleteWideFull@1"
 }

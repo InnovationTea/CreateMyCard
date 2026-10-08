@@ -1235,6 +1235,15 @@
       }
     ]
   },
+  "WeatherOverviewCareWideHero@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
   "WeatherOverviewCompact@1": {
     "expectedFamily": "WeatherOverview",
     "markers": [
@@ -1416,6 +1425,15 @@
     ]
   },
   "WeatherOverviewRainWindFull@1": {
+    "expectedFamily": "WeatherOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WeatherOverview"
+      }
+    ]
+  },
+  "WeatherOverviewTargetDayHealthFull@1": {
     "expectedFamily": "WeatherOverview",
     "markers": [
       {
@@ -1650,6 +1668,15 @@
     ]
   },
   "WorkoutOverviewSupport@1": {
+    "expectedFamily": "WorkoutOverview",
+    "markers": [
+      {
+        "kind": "literal",
+        "value": "WorkoutOverview"
+      }
+    ]
+  },
+  "WorkoutOverviewTrainingRecordHero@1": {
     "expectedFamily": "WorkoutOverview",
     "markers": [
       {

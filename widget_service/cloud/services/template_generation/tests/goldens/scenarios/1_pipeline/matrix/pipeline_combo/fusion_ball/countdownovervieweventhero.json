@@ -340,7 +340,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C102"
+    "all": "C159"
   },
   "size": "2x2",
   "templateId": "CountdownOverviewEventHero@1"

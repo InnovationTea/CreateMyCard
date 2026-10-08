@@ -2864,15 +2864,15 @@
     "right"
   ],
   "sampleIds": {
-    "absent_battery": "C168",
-    "absent_battery+left": "C169",
-    "absent_battery+right": "C170",
-    "absent_left": "C171",
-    "absent_left+right": "C172",
-    "absent_right": "C173",
-    "all": "C174",
-    "none": "C175"
+    "absent_battery": "C225",
+    "absent_battery+left": "C226",
+    "absent_battery+right": "C227",
+    "absent_left": "C228",
+    "absent_left+right": "C229",
+    "absent_right": "C230",
+    "all": "C231",
+    "none": "C232"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BluetoothDeviceOverviewEarbudsDynamicWideFull@1"
 }

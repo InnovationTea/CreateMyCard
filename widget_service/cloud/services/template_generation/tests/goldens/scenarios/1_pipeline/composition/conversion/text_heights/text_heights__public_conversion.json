@@ -177,13 +177,21 @@
     }
   },
   "BatteryOverviewChargingProgressHero@1::2x2": {
-    "template_root_0_0": {
-      "after": 16,
-      "before": 16
+    "template_root_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
     },
     "template_root_0_2": {
       "after": 16,
       "before": 16
+    },
+    "template_root_0_3_0": {
+      "after": null,
+      "before": null
     }
   },
   "BatteryOverviewChargingRingHero@1::2x2": {},
@@ -482,6 +490,14 @@
     "template_root_0_2_1_1": {
       "after": null,
       "before": null
+    },
+    "template_root_0_3_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_4_1": {
+      "after": null,
+      "before": null
     }
   },
   "BluetoothDeviceOverviewMusicCompact@1::2x2": {},
@@ -527,7 +543,12 @@
     }
   },
   "CountdownOverviewFull@1::2x2": {},
-  "CountdownOverviewHero@1::2x2": {},
+  "CountdownOverviewHero@1::2x2": {
+    "template_root_0_1_1": {
+      "after": 16,
+      "before": 16
+    }
+  },
   "CountdownOverviewSupport@1::2x2": {},
   "CountdownOverviewTargetCompact@1::2x2": {},
   "CountdownOverviewTargetDetailFull@1::2x2": {
@@ -909,7 +930,15 @@
       "after": 16,
       "before": 16
     },
-    "template_root_0_1_1": {
+    "template_root_0_1_0": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_2": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_2_0": {
       "after": 16,
       "before": 16
     }
@@ -972,6 +1001,14 @@
       "before": null
     },
     "template_root_0_2_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_1": {
       "after": null,
       "before": null
     }
@@ -1093,6 +1130,24 @@
     "template_root_0_1_1": {
       "after": 20,
       "before": 20
+    }
+  },
+  "WeatherOverviewCareWideHero@1::2x4": {
+    "template_root_0_0_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_2": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_3": {
+      "after": null,
+      "before": null
     }
   },
   "WeatherOverviewCompact@1::2x2": {
@@ -1292,8 +1347,20 @@
       "before": null
     },
     "template_root_0_1_1": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_2": {
       "after": null,
       "before": null
+    },
+    "template_root_0_1_3": {
+      "after": 16,
+      "before": 16
+    },
+    "template_root_0_1_4": {
+      "after": 16,
+      "before": 16
     }
   },
   "WeatherOverviewHeroTitle@1::2x2": {
@@ -1355,6 +1422,14 @@
       "after": null,
       "before": null
     },
+    "template_root_0_1_0_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_1_1": {
+      "after": null,
+      "before": null
+    },
     "template_root_0_2_0": {
       "after": null,
       "before": null
@@ -1372,6 +1447,24 @@
     "template_root_0_2": {
       "after": null,
       "before": null
+    }
+  },
+  "WeatherOverviewTargetDayHealthFull@1::2x2": {
+    "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_1": {
+      "after": 20,
+      "before": 20
+    },
+    "template_root_0_1_0": {
+      "after": 20,
+      "before": 20
+    },
+    "template_root_0_1_1": {
+      "after": 20,
+      "before": 20
     }
   },
   "WeatherOverviewTemperatureSupport@1::2x2": {
@@ -1560,6 +1653,10 @@
       "after": null,
       "before": null
     },
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    },
     "template_root_0_1_1": {
       "after": 20,
       "before": 20
@@ -1586,6 +1683,30 @@
       "after": null,
       "before": null
     },
+    "template_root_0_3_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_1": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_2": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WorkoutOverviewSupport@1::2x2": {
+    "template_root_0_0_1": {
+      "after": null,
+      "before": null
+    }
+  },
+  "WorkoutOverviewTrainingRecordHero@1::2x2": {
+    "template_root_0_0_0": {
+      "after": 16,
+      "before": 16
+    },
     "template_root_0_2_0": {
       "after": null,
       "before": null
@@ -1593,10 +1714,12 @@
     "template_root_0_2_1": {
       "after": null,
       "before": null
-    }
-  },
-  "WorkoutOverviewSupport@1::2x2": {
-    "template_root_0_0_1": {
+    },
+    "template_root_0_3_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_1": {
       "after": null,
       "before": null
     }

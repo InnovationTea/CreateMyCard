@@ -957,9 +957,9 @@
     "connected"
   ],
   "sampleIds": {
-    "all": "C193",
-    "none": "C194"
+    "all": "C262",
+    "none": "C263"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BluetoothDeviceOverviewTripleBatteryWideHalf@1"
 }

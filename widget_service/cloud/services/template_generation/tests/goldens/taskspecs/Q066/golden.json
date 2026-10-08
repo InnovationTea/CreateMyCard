@@ -1,8 +1,1078 @@
 {
-  "artifact": null,
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "futureDays": 1
+          },
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "description": "三场会议+手机续航+闹钟",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "明日会议"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.calendar_fill",
+        "asset.icon_meeting",
+        "asset.battery_leaf_fill",
+        "asset.alarm_fill_1"
+      ],
+      "data": [
+        "GetCalendarEvents",
+        "GetPhoneBatteryInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.calendar_fill",
+        "asset.icon_meeting",
+        "asset.battery_leaf_fill",
+        "asset.alarm_fill_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "futureDays": 1
+          },
+          "candidateOutputFields": [
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/eventLocation",
+            "/events/1/title",
+            "/events/1/dtStart",
+            "/events/1/eventLocation",
+            "/events/2/title",
+            "/events/2/dtStart",
+            "/events/2/eventLocation"
+          ],
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batterySOC",
+            "/chargingStatusDesc"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.clock.phone",
+              "bundleName": "com.huawei.hmos.clock",
+              "intentName": "Clock",
+              "uri": ""
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.clock.alarm"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121E59",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121E59",
+                      0
+                    ],
+                    [
+                      "#FF2BA2D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "clip": true,
+                "height": 126,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "height": "matchParent",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1",
+                "root_1_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "itemMargin": 6,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0_0",
+                "root_1_0_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "flexShrink": 0,
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "top": 2
+                },
+                "width": 8
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_0_0_0",
+              "styles": {
+                "alignContent": "center",
+                "borderColor": "#FFCCEEFF",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "flexShrink": 0,
+                "height": 8,
+                "width": 8
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_0_0_0_0",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 0,
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": 0
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_0_0_1",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 16,
+                "strokeWidth": 1,
+                "vertical": true,
+                "width": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_1",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0_0",
+                "root_1_0_0_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/dtStart} }}",
+              "id": "root_1_0_0_0_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/title} }}",
+              "id": "root_1_0_0_0_1_0_1",
+              "styles": {
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "layoutWeight": 1,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/eventLocation} }}",
+              "id": "root_1_0_0_0_1_1",
+              "styles": {
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1",
+              "itemMargin": 6,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "flexShrink": 0,
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "top": 2
+                },
+                "width": 8
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_1_0_0",
+              "styles": {
+                "alignContent": "center",
+                "borderColor": "#FFCCEEFF",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "flexShrink": 0,
+                "height": 8,
+                "width": 8
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_0_0",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 0,
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": 0
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_1",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 16,
+                "strokeWidth": 1,
+                "vertical": true,
+                "width": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0",
+                "root_1_0_0_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0_0",
+                "root_1_0_0_1_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/1/dtStart} }}",
+              "id": "root_1_0_0_1_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/1/title} }}",
+              "id": "root_1_0_0_1_1_0_1",
+              "styles": {
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "layoutWeight": 1,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/1/eventLocation} }}",
+              "id": "root_1_0_0_1_1_1",
+              "styles": {
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0",
+                "root_1_0_0_2_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_2",
+              "itemMargin": 6,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0_0",
+                "root_1_0_0_2_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_2_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "flexShrink": 0,
+                "height": "matchParent",
+                "justifyContent": "start",
+                "padding": {
+                  "top": 2
+                },
+                "width": 8
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_2_0_0",
+              "styles": {
+                "alignContent": "center",
+                "borderColor": "#FFCCEEFF",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "flexShrink": 0,
+                "height": 8,
+                "width": 8
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_2_0_0_0",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 0,
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": 0
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_2_0_1",
+              "styles": {
+                "color": "#B3CCEEFF",
+                "height": 16,
+                "strokeWidth": 1,
+                "vertical": true,
+                "width": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_1_0",
+                "root_1_0_0_2_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_2_1",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_1_0_0",
+                "root_1_0_0_2_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_2_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/2/dtStart} }}",
+              "id": "root_1_0_0_2_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/2/title} }}",
+              "id": "root_1_0_0_2_1_0_1",
+              "styles": {
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "layoutWeight": 1,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/2/eventLocation} }}",
+              "id": "root_1_0_0_2_1_1",
+              "styles": {
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0",
+                "root_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "styles": {
+                "height": 60,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "backgroundColor": "#33CCEEFF",
+                "borderRadius": 20,
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0",
+                "root_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "root_1_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
+              "id": "root_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#B3CCEEFF",
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_1",
+              "styles": {
+                "height": 60,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_1_1_0",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "intentName": "Clock",
+                    "uri": ""
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignContent": "center",
+                "backgroundColor": "#33CCEEFF",
+                "borderRadius": 20,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0_0_0",
+                "root_1_1_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0_0_0_0",
+                "root_1_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Text",
+              "content": "设置闹钟",
+              "id": "root_1_1_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "闹钟应用",
+              "id": "root_1_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_1_0_0_1",
+              "src": "resources/base/media/alarm_fill_1.svg",
+              "styles": {
+                "fillColor": "#B3CCEEFF",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "calendar": {
+                "events": [
+                  {
+                    "dtStart": "14:00",
+                    "eventLocation": "会议室",
+                    "title": "项目例会"
+                  },
+                  {
+                    "dtStart": "14:00",
+                    "eventLocation": "会议室",
+                    "title": "项目例会"
+                  },
+                  {
+                    "dtStart": "14:00",
+                    "eventLocation": "会议室",
+                    "title": "项目例会"
+                  }
+                ]
+              },
+              "phoneBattery": {
+                "batterySOC": 68,
+                "chargingStatusDesc": "未充电"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+          "id": "asset.calendar_fill",
+          "src": "resources/base/media/calendar_fill.svg"
+        },
+        {
+          "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。",
+          "id": "asset.icon_meeting",
+          "src": "resources/base/media/icon_meeting.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。",
+          "id": "asset.alarm_fill_1",
+          "src": "resources/base/media/alarm_fill_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "dtStart": {
+                  "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                  "sampleValue": "14:00",
+                  "type": "string"
+                },
+                "eventLocation": {
+                  "description": "日程的具体地点描述，若未填写则为空字符串。",
+                  "sampleValue": "会议室",
+                  "type": "string"
+                },
+                "title": {
+                  "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
+                  "sampleValue": "项目例会",
+                  "type": "string"
+                }
+              },
+              {
+                "dtStart": {
+                  "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                  "sampleValue": "14:00",
+                  "type": "string"
+                },
+                "eventLocation": {
+                  "description": "日程的具体地点描述，若未填写则为空字符串。",
+                  "sampleValue": "会议室",
+                  "type": "string"
+                },
+                "title": {
+                  "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
+                  "sampleValue": "项目例会",
+                  "type": "string"
+                }
+              },
+              {
+                "dtStart": {
+                  "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                  "sampleValue": "14:00",
+                  "type": "string"
+                },
+                "eventLocation": {
+                  "description": "日程的具体地点描述，若未填写则为空字符串。",
+                  "sampleValue": "会议室",
+                  "type": "string"
+                },
+                "title": {
+                  "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
+                  "sampleValue": "项目例会",
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68,
+              "type": "integer"
+            },
+            "chargingStatusDesc": {
+              "description": "当前设备电池的充电状态文本描述。",
+              "sampleValue": "未充电",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink",
+          "description": "打开时钟应用的闹钟首页。",
+          "id": "event.open.clock.alarm"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，明天有三场会议，上午9点是用户卡片需求评审会，在上海练秋湖研发中心C5会议室，下午2点是华东渠道策略会，在A3会议室，下午4点半是版本交付排期会，在B1会议室。看三场会议的标题、开始时间和地点，也看手机剩余电量和充电状态，点一下进入闹钟。"
+    }
+  },
   "caseId": "Q066",
-  "errorCode": "A2UI_GENERATION_FAILED",
-  "message": "卡片创建过程遇到问题了，请稍后再试。",
-  "status": "failed",
+  "status": "success",
   "suggestSize": "2x4"
 }

@@ -338,7 +338,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C017"
+    "all": "C045"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewPercentRingHero@1"

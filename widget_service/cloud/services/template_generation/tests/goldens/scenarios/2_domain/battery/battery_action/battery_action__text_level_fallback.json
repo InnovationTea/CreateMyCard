@@ -1,6 +1,6 @@
 {
   "candidates": [
-    "BatteryOverviewPercentLevelHero@1"
+    "BatteryOverviewChargingProgressHero@1"
   ],
   "plans": [
     {
@@ -8,7 +8,7 @@
         "event.open.settings.battery"
       ],
       "businessTemplateIds": [
-        "BatteryOverviewPercentLevelHero@1"
+        "BatteryOverviewChargingProgressHero@1"
       ],
       "layoutTemplateId": "HeroActionLayout@1"
     }

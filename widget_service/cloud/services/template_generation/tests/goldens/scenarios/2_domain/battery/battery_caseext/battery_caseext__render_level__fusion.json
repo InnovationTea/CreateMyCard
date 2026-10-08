@@ -189,8 +189,7 @@
           {
             "children": [
               "root_1_0_0_0",
-              "root_1_0_0_1",
-              "root_1_0_0_2"
+              "root_1_0_0_1"
             ],
             "component": "Column",
             "id": "root_1_0_0",
@@ -214,9 +213,29 @@
             }
           },
           {
+            "children": [
+              "root_1_0_0_0_0",
+              "root_1_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "root_1_0_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 16,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
             "component": "Text",
             "content": "手机电量",
-            "id": "root_1_0_0_0",
+            "id": "root_1_0_0_0_0",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -225,16 +244,28 @@
               "fontColor": "#FFCCFFF6",
               "fontSize": 12,
               "fontWeight": 400,
-              "height": 16,
               "maxLines": 1,
               "minFontSize": 10,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/phoneBattery/updatedAt} }}",
+            "id": "root_1_0_0_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#99CCFFF6",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "minFontSize": 10
             }
           },
           {
             "children": [
-              "root_1_0_0_1_0"
+              "root_1_0_0_1_0",
+              "root_1_0_0_1_1"
             ],
             "component": "Row",
             "id": "root_1_0_0_1",
@@ -263,8 +294,9 @@
                 "minWidth": 0
               },
               "fontColor": "#FFCCFFF6",
-              "fontSize": 18,
+              "fontSize": 30,
               "fontWeight": 700,
+              "height": 40,
               "maxLines": 1,
               "textOverflow": "ellipsis"
             }
@@ -272,19 +304,13 @@
           {
             "component": "Text",
             "content": "{{ ${/data/phoneBattery/batteryCapacityLevelDesc} }}",
-            "id": "root_1_0_0_2",
+            "id": "root_1_0_0_1_1",
             "styles": {
-              "constraintSize": {
-                "minHeight": 0,
-                "minWidth": 0
-              },
+              "flexShrink": 0,
               "fontColor": "#99CCFFF6",
               "fontSize": 12,
               "fontWeight": 400,
-              "height": 16,
-              "maxLines": 1,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "maxLines": 1
             }
           },
           {
@@ -337,7 +363,8 @@
           "data": {
             "phoneBattery": {
               "batteryCapacityLevelDesc": "正常电量",
-              "batterySOCText": "68%"
+              "batterySOCText": "68%",
+              "updatedAt": "09:00"
             }
           }
         }
@@ -364,7 +391,7 @@
     ]
   },
   "templateIds": [
-    "BatteryOverviewPercentLevelHero@1",
+    "BatteryOverviewChargingProgressHero@1",
     "PillAction@1",
     "HeroActionLayout@1"
   ]

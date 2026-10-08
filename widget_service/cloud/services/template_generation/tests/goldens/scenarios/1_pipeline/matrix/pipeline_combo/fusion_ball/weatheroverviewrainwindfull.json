@@ -2969,14 +2969,14 @@
     "windDirection"
   ],
   "sampleIds": {
-    "absent_city": "C644",
-    "absent_city+district": "C645",
-    "absent_city+windDirection": "C646",
-    "absent_district": "C647",
-    "absent_district+windDirection": "C648",
-    "absent_windDirection": "C649",
-    "all": "C650",
-    "none": "C651"
+    "absent_city": "C1062",
+    "absent_city+district": "C1063",
+    "absent_city+windDirection": "C1064",
+    "absent_district": "C1065",
+    "absent_district+windDirection": "C1066",
+    "absent_windDirection": "C1067",
+    "all": "C1068",
+    "none": "C1069"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewRainWindFull@1"

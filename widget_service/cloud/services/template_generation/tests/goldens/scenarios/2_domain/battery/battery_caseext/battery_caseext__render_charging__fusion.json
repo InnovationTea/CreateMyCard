@@ -214,9 +214,29 @@
             }
           },
           {
+            "children": [
+              "root_1_0_0_0_0",
+              "root_1_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "root_1_0_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 16,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
             "component": "Text",
             "content": "手机电量",
-            "id": "root_1_0_0_0",
+            "id": "root_1_0_0_0_0",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -225,11 +245,22 @@
               "fontColor": "#FFCCFFF6",
               "fontSize": 12,
               "fontWeight": 400,
-              "height": 16,
               "maxLines": 1,
               "minFontSize": 10,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/phoneBattery/updatedAt} }}",
+            "id": "root_1_0_0_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#99CCFFF6",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "maxLines": 1,
+              "minFontSize": 10
             }
           },
           {
@@ -338,7 +369,8 @@
           "data": {
             "phoneBattery": {
               "batterySOCText": "68%",
-              "chargingStatusDesc": "未充电"
+              "chargingStatusDesc": "未充电",
+              "updatedAt": "09:00"
             }
           }
         }

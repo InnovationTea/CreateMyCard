@@ -249,8 +249,8 @@
   "layout": "WideSingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C111"
+    "all": "C168"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "CountdownOverviewWideHero@1"
 }

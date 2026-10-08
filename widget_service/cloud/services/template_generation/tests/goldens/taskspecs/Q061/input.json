@@ -24,7 +24,10 @@
         "candidateOutputFields": [
           "/current/feelsLikeC",
           "/current/alertLevel",
-          "/location/cityCode"
+          "/location/cityCode",
+          "/location/prefectureName",
+          "/current/temperatureText",
+          "/current/condition"
         ]
       }
     ],
@@ -117,7 +120,10 @@
       "candidateOutputFields": [
         "/current/feelsLikeC",
         "/current/alertLevel",
-        "/location/cityCode"
+        "/location/cityCode",
+        "/location/prefectureName",
+        "/current/temperatureText",
+        "/current/condition"
       ]
     }
   ],

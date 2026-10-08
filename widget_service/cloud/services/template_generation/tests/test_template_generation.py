@@ -482,9 +482,11 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
     assert definition.optional_data == (
         "/location/prefectureName",
         "/location/districtName",
+        "/current/temperatureC",
+        "/location/cityCode",
     )
     assert variant.required_bindings == ("condition",)
-    assert variant.optional_bindings == ("city", "district")
+    assert variant.optional_bindings == ("city", "district", "temp", "cityCode")
 
 
 @pytest.mark.parametrize(
@@ -709,13 +711,23 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
     assert definition.secondary_data == (
         "/location/prefectureName",
     )
-    assert definition.optional_data == ("/updatedAt",)
+    assert definition.optional_data == (
+        "/updatedAt",
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/cityCode",
+    )
     assert variant.required_bindings == (
         "city",
         "windDirection",
         "windLevel",
     )
-    assert variant.optional_bindings == ("updatedAt",)
+    assert variant.optional_bindings == (
+        "updatedAt",
+        "temperatureText",
+        "condition",
+        "cityCode",
+    )
 
 
 @pytest.mark.parametrize("fusion", [False, True])
@@ -2325,7 +2337,11 @@ def test_workout_template_full_tiers_and_latest_session_facts():
     hero = registry.require_template("WorkoutOverviewHero@1")
     assert hero.primary_data == ("/exerciseDurationText",)
     assert hero.secondary_data == ()
-    assert hero.optional_data == ("/exerciseTypeName", "/exerciseCalorieText")
+    assert hero.optional_data == (
+        "/exerciseTypeName",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+    )
 
     session = {
         "exerciseTypeName": {
@@ -3776,7 +3792,9 @@ def test_calendar_templates_use_explicit_required_data_contracts():
         "/events/0/eventLocation",
     )
     assert full.optional_data == ()
-    assert hero.optional_data == ()
+    assert hero.optional_data == (
+        "/events/0/description",
+    )
 
 
 def test_calendar_timezone_has_dedicated_facts_without_becoming_time_text():

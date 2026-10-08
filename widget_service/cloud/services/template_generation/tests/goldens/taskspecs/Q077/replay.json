@@ -2,7 +2,11 @@
   "recordings": [
     {
       "key": "029d98462b190c6a0f067bf21abf583cc4352eb10d87f722875c1afeabd97212",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/dtEnd\",\"/events/0/eventLocation\",\"/events/0/oneClickServiceLink\",\"/events/0/title\"]},\"action\":[\"event.open.settings.dnd\",\"event.enter.meeting\"],\"allowCalendarViewFallback\":true}"
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/0/title\",\"/events/0/oneClickServiceLink\"]},\"action\":[\"event.open.settings.dnd\",\"event.enter.meeting\"],\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "26d13cc2fe7939de38a9dd8a598a94cc1a94e0c3a83856742dce5eed689acd00",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, \n  Template(\"ScheduleOverviewMeetingSenderFull@1\", {\"headerLabel\": \"需求评审\", \"title\": \"需求评审\"}),\n  Template(\"CompactAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰设置\", \"subtitle\": \"勿扰模式\", \"icon\": \"resources/base/media/icon_focus.svg\"}),\n  Template(\"CompactAction@1\", {\"actionId\": \"event.enter.meeting\", \"label\": \"一键入会\", \"subtitle\": \"加入会议\", \"icon\": \"resources/base/media/icon_meeting.svg\"})\n);"
     }
   ]
 }

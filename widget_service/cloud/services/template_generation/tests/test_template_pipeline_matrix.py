@@ -718,7 +718,7 @@ def _register_template_family(spec: _FamilySpec) -> None:
         ids = combo_sample_ids()
         result = {
             "templateId": spec.wire_id,
-            "size": "2x2",
+            "size": spec.size,
             "fusionBall": enable_fusion_ball,
             "layout": spec.layout_template_id,
             "optionalBindings": list(spec.optional_names),
@@ -783,6 +783,20 @@ _SKIPPED_TEMPLATES: dict[str, str] = {
     "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": (
         "同 BluetoothDeviceOverviewCompletePhoneWideFull@1：phone-earphone "
         "双业务 2x4 配对路由缺失"
+    ),
+    "BatteryOverviewPercentLevelHero@1": (
+        "BatteryOverviewChargingProgressHero@1 扩展后以 optionalData 覆盖 "
+        "/batteryCapacityLevelDesc（Q049 数据契约），文本等级兜底的检索门"
+        "（仅在无其它模板完整覆盖二字段意图时放行）不再放行该变体，全部组合被拒；"
+        "等级字段的渲染由 pipeline_combo__batteryoverviewchargingprogresshero 家族冻结"
+    ),
+    "WorkoutOverviewTrainingRecordHero@1": (
+        "WorkoutOverview 投影仅经 extract_workout_latest_facts（latest 变体），"
+        "该选择器要求 /exerciseDurationText 才产出事实；本模板面向 Q027 的"
+        "无时长训练记录契约（targetDateText+exerciseTypeName+heartRateMin），"
+        "schema 无 exerciseDurationText 时投影为空（no renderable provider facts）。"
+        "待 Q027 语料补充时长字段或训练记录投影分支扩展后再入阵；其检索/计划路由"
+        "已由单测与 Q027 用例固化"
     ),
 }
 

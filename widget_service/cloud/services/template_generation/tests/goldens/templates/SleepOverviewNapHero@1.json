@@ -51,11 +51,20 @@
             "children": [
               "template_root_0_0",
               "template_root_0_1",
-              "template_root_0_2"
+              "template_root_0_2",
+              "template_root_0_3"
             ],
             "component": "Column",
             "id": "template_root_0",
             "itemMargin": 8,
+            "onClick": [
+              {
+                "args": {
+                  "eventName": "event.open.health.sleep"
+                },
+                "call": "sendToAssistant"
+              }
+            ],
             "styles": {
               "alignItems": "start",
               "clip": true,
@@ -166,6 +175,42 @@
               "fontWeight": 400,
               "maxLines": 1
             }
+          },
+          {
+            "children": [
+              "template_root_0_3_0",
+              "template_root_0_3_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_3",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "今日步数",
+            "id": "template_root_0_3_0",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/dailySteps} }}",
+            "id": "template_root_0_3_1",
+            "styles": {
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "maxLines": 1
+            }
           }
         ],
         "root": "root",
@@ -180,6 +225,7 @@
         "value": {
           "data": {
             "healthSport": {
+              "dailySteps": 6200,
               "fallAsleepTimeText": "23:15",
               "totalNapDurationText": "7小时1分",
               "wakeupTimeText": "07:30"

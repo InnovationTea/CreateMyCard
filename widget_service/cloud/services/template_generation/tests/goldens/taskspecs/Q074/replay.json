@@ -1,8 +1,12 @@
 {
   "recordings": [
     {
-      "key": "0fb0d0754662e6f5e775e3eac031f6f9b8a98c248d09bb4d8c343af2cba89c59",
+      "key": "0da5bb34c7ea74e8f8c2b6df952fc767ba0d683e44d661afb76c749d9018165e",
       "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/feelsLikeC\",\"/current/windLevel\",\"/current/alertLevel\",\"/current/coldLevel\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"action\":[\"event.open.weather\",\"event.open.settings.battery\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "c0c020138135d88b2f4059a9242c3b2f59d3f594bacc8e1a4ed105232501b9db",
+      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"WeatherOverviewHero@1\", {\"location\": \"漠河市\", \"conditionIcon\": \"resources/base/media/icon_weather_wind.svg\"}), Template(\"BatteryOverviewStatusRingHero@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
     }
   ]
 }

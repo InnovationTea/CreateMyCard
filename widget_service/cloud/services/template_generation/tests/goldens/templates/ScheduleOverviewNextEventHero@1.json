@@ -201,7 +201,8 @@
             "children": [
               "template_root_0_1_1_0",
               "template_root_0_1_1_1",
-              "template_root_0_1_1_2"
+              "template_root_0_1_1_2",
+              "template_root_0_1_1_3"
             ],
             "component": "Column",
             "id": "template_root_0_1_1",
@@ -270,6 +271,25 @@
               "minFontSize": 10,
               "textOverflow": "ellipsis"
             }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/calendar/events/0/description} }}",
+            "id": "template_root_0_1_1_3",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 10,
+              "fontWeight": 400,
+              "height": 14,
+              "maxLines": 1,
+              "minFontSize": 10,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
           }
         ],
         "root": "root",
@@ -286,6 +306,7 @@
             "calendar": {
               "events": [
                 {
+                  "description": "示例数据",
                   "dtEnd": "15:30",
                   "dtStart": "14:00",
                   "eventLocation": "深圳市龙岗区五和大道",

@@ -1,6 +1,10 @@
 {
   "recordings": [
     {
+      "key": "1523efadd2a2456b14b11904711728ca449156edc16900e25015f47e3c75e524",
+      "response": "Template(\"WideTwoFocusLayout@1\", {}, Template(\"ScheduleOverviewNextEventHero@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"会面天气\"}), Template(\"WeatherOverviewHumidityWindLevelHero@1\", {\"location\": \"上海市\"}));"
+    },
+    {
       "key": "a1af138036190e3e7dc69668fa4850c26ee9d506dfce3fb085325a2aabcdd8de",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/dtEnd\",\"/events/0/eventLocation\",\"/events/0/description\"],\"ViewWeather\":[\"/current/condition\",\"/current/temperatureText\",\"/current/feelsLikeC\",\"/current/humidityPercent\",\"/current/windDirection\",\"/current/windLevel\",\"/current/alertLevel\"]},\"action\":[],\"allowCalendarViewFallback\":true}"
     }

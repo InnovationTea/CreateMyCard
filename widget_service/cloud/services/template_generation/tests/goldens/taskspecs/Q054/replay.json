@@ -1,3 +1,12 @@
 {
-  "recordings": []
+  "recordings": [
+    {
+      "key": "a8dbb2cc0caf7b35a36dc19911ed6a2e2f4f19994697dd71b32fac1a215c4e33",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"BatteryOverviewChargingDiagnosticsWideFull@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\"}));"
+    },
+    {
+      "key": "c1a6a0aed2a48d4df05957e943ee095a5ebbde2f6068f17fadfe8325ce396336",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/nowCurrentText\",\"/voltageText\",\"/isBatteryPresentText\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
 }

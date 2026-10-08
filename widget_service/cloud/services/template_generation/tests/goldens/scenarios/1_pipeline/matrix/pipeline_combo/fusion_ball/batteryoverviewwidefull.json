@@ -363,8 +363,8 @@
   "layout": "WideFullOnlyLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C055"
+    "all": "C083"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BatteryOverviewWideFull@1"
 }

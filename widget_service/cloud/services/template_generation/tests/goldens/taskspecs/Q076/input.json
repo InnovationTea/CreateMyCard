@@ -16,7 +16,9 @@
           "/current/windDirection",
           "/current/windLevel",
           "/current/alertLevel",
-          "/location/cityCode"
+          "/location/cityCode",
+          "/location/prefectureName",
+          "/current/condition"
         ]
       },
       {
@@ -97,7 +99,9 @@
         "/current/windDirection",
         "/current/windLevel",
         "/current/alertLevel",
-        "/location/cityCode"
+        "/location/cityCode",
+        "/location/prefectureName",
+        "/current/condition"
       ]
     },
     {

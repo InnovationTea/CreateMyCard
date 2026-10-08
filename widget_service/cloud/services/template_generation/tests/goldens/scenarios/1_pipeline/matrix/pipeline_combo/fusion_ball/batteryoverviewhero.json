@@ -360,7 +360,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C014"
+    "all": "C042"
   },
   "size": "2x2",
   "templateId": "BatteryOverviewHero@1"

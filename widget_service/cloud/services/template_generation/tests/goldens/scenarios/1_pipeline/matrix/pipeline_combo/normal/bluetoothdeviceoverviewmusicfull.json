@@ -213,7 +213,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C191"
+    "all": "C260"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewMusicFull@1"

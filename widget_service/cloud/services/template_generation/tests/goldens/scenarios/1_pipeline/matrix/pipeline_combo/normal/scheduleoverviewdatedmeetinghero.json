@@ -351,7 +351,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C060"
+    "all": "C088"
   },
   "size": "2x2",
   "templateId": "ScheduleOverviewDatedMeetingHero@1"

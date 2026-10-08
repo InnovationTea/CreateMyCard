@@ -1,9 +1,11 @@
 {
   "level-only": [
+    "BatteryOverviewChargingProgressHero@1",
     "BatteryOverviewFull@1",
     "BatteryOverviewHero@1"
   ],
   "text-level-charging": [
+    "BatteryOverviewChargingProgressHero@1",
     "BatteryOverviewFull@1"
   ],
   "text-only": [

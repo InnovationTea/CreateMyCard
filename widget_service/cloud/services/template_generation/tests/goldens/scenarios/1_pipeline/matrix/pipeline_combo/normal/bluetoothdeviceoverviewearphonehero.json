@@ -205,7 +205,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C185"
+    "all": "C242"
   },
   "size": "2x2",
   "templateId": "BluetoothDeviceOverviewEarphoneHero@1"

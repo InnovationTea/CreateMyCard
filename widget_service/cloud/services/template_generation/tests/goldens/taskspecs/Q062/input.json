@@ -49,7 +49,7 @@
     ],
     "description": "天气电量和导航",
     "candidateAssetIds": [
-      "asset.icon_weather_temperature1",
+      "asset.icon_weather_thermometer",
       "asset.battery_leaf_fill",
       "asset.house_fill",
       "asset.location_north_up_right_fill"
@@ -132,7 +132,7 @@
   ],
   "description": "天气电量和导航",
   "candidateAssetIds": [
-    "asset.icon_weather_temperature1",
+    "asset.icon_weather_thermometer",
     "asset.battery_leaf_fill",
     "asset.house_fill",
     "asset.location_north_up_right_fill"

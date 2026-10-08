@@ -214,9 +214,28 @@
             }
           },
           {
+            "children": [
+              "root_1_0_0_0_0"
+            ],
+            "component": "Row",
+            "id": "root_1_0_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "center",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 16,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
             "component": "Text",
             "content": "{{ '手机电量' + ${/data/phoneBattery/healthStatusDesc} }}",
-            "id": "root_1_0_0_0",
+            "id": "root_1_0_0_0_0",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -225,11 +244,9 @@
               "fontColor": "#FFCCFFF6",
               "fontSize": 12,
               "fontWeight": 400,
-              "height": 16,
               "maxLines": 1,
               "minFontSize": 10,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "textOverflow": "ellipsis"
             }
           },
           {

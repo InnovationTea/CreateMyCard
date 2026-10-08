@@ -1,8 +1,12 @@
 {
   "recordings": [
     {
-      "key": "93c303e57a11c074e23b457a458aa3930933cf1b6c2f221254cf322e0bd7c73c",
+      "key": "aaea62deca704ed050406a793df15d48d7d246d923d0c5557180d9b7d461984e",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/earphoneName\",\"/isConnected\",\"/leftChargingStatusDesc\",\"/rightChargingStatusDesc\"]},\"action\":[\"event.open.settings.bluetooth\"],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "e18f87896c33fe23b13213d6b8e290f414a90caadb4327a8c4600db8c80f261a",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewHero@1\", {\"leftEarIcon\": \"resources/base/media/icon_left.svg\", \"rightEarIcon\": \"resources/base/media/icon_right.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}));"
     }
   ]
 }

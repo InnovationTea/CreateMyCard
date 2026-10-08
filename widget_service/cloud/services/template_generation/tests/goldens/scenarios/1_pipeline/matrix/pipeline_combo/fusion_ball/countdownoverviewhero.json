@@ -274,11 +274,11 @@
                     "minWidth": 0
                   },
                   "fontColor": "#99FFFFFF",
-                  "fontSize": 10,
+                  "fontSize": 12,
                   "fontWeight": 500,
                   "height": 16,
                   "margin": {
-                    "bottom": 8
+                    "bottom": 6
                   },
                   "maxLines": 1,
                   "textOverflow": "ellipsis"
@@ -349,7 +349,7 @@
   "layout": "HeroActionLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C104"
+    "all": "C161"
   },
   "size": "2x2",
   "templateId": "CountdownOverviewHero@1"

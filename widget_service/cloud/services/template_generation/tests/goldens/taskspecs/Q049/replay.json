@@ -3,6 +3,10 @@
     {
       "key": "1de01c0e36f16a5fa0a16fafe0aaff27d55312d038fb32b0803ac7eb2705258c",
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\",\"/batteryCapacityLevelDesc\",\"/healthStatusDesc\",\"/batteryTemperatureText\",\"/updatedAt\"]},\"action\":[\"event.open.settings.batteryHealth\"],\"allowBatterySettingsFallback\":true}"
+    },
+    {
+      "key": "63f80dffa483bb502bc16830b2c9f6a0f5bfd7e8135c42eef8a50886c1b0a93b",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BatteryOverviewChargingProgressHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.batteryHealth\", \"label\": \"电池健康\"}));"
     }
   ]
 }

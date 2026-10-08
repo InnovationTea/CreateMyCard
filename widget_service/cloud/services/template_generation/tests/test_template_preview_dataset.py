@@ -170,7 +170,12 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
 
     assert case.primary_data == ("/isConnected", "/earphoneName")
     assert case.secondary_data == ()
-    assert case.optional_data == ("/leftBatteryLevel", "/rightBatteryLevel")
+    assert case.optional_data == (
+        "/leftBatteryLevel",
+        "/rightBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc",
+    )
     assert "已链接" in json.dumps(case.messages, ensure_ascii=False)
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
     assert set(data_model) == {
@@ -178,6 +183,8 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "earphoneName",
         "leftBatteryLevel",
         "rightBatteryLevel",
+        "leftChargingStatusDesc",
+        "rightChargingStatusDesc",
     }
 
 

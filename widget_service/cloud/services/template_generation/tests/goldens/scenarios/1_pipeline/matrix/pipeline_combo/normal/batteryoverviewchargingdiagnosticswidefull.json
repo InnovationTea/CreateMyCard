@@ -444,6 +444,6 @@
   "sampleIds": {
     "all": "C004"
   },
-  "size": "2x2",
+  "size": "2x4",
   "templateId": "BatteryOverviewChargingDiagnosticsWideFull@1"
 }

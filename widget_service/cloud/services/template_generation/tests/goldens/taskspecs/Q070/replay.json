@@ -2,10 +2,10 @@
   "recordings": [
     {
       "key": "26e8f39a0364373a0df43190b438c43e394b3fc9b5c6c8b9ed53fa4530839425",
-      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetHealthAndSportSummary\": [\n      \"/dailySteps\",\n      \"/exerciseCalorieText\",\n      \"/exerciseTypeName\",\n      \"/exerciseDurationText\",\n      \"/exerciseHeartRateAvg\"\n    ]\n  },\n  \"action\": [],\n  \"allowCalendarViewFallback\": false\n}"
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseCalorieText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseHeartRateAvg\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "ef4b714dea2df54f900e8ede332460834aeb2995ca2781f2b729c9b30c169ec0",
+      "key": "6a726c1b8921afd7530418154471022b9480eae40f43dd085f75e3315d3fcafb",
       "response": "Template(\"WideTwoFullLayout@1\", {}, Template(\"ActivityOverviewTrainingSummaryFull@1\", {\"title\": \"训练概览\"}), Template(\"WorkoutOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}));"
     }
   ]

@@ -289,7 +289,8 @@
             },
             {
               "children": [
-                "root_1_0_0_0_0"
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
               ],
               "component": "Row",
               "id": "root_1_0_0_0",
@@ -318,6 +319,18 @@
               }
             },
             {
+              "component": "Image",
+              "id": "root_1_0_0_0_1",
+              "src": "resources/base/media/icon_weather_thermometer.svg",
+              "styles": {
+                "fillColor": "#99CCDDFF",
+                "flexShrink": 0,
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
               "children": [
                 "root_1_0_0_1_0",
                 "root_1_0_0_1_1"
@@ -338,17 +351,35 @@
               }
             },
             {
+              "children": [
+                "root_1_0_0_1_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
               "component": "Text",
               "content": "{{ ${/data/weather/current/condition} }}",
-              "id": "root_1_0_0_1_0",
+              "id": "root_1_0_0_1_0_0",
               "styles": {
+                "flexShrink": 0,
                 "fontColor": "#FFCCDDFF",
                 "fontSize": 18,
                 "fontWeight": 700,
                 "height": 24,
                 "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "width": "matchParent"
+                "textOverflow": "ellipsis"
               }
             },
             {

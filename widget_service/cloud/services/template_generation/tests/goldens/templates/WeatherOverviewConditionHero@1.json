@@ -131,17 +131,49 @@
             }
           },
           {
+            "children": [
+              "template_root_0_1_0_0",
+              "template_root_0_1_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_1_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "bottom",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
             "component": "Text",
             "content": "{{ ${/data/weather/current/condition} }}",
-            "id": "template_root_0_1_0",
+            "id": "template_root_0_1_0_0",
             "styles": {
+              "flexShrink": 0,
               "fontColor": "#FFCCDDFF",
               "fontSize": 18,
               "fontWeight": 700,
               "height": 24,
               "maxLines": 1,
-              "textOverflow": "ellipsis",
-              "width": "matchParent"
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/temperatureC} + '℃' }}",
+            "id": "template_root_0_1_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#FFCCDDFF",
+              "fontSize": 14,
+              "fontWeight": 700,
+              "height": 20,
+              "maxLines": 1
             }
           },
           {
@@ -171,9 +203,11 @@
           "data": {
             "weather": {
               "current": {
-                "condition": "多云"
+                "condition": "多云",
+                "temperatureC": 68.0
               },
               "location": {
+                "cityCode": "示例数据",
                 "districtName": "青浦区",
                 "prefectureName": "青浦区"
               }

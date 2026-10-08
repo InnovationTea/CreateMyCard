@@ -1,3 +1,12 @@
 {
-  "recordings": []
+  "recordings": [
+    {
+      "key": "68d27fb89d4c781f0e7be910014de185518118cc0ef79140986195f2d23fb1cd",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"BatteryOverviewStatusSupport@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\", \"actionId\": \"event.open.settings.battery\"}), Template(\"BluetoothDeviceOverviewChargeSupport@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\"}));"
+    },
+    {
+      "key": "c447e24d3ce6aca806b7279e13fb935514a89ed4123d861b322175f286204652",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/chargingStatusDesc\",\"/pluggedTypeDesc\"],\"GetEarphoneInfo\":[\"/chargingStatusDesc\"]},\"action\":[\"event.open.settings.battery\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
 }

@@ -69,7 +69,8 @@
       "/current/temperatureC",
       "/current/feelsLikeC",
       "/location/prefectureName",
-      "/location/districtName"
+      "/location/districtName",
+      "/location/cityCode"
     ],
     "primary": [
       "/current/condition"
