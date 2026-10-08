@@ -285,3 +285,19 @@ Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上�
 
 新增 BatteryOverviewCurrentVoltageFull@1，仅电流 nowCurrentText 与电压 voltageText 必需，batterySOCText、batteryTemperatureText、healthStatusDesc 可选。标题“电池状态”12fp/400，电流、电压和可选详情均为12fp/500、各16vp高，所有行标签为12fp/400，统一4vp间距和12vp外边距，五行齐全时总内容高116vp，小于126vp可用高度。不假定读数正常、不生成诊断结论；原始含单位文本直接绑定，不重复加单位。不需要动作和素材，保留既有诊断模板。
 电量数据投影的已知字段补齐实时电流、电压、温度和电池在位状态。缺少百分比时仍保留实际输入的这些字段，避免合法诊断模板在正文生成前因旧字段清单不完整而失败；不补造缺失数据。
+
+### 耳机名称与双环电量 Full
+
+新增 BluetoothDeviceOverviewEarbudPairRingFull@1，必需 earphoneName、leftBatteryLevel、rightBatteryLevel。顶部名称16fp/500、22vp高，下方双列各48vp圆环、6vp线宽，环内17.5vp圆形底色包裹12fp/500的“L”“R”，沿用耳机模板圆形字母标识样式，环下百分比12fp/500、18vp高；可选左右耳充电状态各12fp/400、最小12fp、16vp高，分别按字段存在性显示，不做成组隐藏。标题与双列间距8vp，列内间距4vp，列间12vp，两侧状态齐全时内容高120vp，不超过126vp可用高度。无需动作、素材、盒电量或连接状态；继续使用既有字段覆盖检索，不增加用例专用选择规则。
+
+### 耳机名称与盒电量百分比 Full
+
+新增 BluetoothDeviceOverviewEarphonePercentTextFull@1，必需 earphoneName 与 batteryLevel。参照 BatteryOverviewPercentTextFull 的居中三段式：顶部名称16fp/400、112×24vp，单行省略；中间盒电量百分比38fp/700、102×60vp；底部固定“耳机状态”12fp/400、106×16vp。顶部内边距4vp、段间距8vp，总内容高120vp。batteryLevel 为数值，显示时只追加一次百分号；无需动作、素材、连接状态或充电状态，沿用字段覆盖检索和主题色。
+
+### 耳机盒电量与充电状态 Full
+
+新增 BluetoothDeviceOverviewEarphoneCasePercentTextFull@1，必需 batteryLevel 与 chargingStatusDesc，earphoneName 可选。布局、字号、间距和主题色与 EarphonePercentTextFull 一致：顶部有名称时显示名称，缺少名称时显示“耳机电量”；中间为盒电量百分比；底部绑定实际盒充电状态。名称16fp/400、百分比38fp/700、状态12fp/400，不依赖连接状态、动作或素材。字段准入统一使用模板登记，缺少任一必选字段时不得进入该模板。
+
+### 耳机名称与连接状态 Full
+
+新增 BluetoothDeviceOverviewConnectionTextFull@1，必需 earphoneName 与 isConnected。内容 Column 占满可用空间，spaceBetween 上下分布、左对齐：左上名称，左下连接状态，两项均为16fp/400、24vp高、单行左对齐。沿用布局壳的12vp外边距，移除三段式额外顶部内边距和固定“耳机状态”文案；名称使用辅助色、连接状态使用主色。连接状态为true时显示“已连接”、false时显示“未连接”；false是有效状态，不作为缺失数据。无需电量、动作或图标。

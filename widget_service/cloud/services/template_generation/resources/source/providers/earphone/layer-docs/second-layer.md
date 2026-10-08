@@ -71,4 +71,6 @@ EarbudPairCompact 现可选展示连接状态和仓电量。双动作需求包�
 
 耳机融球主题的操作按钮使用主题背景白色 #33FFFFFF、20%不透明度，单按钮和双按钮一致；非融球主题保留原有配色和模板透明度覆盖，不应用融球按钮规则。
 
-模板覆盖必须满足本轮字段显示条件：三项充电状态不齐全时不覆盖任何充电状态；EarbudPairFull 的名称与连接状态至少存在一项。动作候选保留原始列表，局部禁止项通过 excludedActionIds 排除，按过滤后可用动作数选择布局；无法识别禁止项范围时关闭自动补动作。
+模板覆盖必须满足本轮字段显示条件：EarbudTripleHero 与 EarbudPairFull 的三项充电状态不齐全时不覆盖任何充电状态；EarbudPairFull 的名称与连接状态至少存在一项。动作候选保留原始列表，局部禁止项通过 excludedActionIds 排除，按过滤后可用动作数选择布局；无法识别禁止项范围时关闭自动补动作。
+
+- `BluetoothDeviceOverviewEarbudPairRingFull@1`：无动作2×2 Full，必需名称与左右耳电量，不需要盒电量或连接状态。顶部名称、双环内圆形 L/R 标识、环下对应百分比；leftChargingStatusDesc 与 rightChargingStatusDesc 独立可选，只有一项也应展示对应一侧，不适用三项状态成组显示规则。无需图标素材，沿用通用字段覆盖与布局规则。

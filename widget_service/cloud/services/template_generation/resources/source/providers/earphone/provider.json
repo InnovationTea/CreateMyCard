@@ -507,6 +507,68 @@
           "earphone-case"
         ]
       }
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarbudPairRingFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称双环 Full：顶部名称，下方左右两个电量环，环内圆形底色包裹的 L、R 标识，环下分别展示电量百分比。左右耳充电状态分别可选，各自存在时在百分比下显示。无需盒电量、连接状态、图标或动作。",
+      "entry": "templates/earbud-pair-ring-full.cardtpl",
+      "primaryData": [
+        "/earphoneName"
+      ],
+      "secondaryData": [
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "optionalData": [
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称与盒电量百分比 Full，居中三段式：顶部耳机名称、中间盒电量百分比大字、底部固定耳机状态。仅需名称与盒电量，无需动作、图标、连接或充电状态。",
+      "entry": "templates/earphone-percent-text-full.cardtpl",
+      "primaryData": [
+        "/batteryLevel"
+      ],
+      "secondaryData": [
+        "/earphoneName"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机盒电量与充电状态 Full，居中三段式：顶部可选耳机名称，无名称时显示耳机电量；中间盒电量百分比大字；底部实际盒充电状态。盒电量与充电状态必需，无需动作、图标或连接状态。",
+      "entry": "templates/earphone-case-percent-text-full.cardtpl",
+      "primaryData": [
+        "/batteryLevel"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ],
+      "optionalData": [
+        "/earphoneName"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewConnectionTextFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称与连接状态 Full：左上耳机名称、左下已连接或未连接，两处统一16fp左对齐。名称和连接状态必需，无需电量、动作或图标。",
+      "entry": "templates/connection-text-full.cardtpl",
+      "primaryData": [
+        "/isConnected"
+      ],
+      "secondaryData": [
+        "/earphoneName"
+      ],
+      "optionalData": []
     }
   ],
   "compatibility": {

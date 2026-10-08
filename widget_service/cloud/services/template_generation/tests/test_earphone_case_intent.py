@@ -114,7 +114,7 @@ class _CaseModel:
 
 @pytest.mark.parametrize("extra_earbuds", [False, True])
 @pytest.mark.asyncio
-async def test_case_requires_action_and_compiles_without_losing_core_fields(
+async def test_case_supports_full_and_action_hero_without_losing_core_fields(
     extra_earbuds: bool,
 ) -> None:
     task = _task(extra_earbuds)
@@ -124,15 +124,15 @@ async def test_case_requires_action_and_compiles_without_losing_core_fields(
         requiredOutputFieldsByCapability={"GetEarphoneInfo": _CASE_FIELDS}, action=[]
     )
     search = search_template_variants(intent, task, registry, bindings, _card())
-    if extra_earbuds:
-        full_plans = plan_template_candidates(intent, search, task, registry)
-        assert full_plans
-        selected_template = full_plans[0].business_slots[0].template_id
-        assert selected_template == "BluetoothDeviceOverviewEarbudPairFull@1"
-        assert not full_plans[0].action_assignments
-    else:
-        with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
-            plan_template_candidates(intent, search, task, registry)
+    full_plans = plan_template_candidates(intent, search, task, registry)
+    assert full_plans
+    selected_template = full_plans[0].business_slots[0].template_id
+    expected_template = (
+        "BluetoothDeviceOverviewEarbudPairFull@1"
+        if extra_earbuds else "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1"
+    )
+    assert selected_template == expected_template
+    assert not full_plans[0].action_assignments
 
     selected = intent.model_copy(update={"action_ids": (_ACTION,)})
     plans = plan_template_candidates(selected, search, task, registry)

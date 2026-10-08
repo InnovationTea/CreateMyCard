@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 213
+    assert len(registry.provider_template_ids) == 217
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -3003,6 +3003,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
     registry = get_cardplan_registry()
     ring_progress_templates = {
+        "BluetoothDeviceOverviewEarbudPairRingFull@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneHero@1",
@@ -3010,6 +3011,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewCaseConnectionHero@1",
         "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
         "BluetoothDeviceOverviewMusicFull@1",
     }
     progress_count = 0
@@ -3031,7 +3033,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             )
             assert color.name == expected_color
 
-    assert progress_count == 20
+    assert progress_count == 24
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
