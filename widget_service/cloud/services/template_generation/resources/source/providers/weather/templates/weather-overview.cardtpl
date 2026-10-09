@@ -56,11 +56,9 @@ Column(
   {
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
-    "borderRadius": 12,
     "constraintSize": { "minWidth": 0, "minHeight": 0 },
     "onClick": EventAction(props?.actionId)
   },
@@ -131,7 +129,6 @@ Column(
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "itemMargin": 3,
     "justifyContent": "center",
     "alignItems": "start",
@@ -871,7 +868,6 @@ Row(
   {
     "_advancedComponent": "WeatherOverviewTemperatureSupport",
     "width": "matchParent",
-    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -976,7 +972,6 @@ Row(
   {
     "_advancedComponent": "WeatherOverviewTemperatureSupport",
     "width": "matchParent",
-    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -1044,7 +1039,6 @@ Row(
   {
     "_advancedComponent": "WeatherOverviewTemperatureSupport",
     "width": "matchParent",
-    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -3077,7 +3071,6 @@ Row(
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -3571,10 +3564,7 @@ Column(
     "justifyContent": "spaceBetween",
     "alignItems": "start",
     "clip": true,
-    "constraintSize": { "minWidth": 0, "minHeight": 0 },
-    "padding": { "left": 12, "top": 8, "right": 12, "bottom": 8 },
-    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-    "borderRadius": $theme("supportContentStyle.borderRadius")
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
   },
   Row(
     {
@@ -3800,10 +3790,7 @@ Column(
     "justifyContent": "spaceBetween",
     "alignItems": "start",
     "clip": true,
-    "constraintSize": { "minWidth": 0, "minHeight": 0 },
-    "padding": { "left": 12, "top": 8, "right": 12, "bottom": 8 },
-    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-    "borderRadius": $theme("supportContentStyle.borderRadius")
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
   },
   Row(
     {

@@ -529,7 +529,6 @@ Row(
       "_advancedComponent": "BluetoothDeviceOverview",
       "width": "matchParent",
       "height": "matchParent",
-      "padding": { "left": 8, "right": 8 },
       "alignItems": "center",
       "justifyContent": "spaceBetween",
       "onClick": EventAction(props?.actionId)
@@ -568,7 +567,6 @@ Row(
     "_advancedComponent": "BluetoothDeviceOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
@@ -665,7 +663,6 @@ Row(
     "_advancedComponent": "BluetoothDeviceOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
@@ -1430,9 +1427,9 @@ Column(
     {
         "_advancedComponent": "BluetoothDeviceOverview",
         "width": "matchParent",
-        "height": "matchParent",
+        "height": 40,
         "itemMargin": 4,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "start",
         "clip": true,
         "constraintSize": {
@@ -1766,9 +1763,6 @@ Row(
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius"),
         "clip": true,
         "constraintSize": {
             "minWidth": 0,

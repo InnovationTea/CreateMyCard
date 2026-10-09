@@ -31,9 +31,6 @@ Column(
         "height": "matchParent",
         "itemMargin": 4,
         "justifyContent": "center",
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius"),
         "alignItems": "start",
         "clip": true,
         "constraintSize": {
