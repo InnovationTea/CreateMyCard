@@ -12,7 +12,7 @@ class DeviceDebugContext(BaseModel):
     odid: str = "debug-device"
     deviceId: str = "debug-device"
     phoneType: str = "ALN-AL00"
-    appVersion: str = "11.7.7.332"
+    appVersion: str = "11.9.9.342"
     romVersion: str = "ALN-AL00 7.0.0.100"
     locale: str = "zh-CN"
     countryCode: str = "CN"

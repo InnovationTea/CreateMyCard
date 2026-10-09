@@ -207,7 +207,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--uid", default="debug-user")
     parser.add_argument("--device-id", dest="device_id", default="debug-device")
     parser.add_argument("--phone-type", dest="phone_type", default="ALN-AL00")
-    parser.add_argument("--app-version", dest="app_version", default="11.7.7.332")
+    parser.add_argument("--app-version", dest="app_version", default="11.9.9.342")
     parser.add_argument("--rom-version", dest="rom_version", default="ALN-AL00 7.0.0.100")
     parser.add_argument("--locale", default="zh-CN")
     parser.add_argument("--country-code", dest="country_code", default="CN")

@@ -105,7 +105,7 @@ defaults:
   uid: debug-user
   device_id: debug-device
   phone_type: ALN-AL00
-  app_version: 11.7.7.332
+  app_version: 11.9.9.342
   rom_version: ALN-AL00 7.0.0.100
   locale: zh-CN
   country_code: CN

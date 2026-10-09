@@ -217,7 +217,7 @@ function agentContext(config?: SharedDebugConfig): Record<string, unknown> {
     odid: config?.deviceId ?? 'debug-device',
     deviceId: config?.deviceId ?? 'debug-device',
     phoneType: config?.phoneType ?? 'ALN-AL00',
-    appVersion: config?.appVersion ?? '11.7.7.332',
+    appVersion: config?.appVersion ?? '11.9.9.342',
     romVersion: config?.romVersion ?? 'ALN-AL00 7.0.0.100',
     locale: config?.locale ?? 'zh-CN',
     countryCode: config?.countryCode ?? 'CN',

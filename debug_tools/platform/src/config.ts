@@ -48,7 +48,7 @@ export const defaultDebugConfig: DebugConfig = {
   userId: 'debug-user',
   deviceId: 'debug-device',
   phoneType: 'ALN-AL00',
-  appVersion: '11.7.7.332',
+  appVersion: '11.9.9.342',
   romVersion: 'ALN-AL00 7.0.0.100',
   locale: 'zh-CN',
   countryCode: 'CN',

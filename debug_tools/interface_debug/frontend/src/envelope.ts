@@ -109,7 +109,7 @@ export function buildToolEnvelope(
       deviceType,
       locale: config?.locale ?? 'zh-CN',
       phoneType: config?.phoneType ?? 'ALN-AL00',
-      prdVer: config?.appVersion ?? '11.7.7.332',
+      prdVer: config?.appVersion ?? '11.9.9.342',
       sysVer: config?.sysVer ?? 'HarmonyOS',
       romVersion: config?.romVersion ?? 'ALN-AL00 7.0.0.100',
       deviceId,

@@ -82,7 +82,7 @@ class DebugSettings:
     default_uid: str = "debug-user"
     default_device_id: str = "debug-device"
     default_phone_type: str = "ALN-AL00"
-    default_app_version: str = "11.7.7.332"
+    default_app_version: str = "11.9.9.342"
     default_rom_version: str = "ALN-AL00 7.0.0.100"
     default_locale: str = "zh-CN"
     default_country_code: str = "CN"
