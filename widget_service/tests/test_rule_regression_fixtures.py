@@ -268,6 +268,63 @@ def _artifact_for_rule(rule: int):
         return raw
 
 
+def _diagnostics_for_rule_fixture(rule: int, suffix: str):
+    root = _test_artifact_dir()
+    path = next(root.glob(f"*/R{rule:02d}_*_{suffix}.json"))
+    raw = path.read_text(encoding="utf-8")
+    try:
+        artifact = json.loads(raw)
+    except json.JSONDecodeError:
+        artifact = raw
+    return validate_card(artifact=artifact).diagnostics
+
+
+@pytest.mark.parametrize(
+    ("rule", "target_pointer", "target_message"),
+    [
+        (
+            29,
+            "/updateComponents/components/0/children/itemVar",
+            "itemVar 必须是不带 $ 前缀的非空变量名。",
+        ),
+        (
+            73,
+            "/dataBindings/0/arguments",
+            "arguments 是端侧能力静态入参，不能写 DSL 表达式或绑定对象。",
+        ),
+    ],
+    ids=["R29", "R73"],
+)
+def test_shared_diagnostic_rules_hit_exact_branch_and_clean_baseline(
+    rule, target_pointer, target_message
+):
+    negative_diagnostics = _diagnostics_for_rule_fixture(rule, "1")
+    target_diagnostics = [
+        item
+        for item in negative_diagnostics
+        if item.code == RULE_CODES[rule]
+        and item.json_pointer == target_pointer
+        and item.message == target_message
+    ]
+    assert target_diagnostics, [
+        (item.code, item.json_pointer, item.message)
+        for item in negative_diagnostics
+    ]
+
+    baseline_diagnostics = _diagnostics_for_rule_fixture(rule, "0")
+    baseline_target_diagnostics = [
+        item
+        for item in baseline_diagnostics
+        if item.code == RULE_CODES[rule]
+        and item.json_pointer == target_pointer
+        and item.message == target_message
+    ]
+    assert not baseline_target_diagnostics, [
+        (item.code, item.json_pointer, item.message)
+        for item in baseline_target_diagnostics
+    ]
+
+
 @pytest.mark.parametrize("rule", range(2, 98), ids=lambda item: f"R{item:02d}")
 def test_every_rule_fixture_hits_declared_diagnostic(rule):
     """每条 R02–R97 规则都必须有独立回归用例并命中声明诊断码。"""
