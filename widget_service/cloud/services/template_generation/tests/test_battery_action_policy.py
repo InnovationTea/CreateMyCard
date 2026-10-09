@@ -709,7 +709,11 @@ def test_battery_prompt_limits_candidates_without_expanding_protocol() -> None:
     payload = json.loads(payload_text)
     references = payload.get("batteryTemplateReference")
     assert isinstance(references, list)
-    charge = next(item for item in references if item.get("templateId") == (
-        "BatteryOverviewChargeStatusHero@1"
-    ))
+    for template_reference in references:
+        if template_reference.get("templateId") != "BatteryOverviewChargeStatusHero@1":
+            continue
+        charge = template_reference
+        break
+    else:
+        raise StopIteration
     assert set(charge.get("displayFields", ())) == {"/batterySOC", "/batteryTemperatureText"}
