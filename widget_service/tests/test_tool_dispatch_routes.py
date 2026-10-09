@@ -41,6 +41,7 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 app = importlib.import_module("start_websocket_server").app
+routes_module = importlib.import_module("api.routes")
 A2UIModelClient = importlib.import_module("custom.a2ui_model_client").A2UIModelClient
 A2UIModelGenerationError = importlib.import_module(
     "custom.a2ui_model_client"
@@ -64,6 +65,18 @@ WidgetGenerationService = importlib.import_module(
 compact_dsl_argument_issue_tracker = importlib.import_module(
     "services.compact_dsl_argument_repair"
 ).compact_dsl_argument_issue_tracker
+
+
+def test_ops_metric_mappings_cover_all_websocket_operations():
+    """验证每个正式 WebSocket 入口都有耗时和参数错误指标。"""
+    expected_operations = {
+        "getWidgetCapabilityOverview",
+        "getDataCapabilitySchemas",
+        *routes_module.GENERATION_OPERATIONS,
+    }
+
+    assert set(routes_module.INTERFACE_TYPE) == expected_operations
+    assert set(routes_module.INTERFACE_PARAMETER_ERROR_TYPE) == expected_operations
 
 
 def _tool_payload(

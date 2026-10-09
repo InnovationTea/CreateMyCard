@@ -311,7 +311,7 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 - handler 的 `call/args` 必须完整复用一个 eventCandidate。候选中的静态值、Expression 或模板相对 PathBinding 保持原结构，不自行构造事件参数。
 - 事件是否应被选择只按 2.4 节的 `explicit/implicit/sideEffect` 分级决定。本节只约束被选事件的 DSL 写法，不得因技术上可绑定就提升事件优先级。
 - 纯文字按钮使用 Button；图文按钮使用一个带 `onClick` 的 Row，内部组合 Image 和 Text；被选中的无副作用单一隐式入口优先放在支持整卡入口的 root，不额外占用版面；`W-four-slots`/`W-content-side-slots` 的 `CardButton` 语义槽绑定所属蒙版，左侧大内容蒙版使用内部 Button。同一动作只选择一个点击容器，不重复绑定。`S-dual-info`、`W-top-bottom` 和 `InfoBlock` 语义槽舍弃隐式入口。
-- 用户明确要求“点击/点一下/打开/查看/导航/设置/进入/播放”某个候选动作时，该动作是显式动作，必须落到当前骨架的 Button、PillButton、CircleButton、CardButton 或合法可点击 Row；不得绑定到 `InfoBlock`，也不得改成 root.onClick 后再用普通 Text 补写“点击查看……”或“点击导航……”。`W-top-bottom` 不承载显式动作；当前尺寸没有兼容布局时按不支持处理，禁止静默删除。
+- 用户明确要求“点击/点一下/打开/查看/导航/设置/进入/播放”某个候选动作时，该动作是显式动作，必须落到当前骨架的 Button、PillButton、CircleButton、CardButton 或合法可点击 Row；不得绑定到 `InfoBlock`，也不得改成 root.onClick 后再用普通 Text 补写“点击查看……”或“点击导航……”。`W-top-bottom` 仅允许密集列表变体将所属只读详情绑定到列表整体；除此以外不承载显式动作。当前尺寸没有兼容布局时按不支持处理，禁止静默删除。
 - 只有用户未明确要求的无副作用隐式入口才可绑定 root 或所属蒙版；隐式入口不生成按钮，也不生成“点击、打开、查看、导航”等可见动作提示文字。
 - 不把一个候选事件复制到多个无关组件，也不生成没有候选事件的可点击外观。
 
