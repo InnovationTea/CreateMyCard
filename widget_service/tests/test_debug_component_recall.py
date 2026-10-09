@@ -11,7 +11,7 @@ from debug_tools.batch_testing.runner import BatchRunManager
 
 def _load_plugin() -> ModuleType:
     path = (
-        Path(__file__).parents[1]
+        Path(__file__).parents[2]
         / "debug_tools"
         / "postprocess_plugins"
         / "component-recall"
@@ -162,7 +162,7 @@ def test_dataset_uses_only_annotated_sample_macro_average() -> None:
 
 def test_representative_annotation_snapshot_contains_expected_16_samples() -> None:
     path = (
-        Path(__file__).parents[1]
+        Path(__file__).parents[2]
         / "debug_tools"
         / "Datasets"
         / "request_dataset"

@@ -36,8 +36,8 @@ __pycache__/
 venv/
 env/
 dist/
-!widget_service/debug_tools/dist/
-!widget_service/debug_tools/dist/**
+!debug_tools/dist/
+!debug_tools/dist/**
 build/
 *.egg-info/
 
@@ -60,9 +60,9 @@ coverage/
 *.rar
 
 output/
-widget_service/debug_tools/batch_output/
+debug_tools/batch_output/
 widget_service/workspace
-widget_service/debug_tools/package-lock.json
+debug_tools/package-lock.json
 
 重构文档.md
 card-design-share/

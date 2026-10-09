@@ -598,7 +598,7 @@ def test_v2_result_rejects_missing_required_artifact_and_path_escape(tmp_path: P
 @pytest.mark.asyncio
 async def test_complete_showcase_plugin_covers_all_renderers(tmp_path: Path) -> None:
     output_root = tmp_path / "output"
-    plugins_root = Path(__file__).resolve().parents[1] / "debug_tools" / "postprocess_plugins"
+    plugins_root = Path(__file__).resolve().parents[2] / "debug_tools" / "postprocess_plugins"
     run_id = "batch_20261007_showcase_1234abcd"
     _write_run(output_root, run_id)
     manager = PostprocessManager(output_root, plugins_root)
