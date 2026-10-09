@@ -66,7 +66,7 @@ async def generate(source: Path, output: Path) -> None:
             return (
                 'Template("WideFullTwoCompactLayout@1",{"compactRows":true},'
                 f'Template("{TEMPLATE_ID}",'
-                '{"caseIcon":"resources/base/media/earphone_case_16644.svg"}),'
+                '{"deviceIcon":"resources/base/media/earphone_case_16644.svg"}),'
                 'Template("CompactAction@1",{"actionId":"event.open.settings.bluetooth",'
                 '"label":"蓝牙设置","icon":"resources/base/media/icon_earphone.svg",'
                 '"prominent":true}),'

@@ -130,6 +130,12 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
 }
 # 单业务多云样例没有匹配状态素材，省略图标；Support 可使用表达气温的温度计。
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
+    ("BatteryOverviewSupportHero@1", "batteryIcon"):
+        "resources/base/media/icon_phone.svg",
+    ("BatteryOverviewChargeStatusHero@1", "batteryIcon"):
+        "resources/base/media/icon_phone.svg",
+    ("BluetoothDeviceOverviewEarphoneHero@1", "deviceIcon"):
+        "resources/base/media/icon_earphone.svg",
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"):

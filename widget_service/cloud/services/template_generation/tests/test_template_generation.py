@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 206
+    assert len(registry.provider_template_ids) == 220
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -290,9 +290,19 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewChargingDiagnosticsHero@1",
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
         "BatteryOverviewChargingDiagnosticsWideFull@1",
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewHealthTemperatureHero@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewStatusSummaryHero@1",
+        "BatteryOverviewStatusLevelSummaryHero@1",
+        "BatteryOverviewChargingLevelSummaryHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
         "BluetoothDeviceOverviewEarbudTripleHero@1",
@@ -3012,6 +3022,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
     registry = get_cardplan_registry()
     ring_progress_templates = {
+        "BluetoothDeviceOverviewEarbudPairRingFull@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneHero@1",
@@ -3041,7 +3052,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             )
             assert color.name == expected_color
 
-    assert progress_count == 22
+    assert progress_count == 24
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -3073,9 +3084,9 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "rightEarIcon"),
-        ("BluetoothDeviceOverviewEarphoneCaseHero@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarphoneCaseHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewEarphoneCaseCompact@1", "caseIcon"),
-        ("BluetoothDeviceOverviewEarphoneHero@1", "earphoneIcon"),
+        ("BluetoothDeviceOverviewEarphoneHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewEarphoneCompact@1", "earphoneIcon"),
         ("BluetoothDeviceOverviewStatusHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewCaseConnectionHero@1", "deviceIcon"),
@@ -3085,7 +3096,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "deviceIcon"),
-        ("BluetoothDeviceOverviewMusicFull@1", "caseIcon"),
+        ("BluetoothDeviceOverviewMusicFull@1", "deviceIcon"),
         ("BluetoothDeviceOverviewTripleBatteryWideHalf@1", "deviceIcon"),
         ("BluetoothDeviceOverviewTripleBatteryWideHalf@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewTripleBatteryWideHalf@1", "rightEarIcon"),
@@ -3443,11 +3454,21 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
     registry = get_cardplan_registry()
     battery = registry.require_ux_business_component("BatteryOverview")
     expected_template_ids = {
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewWideFull@1",
         "BatteryOverviewCompact@1",
         "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewHealthTemperatureHero@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewStatusSummaryHero@1",
+        "BatteryOverviewStatusLevelSummaryHero@1",
+        "BatteryOverviewChargingLevelSummaryHero@1",
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewPercentLevelHero@1",
         "BatteryOverviewChargingProgressFull@1",
@@ -3658,13 +3679,13 @@ def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
     assert options.get("textAlign") == "center"
 
 
-def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:
+def test_battery_compact_uses_required_icon_and_36vp_ring() -> None:
     definition = get_cardplan_registry().require_template("BatteryOverviewCompact@1")
     variant = definition.variants[0]
     parameters_schema = variant.parameters_schema
 
     assert set(parameters_schema["properties"]) == {"batteryIcon"}
-    assert parameters_schema.get("required", []) == []
+    assert parameters_schema.get("required", []) == ["batteryIcon"]
     content_row = variant.root.children[0]
     ring_stack, text_column = content_row.children
     progress = _template_nodes(ring_stack, "Progress")[0]
@@ -3688,28 +3709,20 @@ def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:
         "progressColor": "#FF26BFA6",
         "progressBackgroundColor": "#3326BFA6",
     }
-    without_icon = _instantiate_blueprint(
-        variant.root,
-        {},
-        bindings,
-        theme_values,
-    )
+    with pytest.raises(ValueError, match="batteryIcon"):
+        _instantiate_blueprint(variant.root, {}, bindings, theme_values)
     with_icon = _instantiate_blueprint(
         variant.root,
         {"batteryIcon": "resources/base/media/battery_leaf_fill.svg"},
         bindings,
         theme_values,
     )
-    without_icon_stack = without_icon.children[0].children[0]
     with_icon_stack = with_icon.children[0].children[0]
-    assert [child.component_type for child in without_icon_stack.children] == [
-        "Progress"
-    ]
     assert [child.component_type for child in with_icon_stack.children] == [
         "Progress",
         "Image",
     ]
-    battery_text = without_icon.children[0].children[1].children[0]
+    battery_text = with_icon.children[0].children[1].children[0]
     assert battery_text.values[0] == (
         "{{ '电量 ' + ${/data/phoneBattery/batterySOC} + '%' }}"
     )
@@ -5940,7 +5953,9 @@ async def test_2x4_battery_multi_field_without_complete_plan_returns_route_miss(
 
 
 @pytest.mark.asyncio
-async def test_2x2_battery_charging_progress_hero_uses_status_fields():
+@pytest.mark.parametrize("with_level", [False, True])
+@pytest.mark.parametrize("with_temperature", [False, True])
+async def test_2x2_battery_charging_progress_hero_uses_status_fields(with_level, with_temperature):
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -5959,16 +5974,18 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     phone_battery.pop("batterySOC")
     phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
+    if with_level:
+        phone_battery["batteryCapacityLevelDesc"] = _provider_field("正常电量", "string")
+        binding.candidateOutputFields.append("/batteryCapacityLevelDesc")
+    if with_temperature:
+        phone_battery["batteryTemperatureText"] = _provider_field("29.0 ℃", "string")
+        binding.candidateOutputFields.append("/batteryTemperatureText")
     model = _FixedTemplateModel(
         theme_id="fusion-battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
-        required_fields=(
-            "/batterySOCText",
-            "/chargingStatusDesc",
-            "/healthStatusDesc",
-        ),
+        required_fields=tuple(binding.candidateOutputFields),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -5996,6 +6013,39 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     assert "healthStatusDesc" in output.a2ui
     assert "pluggedTypeDesc" not in output.a2ui
     assert '"component": "Progress"' not in output.a2ui
+
+    components = {}
+    for line in output.a2ui.splitlines():
+        update = json.loads(line).get("updateComponents", {})
+        for component in update.get("components", []):
+            components[component.get("id")] = component
+    status = next(
+        item for item in components.values() if "chargingStatusDesc" in str(item.get("content", ""))
+    )
+    body = next(
+        item for item in components.values() if status.get("id") in item.get("children", [])
+    )
+    children = body.get("children", [])
+    assert len(children) == 3
+    status_content = str(status.get("content", ""))
+    assert ("状态：" in status_content) == (not with_level and not with_temperature)
+    assert (" · " in status_content) == (with_level or with_temperature)
+    assert ("batteryTemperatureText" in status_content) == with_temperature
+    assert ("batteryCapacityLevelDesc" in status_content) == with_level
+    title = components.get(children[0])
+    readout = components.get(children[1])
+    assert isinstance(title, dict)
+    assert isinstance(readout, dict)
+    number = components.get(readout.get("children", [])[0])
+    assert isinstance(number, dict)
+    top = readout.get("styles", {}).get("margin", {}).get("top", 0)
+    height = title.get("styles", {}).get("height", 0)
+    height += number.get("styles", {}).get("height", 0)
+    height += status.get("styles", {}).get("height", 0)
+    height += top + 2 * body.get("itemMargin", 0)
+    assert top == 0
+    assert height == 80
+    assert height <= 150 - 24 - 36 - 8
 
 
 @pytest.mark.asyncio

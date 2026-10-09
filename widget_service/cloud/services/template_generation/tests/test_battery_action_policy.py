@@ -3,28 +3,33 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
+from services.card_validation.compact_dsl_validator import validate_compact_dsl
 from services.template_generation.controls import TemplateControls
 from services.template_generation.engine import pipeline
-from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.battery_action_policy import (
     resolve_battery_settings_fallback,
 )
+from services.template_generation.engine.cardplan.compiler import template_displayed_binding_names
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
 from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
+    TemplateRetrievalMiss,
     TemplateSearchIntent,
     TemplateSearchResult,
     build_template_retrieval_prompt,
     search_template_variants,
+)
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
+    convert_a2ui_to_compact_dsl,
 )
 
 _CAPABILITY = "GetPhoneBatteryInfo"
@@ -40,6 +45,7 @@ _SAMPLES = {
     "/batterySOC": 68, "/batterySOCText": "68%", "/chargingStatusDesc": "未充电",
     "/batteryCapacityLevelDesc": "正常电量", "/healthStatusDesc": "正常",
     "/nowCurrentText": "-151 mA", "/voltageText": "4 V", "/isBatteryPresentText": "在位",
+    "/batteryTemperatureText": "29.0 ℃",
     "/updatedAt": "09:00", "/pluggedTypeDesc": "未连接充电器",
 }
 
@@ -66,6 +72,11 @@ def _case(fields: tuple[str, ...] = _TEXT_FIELDS, *, with_full: bool = False) ->
         }
     task = TaskSpec(
         userQuery="创建电量卡片，显示电量和充电状态", size="2x2",
+        assetCandidates=[{
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "description": "电池电量图标",
+            "sceneTags": ["battery"],
+        }],
         dataModelSchema={"data": {"phoneBattery": schema}},
         eventCandidates=[EventAction(id=_SETTINGS, call="clickToDeeplink", args=dict(_ARGS))],
     )
@@ -90,8 +101,6 @@ def _search(case: BatteryCase, registry: CardPlanRegistry) -> TemplateSearchResu
 
 
 @pytest.mark.parametrize(("fields", "template"), [
-    (("/batterySOCText",), "BatteryOverviewChargingProgressHero@1"),
-    (_TEXT_FIELDS, "BatteryOverviewChargingProgressHero@1"),
     ((*_TEXT_FIELDS, "/healthStatusDesc"), "BatteryOverviewChargingProgressHero@1"),
     (("/healthStatusDesc", "/batteryCapacityLevelDesc"), "BatteryOverviewHealthLevelHero@1"),
     (("/nowCurrentText", "/voltageText", "/batteryCapacityLevelDesc", "/isBatteryPresentText"),
@@ -125,7 +134,7 @@ def test_hero_adds_one_settings_action_without_changing_fields_or_inputs(
     assert resolve_battery_settings_fallback(resolved, result, case.task) is resolved
 
 
-def test_full_wins_without_adding_button_even_when_hero_is_available() -> None:
+def test_full_with_more_candidate_fields_can_win_without_adding_button() -> None:
     case = _case(with_full=True)
     registry = CardPlanRegistry()
     result = _search(case, registry)
@@ -133,8 +142,11 @@ def test_full_wins_without_adding_button_even_when_hero_is_available() -> None:
     assert "BatteryOverviewFull@1" in candidates
     assert "BatteryOverviewChargingProgressHero@1" in candidates
     resolved = resolve_battery_settings_fallback(case.intent, result, case.task)
-    assert resolved is case.intent
-    plans = plan_template_candidates(resolved, result, case.task, registry)
+    assert resolved.action_ids == (_SETTINGS,)
+    plans = plan_template_candidates(
+        resolved, result, case.task, registry, candidate_bindings=(case.binding,),
+        allow_battery_no_action_plan=True,
+    )
     assert all(p.layout_template_id == "SingleFocusLayout@1" for p in plans)
 
 
@@ -214,18 +226,18 @@ def test_compact_and_support_without_hero_do_not_trigger_fallback() -> None:
     case = _case(("/batterySOC", "/chargingStatusDesc"))
     registry = CardPlanRegistry(disabled_template_ids=(
         "BatteryOverviewChargingRingHero@1", "BatteryOverviewStatusHero@1",
-        # #404 引入的同契约 Hero 兄弟模板一并关闭，保持"无 Hero 候选"的场景。
+        "BatteryOverviewPercentRingHero@1", "BatteryOverviewStatusRingHero@1",
         "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
     ))
     result = _search(case, registry)
     assert {c.template_id for c in result.business_candidates[0].candidates} == {
-        "BatteryOverviewCompact@1", "BatteryOverviewPercentStatusCompact@1",
-        "BatteryOverviewSupport@1",
+        "BatteryOverviewCompact@1", "BatteryOverviewSupport@1",
+        "BatteryOverviewPercentStatusCompact@1",
     }
     assert resolve_battery_settings_fallback(case.intent, result, case.task) is case.intent
 
 
-def test_text_level_fallback_covers_both_fields_without_fabricating_numeric_data() -> None:
+def test_charging_hero_covers_text_and_level_without_fabricating_numeric_data() -> None:
     case = _case(("/batterySOCText", "/batteryCapacityLevelDesc"))
     registry = CardPlanRegistry()
     result = _search(case, registry)
@@ -234,7 +246,7 @@ def test_text_level_fallback_covers_both_fields_without_fabricating_numeric_data
     # 从已覆盖的候选中移除（template_retrieval 的 text-level fallback 淘汰逻辑），
     # 兜底变体仅在通用 Hero 缺席时出现（见 test_battery_case_extensions）。
     assert [c.template_id for c in result.business_candidates[0].candidates] == [
-        "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentLevelFull@1",
     ]
     assert "batterySOC\"" not in json.dumps(case.task.dataModelSchema)
     resolved = resolve_battery_settings_fallback(case.intent, result, case.task)
@@ -268,6 +280,8 @@ def test_other_and_mixed_business_prompts_do_not_receive_battery_fallback(
     assert isinstance(system, str)
     assert "allowBatterySettingsFallback" not in system
     assert "默认电池设置入口" not in system
+    payload = json.loads(prompt[1].get("content", "{}"))
+    assert "batteryTemplateReference" not in payload
 
 
 def test_battery_prompt_only_labels_permission_and_keeps_explicit_fields() -> None:
@@ -293,7 +307,8 @@ def test_battery_prompt_only_labels_permission_and_keeps_explicit_fields() -> No
 async def test_default_settings_reaches_second_layer_and_compiles_once(
     monkeypatch: pytest.MonkeyPatch, with_full: bool, fusion: bool,
 ) -> None:
-    case = _case(with_full=with_full)
+    fields = _TEXT_FIELDS if with_full else (*_TEXT_FIELDS, "/healthStatusDesc")
+    case = _case(fields, with_full=with_full)
     monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
         schemaVersion="template-controls/1", firstLayerComponentSelector="search",
     ))
@@ -325,7 +340,7 @@ async def test_default_settings_reaches_second_layer_and_compiles_once(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("flag", [False, None])
-async def test_no_button_and_legacy_intents_keep_the_existing_hero_miss(
+async def test_no_button_and_legacy_intents_use_percent_text_full(
     monkeypatch: pytest.MonkeyPatch, flag: bool | None,
 ) -> None:
     case = _case()
@@ -342,10 +357,12 @@ async def test_no_button_and_legacy_intents_keep_the_existing_hero_miss(
             return result
 
         async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
-            pytest.fail("禁止按钮或旧输出未授权时不得进入 Hero 二层")
+            return ('Template("SingleFocusLayout@1",{},'
+                    'Template("BatteryOverviewPercentTextFull@1",{}));')
 
-    with pytest.raises(TemplateRouteNotApplicable, match="cannot form"):
-        await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
+    output = await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
+    assert not output.projected_task_spec.eventCandidates
+    assert "chargingStatusDesc" in output.a2ui
 
 
 @pytest.mark.asyncio
@@ -383,3 +400,316 @@ async def test_existing_explicit_and_gallery_actions_are_never_replaced_or_delet
     assert [event.id for event in output.projected_task_spec.eventCandidates] == [_HEALTH]
     assert output.a2ui.count('"call":"clickToDeeplink"') == 1
     assert "电池健康" in output.a2ui
+
+
+def test_q112_template_reference_keeps_unused_fields_optional() -> None:
+    case = _case((*_TEXT_FIELDS, "/healthStatusDesc", "/pluggedTypeDesc"))
+    case.task.userQuery = "充电状态和电池情况"
+    case = replace(case, intent=case.intent.model_copy(
+        update={"required_output_fields_by_capability": {_CAPABILITY: _TEXT_FIELDS}},
+    ))
+    registry = CardPlanRegistry()
+    prompt = build_template_retrieval_prompt(case.task, registry, (case.binding,))
+    payload = json.loads(prompt[1].get("content", "{}"))
+    references = payload.get("batteryTemplateReference")
+    assert isinstance(references, list)
+    hero_id = "BatteryOverviewChargingProgressHero@1"
+    hero = next(
+        item for item in references if item.get("templateId") == hero_id
+    )
+    assert hero.get("missingInputFields") == []
+    assert "/chargingStatusDesc" in hero.get("optionalInputFields", [])
+    assert "/healthStatusDesc" in hero.get("optionalInputFields", [])
+    full_id = "BatteryOverviewChargingProgressFull@1"
+    full = next(
+        item for item in references if item.get("templateId") == full_id
+    )
+    assert "/batterySOC" in full.get("missingInputFields", [])
+    candidates = payload.get("candidateOutputFieldsByCapability", {}).get(_CAPABILITY, [])
+    assert "/pluggedTypeDesc" in candidates
+    resolved = resolve_battery_settings_fallback(case.intent, _search(case, registry), case.task)
+    plans = plan_template_candidates(resolved, _search(case, registry), case.task, registry)
+    assert plans
+    assert plans[0].business_slots[0].template_id == "BatteryOverviewChargingProgressHero@1"
+    assert case.intent.required_output_fields_by_capability == {_CAPABILITY: _TEXT_FIELDS}
+
+
+def test_battery_reference_does_not_drop_explicit_plugged_type() -> None:
+    case = _case((*_TEXT_FIELDS, "/pluggedTypeDesc"))
+    case.task.userQuery = "显示电量、充电状态和充电类型，三项都要"
+    with pytest.raises(TemplateRetrievalMiss, match="no provider template covers"):
+        _search(case, CardPlanRegistry())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+@pytest.mark.parametrize("charging", [False, True])
+async def test_percent_text_full_without_actions(
+    monkeypatch: pytest.MonkeyPatch, fusion: bool, charging: bool,
+) -> None:
+    case = _case(_TEXT_FIELDS if charging else ("/batterySOCText",))
+    task = case.task.model_copy(update={
+        "userQuery": "显示手机剩余电量和充电状态" if charging else "只显示电量的百分比",
+        "eventCandidates": [],
+    })
+    case = replace(case, task=task)
+    registry = CardPlanRegistry()
+    result = _search(case, registry)
+    resolved = resolve_battery_settings_fallback(case.intent, result, task)
+    plans = plan_template_candidates(resolved, result, task, registry)
+    assert plans
+    for plan in plans:
+        assert plan.layout_template_id == "SingleFocusLayout@1"
+        assert plan.business_slots[0].template_id == "BatteryOverviewPercentTextFull@1"
+        assert not plan.action_assignments
+    monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
+        schemaVersion="template-controls/1", firstLayerComponentSelector="search",
+    ))
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
+            return ('Template("SingleFocusLayout@1",{},'
+                    'Template("BatteryOverviewPercentTextFull@1",{}));')
+
+    output = await pipeline.generate_template_a2ui(
+        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    assert not output.projected_task_spec.eventCandidates
+    assert "手机电量" in output.a2ui
+    assert "batterySOCText" in output.a2ui
+    if charging:
+        assert "chargingStatusDesc" in output.a2ui
+    else:
+        assert "电量状态" in output.a2ui
+        assert "chargingStatusDesc" not in output.a2ui
+
+
+@pytest.mark.parametrize("with_extra", [False, True])
+def test_battery_plan_prefers_more_available_candidate_fields(with_extra: bool) -> None:
+    fields = (
+        (*_FULL_FIELDS, "/healthStatusDesc", "/pluggedTypeDesc") if with_extra else _TEXT_FIELDS
+    )
+    case = _case(fields)
+    intent = case.intent.model_copy(update={
+        "required_output_fields_by_capability": {_CAPABILITY: _TEXT_FIELDS},
+    })
+    case = replace(case, intent=intent)
+    registry = CardPlanRegistry()
+    result = _search(case, registry)
+    plans = plan_template_candidates(
+        intent, result, case.task, registry, candidate_bindings=(case.binding,),
+    )
+    expected = (
+        "BatteryOverviewFull@1"
+        if with_extra else "BatteryOverviewPercentTextFull@1"
+    )
+    assert plans[0].business_slots[0].template_id == expected
+    assert case.intent.required_output_fields_by_capability == {_CAPABILITY: _TEXT_FIELDS}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("allow_action", [False, True])
+async def test_q144_full_and_hero_compete_by_candidate_coverage(
+    monkeypatch: pytest.MonkeyPatch, allow_action: bool,
+) -> None:
+    fields = (
+        *_TEXT_FIELDS, "/batteryCapacityLevelDesc", "/healthStatusDesc", "/batteryTemperatureText",
+    )
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "eventCandidates": case.task.eventCandidates if allow_action else [],
+        "userQuery": "电池情况和还剩多少电",
+    })
+    intent = case.intent.model_copy(update={
+        "required_output_fields_by_capability": {_CAPABILITY: _TEXT_FIELDS},
+    })
+    monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
+        schemaVersion="template-controls/1", firstLayerComponentSelector="search",
+    ))
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
+            if allow_action:
+                assert "BatteryOverviewStatusSummaryHero@1" in json.dumps(_prompt)
+                return ('Template("HeroActionLayout@1",{},'
+                        'Template("BatteryOverviewStatusSummaryHero@1",{}),'
+                        'Template("PillAction@1",{"actionId":"event.open.settings.battery",'
+                        '"label":"电池设置"}));')
+            return ('Template("SingleFocusLayout@1",{},'
+                    'Template("BatteryOverviewPercentTextFull@1",{}));')
+
+    output = await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+    )
+    assert len(output.projected_task_spec.eventCandidates) == int(allow_action)
+    assert ("batteryTemperatureText" in output.a2ui) == allow_action
+
+
+def _review_case(issue: str) -> BatteryCase:
+    fields = (*_FULL_FIELDS, "/healthStatusDesc", "/batteryTemperatureText")
+    required = _TEXT_FIELDS
+    focus: dict[str, str] = {}
+    query = "显示剩余电量和充电状态"
+    if issue == "rendered":
+        fields = ("/batterySOC", "/chargingStatusDesc", "/pluggedTypeDesc",
+                  "/batteryTemperatureText")
+        required = ("/batterySOC", "/batteryTemperatureText")
+        query = "显示电量与温度"
+    elif issue == "focus":
+        required = ("/healthStatusDesc",)
+        focus = {_CAPABILITY: "/healthStatusDesc"}
+        query = "以电池健康状态为唯一重点"
+    case = _case(fields)
+    task = case.task.model_copy(update={
+        "userQuery": query,
+        "assetCandidates": [*case.task.assetCandidates, {
+            "src": "resources/base/media/icon_phone.svg", "description": "手机图标",
+            "sceneTags": ["phone"],
+        }],
+    })
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={_CAPABILITY: required},
+        primaryOutputFieldByCapability=focus,
+        allowBatterySettingsFallback=True,
+    )
+    return replace(case, task=task, intent=intent)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fusion", [False, True])
+@pytest.mark.parametrize("issue", ["rendered", "focus"])
+async def test_review_constraints_survive_planning_and_generation(
+    monkeypatch: pytest.MonkeyPatch, issue: str, fusion: bool,
+) -> None:
+    case = _review_case(issue)
+    registry = CardPlanRegistry()
+    original = case.task.model_dump()
+    search = _search(case, registry)
+    intent = resolve_battery_settings_fallback(case.intent, search, case.task)
+    plans = plan_template_candidates(
+        intent, search, case.task, registry, candidate_bindings=(case.binding,),
+        allow_battery_no_action_plan=True,
+    )
+    first = plans[0]
+    template_id = first.business_slots[0].template_id
+    if issue == "rendered":
+        assert template_id == "BatteryOverviewTemperatureRingHero@1"
+        charge = next(
+            candidate for candidate in search.business_candidates[0].candidates
+            if candidate.template_id == "BatteryOverviewChargeStatusHero@1"
+        )
+        assert set(charge.available_data_fields) == {
+            "/data/phoneBattery/batterySOC", "/data/phoneBattery/batteryTemperatureText",
+        }
+    elif issue == "focus":
+        for plan in plans:
+            assert "/healthStatusDesc" in plan.business_slots[0].primary_matched_fields
+        assert template_id in {
+            "BatteryOverviewHealthLevelHero@1", "BatteryOverviewHealthTemperatureHero@1",
+            "BatteryOverviewHealthLevelFull@1",
+        }
+    monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
+        schemaVersion="template-controls/1", firstLayerComponentSelector="search",
+    ))
+    params = {}
+    if "batteryIcon" in registry.require_template(template_id).variants[0].parameters_schema.get(
+        "required", (),
+    ):
+        params["batteryIcon"] = "resources/base/media/battery_leaf_fill.svg"
+    business = f'Template({json.dumps(template_id)},{json.dumps(params)})'
+    children = [business]
+    for assignment in first.action_assignments:
+        action_params = {"actionId": assignment.action_id, "label": "电池设置"}
+        children.append(f'Template("PillAction@1",{json.dumps(action_params, ensure_ascii=False)})')
+    body = f'Template({json.dumps(first.layout_template_id)},{{}},{",".join(children)});'
+
+    class Model:
+        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
+            return case.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
+            assert template_id in json.dumps(_prompt)
+            return body
+
+    output = await pipeline.generate_template_a2ui(
+        case.task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+    )
+    validate_compact_dsl(
+        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        task_spec=case.task.model_dump(mode="json"), card_spec=case.card,
+    )
+    component_text = ""
+    rendered_components: list[dict[str, Any]] = []
+    for line in output.a2ui.splitlines():
+        message = json.loads(line)
+        update = message.get("updateComponents")
+        if isinstance(update, dict):
+            component_text += json.dumps(update, ensure_ascii=False)
+            rendered_components.extend(update.get("components", []))
+    if issue == "rendered":
+        assert "/data/phoneBattery/chargingStatusDesc" in component_text
+        assert "/data/phoneBattery/pluggedTypeDesc" not in component_text
+    else:
+        assert "/data/phoneBattery/healthStatusDesc" in component_text
+        health_value = next(
+            component for component in rendered_components
+            if "/healthStatusDesc" in str(component.get("content", ""))
+        )
+        health_styles = health_value.get("styles", {})
+        assert health_styles.get("fontSize", 0) >= 18
+        assert health_styles.get("fontWeight", 0) >= 700
+        for component in rendered_components:
+            if "/batterySOCText" not in str(component.get("content", "")):
+                continue
+            assert component.get("styles", {}).get("fontSize", 0) <= 12
+    assert case.task.model_dump() == original
+
+
+@pytest.mark.parametrize("complete", [False, True])
+def test_displayed_fields_follow_grouped_compiler_conditions(complete: bool) -> None:
+    definition = CardPlanRegistry().require_template("BluetoothDeviceOverviewEarbudTripleHero@1")
+    states = {"/chargingStatusDesc", "/leftChargingStatusDesc", "/rightChargingStatusDesc"}
+    available = set(definition.required_data) | {"/chargingStatusDesc"}
+    if complete:
+        available.update(states)
+    names = set()
+    for name, binding in definition.bindings.items():
+        if binding.path in available:
+            names.add(name)
+    displayed_names = template_displayed_binding_names(definition.variants[0], names, set())
+    displayed_paths = set()
+    for name in displayed_names:
+        binding = definition.bindings.get(name)
+        assert binding is not None
+        displayed_paths.add(binding.path)
+    assert displayed_paths.intersection(states) == (states if complete else set())
+
+
+def test_battery_prompt_limits_candidates_without_expanding_protocol() -> None:
+    case = _review_case("rendered")
+    prompt = build_template_retrieval_prompt(case.task, CardPlanRegistry(), (case.binding,))
+    text = json.dumps(prompt, ensure_ascii=False)
+    assert "excludedOutputFieldsByCapability" not in text
+    assert "非必选、且未被用户明确禁止的输入字段才作为可选候选" in text
+    assert "明确禁止" in text and "显式主焦点" in text
+    payload_text = prompt[1].get("content")
+    assert isinstance(payload_text, str)
+    payload = json.loads(payload_text)
+    references = payload.get("batteryTemplateReference")
+    assert isinstance(references, list)
+    charge = next(item for item in references if item.get("templateId") == (
+        "BatteryOverviewChargeStatusHero@1"
+    ))
+    assert set(charge.get("displayFields", ())) == {"/batterySOC", "/batteryTemperatureText"}
