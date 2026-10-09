@@ -42,6 +42,7 @@ class ArtifactValidator:
         )
         self.error_categories = []
         self.error_prompt_contexts = []
+        quality_observations: list[str] = []
         try:
             settings = get_settings()
             reporter = validate_card(
@@ -58,10 +59,16 @@ class ArtifactValidator:
             errors, self.error_prompt_contexts = self._normalize_diagnostics(
                 reporter.diagnostics,
                 "error",
+                blocking_only=True,
             )
             warnings, _ = self._normalize_diagnostics(
                 reporter.diagnostics,
                 "warning",
+            )
+            quality_observations, _ = self._normalize_diagnostics(
+                reporter.diagnostics,
+                "error",
+                quality_only=True,
             )
         except Exception as exc:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
@@ -78,12 +85,15 @@ class ArtifactValidator:
         if errors:
             logger.error(
                 f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
-                f"warnings={json_for_log(warnings)}"
+                f"warnings={json_for_log(warnings)} "
+                f"quality_observations={json_for_log(quality_observations)}"
             )
         else:
             logger.info(
                 f"{_MODULE} artifact_validation_completed warning_count={len(warnings)} "
-                f"warnings={json_for_log(warnings)}"
+                f"warnings={json_for_log(warnings)} "
+                f"quality_observation_count={len(quality_observations)} "
+                f"quality_observations={json_for_log(quality_observations)}"
             )
         return errors
 
@@ -91,12 +101,19 @@ class ArtifactValidator:
         self,
         diagnostics: list[Diagnostic],
         severity: str,
+        *,
+        blocking_only: bool = False,
+        quality_only: bool = False,
     ) -> tuple[list[str], list[dict[str, Any]]]:
         """同时生成稳定日志字符串和供修复模型使用的结构化上下文。"""
         messages: list[str] = []
         prompt_contexts: list[dict[str, Any]] = []
         for item in diagnostics:
             if item.severity != severity:
+                continue
+            if blocking_only and item.stage == "quality":
+                continue
+            if quality_only and item.stage != "quality":
                 continue
             location = item.file_kind
             if item.line is not None:

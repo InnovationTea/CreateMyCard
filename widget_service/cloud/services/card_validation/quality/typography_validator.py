@@ -9,7 +9,7 @@ from .common import add, component_pointer, iter_components
 class TypographyValidator(BaseValidator):
     stage = "quality"
     name = "typography"
-    allowed = frozenset({10, 12, 14, 16, 18, 20, 32, 40})
+    allowed = frozenset({10, 12, 14, 16, 18, 20, 24, 30, 32, 38, 40})
     allowed_weights = frozenset(range(100, 1000, 100))
 
     def validate(self, context: Any, rules: Any, reporter: Any) -> None:

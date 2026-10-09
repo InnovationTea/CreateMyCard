@@ -41,12 +41,25 @@ def validate_card(
         cardspec=cardspec,
         effective_capabilities=effective_capabilities,
     )
-    errors = [_format_diagnostic(item) for item in reporter.diagnostics if item.severity == "error"]
+    errors = [
+        _format_diagnostic(item)
+        for item in reporter.diagnostics
+        if item.severity == "error" and item.stage != "quality"
+    ]
+    warning_diagnostics = [
+        item for item in reporter.diagnostics if item.severity == "warning"
+    ]
     warnings = [
         _format_diagnostic(item) for item in reporter.diagnostics if item.severity == "warning"
     ]
+    quality_observations = [
+        _format_diagnostic(item)
+        for item in reporter.diagnostics
+        if item.severity == "error" and item.stage == "quality"
+    ]
+    warnings.extend(quality_observations)
     if strict:
-        errors.extend(warnings)
+        errors.extend(_format_diagnostic(item) for item in warning_diagnostics)
     return CardValidationReport(errors=errors, warnings=warnings)
 
 

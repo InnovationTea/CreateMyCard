@@ -7,8 +7,9 @@ Owns the static list of built-in validators and the stage/short-circuit logic.
 subsystem a given validator belongs to.
 
 The online variant keeps the protocol and semantic stages as its core pipeline.
-The quality stage currently hosts deterministic contrast checks; broader design
-contract checks remain the responsibility of the ``generateWidgetCard`` service.
+The quality stage hosts deterministic design-contract observations.  Quality
+diagnostics are intentionally kept separate from protocol and semantic failures
+by the artifact validation boundary.
 """
 
 from __future__ import annotations
