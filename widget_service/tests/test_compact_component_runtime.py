@@ -105,6 +105,9 @@ def test_visual_recipe_part_marks_only_internal_expansion_rows() -> None:
     assert styles["fontSize"] == 10
     assert styles["_visualRecipe"] == (f"{VISUAL_RECIPE_VERSION}:TableText.value")
 
+    wide_recipe = component_visual_recipe("TableText", size="2x4")
+    assert wide_recipe["metrics"] == {"twoRowGap": 2, "threeRowGap": 2}
+
 
 def test_progress_circle_height_follows_latest_runtime_line_count() -> None:
     two_line = component_visual_recipe("ProgressCircleSingle", size="2x4")
@@ -118,6 +121,21 @@ def test_progress_circle_height_follows_latest_runtime_line_count() -> None:
     assert two_line["parts"]["labels"]["styles"]["height"] == 44
     assert three_line["parts"]["root"]["styles"]["height"] == 46
     assert three_line["parts"]["labels"]["styles"]["height"] == 46
+
+    small = component_visual_recipe(
+        "ProgressCircleSingle",
+        size="2x2",
+        variant="twoByTwo",
+    )
+    small_with_secondary = component_visual_recipe(
+        "ProgressCircleSingle",
+        size="2x2",
+        variant="twoByTwoWithSecondary",
+    )
+    assert small["parts"]["ring"]["styles"]["width"] == 52
+    assert small["parts"]["root"]["styles"]["height"] == 52
+    assert small_with_secondary["parts"]["root"]["styles"]["height"] == 52
+    assert small_with_secondary["parts"]["secondary"]["styles"]["height"] == 16
 
 
 def test_progress_circle_recipe_uses_claw_runtime_visual_metrics() -> None:

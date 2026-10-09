@@ -21,6 +21,20 @@ npm run dev
 打开 http://127.0.0.1:3000 。输入 DSL 后点击“渲染预览”，或按 Ctrl / Cmd + Enter。
 可以设置预览尺寸、查看转换后的 A2UI。默认示例是 160 × 160 的发布会倒计时卡片。
 
+组件总览位于 http://127.0.0.1:3000/components 。页面按基础结构、通用语义、2×2 和 2×4
+列出 Fusion 协议的全部组件，并提供用途、关键属性、Compact DSL 和真实渲染效果。所有预览都经过
+`compileMiniDsl → renderTree`，高阶组件直接使用共享的 `runtime/visual-recipes-v1.json`，不维护独立样式副本。
+
+如需发给设计师离线查看，可导出自包含的单文件 HTML：
+
+```powershell
+cd render/platform
+npm run export:components
+```
+
+产物位于 `render/platform/output/fusion-component-gallery.html`。该文件已内嵌页面样式和组件使用的本地
+SVG 素材，可以直接双击打开或单独发送；搜索、尺寸筛选和 DSL 展开不依赖服务端。
+
 ## 协议
 
 每条组件元组：`[ID, 类型, 属性, 子节点ID数组（可省略）]`。

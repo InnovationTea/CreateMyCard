@@ -9,7 +9,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+from services.compact_dsl_a2ui_converter import (
+    COMPACT_INPUT_COMPONENT_TYPES,
+    ComponentRow,
+    parse_compact_dsl_rows,
+)
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
@@ -19,10 +23,22 @@ _FACT_KEYS = frozenset(
     {"requirement", "dataId", "actionId", "text", "componentHints"}
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
-_BASE_FACT_COMPONENTS = ("Text", "Image", "Button")
+_SHARED_FACT_COMPONENTS = (
+    "CardHeader",
+    "EmphasizedData",
+    "InfoBlock",
+    "ProgressCircleSingle",
+    "ProgressCircle",
+    "TableText",
+    "EventCard",
+    "Text",
+    "Image",
+    "PillButton",
+)
 _NUMERIC_FACT_COMPONENTS = frozenset(
     {"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"}
 )
+_ACTION_FACT_COMPONENTS = frozenset({"PillButton", "CircleButton", "CardButton"})
 _VISIBLE_PROP_NAMES = frozenset(
     {
         "content",
@@ -45,27 +61,15 @@ _VISIBLE_PROP_NAMES = frozenset(
 )
 _COMPONENT_HINTS = {
     "2x2": (
-        *_BASE_FACT_COMPONENTS,
-        "CardHeader",
-        "EmphasizedData",
-        "InfoBlock",
-        "ProgressCircle",
-        "TableText",
+        *_SHARED_FACT_COMPONENTS,
         "DataDisplay",
-        "EventCard",
-        "PillButton",
         "CircleButton",
     ),
     "2x4": (
-        *_BASE_FACT_COMPONENTS,
-        "CardHeader",
-        "EmphasizedData",
-        "InfoBlock",
-        "ProgressCircle",
+        *_SHARED_FACT_COMPONENTS,
         "ProgressLine2",
         "TextBlock",
         "CardButton",
-        "ProgressCircleSingle",
         "TopTextBottomValue",
         "SummaryList",
     ),
@@ -416,8 +420,13 @@ def _validate_facts(
             else:
                 accepted_hints: list[str] = []
                 removed_type_mismatch = False
+                removed_target_mismatch = False
                 for hint in hints:
                     if not isinstance(hint, str) or hint not in allowed_hints:
+                        continue
+                    is_action_hint = hint in _ACTION_FACT_COMPONENTS
+                    if (target == "actionId") != is_action_hint:
+                        removed_target_mismatch = True
                         continue
                     if hint in _NUMERIC_FACT_COMPONENTS:
                         if target != "dataId" or target_value not in numeric_data_paths:
@@ -429,7 +438,9 @@ def _validate_facts(
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
                     reason = "unsupported or duplicate values."
-                    if removed_type_mismatch:
+                    if removed_target_mismatch:
+                        reason = "unsupported, target-incompatible or duplicate values."
+                    elif removed_type_mismatch:
                         reason = "unsupported, type-incompatible or duplicate values."
                     warnings.append(f"{location}.componentHints removed {reason}")
         identity = (target, target_value)
@@ -576,7 +587,12 @@ def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]
 
 
 def _component_hints(size: Any) -> tuple[str, ...]:
-    return _COMPONENT_HINTS.get(size, _BASE_FACT_COMPONENTS)
+    candidates = _COMPONENT_HINTS.get(size, _SHARED_FACT_COMPONENTS)
+    return tuple(
+        component
+        for component in candidates
+        if component in COMPACT_INPUT_COMPONENT_TYPES
+    )
 
 
 def _layout_hints(size: Any) -> tuple[str, ...]:

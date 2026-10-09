@@ -37,7 +37,10 @@ export function App() {
   return <main className="renderer-app">
     <header className="app-header">
       <div><span className="brand-mark">[ ]</span><h1>DSL 渲染器</h1><span className="header-description">粘贴协议，即刻预览</span></div>
-      <span className="local-badge"><i />本地渲染 · 无需 API Key</span>
+      <div className="header-actions">
+        <a className="gallery-link" href="/components">组件总览</a>
+        <span className="local-badge"><i />本地渲染 · 无需 API Key</span>
+      </div>
     </header>
     <div className="workspace">
       <section className="editor-panel" aria-label="DSL 编辑器">

@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from services.compact_dsl_a2ui_converter import COMPACT_INPUT_COMPONENT_TYPES
 from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
@@ -92,8 +93,141 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "Button" not in fact_properties["componentHints"]["items"]["enum"]
     assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
     assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
+
+
+@pytest.mark.parametrize(
+    ("size", "expected", "actions"),
+    [
+        (
+            "2x2",
+            (
+                "CardHeader",
+                "EmphasizedData",
+                "InfoBlock",
+                "ProgressCircleSingle",
+                "ProgressCircle",
+                "TableText",
+                "EventCard",
+                "Text",
+                "Image",
+                "PillButton",
+                "DataDisplay",
+                "CircleButton",
+            ),
+            {"PillButton", "CircleButton"},
+        ),
+        (
+            "2x4",
+            (
+                "CardHeader",
+                "EmphasizedData",
+                "InfoBlock",
+                "ProgressCircleSingle",
+                "ProgressCircle",
+                "TableText",
+                "EventCard",
+                "Text",
+                "Image",
+                "PillButton",
+                "ProgressLine2",
+                "TextBlock",
+                "CardButton",
+                "TopTextBottomValue",
+                "SummaryList",
+            ),
+            {"PillButton", "CardButton"},
+        ),
+    ],
+)
+def test_plan_component_hints_match_registered_compact_inputs_by_size(
+    size: str,
+    expected: tuple[str, ...],
+    actions: set[str],
+) -> None:
+    spec = task_spec()
+    spec["size"] = size
+    tool = build_compact_plan_tool(spec)
+    properties = tool["function"]["parameters"]["properties"]
+    fact_properties = properties["info_required"]["items"]["properties"]
+    candidates = fact_properties["componentHints"]["items"]["enum"]
+    candidate_set = set(candidates)
+
+    assert candidates == list(expected)
+    assert candidate_set <= COMPACT_INPUT_COMPONENT_TYPES
+    assert "Button" not in candidate_set
+    assert actions <= candidate_set
+
+
+@pytest.mark.parametrize(
+    ("size", "valid_action"),
+    [("2x2", "CircleButton"), ("2x4", "CardButton")],
+)
+def test_plan_normalization_removes_button_for_each_size(
+    size: str,
+    valid_action: str,
+) -> None:
+    spec = task_spec()
+    spec["size"] = size
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "打开日历",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["Button", valid_action],
+                    }
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, spec)
+
+    assert result.plan["info_required"][0]["componentHints"] == [valid_action]
+    assert result.warnings == (
+        "info_required[0].componentHints removed unsupported or duplicate values.",
+    )
+
+
+def test_plan_normalization_removes_target_incompatible_component_hints() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "会议标题",
+                        "dataId": "/data/calendar/events/0/title",
+                        "componentHints": ["PillButton", "EventCard"],
+                    },
+                    {
+                        "requirement": "打开日历",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["InfoBlock", "PillButton"],
+                    },
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    facts = result.plan["info_required"]
+    assert facts[0]["componentHints"] == ["EventCard"]
+    assert facts[1]["componentHints"] == ["PillButton"]
+    assert result.warnings == (
+        "info_required[0].componentHints removed unsupported, "
+        "target-incompatible or duplicate values.",
+        "info_required[1].componentHints removed unsupported, "
+        "target-incompatible or duplicate values.",
+    )
 
 
 def test_plan_call_is_normalized_without_freezing_components() -> None:

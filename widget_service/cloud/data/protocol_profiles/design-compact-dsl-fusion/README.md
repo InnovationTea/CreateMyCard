@@ -51,8 +51,9 @@ prompt_source → 同源信息/组件选型规则 → Plan → 整卡参考 + �
 `example-v32`，2x4 使用 `example-v00` 至 `example-v26`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
-信息模块保留连续语义合同，组件及组合公共模块的 selection 片段供 Plan 与 DSL 复用；同一提示词内
-禁止重复加载同一片段，跨阶段复用不报重复。组合不新增 Compact 组件或 Card/Region 等语义协议节点。
+信息模块保留连续语义合同，通用组件总表及组合公共模块的 selection 片段供 Plan 与 DSL 复用；Plan
+先读取通用组件总表，再读取当前尺寸组件选型。同一提示词内禁止重复加载同一片段，跨阶段复用不报重复。
+组合不新增 Compact 组件或 Card/Region 等语义协议节点。
 
 `sizes` 控制阶段提示词按请求尺寸过滤源模块。Plan 阶段加载信息、组件选型与组合知识，不加载 Few-shot；
 Plan 接受后，DSL 阶段在 `WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS=true` 时沿用按信息

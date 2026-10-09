@@ -90,6 +90,68 @@ def test_create_prompt_uses_unified_component_terms() -> None:
         assert deprecated not in create_prompt
 
 
+@pytest.mark.parametrize(
+    ("size", "included", "excluded"),
+    [
+        ("2x2", "## 2x2 组件选型", "## 2x4 组件选型"),
+        ("2x4", "## 2x4 组件选型", "## 2x2 组件选型"),
+    ],
+)
+def test_plan_prompt_uses_only_size_specific_component_selection(
+    size: str,
+    included: str,
+    excluded: str,
+) -> None:
+    plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size=size)
+
+    assert "## 组件总表" in plan_prompt
+    assert "| 标题 | `CardHeader` | 单行标题 + 可选主题图标 |" in plan_prompt
+    assert "| 多项属性 | `TableText` | 多行标签—值 |" in plan_prompt
+    assert included in plan_prompt
+    assert excluded not in plan_prompt
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_create_and_plan_share_common_component_catalog(size: str) -> None:
+    create_prompt = read_prompt(DEFAULT_SOURCE, "create", size=size)
+    plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size=size)
+
+    heading = "## 组件总表"
+    assert create_prompt.count(heading) == 1
+    assert plan_prompt.count(heading) == 1
+
+
+def test_size_component_rules_separate_shared_and_dedicated_components() -> None:
+    two_by_two_source = (DEFAULT_SOURCE / "components/2x2.md").read_text(encoding="utf-8")
+    two_by_four_source = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")
+    two_by_two_fragments = dict(FRAGMENT.findall(two_by_two_source))
+    two_by_four_fragments = dict(FRAGMENT.findall(two_by_four_source))
+
+    assert list(two_by_two_fragments) == ["selection", "icon-gate", "size-components"]
+    assert list(two_by_four_fragments) == ["selection", "wide-components", "backboard-alpha"]
+
+    two_by_two_selection = two_by_two_fragments.get("selection", "")
+    two_by_four_selection = two_by_four_fragments.get("selection", "")
+    for shared in (
+        "CardHeader",
+        "ProgressCircleSingle",
+        "TableText",
+        "EventCard",
+        "PillButton",
+    ):
+        assert f"`{shared}`" in two_by_two_selection
+        assert f"`{shared}`" in two_by_four_selection
+
+    assert "2x2 不使用 `ProgressLine2`" in two_by_two_selection
+    assert "2x4 不使用 `DataDisplay`、`CircleButton`" in two_by_four_selection
+    assert "2x2 专属组件：`CircleButton`" in two_by_two_fragments.get("size-components", "")
+    for dedicated in ("TopTextBottomValue", "TextBlock", "CardButton"):
+        assert f"2x4 专属组件：`{dedicated}`" in two_by_four_fragments.get(
+            "wide-components",
+            "",
+        )
+
+
 def test_runtime_does_not_depend_on_generated_products() -> None:
     assert not list((DEFAULT_BUNDLE / "generated").glob("*.md"))
     assert not (Path(__file__).resolve().parents[1] / "scripts/build_compact_prompts.py").exists()

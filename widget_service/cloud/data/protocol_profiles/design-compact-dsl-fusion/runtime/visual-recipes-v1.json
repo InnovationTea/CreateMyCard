@@ -397,6 +397,10 @@
     },
     "TableText": {
       "alignment": "aligned",
+      "metrics": {
+        "twoRowGap": 2,
+        "threeRowGap": 2
+      },
       "parts": {
         "root": {
           "component": "Column",
@@ -443,14 +447,6 @@
               "minWidth": 0
             },
             "layoutWeight": 28
-          }
-        }
-      },
-      "sizes": {
-        "2x2": {
-          "metrics": {
-            "twoRowGap": 2,
-            "threeRowGap": 2
           }
         }
       }
@@ -687,6 +683,72 @@
             "secondary": {
               "styles": {
                 "height": 14
+              }
+            }
+          }
+        },
+        "twoByTwo": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "width": 66,
+                "height": 52
+              }
+            }
+          }
+        },
+        "twoByTwoWithSecondary": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "width": 66,
+                "height": 52
+              }
+            },
+            "display": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            },
+            "secondary": {
+              "styles": {
+                "height": 16
               }
             }
           }

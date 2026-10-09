@@ -1050,6 +1050,92 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["list"]["styles"]["height"], 102)
         self.assertEqual(len(components["list"]["children"]), 3)
 
+    def test_shared_components_expand_in_both_sizes(self) -> None:
+        small_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["circle"],
+                ],
+                [
+                    "circle",
+                    "ProgressCircleSingle",
+                    {
+                        "value": 68,
+                        "total": 100,
+                        "icon": "resources/base/media/battery_leaf_fill.svg",
+                        "displayValue": "68%",
+                        "label": "当前电量",
+                        "secondaryLabel": "未充电",
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+            ]
+        )
+
+        small_result = convert_compact_dsl_to_a2ui(
+            small_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        small_update = json.loads(small_result.splitlines()[1])["updateComponents"]
+        small_components = {item["id"]: item for item in small_update["components"]}
+
+        self.assertEqual(small_components["circle"]["styles"]["height"], 52)
+        self.assertEqual(small_components["circle_ring_stack"]["styles"]["width"], 52)
+        self.assertEqual(small_components["circle_ring"]["styles"]["width"], 52)
+        self.assertEqual(small_components["circle_labels"]["styles"]["width"], 66)
+        self.assertEqual(small_components["circle_display"]["styles"]["fontSize"], 10)
+        self.assertEqual(small_components["circle_secondary"]["styles"]["height"], 16)
+
+        wide_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent"},
+                    ["table", "event"],
+                ],
+                [
+                    "table",
+                    "TableText",
+                    {
+                        "items": [
+                            {"label": "紫外线", "value": "弱"},
+                            {"label": "空气质量", "value": "优"},
+                        ],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+                [
+                    "event",
+                    "EventCard",
+                    {
+                        "title": "项目评审",
+                        "time": "14:00–15:00",
+                        "location": "三楼会议室",
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        wide_result = convert_compact_dsl_to_a2ui(
+            wide_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        wide_update = json.loads(wide_result.splitlines()[1])["updateComponents"]
+        wide_components = {item["id"]: item for item in wide_update["components"]}
+
+        self.assertEqual(wide_components["table"]["children"], ["table_row0", "table_row1"])
+        self.assertEqual(wide_components["table_row0"]["styles"]["height"], 16)
+        self.assertEqual(wide_components["event"]["styles"]["width"], "matchParent")
+        self.assertEqual(wide_components["event_rail"]["styles"]["height"], 50)
 
     def test_timeline_unit_is_no_longer_a_supported_component(self) -> None:
         compact_dsl = _serialize(
@@ -1205,24 +1291,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     },
                 ],
                 "total must be a positive number",
-            ),
-            (
-                "2x2",
-                [
-                    "circle",
-                    "ProgressCircleSingle",
-                    {
-                        "value": 68,
-                        "total": 100,
-                        "icon": "resources/base/media/battery_leaf_fill.svg",
-                        "displayValue": "68%",
-                        "label": "当前电量",
-                        "fontColor": "#FF1F4799",
-                        "color": "#FF1F4799",
-                        "backgroundColor": "#331F4799",
-                    },
-                ],
-                "ProgressCircleSingle currently requires a 2x4 card",
             ),
             (
                 "2x4",

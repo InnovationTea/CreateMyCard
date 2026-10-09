@@ -16,6 +16,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 h1 { font-size: 19px; margin: 0; letter-spacing: -.5px; }
 .header-description { color: #929bac; font-size: 12px; padding-left: 14px; border-left: 1px solid #e3e7ee; }
 .local-badge { font-size: 11px; color: #768296; }
+.header-actions { display: flex; align-items: center; gap: 18px; }
+.gallery-link { padding: 8px 12px; border: 1px solid #dfe3ea; border-radius: 8px; color: #4167dc; font-size: 11px; font-weight: 600; text-decoration: none; }
+.gallery-link:hover { border-color: #c6d0ed; background: #f3f6ff; }
 .local-badge i, .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #36a481; margin-right: 8px; }
 .workspace { display: grid; grid-template-columns: minmax(350px, 1fr) minmax(340px, 1fr); gap: 20px; padding: 24px 32px; min-height: calc(100dvh - 78px); }
 .editor-panel, .preview-panel { background: white; border: 1px solid #e0e5ec; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
@@ -47,4 +50,4 @@ textarea { flex: 1; min-height: 430px; width: calc(100% - 32px); margin: 0 16px;
 .event-panel > div { display: flex; justify-content: space-between; align-items: center; }
 .event-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #52647d; }
 .event-panel p { color: #929bac; font-size: 11px; }
-@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; padding: 16px; } .app-header { padding: 0 18px; height: 65px; } .header-description, .local-badge { display: none; } textarea { min-height: 320px; } }
+@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; padding: 16px; } .app-header { padding: 0 18px; height: 65px; } .header-description, .local-badge { display: none; } .header-actions { gap: 0; } textarea { min-height: 320px; } }

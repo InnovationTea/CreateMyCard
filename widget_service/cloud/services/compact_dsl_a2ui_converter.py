@@ -29,7 +29,7 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200b"
-_COMPONENT_TYPES = frozenset(
+COMPACT_INPUT_COMPONENT_TYPES = frozenset(
     {
         "Row",
         "Column",
@@ -1429,8 +1429,8 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
 
 
 def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size != "2x2":
-        raise CompactDslConversionError("TableText currently requires a 2x2 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("TableText requires a 2x2 or 2x4 card.")
     items = _validate_item_component(component, minimum=2, maximum=3)
     rows: list[ComponentRow] = []
     children: list[str] = []
@@ -1633,8 +1633,10 @@ def _expand_progress_circle_single(
     component: ComponentRow,
     size: str,
 ) -> list[ComponentRow]:
-    if size != "2x4":
-        raise CompactDslConversionError("ProgressCircleSingle currently requires a 2x4 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError(
+            "ProgressCircleSingle requires a 2x2 or 2x4 card."
+        )
     allowed = {
         "value",
         "total",
@@ -1675,7 +1677,10 @@ def _expand_progress_circle_single(
     label_id = f"{component.component_id}_label"
     display_id = f"{component.component_id}_display"
     secondary_id = f"{component.component_id}_secondary"
-    variant = "withSecondary" if secondary_label is not None else None
+    if size == "2x2":
+        variant = "twoByTwoWithSecondary" if secondary_label is not None else "twoByTwo"
+    else:
+        variant = "withSecondary" if secondary_label is not None else None
     label_children = [label_id, display_id]
     if secondary_label is not None:
         label_children.append(secondary_id)
@@ -1770,8 +1775,8 @@ def _expand_progress_circle_single(
 
 
 def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size != "2x2":
-        raise CompactDslConversionError("EventCard currently requires a 2x2 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("EventCard requires a 2x2 or 2x4 card.")
     allowed = {"title", "time", "location", "fontColor"}
     required = {"title", "time", "fontColor"}
     _validate_high_level_props(component, required=required, allowed=allowed)
@@ -3066,7 +3071,7 @@ def _parse_component_header(
         raise CompactDslConversionError(
             f"{component_id}: component type must be a non-empty string."
         )
-    if component_type not in _COMPONENT_TYPES:
+    if component_type not in COMPACT_INPUT_COMPONENT_TYPES:
         raise CompactDslConversionError(
             f"{component_id}: unsupported component type {component_type}."
         )
