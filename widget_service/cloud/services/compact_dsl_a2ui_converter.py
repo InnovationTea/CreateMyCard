@@ -618,18 +618,79 @@ def _validate_compact_component_bindings(components: list[ComponentRow]) -> None
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
+    import json_repair
+
+    from services.generation_trace_recorder import trace_span
+
     text = compact_dsl.lstrip("\ufeff").strip()
     lines = text.splitlines()
     opening_index = _find_fence_opening(lines)
     if opening_index is None:
-        return text
+        body = text
+    else:
+        closing_index = _find_fence_closing(lines, opening_index + 1)
+        body_end = closing_index if closing_index is not None else len(lines)
+        body = "\n".join(lines[opening_index + 1 : body_end]).strip()
+        if "```" in body:
+            raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
 
-    closing_index = _find_fence_closing(lines, opening_index + 1)
-    body_end = closing_index if closing_index is not None else len(lines)
-    body = "\n".join(lines[opening_index + 1 : body_end]).strip()
-    if "```" in body:
-        raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
-    return body
+    with trace_span(
+        "compact_dsl.jsonl_repair",
+        stage="compact_dsl.jsonl_repair",
+        operation="compact_dsl.jsonl_repair",
+    ) as span:
+        span.text_artifacts["compact_dsl_extracted"] = body
+        span.artifact_roles["compact_dsl_extracted"] = "input"
+        json_blocks: list[str] = []
+        for line in body.splitlines():
+            json_block = line.strip()
+            if json_block:
+                json_blocks.append(json_block)
+
+        repaired_blocks: list[str] = []
+        repaired_count = 0
+        for block_index, block in enumerate(json_blocks, 1):
+            try:
+                json.loads(block)
+            except json.JSONDecodeError:
+                try:
+                    repaired_value = json_repair.loads(block)
+                    is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
+                    is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
+                    if not is_compact_row:
+                        raise ValueError("repaired Compact DSL block must be a JSON array")
+                    repaired_block = json.dumps(
+                        repaired_value,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    json.loads(repaired_block)
+                except Exception as exc:
+                    span.outcome(
+                        "failed",
+                        reason="json_repair_failed",
+                        blockIndex=block_index,
+                        exceptionType=type(exc).__name__,
+                    )
+                    return body
+                repaired_blocks.append(repaired_block)
+                repaired_count += 1
+                continue
+            repaired_blocks.append(block)
+
+        span.details.update(
+            {
+                "blockCount": len(json_blocks),
+                "repairedBlockCount": repaired_count,
+                "repairApplied": repaired_count > 0,
+            }
+        )
+        if repaired_count == 0:
+            return body
+        repaired_body = "\n".join(repaired_blocks)
+        span.text_artifacts["compact_dsl_jsonl_repaired"] = repaired_body
+        span.artifact_roles["compact_dsl_jsonl_repaired"] = "output"
+        return repaired_body
 
 
 def _find_fence_opening(lines: list[str]) -> int | None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from unittest.mock import patch
 
 from services.card_validation import (
     CompactDslValidationError,
@@ -11,8 +12,10 @@ from services.card_validation import (
 )
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
+    _strip_optional_genui_fence,
     convert_compact_dsl_to_a2ui,
     normalize_compact_dsl_design_tokens,
+    parse_compact_dsl_rows,
     repair_compact_dsl_binding_paths,
 )
 
@@ -2179,6 +2182,34 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
 
         self.assertEqual(len(result.splitlines()), 3)
+
+    def test_repairs_invalid_jsonl_block_without_changing_valid_blocks(self) -> None:
+        valid_root = (
+            '["root","Column",{"width":"matchParent","height":"matchParent"},'
+            '["title"]]'
+        )
+        invalid_title = '["title","Text",{"content":"天气" "fontSize":12}]'
+        invalid_data = '["/data/title" "天气"]'
+
+        repaired = _strip_optional_genui_fence(
+            "\n".join([valid_root, invalid_title, invalid_data])
+        )
+        repaired_lines = repaired.splitlines()
+
+        self.assertEqual(repaired_lines[0], valid_root)
+        self.assertEqual(
+            json.loads(repaired_lines[1]),
+            ["title", "Text", {"content": "天气", "fontSize": 12}],
+        )
+        self.assertEqual(json.loads(repaired_lines[2]), ["/data/title", "天气"])
+
+    def test_leaves_unrepairable_jsonl_for_downstream_error(self) -> None:
+        source = '["root","Column",{BROKEN},[]]'
+
+        with patch("json_repair.loads", side_effect=ValueError("cannot repair")):
+            self.assertEqual(_strip_optional_genui_fence(source), source)
+            with self.assertRaises(CompactDslConversionError):
+                parse_compact_dsl_rows(source)
 
     def test_repairs_unclosed_fence_and_extra_eof_closers(self) -> None:
         source = f"```genui\n{self.compact_dsl}\n]}}"
