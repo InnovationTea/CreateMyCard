@@ -142,7 +142,8 @@
         "/chargingStatusDesc",
         "/healthStatusDesc",
         "/batteryCapacityLevelDesc",
-        "/batteryTemperatureText"
+        "/batteryTemperatureText",
+        "/updatedAt"
       ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [

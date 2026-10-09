@@ -145,6 +145,10 @@ Column({
 data = {
 }
 
+# 真机渲染器（genui_form）缺陷：带 action 槽的 Column 包装会让内容槽后代的
+# matchParent 宽度塌缩成内容宽（C270 右侧容器不贴右边缘的根因）。
+# 编译器 _constrain_content_height 会把 action 槽嵌进内容槽内（单子包装），
+# 因此这里保持双槽结构的原始写法即可。
 Column({
   "width": "matchParent",
   "height": "matchParent",
@@ -383,6 +387,8 @@ Row({
 data = {
 }
 
+# 同 WideSingleFocusLayout：编译器会把第二个槽位嵌进内容槽内
+# （规避真机 matchParent 塌缩），保持原始双槽写法。
 Column({
   "width": "matchParent",
   "height": "matchParent",

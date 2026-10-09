@@ -117,6 +117,7 @@ _ACTION_TEMPLATE_COMPONENTS = {
 }
 _ACTION_TEMPLATE_ROOT_COMPONENTS = {
     "PillAction": "Button",
+    "CompactSubtitleAction": "Stack",
     "CompactAction": "Stack",
     "IconAction": "Stack",
     "LargeIconAction": "Stack",
@@ -326,7 +327,7 @@ def compile_hybrid_card(
     body_budget = _body_budget(card_params, contract, registry, task_spec.size)
     space_constrained = content_height > body_budget
     if space_constrained:
-        content = _constrain_content_height(content, body_budget)
+        content = _constrain_content_height(content, body_budget, task_spec.size)
         root = _compile_card_shell(card_params, content, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
     if fusion_palette is None:
@@ -491,7 +492,7 @@ def compile_ux_layout_card(
     content_height = _estimate_height(content)
     body_budget = _ux_layout_body_budget(registry, task_spec.size)
     if content_height > body_budget:
-        content = _constrain_content_height(content, body_budget)
+        content = _constrain_content_height(content, body_budget, task_spec.size)
     fusion_palette = _template_fusion_ball_palette(
         task_spec.size,
         contract,
@@ -9754,7 +9755,75 @@ def _estimate_height(node: Nested2Node) -> int:
     return {"Text": 20, "Image": 24, "Progress": 40, "Button": 32}.get(node.component_type, 20)
 
 
-def _constrain_content_height(node: Nested2Node, budget: int) -> Nested2Node:
+def _hoist_action_slot_into_content(node: Nested2Node, budget: int) -> Nested2Node:
+    """Nest the action slot inside the content slot of a pinned wide layout.
+
+    The genui_form renderer collapses ``matchParent`` widths of weighted-slot
+    descendants when the pinned layout root Column carries the action slot as a
+    second child (device-verified 2026-09-30: C270 ActivityOverviewWideHero
+    containers rendered at content width). Keeping the pinned root to a single
+    child and stacking the action column inside the content column renders
+    correctly. Returns ``node`` unchanged when the shape does not match.
+    """
+    if node.component_type != "Column" or len(node.children) != 2:
+        return node
+    content, action = node.children
+    if content.component_type != "Column" or not content.children:
+        return node
+
+    def _has_clickable_button(child: Nested2Node) -> bool:
+        if any(isinstance(value, dict) and "onClick" in value for value in child.values):
+            return True
+        return any(_has_clickable_button(grand) for grand in child.children)
+
+    if not _has_clickable_button(action):
+        return node
+    action_options = next(
+        (dict(value) for value in action.values if isinstance(value, dict)),
+        None,
+    )
+    if not action_options:
+        return node
+    action_height = action_options.get("height")
+    margin = action_options.get("margin")
+    margin_top = margin.get("top") if isinstance(margin, dict) else None
+    if not isinstance(margin_top, (int, float)):
+        margin_top = 8
+        action_options["margin"] = {"top": margin_top}
+    if not isinstance(action_height, (int, float)):
+        return node
+    reserved = int(action_height + margin_top)
+    business = content.children[0]
+    business_values = list(business.values)
+    business_index = next(
+        (index for index, value in enumerate(business_values) if isinstance(value, dict)),
+        None,
+    )
+    pinned_height = budget - reserved
+    if business_index is None:
+        business_values = business_values + ({"height": pinned_height},)
+    else:
+        business_options = dict(business_values[business_index])
+        business_options["height"] = pinned_height
+        business_values[business_index] = business_options
+    pinned_business = Nested2Node(
+        business.component_type,
+        tuple(business_values),
+        business.children,
+    )
+    content_with_action = Nested2Node(
+        content.component_type,
+        content.values,
+        (pinned_business, action),
+    )
+    return Nested2Node(node.component_type, node.values, (content_with_action,))
+
+
+def _constrain_content_height(
+    node: Nested2Node,
+    budget: int,
+    size: str | None = None,
+) -> Nested2Node:
     values = list(node.values)
     options_index = next(
         (index for index, value in enumerate(values) if isinstance(value, dict)),
@@ -9767,7 +9836,10 @@ def _constrain_content_height(node: Nested2Node, budget: int) -> Nested2Node:
         values.append(options)
     else:
         values[options_index] = options
-    return Nested2Node(node.component_type, tuple(values), node.children)
+    node = Nested2Node(node.component_type, tuple(values), node.children)
+    if size == "2x4":
+        node = _hoist_action_slot_into_content(node, budget)
+    return node
 
 
 def _normalize_component_values(

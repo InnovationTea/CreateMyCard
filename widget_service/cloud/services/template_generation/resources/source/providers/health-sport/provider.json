@@ -244,7 +244,8 @@
       "description": "最近一次单次运动训练摘要，展示该次时长，可选展示热量和运动类型，可使用运动图标。 组件形态：latestHero。",
       "optionalData": [
         "/exerciseTypeName",
-        "/exerciseCalorieText"
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg"
       ],
       "entry": "templates/workout-overview.cardtpl",
       "primaryData": [
@@ -275,6 +276,23 @@
         "timeIcon": ["timer"],
         "actionIcon": ["run"]
       }
+    },
+    {
+      "templateId": "WorkoutOverviewTrainingRecordHero@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "训练记录主视觉，顶部展示运动日期与运动图标，主行展示运动类型，可选展示运动时长与最低心率。 组件形态：hero。",
+      "optionalData": [
+        "/exerciseDurationText",
+        "/exerciseHeartRateMin"
+      ],
+      "entry": "templates/workout-overview.cardtpl",
+      "primaryData": [
+        "/targetDateText",
+        "/exerciseTypeName"
+      ],
+      "secondaryData": [],
+      "supportedEventIds": ["event.open.health.sport"]
     },
     {
       "templateId": "HeartRateOverviewFull@1",
@@ -497,13 +515,15 @@
       "description": "作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：hero。",
       "optionalData": [
         "/fallAsleepTimeText",
-        "/wakeupTimeText"
+        "/wakeupTimeText",
+        "/dailySteps"
       ],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/totalNapDurationText"
       ],
-      "secondaryData": []
+      "secondaryData": [],
+      "supportedEventIds": ["event.open.health.sport"]
     },
     {
       "templateId": "SleepOverviewHero@1",

@@ -25,4 +25,5 @@ def test_q073_full_fields_and_embedded_daily_action(tmp_path):
         assert field in text
     assert "示例数据" not in text
     images = [node for node in nodes if node.get("component") == "Image"]
-    assert len(images) == 3
+    assert len(images) == 4
+    assert "resources/base/media/music_fill.svg" in [node.get("src") for node in images]

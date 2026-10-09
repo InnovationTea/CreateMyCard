@@ -618,6 +618,7 @@ data = {
     health: $optionalPath("/healthStatusDesc"),
     level: $optionalPath("/batteryCapacityLevelDesc"),
     temperature: $optionalPath("/batteryTemperatureText"),
+    updatedAt: $optionalPath("/updatedAt"),
 }
 
 Column(
@@ -633,17 +634,34 @@ Column(
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
-  #if data.health
-    Text(
-      `手机电量${data.health}`,
-      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-  #else
-    Text(
-      "手机电量",
-      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-  #endif
+  Row(
+    {
+      "width": "matchParent",
+      "height": 16,
+      "itemMargin": 2,
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    #if data.health
+      Text(
+        `手机电量${data.health}`,
+        {"fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+    #else
+      Text(
+        "手机电量",
+        {"fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+    #endif
+    #if data.updatedAt
+      Text(
+        `${data.updatedAt}`,
+        {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}
+      )
+    #endif
+  ),
   Row(
       {
         "width": "matchParent",

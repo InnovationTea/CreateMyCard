@@ -33,7 +33,9 @@
         "/events/0/dtEnd",
         "/events/0/eventLocation"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/events/0/description"
+      ]
     },
     {
       "templateId": "ScheduleOverviewReminderHero@1",
@@ -262,7 +264,8 @@
       ],
       "secondaryData": [],
       "optionalData": [
-        "/events/0/dtEnd"
+        "/events/0/dtEnd",
+        "/events/0/oneClickServiceLink"
       ]
     },
     {
@@ -309,7 +312,10 @@
       ],
       "secondaryData": [],
       "optionalData": [
-        "/events/0/dtEnd"
+        "/events/0/dtEnd",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/0/oneClickServiceLink"
       ]
     },
     {
@@ -397,7 +403,8 @@
       "optionalData": [
         "/events/0/title",
         "/events/0/dtEnd",
-        "/events/0/eventLocation"
+        "/events/0/eventLocation",
+        "/events/0/oneClickServiceLink"
       ],
       "assetParameterSemanticTags": {
         "calendarIcon": [
@@ -551,7 +558,8 @@
       ],
       "optionalData": [
         "/events/0/title",
-        "/events/0/dtEnd"
+        "/events/0/dtEnd",
+        "/events/0/oneClickServiceLink"
       ]
     }
   ],

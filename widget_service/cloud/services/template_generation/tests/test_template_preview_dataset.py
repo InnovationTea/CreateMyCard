@@ -20,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 187
+    assert manifest.get("templateCount") == 190
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
         "Support": 22,
         "Compact": 24,
-        "Hero": 51,
-        "Full": 63,
-        "WideHero": 4,
+        "Hero": 52,
+        "Full": 64,
+        "WideHero": 5,
         "WideFull": 18,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 162, "2x4": 25}
-    assert len(cases) == 187
+    assert manifest.get("countsBySize") == {"2x2": 164, "2x4": 26}
+    assert len(cases) == 190
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 187
+    assert len(template_ids) == 190
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -101,9 +101,11 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
 
     assert names == {
         "battery_leaf_fill.svg",
+        "bell_fill.svg",
         "calendar_fill.svg",
         "clock_fill.svg",
         "earphone_case_16644.svg",
+        "drop_1.svg",
         "externaldrive_fill.svg",
         "figure_run.svg",
         "flame_fill.svg",
@@ -118,6 +120,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "moon_z_fill_1.svg",
         "music_fill.svg",
         "r_circle_fill.svg",
+        "sun_max.svg",
     }
 
 
@@ -176,6 +179,7 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/temperatureText", "/current/temperatureC",
                 "/current/feelsLikeC",
                 "/location/prefectureName", "/location/districtName",
+                "/location/cityCode",
             )
         elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
             # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
@@ -237,7 +241,10 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
 
     assert case.primary_data == ("/isConnected", "/earphoneName")
     assert case.secondary_data == ()
-    assert case.optional_data == ("/leftBatteryLevel", "/rightBatteryLevel")
+    assert case.optional_data == (
+        "/leftBatteryLevel", "/rightBatteryLevel",
+        "/leftChargingStatusDesc", "/rightChargingStatusDesc",
+    )
     assert "已链接" in json.dumps(case.messages, ensure_ascii=False)
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
     assert set(data_model) == {
@@ -245,6 +252,8 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "earphoneName",
         "leftBatteryLevel",
         "rightBatteryLevel",
+        "leftChargingStatusDesc",
+        "rightChargingStatusDesc",
     }
 
 

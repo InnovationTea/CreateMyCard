@@ -78,7 +78,15 @@ def test_wide_layout_fixed_slots_fit_content_budget(template_id, compact_rows):
     )
     budget = _ux_layout_body_budget(registry, "2x4")
     assert budget == 126
-    assert _estimate_height(root) == budget
+    if template_id == "WideSingleFocusLayout@1":
+        # C270 真机修复后的既定几何：内容槽 layoutWeight 弹性吸收
+        # 126 - 36(动作槽) - 8(根 itemMargin)，估计器按子节点高度计算该槽，
+        # 因此断言固定几何不超预算且动作槽高度保持 36。
+        assert 0 < _estimate_height(root) <= budget
+        action_options = root.children[1].values[-1]
+        assert action_options["height"] == 36
+    else:
+        assert _estimate_height(root) == budget
 
 
 @pytest.mark.parametrize(

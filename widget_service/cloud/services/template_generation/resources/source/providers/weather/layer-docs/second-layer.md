@@ -11,6 +11,7 @@
     体感温度可选并与天气现象合并到 12vp 辅助行。可选 `conditionIcon` 与内部事件 `actionId`，
     只有未提供体感温度且收到 `conditionIcon` 时才显示右侧 24vp 图标，与 `actionId` 是否存在无关；
     有体感温度时保留辅助行文字并省略图标。内部事件仍只允许天气业务关联入口。
+    `/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewTemperatureUvSupport@1`：城市、温度、天气现象和紫外线等级；纯文本，
     不接收图标；可选内部事件 `actionId`。
   - `WeatherOverviewTemperaturecoldLevelSupport@1`：城市、温度、天气现象和感冒风险；纯文本，
@@ -20,7 +21,12 @@
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选空气质量、感冒指数与 `conditionIcon`。
     空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
+    体感温度可选，可用时在温度下方以 12vp「体感 N°」子行展示；天气预警与风级可选，
+    各自可用时在信息行下方以 12vp 独立行展示（预警优先，风级行为「风力N级」）；
+    `/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
+    可选纯数值摄氏温度，可用时在现象右侧以「N℃」追加；`/location/cityCode`
+    仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
   - `WeatherOverviewUpdatedAtFull@1`：基础天气摘要并显示天气数据更新时间；包含城市、当前温度和天气现象。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
@@ -28,17 +34,23 @@
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。
   - `WeatherOverviewHumidityWindLevelHero@1`：湿度风力 Hero；三段式结构，顶部 20vp 城市标题行，
     中部温度主值区（可选天气预警行），底部信息行展示空气湿度与风向风力；可选内部事件 `actionId`
-    绑定根节点底板。
+    绑定根节点底板。天气现象与体感可选，可用时分别在温度右侧（12vp）和主值区下方
+    （12vp「体感 N°」）展示；`/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewFeelsLikeHero@1`：体感温度大字 Hero；顶部为“城市 + 天气”标题行，中部以
     大号数字展示体感温度并固定追加“°”，不展示天气现象、风力、天气预警和感冒风险（四个字段仅进入
     字段覆盖契约）；用于 2x4 双焦点组合布局（含 `WideTwoFocusTwoActionLayout@1`）的天气槽位，
     底部按钮由布局 PillAction 槽位提供；可选内部事件 `actionId` 绑定根节点底板。
   - `WeatherOverviewWideFull@1`：左右分区的完整天气摘要，可展示体感、湿度、空气、风况和当日预报。
   - `WeatherOverviewWideHero@1`：以当前温度和天气现象为焦点，辅助展示体感与当日预报。
+  - `WeatherOverviewCareWideHero@1`：天气关怀 WideHero，突出当前天气预警主值（缺失时显示
+    「无预警信息」）与「天气预警」说明，右侧辅助展示紫外线等级、空气质量和感冒指数（daily[0]）；
+    城市区县可选；只用于 `WideSingleFocusLayout@1` 配无主 `PillAction@1`，不在模板内注册天气事件。
   - `WeatherOverviewWideHalf@1`：适用于 2x4 组合布局的横向半高天气摘要。
   - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
   - `WeatherOverviewCareAlertFull@1`：上下两组的关怀型 Full，上组展示城市、天气预警及说明，下组展示紫外线和空气质量；可选紫外线图标，不保留电话动作专用留白。
   - `WeatherOverviewWindHero@1`：展示城市、当前风向和风力等级的 Hero；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
+    天气现象与温度可选，可用时在顶部城市行右侧按「天气现象 | 温度」展示；
+    `/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewWindFull@1`：展示城市、当前风向和风力等级的 Full；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
   - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
@@ -51,6 +63,8 @@
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
   - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
+  - `WeatherOverviewTargetDayHealthFull@1`：当日健康指数 Full（daily[4]），上组突出 20vp 紫外线等级，
+    下组以 12vp 展示空气质量和感冒指数；城市区县可选，缺失时显示「当前城市」；可选紫外线图标。
   - `WeatherOverviewAlertInfoFull@1`：完整温度天气摘要，空气质量行下追加预警信息行；无预警时显示“无预警信息”。可选 `conditionIcon`。
   - `WeatherOverviewFeelsLikeAlertFull@1`：完整温度天气摘要，倒数第二行展示体感温度，最后一行展示预警信息；无预警时显示“无预警信息”。可选 `conditionIcon`。
   - `WeatherOverviewHumidityWindFull@1`：完整温度天气摘要，倒数第二行展示湿度，最后一行展示风向。可选 `conditionIcon`。

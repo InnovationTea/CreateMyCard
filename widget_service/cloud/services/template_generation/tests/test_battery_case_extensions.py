@@ -535,6 +535,8 @@ def test_new_variant_cannot_bypass_a_trusted_template_restriction(
     with pytest.raises(TemplateRetrievalMiss):
         search_template_variants(
             case.intent, case.task, registry, (case.binding,), case.card,
+            # ChargingProgressHero 自 50434950 起覆盖等级字段、已可入选；
+            # 改用仍不覆盖文本+等级的健康等级 Hero 验证受信模板必须来自 Search 结果。
             preferred_template_ids=("BatteryOverviewHealthLevelHero@1",),
         )
 

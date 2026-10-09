@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 217
+    assert len(registry.provider_template_ids) == 220
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -348,6 +348,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewAirQualityHero@1",
         "WeatherOverviewAlertFull@1",
         "WeatherOverviewCareAlertFull@1",
+        "WeatherOverviewCareWideHero@1",
         "WeatherOverviewConditionHero@1",
         "WeatherOverviewDailyCompareFull@1",
         "WeatherOverviewDailyDateFull@1",
@@ -357,9 +358,11 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewFull@1",
         "WeatherOverviewHero@1",
         "WeatherOverviewHumidityFull@1",
+        "WeatherOverviewTargetDayHealthFull@1",
         "WeatherOverviewUvFull@1",
         "WeatherOverviewWindHero@1",
         "WorkoutOverviewFull@1",
+        "WorkoutOverviewTrainingRecordHero@1",
         "SingleFocusLayout@1",
         "CompactTwoActionLayout@1",
         "WideSingleFocusLayout@1",
@@ -466,9 +469,11 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
     assert definition.optional_data == (
         "/location/prefectureName",
         "/location/districtName",
+        "/current/temperatureC",
+        "/location/cityCode",
     )
     assert variant.required_bindings == ("condition",)
-    assert variant.optional_bindings == ("city", "district")
+    assert variant.optional_bindings == ("city", "district", "temp", "cityCode")
 
 
 @pytest.mark.parametrize(
@@ -693,13 +698,23 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
     assert definition.secondary_data == (
         "/location/prefectureName",
     )
-    assert definition.optional_data == ("/updatedAt",)
+    assert definition.optional_data == (
+        "/updatedAt",
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/cityCode",
+    )
     assert variant.required_bindings == (
         "city",
         "windDirection",
         "windLevel",
     )
-    assert variant.optional_bindings == ("updatedAt",)
+    assert variant.optional_bindings == (
+        "updatedAt",
+        "temperatureText",
+        "condition",
+        "cityCode",
+    )
 
 
 @pytest.mark.parametrize("fusion", [False, True])
@@ -735,7 +750,7 @@ def test_weather_wind_hero_optional_time_row_is_pruned(
         ("WeatherOverviewDailyRainFull@1", (1, 1), 12, 20),
         ("WeatherOverviewDailyHealthFull@1", (0, 1, 0), 20, 28),
         ("WeatherOverviewCareAlertFull@1", (0, 1, 0), 18, 24),
-        ("WeatherOverviewConditionHero@1", (1, 0), 18, 24),
+        ("WeatherOverviewConditionHero@1", (1, 0, 0), 18, 24),
         ("WeatherOverviewAirQualityHero@1", (1, 1), 12, 20),
     ],
 )
@@ -1694,11 +1709,11 @@ def test_non_fusion_sport_theme_uses_the_reviewed_solid_palette() -> None:
 def test_non_fusion_earphone_theme_uses_the_reviewed_solid_palette() -> None:
     theme = get_cardplan_registry().require_theme("audio-product-neutral-violet")
 
-    assert theme.primary_color == "#FF52991F"
-    assert theme.support_content_color == "#9952991F"
+    assert theme.primary_color == "#FF34651F"
+    assert theme.support_content_color == "#FF456A35"
     assert theme.root_style["backgroundColor"] == "#FFF0FFE6"
     assert "linearGradient" not in theme.root_style
-    assert theme.action_style.content_color == "#FF52991F"
+    assert theme.action_style.content_color == "#FF34651F"
     assert theme.action_style.background_color == "#3364BB5C"
 
 
@@ -2346,7 +2361,11 @@ def test_workout_template_requires_one_complete_training_session():
     hero = registry.require_template("WorkoutOverviewHero@1")
     assert hero.primary_data == ("/exerciseDurationText",)
     assert hero.secondary_data == ()
-    assert hero.optional_data == ("/exerciseTypeName", "/exerciseCalorieText")
+    assert hero.optional_data == (
+        "/exerciseTypeName",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+    )
 
     session = {
         "exerciseTypeName": {
@@ -3052,7 +3071,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         "WorkoutOverview": {"sourceIcon"},
     }
     preserved_assets: list[tuple[str, str]] = []
-    expected_themed_assets = {
+    _themed_asset_keys = {
         ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairHero@1", "leftEarIcon"),
@@ -3060,15 +3079,9 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"),
-        ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
-        ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
-        ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "caseIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleHero@1", "leftEarIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
-        ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarphoneCaseHero@1", "deviceIcon"),
@@ -3077,6 +3090,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarphoneCompact@1", "earphoneIcon"),
         ("BluetoothDeviceOverviewStatusHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewCaseConnectionHero@1", "deviceIcon"),
+        ("BluetoothDeviceOverviewCaseConnectionCompact@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "leftEarIcon"),
@@ -3094,17 +3108,37 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
         ("SleepOverviewScoreCompact@1", "sourceIcon"),
+        ("SleepOverviewScoreDetailWideFull@1", "sourceIcon"),
         ("SleepOverviewSupport@1", "sourceIcon"),
         ("SleepOverviewNapFull@1", "sourceIcon"),
         ("SleepOverviewNapHero@1", "sourceIcon"),
         ("WorkoutOverviewSupport@1", "sourceIcon"),
     }
+    expected_themed_assets = {
+        (template_id, prop): "supportContentColor"
+        for template_id, prop in _themed_asset_keys
+    }
+    # 运动类型 Compact 的图标跟随主色，与其 20vp 主数值同色。
+    expected_themed_assets[("WorkoutOverviewTypeDurationCompact@1", "sourceIcon")] = (
+        "primaryColor"
+    )
+    # 耳机三电量/成对 Full 深色画布固定白色前景：图标与同级兜底文字同为 #99FFFFFF。
+    expected_white_artwork_assets = {
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
+    }
     expected_inherited_assets = {
         ("WorkoutOverviewFull@1", "sourceIcon"),
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
+        ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
     }
     themed_assets: set[tuple[str, str]] = set()
+    white_artwork_assets: set[tuple[str, str]] = set()
     inherited_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
@@ -3123,9 +3157,16 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
                 color = options.properties.get("fillColor")
                 assert color is not None
                 assert color.kind == "theme"
-                assert color.name == "supportContentColor"
+                assert color.name == expected_themed_assets[asset_key]
                 assert "_preserveOriginalColor" not in options.properties
                 themed_assets.add(asset_key)
+                continue
+            if asset_key in expected_white_artwork_assets:
+                color = options.properties.get("fillColor")
+                assert color is not None
+                assert color.kind == "literal"
+                assert color.value == "#99FFFFFF"
+                white_artwork_assets.add(asset_key)
                 continue
             assert "fillColor" not in options.properties
             if asset_key in expected_inherited_assets:
@@ -3149,7 +3190,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             preserved_assets.append((template_id, source.name))
 
     assert len(preserved_assets) == 12
-    assert themed_assets == expected_themed_assets
+    assert themed_assets == set(expected_themed_assets)
+    assert white_artwork_assets == expected_white_artwork_assets
     assert inherited_assets == expected_inherited_assets
 
 
@@ -3749,7 +3791,7 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
     assert _template_node_options(unit)["height"] == 16
     unit_margin = unit.values[-1].properties["margin"]
     assert unit_margin.kind == "object"
-    assert unit_margin.properties["bottom"].value == 8
+    assert unit_margin.properties["bottom"].value == 6
 
 
 @pytest.mark.asyncio
@@ -4082,7 +4124,7 @@ def test_calendar_templates_use_explicit_required_data_contracts():
         "/events/0/eventLocation",
     )
     assert full.optional_data == ()
-    assert hero.optional_data == ()
+    assert hero.optional_data == ("/events/0/description",)
 
 
 def test_calendar_timezone_has_dedicated_facts_without_becoming_time_text():
@@ -7308,9 +7350,9 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
         line for line in second_layer_user.splitlines() if line.startswith("componentCandidates=")
     )
     weather_full_candidates = [
-        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewUpdatedAtFull@1",
     ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
@@ -7362,7 +7404,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert "手机电量高级组件二层规则" not in second_layer_user
     assert "- 可用模板：" not in second_layer_user
     assert "WeatherOverviewCompact@1" not in second_layer_user
-    assert sum(len(item["content"]) for item in model.second_layer_prompt) < 10_000
+    assert sum(len(item["content"]) for item in model.second_layer_prompt) < 11_000
     assert "标准组件投影" not in model.second_layer_prompt[0]["content"]
     assert captured["compact"]
     assert "{{ ${/data/weather/current/condition}" in captured["compact"]

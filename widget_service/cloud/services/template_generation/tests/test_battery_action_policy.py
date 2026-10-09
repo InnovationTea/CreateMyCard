@@ -241,6 +241,10 @@ def test_charging_hero_covers_text_and_level_without_fabricating_numeric_data() 
     case = _case(("/batterySOCText", "/batteryCapacityLevelDesc"))
     registry = CardPlanRegistry()
     result = _search(case, registry)
+    # 50434950 起 ChargingProgressHero 的可选数据覆盖 /batteryCapacityLevelDesc，
+    # 文本+等级查询由通用 Hero 直接服务；引擎随后把 PercentLevelHero 兜底
+    # 从已覆盖的候选中移除（template_retrieval 的 text-level fallback 淘汰逻辑），
+    # 兜底变体仅在通用 Hero 缺席时出现（见 test_battery_case_extensions）。
     assert [c.template_id for c in result.business_candidates[0].candidates] == [
         "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentLevelFull@1",
     ]

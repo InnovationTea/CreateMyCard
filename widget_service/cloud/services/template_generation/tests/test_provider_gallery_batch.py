@@ -207,8 +207,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 合并横版模板与上游每种 Support 的可行 0/1/2 动作场景。
-    assert len(all_cases) == 188
+    # 包含各业务场景，以及新增电量、耳机模板的预览。
+    assert len(all_cases) == 203
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -290,6 +290,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "/events/0/dtStart",
         "/events/0/dtEnd",
         "/events/0/eventLocation",
+        # 50434950：日程备注进入 NextEventHero 可选数据。
+        "/events/0/description",
     ]
 
     targeted_cases = []
@@ -297,7 +299,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 187
+    assert len(targeted_cases) == 202
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -307,6 +309,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewTemperatureFull@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
     }
     battery_charging = _find_case(
         manifest,
@@ -320,6 +328,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert charging_request["galleryTest"]["sampleOverrides"] == {
         "/data/phoneBattery/batterySOCText": "68%",
         "/data/phoneBattery/chargingStatusDesc": "正在充电",
+        # 50434950：电量等级进入 ChargingProgressHero 可选数据。
+        "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
     }
     battery_compact = _find_case(
         manifest,
@@ -645,10 +655,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 188
+    assert summary.total == 203
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 182
+    assert summary.not_generated == 197
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
