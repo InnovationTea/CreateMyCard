@@ -1466,7 +1466,7 @@
     "id": "asset.ic_weather_color",
     "type": "asset",
     "src": "resources/base/media/ic_weather_color.svg",
-    "description": "样式：白色到浅灰渐变的云朵图标，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
     "sceneTags": [
       "weather",
       "condition"
@@ -1521,7 +1521,7 @@
     "id": "asset.ic_hotspot",
     "type": "asset",
     "src": "resources/base/media/ic_hotspot.svg",
-    "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40，SVG 矢量图需保留原始配色，禁止染色；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
     "sceneTags": [
       "network",
       "hotspot"
@@ -1554,7 +1554,7 @@
     "id": "asset.ic_ranking2",
     "type": "asset",
     "src": "resources/base/media/ic_ranking2.svg",
-    "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
+    "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144，SVG 矢量图需保留原始配色，禁止染色；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
     "sceneTags": [
       "ranking",
       "app-icon" 
