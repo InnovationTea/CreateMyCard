@@ -201,6 +201,10 @@ class ProviderTemplateEntry(StrictModel):
         default_factory=dict,
         alias="sizeScopedHiddenParameters",
     )
+    declared_supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] | None = Field(
+        default=None,
+        alias="supportedCardSizes",
+    )
     entry: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -219,6 +223,17 @@ class ProviderTemplateEntry(StrictModel):
                     raise ValueError(
                         f"Provider sizeScopedHiddenParameters name is invalid: {name}"
                     )
+        return self
+
+    @model_validator(mode="after")
+    def declared_card_sizes_are_valid(self) -> ProviderTemplateEntry:
+        card_sizes = self.declared_supported_card_sizes
+        if card_sizes is None:
+            return self
+        if self.capability_id is None:
+            raise ValueError("Provider supportedCardSizes requires a business Template")
+        if not card_sizes or len(card_sizes) != len(set(card_sizes)):
+            raise ValueError("Provider supportedCardSizes must be nonempty and unique")
         return self
 
     @model_validator(mode="after")
@@ -281,6 +296,8 @@ class ProviderTemplateEntry(StrictModel):
     def supported_card_sizes(self) -> tuple[Literal["2x2", "2x4"], ...]:
         if self.capability_id is None:
             return ()
+        if self.declared_supported_card_sizes is not None:
+            return self.declared_supported_card_sizes
         layout_kind = _provider_template_layout_kind(self.template_id)
         return (
             ("2x4",)
