@@ -1,8 +1,9 @@
 #Template WorkoutOverviewFull@1(props: { sourceIcon?: asset })
 data = {
     workoutType: $optionalPath("/exerciseTypeName"),
-    workoutCalories: $path("/exerciseCalorieText"),
+    workoutCalories: $optionalPath("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText"),
+    startTime: $optionalPath("/exerciseStartTimeText"),
     endTime: $optionalPath("/exerciseEndTimeText")
 }
 
@@ -73,6 +74,7 @@ Column(
             "width": "matchParent",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
+        #if data.workoutCalories
         Text(
             data.workoutCalories,
             { "height": 24,
@@ -84,6 +86,12 @@ Column(
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         ),
+        #else
+        Text(
+            data.duration,
+            { "width": "matchParent", "height": 34, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        ),
+        #endif
         Row(
             {
               "width": "matchParent",
@@ -117,7 +125,20 @@ Column(
                 }
             )
             #endif
+        ),
+        #if data.startTime
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0} },
+            Text(
+                "运动时间",
+                { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+            ),
+            Text(
+                data.startTime,
+                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            )
         )
+        #endif
     )
 )
 #End

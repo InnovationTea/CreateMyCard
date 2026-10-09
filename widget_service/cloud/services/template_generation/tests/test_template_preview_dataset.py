@@ -145,12 +145,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/condition",
             )
         elif case.template_id == "HeartRateOverviewMinMaxFull@1":
+            # 平均心率与运动类型为可选数据：存在时平均心率为大字、类型为标签，区间退为辅行。
             assert case.primary_data == (
                 "/exerciseHeartRateMax",
                 "/exerciseHeartRateMin",
             )
             assert case.secondary_data == ()
-            assert case.optional_data == ("/updatedAt",)
+            assert case.optional_data == (
+                "/exerciseHeartRateAvg", "/exerciseTypeName", "/updatedAt",
+            )
         elif case.template_id == "BatteryOverviewSupport@1":
             # 充电状态与电池温度为可选数据：辅行充电优先、温度回退，电量环仍由数值电量驱动。
             assert case.primary_data == ("/batterySOC",)

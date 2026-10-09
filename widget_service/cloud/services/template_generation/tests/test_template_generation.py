@@ -2339,13 +2339,20 @@ def test_activity_full_renders_metric_rows_only_when_fields_are_advertised():
     assert any(node.component_type == "Progress" for node in walk(complete))
 
 
-def test_workout_template_requires_one_complete_training_session():
+def test_workout_template_full_tiers_and_latest_session_facts():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverviewFull@1")
 
+    # 时长为唯一必选主字段：仅查“运动了多久”的请求也能落地 Full 形态；
+    # 热量、起止时间与运动类型全部可选，缺失时按条件分支省略。
     assert definition.primary_data == ("/exerciseDurationText",)
-    assert definition.secondary_data == ("/exerciseCalorieText",)
-    assert definition.optional_data == ("/exerciseEndTimeText", "/exerciseTypeName")
+    assert definition.secondary_data == ()
+    assert definition.optional_data == (
+        "/exerciseCalorieText",
+        "/exerciseEndTimeText",
+        "/exerciseStartTimeText",
+        "/exerciseTypeName",
+    )
     assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
 
     hero = registry.require_template("WorkoutOverviewHero@1")
@@ -2472,7 +2479,6 @@ def test_first_layer_receives_workout_session_routing_rules_and_required_paths()
     )
     assert template["requiredTaskSpecPaths"] == [
         "/data/healthSport/exerciseDurationText",
-        "/data/healthSport/exerciseCalorieText",
     ]
     provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
     assert "最近一次特定运动训练会话" in provider_rules
