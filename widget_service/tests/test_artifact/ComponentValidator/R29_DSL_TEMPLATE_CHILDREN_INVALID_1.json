@@ -1,0 +1,3 @@
+{"version":"v0.9","createSurface":{"surfaceId":"surface_card","catalogId":"ohos.a2ui.extended.catalog.form"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"surface_card","root":"root","components":[{"id":"root","component":"List","children":{"componentId":"content","path":"/data/items","itemVar":"$item"}},{"id":"content","component":"Text","content":"静态内容"}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"surface_card","path":"/","value":{"data":{"items":[{"name":"item"}]}}}}
