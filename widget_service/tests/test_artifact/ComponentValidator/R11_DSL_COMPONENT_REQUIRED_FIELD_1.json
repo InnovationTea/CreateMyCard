@@ -1,0 +1,3 @@
+{"version":"v0.9","createSurface":{"surfaceId":"surface_card","catalogId":"ohos.a2ui.extended.catalog.form"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"surface_card","root":"root","components":{}}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"surface_card","path":"/","value":{"data":{"healthSport":{"exerciseHeartRateAvg":135,"exerciseHeartRateMax":168,"targetDateText":"2026-08-06","exerciseTypeName":"户外跑步","exerciseDurationText":"40分","exerciseStartTimeText":"18:30","exerciseEndTimeText":"19:10"}}}}}
