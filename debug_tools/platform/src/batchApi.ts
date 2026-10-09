@@ -274,6 +274,27 @@ export type BatchGallery = {
   error?: string;
 };
 
+export type ValidationFailureItem = {
+  id: string;
+  title: string;
+  query: string;
+  size: string;
+  sequence: number;
+  finalStatus: string;
+  interfaceRetryCount: number;
+  validationFailureCount: number;
+  repairAttemptCount: number;
+  validations: Array<{
+    captureId: string;
+    executionAttempt: number;
+    interfaceAttempt: number;
+    validationAttempt: number;
+    status: string;
+    errorTypes: string[];
+    dsl: string;
+  }>;
+};
+
 export type BatchExecution = Partial<BatchRun> & {
   runId: string;
   taskId: string;
@@ -521,6 +542,13 @@ export function getBatchSample(runId: string, sampleId: string): Promise<BatchSa
   return requestJson(
     `/debug/batch/runs/${encodeURIComponent(runId)}/samples/${encodeURIComponent(sampleId)}`,
   );
+}
+
+export async function getValidationFailures(runId: string): Promise<ValidationFailureItem[]> {
+  const body = await requestJson<{ items: ValidationFailureItem[] }>(
+    `/debug/batch/runs/${encodeURIComponent(runId)}/validation-failures`,
+  );
+  return body.items;
 }
 
 export function cancelBatchRun(runId: string): Promise<BatchRun> {

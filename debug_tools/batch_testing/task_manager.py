@@ -16,6 +16,12 @@ from ..postprocess_plugins.device_capture import DeviceCaptureManager
 from ..postprocess_plugins.device_capture import run_builtin as run_device_capture_plugin
 from ..postprocess_plugins.gallery import BatchGalleryManager
 from ..postprocess_plugins.gallery import run_builtin as run_gallery_plugin
+from ..postprocess_plugins.validation_failure_gallery import (
+    ValidationFailureGalleryManager,
+)
+from ..postprocess_plugins.validation_failure_gallery import (
+    run_builtin as run_validation_failure_gallery_plugin,
+)
 from .postprocess import PostprocessManager
 from .runner import BatchRunManager, atomic_write_json, discover_datasets, utc_now
 from .service_manager import (
@@ -42,6 +48,7 @@ class BatchTaskManager:
         run_manager: BatchRunManager | None = None,
         service_controller: ManagedServiceController | None = None,
         gallery_manager: BatchGalleryManager | None = None,
+        validation_failure_gallery_manager: ValidationFailureGalleryManager | None = None,
         device_capture_manager: DeviceCaptureManager | None = None,
         postprocess_manager: PostprocessManager | None = None,
         gallery_base_url: str = "http://127.0.0.1:8888/debug",
@@ -67,6 +74,10 @@ class BatchTaskManager:
             self.output_root,
             gallery_base_url,
         )
+        self.validation_failure_gallery_manager = (
+            validation_failure_gallery_manager
+            or ValidationFailureGalleryManager(self.output_root, gallery_base_url)
+        )
         self.device_capture_manager = device_capture_manager or DeviceCaptureManager(
             self.output_root,
         )
@@ -76,6 +87,10 @@ class BatchTaskManager:
             plugins_root,
             builtin_runners={
                 "browser-gallery": partial(run_gallery_plugin, self.gallery_manager),
+                "validation-failure-gallery": partial(
+                    run_validation_failure_gallery_plugin,
+                    self.validation_failure_gallery_manager,
+                ),
                 "device-gallery": partial(
                     run_device_capture_plugin,
                     self.device_capture_manager,
@@ -374,6 +389,9 @@ class BatchTaskManager:
 
     def gallery_path(self, run_id: str) -> Path:
         return self.gallery_manager.gallery_path(run_id)
+
+    def validation_failure_items(self, run_id: str) -> list[dict[str, Any]]:
+        return self.validation_failure_gallery_manager.items(run_id)
 
     def device_capture_path(self, run_id: str, sample_id: str, kind: str) -> Path:
         return self.device_capture_manager.image_path(run_id, sample_id, kind)

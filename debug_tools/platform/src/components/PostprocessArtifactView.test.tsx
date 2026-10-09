@@ -49,4 +49,35 @@ describe('PostprocessArtifactView', () => {
     }} />);
     expect(screen.getByRole('link', { name: /下载文件/ })).toHaveAttribute('href', '/artifact.txt');
   });
+
+  it('renders every validation image and keeps failed captures visible', () => {
+    render(<PostprocessArtifactView artifact={{
+      key: 'validation-renders',
+      title: '逐次校验 DSL 浏览器渲染结果',
+      dataType: 'image',
+      renderer: 'gallery',
+      data: [
+        {
+          label: '执行尝试 1 · 接口调用 1 · 校验评估 1',
+          status: '校验失败',
+          errorTypes: ['COMPACT_DSL_VALIDATION_FAILED'],
+          url: '/validation-1.png',
+          alt: '第一次校验',
+        },
+        {
+          label: '执行尝试 1 · 接口调用 2 · 校验评估 1',
+          status: '校验通过',
+          errorTypes: [],
+          error: 'DSL 无法解析',
+        },
+      ],
+    }} />);
+
+    expect(screen.getByRole('img', { name: '第一次校验' })).toHaveAttribute(
+      'src',
+      '/validation-1.png',
+    );
+    expect(screen.getByText('DSL 无法解析')).toBeInTheDocument();
+    expect(screen.getAllByText(/校验评估 1/)).toHaveLength(2);
+  });
 });

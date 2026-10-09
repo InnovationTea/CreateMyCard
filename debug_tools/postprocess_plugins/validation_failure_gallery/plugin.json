@@ -1,0 +1,85 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "validation-failure-gallery",
+  "name": "校验失败分析画廊",
+  "version": "2.0.0",
+  "description": "分析所有出现过校验失败的样本，展示最终状态、重试与修复统计、逐次错误和每次校验的浏览器渲染结果。",
+  "entrypoint": "builtin",
+  "dependence": [],
+  "timeoutSeconds": 900,
+  "outputs": [
+    {
+      "key": "validation-query",
+      "scope": "sample",
+      "title": "Query",
+      "dataType": "text",
+      "required": true
+    },
+    {
+      "key": "validation-errors",
+      "scope": "sample",
+      "title": "校验错误",
+      "dataType": "issues",
+      "renderer": "table",
+      "required": true
+    },
+    {
+      "key": "validation-renders",
+      "scope": "sample",
+      "title": "逐次校验 DSL 浏览器渲染结果",
+      "dataType": "image",
+      "renderer": "gallery",
+      "required": true
+    },
+    {
+      "key": "validation-overview",
+      "scope": "dataset",
+      "title": "校验失败概览",
+      "dataType": "metrics",
+      "renderer": "kpi",
+      "required": true
+    },
+    {
+      "key": "validation-error-types",
+      "scope": "dataset",
+      "title": "错误类型分布",
+      "dataType": "records",
+      "renderer": "bar",
+      "required": true
+    }
+  ],
+  "presentation": {
+    "defaultView": "gallery",
+    "sampleFields": [
+      {
+        "key": "finalStatus",
+        "label": "最终执行结果",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      },
+      {
+        "key": "interfaceRetryCount",
+        "label": "接口重试次数",
+        "type": "number",
+        "sortable": true
+      },
+      {
+        "key": "validationFailureCount",
+        "label": "校验失败次数",
+        "type": "number",
+        "sortable": true
+      },
+      {
+        "key": "repairAttemptCount",
+        "label": "修复尝试次数",
+        "type": "number",
+        "sortable": true
+      }
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

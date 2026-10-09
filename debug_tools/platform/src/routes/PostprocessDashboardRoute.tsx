@@ -31,6 +31,12 @@ function sampleTone(sample: PostprocessDashboardSample): string {
   return sample.status;
 }
 
+function sampleFieldTone(sample: PostprocessDashboardSample, fieldKey: string): string {
+  if (fieldKey === 'recallRate') return sampleTone(sample);
+  if (fieldKey === 'finalStatus') return sample.facts.finalStatus === '成功' ? 'success' : 'danger';
+  return '';
+}
+
 export function PostprocessDashboardRoute() {
   const { runId = '', executionId = '', pluginId = '' } = useParams();
   const navigate = useNavigate();
@@ -201,7 +207,7 @@ export function PostprocessDashboardRoute() {
           <thead><tr><th>样本</th>{sampleFields.map((field) => <th key={field.key}>{field.label}</th>)}<th /></tr></thead>
           <tbody>{samples.map((item) => <tr key={item.sampleId} className={selectedId === item.sampleId ? 'is-selected' : ''} onClick={() => setSelectedId(item.sampleId)}>
             <td><b>{item.sampleId}</b><span>{item.title}</span></td>
-            {sampleFields.map((field) => <td key={field.key} className={field.key === 'recallRate' ? sampleTone(item) : ''}>
+            {sampleFields.map((field) => <td key={field.key} className={sampleFieldTone(item, field.key)}>
               {factText(item.facts[field.key], field.format)}
             </td>)}
             <td aria-hidden="true">›</td>

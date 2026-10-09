@@ -14,6 +14,7 @@ import { PostprocessDashboardRoute } from './routes/PostprocessDashboardRoute';
 import { QualityRoute } from './routes/QualityRoute';
 import { QualityCompareRoute } from './routes/QualityCompareRoute';
 import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
+import { ValidationFailureCaptureRoute } from './routes/ValidationFailureCaptureRoute';
 import { BackendStatusWidget } from './components/BackendStatusWidget';
 
 const navigation = [
@@ -85,6 +86,10 @@ export default function App() {
     <WorkbenchProvider>
       <Routes>
         <Route path="/batch/runs/:runId/gallery-capture" element={<BatchGalleryCaptureRoute />} />
+        <Route
+          path="/batch/runs/:runId/validation-failure-capture"
+          element={<ValidationFailureCaptureRoute />}
+        />
         <Route path="/batch/runs/:runId/samples/:sampleId/trace" element={<BatchTraceRoute />} />
         <Route
           path="/batch/runs/:runId/postprocess/:executionId/plugins/:pluginId"

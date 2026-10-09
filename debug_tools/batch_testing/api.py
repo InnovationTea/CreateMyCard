@@ -451,6 +451,16 @@ def register_batch_routes(
             raise HTTPException(status_code=404, detail="Web 渲染截图不存在") from exc
         return FileResponse(path, media_type="image/png")
 
+    @app.get("/debug/batch/runs/{run_id}/validation-failures")
+    async def batch_validation_failures(run_id: str) -> dict[str, Any]:
+        try:
+            items = task_manager.validation_failure_items(run_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="批跑执行不存在") from exc
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {"items": items}
+
     @app.get("/debug/batch/runs/{run_id}/trace-artifacts/{digest}")
     async def batch_trace_artifact(run_id: str, digest: str) -> FileResponse:
         try:

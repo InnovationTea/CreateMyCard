@@ -118,6 +118,27 @@ function RemoteText({ url }: { url: string }) {
   return <pre>{text}</pre>;
 }
 
+function ImageGallery({ items }: { items: RecordRow[] }) {
+  if (!items.length) return <div className="postprocess-empty">暂无校验截图</div>;
+  return <div className="postprocess-image-gallery">{items.map((item, index) => {
+    const url = typeof item.url === 'string' ? item.url : '';
+    const status = String(item.status ?? '');
+    const errorTypes = Array.isArray(item.errorTypes) ? item.errorTypes.map(String) : [];
+    return <figure key={`${String(item.label ?? '')}-${index}`}>
+      <figcaption><span>{displayValue(item.label)}</span>
+        <b className={status === '校验通过' ? 'success' : 'danger'}>{status}</b>
+      </figcaption>
+      {errorTypes.length > 0 && <p>{errorTypes.join('、')}</p>}
+      {url
+        ? <a href={url} target="_blank" rel="noreferrer"><img
+            src={url}
+            alt={String(item.alt ?? item.label ?? '校验 DSL 渲染结果')}
+          /></a>
+        : <div className="postprocess-image-error">{displayValue(item.error)}</div>}
+    </figure>;
+  })}</div>;
+}
+
 export function PostprocessArtifactView({ artifact }: { artifact: PostprocessArtifact }) {
   const rows = records(artifact.data);
   const renderer = artifact.renderer;
@@ -137,6 +158,8 @@ export function PostprocessArtifactView({ artifact }: { artifact: PostprocessArt
     body = <RecordTable rows={rows} />;
   } else if (artifact.dataType === 'matrix') {
     body = <MatrixView value={artifact.data} />;
+  } else if (artifact.dataType === 'image' && renderer === 'gallery') {
+    body = <ImageGallery items={rows} />;
   } else if (artifact.dataType === 'image' && artifact.url) {
     body = <figure><img src={artifact.url} alt={artifact.alt ?? artifact.title ?? '插件图片产物'} />
       {artifact.fullUrl ? <a href={String(artifact.fullUrl)} target="_blank" rel="noreferrer">查看原图 ↗</a> : null}
