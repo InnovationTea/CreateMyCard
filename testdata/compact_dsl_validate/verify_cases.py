@@ -14,10 +14,15 @@ def load_validator(cloud: Path):
     return importlib.import_module("services.card_validation.compact_dsl_validator")
 
 
+def normalized_sha256(path: Path) -> str:
+    content = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(content).hexdigest()
+
+
 def verify(folder: Path, validator) -> str | None:
     expected = json.loads((folder / "expected.json").read_text(encoding="utf-8"))
     for name, checksum in expected.get("sha256", {}).items():
-        actual = hashlib.sha256((folder / name).read_bytes()).hexdigest()
+        actual = normalized_sha256(folder / name)
         if actual != checksum:
             return f"{name} 内容已变化"
     dsl = (folder / "sample_compact.dsl").read_text(encoding="utf-8")

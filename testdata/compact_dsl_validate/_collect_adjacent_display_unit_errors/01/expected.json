@@ -4,8 +4,8 @@
   ],
   "exceptionType": "CompactDslValidationError",
   "sha256": {
-    "sample_compact.dsl": "5a9fcd00edfd70b12d31da9b173b3976132130240b6f7f0340022663008ea511",
-    "sample_task_spec.json": "42444a76eff95df322111bc3844ecccd09f3ae454881134ae6382db5a383826a",
-    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+    "sample_compact.dsl": "0c571aea2dbfcfef1be3f79272e6886743df6c7708a8bda5eec1e71797156ab0",
+    "sample_task_spec.json": "fe400190a2c15b37333d8bcb2fee6ad8542477e53fb5cc458d4142a41c7954d8",
+    "sample_card_spec.json": "d17f83d749e7ef6dd906c72470af20c0b3b34d24aca0c4aaaaaf8bf72b6c999e"
   }
 }
