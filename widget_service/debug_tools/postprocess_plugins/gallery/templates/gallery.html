@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{RUN_ID}} · {{GALLERY_TITLE}}</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { padding: 32px 24px 64px; color: #1f2937; background: #eef1f5; font-family: "HarmonyOS Sans SC", "HarmonyOS Sans", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .page-shell { max-width: 1600px; margin: auto; }
+    .page-head { margin: 0 auto 24px; text-align: center; }
+    h1 { margin: 0; font-size: 26px; }
+    .page-head p { margin: 8px 0 0; color: #667085; font-size: 13px; }
+    .run-summary { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 22px auto 0; }
+    .summary-chip { min-width: 112px; padding: 10px 14px; border: 1px solid #d8dee8; border-radius: 12px; background: #fff; box-shadow: 0 3px 12px rgba(32,48,72,.05); }
+    .summary-chip b { display: block; font-size: 18px; }
+    .summary-chip span { display: block; margin-top: 2px; color: #667085; font-size: 11px; }
+    .toolbar { position: sticky; top: 12px; z-index: 30; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; max-width: 980px; margin: 0 auto 26px; padding: 10px 12px; border: 1px solid rgba(210,217,229,.92); border-radius: 16px; background: rgba(255,255,255,.93); box-shadow: 0 8px 28px rgba(32,48,72,.1); backdrop-filter: blur(12px); }
+    .filter-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { border: 0; border-radius: 9px; padding: 8px 12px; color: #475467; background: #eef2f7; cursor: pointer; }
+    button.active { color: #fff; background: #0a59f7; }
+    input { width: min(320px,70vw); padding: 8px 11px; border: 1px solid #d0d7e2; border-radius: 9px; background: #fff; }
+    .visible-count { color: #667085; font-size: 12px; }
+    .gallery { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 24px; }
+    .result-item { display: flex; flex-direction: column; width: 584px; min-height: 360px; padding: 16px; border: 1px solid #dbe1ea; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(30,42,64,.08); }
+    .result-item[data-size="2x4"] { width: 824px; }
+    .result-item[data-status="failed"], .result-item[data-status="unsupported"] { border-color: #f3b5b5; background: #fffafa; }
+    .item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .item-head > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    h2 { overflow: hidden; margin: 0; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
+    .task-id { flex: none; color: #667085; font-size: 11px; }
+    .status-badge { flex: none; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+    .status-badge.success { color: #14723d; background: #dff7e8; }
+    .status-badge.degraded { color: #9a5b00; background: #fff0c7; }
+    .status-badge.failed, .status-badge.unsupported { color: #b42318; background: #fee4e2; }
+    .status-badge.cancelled { color: #596273; background: #e8ecf2; }
+    .card-stage { display: flex; align-items: center; justify-content: center; min-height: 184px; padding: 12px; overflow: hidden; border-radius: 14px; background-color: #e9edf2; background-image: linear-gradient(45deg,#f8f9fb 25%,transparent 25%), linear-gradient(-45deg,#f8f9fb 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#f8f9fb 75%), linear-gradient(-45deg,transparent 75%,#f8f9fb 75%); background-position: 0 0,0 8px,8px -8px,-8px 0; background-size: 16px 16px; }
+    .card-stage img { display: block; max-width: 100%; height: auto; }
+    .render-comparison { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; width: 100%; }
+    .render-comparison section { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 7px; }
+    .render-label { color: #596273; font-size: 10px; letter-spacing: .04em; }
+    .render-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 156px; padding: 14px; border: 1px dashed #e98c8c; border-radius: 12px; color: #9f2525; background: #fff6f6; text-align: center; }
+    .render-error span { max-height: 90px; overflow: auto; font: 11px/1.45 ui-monospace, monospace; }
+    .metrics { display: grid; grid-template-columns: minmax(48px,.85fr) minmax(96px,1.65fr) repeat(2,minmax(48px,.85fr)); gap: 6px; margin-top: 12px; }
+    .metrics span { min-width: 0; padding: 7px 5px; border-radius: 9px; background: #f5f7fa; text-align: center; }
+    .metrics b { display: block; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .metrics small { display: block; margin-top: 2px; color: #7b8494; font-size: 9px; }
+    .query { display: -webkit-box; min-height: 36px; margin: 10px 0 0; overflow: hidden; color: #4b5565; font-size: 12px; line-height: 18px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .details { margin-top: 10px; border-top: 1px solid #e7eaf0; padding-top: 8px; color: #596273; font-size: 11px; }
+    .details summary { cursor: pointer; font-weight: 600; }
+    .details p { color: #a33; }
+    .details pre { max-height: 120px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+    @media (max-width: 720px) { body { padding: 20px 10px 40px; } .result-item, .result-item[data-size="2x4"] { width: min(100%,408px); } .render-comparison { grid-template-columns: 1fr; } .toolbar { top: 6px; } .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="page-head">
+      <h1>批次 {{RUN_ID}} · {{GALLERY_TITLE}}</h1>
+      <p>生成于 {{GENERATED_AT}} · {{GALLERY_SUBTITLE}}</p>
+      <div class="run-summary">
+        <div class="summary-chip"><b>{{TOTAL}}</b><span>样本总数</span></div>
+        <div class="summary-chip"><b>{{SUCCESS}}</b><span>成功</span></div>
+        <div class="summary-chip"><b>{{DEGRADED}}</b><span>降级</span></div>
+        <div class="summary-chip"><b>{{FAILED}}</b><span>失败 / 不支持</span></div>
+        <div class="summary-chip"><b>{{CANCELLED}}</b><span>取消</span></div>
+        <div class="summary-chip"><b>{{AVERAGE}}ms</b><span>平均耗时</span></div>
+      </div>
+    </header>
+    <section class="toolbar">
+      <div class="filter-buttons">
+        <button class="active" data-filter="all">全部</button><button data-filter="success">成功</button>
+        <button data-filter="degraded">降级</button><button data-filter="failed">失败</button>
+        <button data-filter="unsupported">不支持</button><button data-filter="cancelled">已取消</button>
+      </div>
+      <input id="search" placeholder="搜索样本、标题或需求"><span class="visible-count"></span>
+    </section>
+    <main class="gallery">{{CARDS}}</main>
+  </div>
+  <script>
+    const items = [...document.querySelectorAll('.result-item')];
+    const count = document.querySelector('.visible-count');
+    const search = document.querySelector('#search');
+    let filter = 'all';
+    function apply() {
+      const term = search.value.trim().toLowerCase();
+      let visible = 0;
+      for (const item of items) {
+        const show = (filter === 'all' || item.dataset.status === filter)
+          && (!term || item.dataset.search.includes(term));
+        item.hidden = !show;
+        if (show) visible += 1;
+      }
+      count.textContent = `显示 ${visible} / ${items.length}`;
+    }
+    for (const button of document.querySelectorAll('[data-filter]')) {
+      button.addEventListener('click', () => {
+        filter = button.dataset.filter;
+        for (const other of document.querySelectorAll('[data-filter]')) {
+          other.classList.toggle('active', other === button);
+        }
+        apply();
+      });
+    }
+    search.addEventListener('input', apply);
+    apply();
+  </script>
+</body>
+</html>

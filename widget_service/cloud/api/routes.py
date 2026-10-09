@@ -29,6 +29,7 @@ from app.logger import (
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
 from core.errors import ErrorCode
+from custom.a2ui_model_client import A2UIModelGenerationError
 from custom.model_runtime import ModelExecutionRuntime
 from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from models.preflight import GenerationPreflightError
@@ -39,6 +40,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
+from services.artifact_store import ArtifactUploadError
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
     compact_dsl_argument_issue_tracker,
@@ -46,6 +48,12 @@ from services.compact_dsl_argument_repair import (
     recover_compact_dsl_content,
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.generation_trace_recorder import (
+    trace_increment_retry,
+    trace_observe_attempt,
+    trace_record,
+    trace_span,
+)
 from services.widget_directive import (
     WidgetDirectiveState,
     build_widget_directive_response,
@@ -58,12 +66,12 @@ _MODULE = "[WS Router]"
 INTERFACE_TYPE = {
     "getWidgetCapabilityOverview": "getWidgetCapabilityOverviewInterfaceTime",
     "getDataCapabilitySchemas": "getDataCapabilitySchemasInterfaceTime",
-    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceTime"
+    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceTime",
 }
 
 INTERFACE_PARAMETER_ERROR_TYPE = {
     "getDataCapabilitySchemas": "getDataCapabilitySchemasInterfaceParamError",
-    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceParamError"
+    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceParamError",
 }
 
 router = APIRouter(prefix="/api/v1")
@@ -410,9 +418,7 @@ def _normalize_payload(
     if "content" in payload or "deviceInfo" in payload or "session" in payload:
         _validate_compact_dsl_content(payload, operation)
         envelope = ToolRequestEnvelope(**payload)
-        return _request_id_from_envelope(envelope), _arguments_from_envelope(
-            envelope, operation
-        )
+        return _request_id_from_envelope(envelope), _arguments_from_envelope(envelope, operation)
     return payload.get("requestId"), payload.get("arguments", payload)
 
 
@@ -469,6 +475,38 @@ def _request_trace_hashes(payload: dict[str, Any]) -> dict[str, str]:
         "user_trace_hash": _sha256_trace_value(user_value),
         "device_trace_hash": _sha256_trace_value(device_value),
     }
+
+
+def _trace_uid_from_raw_payload(payload: dict[str, Any]) -> str:
+    """在参数修复前提取 Trace UID，不改变正式请求归一化规则。"""
+    content = _mapping(payload.get("content"))
+    arguments = _mapping(payload.get("arguments"))
+    stringified_arguments = content.get("arguments")
+    repaired_arguments: dict[str, Any] = {}
+    if isinstance(stringified_arguments, str):
+        try:
+            repaired_arguments = _mapping(json.loads(stringified_arguments))
+        except json.JSONDecodeError:
+            repaired_arguments = {}
+    user_auth = _mapping(payload.get("userAuth"))
+    user = _mapping(user_auth.get("user"))
+    return _first_text(
+        content.get("uid"),
+        user.get("userId"),
+        repaired_arguments.get("uid"),
+        arguments.get("uid"),
+        payload.get("uid"),
+    )
+
+
+def _trace_exception_error_code(exc: Exception) -> str:
+    if isinstance(exc, ArtifactUploadError):
+        return ErrorCode.ARTIFACT_UPLOAD_FAILED.value
+    if isinstance(exc, A2UIModelGenerationError):
+        return ErrorCode.A2UI_GENERATION_FAILED.value
+    if isinstance(exc, TimeoutError):
+        return ErrorCode.TIMEOUT.value
+    return "FAILED"
 
 
 def _combined_request_trace_hash(trace_hashes: dict[str, str]) -> str:
@@ -572,13 +610,14 @@ async def _repair_compact_dsl_content_if_needed(
     if not should_repair:
         return False
     try:
-        recovery = await recover_compact_dsl_content(
-            payload,
-            backend=settings.design_compact_model_backend,
-            model_runtime=model_runtime,
-            request_context=_model_request_context_from_payload(payload, None),
-            max_attempts=settings.compact_dsl_argument_repair_max_attempts,
-        )
+        with trace_span("argument_repair.completed", stage="argumentRepair"):
+            recovery = await recover_compact_dsl_content(
+                payload,
+                backend=settings.design_compact_model_backend,
+                model_runtime=model_runtime,
+                request_context=_model_request_context_from_payload(payload, None),
+                max_attempts=settings.compact_dsl_argument_repair_max_attempts,
+            )
     except Exception as exc:
         logger.error(
             f"{_MODULE} compact_dsl_argument_repair_failed request_id={request_id} "
@@ -589,6 +628,21 @@ async def _repair_compact_dsl_content_if_needed(
             repair_failure_type=type(exc).__name__,
         ) from exc
     payload["content"] = recovery.content
+    trace_observe_attempt("argumentRepairAttempts", recovery.attempts)
+    if recovery.attempts > 1:
+        trace_increment_retry("argumentRepairRetries", recovery.attempts - 1)
+    trace_record(
+        "argument_repair.result",
+        stage="argumentRepair",
+        status="success",
+        details={
+            "mode": recovery.mode,
+            "attempts": recovery.attempts,
+            "droppedCandidates": list(recovery.dropped_candidates),
+            "warnings": list(recovery.warnings),
+        },
+        json_artifacts={"argument_repair_content": recovery.content},
+    )
     logger.info(
         f"{_MODULE} compact_dsl_argument_recovered request_id={request_id} "
         f"mode={recovery.mode} attempts={recovery.attempts} "
@@ -701,9 +755,7 @@ async def _send_widget_directive_command(
         f"streaming_text_id={streaming_text_id}"
     )
     if not _widget_directive_commands_enabled():
-        logger.info(
-            f"{_MODULE} widget_directive_skipped {log_context} reason=commands_disabled"
-        )
+        logger.info(f"{_MODULE} widget_directive_skipped {log_context} reason=commands_disabled")
         return True
     response = build_widget_directive_response(
         raw_payload,
@@ -830,13 +882,34 @@ async def _serve_operation_websocket(
             directive_size = DEFAULT_WIDGET_SIZE
             widget_directive_started = False
             widget_directive_start_attempted = False
+            trace_token = None
+            trace_status = "failed"
+            trace_error_code = ""
+            trace_result_data: dict[str, Any] = {}
             try:
                 raw_request_body = await websocket.receive_text()
                 payload = json.loads(raw_request_body)
+                if operation == COMPACT_DSL_OPERATION and isinstance(payload, dict):
+                    settings = get_settings()
+                    service.trace_recorder.bind_request(
+                        _trace_uid_from_raw_payload(payload),
+                        enabled=settings.enable_generation_trace_recording,
+                        trace_root=settings.generation_trace_root,
+                    )
+                    trace_token = service.trace_recorder.activate()
+                    trace_record(
+                        "request.received",
+                        stage="request",
+                        status="started",
+                        details={
+                            "operation": operation,
+                            "requestId": _request_id_from_raw_payload(payload),
+                        },
+                        json_artifacts={"raw_request": payload},
+                        artifact_roles={"raw_request": "input"},
+                    )
             except ValueError as exc:
-                report_ops_metrics(body={
-                    INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1
-                })
+                report_ops_metrics(body={INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1})
 
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_json operation={operation} "
@@ -1004,10 +1077,11 @@ async def _serve_operation_websocket(
                 if content_repaired:
                     compact_dsl_argument_issue_tracker.reset(request_id)
                 result_data = result.model_dump(mode="json", exclude_none=True)
+                trace_result_data = result_data
+                trace_status = str(result_data.get("status", "success"))
+                trace_error_code = str(result_data.get("errorCode", ""))
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                report_ops_metrics(body={
-                    INTERFACE_TYPE[operation]: duration_ms
-                })
+                report_ops_metrics(body={INTERFACE_TYPE[operation]: duration_ms})
                 logger.info(
                     f"{_MODULE} widget_operation_ws_handler_completed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
@@ -1044,6 +1118,13 @@ async def _serve_operation_websocket(
                     result_message,
                     streaming_text_id,
                 )
+                if operation == COMPACT_DSL_OPERATION:
+                    service.trace_recorder.finalize(
+                        status=trace_status,
+                        error_code=trace_error_code,
+                        artifact_url=str(trace_result_data.get("artifactUrl", "")),
+                        artifact_digest=str(trace_result_data.get("artifactDigest", "")),
+                    )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -1055,6 +1136,8 @@ async def _serve_operation_websocket(
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 error_code = _value_error_code(exc)
+                trace_status = "failed"
+                trace_error_code = error_code
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
@@ -1074,9 +1157,7 @@ async def _serve_operation_websocket(
                     },
                 )
 
-                report_ops_metrics(body={
-                    INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1
-                })
+                report_ops_metrics(body={INTERFACE_PARAMETER_ERROR_TYPE[operation]: 1})
 
                 if operation in GENERATION_OPERATIONS and widget_directive_started:
                     raw_payload = payload if isinstance(payload, dict) else {}
@@ -1095,6 +1176,11 @@ async def _serve_operation_websocket(
                     error_message,
                     streaming_text_id,
                 )
+                if operation == COMPACT_DSL_OPERATION:
+                    service.trace_recorder.finalize(
+                        status=trace_status,
+                        error_code=trace_error_code,
+                    )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -1105,6 +1191,8 @@ async def _serve_operation_websocket(
                     return
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+                trace_status = "failed"
+                trace_error_code = _trace_exception_error_code(exc)
                 logger.error(
                     f"{_MODULE} widget_operation_ws_failed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} error={exc} "
@@ -1135,6 +1223,15 @@ async def _serve_operation_websocket(
                     error_message,
                     streaming_text_id,
                 )
+                if operation == COMPACT_DSL_OPERATION:
+                    service.trace_recorder.finalize(
+                        status=trace_status,
+                        error_code=trace_error_code,
+                        details={
+                            "exceptionType": type(exc).__name__,
+                            "message": str(exc),
+                        },
+                    )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -1144,6 +1241,14 @@ async def _serve_operation_websocket(
                 ):
                     return
             finally:
+                if operation == COMPACT_DSL_OPERATION:
+                    service.trace_recorder.finalize(
+                        status=trace_status,
+                        error_code=trace_error_code,
+                        artifact_url=str(trace_result_data.get("artifactUrl", "")),
+                        artifact_digest=str(trace_result_data.get("artifactDigest", "")),
+                    )
+                    service.trace_recorder.deactivate(trace_token)
                 metrics.task_finished()
                 if heartbeat_task:
                     heartbeat_task.cancel()

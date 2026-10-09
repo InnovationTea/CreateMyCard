@@ -1,0 +1,97 @@
+{
+  "content": {
+    "userQuery": "做个卡片，查看电量、电池健康、电池温度和充电器，点击查看电池健康设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/healthStatusDesc",
+          "/batteryTemperatureText",
+          "/pluggedTypeDesc"
+        ]
+      }
+    ],
+    "title": "出门续航",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.batteryHealth",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "smart_charge_battery_health"
+          }
+        }
+      }
+    ],
+    "description": "电量+健康+温度+充电器",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.bolt_fill",
+      "asset.heat_generation"
+    ],
+    "bundleName": "com.omega_w_0823.hmservice"
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "12.0.0.1",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "session": {
+    "interactionId": "080",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "utterance": {
+    "original": "做个卡片，查看电量、电池健康、电池温度和充电器，点击查看电池健康设置。",
+    "type": "text"
+  },
+  "userQuery": "做个卡片，查看电量、电池健康、电池温度和充电器，点击查看电池健康设置。",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.batteryHealth",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "smart_charge_battery_health"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.omega_w_0823.hmservice",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/healthStatusDesc",
+        "/batteryTemperatureText",
+        "/pluggedTypeDesc"
+      ]
+    }
+  ],
+  "title": "出门续航",
+  "description": "电量+健康+温度+充电器",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.bolt_fill",
+    "asset.heat_generation"
+  ]
+}
