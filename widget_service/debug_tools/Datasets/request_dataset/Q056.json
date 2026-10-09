@@ -47,7 +47,7 @@
     ],
     "description": "天气日程和详情",
     "candidateAssetIds": [
-      "asset.icon_weather_temperature1",
+      "asset.ic_weather_monochrome",
       "asset.calendar_fill",
       "asset.local_fill",
       "asset.clock_fill"
@@ -129,7 +129,7 @@
   ],
   "description": "天气日程和详情",
   "candidateAssetIds": [
-    "asset.icon_weather_temperature1",
+    "asset.ic_weather_monochrome",
     "asset.calendar_fill",
     "asset.local_fill",
     "asset.clock_fill"

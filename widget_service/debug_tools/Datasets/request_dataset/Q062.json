@@ -48,7 +48,7 @@
     ],
     "description": "天气电量和导航",
     "candidateAssetIds": [
-      "asset.icon_weather_temperature1",
+      "asset.ic_weather_monochrome",
       "asset.bell_fill",
       "asset.battery_leaf_fill",
       "asset.location_north_up_right_fill"
@@ -131,7 +131,7 @@
   ],
   "description": "天气电量和导航",
   "candidateAssetIds": [
-    "asset.icon_weather_temperature1",
+    "asset.ic_weather_monochrome",
     "asset.bell_fill",
     "asset.battery_leaf_fill",
     "asset.location_north_up_right_fill"

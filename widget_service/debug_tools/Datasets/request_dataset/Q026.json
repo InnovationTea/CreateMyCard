@@ -47,7 +47,7 @@
     "description": "倒数天气和详情",
     "candidateAssetIds": [
       "asset.airplane_departure",
-      "asset.icon_weather_temperature1",
+      "asset.ic_weather_monochrome",
       "asset.drop_1",
       "asset.alarm_fill_1"
     ]
@@ -128,7 +128,7 @@
   "description": "倒数天气和详情",
   "candidateAssetIds": [
     "asset.airplane_departure",
-    "asset.icon_weather_temperature1",
+    "asset.ic_weather_monochrome",
     "asset.drop_1",
     "asset.alarm_fill_1"
   ]
