@@ -212,6 +212,17 @@ class _ReferenceGeometry:
         return RegionBox(*lengths)
 
 
+def reference_region_boxes(nodes: list[dict[str, Any]], *, size: str) -> dict[str, RegionBox]:
+    """只读求解参考盒，用于校验显式权重；未知自然尺寸保留 None。"""
+    geometry = _ReferenceGeometry(nodes)
+    geometry.visit(
+        "root",
+        RegionBox(reference_dimension(size, "width"), reference_dimension(size, "height")),
+        set(),
+    )
+    return geometry.boxes
+
+
 def _fixed_action_branch(
     node: dict[str, Any], geometry: _ReferenceGeometry, author_types: dict[str, str], seen: set[str]
 ) -> bool:
@@ -382,12 +393,26 @@ def adapt_region_layout(
         identifier = node.get("id")
         if isinstance(identifier, str):
             output[identifier] = node.setdefault("styles", {})
+    parent_axes: dict[str, str | None] = {}
+    for node in nodes:
+        for child in node.get("children", []):
+            parent_axes[child] = _main_axis(node)
     for identifier, box in geometry.boxes.items():
         parent = geometry.nodes.get(identifier)
         if parent is None or identifier not in author_types:
             continue
         inner = geometry.inner(parent, box)
         main = _main_axis(parent)
+        allocated: set[str] = set()
+        parent_styles = output.get(identifier, {})
+        for axis in _AXES:
+            explicit = _number(parent_styles.get(axis)) is not None
+            filled = parent_styles.get(axis) == "matchParent"
+            weighted = (_number(parent_styles.get("layoutWeight")) or 0) > 0
+            if identifier == "root" or explicit or filled:
+                allocated.add(axis)
+            elif weighted and parent_axes.get(identifier) == axis:
+                allocated.add(axis)
         for child in geometry.children(parent):
             child_id = child.get("id")
             kind = author_types.get(child_id)
@@ -399,6 +424,8 @@ def adapt_region_layout(
             if target is None or constraints:
                 continue
             for axis in _AXES:
+                if axis not in allocated:
+                    continue
                 allowed = kind in (_WIDTH_FILL if axis == "width" else _REGIONS)
                 if not allowed or axis == main or _inset(child, "margin", axis) != 0:
                     continue
@@ -410,7 +437,7 @@ def adapt_region_layout(
                         target[axis] = "matchParent"
                         if axis == "height" and child_id in slot_actions:
                             _release_action_height(target)
-        if main not in blocked.get(identifier, set()):
+        if main in allocated and main not in blocked.get(identifier, set()):
             _grow_main_regions(
                 parent, geometry, inner, author_types, output, slots, slot_actions,
                 author_weights, wrappers,
