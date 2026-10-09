@@ -952,7 +952,7 @@ class CompactDslFormParityTest(unittest.TestCase):
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "rainProbabilityPercent": {"type": "string"}
+                                    "rainProbabilityPercent": {"type": "number"}
                                 },
                             },
                         },
@@ -984,7 +984,15 @@ class CompactDslFormParityTest(unittest.TestCase):
         report = validate_compact_dsl(normalized, cardspec)
 
         self.assertEqual(data_rows["/data/weather/current/condition"], "小雨")
-        self.assertEqual(data_rows["/data/weather/daily/0/rainProbabilityPercent"], "72%")
+        self.assertEqual(data_rows["/data/weather/daily/0/rainProbabilityPercent"], 72)
+        self.assertTrue(
+            any(
+                len(row) >= 3
+                and row[1] == "Text"
+                and row[2].get("content") == "%"
+                for row in rows
+            )
+        )
         self.assertEqual(data_rows["/data/weather/current/temperatureText"], "26°C")
         self.assertEqual(report.errors, [])
 

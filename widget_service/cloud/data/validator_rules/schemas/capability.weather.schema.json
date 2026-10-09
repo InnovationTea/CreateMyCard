@@ -99,7 +99,17 @@
               "type": "string"
             },
             "rainProbabilityPercent": {
-              "type": "string"
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?%$"
+                }
+              ]
             },
             "airQuality": {
               "type": "string"

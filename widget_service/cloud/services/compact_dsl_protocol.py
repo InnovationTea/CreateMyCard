@@ -527,8 +527,8 @@ _DYNAMIC_BINDING_RULES = (
         ),
         weak_aliases=("primaryvalue",),
         source_aliases=("rainprobability", "precipitationprobability", "rainchance"),
-        value_pattern=_PERCENT_VALUE_PATTERN,
-        preview_value="72%",
+        display_suffix="%",
+        preview_value=72,
     ),
     _DynamicBindingRule(
         capability_id="ViewWeather",

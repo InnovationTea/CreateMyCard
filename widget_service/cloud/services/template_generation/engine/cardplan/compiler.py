@@ -53,6 +53,9 @@ from services.template_generation.engine.advanced.models import (
     UX_LAYOUT_COMPONENT_IDS,
     UxLayoutComponentCapability,
 )
+from services.template_generation.engine.cardplan.field_type_compatibility import (
+    field_types_are_compatible,
+)
 from services.template_generation.engine.tersel_converter import (
     Nested2Node,
     TerselConversionError,
@@ -5329,7 +5332,7 @@ def _provider_template_binding_values(
             raise TerselConversionError(
                 f"Provider Template binding is not declared by TaskSpec: {name}/{path}"
             )
-        if not _binding_types_match(binding.data_type, leaf.get("type")):
+        if not _binding_types_match(binding.path, binding.data_type, leaf.get("type")):
             raise TerselConversionError(
                 f"Provider Template binding is not declared by TaskSpec: {name}/{path}"
             )
@@ -5366,12 +5369,14 @@ def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, An
     return current
 
 
-def _binding_types_match(expected: str, actual: Any) -> bool:
+def _binding_types_match(path: str, expected: str, actual: Any) -> bool:
+    if field_types_are_compatible(path, expected, actual):
+        return True
     numeric_types_match = isinstance(actual, str) and {
         expected,
         actual,
     } == {"integer", "number"}
-    return actual == expected or numeric_types_match
+    return numeric_types_match
 
 
 def _runtime_binding_placeholder(path: str) -> str | None:

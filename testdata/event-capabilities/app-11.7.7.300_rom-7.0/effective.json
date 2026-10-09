@@ -5,9 +5,7 @@
       "call": "clickToApi",
       "args": {
         "intentName": "SetMobileData",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
     {
@@ -192,8 +190,7 @@
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "near_link_setting",
-          "switchFlag": 0
+          "itemName": "near_link_setting"
         }
       }
     },
@@ -203,8 +200,7 @@
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "bluetooth",
-          "switchFlag": 0
+          "itemName": "bluetooth"
         }
       }
     },
@@ -214,8 +210,7 @@
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "wlan",
-          "switchFlag": 0
+          "itemName": "wlan"
         }
       }
     },
@@ -223,27 +218,21 @@
       "call": "clickToIntent",
       "args": {
         "intentName": "SetLocationSettingSwicth",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
     {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetScreenUseTimeManageSwitch",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
     {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetMicSettingSwicth",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
     {
