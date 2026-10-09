@@ -84,6 +84,79 @@ def _image_asset_dsl(source: str, *, fill_color: str | None = None) -> str:
     )
 
 
+def _progress_circle_dsl(*, width: int, height: int, extra: str = "") -> str:
+    return "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent"},'
+            '["ring"]]',
+            '["ring","ProgressCircle",{"externalText":68,'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"电量百分比"},'
+            f'"width":{width},"height":{height},'
+            '"fontColor":"#FF1F4799","fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"'
+            f'{extra}}}]',
+        ]
+    )
+
+
+def _progress_circle_task_spec() -> dict:
+    return {
+        "size": "2x4",
+        "eventCandidates": [],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [
+            {
+                "src": "resources/battery.svg",
+                "description": "可染色的电量单色图标",
+            }
+        ],
+    }
+
+
+def test_accepts_progress_circle_free_box_geometry() -> None:
+    validate_compact_dsl(
+        _progress_circle_dsl(width=72, height=76),
+        task_spec=_progress_circle_task_spec(),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+@pytest.mark.parametrize(
+    ("width", "height", "extra", "message"),
+    [
+        (44, 30, "", "leave less than 40vp for the ring"),
+        (44, 60, ',"value":68', "ProgressCircle does not allow value"),
+    ],
+)
+def test_rejects_invalid_progress_circle_contract(
+    width: int,
+    height: int,
+    extra: str,
+    message: str,
+) -> None:
+    with pytest.raises(CompactDslValidationError, match=message):
+        validate_compact_dsl(
+            _progress_circle_dsl(width=width, height=height, extra=extra),
+            task_spec=_progress_circle_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+def test_rejects_direct_progress_compact_input() -> None:
+    with pytest.raises(CompactDslValidationError, match="unsupported component type Progress"):
+        validate_compact_dsl(
+            '\n'.join(
+                [
+                    '["root","Column",{},["ring"]]',
+                    '["ring","Progress",{"value":68,"total":100,"type":"ring"}]',
+                ]
+            ),
+            task_spec=_progress_circle_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
 def test_rejects_tintable_svg_image_without_fill_color() -> None:
     source = "resources/heart.svg"
     with pytest.raises(
@@ -187,7 +260,7 @@ def test_design_processor_reports_compact_contract_as_validation() -> None:
     )
 
 
-@pytest.mark.parametrize("component_type", ["Row", "Column", "List", "Stack"])
+@pytest.mark.parametrize("component_type", ["Row", "Column", "Stack"])
 def test_rejects_empty_container_before_a2ui_conversion(
     component_type: str,
 ) -> None:
@@ -371,33 +444,39 @@ def _fusion_overloaded_dsl() -> str:
             '["title","Row",{"width":136,"height":20},["titleText","titleIcon"]]',
             '["titleText","Text",{"content":"手机电池","fontSize":12}]',
             '["titleIcon","Image",{"src":"resources/battery.svg",'
-            '"width":20,"height":20,"objectFit":"contain"}]',
-            '["main","Stack",{"width":52,"height":52},["ring"]]',
-            '["ring","Progress",{"type":"ring","width":52,"height":52,'
-            '"value":68,"total":100}]',
+            '"width":20,"height":20,"objectFit":"contain",'
+            '"fillColor":"#FF1F4799"}]',
+            '["main","ProgressCircle",{"externalText":68,'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"手机电量百分比"},'
+            '"width":52,"height":68,"fontColor":"#FF1F4799",'
+            '"fillColor":"#FF1F4799","color":"#FF1F4799",'
+            '"backgroundColor":"#331F4799"}]',
             '["status1","Text",{"content":"未充电","fontSize":12}]',
             '["status2","Text",{"content":"健康正常","fontSize":12}]',
-            '["action","Button",{"label":"电池设置","width":120,"height":36,',
-            '"onClick":[{"call":"openBattery","args":{}}]}]',
+            '["action","PillButton",{"label":"电池设置",'
+            '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
+            '"width":126,"onClick":[{"call":"openBattery","args":{}}]}]',
         ]
     )
 
 
-def test_rejects_overloaded_fusion_composition() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match="must not combine a title/auxiliary icon",
-    ):
-        validate_compact_dsl(
-            _fusion_overloaded_dsl(),
-            task_spec={
-                "size": "2x2",
-                "eventCandidates":[{"call":"openBattery","args":{}}],
-                "dataModelSchema": {"data": {}},
-                "assetCandidates": [{"src": "resources/battery.svg"}],
-            },
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+def test_accepts_registered_progress_circle_in_fusion_composition() -> None:
+    validate_compact_dsl(
+        _fusion_overloaded_dsl(),
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [{"call": "openBattery", "args": {}}],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [
+                {
+                    "src": "resources/battery.svg",
+                    "description": "可染色的电量单色图标",
+                }
+            ],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
 
 
 def test_rejects_ambiguous_index_value_without_metric_label() -> None:
@@ -518,7 +597,7 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
 def test_design_prompt_contains_no_empty_container_examples() -> None:
     prompt = _DESIGN_PROMPT
     empty_container_lines = re.findall(
-        r'^\["[^"]+","(?:Row|Column|List|Stack)",\{.*\},\[\]\]$',
+        r'^\["[^"]+","(?:Row|Column|Stack)",\{.*\},\[\]\]$',
         prompt,
         flags=re.MULTILINE,
     )
@@ -591,7 +670,8 @@ def _centered_single_value_hero_dsl(
             f'"fontSize":{unit_font},"fontWeight":400,'
             '"padding":{"bottom":4},"maxLines":1}]',
             '["action_area","Column",{"width":126,"height":36},["action"]]',
-            '["action","ActionUnit",{"state":"capsule","label":"打开闹钟",'
+            '["action","PillButton",{"label":"打开闹钟",'
+            '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
             '"fontSize":14,"fontWeight":400,"onClick":'
             '[{"call":"openAlarm","args":{}}]}]',
             '["/data/countdown/days",30]',

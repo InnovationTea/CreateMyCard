@@ -23,6 +23,7 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
         "CircleButton",
         "EmphasizedData",
         "InfoBlock",
+        "ProgressCircle",
         "ProgressLine2",
         "TableText",
         "TextBlock",
@@ -34,6 +35,7 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
         "SummaryList",
     }
     assert contract["components"]["InfoBlock"]["alignment"] == "aligned"
+    assert contract["components"]["ProgressCircle"]["alignment"] == "aligned"
     assert contract["components"]["ProgressLine2"]["alignment"] == "aligned"
     assert contract["components"]["ProgressCircleSingle"]["alignment"] == "aligned"
     assert contract["components"]["DataDisplay"]["alignment"] == "aligned"
@@ -62,6 +64,15 @@ def test_card_header_visual_recipe_resolves_icon_spacing() -> None:
 
     assert without_icon["parts"]["root"]["styles"]["itemMargin"] == 0
     assert with_icon["parts"]["root"]["styles"]["itemMargin"] == 8
+
+
+def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
+    recipe = component_visual_recipe("TextBlock", size="2x4")
+
+    assert recipe["metrics"] == {
+        "minimumItems": 2,
+        "maximumItems": 4,
+    }
 
 
 def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> None:
@@ -107,6 +118,20 @@ def test_progress_circle_height_follows_latest_runtime_line_count() -> None:
     assert two_line["parts"]["labels"]["styles"]["height"] == 44
     assert three_line["parts"]["root"]["styles"]["height"] == 46
     assert three_line["parts"]["labels"]["styles"]["height"] == 46
+
+
+def test_progress_circle_recipe_uses_claw_runtime_visual_metrics() -> None:
+    recipe = component_visual_recipe("ProgressCircle", size="2x2")
+
+    assert recipe["metrics"] == {
+        "externalTextHeight": 14,
+        "itemMargin": 2,
+        "minimumRingDiameter": 40,
+        "strokeWidth": 6,
+    }
+    assert recipe["parts"]["ring"]["component"] == "Progress"
+    assert recipe["parts"]["icon"]["styles"]["width"] == 20
+    assert recipe["parts"]["externalText"]["styles"]["fontSize"] == 10
 
 
 def test_unknown_visual_recipe_variant_is_rejected() -> None:

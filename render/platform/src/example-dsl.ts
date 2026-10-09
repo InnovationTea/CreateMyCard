@@ -7,7 +7,7 @@ export const EXAMPLE_DSL = `["root","Column",{"width":"matchParent","height":"ma
 ["value_unit","Text",{"content":"天","fontSize":16,"fontWeight":400,"fontColor":"#FFFFFFFF","padding":{"bottom":6},"maxLines":1}]
 ["start_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"width":126,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
 ["action_area","Column",{"width":136,"height":36,"flexShrink":0},["action"]]
-["action","ActionUnit",{"state":"capsule","label":"查看详情","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ \${/data/calendar/events/0/entityId} }}"}}}]}]
+["action","PillButton",{"label":"查看详情","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ \${/data/calendar/events/0/entityId} }}"}}}]}]
 ["/data/countdown/countdownDays",18]
 ["/data/calendar/events/0/title","产品发布会"]
 ["/data/calendar/events/0/dtStart","上午10:00"]

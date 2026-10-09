@@ -39,12 +39,12 @@ npm run dev
 - 支持对象、数组下标、零值、布尔值和嵌套参数绑定。缺失路径显示为空并提示。
 - 完整 `{{ ... }}` 表达式支持路径、字符串拼接、算术、比较、逻辑、三元和 `size()`，保留数值/布尔类型；使用受限解析器，不执行 JavaScript。
 - 组件定义无需父节点优先；数据可以放在组件之前或之后。缺少节点、重复 ID 和循环引用会明确报错。
-- `CardHeader`、旧版 `TimelineUnit` / `ActionUnit`，以及 Fusion 的 13 个高阶组件都会在转换阶段展开为基础组件。
+- `CardHeader`、旧版 `TimelineUnit`，以及 Fusion 的 14 个组件都会在转换阶段展开为标准 A2UI 基础组件；Compact 输入不再直接接受 Progress、Button、List、Checkbox 或旧动作组件。
 - 高阶组件样式直接读取云侧 `runtime/visual-recipes-v1.json`，不在浏览器中维护第三套硬编码样式。
 - 点击事件在本地展示解析后的参数；原生 intent 和 URL 跳转需要宿主接入，不会发起 LLM 请求。
 - 支持五套融球背景、ARGB 渐变、SVG 染色、透明 PNG、线性与环形进度。
 
-示例选择器内置 CreateMyCard 的 `Br_feature_fusion` 分支全部 30 个原始 few-shot，另有 10 个覆盖全部高阶组件的 Runtime 示例；兼容差异见 [验证说明](docs/fusion-compatibility.md)。导入指定版本的参考仓库：
+示例选择器内置 CreateMyCard 的 `Br_feature_fusion` 分支全部 30 个原始 few-shot，另有覆盖全部组件的 Runtime 示例；兼容差异见 [验证说明](docs/fusion-compatibility.md)。导入指定版本的参考仓库：
 
 ```powershell
 node render/scripts/import-fusion-reference.mjs .

@@ -13,7 +13,7 @@ export const SURFACE_ID = "dsl-preview";
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => typeof v === "object" && v !== null && !Array.isArray(v);
 const TYPES = new Set([
-  ..."Card Row Column Text Image Button ActionUnit CardHeader TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "),
+  ..."Card Row Column Text Image CardHeader TimelineUnit Input TextInput Radio CheckboxGroup Select Toggle Divider Grid GridRow Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
 
@@ -102,6 +102,25 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
     const { styles: nested, onClick, action, ...flat } = node.props;
     const props: RecordValue = { ...(record(nested) ? nested : {}), ...flat };
     const type = node.type === "Input" ? "TextInput" : node.type;
+    if (type === "Progress" && props.type === "ring") {
+      const width = props.width;
+      const height = props.height;
+      const validWidth = typeof width === "number" && Number.isFinite(width) && width > 0;
+      const validHeight = typeof height === "number" && Number.isFinite(height) && height > 0;
+      if (!validWidth || !validHeight) {
+        throw new Error(`组件 ${id}：ring Progress 的 width/height 必须是正数。`);
+      }
+      if (width !== height) throw new Error(`组件 ${id}：ring Progress 的 width/height 必须相等。`);
+      if (props.strokeWidth !== undefined && props.strokeWidth !== 6) {
+        throw new Error(`组件 ${id}：ring Progress.strokeWidth 必须是 6。`);
+      }
+      if ("trackColor" in props) {
+        throw new Error(`组件 ${id}：ring Progress 使用 backgroundColor，不使用 trackColor。`);
+      }
+      if ("icon" in props || "externalText" in props) {
+        throw new Error(`组件 ${id}：环心图标和环外读数必须使用 Stack/Column 组合。`);
+      }
+    }
     const { content, label, text, src, value, total, enabled, select, accessibility, ...styleProps } = props;
     // Explicit compact styles are authoritative. Apply legacy presets only when requested.
     const styles = styleProps.design ? applyDesignStyles(type, styleProps) : styleProps;

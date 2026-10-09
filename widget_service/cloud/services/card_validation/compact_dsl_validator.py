@@ -31,7 +31,7 @@ _STRING_LITERAL_PATTERN = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
 _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
     r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
 )
-_NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _VISUAL_RECIPE_MARKER_PREFIX = f"{VISUAL_RECIPE_VERSION}:"
 _TWO_BY_FOUR_MULTI_LARGE_WIDTH = 132
 _TWO_BY_FOUR_MULTI_LARGE_HEIGHT = 126
@@ -290,7 +290,7 @@ def _collect_asset_source_errors(
         keys = ["backgroundImage"]
         if component.component_type == "Image":
             keys.append("src")
-        elif component.component_type in {"ActionUnit", "CardHeader"}:
+        elif component.component_type == "CardHeader":
             keys.append("icon")
         for key in keys:
             value = component.props.get(key)
@@ -1265,8 +1265,6 @@ def _collect_component_contract_errors(
     allowed_handlers = _task_event_handlers(task_spec)
     for component in components:
         _collect_container_errors(component, errors)
-        if component.component_type == "ActionUnit":
-            _collect_action_unit_errors(component, errors)
         _collect_on_click_errors(component, allowed_handlers, errors)
 
 
@@ -1323,7 +1321,7 @@ def _collect_height_budget_errors(
     """Reject vertical layouts whose declared minimum height cannot fit."""
     components_by_id = {component.component_id: component for component in components}
     for component in components:
-        if component.component_type not in {"Column", "List"}:
+        if component.component_type != "Column":
             continue
         available_height = _component_available_height(
             component,
@@ -1410,8 +1408,6 @@ def _minimum_outer_height(
     explicit_height = _non_negative_number(component.props.get("height"))
     if explicit_height is not None:
         return explicit_height
-    if component.component_type == "ActionUnit":
-        return _action_unit_minimum_height(component)
     if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
         return 0.0
     if component.component_id in visiting:
@@ -1427,7 +1423,7 @@ def _minimum_outer_height(
         child_heights.append(child_height + _vertical_margin(child.props))
     visiting.remove(component.component_id)
 
-    if component.component_type in {"Column", "List"}:
+    if component.component_type == "Column":
         content_height = sum(child_heights)
         content_height += _vertical_gap(component, len(child_heights))
     else:
@@ -1435,19 +1431,10 @@ def _minimum_outer_height(
     return _vertical_padding(component.props) + content_height
 
 
-def _action_unit_minimum_height(component: ComponentRow) -> float:
-    if component.props.get("state") == "capsule":
-        return 36.0
-    if component.props.get("state") == "icon-round":
-        return 30.0
-    return 0.0
-
-
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:
     if child_count < 2:
         return 0.0
-    property_name = "space" if component.component_type == "List" else "itemMargin"
-    gap = _non_negative_number(component.props.get(property_name))
+    gap = _non_negative_number(component.props.get("itemMargin"))
     if gap is None:
         return 0.0
     return gap * (child_count - 1)
@@ -1484,50 +1471,6 @@ def _format_vp(value: float) -> str:
     if value.is_integer():
         return str(int(value))
     return f"{value:.2f}".rstrip("0").rstrip(".")
-
-
-def _collect_action_unit_errors(
-    component: ComponentRow,
-    errors: list[str],
-) -> None:
-    location = f"component {component.component_id}"
-    state = component.props.get("state")
-    if state not in {"capsule", "icon-round"}:
-        errors.append(f'{location}: ActionUnit.state must be "capsule" or "icon-round".')
-        return
-    if component.children:
-        errors.append(f"{location}: ActionUnit must not declare children.")
-    if "onClick" not in component.props:
-        errors.append(f"{location}: ActionUnit.onClick is required.")
-    if state == "capsule":
-        _collect_required_non_empty_string(
-            component.props.get("label"),
-            f"{location}: capsule ActionUnit.label",
-            errors,
-        )
-        icon = component.props.get("icon")
-        if icon is not None and (not isinstance(icon, str) or not icon.strip()):
-            errors.append(
-                f"{location}: capsule ActionUnit.icon must be a non-empty string when provided."
-            )
-        return
-    _collect_required_non_empty_string(
-        component.props.get("icon"),
-        f"{location}: icon-round ActionUnit.icon",
-        errors,
-    )
-    if "label" in component.props:
-        errors.append(f"{location}: icon-round ActionUnit must not declare label.")
-
-
-def _collect_required_non_empty_string(
-    value: Any,
-    field: str,
-    errors: list[str],
-) -> None:
-    if isinstance(value, str) and value.strip():
-        return
-    errors.append(f"{field} must be a non-empty string.")
 
 
 def _collect_on_click_errors(

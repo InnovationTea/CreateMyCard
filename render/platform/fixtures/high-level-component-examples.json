@@ -30,7 +30,7 @@
       "width": 150,
       "height": 150,
       "note": "覆盖三行 TableText 和 36vp CircleButton。",
-      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":4},[\"header\",\"table\",\"actionRow\"]]\n[\"header\",\"CardHeader\",{\"title\":\"明日健康指数\",\"fontColor\":\"#FF1F4799\"}]\n[\"table\",\"TableText\",{\"items\":[{\"label\":\"紫外线\",\"value\":\"中等\"},{\"label\":\"空气质量\",\"value\":\"良\"},{\"label\":\"感冒指数\",\"value\":\"低\"}],\"fontColor\":\"#FF1F4799\"}]\n[\"actionRow\",\"Row\",{\"width\":126,\"height\":36,\"justifyContent\":\"end\"},[\"settings\"]]\n[\"settings\",\"CircleButton\",{\"icon\":\"resources/base/media/ic_Bluetooth.svg\",\"accessibility\":{\"label\":\"打开蓝牙设置\"},\"actionSurface\":\"#331F4799\",\"actionInk\":\"#FF1F4799\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"bluetooth_entry\"}}]}]"
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":4},[\"header\",\"table\",\"actionRow\"]]\n[\"header\",\"CardHeader\",{\"title\":\"明日健康指数\",\"fontColor\":\"#FF1F4799\"}]\n[\"table\",\"TableText\",{\"items\":[{\"label\":\"紫外线\",\"value\":\"中等\"},{\"label\":\"空气质量\",\"value\":\"良\"},{\"label\":\"感冒指数\",\"value\":\"低\"}],\"fontColor\":\"#FF1F4799\"}]\n[\"actionRow\",\"Row\",{\"width\":126,\"height\":40,\"justifyContent\":\"end\",\"alignItems\":\"center\"},[\"actionSlot\"]]\n[\"actionSlot\",\"Stack\",{\"width\":40,\"height\":40,\"alignContent\":\"center\"},[\"settings\"]]\n[\"settings\",\"CircleButton\",{\"icon\":\"resources/base/media/ic_Bluetooth.svg\",\"accessibility\":{\"label\":\"打开蓝牙设置\"},\"actionSurface\":\"#331F4799\",\"actionInk\":\"#FF1F4799\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"bluetooth_entry\"}}]}]"
     },
     {
       "name": "Runtime · EmphasizedData",
@@ -39,6 +39,14 @@
       "height": 150,
       "note": "核心值与单位的基线、字号和间距来自共享 Recipe。",
       "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF6F2FF\",\"itemMargin\":12,\"justifyContent\":\"center\",\"alignItems\":\"center\"},[\"header\",\"metric\"]]\n[\"header\",\"CardHeader\",{\"title\":\"睡眠得分\",\"fontColor\":\"#FF563D99\"}]\n[\"metric\",\"EmphasizedData\",{\"value\":82,\"unit\":\"分\",\"fontColor\":\"#FF563D99\"}]"
+    },
+    {
+      "name": "Runtime · ProgressCircle",
+      "size": "2x2",
+      "width": 150,
+      "height": 150,
+      "note": "ProgressCircle 由共享视觉 Recipe 展开，外框宽高由 Compact DSL 控制。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFF1F6FE\",\"itemMargin\":8,\"justifyContent\":\"center\",\"alignItems\":\"center\"},[\"header\",\"circle\"]]\n[\"header\",\"CardHeader\",{\"title\":\"手机电量\",\"fontColor\":\"#FF1F4799\"}]\n[\"circle\",\"ProgressCircle\",{\"externalText\":{\"path\":\"/battery\"},\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"accessibility\":{\"label\":\"手机电量百分比\"},\"width\":72,\"height\":76,\"fontColor\":\"#FF1F4799\",\"fillColor\":\"#991F4799\",\"color\":\"#FF1F4799\",\"backgroundColor\":\"#331F4799\"}]\n[\"/battery\",68]"
     },
     {
       "name": "Runtime · ProgressLine2 与 TextBlock",

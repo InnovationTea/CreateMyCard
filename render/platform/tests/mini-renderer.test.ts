@@ -52,6 +52,16 @@ test("multiline tuples, JSON tuple arrays and fenced input compile", () => {
 });
 
 test("invalid JSON, unsupported components and broken/cyclic trees report errors", () => {
-  for (const source of ['["root",', '["root","NoSuchComponent",{}]', '["root","Column",{},["missing"]]', '["root","Column",{},["a"]]\n["a","Column",{},["root"]]', '["root","Text",{}]\n["root","Text",{}]']) assert.throws(() => compileMiniDsl(source));
+  for (const source of [
+    '["root",',
+    '["root","NoSuchComponent",{}]',
+    '["root","Button",{"label":"操作"}]',
+    '["root","List",{},["item"]]\n["item","Text",{"content":"项目"}]',
+    '["root","Checkbox",{}]',
+    '["root","ActionUnit",{}]',
+    '["root","Column",{},["missing"]]',
+    '["root","Column",{},["a"]]\n["a","Column",{},["root"]]',
+    '["root","Text",{}]\n["root","Text",{}]',
+  ]) assert.throws(() => compileMiniDsl(source));
   assert.deepEqual(compileMiniDsl('["root","Text",{"content":{"path":"/absent"}}]').warnings, ["未找到数据：/absent"]);
 });

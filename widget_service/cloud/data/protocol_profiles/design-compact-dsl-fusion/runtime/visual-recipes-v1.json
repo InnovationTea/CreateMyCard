@@ -52,7 +52,7 @@
       "alignment": "aligned",
       "parts": {
         "root": {
-          "component": "ActionUnit",
+          "component": "Button",
           "styles": {
             "height": 36,
             "borderRadius": 30,
@@ -80,7 +80,7 @@
       "alignment": "aligned",
       "parts": {
         "root": {
-          "component": "ActionUnit",
+          "component": "Stack",
           "styles": {
             "width": 36,
             "height": 36,
@@ -278,6 +278,61 @@
         }
       }
     },
+    "ProgressCircle": {
+      "alignment": "aligned",
+      "metrics": {
+        "externalTextHeight": 14,
+        "itemMargin": 2,
+        "minimumRingDiameter": 40,
+        "strokeWidth": 6
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 2,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "ringStack": {
+          "component": "Stack",
+          "styles": {
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "ring": {
+          "component": "Progress",
+          "styles": {
+            "type": "ring",
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "externalText": {
+          "component": "Text",
+          "styles": {
+            "height": 14,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
     "ProgressLine2": {
       "alignment": "aligned",
       "parts": {
@@ -402,6 +457,10 @@
     },
     "TextBlock": {
       "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 2,
+        "maximumItems": 4
+      },
       "parts": {
         "root": {
           "component": "Row",

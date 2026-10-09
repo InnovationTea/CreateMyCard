@@ -19,8 +19,10 @@ _FACT_KEYS = frozenset(
     {"requirement", "dataId", "actionId", "text", "componentHints"}
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
-_BASE_FACT_COMPONENTS = ("Text", "Image", "Progress", "Button")
-_NUMERIC_FACT_COMPONENTS = frozenset({"Progress", "ProgressLine2", "ProgressCircleSingle"})
+_BASE_FACT_COMPONENTS = ("Text", "Image", "Button")
+_NUMERIC_FACT_COMPONENTS = frozenset(
+    {"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"}
+)
 _VISIBLE_PROP_NAMES = frozenset(
     {
         "content",
@@ -38,6 +40,7 @@ _VISIBLE_PROP_NAMES = frozenset(
         "total",
         "unit",
         "value",
+        "externalText",
     }
 )
 _COMPONENT_HINTS = {
@@ -46,6 +49,7 @@ _COMPONENT_HINTS = {
         "CardHeader",
         "EmphasizedData",
         "InfoBlock",
+        "ProgressCircle",
         "TableText",
         "DataDisplay",
         "EventCard",
@@ -57,6 +61,7 @@ _COMPONENT_HINTS = {
         "CardHeader",
         "EmphasizedData",
         "InfoBlock",
+        "ProgressCircle",
         "ProgressLine2",
         "TextBlock",
         "CardButton",

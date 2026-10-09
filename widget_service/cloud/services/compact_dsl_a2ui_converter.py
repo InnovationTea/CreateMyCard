@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -32,16 +33,13 @@ _COMPONENT_TYPES = frozenset(
     {
         "Row",
         "Column",
-        "List",
         "Stack",
         "Text",
         "Image",
         "Divider",
-        "Progress",
-        "Button",
+        "ProgressCircle",
         "PillButton",
         "CircleButton",
-        "ActionUnit",
         "CardHeader",
         "EmphasizedData",
         "InfoBlock",
@@ -54,17 +52,15 @@ _COMPONENT_TYPES = frozenset(
         "DataDisplay",
         "TopTextBottomValue",
         "SummaryList",
-        "Checkbox",
     }
 )
-_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
     "Progress": frozenset({"value", "total"}),
+    # Button is converter output for PillButton; it is not accepted as Compact input.
     "Button": frozenset({"label", "enabled"}),
-    "ActionUnit": frozenset({"label", "enabled"}),
-    "Checkbox": frozenset({"label", "value", "select"}),
 }
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
@@ -124,19 +120,11 @@ _COMPONENT_STYLE_PROPERTIES = {
             "maxFontSize",
             "maxLines",
             "minFontSize",
-        }
-    ),
-    "Checkbox": frozenset(
-        {
-            "mark",
-            "selectedColor",
-            "shape",
-            "unSelectedColor",
+            "textAlign",
         }
     ),
     "Row": frozenset({"alignItems", "itemMargin", "justifyContent"}),
     "Column": frozenset({"alignItems", "itemMargin", "justifyContent"}),
-    "List": frozenset({"listDirection", "scrollBar", "space"}),
     "Stack": frozenset({"alignContent"}),
 }
 _COMMON_COMPACT_ONLY_PROPERTIES = frozenset({"accessibility", "accessibily"})
@@ -257,30 +245,6 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "metric-hero-unit": {"fontSize": 12, "fontWeight": 400},
     "metadata-secondary": {"fontSize": 12, "fontWeight": 400},
 }
-_BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
-    "action-capsule-primary": {
-        "width": "matchParent",
-        "height": 36,
-        "borderRadius": 20,
-        "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
-        "backgroundColor": "#331F4799",
-        "fontColor": "#FF1F4799",
-        "fontSize": 14,
-        "fontWeight": 500,
-        "maxFontSize": 14,
-        "minFontSize": 12,
-        "maxLines": 1,
-        "flexShrink": 0,
-    },
-    "action-icon-round": {
-        "width": 36,
-        "height": 36,
-        "borderRadius": 18,
-        "padding": 0,
-        "backgroundColor": "comp_background_tertiary",
-        "flexShrink": 0,
-    },
-}
 _IMAGE_DESIGNS: dict[str, dict[str, Any]] = {
     "media-cover-square": {
         "width": "matchParent",
@@ -355,41 +319,11 @@ _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
         "color": "comp_background_tertiary",
     },
 }
-_CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
-    "checkbox-circle-default": {
-        "width": 20,
-        "height": 20,
-        "borderRadius": 10,
-        "selectedColor": "#FF0A59F7",
-        "unSelectedColor": "#66000000",
-        "mark": {
-            "strokeColor": "#FFFFFFFF",
-            "size": 20,
-            "strokeWidth": 2,
-        },
-        "shape": "circle",
-    },
-    "checkbox-rounded-check": {
-        "width": 16,
-        "height": 16,
-        "borderRadius": 4,
-        "selectedColor": "icon_on_fourth",
-        "unSelectedColor": "icon_tertiary",
-        "mark": {
-            "strokeColor": "icon_on_primary",
-            "size": 16,
-            "strokeWidth": 2,
-        },
-        "shape": "rounded_square",
-    },
-}
 _COMPONENT_DESIGNS = {
     "Text": _TEXT_DESIGNS,
     "Image": _IMAGE_DESIGNS,
-    "Button": _BUTTON_DESIGNS,
     "Progress": _PROGRESS_DESIGNS,
     "Divider": _DIVIDER_DESIGNS,
-    "Checkbox": _CHECKBOX_DESIGNS,
 }
 _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
@@ -518,6 +452,7 @@ def expand_high_level_component_rows(
         "CircleButton": _expand_circle_button,
         "EmphasizedData": _expand_emphasized_data,
         "InfoBlock": _expand_info_block,
+        "ProgressCircle": _expand_progress_circle,
         "ProgressLine2": _expand_progress_line_two,
         "TableText": _expand_table_text,
         "TextBlock": _expand_text_block,
@@ -530,10 +465,13 @@ def expand_high_level_component_rows(
     }
     for component in components:
         expander = expanders.get(component.component_type)
+        parent = parents.get(component.component_id)
         rows = [component] if expander is None else expander(component, size)
+        if component.component_type == "CircleButton":
+            _validate_circle_button_slot(parent)
         if expander is not None:
             rows[0] = _place_high_level_root(
-                component, rows[0], parents.get(component.component_id)
+                component, rows[0], parent
             )
         elif component.component_type == "CardHeader":
             header = ComponentRow(
@@ -557,6 +495,19 @@ def expand_high_level_component_rows(
             generated_ids.add(row.component_id)
             expanded.append(row)
     return expanded
+
+
+def _validate_circle_button_slot(parent: ComponentRow | None) -> None:
+    if (
+        parent is None
+        or parent.component_type != "Stack"
+        or parent.props.get("width") != 40
+        or parent.props.get("height") != 40
+        or parent.props.get("alignContent") != "center"
+    ):
+        raise CompactDslConversionError(
+            "CircleButton requires a centered 40x40 Stack slot."
+        )
 
 
 def normalize_compact_dsl_design_tokens(
@@ -709,7 +660,6 @@ def convert_compact_dsl_to_a2ui(
             _convert_component_rows(
                 component,
                 hide_label=hide_label,
-                action_icon_size=20,
                 card_size=size,
             )
         )
@@ -784,6 +734,15 @@ def _validate_card_header_props(header: ComponentRow, components: list[Component
         )
     if "fillColor" in header.props and icon is None:
         raise CompactDslConversionError("CardHeader.fillColor requires icon.")
+    width = header.props.get("width")
+    valid_width = width == "matchParent" or _is_positive_number(width)
+    if width is not None and not valid_width:
+        raise CompactDslConversionError(
+            "CardHeader.width must be matchParent or a positive number."
+        )
+    height = header.props.get("height")
+    if height is not None and height != 20:
+        raise CompactDslConversionError("CardHeader.height must be 20 when provided.")
     for name in ("fontColor", "fillColor"):
         if name == "fillColor" and name not in header.props:
             continue
@@ -795,9 +754,187 @@ def _validate_card_header_props(header: ComponentRow, components: list[Component
         raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
 
 
+def _is_positive_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value > 0
+    )
+
+
+def _expand_progress_circle(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("ProgressCircle requires a 2x2 or 2x4 card.")
+    allowed = {
+        "externalText",
+        "icon",
+        "accessibility",
+        "fontColor",
+        "fillColor",
+        "color",
+        "backgroundColor",
+        "width",
+        "height",
+    }
+    _validate_high_level_props(
+        component,
+        required={
+            "externalText",
+            "icon",
+            "accessibility",
+            "fontColor",
+            "color",
+            "backgroundColor",
+            "width",
+            "height",
+        },
+        allowed=allowed,
+    )
+    _validate_optional_icon(component)
+    for name in ("fontColor", "color", "backgroundColor"):
+        _require_color(component, name)
+    _validate_progress_circle_accessibility(component)
+
+    width = component.props.get("width")
+    height = component.props.get("height")
+    recipe = _visual_recipe("ProgressCircle", size=size)
+    metrics = recipe.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactDslConversionError("ProgressCircle visual recipe has invalid metrics.")
+    text_height = metrics.get("externalTextHeight")
+    item_margin = metrics.get("itemMargin")
+    minimum_diameter = metrics.get("minimumRingDiameter")
+    stroke_width = metrics.get("strokeWidth")
+    numeric_metrics = (text_height, item_margin, minimum_diameter, stroke_width)
+    if not all(_is_positive_number(value) for value in numeric_metrics):
+        raise CompactDslConversionError("ProgressCircle visual recipe has invalid geometry.")
+    if not _is_positive_number(width) or not _is_positive_number(height):
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle width/height must be positive numbers."
+        )
+    ring_diameter = min(width, height - text_height - item_margin)
+    if ring_diameter < minimum_diameter:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle width/height leave less than "
+            f"{minimum_diameter}vp for the ring."
+        )
+    progress_value, external_text = _progress_circle_values(component)
+
+    ring_stack_id = f"{component.component_id}_ring_stack"
+    ring_id = f"{component.component_id}_ring"
+    icon_id = f"{component.component_id}_icon"
+    external_text_id = f"{component.component_id}_external_text"
+    icon_props: dict[str, Any] = {"src": component.props["icon"]}
+    if "fillColor" in component.props:
+        icon_props["fillColor"] = component.props["fillColor"]
+    return [
+        _visual_row(
+            component.component_id,
+            "ProgressCircle",
+            "root",
+            size=size,
+            props={
+                "width": width,
+                "height": height,
+                "accessibility": copy.deepcopy(component.props["accessibility"]),
+            },
+            children=(ring_stack_id, external_text_id),
+        ),
+        _visual_row(
+            ring_stack_id,
+            "ProgressCircle",
+            "ringStack",
+            size=size,
+            props={"width": ring_diameter, "height": ring_diameter},
+            children=(ring_id, icon_id),
+        ),
+        _visual_row(
+            ring_id,
+            "ProgressCircle",
+            "ring",
+            size=size,
+            props={
+                "width": ring_diameter,
+                "height": ring_diameter,
+                "value": progress_value,
+                "total": 100,
+                "strokeWidth": stroke_width,
+                "color": component.props["color"],
+                "backgroundColor": component.props["backgroundColor"],
+            },
+        ),
+        _visual_row(
+            icon_id,
+            "ProgressCircle",
+            "icon",
+            size=size,
+            props=icon_props,
+        ),
+        _visual_row(
+            external_text_id,
+            "ProgressCircle",
+            "externalText",
+            size=size,
+            props={
+                "content": external_text,
+                "width": width,
+                "fontColor": component.props["fontColor"],
+            },
+        ),
+    ]
+
+
+def _validate_progress_circle_accessibility(component: ComponentRow) -> None:
+    accessibility = component.props.get("accessibility")
+    allowed = {"label", "description"}
+    if not isinstance(accessibility, dict) or not set(accessibility).issubset(allowed):
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle.accessibility only allows "
+            "label and description."
+        )
+    label = accessibility.get("label")
+    if not isinstance(label, str) or not label.strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle.accessibility.label must be non-empty."
+        )
+    description = accessibility.get("description")
+    if description is not None and (
+        not isinstance(description, str) or not description.strip()
+    ):
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle.accessibility.description "
+            "must be non-empty."
+        )
+
+
+def _progress_circle_values(component: ComponentRow) -> tuple[Any, Any]:
+    value = component.props.get("externalText")
+    if _is_path_binding(value):
+        path = value.get("path")
+        return copy.deepcopy(value), f"{{{{ ${{{path}}} + '%' }}}}"
+    if isinstance(value, bool):
+        raise CompactDslConversionError(
+            f"{component.component_id}: ProgressCircle.externalText must be 0 to 100."
+        )
+    if isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value <= 100:
+        visible = str(int(value)) if float(value).is_integer() else str(value)
+        return value, f"{visible}%"
+    if isinstance(value, str):
+        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)%\s*", value)
+        if match is not None:
+            numeric = float(match.group(1))
+            if 0 <= numeric <= 100:
+                return numeric, value.strip()
+    raise CompactDslConversionError(
+        f"{component.component_id}: ProgressCircle.externalText must be a number, "
+        "numeric percentage, or numeric PathBinding from 0 to 100."
+    )
+
+
 def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size != "2x2":
-        raise CompactDslConversionError("PillButton currently requires a 2x2 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("PillButton requires a 2x2 or 2x4 card.")
     allowed = {
         "label",
         "icon",
@@ -806,6 +943,7 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
         "fontSize",
         "fontWeight",
         "onClick",
+        "width",
     }
     _validate_high_level_props(
         component,
@@ -831,6 +969,12 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
         raise CompactDslConversionError(
             f"{component.component_id}: PillButton.fontWeight must be 400 or 500."
         )
+    width = component.props.get("width")
+    allowed_widths = {"2x2": {"matchParent", 126}, "2x4": {"matchParent", 116, 132}}
+    if width is not None and width not in allowed_widths[size]:
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton.width is invalid for {size}."
+        )
 
     _, recipe_props = _visual_recipe_part_for_converter(
         "PillButton",
@@ -838,8 +982,79 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
         size=size,
     )
     props = {**recipe_props, **copy.deepcopy(component.props)}
-    props["state"] = "capsule"
-    return [ComponentRow(component.component_id, "ActionUnit", props)]
+    root_props = {
+        name: copy.deepcopy(value)
+        for name, value in props.items()
+        if name
+        in {
+            "width",
+            "height",
+            "borderRadius",
+            "padding",
+            "flexShrink",
+            "layoutWeight",
+            "margin",
+        }
+    }
+    root_props["backgroundColor"] = props["actionSurface"]
+    root_props["onClick"] = copy.deepcopy(props["onClick"])
+    icon = props.get("icon")
+    if not isinstance(icon, str):
+        root_props.update(
+            {
+                "label": props["label"],
+                "fontColor": props["actionInk"],
+                "fontSize": props.get("fontSize", 14),
+                "fontWeight": props.get("fontWeight", 500),
+                "textAlign": "center",
+            }
+        )
+        return [ComponentRow(component.component_id, "Button", root_props)]
+
+    icon_id = f"{component.component_id}_icon"
+    text_id = f"{component.component_id}_text"
+    root_props.update(
+        {
+            "itemMargin": 8,
+            "justifyContent": "center",
+            "alignItems": "center",
+        }
+    )
+    return [
+        ComponentRow(
+            component.component_id,
+            "Row",
+            root_props,
+            (icon_id, text_id),
+        ),
+        ComponentRow(
+            icon_id,
+            "Image",
+            {
+                "src": icon,
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0,
+                "fillColor": props["actionInk"],
+            },
+        ),
+        ComponentRow(
+            text_id,
+            "Text",
+            {
+                "content": props["label"],
+                "maxWidth": 96,
+                "height": props.get("height", 36),
+                "fontSize": props.get("fontSize", 14),
+                "fontWeight": props.get("fontWeight", 500),
+                "fontColor": props["actionInk"],
+                "textAlign": "center",
+                "maxLines": 1,
+                "flexShrink": 0,
+            },
+        ),
+    ]
 
 
 def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -887,8 +1102,45 @@ def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentR
         size=size,
     )
     props = {**recipe_props, **copy.deepcopy(component.props)}
-    props["state"] = "icon-round"
-    return [ComponentRow(component.component_id, "ActionUnit", props)]
+    icon_id = f"{component.component_id}_icon"
+    root_props = {
+        name: copy.deepcopy(value)
+        for name, value in props.items()
+        if name
+        in {
+            "width",
+            "height",
+            "borderRadius",
+            "padding",
+            "flexShrink",
+            "layoutWeight",
+            "margin",
+        }
+    }
+    root_props.update(
+        {
+            "backgroundColor": props["actionSurface"],
+            "alignContent": "center",
+            "clip": True,
+            "onClick": copy.deepcopy(props["onClick"]),
+            "accessibility": copy.deepcopy(props["accessibility"]),
+        }
+    )
+    return [
+        ComponentRow(component.component_id, "Stack", root_props, (icon_id,)),
+        ComponentRow(
+            icon_id,
+            "Image",
+            {
+                "src": props["icon"],
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0,
+                "fillColor": props["actionInk"],
+            },
+        ),
+    ]
 
 
 def _expand_emphasized_data(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -1237,7 +1489,15 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
 def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size != "2x4":
         raise CompactDslConversionError("TextBlock requires a 2x4 card.")
-    items = _validate_item_component(component, minimum=2, maximum=2)
+    recipe = _visual_recipe("TextBlock", size=size)
+    metrics = recipe.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactDslConversionError("TextBlock visual recipe has invalid metrics.")
+    minimum = metrics.get("minimumItems")
+    maximum = metrics.get("maximumItems")
+    if not isinstance(minimum, int) or not isinstance(maximum, int):
+        raise CompactDslConversionError("TextBlock visual recipe has invalid capacity.")
+    items = _validate_item_component(component, minimum=minimum, maximum=maximum)
     children: list[str] = []
     rows: list[ComponentRow] = []
     for index, item in enumerate(items):
@@ -2623,16 +2883,8 @@ def _repair_legacy_component_props(
             repaired_props,
             default_design="progress-ring-primary",
         )
-    if repaired_type == "ActionUnit":
-        _repair_action_unit_props(repaired_props)
     _repair_on_click_aliases(repaired_props)
     return repaired_type, repaired_props
-
-
-def _repair_action_unit_props(props: dict[str, Any]) -> None:
-    icon = props.get("icon")
-    if props.get("state") == "capsule" and isinstance(icon, str) and not icon.strip():
-        props.pop("icon", None)
 
 
 def _repair_on_click_aliases(props: dict[str, Any]) -> None:
@@ -2740,10 +2992,6 @@ def _repair_spacing_aliases(
         if "itemMargin" not in props:
             props["itemMargin"] = props["space"]
         props.pop("space", None)
-    elif component_type == "List" and "itemMargin" in props:
-        if "space" not in props:
-            props["space"] = props["itemMargin"]
-        props.pop("itemMargin", None)
 
 
 def _repair_axis_value_aliases(
@@ -3095,294 +3343,16 @@ def _convert_component_rows(
     component: ComponentRow,
     *,
     hide_label: bool = False,
-    action_icon_size: int = 16,
     card_size: str = "2x2",
 ) -> list[dict[str, Any]]:
     if component.component_type == "CardHeader":
         return _convert_card_header(component, card_size)
-    if component.component_type == "ActionUnit":
-        return _convert_action_unit(component, action_icon_size)
     return [
         _convert_component(
             component,
             hide_label=hide_label,
         )
     ]
-
-
-def _convert_action_unit(component: ComponentRow, icon_size: int) -> list[dict[str, Any]]:
-    _validate_action_unit_for_conversion(component)
-    state = component.props["state"]
-    if state == "capsule":
-        return _convert_action_unit_capsule(component, icon_size)
-    return _convert_action_unit_icon_round(component, icon_size)
-
-
-def _validate_action_unit_for_conversion(component: ComponentRow) -> None:
-    state = component.props.get("state")
-    if state not in {"capsule", "icon-round"}:
-        raise CompactDslConversionError(
-            f'{component.component_id}: ActionUnit.state must be "capsule" or "icon-round".'
-        )
-    if component.children:
-        raise CompactDslConversionError(
-            f"{component.component_id}: ActionUnit must not declare children."
-        )
-    _validate_action_unit_on_click(component)
-    if state == "capsule":
-        _require_action_unit_string(component, "label")
-        icon = component.props.get("icon")
-        if icon is not None and (not isinstance(icon, str) or not icon.strip()):
-            raise CompactDslConversionError(
-                f"{component.component_id}: capsule ActionUnit.icon must be a non-empty string."
-            )
-        return
-    _require_action_unit_string(component, "icon")
-    if "label" in component.props:
-        raise CompactDslConversionError(
-            f"{component.component_id}: icon-round ActionUnit must not declare label."
-        )
-
-
-def _validate_action_unit_on_click(component: ComponentRow) -> None:
-    handlers = component.props.get("onClick")
-    if not isinstance(handlers, list) or len(handlers) != 1:
-        raise CompactDslConversionError(
-            f"{component.component_id}: ActionUnit.onClick must contain exactly one handler."
-        )
-    handler = handlers[0]
-    if not isinstance(handler, dict) or set(handler) != {"call", "args"}:
-        raise CompactDslConversionError(
-            f"{component.component_id}: ActionUnit.onClick handler must contain only call and args."
-        )
-    call = handler.get("call")
-    args = handler.get("args")
-    if not isinstance(call, str) or not call.strip() or not isinstance(args, dict):
-        raise CompactDslConversionError(
-            f"{component.component_id}: ActionUnit.onClick requires a non-empty "
-            "call and object args."
-        )
-
-
-def _require_action_unit_string(component: ComponentRow, property_name: str) -> None:
-    value = component.props.get(property_name)
-    if isinstance(value, str) and value.strip():
-        return
-    raise CompactDslConversionError(
-        f"{component.component_id}: ActionUnit.{property_name} must be a non-empty string."
-    )
-
-
-def _convert_action_unit_capsule(component: ComponentRow, icon_size: int) -> list[dict[str, Any]]:
-    icon = component.props.get("icon")
-    if isinstance(icon, str) and icon:
-        return _convert_action_unit_capsule_with_icon(component, icon, icon_size)
-
-    converted: dict[str, Any] = {
-        "id": component.component_id,
-        "component": "Button",
-        "label": component.props["label"],
-        "onClick": _convert_path_bindings(component.props["onClick"]),
-    }
-    if "enabled" in component.props:
-        converted["enabled"] = _convert_path_bindings(component.props["enabled"])
-    styles = _resolved_design_styles(
-        component.component_id,
-        _BUTTON_DESIGNS["action-capsule-primary"],
-    )
-    _apply_action_text_styles(styles, component.props)
-    _apply_action_background(styles, component.props)
-    _apply_action_runtime_geometry(styles, component.props)
-    action_ink = component.props.get("actionInk")
-    if action_ink is not None:
-        styles["fontColor"] = action_ink
-    styles["textAlign"] = "center"
-    converted["styles"] = styles
-    return [converted]
-
-
-def _convert_action_unit_capsule_with_icon(
-    component: ComponentRow,
-    icon_source: str,
-    icon_size: int,
-) -> list[dict[str, Any]]:
-    icon_id = f"{component.component_id}_icon"
-    text_id = f"{component.component_id}_text"
-    styles = _resolved_design_styles(
-        component.component_id,
-        _BUTTON_DESIGNS["action-capsule-primary"],
-    )
-    _apply_action_text_styles(styles, component.props)
-    _apply_action_background(styles, component.props)
-    _apply_action_runtime_geometry(styles, component.props)
-    text_styles = _capsule_text_styles(styles, component.props.get("actionInk"))
-    row_styles = _capsule_row_styles(styles)
-    row: dict[str, Any] = {
-        "id": component.component_id,
-        "component": "Row",
-        "children": [icon_id, text_id],
-        "itemMargin": 8,
-        "onClick": _convert_path_bindings(component.props["onClick"]),
-        "styles": row_styles,
-    }
-    icon = {
-        "id": icon_id,
-        "component": "Image",
-        "src": icon_source,
-        "styles": {
-            "width": icon_size,
-            "height": icon_size,
-            "objectFit": "contain",
-            "flexShrink": 0,
-            "fillColor": text_styles.get("fontColor", "#FF1F4799"),
-        },
-    }
-    text = {
-        "id": text_id,
-        "component": "Text",
-        "content": component.props["label"],
-        "styles": text_styles,
-    }
-    return [row, icon, text]
-
-
-def _apply_action_background(
-    styles: dict[str, Any],
-    props: dict[str, Any],
-) -> None:
-    action_surface = props.get("actionSurface")
-    if action_surface == "white":
-        styles["backgroundColor"] = "#FFFFFFFF"
-        return
-    if isinstance(action_surface, str) and action_surface:
-        styles["backgroundColor"] = action_surface
-
-
-def _apply_action_text_styles(
-    styles: dict[str, Any],
-    props: dict[str, Any],
-) -> None:
-    for property_name in ("fontSize", "fontWeight"):
-        value = props.get(property_name)
-        if value is not None:
-            styles[property_name] = copy.deepcopy(value)
-
-
-def _apply_action_runtime_geometry(
-    styles: dict[str, Any],
-    props: dict[str, Any],
-) -> None:
-    for property_name in (
-        "width",
-        "height",
-        "borderRadius",
-        "padding",
-        "flexShrink",
-        "layoutWeight",
-        "margin",
-    ):
-        value = props.get(property_name)
-        if value is not None:
-            styles[property_name] = copy.deepcopy(value)
-
-
-def _capsule_row_styles(styles: dict[str, Any]) -> dict[str, Any]:
-    row_style_names = {
-        "backgroundColor",
-        "borderRadius",
-        "flexShrink",
-        "layoutWeight",
-        "margin",
-        "height",
-        "padding",
-        "width",
-    }
-    row_styles = {
-        name: copy.deepcopy(value) for name, value in styles.items() if name in row_style_names
-    }
-    row_styles["justifyContent"] = "center"
-    row_styles["alignItems"] = "center"
-    return row_styles
-
-
-def _capsule_text_styles(
-    capsule_styles: dict[str, Any],
-    action_ink: Any,
-) -> dict[str, Any]:
-    text_style_names = {
-        "fontColor",
-        "fontSize",
-        "fontWeight",
-        "maxFontSize",
-        "maxLines",
-        "minFontSize",
-    }
-    text_styles = {
-        name: copy.deepcopy(value)
-        for name, value in capsule_styles.items()
-        if name in text_style_names
-    }
-    if action_ink is not None:
-        text_styles["fontColor"] = action_ink
-    text_styles.update(
-        {
-            "maxWidth": 96,
-            "height": capsule_styles.get("height", 30),
-            "textAlign": "center",
-            "textOverflow": "clip",
-            "flexShrink": 0,
-        }
-    )
-    return text_styles
-
-
-def _convert_action_unit_icon_round(
-    component: ComponentRow,
-    icon_size: int,
-) -> list[dict[str, Any]]:
-    icon_id = f"{component.component_id}_icon"
-    styles = _resolved_design_styles(
-        component.component_id,
-        _BUTTON_DESIGNS["action-icon-round"],
-    )
-    _normalize_icon_button_stack(styles)
-    _apply_action_background(styles, component.props)
-    _apply_action_runtime_geometry(styles, component.props)
-    icon_color = _resolve_tokens(
-        "fillColor",
-        component.props.get("actionInk", "icon_emphasize"),
-        component.component_id,
-    )
-    stack = {
-        "id": component.component_id,
-        "component": "Stack",
-        "children": [icon_id],
-        "onClick": _convert_path_bindings(component.props["onClick"]),
-        "styles": styles,
-    }
-    icon = {
-        "id": icon_id,
-        "component": "Image",
-        "src": component.props["icon"],
-        "styles": {
-            "width": icon_size,
-            "height": icon_size,
-            "objectFit": "contain",
-            "flexShrink": 0,
-            "fillColor": icon_color,
-        },
-    }
-    return [stack, icon]
-
-
-def _resolved_design_styles(
-    component_id: str,
-    styles: dict[str, Any],
-) -> dict[str, Any]:
-    resolved: dict[str, Any] = {}
-    for property_name, value in styles.items():
-        resolved[property_name] = _resolve_tokens(property_name, value, component_id)
-    return resolved
 
 
 def _convert_component(
@@ -3483,9 +3453,6 @@ def _move_component_property(
         return True
     if property_name == "itemMargin" and component.component_type in {"Row", "Column"}:
         converted["itemMargin"] = value
-        return True
-    if property_name == "space" and component.component_type == "List":
-        converted["space"] = value
         return True
     return False
 
@@ -3717,7 +3684,7 @@ def _card_spec_data_roots(card_spec: dict[str, Any]) -> list[str]:
 def _candidate_component_asset_source(component: ComponentRow) -> str | None:
     if component.component_type == "Image":
         source = component.props.get("src")
-    elif component.component_type in {"ActionUnit", "CardHeader"}:
+    elif component.component_type == "CardHeader":
         source = component.props.get("icon")
     else:
         return None

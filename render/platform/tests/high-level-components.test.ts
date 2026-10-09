@@ -38,18 +38,18 @@ test("预览样例覆盖共享 Runtime 的全部高阶组件", () => {
 test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal(VISUAL_RECIPE_VERSION, "visual-recipes-v1");
   assert.deepEqual(visualRecipePart("InfoBlock", "icon", "2x2").styles, {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     objectFit: "contain",
     flexShrink: 0,
   });
   assert.equal(visualRecipePart("ProgressCircleSingle", "ring", "2x4").styles.width, 44);
-  assert.equal(visualRecipePart("TopTextBottomValue", "item", "2x4").styles.width, 90);
+  assert.equal(visualRecipePart("TopTextBottomValue", "item", "2x4").styles.layoutWeight, 1);
 
   const dataDisplay = compileMiniDsl(fixtures.examples[0].source, { size: "2x2" }).graph;
   assert.equal(dataDisplay.getNode("action")?.type, "Extended.Button");
   assert.deepEqual(dataDisplay.getNode("action")?.props.styles, {
-    width: 126,
+    width: "matchParent",
     height: 36,
     borderRadius: 30,
     padding: 0,
@@ -58,6 +58,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     fontColor: "#FF1F4799",
     fontSize: 14,
     fontWeight: 500,
+    textAlign: "center",
   });
   assert.equal(
     (dataDisplay.getNode("display_value")?.props.styles as Record<string, unknown>).fontSize,
@@ -65,8 +66,8 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
 
   const info = compileMiniDsl(fixtures.examples[1].source, { size: "2x2" }).graph;
-  assert.equal((info.getNode("phone")?.props.styles as Record<string, unknown>).width, 134);
-  assert.equal((info.getNode("phone_icon")?.props.styles as Record<string, unknown>).width, 24);
+  assert.equal((info.getNode("phone")?.props.styles as Record<string, unknown>).width, "matchParent");
+  assert.equal((info.getNode("phone_icon")?.props.styles as Record<string, unknown>).width, 20);
 
   const event = compileMiniDsl(fixtures.examples[2].source, { size: "2x2" }).graph;
   assert.equal((event.getNode("event")?.props.styles as Record<string, unknown>).height, 50);
@@ -87,14 +88,29 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     { top: 14 },
   );
 
-  const progress = compileMiniDsl(fixtures.examples[5].source, { size: "2x4" }).graph;
+  const progressCircle = compileMiniDsl(fixtures.examples[5].source, { size: "2x2" }).graph;
+  assert.equal(
+    (progressCircle.getNode("circle")?.props.styles as Record<string, unknown>).width,
+    72,
+  );
+  assert.equal(
+    (progressCircle.getNode("circle_ring")?.props.styles as Record<string, unknown>).width,
+    60,
+  );
+  assert.equal(
+    (progressCircle.getNode("circle_external_text")?.props.styles as Record<string, unknown>)
+      .fontSize,
+    10,
+  );
+
+  const progress = compileMiniDsl(fixtures.examples[6].source, { size: "2x4" }).graph;
   assert.equal((progress.getNode("progress")?.props.styles as Record<string, unknown>).height, 50);
   assert.equal((progress.getNode("progress_bar")?.props.styles as Record<string, unknown>).height, 8);
   assert.equal((progress.getNode("progress_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
-  assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).width, 134);
+  assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).layoutWeight, 1);
   assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).height, 48);
 
-  const circle = compileMiniDsl(fixtures.examples[6].source, { size: "2x4" }).graph;
+  const circle = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;
   assert.equal((circle.getNode("progress_ring")?.props.styles as Record<string, unknown>).width, 44);
   assert.equal((circle.getNode("progress")?.props.styles as Record<string, unknown>).height, 46);
   assert.equal(circle.getNode("progress_icon")?.type, "Extended.Image");
@@ -104,15 +120,15 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     "#991F4799",
   );
 
-  const cardButton = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;
-  assert.equal((cardButton.getNode("calendar")?.props.styles as Record<string, unknown>).width, 132);
-  assert.equal((cardButton.getNode("focus_visual")?.props.styles as Record<string, unknown>).width, 24);
+  const cardButton = compileMiniDsl(fixtures.examples[8].source, { size: "2x4" }).graph;
+  assert.equal((cardButton.getNode("calendar")?.props.styles as Record<string, unknown>).width, "matchParent");
+  assert.equal((cardButton.getNode("focus_visual")?.props.styles as Record<string, unknown>).width, 20);
 
-  const metrics = compileMiniDsl(fixtures.examples[8].source, { size: "2x4" }).graph;
-  assert.equal((metrics.getNode("metrics_item0")?.props.styles as Record<string, unknown>).width, 90);
+  const metrics = compileMiniDsl(fixtures.examples[9].source, { size: "2x4" }).graph;
+  assert.equal((metrics.getNode("metrics_item0")?.props.styles as Record<string, unknown>).layoutWeight, 1);
   assert.equal((metrics.getNode("metrics_item0_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
 
-  const summary = compileMiniDsl(fixtures.examples[9].source, { size: "2x4" }).graph;
+  const summary = compileMiniDsl(fixtures.examples[10].source, { size: "2x4" }).graph;
   assert.equal((summary.getNode("list")?.props.styles as Record<string, unknown>).height, 102);
 });
 
@@ -121,9 +137,10 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
   assert.throws(
     () => compileMiniDsl(JSON.stringify([
       "root",
-      "PillButton",
+      "CircleButton",
       {
-        label: "操作",
+        icon: "resources/base/media/play_fill.svg",
+        accessibility: { label: "播放" },
         actionInk: "#FF1F4799",
         actionSurface: "#331F4799",
         onClick: action,
@@ -132,8 +149,8 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
     /2x2/,
   );
   assert.throws(
-    () => compileMiniDsl('["root","EmphasizedData",{"value":1,"fontColor":"#FF000000","width":20}]'),
-    /不接受 width/,
+    () => compileMiniDsl('["root","EmphasizedData",{"value":1,"fontColor":"#FF000000","unknown":20}]'),
+    /不接受 unknown/,
   );
   assert.throws(
     () => compileMiniDsl('["root","EmphasizedData",{"value":1,"fontColor":"#FF000000"},["child"]]\n["child","Text",{"content":"x"}]'),
@@ -142,5 +159,35 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
   assert.throws(
     () => compileMiniDsl('["root","Column",{},["metric"]]\n["metric","EmphasizedData",{"value":1,"fontColor":"#FF000000"}]\n["metric_value","Text",{"content":"冲突"}]'),
     /冲突/,
+  );
+});
+
+test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
+  const item = (index: number) => ({ label: `指标${index}`, value: `${index}` });
+  for (const count of [2, 3, 4]) {
+    const source = JSON.stringify([
+      "root",
+      "TextBlock",
+      {
+        items: Array.from({ length: count }, (_, index) => item(index + 1)),
+        fontColor: "#FF563D99",
+        backgroundColor: "#99FFFFFF",
+      },
+    ]);
+    const { graph } = compileMiniDsl(source, { size: "2x4" });
+    assert.equal(graph.getNode("root")?.children.length, count);
+    assert.ok(graph.getNode(`root_item${count - 1}`));
+  }
+  assert.throws(
+    () => compileMiniDsl(JSON.stringify([
+      "root",
+      "TextBlock",
+      {
+        items: Array.from({ length: 5 }, (_, index) => item(index + 1)),
+        fontColor: "#FF563D99",
+        backgroundColor: "#99FFFFFF",
+      },
+    ]), { size: "2x4" }),
+    /2–4 项/,
   );
 });

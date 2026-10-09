@@ -90,6 +90,8 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert fact_properties["dataId"]["enum"] == list(compact_plan_data_paths(spec))
     assert fact_properties["actionId"]["enum"] == ["event.open.calendar"]
     assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
+    assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
+    assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
     assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
     assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
 
@@ -154,6 +156,45 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     errors = compact_plan_coverage_errors(incomplete, plan, task_spec())
     assert any("会议标题" in item for item in errors)
     assert any("打开日历" in item for item in errors)
+
+
+def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
+    spec = {
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "device": {
+                    "battery": {
+                        "type": "integer",
+                        "description": "设备电量百分比0到100",
+                    }
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "设备电量",
+                "dataId": "/data/device/battery",
+                "componentHints": ["ProgressCircle"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["battery"]]',
+            '["battery","ProgressCircle",'
+            '{"externalText":{"path":"/data/device/battery"},'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"设备电量百分比"},'
+            '"width":52,"height":68,"fontColor":"#FF1F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, spec) == ()
 
 
 def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:

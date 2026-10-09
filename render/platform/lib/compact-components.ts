@@ -16,7 +16,7 @@ const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margi
 
 export const VISUAL_RECIPE_VERSION = "visual-recipes-v1";
 export const HIGH_LEVEL_COMPONENT_TYPES = [
-  "PillButton", "CircleButton", "EmphasizedData", "InfoBlock", "ProgressLine2",
+  "PillButton", "CircleButton", "EmphasizedData", "InfoBlock", "ProgressCircle", "ProgressLine2",
   "TableText", "TextBlock", "CardButton", "ProgressCircleSingle", "EventCard",
   "DataDisplay", "TopTextBottomValue", "SummaryList",
 ] as const;
@@ -192,6 +192,36 @@ function colorWithAlpha(color: string, opacity: number) {
   return `#${alpha.toString(16).padStart(2, "0").toUpperCase()}${color.slice(3)}`;
 }
 
+function progressCircleValues(id: string, value: unknown): [unknown, unknown] {
+  if (record(value) && Object.keys(value).length === 1 && typeof value.path === "string") {
+    return [clone(value), `{{ \${${value.path}} + '%' }}`];
+  }
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100) {
+    return [value, `${value}%`];
+  }
+  if (typeof value === "string") {
+    const match = value.match(/^\s*(\d+(?:\.\d+)?)%\s*$/);
+    const numeric = match ? Number(match[1]) : Number.NaN;
+    if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 100) {
+      return [numeric, value.trim()];
+    }
+  }
+  throw new Error(`${id}: ProgressCircle.externalText 必须是 0–100 数字、百分比或数值 PathBinding。`);
+}
+
+function requireProgressCircleAccessibility(id: string, value: unknown) {
+  const allowed = ["description", "label"];
+  const valid = record(value)
+    && Object.keys(value).every(name => allowed.includes(name))
+    && typeof value.label === "string"
+    && value.label.trim().length > 0
+    && (value.description === undefined
+      || (typeof value.description === "string" && value.description.trim().length > 0));
+  if (!valid) {
+    throw new Error(`${id}: ProgressCircle.accessibility 必须包含非空 label。`);
+  }
+}
+
 function expandHighLevel(
   id: string,
   node: MiniNode,
@@ -202,10 +232,85 @@ function expandHighLevel(
   if (!(HIGH_LEVEL_COMPONENT_TYPES as readonly string[]).includes(type)) return null;
   requireNoChildren(id, type, node.children);
 
-  if (type === "PillButton") {
-    if (size !== "2x2") throw new Error("PillButton 仅支持 2x2 卡片。");
+  if (type === "ProgressCircle") {
     const allowed = [
-      "label", "icon", "actionInk", "actionSurface", "fontSize", "fontWeight", "onClick",
+      "externalText", "icon", "accessibility", "fontColor", "fillColor", "color",
+      "backgroundColor", "width", "height",
+    ];
+    const required = [
+      "externalText", "icon", "accessibility", "fontColor", "color", "backgroundColor",
+      "width", "height",
+    ];
+    requireProps(id, type, p, required, allowed);
+    requireOptionalIcon(id, type, p);
+    ["fontColor", "color", "backgroundColor"].forEach(name => requireColor(id, type, p, name));
+    requireProgressCircleAccessibility(id, p.accessibility);
+    const width = p.width;
+    const height = p.height;
+    if (typeof width !== "number" || !Number.isFinite(width) || width <= 0
+      || typeof height !== "number" || !Number.isFinite(height) || height <= 0) {
+      throw new Error(`${id}: ProgressCircle.width/height 必须是正数。`);
+    }
+    const metrics = recipe(type, size).metrics;
+    const textHeight = metrics?.externalTextHeight;
+    const itemMargin = metrics?.itemMargin;
+    const minimumDiameter = metrics?.minimumRingDiameter;
+    const strokeWidth = metrics?.strokeWidth;
+    if (![textHeight, itemMargin, minimumDiameter, strokeWidth].every(value =>
+      typeof value === "number" && Number.isFinite(value) && value > 0)) {
+      throw new Error("ProgressCircle 视觉 Recipe 几何无效。");
+    }
+    const ringDiameter = Math.min(width, height - Number(textHeight) - Number(itemMargin));
+    if (ringDiameter < Number(minimumDiameter)) {
+      throw new Error(`${id}: ProgressCircle.width/height 留给圆环的空间不足。`);
+    }
+    const [progressValue, externalText] = progressCircleValues(id, p.externalText);
+    const ringStackId = `${id}_ring_stack`;
+    const ringId = `${id}_ring`;
+    const iconId = `${id}_icon`;
+    const externalTextId = `${id}_external_text`;
+    return [
+      row(
+        id,
+        type,
+        "root",
+        size,
+        { width, height, accessibility: p.accessibility },
+        [ringStackId, externalTextId],
+      ),
+      row(
+        ringStackId,
+        type,
+        "ringStack",
+        size,
+        { width: ringDiameter, height: ringDiameter },
+        [ringId, iconId],
+      ),
+      row(ringId, type, "ring", size, {
+        width: ringDiameter,
+        height: ringDiameter,
+        value: progressValue,
+        total: 100,
+        strokeWidth,
+        color: p.color,
+        backgroundColor: p.backgroundColor,
+      }),
+      row(iconId, type, "icon", size, {
+        src: p.icon,
+        ...(p.fillColor ? { fillColor: p.fillColor } : {}),
+      }),
+      row(externalTextId, type, "externalText", size, {
+        content: externalText,
+        width,
+        fontColor: p.fontColor,
+      }),
+    ];
+  }
+
+  if (type === "PillButton") {
+    if (!["2x2", "2x4"].includes(size)) throw new Error("PillButton 仅支持 2x2 或 2x4 卡片。");
+    const allowed = [
+      "label", "icon", "actionInk", "actionSurface", "fontSize", "fontWeight", "onClick", "width",
     ];
     requireProps(id, type, p, ["label", "actionInk", "actionSurface", "onClick"], allowed);
     if (typeof p.label !== "string" || !p.label.trim()) {
@@ -221,7 +326,68 @@ function expandHighLevel(
     if (p.fontWeight !== undefined && ![400, 500].includes(Number(p.fontWeight))) {
       throw new Error(`${id}: PillButton.fontWeight 只能是 400 或 500。`);
     }
-    return [row(id, type, "root", size, { ...p, state: "capsule" })];
+    const allowedWidths = size === "2x2" ? ["matchParent", 126] : ["matchParent", 116, 132];
+    if (p.width !== undefined && !allowedWidths.includes(p.width as string | number)) {
+      throw new Error(`${id}: PillButton.width 不适用于 ${size}。`);
+    }
+    const visual = visualRecipePart(type, "root", size);
+    const base = {
+      ...visual.styles,
+      ...(p.width !== undefined ? { width: p.width } : {}),
+      backgroundColor: p.actionSurface,
+      onClick: p.onClick,
+    };
+    if (!p.icon) {
+      return [[id, {
+        type: "Button",
+        props: {
+          ...base,
+          label: p.label,
+          enabled: true,
+          fontColor: p.actionInk,
+          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
+          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
+          textAlign: "center",
+        },
+        children: [],
+      }]];
+    }
+    const iconId = `${id}_icon`;
+    const textId = `${id}_text`;
+    return [
+      [id, {
+        type: "Row",
+        props: { ...base, itemMargin: 8, justifyContent: "center", alignItems: "center" },
+        children: [iconId, textId],
+      }],
+      [iconId, {
+        type: "Image",
+        props: {
+          src: p.icon,
+          width: 20,
+          height: 20,
+          objectFit: "contain",
+          flexShrink: 0,
+          fillColor: p.actionInk,
+        },
+        children: [],
+      }],
+      [textId, {
+        type: "Text",
+        props: {
+          content: p.label,
+          maxWidth: 96,
+          height: p.height ?? visual.styles.height ?? 36,
+          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
+          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
+          fontColor: p.actionInk,
+          textAlign: "center",
+          maxLines: 1,
+          flexShrink: 0,
+        },
+        children: [],
+      }],
+    ];
   }
 
   if (type === "CircleButton") {
@@ -244,7 +410,34 @@ function expandHighLevel(
       && (typeof accessibility.description !== "string" || !accessibility.description.trim())) {
       throw new Error(`${id}: CircleButton.accessibility.description 必须是非空文本。`);
     }
-    return [row(id, type, "root", size, { ...p, state: "icon-round" })];
+    const visual = visualRecipePart(type, "root", size);
+    const iconId = `${id}_icon`;
+    return [
+      [id, {
+        type: "Stack",
+        props: {
+          ...visual.styles,
+          backgroundColor: p.actionSurface,
+          alignContent: "center",
+          clip: true,
+          onClick: p.onClick,
+          accessibility: p.accessibility,
+        },
+        children: [iconId],
+      }],
+      [iconId, {
+        type: "Image",
+        props: {
+          src: p.icon,
+          width: 20,
+          height: 20,
+          objectFit: "contain",
+          flexShrink: 0,
+          fillColor: p.actionInk,
+        },
+        children: [],
+      }],
+    ];
   }
 
   if (type === "EmphasizedData") {
@@ -407,7 +600,7 @@ function expandHighLevel(
     requireProps(id, type, p, required, ["items", "fontColor", "backgroundColor"]);
     requireColor(id, type, p, "fontColor");
     if (!isTable) requireColor(id, type, p, "backgroundColor");
-    const items = labelValueItems(id, type, p.items, 2, isTable ? 3 : 2);
+    const items = labelValueItems(id, type, p.items, 2, isTable ? 3 : 4);
     const children: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
     items.forEach((item, index) => {
@@ -811,9 +1004,16 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
   };
 
   for (const [id, node] of input) {
+    const parent = [...input.values()].find(item => item.children.includes(id));
     const rows = expandHighLevel(id, node, size);
     if (rows) {
-      const parent = [...input.values()].find(item => item.children.includes(id));
+      if (node.type === "CircleButton") {
+        const centeredSlot = parent?.type === "Stack"
+          && parent.props.width === 40
+          && parent.props.height === 40
+          && parent.props.alignContent === "center";
+        if (!centeredSlot) throw new Error("CircleButton 需要居中的 40×40 Stack 槽位。");
+      }
       const props = rows[0][1].props;
       if (parent?.type === "Row" && props.width === "matchParent" && node.props.width === undefined) {
         props.layoutWeight = 1;
@@ -834,7 +1034,7 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
   const fusion = typeof rootDesign === "string" && Object.hasOwn(FUSION_PALETTES, rootDesign);
   for (const [id, node] of [...nodes]) {
     const p = node.props;
-    if (!["CardHeader", "TimelineUnit", "ActionUnit"].includes(node.type)) continue;
+    if (!["CardHeader", "TimelineUnit"].includes(node.type)) continue;
     requireNoChildren(id, node.type, node.children);
     if (node.type === "CardHeader") {
       const allowed = ["title", "fontColor", "icon", "fillColor"];
@@ -844,39 +1044,30 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
       if (invalid) {
         throw new Error("CardHeader 需要 title/fontColor，只接受可选 icon/fillColor。");
       }
+      const variant = p.icon ? "withIcon" : undefined;
+      const rootVisual = visualRecipePart("CardHeader", "root", size, variant);
+      const titleVisual = visualRecipePart("CardHeader", "title", size, variant);
       const children = [`${id}_title`];
       add(children[0], "Text", {
+        ...titleVisual.styles,
         content: p.title,
-        layoutWeight: 1,
-        fontSize: 12,
-        fontWeight: 400,
         fontColor: p.fontColor,
-        textAlign: "start",
-        maxLines: 1,
-        flexShrink: 0,
       });
       if (p.icon) {
         children.push(`${id}_icon`);
+        const iconVisual = visualRecipePart("CardHeader", "icon", size, variant);
         add(`${id}_icon`, "Image", {
+          ...iconVisual.styles,
           src: p.icon,
-          width: 20,
-          height: 20,
-          objectFit: "contain",
-          flexShrink: 0,
           ...(p.fillColor ? { fillColor: p.fillColor } : {}),
         });
       }
       nodes.set(id, {
-        type: "Row",
+        type: rootVisual.component,
         props: {
-          width: "matchParent",
-          height: 20,
+          ...rootVisual.styles,
           ...([...input.values()].some(item => item.type === "Row" && item.children.includes(id))
             && p.width === undefined ? { layoutWeight: 1 } : {}),
-          itemMargin: p.icon ? 8 : 0,
-          flexShrink: 0,
-          justifyContent: "start",
-          alignItems: "center",
           ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
         },
         children,
@@ -919,76 +1110,6 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
         color: p.lineColor,
         flexShrink: 0,
       });
-    } else {
-      if (!["capsule", "icon-round"].includes(String(p.state))) {
-        throw new Error("ActionUnit.state 只支持 capsule 或 icon-round。");
-      }
-      if (!Array.isArray(p.onClick) || p.onClick.length === 0) {
-        throw new Error("ActionUnit 需要 onClick 动作。");
-      }
-      if (p.state === "capsule" && p.label == null) throw new Error("capsule 需要 label。");
-      if (p.state === "icon-round" && (!p.icon || p.label !== undefined)) {
-        throw new Error("icon-round 需要 icon，且不接受 label。");
-      }
-      const surface = p.actionSurface ?? "#1A1F4799";
-      const ink = p.actionInk ?? "#FF1F4799";
-      const base = {
-        width: p.width ?? (p.state === "capsule" ? "matchParent" : 30),
-        height: p.height ?? (p.state === "capsule" ? 36 : 30),
-        borderRadius: p.borderRadius ?? (p.state === "capsule" ? 20 : 15),
-        padding: p.padding ?? 0,
-        flexShrink: p.flexShrink ?? 0,
-        ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
-        backgroundColor: surface,
-        onClick: p.onClick,
-        accessibility: p.accessibility,
-      };
-      if (p.state === "capsule" && !p.icon) {
-        nodes.set(id, {
-          type: "Button",
-          props: {
-            ...base,
-            label: p.label,
-            enabled: p.enabled ?? true,
-            fontColor: ink,
-            fontSize: p.fontSize ?? 14,
-            fontWeight: p.fontWeight ?? 400,
-          },
-          children: [],
-        });
-      } else {
-        const iconId = `${id}_icon`;
-        const children = [iconId];
-        add(iconId, "Image", {
-          src: p.icon,
-          width: 20,
-          height: 20,
-          objectFit: "contain",
-          flexShrink: 0,
-          fillColor: fusion ? "#99FFFFFF" : ink,
-        });
-        if (p.state === "capsule") {
-          children.push(`${id}_text`);
-          add(`${id}_text`, "Text", {
-            content: p.label,
-            fontSize: p.fontSize ?? 14,
-            fontWeight: p.fontWeight ?? 400,
-            fontColor: ink,
-            maxLines: 1,
-          });
-        }
-        nodes.set(id, {
-          type: "Row",
-          props: {
-            ...base,
-            enabled: p.enabled ?? true,
-            justifyContent: "center",
-            alignItems: "center",
-            itemMargin: 8,
-          },
-          children,
-        });
-      }
     }
   }
 

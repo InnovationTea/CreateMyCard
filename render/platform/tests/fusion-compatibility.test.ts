@@ -7,7 +7,7 @@ import { compileMiniDsl, SURFACE_ID } from "../lib/mini-renderer";
 import { FUSION_PALETTES } from "../lib/compact-components";
 import { resolvePathBindingsInValue, evaluateExpression, runActionDispatch } from "@genui-sdk/interactions";
 import { defaultRegistry, renderTree } from "@genui-sdk/renderer";
-import { mergeCommonStyles } from "@genui-sdk/components";
+import { ExtendedProgress, mergeCommonStyles } from "@genui-sdk/components";
 
 for (const example of fixtures.examples) {
   test(`分支原始示例：${example.name}`, async () => {
@@ -16,7 +16,7 @@ for (const example of fixtures.examples) {
     const leaf = (p: string) => graph.getDataModelValue(SURFACE_ID, p);
     for (const node of graph.getAllNodes().values()) {
       assert.ok(defaultRegistry[node.type], `未注册组件 ${node.type}`);
-      assert.ok(!["ActionUnit", "CardHeader", "TimelineUnit"].some(t => node.type.endsWith(t)));
+      assert.ok(!["CardHeader", "TimelineUnit"].some(t => node.type.endsWith(t)));
       const resolved = resolvePathBindingsInValue(node.props, leaf) as Record<string, unknown>;
       if (node.type === "Extended.Text") {
         assert.ok(resolved.content !== undefined && resolved.content !== "", `${node.id} 未解析`);
@@ -73,21 +73,35 @@ test("dataModel 叶子写入可读取父数组，父级替换不留下旧叶子"
 test("CardHeader 展开固定几何且阻止生成 ID 冲突", () => {
   const source = '["root","Column",{},["header"]]\n["header","CardHeader",{"title":"天气","fontColor":"#FF000000","icon":"resources/base/media/sun_max.svg"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
-  assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).width, 276);
-  assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).width, 248);
+  assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).width, "matchParent");
+  assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).layoutWeight, 1);
   assert.throws(() => compileMiniDsl(source + '\n["header_title","Text",{"content":"冲突"}]'), /冲突/);
-  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"width":12,"fontColor"')), /CardHeader/);
+  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"unknown":12,"fontColor"')), /CardHeader/);
 });
 
-test("TimelineUnit 与 icon-round 展开为可渲染基础组件", () => {
+test("CardHeader 可作为任意分区的单行标题", () => {
+  const source = '["root","Row",{},["panel"]]\n'
+    + '["panel","Column",{"width":132},["sectionTitle","body"]]\n'
+    + '["sectionTitle","CardHeader",{"title":"设备状态","fontColor":"#FF000000"}]\n'
+    + '["body","Text",{"content":"在线"}]';
+  const { graph } = compileMiniDsl(source, { size: "2x4" });
+  assert.equal(graph.getNode("sectionTitle")?.type, "Extended.Row");
+  assert.equal(
+    (graph.getNode("sectionTitle")?.props.styles as Record<string, unknown>).width,
+    "matchParent",
+  );
+  assert.equal(graph.getNode("sectionTitle_title")?.props.content, "设备状态");
+});
+
+test("TimelineUnit 与 CircleButton 展开为可渲染基础组件", () => {
   const timeline = '["root","Column",{},["line"]]\n["line","TimelineUnit",{"color":"#FF99661F","lineColor":"#1A99661F"}]';
   const graph = compileMiniDsl(timeline).graph;
   assert.equal((graph.getNode("line")!.props.styles as Record<string, unknown>).height, 48);
   assert.equal(graph.getNode("line_dot")!.type, "Extended.Divider");
   assert.throws(() => compileMiniDsl(timeline, { size: "2x4" }), /2x2/);
-  const round = compileMiniDsl('["root","ActionUnit",{"state":"icon-round","icon":"resources/base/media/play_fill.svg","actionSurface":"#331F4799","actionInk":"#FF1F4799","accessibility":{"label":"播放"},"onClick":[{"call":"clickToIntent","args":{"intentName":"Music"}}]}]');
-  assert.equal(round.graph.getNode("root_icon")!.type, "Extended.Image");
-  assert.equal((round.graph.getRoot()!.props.styles as Record<string, unknown>).width, 30);
+  const round = compileMiniDsl('["root","Stack",{"width":40,"height":40,"alignContent":"center"},["action"]]\n["action","CircleButton",{"icon":"resources/base/media/play_fill.svg","actionSurface":"#331F4799","actionInk":"#FF1F4799","accessibility":{"label":"播放"},"onClick":[{"call":"clickToIntent","args":{"intentName":"Music"}}]}]');
+  assert.equal(round.graph.getNode("action_icon")!.type, "Extended.Image");
+  assert.equal((round.graph.getNode("action")!.props.styles as Record<string, unknown>).width, 36);
 });
 
 test("五套融球背景保留规定配色、百分比几何和玻璃层", () => {
@@ -108,8 +122,61 @@ test("通用样式解析 ARGB 渐变、百分比、宽高比和阴影", () => {
   assert.ok(style.boxShadow);
 });
 
-test("Progress 拒绝百分比字符串、负数和超范围值", () => {
-  for (const value of ["68%", -1, 101]) assert.throws(() => compileMiniDsl(JSON.stringify(["root", "Progress", { type: "ring", value, total: 100 }])), /Progress/);
+test("Compact 输入拒绝基础 Progress", () => {
+  assert.throws(
+    () => compileMiniDsl(JSON.stringify(["root", "Progress", { type: "ring", value: 68, total: 100 }])),
+    /不支持的组件类型：Progress/,
+  );
+});
+
+test("ProgressCircle 沿用运行态环样式并支持模型控制外框宽高", () => {
+  const tree = ExtendedProgress({
+    type: "ring",
+    width: 72,
+    height: 72,
+    strokeWidth: 12,
+    value: 68,
+    total: 100,
+    color: "#FF1F4799",
+    trackColor: "#331F4799",
+  }) as any;
+  const svg = tree.props.children;
+  const [track, value] = svg.props.children;
+  assert.equal(svg.props.viewBox, "0 0 72 72");
+  assert.deepEqual(
+    { cx: track.props.cx, cy: track.props.cy, r: track.props.r },
+    { cx: 36, cy: 36, r: 32 },
+  );
+  assert.equal(track.props.strokeWidth, 6);
+  assert.equal(value.props.strokeWidth, 6);
+  assert.equal(track.props.stroke, "rgba(31,71,153,0.2)");
+
+  const source = '["root","Column",{},["circle"]]\n'
+    + '["circle","ProgressCircle",{"externalText":68,"icon":"resources/base/media/battery_leaf_fill.svg",'
+    + '"accessibility":{"label":"手机电量百分比"},"width":72,"height":76,'
+    + '"fontColor":"#FF1F4799","fillColor":"#991F4799","color":"#FF1F4799",'
+    + '"backgroundColor":"#331F4799"}]';
+  const { graph } = compileMiniDsl(source, { size: "2x4" });
+  assert.equal((graph.getNode("circle")?.props.styles as Record<string, unknown>).width, 72);
+  assert.equal((graph.getNode("circle_ring")?.props.styles as Record<string, unknown>).width, 60);
+  assert.equal((graph.getNode("circle_ring")?.props.styles as Record<string, unknown>).height, 60);
+  assert.equal((graph.getNode("circle_icon")?.props.styles as Record<string, unknown>).width, 20);
+  assert.equal(
+    (graph.getNode("circle_external_text")?.props.styles as Record<string, unknown>).fontSize,
+    10,
+  );
+  assert.throws(
+    () => compileMiniDsl(source.replace('"height":76', '"height":20')),
+    /留给圆环的空间不足/,
+  );
+  assert.throws(
+    () => compileMiniDsl(source.replace('"externalText":68', '"externalText":101')),
+    /0–100/,
+  );
+  assert.throws(
+    () => compileMiniDsl(source.replace('"externalText":68', '"externalText":68,"value":68')),
+    /不接受 value/,
+  );
 });
 
 test("圆角裁剪覆盖模糊合成层，融球预览保留色彩变化且不改写 A2UI", () => {

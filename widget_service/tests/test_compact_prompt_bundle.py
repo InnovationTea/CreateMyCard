@@ -26,6 +26,23 @@ DEFAULT_BUNDLE = (
 )
 DEFAULT_SOURCE = DEFAULT_BUNDLE / "prompt_source"
 
+CREATE_SOURCE_ORDER = (
+    "core.md",
+    "information/common.md",
+    "information/2x2.md",
+    "information/2x4.md",
+    "components/common.md",
+    "components/2x2.md",
+    "components/2x4.md",
+    "combinations/common.md",
+    "combinations/2x2.md",
+    "combinations/2x4.md",
+    "composition.md",
+    "layouts/common.md",
+    "layouts/2x2.md",
+    "layouts/2x4.md",
+)
+
 
 def test_assembled_prompts_are_model_facing() -> None:
     prompts = assemble_prompts(DEFAULT_SOURCE)
@@ -35,6 +52,23 @@ def test_assembled_prompts_are_model_facing() -> None:
         assert "维护源" not in content
 
 
+def test_create_prompt_loads_each_source_as_one_complete_block() -> None:
+    manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
+    prompts = manifest.get("prompts")
+    assert isinstance(prompts, dict)
+    references = prompts.get("create")
+    assert isinstance(references, list)
+
+    expected_references = []
+    for filename in CREATE_SOURCE_ORDER:
+        content = (DEFAULT_SOURCE / filename).read_text(encoding="utf-8")
+        fragment_names = [name for name, _body in FRAGMENT.findall(content)]
+        assert fragment_names
+        expected_references.extend(f"{filename}#{name}" for name in fragment_names)
+
+    assert references == expected_references
+
+
 def test_info_block_contract_is_noninteractive() -> None:
     create_prompt = assemble_prompts(DEFAULT_SOURCE).get("create")
 
@@ -42,6 +76,18 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert "InfoBlock.onClick" not in create_prompt
     assert "合法可点击 InfoBlock" not in create_prompt
     assert "不得绑定到 `InfoBlock`" in create_prompt
+
+
+def test_create_prompt_uses_unified_component_terms() -> None:
+    create_prompt = assemble_prompts(DEFAULT_SOURCE).get("create")
+    component_source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+
+    assert isinstance(create_prompt, str)
+    assert "基础布局组件" in create_prompt
+    assert "基础布局组件总表" in component_source
+    assert "| `Row` | 横向排列子组件 |" in component_source
+    for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
+        assert deprecated not in create_prompt
 
 
 def test_runtime_does_not_depend_on_generated_products() -> None:
@@ -98,7 +144,7 @@ def test_information_modules_keep_semantic_boundary() -> None:
 def test_combination_modules_separate_semantics_from_size_mapping() -> None:
     root = DEFAULT_BUNDLE / "prompt_source/combinations"
     expected_fragments = {
-        "common.md": ["contract"],
+        "common.md": ["selection", "contract"],
         "2x2.md": ["mapping"],
         "2x4.md": ["mapping"],
     }
@@ -107,7 +153,8 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
         source = (root / filename).read_text(encoding="utf-8")
         fragments = dict(FRAGMENT.findall(source))
         assert list(fragments) == expected
-        body = fragments.get(expected[0])
+        body_name = "contract" if filename == "common.md" else "mapping"
+        body = fragments.get(body_name)
         assert isinstance(body, str)
         bodies[filename] = body
 
@@ -162,15 +209,13 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
     assert isinstance(prompts, dict)
     references = prompts.get("create")
     assert isinstance(references, list)
-    common_index = references.index("combinations/common.md#contract")
-    information_index = references.index("information/2x4.md#capacity")
-    assert common_index == information_index + 1
-    two_by_two_index = references.index("combinations/2x2.md#mapping")
-    layout_two_by_two_index = references.index("layouts/2x2.md#s-layouts")
-    assert two_by_two_index == layout_two_by_two_index + 1
-    two_by_four_index = references.index("combinations/2x4.md#mapping")
-    layout_two_by_four_index = references.index("layouts/2x4.md#w-layouts")
-    assert two_by_four_index == layout_two_by_four_index + 1
+    start = references.index("combinations/common.md#selection")
+    assert references[start : start + 4] == [
+        "combinations/common.md#selection",
+        "combinations/common.md#contract",
+        "combinations/2x2.md#mapping",
+        "combinations/2x4.md#mapping",
+    ]
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

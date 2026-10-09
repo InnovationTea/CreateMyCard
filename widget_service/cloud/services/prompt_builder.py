@@ -5,6 +5,7 @@ import json
 import re
 from typing import Any
 
+from config.config import get_settings
 from models.generation import TaskSpec
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
@@ -23,7 +24,7 @@ REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(
 _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 本次请求未启用融球能力。忽略本提示词中所有允许使用融球的场景、规则和示例。
-禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用普通组件、渐变、圆形、
+禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用其它组件、渐变、圆形、
 光斑或其它方式模拟融球效果。root 必须按非融球背景规则生成。"""
 
 _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
@@ -127,8 +128,8 @@ W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或�
   “未充电”；第二行只有提供独立信息时才保留。未被用户要求的 updatedAt 不得用于填满槽位。
 - 固定槽优先选语义与容量匹配的 InfoBlock / CardButton，内部几何遵守组件合同，
   不另行指定 padding、字号或图标尺寸。先扣除内部 padding、图标和间距，再检查
-  完整标签与值的文字宽度；放不下先取消可选图标，仍不够则用基础文字组合。
-  基础组合保持文字左对齐、整体垂直居中，不能靠裁切、缩略值或隐藏单位塞进槽位。
+  完整标签与值的文字宽度；放不下先取消可选图标，仍不够则用 Row/Column 组织 Text。
+  文字组合保持左对齐、整体垂直居中，不能靠裁切、缩略值或隐藏单位塞进槽位。
 - userQuery 明确要求动作时先为动作保留右侧槽，再放辅助事实；明确要求两个动作时
   两个右侧槽都作为动作入口，不得让低优先级指标挤掉动作。一个动作时，另一槽只放
   与主焦点最相关的一项事实或两行紧密摘要。
@@ -1512,7 +1513,7 @@ class PromptBuilder:
             layout_scope,
         )
         prompt = system_prompt
-        if include_examples:
+        if include_examples and get_settings().enable_design_compact_few_shots:
             examples = A2UIProtocolRegistry.read_design_few_shot(
                 DESIGN_COMPACT_PROFILE_ID, task_spec.size
             )
@@ -1530,10 +1531,11 @@ class PromptBuilder:
             f"{prompt}\n\n# 本轮组件与布局选择\n\n"
             f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
             "以已接受 Plan 的必要事实与动作为硬合同；优先落实语义、类型和容量匹配的"
-            "高阶组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
+            "组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
             "不能按业务名称、候选字段总数或示例强制构图。"
-            "组件不适配时允许基础组合，不能改变内部 Recipe、删事实或动作来提高使用率。"
-            "最终 DSL 只输出已注册的基础/高阶组件，不输出布局 ID、Card 或 Region 节点。"
+            "候选组件不适配时改选其它已注册组件或合法组件组合，不能改变内部 Recipe、"
+            "删事实或动作来提高使用率。最终 DSL 只输出已注册的基础布局组件和组件，"
+            "不输出布局 ID、Card 或 Region 节点。"
         )
         formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
         if formatted_percent_instruction:

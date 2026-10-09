@@ -20,7 +20,7 @@
 
 1. 普通 `2x2`、`2x4` 的有效高度为 `126vp`；`S-dual-info` 为 `134vp`。
 2. `H_required = 子项高度之和 + 纵向 margin 之和 + itemMargin × 间隔数`。
-3. 无显式高度的容器按其后代实际最小高度、padding、margin 和间距计算；无 height 的 Text 也占行高，不能按零计算。基础 Text 单行至少预留约 `1.4 × fontSize`，多行逐行累计；高阶组件按其展开后的真实行高。包含 `36vp` 按钮时不得按 `0vp` 处理。
+3. 无显式高度的容器按其后代实际最小高度、padding、margin 和间距计算；无 height 的 Text 也占行高，不能按零计算。Text 单行至少预留约 `1.4 × fontSize`，多行逐行累计；使用视觉 Recipe 的组件按其展开后的真实行高。包含 `36vp` 按钮时不得按 `0vp` 处理。
 4. `layoutWeight`、`flexShrink`、`clip` 和分布式对齐不能抵消固定高度或最小间距。
 5. `H_required` 超出有效高度时，删除可选装饰或改选同尺寸布局，不得删必要事实、动作或依赖裁切。
 6. 有动作的正文必须先算剩余高度，再显式声明承载槽高度；不使用无 height 的多层弹性 Column 承载长内容。2x2 带标题单动作有两套成组预算：标题间距6/body100/正文56，或标题间距4/body102/正文58。三行18加两段2需要58，必须使用后一套；标题20、正文至动作间距8、按钮36均不变，不再放24/30fp大值。2x4 双背板内高110，局部标题20、两段4和按钮36扣除后正文只有46，不能再放三行18；应合并短标签、取消可选标题或回退布局。
@@ -44,7 +44,7 @@
 
 - 参考尺寸用于生成预算；实际 surface 变化时，固定宽度内容组在 root 内居中，不把差值堆到单侧。
 - root 固定 `borderRadius:20`、`clip:true`；背景按第十二节的色板或 design 规则生成。
-- 2x2 带标题布局使用 `CardHeader 20vp`；`S-center`、`S-content-dual-action`、`S-dual-info` 和其它无标题布局不使用 CardHeader。
+- 2x2 带标题布局使用卡级 `CardHeader 20vp`；`S-center`、`S-content-dual-action`、`S-dual-info` 和其它无标题布局不使用卡级 CardHeader。只有布局中确有独立内容分区、标题属于该分区且额外 `20vp` 预算成立时，才可在分区内部使用 `CardHeader`。
 - 2x4 只有 `W-top-bottom` 可使用卡级 CardHeader；其它布局的标题必须归属具体内容区。
 
 ## 8.2 数值预算
@@ -52,12 +52,12 @@
 - 每个 Row/Column 都按父容器扣除 padding 后的宽高计算；子项尺寸、margin 和 `itemMargin` 全部计入。
 - Row/Column 省略 `itemMargin` 按 `0` 计算并由转换器显式输出；不得假设端侧会自动补间距。独立信息组仍须按下述规范显式设置间距并计入预算。
 - `start|center|end` 和 `spaceAround|spaceBetween|spaceEvenly` 都必须先满足最小占用量不超界。
-- 动态 Text、Button 或图文动作完成压力预算后，主轴至少保留 `4vp` 余量。
+- 动态 Text、PillButton、CardButton 或图文动作完成压力预算后，主轴至少保留 `4vp` 余量。
 - 间距只使用 `2、4、6、8、10、12、14、16vp`；紧密内容用 `2-6vp`，独立信息组至少 `8vp`。
 - 数字与单位可以使用 `0-4vp`；其它独立信息不得使用 `itemMargin:0`。
 - 固定间距使用 padding 或 `itemMargin`，不得用空容器占位；无布局职责的单子节点容器应折叠。
 - 窄于父容器的主焦点或动作必须由父容器明确设置交叉轴位置。
-- `clip:true` 只约束外形，不能掩盖文本、图标、Progress 或动作越界。
+- `clip:true` 只约束外形，不能掩盖文本、图标、进度组件或动作越界。
 - 可点击元素宽高不得小于 `24vp`；主文字按钮高 `36vp`，底部动作贴近安全区底部。
 - 同一信息组共享左边界、中心线或基线；Stack 不得制造遮挡。
 - 单业务主辅区按实际内容分配高度，不机械等分剩余空间。正文可用 `layoutWeight:1` 承接剩余空间，
@@ -116,6 +116,6 @@ Few-shot 只能示范已登记布局，按已接受 Plan 的信息容量、动�
 - 一级区域数量、尺寸、间距和动作上限与所选布局一致。
 - 标题、主体、支撑信息和动作保持在所属父区域内，不跨业务共享标题或按钮。
 - 普通单业务采用明确主辅；固定分区布局保持登记尺寸，不改成自由比例。
-- 专用 Progress、EventCard 和内容预设只替换所属内容槽，不改变一级几何。
+- ProgressCircle、EventCard 和内容预设只能进入所属内容槽，不改变一级几何。
 - 颜色按第十二节选择；布局 ID 不决定业务色。
 <!-- /prompt:layout-check -->
