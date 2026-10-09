@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 countdown backboard left without an action must directly contain exactly three Text children: target title, numeric countdown, and unit `天`. Do not nest a content/readout Column or add a fourth auxiliary line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "92df5b72150d9e4b8a8c0c1f42a45a1994131680245b2e63efbbb2df0ac69b10",
+    "sample_task_spec.json": "b5cd45897fb0d839085d8315a76f738521489884521bfafb697782c72799de1f",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

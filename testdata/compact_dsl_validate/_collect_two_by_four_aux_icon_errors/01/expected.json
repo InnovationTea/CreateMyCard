@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 130x59 auxiliary backboard cell1 with an icon must contain exactly one one-line Text or one 1-2 line text Column plus one Image. The converter normalizes the cell to left-aligned text and a 20x20vp Image on the right."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5585665d36f5ef1571f2a5cf9830989032e5ddb7ca3c7c15372feb052c54e6a5",
+    "sample_task_spec.json": "d1879708824084bb8db38181e79314d61fadf164f871aa08649dc9d05592bd7d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

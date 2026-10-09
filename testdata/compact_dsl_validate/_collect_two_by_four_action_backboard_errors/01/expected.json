@@ -1,0 +1,12 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone must place its action as the final direct child.",
+    "2x4 large backboard weatherZone content must be a Column."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "88389e6848a683a6dd2c05a449d8bf96758ae2abb4a2fdec253bf81e8aa021c0",
+    "sample_task_spec.json": "595993937fccecff6f6de6a3fff095cfb085a1c15db9d3aa2e107f9ff187d341",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

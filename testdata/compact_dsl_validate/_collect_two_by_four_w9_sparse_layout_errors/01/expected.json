@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 sparse backboard rightZone must use a direct content Column with layoutWeight 1 and justifyContent center so the primary content group remains vertically centered."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "47bced1c1170d3d9ac3d4bf86f2d13bf9d62c0c34b47e2ea88493a8c173d4c83",
+    "sample_task_spec.json": "557c565a4bd33b97b012eb100d3d5ee4a58468d9dcefd9524fc03d96ef7bb8f7",
+    "sample_card_spec.json": "d1b504f461b5d150e3fdb65f788e5c81ffd29a4932cd424f44d8ba897df80f3f"
+  }
+}

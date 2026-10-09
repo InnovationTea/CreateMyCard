@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 centered single-value Hero exceeds the 58vp height pressure budget; downgrade value/unit together instead of clipping it."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "b7471f6d82a2670138486de50a84c9965961859c49ba8286b4ca3193acfcb76c",
+    "sample_task_spec.json": "4a7774f7cf7b1d9bc0a3d7af7c5e10139f7db36be89052219b9f22f310f5a5f3",
+    "sample_card_spec.json": "89d68017ccda7a6938a7cdf90c11d74874349cabae4ec6a8b6c505fe7d7a66a0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 weather-and-calendar cards must combine current temperature and condition in one single-line Text, such as 29° · 多云. Do not split them into separate Text nodes with different font metrics because their visible baselines will not align."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "36b1954ebb41ee0dc4e9f86d6c82e5b0c5800f47b768ae2972ab5d73e60f9470",
+    "sample_task_spec.json": "2d9d87602b0def5de59c2459b6b6b784bcda1d7fb23ce0dec82ccac77abcd3fc",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

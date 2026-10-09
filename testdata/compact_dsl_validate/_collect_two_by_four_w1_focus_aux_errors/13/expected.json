@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 must bind onClick to the auxiliary backboard itself; do not nest a Button or ActionUnit inside it."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "61c229019bc0ba747426c1b045af0121b99748be0ef51b2ef2e3acef58429143",
+    "sample_task_spec.json": "d1879708824084bb8db38181e79314d61fadf164f871aa08649dc9d05592bd7d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

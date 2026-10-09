@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 mixes data roots ['healthSport', 'other']. Each auxiliary cell must belong to one business object."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "2a0f3d93343e62bdb1baf8cd716614ba3a2583ed50009cdbff9b135befee42ea",
+    "sample_task_spec.json": "c9415c8c76e774705a2acbb56e4049bc3ffb96dac2f36dc726a0a7b86bbca814",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

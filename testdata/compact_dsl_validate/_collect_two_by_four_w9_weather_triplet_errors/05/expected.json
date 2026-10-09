@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 weather Text left1 must include the short label '降雨' so the value remains identifiable and is not clipped."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "fdf22fb0f187b4404fb42036f31a61514c761d3d5fe1dd141621d4ceb0ba14a9",
+    "sample_task_spec.json": "5744aff4ad50c75019012b4c540771224fa94b1107ead58d448df85aaef89dc7",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

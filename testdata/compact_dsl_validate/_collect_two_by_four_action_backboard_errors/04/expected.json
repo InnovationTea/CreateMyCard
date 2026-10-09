@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone content must be a Column."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "a0a5b2f696c30808d559f7d6c04b73f309dafa1e987b3bfcdf35715f8b9f794f",
+    "sample_task_spec.json": "9bdbe951bd8b6201dc9e13872a11f9c05127671d0cf50037ee01c34b926cea1d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

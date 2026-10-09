@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 countdown Text left0 must use width 114 and textAlign center inside the balanced countdown backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "4b76057fe17e50b821d4514468046b269c779f8e0ba7d28437430a03486b6a26",
+    "sample_task_spec.json": "422ba4592028813750a0d825bc6de27255e0947985ebd665d93c5c8f04bf8db9",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

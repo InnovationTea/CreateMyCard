@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: Progress.value path /data/metric/x has schema type string; bind a number/integer field such as 68, not formatted text such as '68%'. If only formatted text exists, remove Progress and show the complete value with Text."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "480321655c93cd75ef8ee5ff854ad5784c72f361882ee8278f8ece58c5c15d67",
+    "sample_task_spec.json": "568c200581fc3d3fd2a9ee7cdec193680b0523fe5718a7e1b8e4cd3ffd67cae5",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

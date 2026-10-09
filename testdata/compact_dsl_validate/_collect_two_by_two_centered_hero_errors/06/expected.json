@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 centered single-value Hero must downgrade value and unit together using 38/16fp, 30/14fp, 24/12fp, or 20/12fp limits."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "334763c8242aefadddaae3b1937a81b17e77c5e4583f1b0a0f7e6d9cc01413ba",
+    "sample_task_spec.json": "903a5e1ff041d87b3e362d119745fc04985ccd76e6c67a0a1b26770e377e79a6",
+    "sample_card_spec.json": "a512835489de419a44fe00602bc0274b165058b466a0e7d5bb7bc6acde993b63"
+  }
+}

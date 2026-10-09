@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component text: 2x2 single-day weather must not concatenate date and weekday in one Text. Keep weekday by default, or keep date alone when the user explicitly requests the exact date."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "6e3a7d887893d4aef8de0f28489c30dd27dad69d7b2367ee4a2e8639d2f31e5b",
+    "sample_task_spec.json": "daabe258f27280a2a5887691253b0f7b516385a981cd53fc472b7d034f3a8ef3",
+    "sample_card_spec.json": "a512835489de419a44fe00602bc0274b165058b466a0e7d5bb7bc6acde993b63"
+  }
+}

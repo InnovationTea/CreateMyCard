@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 weather backboard left must display temperature exactly once in its compact three-row summary."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "dc68c8e7d2d4879b23a0ece438c6491338836f9226ee379015b0f4035a124297",
+    "sample_task_spec.json": "5744aff4ad50c75019012b4c540771224fa94b1107ead58d448df85aaef89dc7",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

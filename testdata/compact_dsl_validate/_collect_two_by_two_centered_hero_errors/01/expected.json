@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "f3105f075d25fa935e210b6734b7ca611b2895a154469268e85225d15c2b6c20",
+    "sample_task_spec.json": "b2995da9620eb0b026335bf3640ef7d5599a0176164add438b2759a6b78b5bdb",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

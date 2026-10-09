@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 expanded countdown value_row must belong to a full-width value_group Column."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "ae853b2af00481e717c715cc5b12dc3ca49ecbc5c0cb58ab602340756ee71af9",
+    "sample_task_spec.json": "21d33b5f0ca94d6318ebf8e9ddb84873d5e116579d8efd184b0e1cc5f23d7d29",
+    "sample_card_spec.json": "a512835489de419a44fe00602bc0274b165058b466a0e7d5bb7bc6acde993b63"
+  }
+}

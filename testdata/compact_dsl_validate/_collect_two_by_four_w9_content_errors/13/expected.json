@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 compact weather day left0 must use 12fp/400 auxiliary text."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1606a0971585435956c88ebaf712eb57cff1595eef1aee03547165449d31b210",
+    "sample_task_spec.json": "c9a65ef4a41cbcb3bf5ec2de767a659ab09ab87300f9becbc81b3a7c7702f6cf",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

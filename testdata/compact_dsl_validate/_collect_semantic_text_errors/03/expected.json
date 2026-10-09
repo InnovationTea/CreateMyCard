@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: reminder value must keep its minute semantics, such as 提前 15 分钟; do not display a bare numeric reminder value."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "466190c593326dd7dce5169a62aa2a416ceb35a16982b7e0c2b204f39f2dae8a",
+    "sample_task_spec.json": "5bd9c5bc555c60b36707ab4680781208bd101912c4940beda60a6af7ebeffc0d",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

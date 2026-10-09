@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 150vp single-business content displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "ef35aecc35b986520d53eb464cbeedacdc9177cd2a4506162967c3edf8217952",
+    "sample_task_spec.json": "a906b0ab3708f1bd7a6e19eb2cbf1478d5eeb7ac1ff54d8c810b6d0c78904f54",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

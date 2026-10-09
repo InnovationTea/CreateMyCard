@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value_row: display unit '步' cannot follow non-numeric binding /data/healthSport/calorieText. Remove the unit or bind a number/integer value."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5a9fcd00edfd70b12d31da9b173b3976132130240b6f7f0340022663008ea511",
+    "sample_task_spec.json": "42444a76eff95df322111bc3844ecccd09f3ae454881134ae6382db5a383826a",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

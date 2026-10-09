@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component icon: tintable SVG resources/heart.svg must set fillColor explicitly; omitting it renders the asset's default black."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "fdb1640445167630dc2cf4338f0e9281586ac972544ef9f0c275bba276466d74",
+    "sample_task_spec.json": "aa4c9b17d9716cc23c4acb30967cacea5bd3fbdad700b3e39a0ef65dbc7751fa",
+    "sample_card_spec.json": "d1b504f461b5d150e3fdb65f788e5c81ffd29a4932cd424f44d8ba897df80f3f"
+  }
+}

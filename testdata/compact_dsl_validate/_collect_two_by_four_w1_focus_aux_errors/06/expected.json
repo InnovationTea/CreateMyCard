@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux must reserve right auxiliary cells for explicit actions (0/1). Drop or merge lower-priority facts instead of omitting the requested action."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "2629ac8f037d7a2013785d7042ad700f5d4b5d09bca22daddbae9922f8240184",
+    "sample_task_spec.json": "ac3e577c954f0ebcc390c5e38761345cd3b90e9283811d2d13d8146c1276bb9f",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

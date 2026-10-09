@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component image.props.src: asset must use an original src from TaskSpec.assetCandidates."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "445eb140a31680464ca96c111bb4b6619cd0e1789b9aff425a5ffc38fd17f41d",
+    "sample_task_spec.json": "f19c4a530ef870aac13034895c40a686bb2d3c30aa83e3ea000391b337dc0cfe",
+    "sample_card_spec.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  }
+}

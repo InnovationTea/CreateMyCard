@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 must keep explicitly requested actions inside their owning backboards (0/1). Remove lower-priority text before dropping an action."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "f6adb2850cf89e676d7e795e59e51b4f847c2b4a12c661ccb3ffa5fe262d0ed9",
+    "sample_task_spec.json": "cc3adf887bc4e530d91acad92a4978deecdb4d7b26669fb5b161cab8b5443f08",
+    "sample_card_spec.json": "d1b504f461b5d150e3fdb65f788e5c81ffd29a4932cd424f44d8ba897df80f3f"
+  }
+}

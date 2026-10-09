@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 numeric value left1 and unit left0 must be adjacent Text children of the same Row. Use Row alignItems bottom without bottom padding on the smaller Text; do not place a non-countdown unit on the next line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1e746519f6bc16cd1051188f1c985e7ee5d74de183f386a89b596a73c2dccc2b",
+    "sample_task_spec.json": "5744aff4ad50c75019012b4c540771224fa94b1107ead58d448df85aaef89dc7",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

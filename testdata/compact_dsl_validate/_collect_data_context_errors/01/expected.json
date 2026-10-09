@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "TaskSpec.dataModelSchema must be an object."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "92207ec7bb9383c4941b73f4381d730e05834f6055735b525de451976a278d42",
+    "sample_task_spec.json": "f491c0ffc0bdb6114cf912fa222b177d0974d39535d1ac838abd07f740ae2999",
+    "sample_card_spec.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  }
+}

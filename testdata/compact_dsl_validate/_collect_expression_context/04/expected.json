@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.content: expression has no ${/json/pointer} reference; use a plain static value instead."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "77319a4fb82893c797c4a324ae261d50ad924cde498e9117e898a1478044b987",
+    "sample_task_spec.json": "6c9d1edcf38a29e2bd884af3d0f68d265556dcb19d774aa44b77dbc7363ade6f",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

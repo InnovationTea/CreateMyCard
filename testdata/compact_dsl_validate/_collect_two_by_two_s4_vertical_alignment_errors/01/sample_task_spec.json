@@ -1,0 +1,62 @@
+{
+  "userQuery": "我想随时看看手机和耳机盒还剩多少电、有没有在充电，点手机那块能打开电池设置，点耳机那块能打开蓝牙设置。",
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "battery"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "bluetooth_entry"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "手机剩余电量百分比0到100",
+          "sampleValue": 68
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "手机当前充电状态",
+          "sampleValue": "未充电"
+        }
+      },
+      "earphone": {
+        "batteryLevel": {
+          "type": "integer",
+          "description": "耳机盒电量百分比0到100",
+          "sampleValue": 47
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "耳机盒当前充电状态",
+          "sampleValue": "充电中"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/base/media/phone_fill.svg",
+      "description": "本地手机图标"
+    },
+    {
+      "src": "resources/base/media/earphone_case_16644.svg",
+      "description": "本地耳机盒图标"
+    }
+  ]
+}

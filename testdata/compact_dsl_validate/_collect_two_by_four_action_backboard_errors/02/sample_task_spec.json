@@ -1,0 +1,36 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "project": {
+        "countdownDays": {
+          "type": "integer",
+          "sampleValue": 10
+        }
+      },
+      "other": {
+        "a": {
+          "type": "string",
+          "sampleValue": "甲"
+        },
+        "b": {
+          "type": "string",
+          "sampleValue": "乙"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 centered single-value Hero exceeds the 106vp width pressure budget; downgrade value/unit together through 38/16fp -> 30/14fp -> 24/12fp -> 20/12fp until it fits."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "268238110f03272f7928d20e0c7c4d9ded7aae111909a18dfa25029266becdfe",
+    "sample_task_spec.json": "ff74a1961c8c73d34575322ae225f661a136891fa67481b3d9310506f9bc0d29",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

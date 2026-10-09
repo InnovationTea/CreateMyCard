@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone with a Button may contain at most four Text nodes across no more than three visual rows. Merge or remove lower-priority fields."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "77ed7dff566dd9d0f2a7656b5d40910c6534d251727e3ec375dfc97c398408b4",
+    "sample_task_spec.json": "d0b81c8928e8e4a56d7f7098c827966796ec1218fe0203fc6adf160a3a3e73fc",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: ActionUnit must not declare children."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "e40c9057fae31d867d12572dba626e17ac387aab6480e2535ac2ce63f0a21575",
+    "sample_task_spec.json": "1306147315fbaec56634472296af441c3f2ed19db0b42e04dae53f637abe8c17",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

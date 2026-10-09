@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 countdown backboard left must contain exactly one unit Text `天`, placed below the numeric hero. Do not generate both an inline unit and another unit below it."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "21888092c2676a94da13f90cbf215fd7bfae2ed89bc5798e85320ccdba29f37a",
+    "sample_task_spec.json": "243a052695de1e60fcb912084ee79d4cf4fc03862cc6c048b96c70e9f3a32c18",
+    "sample_card_spec.json": "b2b470b89857f5a5993bc2630f5e1e95723ce7521e57da74cd69424107326b94"
+  }
+}

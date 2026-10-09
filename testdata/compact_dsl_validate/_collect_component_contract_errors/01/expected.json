@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "CardHeader.icon must be a non-empty asset path when present."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "871ef0b344c12a40748e2fa11a277abe21c951ab639c876e246257ec070b8b6e",
+    "sample_task_spec.json": "3cea2de436cee3b2e14c3680d08bc310644ef2862747e42f94d9eb06bc1e7760",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component cta: ActionUnit.state must be \"capsule\" or \"icon-round\"."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9ac61e5ebcc41bdb98276540c3d30de3440819116a842b5258d20d158bb27625",
+    "sample_task_spec.json": "a7a29369db09047ff6d3a08cea69fe773456f104e812963de8e027b0022c7b72",
+    "sample_card_spec.json": "cbe2dc073e1a7fe2a00b21cc6eb9200e323b6628bbe74395639d19dc7bacd26e"
+  }
+}

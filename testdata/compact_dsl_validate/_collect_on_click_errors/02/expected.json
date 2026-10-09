@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.onClick[0]: handler must be an object."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "69f5f6a8f5e78f9324ca8327cc8635f41e5c62e5b661b553ba9c988c75429afc",
+    "sample_task_spec.json": "6c9d1edcf38a29e2bd884af3d0f68d265556dcb19d774aa44b77dbc7363ade6f",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

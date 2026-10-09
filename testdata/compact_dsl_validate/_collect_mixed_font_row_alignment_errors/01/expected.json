@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component progressText: a Row containing mixed Text font sizes must use alignItems bottom so every visible text bottom aligns."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "8e83b19d89d6a3bc68a664956d272f8f4deae34099d16ed45aff01e833e12bf6",
+    "sample_task_spec.json": "c60683e730cee888815f775b6083a4862c4049e16ec76c79ad115b661b6db7b5",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

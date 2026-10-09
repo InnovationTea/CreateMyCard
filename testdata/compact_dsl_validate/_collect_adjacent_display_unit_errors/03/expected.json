@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component valueRow: numeric value and unit unit must use Row alignItems \"bottom\"; the unit must use capped visual bottom padding for its font-size difference and must not use the numeric value's fixed height; both Text nodes must use intrinsic width and their Row itemMargin must not exceed 4."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5b3724ee306ed0b184a440a9f74693e654ec9497804f282c0911390ec60e496c",
+    "sample_task_spec.json": "8b0745de0e20c9b90a00db6c102c2e75a015adc2c66839f934804c525d1959d4",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

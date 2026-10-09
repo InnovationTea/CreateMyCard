@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: value /data/health/coldIndex has ambiguous meaning (感冒指数等级); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "579add60f4a87535a827183d801e9b7ecb097fb6576204ce87fa2e5fd4d32457",
+    "sample_task_spec.json": "64033e973d9bcedf1fcea65b67b4ef6a6210a864a3eb051f8ac2bd65eae0a675",
+    "sample_card_spec.json": "e1a53719da79348dc87aad7aeae45a75062328ec68e7af50ec56b77669d1380b"
+  }
+}

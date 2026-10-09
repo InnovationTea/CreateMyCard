@@ -1,0 +1,39 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "first": {
+        "a": {
+          "type": "integer",
+          "sampleValue": 10
+        },
+        "b": {
+          "type": "integer",
+          "sampleValue": 20
+        }
+      },
+      "second": {
+        "a": {
+          "type": "integer",
+          "sampleValue": 30
+        },
+        "b": {
+          "type": "integer",
+          "sampleValue": 40
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    },
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

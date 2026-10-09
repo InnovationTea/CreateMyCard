@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 graphical action Row earphoneZone must use itemMargin 8, at least 8vp left/right padding, justifyContent center, and alignItems center so its icon and label stay centered."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "7756c462f48ae8973f819bc41b4f20a05f751fca94c06dccdbc879d4875475d3",
+    "sample_task_spec.json": "90c76bbaff32cad5c6f1718645343b73e47218f2539dd0688661cff76de1d08c",
+    "sample_card_spec.json": "b2b470b89857f5a5993bc2630f5e1e95723ce7521e57da74cd69424107326b94"
+  }
+}

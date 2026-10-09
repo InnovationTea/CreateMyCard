@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.content: expression must occupy the full string as \"{{ ... }}\" and contain exactly one wrapper."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "4dab5e313bd0009e5fea2951b4d7afce4b8be714216f75b0cfeb3d71c956b8c2",
+    "sample_task_spec.json": "6c9d1edcf38a29e2bd884af3d0f68d265556dcb19d774aa44b77dbc7363ade6f",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

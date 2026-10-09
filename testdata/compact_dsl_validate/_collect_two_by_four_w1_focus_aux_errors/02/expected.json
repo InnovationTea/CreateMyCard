@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux left focus Image new is decorative and must be removed. Only an Image centered inside a Stack that also contains a valid ring Progress is allowed there."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "a38b74fe9d02ed5ced624a46a1f61de7fbb5468bcb9f651dd75699f08c2be13a",
+    "sample_task_spec.json": "d1879708824084bb8db38181e79314d61fadf164f871aa08649dc9d05592bd7d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

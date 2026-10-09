@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux left content Column statusArea must use alignItems center."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "b6c51cb55a7c326832268e34626b738aaea7238f59811f8ce9c54ad302e464e5",
+    "sample_task_spec.json": "6c342ec76a080355e99b426141f1d451ded6fdbce66e7cead7f0597e78675219",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

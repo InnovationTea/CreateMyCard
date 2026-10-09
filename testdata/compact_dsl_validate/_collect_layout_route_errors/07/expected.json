@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 card displays at least four semantic metric groups and must use W8: root must be a Column with padding 8 and two direct 284x63 Rows separated by itemMargin 8; each Row must contain two 138x63 backboards separated by itemMargin 8. Merge naturally related weather facts before dropping the lowest-priority group."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1d0afdec134c2c3167846833fb9a908fad875fa844958f6cbf133131fddfce13",
+    "sample_task_spec.json": "d0d72ac7ec0aa054dd68e9000591ee7813784838a4c3a881efa3326982bf4545",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

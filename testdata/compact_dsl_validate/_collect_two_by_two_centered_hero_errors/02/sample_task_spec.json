@@ -1,0 +1,22 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "sampleValue": 68,
+          "unit": "%"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

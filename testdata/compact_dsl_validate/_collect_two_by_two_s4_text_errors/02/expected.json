@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 calendar backboard one must keep a separate 14fp/700 meeting title above its 12fp/400 time row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "f8eb4b10493a6ff06bf8511f046f62318c90c496c5621acb2aa87d58e7cb4e00",
+    "sample_task_spec.json": "a0474a1a3156803633d57ae9c382dbea9b158acfcd63f04506fa8c6b551eaae2",
+    "sample_card_spec.json": "a512835489de419a44fe00602bc0274b165058b466a0e7d5bb7bc6acde993b63"
+  }
+}

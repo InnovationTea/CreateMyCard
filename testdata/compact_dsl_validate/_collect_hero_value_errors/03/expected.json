@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component weatherReadout: formatted value weatherValue already contains its unit; do not append Text new or a field label."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "983a2972eb7fc8e8fd6001f7ebb97a48b646291e0717b11e7fb882e6f2de6fc5",
+    "sample_task_spec.json": "d0b81c8928e8e4a56d7f7098c827966796ec1218fe0203fc6adf160a3a3e73fc",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

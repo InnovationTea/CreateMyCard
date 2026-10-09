@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 weather Text left0 must use 12fp/400 in the compact three-row summary."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "4bcb3ff0859208d7874b4c2509d85ba16bebdde1a6d237ead4e2a5a46e41d191",
+    "sample_task_spec.json": "5744aff4ad50c75019012b4c540771224fa94b1107ead58d448df85aaef89dc7",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 full-width action action must be the final direct child of foreground Column {parent.component_id}."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "140fd1b3905281a459509250dc9e69aa54ac2a4199a5c1b0244f0aa6012ef7c6",
+    "sample_task_spec.json": "57595c45aa06e3077c4ae64a703423baff780377163ab5876e668aa916931663",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

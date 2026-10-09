@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux sparse or value-led left content must use alignItems center. Event lists and dense summaries may remain left-aligned, but their full group must still be vertically centered."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "0b72d85a099fc18df4a03ee465dfec40bd00c42f9ab60ed2fda3feefdcefd892",
+    "sample_task_spec.json": "3c21fca3f905519922115c81759a3860b0cb684b37efb61ec81d0aeee3e0285d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

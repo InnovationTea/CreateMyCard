@@ -1,0 +1,17 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "max": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": []
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 backboard rightZone mixes data roots ['left', 'right']. Each backboard must display exactly one business object; move every field to its owning backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "3fcda433ebe765e84dae94206e834d0b983f73e22c1a339930e4bac706f67b9b",
+    "sample_task_spec.json": "557c565a4bd33b97b012eb100d3d5ee4a58468d9dcefd9524fc03d96ef7bb8f7",
+    "sample_card_spec.json": "d1b504f461b5d150e3fdb65f788e5c81ffd29a4932cd424f44d8ba897df80f3f"
+  }
+}

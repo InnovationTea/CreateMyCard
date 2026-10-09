@@ -1,0 +1,14 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "sleep": {
+        "value": {
+          "type": "string",
+          "description": "睡眠时长",
+          "sampleValue": "7小时1分"
+        }
+      }
+    }
+  }
+}

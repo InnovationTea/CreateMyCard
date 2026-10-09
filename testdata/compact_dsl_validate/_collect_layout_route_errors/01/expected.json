@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 card displays two semantic data blocks (first, second) and must use W9: root must be a Row with padding 8 and exactly two direct 138x134 Column backboards with itemMargin 8. Do not use a shared title, a shared action area, or stacked full-width business rows."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "7497f2a9fa8acc5c8d993f85e137a864581e3d459e439de0c5ec2191bcb4bcf0",
+    "sample_task_spec.json": "0769f404e12af887a8dede5f65805b2f3080ac9e3d4df4488128ff431f8b8199",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "/state/missing: binding path has no matching Compact DSL data row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "495b2490cf05a0c5c93efc04484e6dec43ab432cbf1ef83047f0f3509e2acb18",
+    "sample_task_spec.json": "6c9d1edcf38a29e2bd884af3d0f68d265556dcb19d774aa44b77dbc7363ade6f",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

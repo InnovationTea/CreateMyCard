@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.content: expression reference \"invalid\" must be an absolute JSON Pointer."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "b12c913f609132947914a6c27eb4215c43fed1340293a914dd7a04a82f003f8b",
+    "sample_task_spec.json": "6c9d1edcf38a29e2bd884af3d0f68d265556dcb19d774aa44b77dbc7363ade6f",
+    "sample_card_spec.json": "da782f90d0fd185582b58f0c89d16d2a3a5aad9b5ce29d808cbd372309be3803"
+  }
+}

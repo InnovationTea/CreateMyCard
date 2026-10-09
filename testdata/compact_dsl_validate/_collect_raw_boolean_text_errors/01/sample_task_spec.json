@@ -1,0 +1,16 @@
+{
+  "size": "4x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "device": {
+        "isConnected": {
+          "type": "boolean",
+          "description": "设备是否已连接",
+          "sampleValue": true
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

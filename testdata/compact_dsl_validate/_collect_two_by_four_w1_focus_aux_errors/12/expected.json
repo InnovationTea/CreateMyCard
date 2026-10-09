@@ -1,0 +1,12 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 displays two dynamic facts in one Text. Use two single-line Text nodes, one fact per line, instead of joining them with '|'.",
+    "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "6a086eaf23a3c87acf960f6024721003562552dd042a68517fae57cc0e8e47ea",
+    "sample_task_spec.json": "3c21fca3f905519922115c81759a3860b0cb684b37efb61ec81d0aeee3e0285d",
+    "sample_card_spec.json": "e92fabf35ca7d529a840c51b13ebda4fff869f6701901cc490083cd3bf495b22"
+  }
+}

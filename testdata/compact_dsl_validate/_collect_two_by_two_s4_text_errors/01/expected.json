@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 backboard one contains 3 Text rows; keep at most two single-line Text components."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "64d2d8060e3fd1d5c2ce9bf7e9673e08d2f0155308bb1139c9d535d4f0afde3d",
+    "sample_task_spec.json": "ccaa1493bfdc895e1ce66e00f8d84d8649c57a4dd9781bb5c2588d1c75ce76b8",
+    "sample_card_spec.json": "a512835489de419a44fe00602bc0274b165058b466a0e7d5bb7bc6acde993b63"
+  }
+}
