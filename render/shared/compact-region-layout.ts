@@ -50,7 +50,11 @@ function adaptiveSlots(authors: Map<string, MiniNode>, expanded: Map<string, Min
             if (!(axis in resolved) && boxes.get(id)?.[axis] !== undefined) resolved[axis] = boxes.get(id)![axis];
           }
         }
-        if (Object.entries(rule.props ?? {}).some(([key, value]) => JSON.stringify(resolved[key]) !== JSON.stringify(value))) return false;
+        if (Object.entries(rule.props ?? {}).some(([key, value]) => {
+          const actual = resolved[key] === "matchParent" && typeof value === "number" && axes.includes(key as Axis)
+            ? boxes.get(id)?.[key as Axis] : resolved[key];
+          return JSON.stringify(actual) !== JSON.stringify(value);
+        })) return false;
         const count = node.children.length;
         if (rule.childCount !== undefined && count !== rule.childCount) return false;
         if (rule.childCountMin !== undefined && count < rule.childCountMin) return false;
@@ -62,7 +66,7 @@ function adaptiveSlots(authors: Map<string, MiniNode>, expanded: Map<string, Min
           const expected = rule.slotSize?.[axis];
           if (expected === undefined) continue;
           let length = resolved[axis] ?? actual.props[axis];
-          if (axis === "width" && length === "matchParent") length = expected;
+          if (length === "matchParent") length = boxes.get(id)?.[axis];
           if (length !== expected) return false;
         }
         if (rule.slotSize) slots.add(id);
