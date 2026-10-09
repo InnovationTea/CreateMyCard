@@ -279,6 +279,30 @@ def _diagnostics_for_rule_fixture(rule: int, suffix: str):
     return validate_card(artifact=artifact).diagnostics
 
 
+def _diagnostics_for_r91_missing_output_schema(suffix: str):
+    """Force the R91 output-schema precondition without changing validators."""
+    original_loader = RuleRegistry._load_capabilities
+
+    def load_capabilities_without_output_schema(registry):
+        capabilities = original_loader(registry)
+        capability = dict(capabilities["GetHealthAndSportSummary"])
+        capability.pop("outputSchema", None)
+        capabilities["GetHealthAndSportSummary"] = capability
+        return capabilities
+
+    with pytest.MonkeyPatch.context() as patch_context:
+        patch_context.setattr(
+            RuleRegistry,
+            "_load_capabilities",
+            load_capabilities_without_output_schema,
+        )
+        patch_context.setattr(
+            "services.card_validation.cross_validator.schema_path_exists",
+            lambda _schema, _pointer: False,
+        )
+        return _diagnostics_for_rule_fixture(91, suffix)
+
+
 @pytest.mark.parametrize(
     ("rule", "target_severity", "target_pointer", "target_message"),
     [
@@ -312,13 +336,22 @@ def _diagnostics_for_rule_fixture(rule: int, suffix: str):
             "/dataBindings/0/writeResultTo",
             "该 capability 建议写入约定的 DataModel 根路径。",
         ),
+        (
+            91,
+            "warning",
+            "/dataBindings/0/capabilityId",
+            "capability 缺少 outputSchema，无法完整推导 UI 路径。",
+        ),
     ],
-    ids=["R29", "R73", "R18", "R43", "R74"],
+    ids=["R29", "R73", "R18", "R43", "R74", "R91"],
 )
 def test_shared_diagnostic_rules_hit_exact_branch_and_clean_baseline(
-    rule, target_pointer, target_severity, target_message
+    rule, target_severity, target_pointer, target_message
 ):
-    negative_diagnostics = _diagnostics_for_rule_fixture(rule, "1")
+    if rule == 91:
+        negative_diagnostics = _diagnostics_for_r91_missing_output_schema("1")
+    else:
+        negative_diagnostics = _diagnostics_for_rule_fixture(rule, "1")
     target_diagnostics = [
         item
         for item in negative_diagnostics
@@ -415,6 +448,8 @@ def test_every_rule_fixture_hits_declared_diagnostic(rule):
         }]
         EffectiveCapabilityValidator().validate(context, rules, reporter)
         diagnostics = reporter.diagnostics
+    elif rule == 91:
+        diagnostics = _diagnostics_for_r91_missing_output_schema("1")
     else:
         diagnostics = validate_card(artifact=artifact).diagnostics
     assert any(item.code == RULE_CODES[rule] for item in diagnostics), [
