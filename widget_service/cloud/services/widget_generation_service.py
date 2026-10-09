@@ -545,7 +545,6 @@ class WidgetGenerationService:
                     design_system_prompt,
                     policy.source_format,
                     previous_design_token=previous_design_token,
-                    extrainfo=request.extrainfo,
                 )
             else:
                 prompt = PromptBuilder().build(
@@ -555,7 +554,6 @@ class WidgetGenerationService:
                     previous_genui=(
                         source_load_result.artifact.genui if source_load_result else None
                     ),
-                    extrainfo=request.extrainfo,
                 )
             prompt_log_summary = build_prompt_log_summary(
                 prompt,
