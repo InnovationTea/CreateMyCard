@@ -28,6 +28,7 @@ from .calendar_field_paths import (
     calendar_reminder_aliases,
     normalize_calendar_reminder_bindings,
 )
+from .compiler import template_displayed_binding_names
 from .models import TemplateDefinition
 from .provider_bundle import (
     asset_semantic_tags,
@@ -230,14 +231,17 @@ def build_template_retrieval_prompt(
     battery_only = set(capability_ids) == {"GetPhoneBatteryInfo"} and task_spec.size == "2x2"
     battery_rule = ""
     if battery_only:
+        payload["batteryTemplateReference"] = _battery_template_reference(
+            registry, coverage_bindings, task_spec,
+        )
         battery_rule = (
             "allowBatterySettingsFallback 仅标记单手机电量用户是否允许默认电池设置入口："
             "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
             "只展示不交互等时为 false；其他业务或多个业务也为 false。"
             "没有提到按钮不等于禁止按钮。action 仍只含显式需求，不直接选择默认入口。"
-            "服务端在 Search 后优先使用匹配的 Full；只有没有 Full 而有可用 Hero，"
-            "且没有已选动作、候选中存在唯一合法电池设置入口时，才补选该入口。"
-            "不得自行判断模板条件，也不得为兜底补字段、删用户要求的字段或编造事件。"
+            "服务端在 Search 后没有合法候选动作时只采用 Full；有唯一合法候选设置入口且允许交互时，"
+            "Full 与 Hero 加该入口平等参与比较，优先可展示候选字段更多的方案，不设 Full 优先。"
+            "可参考实际模板字段判断覆盖，但最终选择仍由服务端执行；也不得为兜底补字段、删用户要求的字段或编造事件。"
             "没有电池设置候选且用户明确要求电池健康时，服务端可补选唯一合法电池健康入口，"
             "按钮仍为电池健康；不得把省电模式作为默认入口。"
         )
@@ -337,6 +341,25 @@ def build_template_retrieval_prompt(
             "缺任意一项则整层隐藏；必须核对该条件才能认定覆盖充电状态需求。"
             "字段筛选遵守明确需求和核心辅助字段规则，动作统一按完整方案比较规则决定。"
         )
+    if battery_only:
+        system = (
+            "\n【单手机电量字段筛选优先规则】本规则优先于通用的不得参考模板反推字段规则。"
+            "只以userQuery确定必须展示字段；title、description和候选字段不能扩大需求。"
+            "非必选、且未被用户明确禁止的输入字段才作为可选候选，"
+            "保留原输入但不要放入requiredOutputFieldsByCapability；"
+            "用户明确禁止的字段不得作为附带展示的候选。"
+            "模板有该字段且输入存在可以附带展示，模板没有就不展示。"
+            "batteryTemplateReference提供当前启用模板的真实字段；比较displayFields覆盖需求、"
+            "missingInputFields为空且动作数量合适的完整方案，优先采用可被模板满足的合理概览解释。"
+            "所有必选字段被覆盖且输入齐全后，尊重用户的禁止要求、保证显式主焦点，"
+            "再优先匹配实际展示候选字段更多的模板；仅声明、不渲染或条件未满足的字段不计分。"
+            "仅统计本次输入实际提供且模板能够展示的不同字段，不为提高数量把候选变为必选。"
+            "不得删除用户明确要求，也不得把/batterySOCText当作缺失的/batterySOC。"
+            "例如query为充电状态和电池情况且提供文本电量时，必须字段通常为"
+            "/batterySOCText和/chargingStatusDesc；非必选且未被禁止的健康、充电类型、温度才作为候选。"
+            "明确要求充电类型时仍必须保留/pluggedTypeDesc，即使没有模板覆盖。"
+            "动作沿用allowBatterySettingsFallback规则，不直接输出模板ID或布局。"
+        ) + "\n" + system
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -409,6 +432,45 @@ def _earphone_template_reference(
     return references
 
 
+def _battery_template_reference(
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    task_spec: TaskSpec,
+) -> list[dict[str, Any]]:
+    """Expose enabled battery template inputs without promoting candidate fields to requirements."""
+    candidate_paths = _candidate_paths(coverage_bindings, "GetPhoneBatteryInfo")
+    references: list[dict[str, Any]] = []
+    for record in registry.template_variant_search_records:
+        if record.capability_id != "GetPhoneBatteryInfo":
+            continue
+        if "2x2" not in record.supported_card_sizes:
+            continue
+        if not registry.template_is_enabled(record.template_id):
+            continue
+        roots = tuple(
+            binding.writeResultTo for binding in coverage_bindings
+            if binding.capabilityId == "GetPhoneBatteryInfo"
+        )
+        displayed = _template_available_data_fields(
+            registry.require_template(record.template_id), task_spec, roots, candidate_paths,
+            rendered_only=True,
+        )
+        relative_displayed: set[str] = set()
+        for root in roots:
+            for pointer in displayed:
+                if pointer.startswith(root.rstrip('/') + '/'):
+                    relative_displayed.add(pointer.removeprefix(root.rstrip('/')))
+        references.append({
+            "templateId": record.template_id,
+            "roles": [provider_template_layout_kind(record.template_id)],
+            "displayFields": sorted(relative_displayed),
+            "requiredInputFields": sorted(record.required_paths),
+            "optionalInputFields": sorted(record.available_paths.difference(record.required_paths)),
+            "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
+        })
+    return references
+
+
 def search_template_variants(
     intent: TemplateSearchIntent,
     task_spec: TaskSpec,
@@ -433,6 +495,7 @@ def search_template_variants(
     requested_ids = set(intent.required_output_fields_by_capability)
     if not requested_ids.issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
+    battery_only = task_spec.size == "2x2" and requested_ids == {"GetPhoneBatteryInfo"}
 
     result_groups: list[TemplateBusinessCandidates] = []
     matched_preferred_ids: set[str] = set()
@@ -464,7 +527,7 @@ def search_template_variants(
             card_spec,
             preferred_template_ids,
             candidate_output_fields=candidate_paths,
-            retain_all_candidates=task_spec.size == "2x4",
+            retain_all_candidates=task_spec.size == "2x4" or battery_only,
             allow_battery_text_level_fallback=(
                 task_spec.size == "2x2"
                 and tuple(intent.required_output_fields_by_capability) == ("GetPhoneBatteryInfo",)
@@ -479,18 +542,25 @@ def search_template_variants(
                 if task_spec.size == "2x2":
                     if not set(explicit_fields).issubset(covered_paths):
                         continue
+                available_fields = _template_available_data_fields(
+                    registry.require_template(template_id), task_spec, data_roots, candidate_paths,
+                    rendered_only=battery_only,
+                )
+                if battery_only:
+                    displayed_relative: set[str] = set()
+                    for root in data_roots:
+                        for pointer in available_fields:
+                            if pointer.startswith(root.rstrip('/') + '/'):
+                                displayed_relative.add(pointer.removeprefix(root.rstrip('/')))
+                    if not set(explicit_fields).issubset(displayed_relative):
+                        continue
                 candidates.append(
                     TemplateSearchCandidate(
                         templateId=template_id,
                         coveredExplicitFields=tuple(
                             path for path in explicit_fields if path in covered_paths
                         ),
-                        availableDataFields=_template_available_data_fields(
-                            registry.require_template(template_id),
-                            task_spec,
-                            data_roots,
-                            candidate_paths,
-                        ),
+                        availableDataFields=available_fields,
                     )
                 )
                 if template_id in preferred_ids:
@@ -1787,11 +1857,13 @@ def _template_available_data_fields(
     task_spec: TaskSpec,
     data_roots: tuple[str, ...],
     candidate_paths: set[str],
+    *,
+    rendered_only: bool = False,
 ) -> tuple[str, ...]:
     """Report distinct, usable binding paths without ranking Search candidates."""
-    paths: set[str] = set()
-    for binding in definition.bindings.values():
-        if binding.path not in candidate_paths:
+    paths_by_binding: dict[str, str] = {}
+    for name, binding in definition.bindings.items():
+        if not rendered_only and binding.path not in candidate_paths:
             continue
         root = data_roots[binding.root_index]
         pointer = f"{root.rstrip('/')}{binding.path}"
@@ -1804,8 +1876,33 @@ def _template_available_data_fields(
             and actual_type in ("integer", "number")
         )
         if actual_type == binding.data_type or numeric_types_match:
-            paths.add(pointer)
-    return tuple(sorted(paths))
+            paths_by_binding[name] = pointer
+    if rendered_only:
+        parameter_names = _available_asset_parameters(definition, task_spec)
+        displayed = template_displayed_binding_names(
+            definition.variants[0], set(paths_by_binding), parameter_names,
+        )
+        paths_by_binding = {
+            name: path for name, path in paths_by_binding.items() if name in displayed
+        }
+    return tuple(sorted(set(paths_by_binding.values())))
+
+
+def _available_asset_parameters(definition: TemplateDefinition, task_spec: TaskSpec) -> set[str]:
+    """字段分析只使用真实候选素材证明参数存在，不读取样例值决定分支。"""
+    names: set[str] = set()
+    properties = definition.variants[0].parameters_schema.get("properties", {})
+    for name, schema in properties.items():
+        if parameter_value_kind(name, schema) != "asset-source":
+            continue
+        required_tags = set(definition.asset_parameter_semantic_tags.get(name, ()))
+        for asset in task_spec.assetCandidates:
+            if not isinstance(asset, dict) or not isinstance(asset.get("src"), str):
+                continue
+            if required_tags.issubset(asset_semantic_tags(asset)):
+                names.add(name)
+                break
+    return names
 
 
 def _capability_data_roots(

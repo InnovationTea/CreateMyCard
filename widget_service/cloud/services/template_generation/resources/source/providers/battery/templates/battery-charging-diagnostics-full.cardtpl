@@ -1,0 +1,55 @@
+#Template BatteryOverviewChargingDiagnosticsFull@1(props: {})
+data = {
+    level: $path("/batteryCapacityLevelDesc"),
+    current: $path("/nowCurrentText"),
+    voltage: $path("/voltageText"),
+    present: $path("/isBatteryPresentText")
+}
+
+Column(
+  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
+   "itemMargin": 0, "justifyContent": "start", "alignItems": "start",
+   "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text("手机电量", {"width": "matchParent", "height": 16, "margin": {"bottom": 8},
+    "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+    "maxLines": 1, "flexShrink": 0, "textOverflow": "ellipsis"}),
+  Text(data.level, {"width": "matchParent", "height": 40, "margin": {"bottom": 6},
+    "fontSize": 30, "minFontSize": 18, "fontWeight": 700,
+    "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0,
+    "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
+  Column(
+    {"width": "matchParent", "height": 56, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "start", "flexShrink": 0},
+    Row(
+      {"width": "matchParent", "height": 16, "itemMargin": 4,
+       "justifyContent": "start", "alignItems": "center"},
+      Text("实时电流", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+      Text(data.current, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+        "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+        "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0}})
+    ),
+    Row(
+      {"width": "matchParent", "height": 16, "itemMargin": 4,
+       "justifyContent": "start", "alignItems": "center"},
+      Text("电池电压", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+      Text(data.voltage, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+        "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+        "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0}})
+    ),
+    Row(
+      {"width": "matchParent", "height": 16, "itemMargin": 4,
+       "justifyContent": "start", "alignItems": "center"},
+      Text("电池在位", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+        "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+      Text(data.present, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+        "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+        "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0}})
+    )
+  )
+)
+#End

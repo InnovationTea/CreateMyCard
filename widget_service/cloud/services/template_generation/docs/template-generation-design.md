@@ -28,6 +28,9 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 仍用于预览、添加确认和卡片管理；卡内标题由模板或受信布局输入显式定义，不按 Hero 后缀、业务数量或尺寸
 启用通用补标题兜底。显式标题、业务内容和动作必须保留。
 
+手机电量与蓝牙耳机组合不再由编译器额外添加“设备电量”标题，所有布局统一遵守；
+保留各模板自身定义的标题，以及其它业务组合已有的标题处理。
+
 正式业务模板必须在业务内容根组件的内联属性中显式声明 `_advancedComponent`，沿用业务族标记，
 已有细分形态标记保持不变；带动作覆盖层的模板可将标记保留在内部业务内容容器上。
 该标记只用于可信编译阶段识别业务区、保护模板内容，不触发通用补标题，输出 A2UI 前必须移除。
@@ -205,3 +208,96 @@ EarbudPairFull 要求名称或连接状态至少一项可用，保留编译期�
 字段覆盖，Planner 枚举完整布局、固定业务实例和按钮归属；第二层不再自行决定宽卡片组合。
 通用健康指标的每个路径参数随 Plan 固定，并在编译前校验。完整规则和兼容入口边界见
 [Search 与 Planner 交互契约](template-search-planner-contract.md#7-横版组合规则)。
+
+### 充电状态 Hero 的纵向预算
+
+Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上下各12vp内边距、36vp按钮及8vp区域间距下，业务区可用82vp。存在充电状态时，去掉数字行顶部6vp额外留白，使标题16vp、数字40vp、状态16vp及两个4vp间距合计80vp，避免状态行被父容器裁切。缺少状态时保留原6vp留白；不改变字号、按钮或主题。
+
+### 单手机电量的 query 字段筛选与模板参考
+
+2x2 单手机电量首层提示词注入当前启用、尺寸匹配的全部电量模板展示字段、必需输入、可选输入及缺失输入。只以 userQuery 确定必须展示的字段；未提及且未禁止的输入保留为候选，不进入 requiredOutputFieldsByCapability；不新增禁止字段协议，仅在提示词中要求非必选且未被禁止的字段才作为候选。模糊概览优先采用能覆盖真实意图且输入齐全的模板解释，不能删除明确要求。模板可附带输入中存在的额外字段，不以未要求的候选字段拒绝模板。第一层不输出模板ID，最终选择与动作兜底仍由现有 Search/Planner 执行。明确禁止动作仍禁止补按钮。此规则不影响耳机和混合业务。
+
+### 仅百分比的手机电量 Full
+
+新增 `BatteryOverviewPercentTextFull@1`，仅依赖 `/batterySOCText`，无动作、图标及其它必需字段。按提供的 150vp UX 居中排列手机电量（16fp/400）、百分比（38fp/700）、电量状态（12fp/400），行高 24/60/16vp，间距 8vp；沿用所选主题的背景和文字配色。提示及编译均不要求数值电量或充电状态，Q160 可以直接采用 Full 布局。
+
+百分比 Full 支持可选 `/chargingStatusDesc`：提供时底部展示实际充电状态，缺失时保留“电量状态”，不增加必需字段或按钮；Q124 与 Q160 共用同一模板。
+
+### 健康状态与温度 Hero
+
+新增 `BatteryOverviewHealthTemperatureHero@1`，复用 HealthLevelHero 布局和字号，以 `/batteryTemperatureText` 替换 `/batteryCapacityLevelDesc`，保留必需 `/healthStatusDesc`。Q211/Q212 可组合输入已有的电池健康入口；不修改原模板或扩充动作兜底规则。
+
+### 电池四项状态 Hero
+
+新增 `BatteryOverviewStatusSummaryHero@1`，沿用 ChargingDiagnosticsHero 的四行布局、字号与间距。依次展示电池电量 `/batterySOCText`、充电状态 `/chargingStatusDesc`、健康状态 `/healthStatusDesc`、电池温度 `/batteryTemperatureText`，四项均必需，不依赖数值电量、充电电流、电压或电量等级。Q231 使用输入已有的电池设置入口组合 HeroActionLayout。
+
+### 电量模板候选字段优先级
+
+单手机电量 2x2：提示词要求 query 明确要求为必选，非必选且未被禁止的字段才作为候选。模板必须实际完整展示必选，且必需输入齐全、动作布局合法；先保留满足显式唯一主焦点的方案，再按实际候选字段与渲染正文绑定的交集去重计数。复用编译器的条件分支语义，不计算仅声明、条件守卫、事件参数或未渲染分支。同分沿用原得分。第二层优先采用排序首项，不跨方案组合。禁止项属于提示词约束，当前服务端没有额外的禁止字段集合或确定性拦截。其它业务排序保持原样。
+
+### 电量 Full 与 Hero 平等比较
+
+没有显式动作时，有合法候选设置动作且用户未禁止交互，则同时构建无动作 Full 和 Hero+候选动作方案，按候选字段覆盖数量统一排序；无合法候选动作或禁止交互时只保留无动作 Full。不得先以存在 Full 为由淘汰 Hero。为保持二层动作契约一致，排序后仅向二层传递与首选方案动作集合相同的方案；显式动作不删除，其它业务不变。路由投影保留原候选事件 ID，不把 Planner 的同名动作区分标识（如 #1、#2）作为原始事件 ID；无动作 Full 获胜时才清空选中动作。
+
+### 手机电量百分比详情 Full
+
+新增 BatteryOverviewPercentDetailsFull@1，2×2 无按钮完整模板。必需输入 batterySOCText、chargingStatusDesc、batteryCapacityLevelDesc、pluggedTypeDesc；不需要数值 batterySOC 或 healthStatusDesc。顶部“手机电量”12fp，中间百分比 28fp 加粗；底部三行依次为充电状态、电量等级、充电类型，标签 12fp 常规、右侧字段 12fp 加粗。总内容高度 112vp，沿用当前主题文字色及融球背景。注册后参与现有必选字段覆盖及候选字段数量排序，不新增选择特例。
+
+### ChargingProgressHero 单行电量等级
+
+可选 batteryCapacityLevelDesc：未提供时保持“状态：{chargingStatusDesc}”；提供时同一行显示“{chargingStatusDesc} · {短电量等级}”，省略“状态：”，不增加行数。只有电量等级时显示“电量等级：{短电量等级}”。已知等级满电量、高电量、正常电量、低电量、告警电量、极低电量、关机电量分别显示为满电、高、正常、低、告警、极低、关机；未知值保留原文。缩写由端侧绑定表达式完成，保留原始数据并支持刷新。字号、颜色与原状态行一致。
+
+### 电量等级四项状态 Hero
+
+新增 BatteryOverviewStatusLevelSummaryHero@1，完整复用 BatteryOverviewStatusSummaryHero@1 的面板、四行排版、字号、颜色、间距和动作组合，仅将最后一行“电池温度”及 batteryTemperatureText 替换为“电量等级”及 batteryCapacityLevelDesc。四个必需字段为 batterySOCText、chargingStatusDesc、healthStatusDesc、batteryCapacityLevelDesc；不依赖温度或数值电量。沿用已有字段覆盖排序，不增加选择特例。
+
+### 充电类型与电量等级四项 Hero
+
+新增 BatteryOverviewChargingLevelSummaryHero@1，复用 StatusLevelSummaryHero 四行面板样式，将第三行“健康状态”/healthStatusDesc 替换为“充电类型”/pluggedTypeDesc。必需字段为 batterySOCText、chargingStatusDesc、pluggedTypeDesc、batteryCapacityLevelDesc，依次展示电池电量、充电状态、充电类型、电量等级。保持 Hero+PillAction 组合，保留既有 PercentDetailsFull 大字百分比无按钮模板；使用现有字段覆盖排序，不新增选择优先级规则。
+
+### ChargingLevelSummaryHero 充电类型短文案
+
+仅该模板的充电类型值使用动态表达式缩写：未连接充电器→未连接，交流充电器→交流，无线充电器→无线，USB 保持 USB；兼容 USB充电器、USB充电→USB、交流充电→交流、无线充电→无线。其它类型保留原文，沿用单行省略边界。保留原始 pluggedTypeDesc，不改数据接口、其它模板或布局。
+
+### ChargingProgressHero 可选温度
+
+新增可选 batteryTemperatureText，底部仍占一行，按充电状态、短电量等级、温度的顺序以“ · ”连接已有字段。只显示存在的字段，不出现多余分隔符；只有一项时按字段显示“状态：{充电状态}”“电量等级：{短电量等级}”或“电池温度：{温度}”；两项及以上不显示标签，以点号分隔。带温度时字号默认12fp、允许缩至10fp，行高16vp、单行省略；整体高度及百分比字号不变。字段覆盖排序自动计入温度，不新增排序特例。
+
+### 2×2 电量环形进度条线宽
+
+所有 2×2 电量模板的环形进度条线宽统一为 6vp，圆环直径和其它布局保持不变。
+
+### 电量等级主值的无动作诊断 Full
+
+新增 BatteryOverviewChargingDiagnosticsFull@1，覆盖 2×2 无候选动作、同时提供 nowCurrentText、voltageText、batteryCapacityLevelDesc、isBatteryPresentText 的请求。主数据为电量等级，其余三项必需，使用 SingleFocusLayout；无需图标，不扩展动作、字段筛选或排序规则。
+
+参照 150×150vp UX：12vp 外边距、左对齐，标题“手机电量”12fp/400；主值从 y=36vp 开始，30fp/700、40vp 行高以容纳中文，长值可缩至18fp；三行从 y=82vp 开始、行高16vp、间距4vp，标签12fp/400、值12fp/500，依次为实时电流、电池电压、电池在位。标题用辅助色，主值和详情用主题主色，融球沿用电量青绿主题。保留既有诊断 Hero 与 WideFull。
+
+### 无动作健康等级 Full
+
+新增 BatteryOverviewHealthLevelFull@1：标题“电池健康”12fp/400，健康状态30fp/700，必需电量等级位于第一条12fp详情行；剩余电量文本和充电状态按输入字段存在与否追加，不输出空行或假数据。主值长文本允许缩至18fp，详情值12fp/500、允许缩至10fp。复用诊断 Full 的12vp外边距、标题与主值留白、三行最多56vp详情区，保留原健康等级 Hero。无素材、无动作也可以经现有检索与规划生成。
+
+### 无动作百分比等级 Full
+
+新增 BatteryOverviewPercentLevelFull@1：沿用 PercentTextFull 的居中三段式：标题“手机电量”16fp/400、24vp高，剩余电量文本38fp/700、60vp高，底部电量等级原始值12fp/400、16vp高；顶内边距4vp、段间距8vp，标题与底部使用辅助文本色，主值使用主色。两项数据必需，无素材和动作要求，不显示静态“电量状态”或“电量等级”标签，不修改既有 PercentTextFull 或诊断 Full，不新增按用例或 query 选择模板的特例。
+
+### 电流电压 Full
+
+新增 BatteryOverviewCurrentVoltageFull@1，仅电流 nowCurrentText 与电压 voltageText 必需，batterySOCText、batteryTemperatureText、healthStatusDesc 可选。标题“电池状态”12fp/400，电流、电压和可选详情均为12fp/500、各16vp高，所有行标签为12fp/400，统一4vp间距和12vp外边距，五行齐全时总内容高116vp，小于126vp可用高度。不假定读数正常、不生成诊断结论；原始含单位文本直接绑定，不重复加单位。不需要动作和素材，保留既有诊断模板。
+电量数据投影的已知字段补齐实时电流、电压、温度和电池在位状态。缺少百分比时仍保留实际输入的这些字段，避免合法诊断模板在正文生成前因旧字段清单不完整而失败；不补造缺失数据。
+
+### 耳机名称与双环电量 Full
+
+新增 BluetoothDeviceOverviewEarbudPairRingFull@1，必需 earphoneName、leftBatteryLevel、rightBatteryLevel。顶部名称16fp/500、22vp高，下方双列各48vp圆环、6vp线宽，环内17.5vp圆形底色包裹12fp/500的“L”“R”，沿用耳机模板圆形字母标识样式，环下百分比12fp/500、18vp高；可选左右耳充电状态各12fp/400、最小12fp、16vp高，分别按字段存在性显示，不做成组隐藏。标题与双列间距8vp，列内间距4vp，列间12vp，两侧状态齐全时内容高120vp，不超过126vp可用高度。无需动作、素材、盒电量或连接状态；继续使用既有字段覆盖检索，不增加用例专用选择规则。
+
+### 耳机名称与盒电量百分比 Full
+
+新增 BluetoothDeviceOverviewEarphonePercentTextFull@1，必需 earphoneName 与 batteryLevel。参照 BatteryOverviewPercentTextFull 的居中三段式：顶部名称16fp/400、112×24vp，单行省略；中间盒电量百分比38fp/700、102×60vp；底部固定“耳机状态”12fp/400、106×16vp。顶部内边距4vp、段间距8vp，总内容高120vp。batteryLevel 为数值，显示时只追加一次百分号；无需动作、素材、连接状态或充电状态，沿用字段覆盖检索和主题色。
+
+### 耳机盒电量与充电状态 Full
+
+新增 BluetoothDeviceOverviewEarphoneCasePercentTextFull@1，必需 batteryLevel 与 chargingStatusDesc，earphoneName 可选。布局、字号、间距和主题色与 EarphonePercentTextFull 一致：顶部有名称时显示名称，缺少名称时显示“耳机电量”；中间为盒电量百分比；底部绑定实际盒充电状态。名称16fp/400、百分比38fp/700、状态12fp/400，不依赖连接状态、动作或素材。字段准入统一使用模板登记，缺少任一必选字段时不得进入该模板。
+
+### 耳机名称与连接状态 Full
+
+新增 BluetoothDeviceOverviewConnectionTextFull@1，必需 earphoneName 与 isConnected。内容 Column 占满可用空间，spaceBetween 上下分布、左对齐：左上名称，左下连接状态，两项均为16fp/400、24vp高、单行左对齐。沿用布局壳的12vp外边距，移除三段式额外顶部内边距和固定“耳机状态”文案；名称使用辅助色、连接状态使用主色。连接状态为true时显示“已连接”、false时显示“未连接”；false是有效状态，不作为缺失数据。无需电量、动作或图标。

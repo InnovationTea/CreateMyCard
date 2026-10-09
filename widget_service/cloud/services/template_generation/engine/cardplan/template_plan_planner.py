@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import permutations, product
 from typing import NamedTuple
 
-from models.generation import TaskSpec
+from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,
     TemplateComponentCandidate,
@@ -88,6 +88,9 @@ def plan_template_candidates(
     search_result: TemplateSearchResult,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
+    *,
+    candidate_bindings: tuple[CandidateDataBinding, ...] = (),
+    allow_battery_no_action_plan: bool = False,
 ) -> tuple[TemplatePlan, ...]:
     """Build at most three complete, atomic UI plans from Search candidates."""
     if search_result.card_size != task_spec.size:
@@ -126,6 +129,11 @@ def plan_template_candidates(
                 task_spec,
                 registry,
             )
+            if allow_battery_no_action_plan and requested_capabilities == ("GetPhoneBatteryInfo",):
+                no_action_intent = intent.model_copy(update={"action_ids": ()})
+                new_drafts += _single_business_drafts(
+                    selected_groups[0], (), no_action_intent, task_spec, registry,
+                )
         elif len(selected_groups) == 2:
             new_drafts = _dual_business_drafts(
                 selected_groups,
@@ -152,6 +160,19 @@ def plan_template_candidates(
         if preferred:
             drafts = preferred
 
+    battery_ranking = (
+        task_spec.size == "2x2"
+        and requested_capabilities == ("GetPhoneBatteryInfo",)
+        and bool(candidate_bindings)
+    )
+    if battery_ranking:
+        ranked_drafts: list[_PlanDraft] = []
+        for draft in drafts:
+            coverage = _battery_candidate_coverage(
+                draft.plan, intent, search_result, candidate_bindings,
+            )
+            ranked_drafts.append(replace(draft, score=(coverage, *draft.score)))
+        drafts = ranked_drafts
     if len(requested_capabilities) == 1:
         focus = intent.primary_output_field_by_capability.get(requested_capabilities[0])
         focused = [
@@ -165,12 +186,17 @@ def plan_template_candidates(
     deduplicated = _deduplicate_drafts(drafts)
     top_theme = deduplicated[0].plan.theme_id
     top_businesses = _plan_business_ids(deduplicated[0].plan)
+    top_actions = tuple(item.action_id for item in deduplicated[0].plan.action_assignments)
     same_theme = []
     for item in deduplicated:
         if item.plan.theme_id != top_theme:
             continue
-        if _plan_business_ids(item.plan) == top_businesses:
-            same_theme.append(item)
+        if _plan_business_ids(item.plan) != top_businesses:
+            continue
+        actions = tuple(action.action_id for action in item.plan.action_assignments)
+        if allow_battery_no_action_plan and actions != top_actions:
+            continue
+        same_theme.append(item)
     selected = list(same_theme[:_MAX_PLANS])
     _verify_plans_cover_request(selected, intent)
     return tuple(
@@ -201,6 +227,29 @@ def _verify_plans_cover_request(
             raise TemplateRetrievalMiss(
                 "Template Plan does not cover every requested business capability"
             )
+
+
+def _battery_candidate_coverage(
+    plan: TemplatePlan,
+    intent: TemplateSearchIntent,
+    search_result: TemplateSearchResult,
+    bindings: tuple[CandidateDataBinding, ...],
+) -> int:
+    available: set[str] = set()
+    required = intent.required_output_fields_by_capability.get("GetPhoneBatteryInfo", ())
+    for binding in bindings:
+        if binding.capabilityId == "GetPhoneBatteryInfo":
+            for path in binding.candidateOutputFields:
+                if path not in required:
+                    available.add(f"{binding.writeResultTo.rstrip('/')}{path}")
+    fields_by_template: dict[str, tuple[str, ...]] = {}
+    for group in search_result.business_candidates:
+        for candidate in group.candidates:
+            fields_by_template[candidate.template_id] = candidate.available_data_fields
+    displayed: set[str] = set()
+    for slot in plan.business_slots:
+        displayed.update(fields_by_template.get(slot.template_id, ()))
+    return len(available.intersection(displayed))
 
 
 def planner_scope(plans: tuple[TemplatePlan, ...]) -> AdvancedScopeBrief:
