@@ -146,8 +146,8 @@ Plan 将组件候选写在它实际承载的事实上；动作只能推荐真实
 
 规则：
 
-- root 的 `width/height` 一律写 `"matchParent"`（2x2/2x4 画布尺寸由 surface 决定，不写数值）；关键内部容器、主图、按钮、Progress 使用数值宽高。
-- 端侧实际 surface 尺寸可能随设备变化。root 为 `Column` 时必须显式写 `alignItems:"center"`，使按参考安全宽度生成的一级内容组始终相对实际画布水平居中；一级内容组内部仍按语义使用 `alignItems:"start|center|end"`，不得因为 root 居中就把标题、正文和数值文字全部改成居中排版。root 为 `Row` 时，水平位置由 `justifyContent` 控制：直接子内容使用固定参考宽度且设计意图为整组居中时必须写 `justifyContent:"center"`，`alignItems` 只负责垂直方向。root 为 `Stack` 时使用 `alignContent` 控制直接子内容的位置。禁止混淆三个容器的轴向属性。
+- root 的 `width/height` 一律写 `"matchParent"`。内容区域、背板、文字容器和普通按钮宽度承接父区；唯一剩余正文承载区用 `layoutWeight`。数值宽高用于参考分区预算，以及图标、圆环、行高、普通按钮高度等固定设计量，不把所有内部容器都锁成参考数值。
+- 端侧实际 surface 尺寸可能随设备变化，标题区必须跟随所属区域宽度，不能把整组固定参考宽度居中后让标题和右侧图标远离边缘。原有居中焦点仍居中，区域内部使用既有 `alignItems:"start|center|end"`，不统一改成居中或左对齐。Row 的水平位置由 `justifyContent` 控制，`alignItems` 负责垂直方向；Column 相反；Stack 使用 `alignContent`。保持原 padding 与间距，不混淆轴向，也不靠拉开组内文字制造自适应。
 - `margin/padding` 使用数字，或完整的 `{top,right,bottom,left}` 对象；不要缺边依赖默认值完成关键预算。
 - `linearGradient` 使用 `{direction,colors}`（用户自定义可使用协议支持的 angle），默认按第十二节两色标微渐变；用户自定义背景也必须遵守协议。
 - 未有用户自定义要求时，root 只能使用第十二节蓝、紫、暖三套微渐变或五套融球。
