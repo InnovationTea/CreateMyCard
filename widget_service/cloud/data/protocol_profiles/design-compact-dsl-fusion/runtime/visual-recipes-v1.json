@@ -416,7 +416,7 @@
         "item": {
           "component": "Column",
           "styles": {
-            "height": 48,
+            "height": "matchParent",
             "padding": {
               "left": 8,
               "right": 8
@@ -805,7 +805,7 @@
         "item": {
           "component": "Column",
           "styles": {
-            "height": 68,
+            "height": "matchParent",
             "itemMargin": 0,
             "alignItems": "center",
             "justifyContent": "center",
