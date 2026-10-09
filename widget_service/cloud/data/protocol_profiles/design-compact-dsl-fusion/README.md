@@ -78,7 +78,7 @@ Plan 接受后，DSL 阶段在 `WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS=t
 验证 Compact 编译/校验支持，不能仅把 JSX 名称和 Props 粘进提示词。
 
 以下能力不属于本次保底范围：JSX/dataIds 协议迁移、四轮 next、160/320 画布、
-把任意格式化百分比自动转换为进度组件、冻结全部字段后禁止取舍。它们与当前 Compact 合同并不等价。
+从任意业务正文中截取数字并自动转换为进度组件、冻结全部字段后禁止取舍。它们与当前 Compact 合同并不等价。
 其它模块仍可能保留历史重复、覆盖和尺寸说明差异；information 已清除跨组件、视觉与布局职责的重复规则。
 
 ## 显示回归保障

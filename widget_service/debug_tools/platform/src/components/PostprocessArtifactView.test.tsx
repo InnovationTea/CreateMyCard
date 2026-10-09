@@ -6,7 +6,7 @@ import { PostprocessArtifactView } from './PostprocessArtifactView';
 describe('PostprocessArtifactView', () => {
   it.each([
     ['metrics', 'kpi', [{ label: '召回率', value: 87.5, unit: '%' }], '87.5'],
-    ['records', 'table', [{ component: 'CardHeader', matched: 3 }], 'CardHeader'],
+    ['records', 'table', [{ component: 'SingleLineTitle', matched: 3 }], 'SingleLineTitle'],
     ['records', 'bar', [{ range: '80–100%', count: 4 }], '80–100%'],
     ['records', 'line', [{ day: '一', count: 1 }, { day: '二', count: 2 }], '二'],
     ['records', 'pie', [{ state: '通过', count: 2 }], '通过'],
@@ -14,7 +14,7 @@ describe('PostprocessArtifactView', () => {
     ['issues', 'issues', [{ message: '组件缺失' }], '组件缺失'],
     ['json', 'tree', { nested: { value: 1 } }, 'nested'],
     ['text', undefined, '纯文本结果', '纯文本结果'],
-    ['code', 'code', '["a", "CardHeader"]', 'CardHeader'],
+    ['code', 'code', '["a", "SingleLineTitle"]', 'SingleLineTitle'],
     ['diff', 'diff', '- old\n+ new', '+ new'],
   ] as Array<[string, string | undefined, unknown, string]>) (
     'renders %s through the controlled registry',

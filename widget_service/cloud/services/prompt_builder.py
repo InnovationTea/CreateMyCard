@@ -35,7 +35,7 @@ _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优�
 拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
 
 - 没有可见按钮、也没有额外展示数据时使用 `S-title-content`。
-- 固定视觉顺序：顶部使用左对齐的 CardHeader 显示目标名称；下方 `content` 固定
+- 固定视觉顺序：顶部使用左对齐的 SingleLineTitle 显示目标名称；下方 `content` 固定
   `126×100vp`，使用 `justifyContent:"end"` 与 `alignItems:"start"`，让唯一主值组贴底。
 - 主值使用左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的 12fp 单位“天”。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
@@ -52,7 +52,7 @@ FEWSHOT_2x2 的 V25，使用标题主次内容单按钮结构，
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown`
 与 `/data/calendar` 拆成两个业务对象。两者共同描述同一个倒计时目标。
 
-- root 依次包含 `CardHeader` 和 `126×100vp` body；body 内是 `126×56vp` content、
+- root 依次包含 `SingleLineTitle` 和 `126×100vp` body；body 内是 `126×56vp` content、
   `8vp` 间距和沉底的 `126×36vp` action_area。
 - content 第一行必须是左对齐的 `value_row`，横向放置 30fp 倒计时数字和紧邻的
   12fp 单位“天”；第二行仅在用户确实要求时显示一条 12fp/400 补充事实。
@@ -350,8 +350,8 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
     "weather-readout": (
         "本卡是单业务天气路由：先按字段语义选择主焦点；温度、降雨概率等量化字段"
         "使用 value-led，天气现象、预警、日期和星期使用 status-led。地点只消除歧义，"
-        "辅助指标不得平均铺开。2x2 稀疏天气卡先用字号、位置和留白建立焦点；存在与"
-        "整卡主题精确匹配、状态中性的素材且标题宽度成立时，默认放入 CardHeader 右上角。"
+        "辅助指标不得平均铺开。2x2 稀疏天气卡先用字号、位置和留白建立焦点；"
+        "SingleLineTitle 只承载标题文字，不添加主题图标。"
         "量化主值的 Row 仍只包含数字和真实单位，直接说明贴近主值，独立范围或更新时间沉底。"
         "若用户要求三个同级状态或指数概览，则整组作为焦点并使用对齐的标签—值列表，"
         "不得从中任意挑选一个无标签状态放大。"
@@ -1059,7 +1059,6 @@ class PromptBuilder:
         examples = "、".join(example_ids)
         instruction = _VISUAL_ROUTE_INSTRUCTIONS[route]
         density_instruction = ""
-        icon_instruction = ""
         if task_spec.size == "2x2" and "adaptive" in layout_scope:
             density_instruction = (
                 "- 密度处理：内容稀疏时不要全部贴顶；无动作的一至三行 content_area 默认"
@@ -1068,14 +1067,6 @@ class PromptBuilder:
                 "禁止用 ` | ` 横向硬塞。仅当结构是标题＋唯一纯数字主值＋单动作时，"
                 "使用 126vp 居中 content_area 内的 106×58vp Hero 安全盒，并按 "
                 "38/16fp、30/14fp、24/12fp、20/12fp 逐档降级直至长值压力成立。\n"
-            )
-            icon_instruction = (
-                "- 图标机会：若已有 CardHeader，候选中存在与整卡主题精确匹配、状态中性的"
-                "业务/对象/指标图标，且扣除 20vp 图标槽后标题仍完整，则默认保留一枚右上角"
-                "图标；只有标题压力、状态风险、用户禁用或主视觉冲突时才省略。可染色 SVG"
-                "必须显式写 fillColor：浅色卡跟随 CardHeader.fontColor，深色或融球卡使用白色"
-                "或对应图标角色色；不得遗漏后显示默认黑色。明确保留原色的 SVG 和 PNG 不写"
-                " fillColor。\n"
             )
         if "adaptive" in layout_scope:
             skeleton_instruction = (
@@ -1090,7 +1081,6 @@ class PromptBuilder:
             f"{skeleton_instruction}"
             f"- 视觉重点：{instruction}\n"
             f"{density_instruction}"
-            f"{icon_instruction}"
             "- 信息裁决：只保留 userQuery 明确要求及消除歧义所需的字段，"
             "不要用弱字段填满空间。\n"
             f"- 动作处理：{PromptBuilder._action_guidance(task_spec, route)}\n"
@@ -1128,7 +1118,7 @@ class PromptBuilder:
                 return (
                     "# 本轮双动作预算\n\n"
                     "使用 S-content-dual-action：正文38、间距8、按钮36、间距8、按钮36。"
-                    "不增加 CardHeader 或独立标题，不使用融球；必要对象名并入正文短行。"
+                    "不增加 SingleLineTitle 或独立标题，不使用融球；必要对象名并入正文短行。"
                     "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
                 )
             if layout_scope == "S-quad-content":

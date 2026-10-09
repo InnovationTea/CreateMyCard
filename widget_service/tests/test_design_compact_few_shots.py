@@ -22,12 +22,18 @@ PROMPT_SOURCE = (
 PROMPTS = assemble_prompts(PROMPT_SOURCE)
 HIGH_LEVEL_COMPONENTS = {
     "CardButton",
-    "CardHeader",
+    "SingleLineTitle",
     "CircleButton",
     "DataDisplay",
+    "DoubleLineTitle",
+    "Badge",
     "EmphasizedData",
+    "EmphasisText",
+    "SecondaryBody",
     "EventCard",
+    "H_BarChart",
     "InfoBlock",
+    "NumericRatioStack",
     "PillButton",
     "ProgressCircle",
     "ProgressCircleSingle",
@@ -239,19 +245,20 @@ def test_examples_use_only_declared_actions_and_assets(
     ("identifier", "required"),
     (
         ("2x2-V06", {"EventCard", "PillButton"}),
-        ("2x2-V14", {"CardHeader", "TableText"}),
-        ("2x2-V15", {"CardHeader", "CircleButton"}),
+        ("2x2-V14", {"SingleLineTitle", "TableText"}),
+        ("2x2-V15", {"SingleLineTitle", "CircleButton"}),
         ("2x2-V16", {"DataDisplay"}),
-        ("2x2-V18", {"CardHeader", "EmphasizedData", "PillButton"}),
+        ("2x2-V18", {"SingleLineTitle", "EmphasizedData", "PillButton"}),
         ("2x2-V20", {"InfoBlock"}),
         ("2x2-V21", {"ProgressCircle", "PillButton"}),
         ("2x2-V31", {"ProgressCircle", "PillButton"}),
-        ("2x4-V01", {"CardHeader", "SummaryList"}),
+        ("2x4-V01", {"SingleLineTitle", "SummaryList"}),
         ("2x4-V02", {"ProgressCircleSingle"}),
-        ("2x4-V03", {"CardHeader", "ProgressLine2", "TextBlock"}),
-        ("2x4-V05", {"CardHeader", "TopTextBottomValue"}),
+        ("2x4-V03", {"ProgressLine2", "TextBlock"}),
+        ("2x4-V05", {"SingleLineTitle", "TopTextBottomValue"}),
         ("2x4-V18", {"InfoBlock", "CardButton"}),
         ("2x4-V20", {"ProgressCircle", "InfoBlock", "CardButton"}),
+        ("2x4-V21", {"H_BarChart"}),
     ),
 )
 def test_examples_use_available_high_level_components(
@@ -408,8 +415,11 @@ def test_component_catalog_excludes_removed_legacy_components() -> None:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):
         assert f"`{removed_type}`" not in allowed_section
-    for removed_base_type in ("Button", "List"):
+    for removed_base_type in ("Button", "Divider", "Image", "List"):
         assert f"| `{removed_base_type}` |" not in allowed_section
+
+    for removed_input_type in ("Divider", "Image"):
+        assert f"`{removed_input_type}`" not in allowed_section
 
 
 def test_unknown_routes_use_current_neutral_examples() -> None:

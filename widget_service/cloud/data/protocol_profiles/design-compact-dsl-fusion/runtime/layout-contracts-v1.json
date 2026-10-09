@@ -54,14 +54,14 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100}, "childCount": 1}
           ]
         },
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126}, "childCount": 1}
           ]
         }
@@ -74,7 +74,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 46}},
             {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "height": 46}}
@@ -83,14 +83,14 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126}, "childCountMin": 1, "childCountMax": 2}
           ]
         },
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12}, "childCount": 3},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126}, "childCountMin": 1, "childCountMax": 2},
             {"path": [2], "types": ["Column", "Row"], "props": {"width": 126}}
           ]
@@ -121,7 +121,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 56}, "childCountMin": 1, "childCountMax": 2},
             {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "height": 36}, "childCount": 1},
@@ -142,7 +142,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 56, "itemMargin": 2}, "childCount": 2},
             {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "height": 36}, "childCount": 1},
@@ -152,7 +152,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 4}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 102, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 58, "itemMargin": 2}, "childCountMin": 2, "childCountMax": 3},
             {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "height": 36}, "childCount": 1},
@@ -168,7 +168,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Row"], "props": {"width": 126, "height": 56, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0, 0], "types": ["Column"], "props": {"width": 59, "height": 56}},
@@ -180,7 +180,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Row"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Stack"], "props": {"width": 59, "height": 59}},
             {"path": [1, 1], "types": ["Stack"], "props": {"width": 59, "height": 59}}
@@ -195,7 +195,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 40, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 1], "types": ["Stack"], "props": {"width": 40, "height": 40}, "childCount": 1},
@@ -205,7 +205,7 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
-            {"path": [0], "types": ["CardHeader"]},
+            {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 100, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 40, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 1], "types": ["CircleButton"], "eventPolicy": "require"}

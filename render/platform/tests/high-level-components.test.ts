@@ -38,8 +38,8 @@ test("预览样例覆盖共享 Runtime 的全部高阶组件", () => {
 test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal(VISUAL_RECIPE_VERSION, "visual-recipes-v1");
   assert.deepEqual(visualRecipePart("InfoBlock", "icon", "2x2").styles, {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     objectFit: "contain",
     flexShrink: 0,
   });
@@ -67,18 +67,20 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const info = compileMiniDsl(fixtures.examples[1].source, { size: "2x2" }).graph;
   assert.equal((info.getNode("phone")?.props.styles as Record<string, unknown>).width, "matchParent");
-  assert.equal((info.getNode("phone_icon")?.props.styles as Record<string, unknown>).width, 20);
+  assert.equal((info.getNode("phone_visual")?.props.styles as Record<string, unknown>).width, 24);
 
   const event = compileMiniDsl(fixtures.examples[2].source, { size: "2x2" }).graph;
   assert.equal((event.getNode("event")?.props.styles as Record<string, unknown>).height, 50);
+  assert.equal((event.getNode("event")?.props.styles as Record<string, unknown>).flexShrink, 1);
   assert.equal((event.getNode("event_rail_line")?.props.styles as Record<string, unknown>).height, 32);
+  assert.equal((event.getNode("event_title")?.props.styles as Record<string, unknown>).fontWeight, 700);
   assert.equal(
     (event.getNode("event_time")?.props.styles as Record<string, unknown>).fontColor,
     "#998C4B1C",
   );
 
   const table = compileMiniDsl(fixtures.examples[3].source, { size: "2x2" }).graph;
-  assert.equal((table.getNode("settings")?.props.styles as Record<string, unknown>).width, 36);
+  assert.equal((table.getNode("settings")?.props.styles as Record<string, unknown>).width, 40);
   assert.equal((table.getNode("settings_icon")?.props.styles as Record<string, unknown>).width, 20);
 
   const emphasized = compileMiniDsl(fixtures.examples[4].source, { size: "2x2" }).graph;
@@ -107,8 +109,10 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal((progress.getNode("progress")?.props.styles as Record<string, unknown>).height, 50);
   assert.equal((progress.getNode("progress_bar")?.props.styles as Record<string, unknown>).height, 8);
   assert.equal((progress.getNode("progress_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
-  assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).layoutWeight, 1);
-  assert.equal((progress.getNode("details_item0")?.props.styles as Record<string, unknown>).height, 48);
+  const detailStyles = progress.getNode("details_item0")?.props.styles as Record<string, unknown>;
+  const detailConstraint = detailStyles.constraintSize as Record<string, unknown>;
+  assert.equal(detailStyles.height, 64);
+  assert.equal(detailConstraint.minWidth, 64);
 
   const circle = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;
   assert.equal((circle.getNode("progress_ring")?.props.styles as Record<string, unknown>).width, 44);
@@ -122,7 +126,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const cardButton = compileMiniDsl(fixtures.examples[8].source, { size: "2x4" }).graph;
   assert.equal((cardButton.getNode("calendar")?.props.styles as Record<string, unknown>).width, "matchParent");
-  assert.equal((cardButton.getNode("focus_visual")?.props.styles as Record<string, unknown>).width, 20);
+  assert.equal((cardButton.getNode("focus_visual")?.props.styles as Record<string, unknown>).width, 24);
 
   const metrics = compileMiniDsl(fixtures.examples[9].source, { size: "2x4" }).graph;
   assert.equal((metrics.getNode("metrics_item0")?.props.styles as Record<string, unknown>).layoutWeight, 1);
@@ -130,6 +134,12 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const summary = compileMiniDsl(fixtures.examples[10].source, { size: "2x4" }).graph;
   assert.equal((summary.getNode("list")?.props.styles as Record<string, unknown>).height, 102);
+
+  const shared = compileMiniDsl(fixtures.examples[11].source, { size: "2x4" }).graph;
+  assert.equal(
+    (shared.getNode("ratio_item0_value_group")?.props.styles as Record<string, unknown>).itemMargin,
+    0,
+  );
 });
 
 test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲突", () => {
@@ -159,6 +169,38 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
   assert.throws(
     () => compileMiniDsl('["root","Column",{},["metric"]]\n["metric","EmphasizedData",{"value":1,"fontColor":"#FF000000"}]\n["metric_value","Text",{"content":"冲突"}]'),
     /冲突/,
+  );
+});
+
+test("SecondaryBody 继承显示值绑定并按角色限制行数", () => {
+  const source = [
+    '["root","Column",{},["body","metadata"]]',
+    '["body","SecondaryBody",{"role":"body","items":[{"value":{"path":"/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]',
+    '["metadata","SecondaryBody",{"role":"metadata","items":[{"value":"{{ \'更新 \' + ${/updatedAt} }}"}],"fontColor":"#FF1F4799"}]',
+    '["/description","今天适宜户外活动，紫外线较弱"]',
+    '["/updatedAt","10:30"]',
+  ].join("\n");
+  const { graph } = compileMiniDsl(source, { size: "2x2" });
+  const body = graph.getNode("body_item0_value")?.props.styles as Record<string, unknown>;
+  const metadata = graph.getNode("metadata_item0_value")?.props.styles as Record<string, unknown>;
+  assert.equal(body.fontSize, 14);
+  assert.equal(body.fontWeight, 400);
+  assert.equal(body.height, 40);
+  assert.equal(body.maxLines, 2);
+  assert.equal(metadata.fontSize, 12);
+  assert.equal(metadata.height, 18);
+
+  assert.throws(
+    () => compileMiniDsl(
+      '["root","SecondaryBody",{"items":[{"value":"正文"}],"fontColor":"#FF1F4799"}]',
+    ),
+    /必须声明 role/,
+  );
+  assert.throws(
+    () => compileMiniDsl(
+      '["root","SecondaryBody",{"role":"metadata","items":[{"value":"更新时间","maxLines":2}],"fontColor":"#FF1F4799"}]',
+    ),
+    /只有 body SecondaryBody 支持两行/,
   );
 });
 

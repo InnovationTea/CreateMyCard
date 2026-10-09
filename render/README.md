@@ -53,7 +53,7 @@ SVG 素材，可以直接双击打开或单独发送；搜索、尺寸筛选和 
 - 支持对象、数组下标、零值、布尔值和嵌套参数绑定。缺失路径显示为空并提示。
 - 完整 `{{ ... }}` 表达式支持路径、字符串拼接、算术、比较、逻辑、三元和 `size()`，保留数值/布尔类型；使用受限解析器，不执行 JavaScript。
 - 组件定义无需父节点优先；数据可以放在组件之前或之后。缺少节点、重复 ID 和循环引用会明确报错。
-- `CardHeader`、旧版 `TimelineUnit`，以及 Fusion 的 14 个组件都会在转换阶段展开为标准 A2UI 基础组件；Compact 输入不再直接接受 Progress、Button、List、Checkbox 或旧动作组件。
+- `SingleLineTitle`、旧版 `TimelineUnit`，以及 Fusion 的 14 个组件都会在转换阶段展开为标准 A2UI 基础组件；Compact 输入不再直接接受 Progress、Button、List、Checkbox 或旧动作组件。
 - 高阶组件样式直接读取云侧 `runtime/visual-recipes-v1.json`，不在浏览器中维护第三套硬编码样式。
 - 点击事件在本地展示解析后的参数；原生 intent 和 URL 跳转需要宿主接入，不会发起 LLM 请求。
 - 支持五套融球背景、ARGB 渐变、SVG 染色、透明 PNG、线性与环形进度。

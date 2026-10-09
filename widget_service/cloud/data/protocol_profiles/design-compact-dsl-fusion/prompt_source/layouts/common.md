@@ -20,7 +20,7 @@
 
 1. 普通 `2x2`、`2x4` 的有效高度为 `126vp`；`S-dual-info` 为 `134vp`。
 2. `H_required = 子项高度之和 + 纵向 margin 之和 + itemMargin × 间隔数`。
-3. 无显式高度的容器按其后代实际最小高度、padding、margin 和间距计算；无 height 的 Text 也占行高，不能按零计算。Text 单行至少预留约 `1.4 × fontSize`，多行逐行累计；使用视觉 Recipe 的组件按其展开后的真实行高。包含 `36vp` 按钮时不得按 `0vp` 处理。
+3. 无显式高度的容器按其后代实际最小高度、padding、margin 和间距计算；语义组件按视觉 Recipe 展开后的真实行高计入预算，不能按零计算。包含 `36vp` 按钮时不得按 `0vp` 处理。
 4. `layoutWeight`、`flexShrink`、`clip` 和分布式对齐不能抵消固定高度或最小间距。
 5. `H_required` 超出有效高度时，删除可选装饰或改选同尺寸布局，不得删必要事实、动作或依赖裁切。
 6. 有动作的正文必须先算剩余高度，再显式声明承载槽高度；不使用无 height 的多层弹性 Column 承载长内容。2x2 带标题单动作有两套成组预算：标题间距6/body100/正文56，或标题间距4/body102/正文58。三行18加两段2需要58，必须使用后一套；标题20、正文至动作间距8、按钮36均不变，不再放24/30fp大值。2x4 双背板内高110，局部标题20、两段4和按钮36扣除后正文只有46，不能再放三行18；应合并短标签、取消可选标题或回退布局。
@@ -44,18 +44,17 @@
 
 - 参考尺寸用于生成预算；实际 surface 变化时，固定宽度内容组在 root 内居中，不把差值堆到单侧。
 - root 固定 `borderRadius:20`、`clip:true`；背景按第十二节的色板或 design 规则生成。
-- 每张卡最多一个 `CardHeader 20vp`，且标题不能用 Text 替代。2x2 带标题布局把它用于卡级标题；
-  `S-center`、`S-content-dual-action`、`S-dual-info` 和其它无标题布局不生成标题。只有没有卡级标题、
-  布局确有独立内容分区且额外 `20vp` 预算成立时，唯一 CardHeader 才可位于该分区首行。
-- 2x4 的 `W-top-bottom` 可使用唯一的卡级 CardHeader；其它布局最多在一个具体内容区使用唯一 CardHeader，
-  其余区域直接使用语义组件组织内容，不另造 Text 标题。
+- `SingleLineTitle 20vp` 每个语义分区最多一个，标题不能用正文组件替代。2x2 带标题
+  布局把它用于卡级标题；无标题布局只有在独立内容分区额外 `20vp` 预算成立时才放在分区首行。
+- 2x4 的 `W-top-bottom` 可使用卡级 SingleLineTitle；左右独立分区可分别使用一个 SingleLineTitle。标题数量必须与
+  真实语义分区一致，不能为装饰重复同一标题。
 
 ## 8.2 数值预算
 
 - 每个 Row/Column 都按父容器扣除 padding 后的宽高计算；子项尺寸、margin 和 `itemMargin` 全部计入。
 - Row/Column 省略 `itemMargin` 按 `0` 计算并由转换器显式输出；不得假设端侧会自动补间距。独立信息组仍须按下述规范显式设置间距并计入预算。
 - `start|center|end` 和 `spaceAround|spaceBetween|spaceEvenly` 都必须先满足最小占用量不超界。
-- 动态 Text、PillButton、CardButton 或图文动作完成压力预算后，主轴至少保留 `4vp` 余量。
+- 动态文字组件、PillButton、CardButton 或图文动作完成压力预算后，主轴至少保留 `4vp` 余量。
 - 间距只使用 `2、4、6、8、10、12、14、16vp`；紧密内容用 `2-6vp`，独立信息组至少 `8vp`。
 - 数字与单位可以使用 `0-4vp`；其它独立信息不得使用 `itemMargin:0`。
 - 固定间距使用 padding 或 `itemMargin`，不得用空容器占位；无布局职责的单子节点容器应折叠。

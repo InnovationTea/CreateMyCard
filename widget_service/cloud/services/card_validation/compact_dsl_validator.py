@@ -11,13 +11,14 @@ from typing import Any
 
 from services.compact_component_runtime import VISUAL_RECIPE_VERSION
 from services.compact_dsl_a2ui_converter import (
+    MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     CompactDslConversionError,
     ComponentRow,
     DataRow,
     build_compact_data_model,
     expand_high_level_component_rows,
     parse_compact_dsl_rows,
-    validate_card_header_layout,
+    validate_single_line_title_layout,
 )
 from services.compact_layout_runtime import (
     CompactLayoutRuntimeError,
@@ -162,17 +163,6 @@ _AMBIGUOUS_STATUS_MARKERS = (
     "未连接",
     "已连接",
 )
-_PRESERVE_ORIGINAL_COLOR_MARKERS = (
-    "不可染色",
-    "禁止染色",
-    "保留原色",
-    "多色",
-    "渐变",
-    "品牌色",
-    "插画原色",
-)
-
-
 @dataclass(frozen=True)
 class CompactDslValidationResult:
     """Compact DSL validation warnings returned to the generation pipeline."""
@@ -196,6 +186,7 @@ def validate_compact_dsl(
     card_spec: dict[str, Any],
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
+    enforce_model_component_types: bool = False,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
@@ -204,7 +195,23 @@ def validate_compact_dsl(
         raise CompactDslValidationError([str(exc)]) from exc
 
     components = [row for row in rows if isinstance(row, ComponentRow)]
+    if enforce_model_component_types:
+        unsupported_model_components = [
+            row
+            for row in components
+            if row.component_type not in MODEL_COMPACT_INPUT_COMPONENT_TYPES
+        ]
+        if unsupported_model_components:
+            errors = [
+                (
+                    f"component {row.component_id}: {row.component_type} is converter-internal "
+                    "and cannot be generated directly; use a semantic Compact component."
+                )
+                for row in unsupported_model_components
+            ]
+            raise CompactDslValidationError(errors)
     data_rows = [row for row in rows if isinstance(row, DataRow)]
+    data_model = build_compact_data_model(data_rows)
     size = card_spec.get("suggestSize") or task_spec.get("size")
     layout_errors: list[str] = []
     if layout_scope is not None:
@@ -222,14 +229,17 @@ def validate_compact_dsl(
             except CompactLayoutRuntimeError as exc:
                 layout_errors.append(str(exc))
     try:
-        components = expand_high_level_component_rows(components, size=size)
+        components = expand_high_level_component_rows(
+            components,
+            size=size,
+            data_model=data_model,
+        )
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_asset_source_errors(components, task_spec, errors)
-    _collect_asset_color_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
     _collect_semantic_text_errors(components, task_spec, errors)
@@ -254,7 +264,6 @@ def validate_compact_dsl(
             [],
         )
 
-    data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(
         binding_paths,
         data_rows,
@@ -287,12 +296,7 @@ def _collect_asset_source_errors(
         if isinstance(src, str):
             sources.add(src)
     for component in components:
-        keys = ["backgroundImage"]
-        if component.component_type == "Image":
-            keys.append("src")
-        elif component.component_type == "CardHeader":
-            keys.append("icon")
-        for key in keys:
+        for key in ("backgroundImage",):
             value = component.props.get(key)
             if not isinstance(value, str) or value.strip().startswith("{{"):
                 continue
@@ -301,49 +305,6 @@ def _collect_asset_source_errors(
                     f"component {component.component_id}.props.{key}: "
                     "asset must use an original src from TaskSpec.assetCandidates."
                 )
-
-
-def _collect_asset_color_errors(
-    components: list[ComponentRow],
-    task_spec: dict[str, Any],
-    errors: list[str],
-) -> None:
-    """Require explicit tinting for SVG assets whose source color is not protected."""
-    candidates = task_spec.get("assetCandidates")
-    if not isinstance(candidates, list):
-        return
-
-    descriptions: dict[str, str] = {}
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        source = candidate.get("src")
-        if not isinstance(source, str):
-            continue
-        description = candidate.get("description")
-        descriptions[source] = description if isinstance(description, str) else ""
-
-    for component in components:
-        source: Any = None
-        if component.component_type == "Image":
-            source = component.props.get("src")
-        elif component.component_type == "CardHeader":
-            source = component.props.get("icon")
-        if not isinstance(source, str) or not source.casefold().endswith(".svg"):
-            continue
-        description = descriptions.get(source)
-        if description is None:
-            continue
-        preserve_original = any(
-            marker in description for marker in _PRESERVE_ORIGINAL_COLOR_MARKERS
-        )
-        if preserve_original or "fillColor" in component.props:
-            continue
-        errors.append(
-            f"component {component.component_id}: tintable SVG {source} must set "
-            "fillColor explicitly; omitting it renders the asset's default black."
-        )
-
 
 def _collect_hero_value_errors(
     components: list[ComponentRow],
@@ -931,6 +892,10 @@ def _collect_progress_value_errors(
         value_path = _pure_binding_path(component.props.get("value"))
         if not value_path:
             continue
+        if value_path.startswith("/__display/") and value_path.endswith(
+            "/progressValue"
+        ):
+            continue
         schema_type = _schema_type(_schema_node_at_path(data_model_schema, value_path))
         if schema_type in _NUMERIC_SCHEMA_TYPES:
             continue
@@ -1259,7 +1224,7 @@ def _collect_component_contract_errors(
 ) -> None:
     _collect_component_parent_errors(components, errors)
     try:
-        validate_card_header_layout(components, size=task_spec.get("size"))
+        validate_single_line_title_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
@@ -1397,7 +1362,7 @@ def _minimum_outer_height(
     components_by_id: dict[str, ComponentRow],
     visiting: set[str],
 ) -> float:
-    if component.component_type == "CardHeader":
+    if component.component_type == "SingleLineTitle":
         return 20.0
     shrink = _non_negative_number(component.props.get("flexShrink"))
     weight = _non_negative_number(component.props.get("layoutWeight"))

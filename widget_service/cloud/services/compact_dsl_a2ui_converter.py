@@ -35,15 +35,19 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
         "Column",
         "Stack",
         "Text",
-        "Image",
-        "Divider",
         "ProgressCircle",
         "PillButton",
         "CircleButton",
-        "CardHeader",
+        "SingleLineTitle",
+        "DoubleLineTitle",
+        "Badge",
         "EmphasizedData",
+        "EmphasisText",
+        "SecondaryBody",
         "InfoBlock",
         "ProgressLine2",
+        "H_BarChart",
+        "NumericRatioStack",
         "TableText",
         "TextBlock",
         "CardButton",
@@ -54,6 +58,10 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
         "SummaryList",
     }
 )
+
+# Historical Few-shot and local conversion fixtures may still contain direct Text rows.
+# The live model boundary uses this narrower set and requires semantic text components.
+MODEL_COMPACT_INPUT_COMPONENT_TYPES = COMPACT_INPUT_COMPONENT_TYPES - {"Text"}
 _CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
@@ -438,6 +446,7 @@ def expand_high_level_component_rows(
     components: list[ComponentRow],
     *,
     size: str,
+    data_model: dict[str, Any] | None = None,
 ) -> list[ComponentRow]:
     """Expand Fusion high-level rows into the existing base Compact components."""
     existing_ids = {component.component_id for component in components}
@@ -448,6 +457,12 @@ def expand_high_level_component_rows(
     generated_ids: set[str] = set()
     expanded: list[ComponentRow] = []
     expanders = {
+        "DoubleLineTitle": _expand_double_line_title,
+        "Badge": _expand_badge,
+        "EmphasisText": _expand_emphasis_text,
+        "SecondaryBody": _expand_secondary_body,
+        "H_BarChart": _expand_h_bar_chart,
+        "NumericRatioStack": _expand_numeric_ratio_stack,
         "PillButton": _expand_pill_button,
         "CircleButton": _expand_circle_button,
         "EmphasizedData": _expand_emphasized_data,
@@ -466,14 +481,25 @@ def expand_high_level_component_rows(
     for component in components:
         expander = expanders.get(component.component_type)
         parent = parents.get(component.component_id)
-        rows = [component] if expander is None else expander(component, size)
+        if expander is None:
+            rows = [component]
+        elif component.component_type in {
+            "InfoBlock",
+            "NumericRatioStack",
+            "ProgressCircle",
+            "ProgressLine2",
+            "ProgressCircleSingle",
+        }:
+            rows = expander(component, size, data_model=data_model)
+        else:
+            rows = expander(component, size)
         if component.component_type == "CircleButton":
             _validate_circle_button_slot(parent)
         if expander is not None:
             rows[0] = _place_high_level_root(
                 component, rows[0], parent
             )
-        elif component.component_type == "CardHeader":
+        elif component.component_type == "SingleLineTitle":
             header = ComponentRow(
                 component.component_id,
                 component.component_type,
@@ -641,8 +667,13 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
-    components = expand_high_level_component_rows(components, size=size)
-    validate_card_header_layout(components, size=size)
+    data_model = _build_data_model(data_rows)
+    components = expand_high_level_component_rows(
+        components,
+        size=size,
+        data_model=data_model,
+    )
+    validate_single_line_title_layout(components, size=size)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -650,8 +681,6 @@ def convert_compact_dsl_to_a2ui(
     )
 
     normalized_components = [_normalize_component(row) for row in components]
-    data_model = _build_data_model(data_rows)
-
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     converted_components = []
     for component in normalized_components:
@@ -705,57 +734,43 @@ def convert_compact_dsl_to_a2ui(
     return _serialize_rows(messages)
 
 
-def validate_card_header_layout(components: list[ComponentRow], *, size: str) -> None:
-    headers = [item for item in components if item.component_type == "CardHeader"]
+def validate_single_line_title_layout(components: list[ComponentRow], *, size: str) -> None:
+    headers = [item for item in components if item.component_type == "SingleLineTitle"]
     if not headers:
         return
     if size not in {"2x2", "2x4"}:
-        raise CompactDslConversionError("CardHeader requires a 2x2 or 2x4 card.")
-    if len(headers) > 1:
-        raise CompactDslConversionError(
-            "CardHeader allows at most one instance per card."
-        )
+        raise CompactDslConversionError("SingleLineTitle requires a 2x2 or 2x4 card.")
     for header in headers:
         _validate_high_level_props(
             header,
             required={"title", "fontColor"},
-            allowed={"title", "fontColor", "icon", "fillColor"},
+            allowed={"title", "fontColor"},
         )
-        _validate_card_header_props(header, components)
+        _validate_single_line_title_props(header, components)
 
 
-def _validate_card_header_props(header: ComponentRow, components: list[ComponentRow]) -> None:
+def _validate_single_line_title_props(header: ComponentRow, components: list[ComponentRow]) -> None:
     title = header.props.get("title")
     valid_title = isinstance(title, str) and bool(title.strip())
     if not valid_title and not _is_path_binding(title):
         raise CompactDslConversionError(
-            "CardHeader.title must be non-empty text or a path binding."
+            "SingleLineTitle.title must be non-empty text or a path binding."
         )
-    icon = header.props.get("icon")
-    if "icon" in header.props and (not isinstance(icon, str) or not icon.strip()):
-        raise CompactDslConversionError(
-            "CardHeader.icon must be a non-empty asset path when present."
-        )
-    if "fillColor" in header.props and icon is None:
-        raise CompactDslConversionError("CardHeader.fillColor requires icon.")
     width = header.props.get("width")
     valid_width = width == "matchParent" or _is_positive_number(width)
     if width is not None and not valid_width:
         raise CompactDslConversionError(
-            "CardHeader.width must be matchParent or a positive number."
+            "SingleLineTitle.width must be matchParent or a positive number."
         )
     height = header.props.get("height")
     if height is not None and height != 20:
-        raise CompactDslConversionError("CardHeader.height must be 20 when provided.")
-    for name in ("fontColor", "fillColor"):
-        if name == "fillColor" and name not in header.props:
-            continue
-        color = header.props.get(name)
-        if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-            raise CompactDslConversionError(f"CardHeader.{name} must use #AARRGGBB.")
-    generated_ids = {f"{header.component_id}_title", f"{header.component_id}_icon"}
+        raise CompactDslConversionError("SingleLineTitle.height must be 20 when provided.")
+    color = header.props.get("fontColor")
+    if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
+        raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
+    generated_ids = {f"{header.component_id}_title"}
     if any(item.component_id in generated_ids for item in components):
-        raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
+        raise CompactDslConversionError("SingleLineTitle generated title id must not collide.")
 
 
 def _is_positive_number(value: Any) -> bool:
@@ -767,7 +782,568 @@ def _is_positive_number(value: Any) -> bool:
     )
 
 
-def _expand_progress_circle(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _expand_double_line_title(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("DoubleLineTitle requires a 2x2 or 2x4 card.")
+    allowed = {"title", "secondaryInfo", "fontColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_text_value(component, "title")
+    _require_text_value(component, "secondaryInfo")
+    _require_color(component, "fontColor")
+    title_id = f"{component.component_id}_title"
+    secondary_id = f"{component.component_id}_secondary"
+    return [
+        _visual_row(
+            component.component_id,
+            "DoubleLineTitle",
+            "root",
+            size=size,
+            children=(title_id, secondary_id),
+        ),
+        _visual_row(
+            title_id,
+            "DoubleLineTitle",
+            "title",
+            size=size,
+            props={
+                "content": copy.deepcopy(component.props["title"]),
+                "fontColor": component.props["fontColor"],
+            },
+        ),
+        _visual_row(
+            secondary_id,
+            "DoubleLineTitle",
+            "secondary",
+            size=size,
+            props={
+                "content": copy.deepcopy(component.props["secondaryInfo"]),
+                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+            },
+        ),
+    ]
+
+
+def _expand_badge(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("Badge requires a 2x2 or 2x4 card.")
+    allowed = {"value", "fontColor", "backgroundColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _require_text_value(component, "value")
+    _require_color(component, "fontColor")
+    _require_color(component, "backgroundColor")
+    return [
+        _visual_row(
+            component.component_id,
+            "Badge",
+            "root",
+            size=size,
+            props={
+                "content": copy.deepcopy(component.props["value"]),
+                "fontColor": component.props["fontColor"],
+                "backgroundColor": component.props["backgroundColor"],
+            },
+        )
+    ]
+
+
+def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("EmphasisText requires a 2x2 or 2x4 card.")
+    allowed = {"mainText", "secondaryText", "fontColor"}
+    _validate_high_level_props(
+        component,
+        required={"mainText", "fontColor"},
+        allowed=allowed,
+    )
+    _require_text_value(component, "mainText")
+    if "secondaryText" in component.props:
+        _require_text_value(component, "secondaryText")
+    _require_color(component, "fontColor")
+    main_id = f"{component.component_id}_main"
+    children = [main_id]
+    rows = [
+        _visual_row(
+            main_id,
+            "EmphasisText",
+            "main",
+            size=size,
+            props={
+                "content": copy.deepcopy(component.props["mainText"]),
+                "fontColor": component.props["fontColor"],
+            },
+        )
+    ]
+    if "secondaryText" in component.props:
+        secondary_id = f"{component.component_id}_secondary"
+        children.append(secondary_id)
+        rows.append(
+            _visual_row(
+                secondary_id,
+                "EmphasisText",
+                "secondary",
+                size=size,
+                props={
+                    "content": copy.deepcopy(component.props["secondaryText"]),
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                },
+            )
+        )
+    root = _visual_row(
+        component.component_id,
+        "EmphasisText",
+        "root",
+        size=size,
+        children=tuple(children),
+    )
+    return [root, *rows]
+
+
+def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
+    allowed = {"items", "role", "separator", "fontColor"}
+    _validate_high_level_props(
+        component,
+        required={"items", "fontColor"},
+        allowed=allowed,
+    )
+    _require_color(component, "fontColor")
+    items = component.props.get("items")
+    if not isinstance(items, list) or not 1 <= len(items) <= 4:
+        raise CompactDslConversionError(
+            f"{component.component_id}: SecondaryBody.items requires 1 to 4 entries."
+        )
+    role = component.props.get("role")
+    if role is None:
+        if len(items) == 1:
+            raise CompactDslConversionError(
+                f"{component.component_id}: single-item SecondaryBody requires role."
+            )
+        role = "supporting"
+    if role not in {"body", "metadata", "supporting"}:
+        raise CompactDslConversionError(
+            f"{component.component_id}: SecondaryBody.role must be body, metadata, or supporting."
+        )
+    if role in {"body", "metadata"} and len(items) != 1:
+        raise CompactDslConversionError(
+            f"{component.component_id}: SecondaryBody role {role} requires exactly one item."
+        )
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or not set(item) <= {"label", "value", "maxLines"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] allows label/value/maxLines only."
+            )
+        if "value" not in item or not _is_display_value(item.get("value")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].value must be display text."
+            )
+        label = item.get("label")
+        if label is not None and (not isinstance(label, str) or not label.strip()):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        if role == "body" and label is not None:
+            raise CompactDslConversionError(
+                f"{component.component_id}: body SecondaryBody does not accept item labels."
+            )
+        max_lines = item.get("maxLines", 1)
+        valid_max_lines = (
+            isinstance(max_lines, int)
+            and not isinstance(max_lines, bool)
+            and max_lines in {1, 2}
+        )
+        if not valid_max_lines:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].maxLines must be 1 or 2."
+            )
+        if role != "body" and max_lines != 1:
+            raise CompactDslConversionError(
+                f"{component.component_id}: only body SecondaryBody supports two lines."
+            )
+    separator = component.props.get("separator", " ｜ ")
+    if not isinstance(separator, str) or not separator:
+        raise CompactDslConversionError(
+            f"{component.component_id}: SecondaryBody.separator must be non-empty text."
+        )
+    return items
+
+
+def _secondary_body_variant(component: ComponentRow, items: list[dict[str, Any]]) -> str | None:
+    role = component.props.get("role", "supporting")
+    if role == "body":
+        return "bodyMultiline" if items[0].get("maxLines", 1) == 2 else "body"
+    if role == "metadata":
+        return "metadata"
+    if len(items) > 2:
+        return "multiline"
+    return None
+
+
+def _expand_secondary_body(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
+    items = _secondary_body_items(component)
+    variant = _secondary_body_variant(component, items)
+    rows: list[ComponentRow] = []
+    root_children: list[str] = []
+    separator = component.props.get("separator", " ｜ ")
+    for row_index, start in enumerate(range(0, len(items), 2)):
+        row_id = f"{component.component_id}_row{row_index}"
+        root_children.append(row_id)
+        row_children: list[str] = []
+        for item_index, item in enumerate(items[start:start + 2], start=start):
+            if row_children:
+                separator_id = f"{row_id}_separator"
+                row_children.append(separator_id)
+                rows.append(
+                    _visual_row(
+                        separator_id,
+                        "SecondaryBody",
+                        "separator",
+                        size=size,
+                        variant=variant,
+                        props={
+                            "content": separator,
+                            "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                        },
+                    )
+                )
+            item_id = f"{component.component_id}_item{item_index}"
+            row_children.append(item_id)
+            text_children: list[str] = []
+            label = item.get("label")
+            if label is not None:
+                label_id = f"{item_id}_label"
+                text_children.append(label_id)
+                rows.append(
+                    _visual_row(
+                        label_id,
+                        "SecondaryBody",
+                        "text",
+                        size=size,
+                        variant=variant,
+                        props={"content": label, "fontColor": component.props["fontColor"]},
+                    )
+                )
+            value_id = f"{item_id}_value"
+            text_children.append(value_id)
+            rows.append(
+                _visual_row(
+                    value_id,
+                    "SecondaryBody",
+                    "text",
+                    size=size,
+                    variant=variant,
+                    props={
+                        "content": copy.deepcopy(item["value"]),
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    },
+                )
+            )
+            rows.append(
+                _visual_row(
+                    item_id,
+                    "SecondaryBody",
+                    "item",
+                    size=size,
+                    variant=variant,
+                    props={"layoutWeight": 1},
+                    children=tuple(text_children),
+                )
+            )
+        rows.append(
+            _visual_row(
+                row_id,
+                "SecondaryBody",
+                "row",
+                size=size,
+                variant=variant,
+                children=tuple(row_children),
+            )
+        )
+    root = _visual_row(
+        component.component_id,
+        "SecondaryBody",
+        "root",
+        size=size,
+        variant=variant,
+        children=tuple(root_children),
+    )
+    return [root, *rows]
+
+
+def _h_bar_chart_items(component: ComponentRow) -> list[dict[str, Any]]:
+    allowed = {"items", "fontColor", "barColor", "trackColor"}
+    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    for name in ("fontColor", "barColor", "trackColor"):
+        _require_color(component, name)
+    items = component.props.get("items")
+    if not isinstance(items, list) or not 2 <= len(items) <= 3:
+        raise CompactDslConversionError(
+            f"{component.component_id}: H_BarChart.items requires 2 to 3 entries."
+        )
+    for index, item in enumerate(items):
+        required = {"label", "valueUnit", "percent"}
+        if not isinstance(item, dict) or set(item) != required:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires label/valueUnit/percent only."
+            )
+        label = item.get("label")
+        if not isinstance(label, str) or not label.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].label must be non-empty text."
+            )
+        if not _is_display_value(item.get("valueUnit")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].valueUnit must be display text."
+            )
+        percent = item.get("percent")
+        valid_percent = isinstance(percent, (int, float)) and not isinstance(percent, bool)
+        if not valid_percent or not math.isfinite(percent) or not 0 <= percent <= 100:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].percent must be between 0 and 100."
+            )
+    return items
+
+
+def _expand_h_bar_chart(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("H_BarChart requires a 2x2 or 2x4 card.")
+    items = _h_bar_chart_items(component)
+    variant = "threeItems" if len(items) == 3 else None
+    children: list[str] = []
+    rows: list[ComponentRow] = []
+    for index, item in enumerate(items):
+        item_id = f"{component.component_id}_item{index}"
+        meta_id = f"{item_id}_meta"
+        label_id = f"{item_id}_label"
+        value_id = f"{item_id}_value"
+        bar_id = f"{item_id}_bar"
+        children.append(item_id)
+        rows.extend(
+            [
+                _visual_row(
+                    item_id,
+                    "H_BarChart",
+                    "item",
+                    size=size,
+                    variant=variant,
+                    children=(meta_id, bar_id),
+                ),
+                _visual_row(
+                    meta_id,
+                    "H_BarChart",
+                    "meta",
+                    size=size,
+                    variant=variant,
+                    children=(label_id, value_id),
+                ),
+                _visual_row(
+                    label_id,
+                    "H_BarChart",
+                    "label",
+                    size=size,
+                    variant=variant,
+                    props={"content": item["label"], "fontColor": component.props["fontColor"]},
+                ),
+                _visual_row(
+                    value_id,
+                    "H_BarChart",
+                    "value",
+                    size=size,
+                    variant=variant,
+                    props={
+                        "content": copy.deepcopy(item["valueUnit"]),
+                        "fontColor": component.props["fontColor"],
+                    },
+                ),
+                _visual_row(
+                    bar_id,
+                    "H_BarChart",
+                    "bar",
+                    size=size,
+                    variant=variant,
+                    props={
+                        "type": "linear",
+                        "value": item["percent"],
+                        "total": 100,
+                        "color": component.props["barColor"],
+                        "backgroundColor": component.props["trackColor"],
+                    },
+                ),
+            ]
+        )
+    root = _visual_row(
+        component.component_id,
+        "H_BarChart",
+        "root",
+        size=size,
+        variant=variant,
+        children=tuple(children),
+    )
+    return [root, *rows]
+
+
+def _numeric_ratio_items(component: ComponentRow) -> list[dict[str, Any]]:
+    allowed = {"items", "direction", "fontColor", "fillColor"}
+    _validate_high_level_props(
+        component,
+        required={"items", "fontColor", "fillColor"},
+        allowed=allowed,
+    )
+    _require_color(component, "fontColor")
+    _require_color(component, "fillColor")
+    direction = component.props.get("direction", "column")
+    if direction not in {"row", "column"}:
+        raise CompactDslConversionError(
+            f"{component.component_id}: NumericRatioStack.direction must be row or column."
+        )
+    items = component.props.get("items")
+    if not isinstance(items, list) or len(items) != 3:
+        raise CompactDslConversionError(
+            f"{component.component_id}: NumericRatioStack.items requires exactly 3 entries."
+        )
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or not {"icon", "value"} <= set(item):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires icon and value."
+            )
+        if not set(item) <= {"icon", "value", "unit"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] allows icon/value/unit only."
+            )
+        icon = item.get("icon")
+        if not isinstance(icon, str) or not icon.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].icon must be non-empty."
+            )
+        if not _is_display_value(item.get("value")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].value must be display text."
+            )
+        unit = item.get("unit")
+        if unit is not None and (not isinstance(unit, str) or not unit.strip()):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].unit must be non-empty text."
+            )
+    return items
+
+
+def _expand_numeric_ratio_stack(
+    component: ComponentRow,
+    size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("NumericRatioStack requires a 2x2 or 2x4 card.")
+    items = _numeric_ratio_items(component)
+    direction = component.props.get("direction", "column")
+    variant = "row" if direction == "row" else None
+    children: list[str] = []
+    rows: list[ComponentRow] = []
+    for index, item in enumerate(items):
+        item_id = f"{component.component_id}_item{index}"
+        icon_slot_id = f"{item_id}_icon_slot"
+        icon_id = f"{item_id}_icon"
+        value_group_id = f"{item_id}_value_group"
+        value_id = f"{item_id}_value"
+        value_children = [value_id]
+        item_children = [icon_slot_id, value_group_id]
+        children.append(item_id)
+        rows.extend(
+            [
+                _visual_row(
+                    icon_slot_id,
+                    "NumericRatioStack",
+                    "iconSlot",
+                    size=size,
+                    variant=variant,
+                    children=(icon_id,),
+                ),
+                _visual_row(
+                    icon_id,
+                    "NumericRatioStack",
+                    "icon",
+                    size=size,
+                    variant=variant,
+                    props={"src": item["icon"], "fillColor": component.props["fillColor"]},
+                ),
+                _visual_row(
+                    value_id,
+                    "NumericRatioStack",
+                    "value",
+                    size=size,
+                    variant=variant,
+                    props={
+                        "content": copy.deepcopy(item["value"]),
+                        "fontColor": component.props["fontColor"],
+                    },
+                ),
+            ]
+        )
+        unit = item.get("unit")
+        value = item.get("value")
+        if unit is None and isinstance(value, (int, float)) and not isinstance(value, bool):
+            unit = "%"
+        if unit is None and _is_path_binding(value):
+            found, initial_value = _json_pointer_value(
+                data_model or {},
+                value.get("path"),
+            )
+            if found and isinstance(initial_value, (int, float)) and not isinstance(
+                initial_value,
+                bool,
+            ):
+                unit = "%"
+        if unit is not None:
+            unit_id = f"{item_id}_unit"
+            value_children.append(unit_id)
+            rows.append(
+                _visual_row(
+                    unit_id,
+                    "NumericRatioStack",
+                    "value",
+                    size=size,
+                    variant=variant,
+                    props={"content": unit, "fontColor": component.props["fontColor"]},
+                )
+            )
+        rows.append(
+            _visual_row(
+                value_group_id,
+                "NumericRatioStack",
+                "valueGroup",
+                size=size,
+                variant=variant,
+                children=tuple(value_children),
+            )
+        )
+        rows.append(
+            _visual_row(
+                item_id,
+                "NumericRatioStack",
+                "item",
+                size=size,
+                variant=variant,
+                children=tuple(item_children),
+            )
+        )
+    root = _visual_row(
+        component.component_id,
+        "NumericRatioStack",
+        "root",
+        size=size,
+        variant=variant,
+        children=tuple(children),
+    )
+    return [root, *rows]
+
+
+def _expand_progress_circle(
+    component: ComponentRow,
+    size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("ProgressCircle requires a 2x2 or 2x4 card.")
     allowed = {
@@ -823,7 +1399,10 @@ def _expand_progress_circle(component: ComponentRow, size: str) -> list[Componen
             f"{component.component_id}: ProgressCircle width/height leave less than "
             f"{minimum_diameter}vp for the ring."
         )
-    progress_value, external_text = _progress_circle_values(component)
+    progress_value, external_text = _progress_circle_values(
+        component,
+        data_model=data_model,
+    )
 
     ring_stack_id = f"{component.component_id}_ring_stack"
     ring_id = f"{component.component_id}_ring"
@@ -912,28 +1491,113 @@ def _validate_progress_circle_accessibility(component: ComponentRow) -> None:
         )
 
 
-def _progress_circle_values(component: ComponentRow) -> tuple[Any, Any]:
+def _progress_circle_values(
+    component: ComponentRow,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> tuple[Any, Any]:
     value = component.props.get("externalText")
     if _is_path_binding(value):
         path = value.get("path")
-        return copy.deepcopy(value), f"{{{{ ${{{path}}} + '%' }}}}"
+        progress_value = _normalized_progress_binding(
+            component,
+            "externalText",
+            value,
+            total=100,
+            data_model=data_model,
+        )
+        found, initial_value = _json_pointer_value(data_model or {}, path)
+        if found and isinstance(initial_value, str):
+            return progress_value, copy.deepcopy(value)
+        return progress_value, f"{{{{ ${{{path}}} + '%' }}}}"
+    numeric_value = _normalized_progress_literal(
+        component,
+        "externalText",
+        value,
+        total=100,
+    )
+    if isinstance(value, str):
+        return numeric_value, value.strip()
+    visible = str(numeric_value)
+    return numeric_value, f"{visible}%"
+
+
+def _normalized_progress_binding(
+    component: ComponentRow,
+    prop_name: str,
+    value: Any,
+    *,
+    total: int | float,
+    data_model: dict[str, Any] | None,
+) -> Any:
+    if not _is_path_binding(value):
+        return _normalized_progress_literal(
+            component,
+            prop_name,
+            value,
+            total=total,
+        )
+    path = value.get("path")
+    found, initial_value = _json_pointer_value(data_model or {}, path)
+    if not found:
+        return copy.deepcopy(value)
+    if not isinstance(initial_value, (int, float, str)) or isinstance(
+        initial_value,
+        bool,
+    ):
+        return copy.deepcopy(value)
+    numeric_value = _normalized_progress_literal(
+        component,
+        prop_name,
+        initial_value,
+        total=total,
+    )
+    if not isinstance(initial_value, str):
+        return copy.deepcopy(value)
+    derived_path = f"/__display{path}/progressValue"
+    if data_model is not None:
+        _set_json_pointer(data_model, derived_path, numeric_value)
+    return {"path": derived_path}
+
+
+def _normalized_progress_literal(
+    component: ComponentRow,
+    prop_name: str,
+    value: Any,
+    *,
+    total: int | float,
+) -> int | float:
     if isinstance(value, bool):
         raise CompactDslConversionError(
-            f"{component.component_id}: ProgressCircle.externalText must be 0 to 100."
+            f"{component.component_id}: {component.component_type}.{prop_name} "
+            "must be a finite number or complete numeric percentage."
         )
-    if isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value <= 100:
-        visible = str(int(value)) if float(value).is_integer() else str(value)
-        return value, f"{visible}%"
-    if isinstance(value, str):
-        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)%\s*", value)
-        if match is not None:
-            numeric = float(match.group(1))
-            if 0 <= numeric <= 100:
-                return numeric, value.strip()
-    raise CompactDslConversionError(
-        f"{component.component_id}: ProgressCircle.externalText must be a number, "
-        "numeric percentage, or numeric PathBinding from 0 to 100."
-    )
+    if isinstance(value, (int, float)) and math.isfinite(value):
+        numeric_value = float(value)
+    elif isinstance(value, str):
+        match = re.fullmatch(
+            r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*([%％]?)\s*",
+            value,
+        )
+        if match is None:
+            raise CompactDslConversionError(
+                f"{component.component_id}: {component.component_type}.{prop_name} "
+                "must be a finite number or complete numeric percentage."
+            )
+        numeric_value = float(match.group(1))
+        if match.group(2):
+            numeric_value = min(100.0, max(0.0, numeric_value)) * float(total) / 100.0
+    else:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.{prop_name} "
+            "must be a finite number or complete numeric percentage."
+        )
+    if not math.isfinite(numeric_value) or numeric_value < 0 or numeric_value > total:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.{prop_name} "
+            f"must resolve between 0 and total ({total})."
+        )
+    return int(numeric_value) if numeric_value.is_integer() else numeric_value
 
 
 def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -1209,11 +1873,18 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
     return rows
 
 
-def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _expand_info_block(
+    component: ComponentRow,
+    size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     allowed = {
         "variant",
         "primaryText",
         "secondaryText",
+        "unit",
+        "visual",
         "fontColor",
         "backgroundColor",
         "icon",
@@ -1233,22 +1904,70 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
     _require_text_value(component, "secondaryText")
     _require_color(component, "fontColor")
     _require_color(component, "backgroundColor")
-    _validate_optional_icon(component)
+    legacy_icon = component.props.get("icon")
+    if legacy_icon is not None and (
+        not isinstance(legacy_icon, str) or not legacy_icon.strip()
+    ):
+        raise CompactDslConversionError(
+            f"{component.component_id}: InfoBlock.icon must be non-empty."
+        )
+    if "fillColor" in component.props:
+        _require_color(component, "fillColor")
+    unit = component.props.get("unit")
+    if unit is not None and (not isinstance(unit, str) or not unit.strip()):
+        raise CompactDslConversionError(
+            f"{component.component_id}: InfoBlock.unit must be non-empty text."
+        )
     variant = component.props.get("variant")
     _info_block_profile(size, variant)
-    icon = component.props.get("icon")
-    copy_layout = {"layoutWeight": 1} if icon else {"width": "matchParent"}
+    visual = component.props.get("visual")
+    if visual is not None and "icon" in component.props:
+        raise CompactDslConversionError(
+            f"{component.component_id}: InfoBlock.visual and legacy icon are mutually exclusive."
+        )
+    if visual is None and "icon" in component.props:
+        visual = {"type": "icon", "icon": component.props["icon"]}
+    visual_type: str | None = None
+    visual_icon: str | None = None
+    if visual is not None:
+        if not isinstance(visual, dict) or set(visual) - {"type", "icon", "color"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: InfoBlock.visual has unsupported fields."
+            )
+        visual_type = visual.get("type")
+        visual_icon = visual.get("icon")
+        if visual_type not in {"icon", "progressCircle"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: InfoBlock.visual.type must be icon or progressCircle."
+            )
+        if not isinstance(visual_icon, str) or not visual_icon.strip():
+            raise CompactDslConversionError(
+                f"{component.component_id}: InfoBlock.visual.icon must be non-empty."
+            )
+        color_mode = visual.get("color")
+        if color_mode is not None and (visual_type != "icon" or color_mode != "native"):
+            raise CompactDslConversionError(
+                f"{component.component_id}: InfoBlock.visual.color only supports native icons."
+            )
+    copy_layout = {"layoutWeight": 1} if visual_type else {"width": "matchParent"}
     text_parent_id = f"{component.component_id}_text"
-    icon_id = f"{component.component_id}_icon"
     primary_id = f"{component.component_id}_primary"
     secondary_id = f"{component.component_id}_secondary"
     children = [text_parent_id]
-    if icon:
-        children.append(icon_id)
+    visual_id = f"{component.component_id}_visual"
+    if visual_type:
+        children.append(visual_id)
     container_props: dict[str, Any] = {
         "backgroundColor": component.props["backgroundColor"],
     }
-    root_part = "root" if icon else "rootNoVisual"
+    root_part = "root" if visual_type else "rootNoVisual"
+    primary_children: tuple[str, ...] = ()
+    text_children = [primary_id, secondary_id]
+    if unit is not None:
+        primary_value_id = f"{primary_id}_value"
+        unit_id = f"{primary_id}_unit"
+        primary_children = (primary_value_id, unit_id)
+        text_children[0] = f"{primary_id}_row"
     rows = [
         _visual_row(
             component.component_id,
@@ -1264,31 +1983,118 @@ def _expand_info_block(component: ComponentRow, size: str) -> list[ComponentRow]
             "copy",
             size=size,
             props=copy_layout,
-            children=(primary_id, secondary_id),
+            children=tuple(text_children),
         ),
     ]
-    rows.extend(
-        _info_block_text_rows(
-            component,
-            size,
-            primary_id,
-            secondary_id,
+    if unit is None:
+        rows.extend(_info_block_text_rows(component, size, primary_id, secondary_id))
+    else:
+        rows.extend(
+            [
+                _visual_row(
+                    text_children[0],
+                    "InfoBlock",
+                    "primaryRow",
+                    size=size,
+                    children=primary_children,
+                ),
+                _visual_row(
+                    primary_children[0],
+                    "InfoBlock",
+                    "primary",
+                    size=size,
+                    props={
+                        "content": copy.deepcopy(component.props["primaryText"]),
+                        "fontColor": component.props["fontColor"],
+                    },
+                ),
+                _visual_row(
+                    primary_children[1],
+                    "InfoBlock",
+                    "unit",
+                    size=size,
+                    props={
+                        "content": unit,
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    },
+                ),
+                _visual_row(
+                    secondary_id,
+                    "InfoBlock",
+                    "secondary",
+                    size=size,
+                    props={
+                        "content": copy.deepcopy(component.props["secondaryText"]),
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    },
+                ),
+            ]
         )
-    )
-    if icon:
-        image_props: dict[str, Any] = {
-            "src": icon,
-        }
-        if "fillColor" in component.props:
-            image_props["fillColor"] = component.props["fillColor"]
+    if visual_type == "icon":
+        image_props: dict[str, Any] = {"src": visual_icon}
+        if visual.get("color") != "native":
+            image_props["fillColor"] = component.props.get(
+                "fillColor",
+                component.props["fontColor"],
+            )
         rows.append(
             _visual_row(
-                icon_id,
+                visual_id,
                 "InfoBlock",
                 "icon",
                 size=size,
                 props=image_props,
             )
+        )
+    elif visual_type == "progressCircle":
+        progress_id = f"{visual_id}_progress"
+        icon_id = f"{visual_id}_icon"
+        progress_value = _normalized_progress_binding(
+            component,
+            "primaryText",
+            component.props["primaryText"],
+            total=100,
+            data_model=data_model,
+        )
+        rows.extend(
+            [
+                _visual_row(
+                    visual_id,
+                    "InfoBlock",
+                    "progressStack",
+                    size=size,
+                    children=(progress_id, icon_id),
+                ),
+                _visual_row(
+                    progress_id,
+                    "InfoBlock",
+                    "progress",
+                    size=size,
+                    props={
+                        "type": "ring",
+                        "value": progress_value,
+                        "total": 100,
+                        "color": component.props["fontColor"],
+                        "backgroundColor": _color_with_alpha(
+                            component.props["fontColor"],
+                            0.2,
+                        ),
+                    },
+                ),
+                _visual_row(
+                    icon_id,
+                    "InfoBlock",
+                    "progressIcon",
+                    size=size,
+                    props={
+                        "src": visual_icon,
+                        "fillColor": component.props.get(
+                            "fillColor",
+                            _color_with_alpha(component.props["fontColor"], 0.6),
+                        ),
+                    },
+                ),
+            ]
         )
     return rows
 
@@ -1336,7 +2142,12 @@ def _info_block_text_rows(
     ]
 
 
-def _expand_progress_line_two(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _expand_progress_line_two(
+    component: ComponentRow,
+    size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     if size != "2x4":
         raise CompactDslConversionError("ProgressLine2 currently requires a 2x4 card.")
     allowed = {
@@ -1363,6 +2174,13 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
         raise CompactDslConversionError(
             f"{component.component_id}: ProgressLine2.total must be a positive number."
         )
+    progress_value = _normalized_progress_binding(
+        component,
+        "value",
+        component.props["value"],
+        total=total,
+        data_model=data_model,
+    )
 
     readout_id = f"{component.component_id}_readout"
     value_id = f"{component.component_id}_value"
@@ -1401,7 +2219,7 @@ def _expand_progress_line_two(component: ComponentRow, size: str) -> list[Compon
             size=size,
             props={
                 "type": "linear",
-                "value": copy.deepcopy(component.props["value"]),
+                "value": progress_value,
                 "total": component.props["total"],
                 "color": component.props["color"],
                 "backgroundColor": component.props["backgroundColor"],
@@ -1436,6 +2254,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("TableText requires a 2x2 or 2x4 card.")
     items = _validate_item_component(component, minimum=2, maximum=3)
+    variant = "compact" if len(items) == 3 else None
     rows: list[ComponentRow] = []
     children: list[str] = []
     for index, item in enumerate(items):
@@ -1450,6 +2269,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                     "TableText",
                     "row",
                     size=size,
+                    variant=variant,
                     children=(label_id, value_id),
                 ),
                 _visual_row(
@@ -1457,6 +2277,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                     "TableText",
                     "label",
                     size=size,
+                    variant=variant,
                     props={
                         "content": item["label"],
                         "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
@@ -1467,6 +2288,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                     "TableText",
                     "value",
                     size=size,
+                    variant=variant,
                     props={
                         "content": copy.deepcopy(item["value"]),
                         "fontColor": component.props["fontColor"],
@@ -1474,7 +2296,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                 ),
             ]
         )
-    recipe = _visual_recipe("TableText", size=size)
+    recipe = _visual_recipe("TableText", size=size, variant=variant)
     metrics = recipe.get("metrics")
     if not isinstance(metrics, dict):
         raise CompactDslConversionError("TableText visual recipe has invalid metrics.")
@@ -1484,6 +2306,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
         "TableText",
         "root",
         size=size,
+        variant=variant,
         props={"itemMargin": item_margin},
         children=tuple(children),
     )
@@ -1636,6 +2459,8 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
 def _expand_progress_circle_single(
     component: ComponentRow,
     size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
 ) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError(
@@ -1665,6 +2490,13 @@ def _expand_progress_circle_single(
         raise CompactDslConversionError(
             f"{component.component_id}: ProgressCircleSingle.total must be a positive number."
         )
+    progress_value = _normalized_progress_binding(
+        component,
+        "value",
+        component.props["value"],
+        total=total,
+        data_model=data_model,
+    )
     _validate_optional_icon(component)
     secondary_label = component.props.get("secondaryLabel")
     if secondary_label is not None and not _is_display_value(secondary_label):
@@ -1713,7 +2545,7 @@ def _expand_progress_circle_single(
             variant=variant,
             props={
                 "type": "ring",
-                "value": copy.deepcopy(component.props["value"]),
+                "value": progress_value,
                 "total": total,
                 "color": component.props["color"],
                 "backgroundColor": component.props["backgroundColor"],
@@ -1778,20 +2610,75 @@ def _expand_progress_circle_single(
     return rows
 
 
-def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size not in {"2x2", "2x4"}:
-        raise CompactDslConversionError("EventCard requires a 2x2 or 2x4 card.")
-    allowed = {"title", "time", "location", "fontColor"}
-    required = {"title", "time", "fontColor"}
-    _validate_high_level_props(component, required=required, allowed=allowed)
-    _require_text_value(component, "title")
-    _require_text_value(component, "time")
-    if "location" in component.props:
-        _require_text_value(component, "location")
+def _event_card_items(component: ComponentRow) -> tuple[list[dict[str, Any]], bool]:
+    allowed = {"items", "title", "time", "location", "density", "fontColor"}
+    _validate_high_level_props(
+        component,
+        required={"fontColor"},
+        allowed=allowed,
+    )
     _require_color(component, "fontColor")
+    density = component.props.get("density")
+    if density not in {None, "compact"}:
+        raise CompactDslConversionError(
+            f"{component.component_id}: EventCard.density must be compact when present."
+        )
+    has_items = "items" in component.props
+    has_legacy = "title" in component.props or "time" in component.props
+    if has_items and has_legacy:
+        raise CompactDslConversionError(
+            f"{component.component_id}: EventCard.items cannot be combined with title/time."
+        )
+    if has_items:
+        items = component.props.get("items")
+        if not isinstance(items, list) or not 1 <= len(items) <= 2:
+            raise CompactDslConversionError(
+                f"{component.component_id}: EventCard.items requires 1 to 2 entries."
+            )
+    else:
+        if "title" not in component.props or "time" not in component.props:
+            raise CompactDslConversionError(
+                f"{component.component_id}: EventCard requires items or title/time."
+            )
+        item = {
+            "title": component.props["title"],
+            "time": component.props["time"],
+        }
+        if "location" in component.props:
+            item["location"] = component.props["location"]
+        items = [item]
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or not {"title", "time"} <= set(item):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] requires title and time."
+            )
+        if not set(item) <= {"title", "time", "location"}:
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}] allows title/time/location only."
+            )
+        for name in ("title", "time"):
+            if not _is_display_value(item.get(name)):
+                raise CompactDslConversionError(
+                    f"{component.component_id}: items[{index}].{name} must be display text."
+                )
+        if "location" in item and not _is_display_value(item.get("location")):
+            raise CompactDslConversionError(
+                f"{component.component_id}: items[{index}].location must be display text."
+            )
+    return items, density == "compact"
 
-    has_location = "location" in component.props
-    variant = "withLocation" if has_location else "withoutLocation"
+
+def _event_card_item_rows(
+    component: ComponentRow,
+    item: dict[str, Any],
+    *,
+    item_id: str,
+    size: str,
+    compact: bool,
+    multiple: bool,
+) -> tuple[list[ComponentRow], int]:
+    has_location = "location" in item
+    variant = "compact" if compact else ("withLocation" if has_location else "withoutLocation")
     recipe = _visual_recipe("EventCard", size=size, variant=variant)
     metrics = recipe.get("metrics")
     if not isinstance(metrics, dict):
@@ -1800,26 +2687,27 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
     line_height = metrics.get("lineHeight")
     if not isinstance(event_height, int) or not isinstance(line_height, int):
         raise CompactDslConversionError("EventCard visual recipe has invalid geometry.")
-    rail_id = f"{component.component_id}_rail"
+    rail_id = f"{item_id}_rail"
     dot_id = f"{rail_id}_dot"
     line_id = f"{rail_id}_line"
-    texts_id = f"{component.component_id}_texts"
-    title_id = f"{component.component_id}_title"
-    time_id = f"{component.component_id}_time"
+    texts_id = f"{item_id}_texts"
+    title_id = f"{item_id}_title"
+    time_id = f"{item_id}_time"
     text_children = [title_id, time_id]
-    if has_location:
-        text_children.append(f"{component.component_id}_location")
+    meta_row_id = f"{item_id}_meta"
+    location_id = f"{item_id}_location"
+    if compact:
+        text_children = [title_id, meta_row_id]
+    elif has_location:
+        text_children.append(location_id)
     rows = [
         _visual_row(
-            component.component_id,
+            item_id,
             "EventCard",
-            "root",
+            "item" if multiple else "root",
             size=size,
             variant=variant,
-            props={
-                "height": event_height,
-                "layoutWeight": 1,
-            },
+            props={"height": event_height},
             children=(rail_id, texts_id),
         ),
         _visual_row(
@@ -1875,7 +2763,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             size=size,
             variant=variant,
             props={
-                "content": copy.deepcopy(component.props["title"]),
+                "content": copy.deepcopy(item["title"]),
                 "fontColor": component.props["fontColor"],
             },
         ),
@@ -1886,26 +2774,110 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             size=size,
             variant=variant,
             props={
-                "content": copy.deepcopy(component.props["time"]),
+                "content": copy.deepcopy(item["time"]),
                 "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
     ]
-    if has_location:
+    if compact:
+        meta_children = [time_id]
+        if has_location:
+            separator_id = f"{meta_row_id}_separator"
+            meta_children.extend([separator_id, location_id])
+            rows.extend(
+                [
+                    _visual_row(
+                        separator_id,
+                        "EventCard",
+                        "separator",
+                        size=size,
+                        variant=variant,
+                        props={
+                            "content": "｜",
+                            "fontColor": _color_with_alpha(
+                                component.props["fontColor"],
+                                0.6,
+                            ),
+                        },
+                    ),
+                    _visual_row(
+                        location_id,
+                        "EventCard",
+                        "meta",
+                        size=size,
+                        variant=variant,
+                        props={
+                            "content": copy.deepcopy(item["location"]),
+                            "fontColor": _color_with_alpha(
+                                component.props["fontColor"],
+                                0.6,
+                            ),
+                        },
+                    ),
+                ]
+            )
         rows.append(
             _visual_row(
-                f"{component.component_id}_location",
+                meta_row_id,
+                "EventCard",
+                "metaRow",
+                size=size,
+                variant=variant,
+                children=tuple(meta_children),
+            )
+        )
+    elif has_location:
+        rows.append(
+            _visual_row(
+                location_id,
                 "EventCard",
                 "meta",
                 size=size,
                 variant=variant,
                 props={
-                    "content": copy.deepcopy(component.props["location"]),
+                    "content": copy.deepcopy(item["location"]),
                     "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
         )
-    return rows
+    return rows, event_height
+
+
+def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]:
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("EventCard requires a 2x2 or 2x4 card.")
+    items, compact = _event_card_items(component)
+    rows: list[ComponentRow] = []
+    item_ids: list[str] = []
+    total_height = 0
+    for index, item in enumerate(items):
+        if len(items) == 1:
+            item_id = component.component_id
+        else:
+            item_id = f"{component.component_id}_item{index}"
+        item_rows, item_height = _event_card_item_rows(
+            component,
+            item,
+            item_id=item_id,
+            size=size,
+            compact=compact,
+            multiple=len(items) > 1,
+        )
+        rows.extend(item_rows)
+        item_ids.append(item_id)
+        total_height += item_height
+    if len(items) == 1:
+        return rows
+    total_height += 8
+    root = _visual_row(
+        component.component_id,
+        "EventCard",
+        "multiRoot",
+        size=size,
+        props={"height": total_height},
+        children=tuple(item_ids),
+    )
+    return [root, *rows]
 
 
 def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -2309,32 +3281,26 @@ def _validate_item_component(
     return items
 
 
-def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
+def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
-    icon = props.get("icon")
-    variant = "withIcon" if icon else None
     root_type, root_styles = _visual_recipe_part_for_converter(
-        "CardHeader",
+        "SingleLineTitle",
         "root",
         size=size,
-        variant=variant,
     )
     title_type, title_styles = _visual_recipe_part_for_converter(
-        "CardHeader",
+        "SingleLineTitle",
         "title",
         size=size,
-        variant=variant,
     )
     root_styles.pop("_visualRecipe", None)
     title_styles.pop("_visualRecipe", None)
     item_margin = root_styles.pop("itemMargin", 0)
     title_id = f"{component.component_id}_title"
-    icon_id = f"{component.component_id}_icon"
-    children = [title_id, icon_id] if icon else [title_id]
     row = {
         "id": component.component_id,
         "component": root_type,
-        "children": children,
+        "children": [title_id],
         "itemMargin": item_margin,
         "styles": root_styles,
     }
@@ -2348,26 +3314,7 @@ def _convert_card_header(component: ComponentRow, size: str = "2x2") -> list[dic
     for name in _PLACEMENT_PROPS:
         if name in props:
             row["styles"][name] = copy.deepcopy(props[name])
-    converted = [row, title]
-    if icon:
-        icon_type, image_styles = _visual_recipe_part_for_converter(
-            "CardHeader",
-            "icon",
-            size=size,
-            variant=variant,
-        )
-        image_styles.pop("_visualRecipe", None)
-        if "fillColor" in props:
-            image_styles["fillColor"] = props.get("fillColor")
-        converted.append(
-            {
-                "id": icon_id,
-                "component": icon_type,
-                "src": icon,
-                "styles": image_styles,
-            }
-        )
-    return converted
+    return [row, title]
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
@@ -3354,8 +4301,8 @@ def _convert_component_rows(
     hide_label: bool = False,
     card_size: str = "2x2",
 ) -> list[dict[str, Any]]:
-    if component.component_type == "CardHeader":
-        return _convert_card_header(component, card_size)
+    if component.component_type == "SingleLineTitle":
+        return _convert_single_line_title(component, card_size)
     return [
         _convert_component(
             component,
@@ -3688,16 +4635,6 @@ def _card_spec_data_roots(card_spec: dict[str, Any]) -> list[str]:
         if isinstance(root, str) and root.startswith("/"):
             roots.append(root)
     return roots
-
-
-def _candidate_component_asset_source(component: ComponentRow) -> str | None:
-    if component.component_type == "Image":
-        source = component.props.get("src")
-    elif component.component_type == "CardHeader":
-        source = component.props.get("icon")
-    else:
-        return None
-    return source if isinstance(source, str) and source else None
 
 
 def _candidate_asset_sources(task_spec: dict[str, Any]) -> set[str]:

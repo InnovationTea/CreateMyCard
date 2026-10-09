@@ -106,14 +106,15 @@ def test_plan_prompt_reuses_full_create_contract_for_size(
 
     assert "你是 HarmonyOS 桌面卡片极简协议 DSL 生成模型" in plan_prompt
     assert "## 1. 组件总表" in plan_prompt
-    assert "| 标题 | `CardHeader` | 单行标题 + 可选主题图标 |" in plan_prompt
+    assert "| 标题 | `SingleLineTitle` | 单行标题 |" in plan_prompt
     assert "| 多项属性 | `TableText` | 多行标签—值 |" in plan_prompt
     assert "# 2. Compact DSL 组件合同" in plan_prompt
     assert "### 7.1 `EventCard`" in plan_prompt
     assert "## 从事实到组件组合" in plan_prompt
     assert "# Compact Info Plan" in plan_prompt
-    assert "每张卡最多一个 `CardHeader`" in plan_prompt
-    assert "标题事实不推荐 Text" in plan_prompt
+    assert "2x4 左右独立分区可分别使用" in plan_prompt
+    assert "标题事实不推荐正文组件" in plan_prompt
+    assert "时间、metadata 和补充说明使用 SecondaryBody" in plan_prompt
     assert included in plan_prompt
     assert excluded not in plan_prompt
 
@@ -156,15 +157,21 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     ):
         assert removed_heading not in catalog
     for shared_component in (
-        "CardHeader",
+        "SingleLineTitle",
+        "DoubleLineTitle",
+        "Badge",
         "EmphasizedData",
+        "EmphasisText",
+        "SecondaryBody",
         "DataDisplay",
         "InfoBlock",
         "TableText",
         "SummaryList",
         "ProgressCircle",
         "ProgressLine2",
+        "H_BarChart",
         "ProgressCircleSingle",
+        "NumericRatioStack",
         "EventCard",
         "PillButton",
     ):
@@ -178,14 +185,14 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
         assert dedicated_heading not in catalog
     assert "`width`、`height`、`layoutWeight`、`flexShrink`、`margin`" in catalog
     assert "进度组件默认不生成" in catalog
-    assert "SVG 默认可染色" in catalog
-    assert (
-        "`Text.fontSize` 只允许 `12`、`14`、`16`、`18`、`20`、`24`、`30`、`32`、`38`"
-        in catalog
+    assert "SVG 默认视为可通过 `fillColor` 染色" in core_fragments.get(
+        "input-candidates",
+        "",
     )
-    assert "格式化主读数例外" in catalog
-    assert "短核心状态例外" in catalog
-    assert "动态文本宽度按以下保守规则静默估算" in catalog
+    assert "`Text` 只由转换器在展开语义组件时生成" in catalog
+    assert "| `role` | string | 单项必填" in catalog
+    assert '`role:"body"`' in catalog
+    assert "单行内容保留约 20% 宽度余量" in catalog
     core_typography = core_fragments.get("typography", "")
     assert "`12fp`：标题区" not in core_typography
     assert "格式化主读数例外" not in core_typography
@@ -207,7 +214,13 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
     two_by_two_selection = two_by_two_fragments.get("selection", "")
     two_by_four_selection = two_by_four_fragments.get("selection", "")
     for shared in (
-        "CardHeader",
+        "SingleLineTitle",
+        "DoubleLineTitle",
+        "Badge",
+        "EmphasisText",
+        "SecondaryBody",
+        "H_BarChart",
+        "NumericRatioStack",
         "ProgressCircleSingle",
         "TableText",
         "EventCard",
@@ -252,7 +265,7 @@ def test_information_modules_keep_semantic_boundary() -> None:
 
     information_prompt = "\n".join(prompt_bodies)
     for forbidden in (
-        "CardHeader",
+        "SingleLineTitle",
         "Sub-118",
         "Sub-140",
         "S-dual-info",

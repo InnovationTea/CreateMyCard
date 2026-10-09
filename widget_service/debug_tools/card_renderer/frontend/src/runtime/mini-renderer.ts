@@ -13,7 +13,7 @@ export const SURFACE_ID = "dsl-preview";
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => typeof v === "object" && v !== null && !Array.isArray(v);
 const TYPES = new Set([
-  ..."Card Row Column Text Image Button ActionUnit CardHeader TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "),
+  ..."Card Row Column Text Image Button ActionUnit SingleLineTitle TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
 

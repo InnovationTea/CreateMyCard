@@ -16,7 +16,7 @@ for (const example of fixtures.examples) {
     const leaf = (p: string) => graph.getDataModelValue(SURFACE_ID, p);
     for (const node of graph.getAllNodes().values()) {
       assert.ok(defaultRegistry[node.type], `未注册组件 ${node.type}`);
-      assert.ok(!["CardHeader", "TimelineUnit"].some(t => node.type.endsWith(t)));
+      assert.ok(!["SingleLineTitle", "TimelineUnit"].some(t => node.type.endsWith(t)));
       const resolved = resolvePathBindingsInValue(node.props, leaf) as Record<string, unknown>;
       if (node.type === "Extended.Text") {
         assert.ok(resolved.content !== undefined && resolved.content !== "", `${node.id} 未解析`);
@@ -70,19 +70,20 @@ test("dataModel 叶子写入可读取父数组，父级替换不留下旧叶子"
   assert.equal(get("/constructor"), undefined);
 });
 
-test("CardHeader 展开固定几何且阻止生成 ID 冲突", () => {
-  const source = '["root","Column",{},["header"]]\n["header","CardHeader",{"title":"天气","fontColor":"#FF000000","icon":"resources/base/media/sun_max.svg"}]';
+test("SingleLineTitle 展开固定几何且阻止生成 ID 冲突", () => {
+  const source = '["root","Column",{},["header"]]\n["header","SingleLineTitle",{"title":"天气","fontColor":"#FF000000"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).width, "matchParent");
-  assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).layoutWeight, 1);
+  assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).fontSize, 12);
   assert.throws(() => compileMiniDsl(source + '\n["header_title","Text",{"content":"冲突"}]'), /冲突/);
-  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"unknown":12,"fontColor"')), /CardHeader/);
+  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"unknown":12,"fontColor"')), /SingleLineTitle/);
+  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"icon":"sun.svg","fontColor"')), /SingleLineTitle/);
 });
 
-test("CardHeader 可作为任意分区的单行标题", () => {
+test("SingleLineTitle 可作为任意分区的单行标题", () => {
   const source = '["root","Row",{},["panel"]]\n'
     + '["panel","Column",{"width":132},["sectionTitle","body"]]\n'
-    + '["sectionTitle","CardHeader",{"title":"设备状态","fontColor":"#FF000000"}]\n'
+    + '["sectionTitle","SingleLineTitle",{"title":"设备状态","fontColor":"#FF000000"}]\n'
     + '["body","Text",{"content":"在线"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal(graph.getNode("sectionTitle")?.type, "Extended.Row");
@@ -93,11 +94,13 @@ test("CardHeader 可作为任意分区的单行标题", () => {
   assert.equal(graph.getNode("sectionTitle_title")?.props.content, "设备状态");
 });
 
-test("CardHeader 每张卡最多一个", () => {
+test("2x4 左右独立分区可以分别使用 SingleLineTitle", () => {
   const source = '["root","Row",{},["left","right"]]\n'
-    + '["left","CardHeader",{"title":"手机","fontColor":"#FF000000"}]\n'
-    + '["right","CardHeader",{"title":"手表","fontColor":"#FF000000"}]';
-  assert.throws(() => compileMiniDsl(source, { size: "2x4" }), /最多只能有一个/);
+    + '["left","SingleLineTitle",{"title":"手机","fontColor":"#FF000000"}]\n'
+    + '["right","SingleLineTitle",{"title":"手表","fontColor":"#FF000000"}]';
+  const { graph } = compileMiniDsl(source, { size: "2x4" });
+  assert.equal(graph.getNode("left_title")?.props.content, "手机");
+  assert.equal(graph.getNode("right_title")?.props.content, "手表");
 });
 
 test("TimelineUnit 与 CircleButton 展开为可渲染基础组件", () => {
@@ -108,7 +111,7 @@ test("TimelineUnit 与 CircleButton 展开为可渲染基础组件", () => {
   assert.throws(() => compileMiniDsl(timeline, { size: "2x4" }), /2x2/);
   const round = compileMiniDsl('["root","Stack",{"width":40,"height":40,"alignContent":"center"},["action"]]\n["action","CircleButton",{"icon":"resources/base/media/play_fill.svg","actionSurface":"#331F4799","actionInk":"#FF1F4799","accessibility":{"label":"播放"},"onClick":[{"call":"clickToIntent","args":{"intentName":"Music"}}]}]');
   assert.equal(round.graph.getNode("action_icon")!.type, "Extended.Image");
-  assert.equal((round.graph.getNode("action")!.props.styles as Record<string, unknown>).width, 36);
+  assert.equal((round.graph.getNode("action")!.props.styles as Record<string, unknown>).width, 40);
 });
 
 test("五套融球背景保留规定配色、百分比几何和玻璃层", () => {
@@ -183,6 +186,36 @@ test("ProgressCircle 沿用运行态环样式并支持模型控制外框宽高",
   assert.throws(
     () => compileMiniDsl(source.replace('"externalText":68', '"externalText":68,"value":68')),
     /不接受 value/,
+  );
+
+  const percentageSource = '["root","Column",{},["circle"]]\n'
+    + '["circle","ProgressCircle",{"externalText":{"path":"/data/weather/rainProbability"},'
+    + '"icon":"resources/base/media/rain.svg","accessibility":{"label":"降雨概率"},'
+    + '"width":72,"height":76,"fontColor":"#FF1F4799","color":"#FF1F4799",'
+    + '"backgroundColor":"#331F4799"}]\n'
+    + '["/data/weather/rainProbability","20%"]';
+  const percentage = compileMiniDsl(percentageSource, { size: "2x4" });
+  assert.equal(
+    percentage.graph.getDataModelValue(
+      SURFACE_ID,
+      "/__display/data/weather/rainProbability/progressValue",
+    ),
+    20,
+  );
+  assert.deepEqual(
+    percentage.graph.getNode("circle_ring")?.props.value,
+    { path: "/__display/data/weather/rainProbability/progressValue" },
+  );
+  assert.deepEqual(
+    percentage.graph.getNode("circle_external_text")?.props.content,
+    { path: "/data/weather/rainProbability" },
+  );
+  assert.throws(
+    () => compileMiniDsl(
+      percentageSource.replace('"20%"', '"降雨概率 20%"'),
+      { size: "2x4" },
+    ),
+    /完整数值百分比/,
   );
 });
 

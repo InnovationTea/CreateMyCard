@@ -38,7 +38,7 @@ def _context(tmp_path: Path, final_attempt: Path | None) -> dict[str, object]:
             "schemaVersion": "component-recall-ground-truth-v1",
             "samples": {
                 "Q001": {
-                    "required": ["CardHeader"],
+                    "required": ["SingleLineTitle"],
                     "anyOf": [["InfoBlock", "TextBlock"]],
                 }
             },
@@ -62,7 +62,7 @@ def test_required_any_of_deduplication_and_extra_components(
     monkeypatch.setattr(
         plugin,
         "_registered_components",
-        lambda: {"CardHeader", "InfoBlock", "TextBlock", "EventCard"},
+        lambda: {"SingleLineTitle", "InfoBlock", "TextBlock", "EventCard"},
     )
     attempt = tmp_path / "attempt"
     dsl_path = attempt / "blocks" / "designcompactdsl.txt"
@@ -70,8 +70,8 @@ def test_required_any_of_deduplication_and_extra_components(
     dsl_path.write_text(
         "\n".join(
             [
-                '["a", "CardHeader", {}]',
-                '["b", "CardHeader", {}]',
+                '["a", "SingleLineTitle", {}]',
+                '["b", "SingleLineTitle", {}]',
                 '["c", "InfoBlock", {}]',
                 '["d", "EventCard", {}]',
                 '["row", {"title": "数据行"}]',
@@ -105,7 +105,7 @@ def test_malformed_dsl_is_failed_and_scores_zero(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     plugin = _load_plugin()
-    monkeypatch.setattr(plugin, "_registered_components", lambda: {"CardHeader"})
+    monkeypatch.setattr(plugin, "_registered_components", lambda: {"SingleLineTitle"})
     attempt = tmp_path / "attempt"
     dsl_path = attempt / "blocks" / "designcompactdsl.txt"
     dsl_path.parent.mkdir(parents=True)
@@ -123,7 +123,7 @@ def test_dataset_uses_only_annotated_sample_macro_average() -> None:
     plugin = _load_plugin()
     comparison = {
         "key": "component-comparison",
-        "data": [{"requirement": "CardHeader", "status": "matched"}],
+        "data": [{"requirement": "SingleLineTitle", "status": "matched"}],
     }
     result = plugin.process_dataset(
         {
@@ -199,7 +199,7 @@ def test_evaluation_snapshot_writes_file_summary(tmp_path: Path) -> None:
         dataset_root / "evaluation" / "component-recall.json",
         {
             "schemaVersion": "component-recall-ground-truth-v1",
-            "samples": {"Q001": {"required": ["CardHeader"]}},
+            "samples": {"Q001": {"required": ["SingleLineTitle"]}},
         },
     )
 

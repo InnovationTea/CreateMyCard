@@ -20,7 +20,7 @@ for (const example of fixtures.examples) {
     const leaf = (p: string) => graph.getDataModelValue(SURFACE_ID, p);
     for (const node of graph.getAllNodes().values()) {
       assert.ok(defaultRegistry[node.type], `未注册组件 ${node.type}`);
-      assert.ok(!["ActionUnit", "CardHeader", "TimelineUnit"].some(t => node.type.endsWith(t)));
+      assert.ok(!["ActionUnit", "SingleLineTitle", "TimelineUnit"].some(t => node.type.endsWith(t)));
       const resolved = resolvePathBindingsInValue(node.props, leaf) as Record<string, unknown>;
       if (node.type === "Extended.Text") {
         assert.ok(resolved.content !== undefined && resolved.content !== "", `${node.id} 未解析`);
@@ -75,15 +75,19 @@ test("dataModel 叶子写入可读取父数组，父级替换不留下旧叶子"
   assert.equal(get("/constructor"), undefined);
 });
 
-test("CardHeader 展开固定几何且阻止生成 ID 冲突", () => {
-  const source = '["root","Column",{},["header"]]\n["header","CardHeader",{"title":"天气","fontColor":"#FF000000","icon":"resources/base/media/sun_max.svg"}]';
+test("SingleLineTitle 展开固定几何且阻止生成 ID 冲突", () => {
+  const source = '["root","Column",{},["header"]]\n["header","SingleLineTitle",{"title":"天气","fontColor":"#FF000000"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).width, "matchParent");
   assert.equal(graph.getNode("header_title")!.type, "Extended.Text");
   assert.throws(() => compileMiniDsl(source + '\n["header_title","Text",{"content":"冲突"}]'), /冲突/);
   assert.throws(
     () => compileMiniDsl(source.replace('"fontColor"', '"unknownProp":12,"fontColor"')),
-    /CardHeader/,
+    /SingleLineTitle/,
+  );
+  assert.throws(
+    () => compileMiniDsl(source.replace('"fontColor"', '"icon":"sun.svg","fontColor"')),
+    /SingleLineTitle/,
   );
 });
 

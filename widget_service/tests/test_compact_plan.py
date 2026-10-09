@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from services.compact_dsl_a2ui_converter import COMPACT_INPUT_COMPONENT_TYPES
+from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
 from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
@@ -104,15 +104,19 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
         (
             "2x2",
             (
-                "CardHeader",
+                "SingleLineTitle",
+                "DoubleLineTitle",
+                "Badge",
                 "EmphasizedData",
+                "EmphasisText",
+                "SecondaryBody",
                 "InfoBlock",
+                "H_BarChart",
+                "NumericRatioStack",
                 "ProgressCircleSingle",
                 "ProgressCircle",
                 "TableText",
                 "EventCard",
-                "Text",
-                "Image",
                 "PillButton",
                 "DataDisplay",
                 "CircleButton",
@@ -122,15 +126,19 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
         (
             "2x4",
             (
-                "CardHeader",
+                "SingleLineTitle",
+                "DoubleLineTitle",
+                "Badge",
                 "EmphasizedData",
+                "EmphasisText",
+                "SecondaryBody",
                 "InfoBlock",
+                "H_BarChart",
+                "NumericRatioStack",
                 "ProgressCircleSingle",
                 "ProgressCircle",
                 "TableText",
                 "EventCard",
-                "Text",
-                "Image",
                 "PillButton",
                 "ProgressLine2",
                 "TextBlock",
@@ -156,8 +164,11 @@ def test_plan_component_hints_match_registered_compact_inputs_by_size(
     candidate_set = set(candidates)
 
     assert candidates == list(expected)
-    assert candidate_set <= COMPACT_INPUT_COMPONENT_TYPES
+    assert candidate_set <= MODEL_COMPACT_INPUT_COMPONENT_TYPES
+    assert "Text" not in candidate_set
     assert "Button" not in candidate_set
+    assert "Image" not in candidate_set
+    assert "Divider" not in candidate_set
     assert actions <= candidate_set
 
 
@@ -230,7 +241,7 @@ def test_plan_normalization_removes_target_incompatible_component_hints() -> Non
     )
 
 
-def test_plan_normalization_makes_card_header_an_exclusive_title_hint() -> None:
+def test_plan_normalization_makes_single_line_title_an_exclusive_title_hint() -> None:
     raw = json.dumps(
         {
             "name": "submit_card_plan",
@@ -239,7 +250,7 @@ def test_plan_normalization_makes_card_header_an_exclusive_title_hint() -> None:
                     {
                         "requirement": "会议标题",
                         "dataId": "/data/calendar/events/0/title",
-                        "componentHints": ["Text", "CardHeader", "EventCard"],
+                        "componentHints": ["Text", "SingleLineTitle", "EventCard"],
                     }
                 ]
             },
@@ -249,10 +260,56 @@ def test_plan_normalization_makes_card_header_an_exclusive_title_hint() -> None:
 
     result = parse_compact_plan_call(raw, task_spec())
 
-    assert result.plan["info_required"][0]["componentHints"] == ["CardHeader"]
+    assert result.plan["info_required"][0]["componentHints"] == ["SingleLineTitle"]
     assert result.warnings == (
-        "info_required[0].componentHints removed alternatives because CardHeader "
+        "info_required[0].componentHints removed alternatives because SingleLineTitle "
         "is the exclusive title component.",
+    )
+
+
+def test_plan_keeps_progress_hint_for_complete_percentage_text() -> None:
+    spec = task_spec()
+    spec["dataModelSchema"]["data"]["weather"] = {
+        "rainProbability": {
+            "type": "string",
+            "description": "可直接显示的降雨概率百分比",
+            "sampleValue": "20%",
+        },
+        "condition": {
+            "type": "string",
+            "description": "天气现象",
+            "sampleValue": "多云",
+        },
+    }
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "降雨概率",
+                        "dataId": "/data/weather/rainProbability",
+                        "componentHints": ["ProgressCircleSingle"],
+                    },
+                    {
+                        "requirement": "天气现象",
+                        "dataId": "/data/weather/condition",
+                        "componentHints": ["ProgressCircleSingle", "SecondaryBody"],
+                    },
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, spec)
+
+    facts = result.plan["info_required"]
+    assert facts[0]["componentHints"] == ["ProgressCircleSingle"]
+    assert facts[1]["componentHints"] == ["SecondaryBody"]
+    assert result.warnings == (
+        "info_required[1].componentHints removed unsupported, "
+        "type-incompatible or duplicate values.",
     )
 
 
@@ -318,14 +375,14 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     assert any("打开日历" in item for item in errors)
 
 
-def test_card_header_plan_fact_cannot_be_covered_by_text() -> None:
+def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
     spec = task_spec()
     plan = {
         "info_required": [
             {
                 "requirement": "会议标题",
                 "dataId": "/data/calendar/events/0/title",
-                "componentHints": ["CardHeader"],
+                "componentHints": ["SingleLineTitle"],
             }
         ]
     }
@@ -338,13 +395,13 @@ def test_card_header_plan_fact_cannot_be_covered_by_text() -> None:
     header_source = "\n".join(
         [
             '["root","Column",{},["title"]]',
-            '["title","CardHeader",{"title":{"path":'
+            '["title","SingleLineTitle",{"title":{"path":'
             '"/data/calendar/events/0/title"},"fontColor":"#FF1F4799"}]',
         ]
     )
 
     assert compact_plan_coverage_errors(text_source, plan, spec) == (
-        "Plan title fact must be visible in the single CardHeader.title: "
+        "Plan title fact must be visible in a SingleLineTitle.title: "
         "会议标题 (/data/calendar/events/0/title).",
     )
     assert compact_plan_coverage_errors(header_source, plan, spec) == ()
@@ -395,7 +452,7 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
             {
                 "requirement": "卡片标题",
                 "text": "静态卡片",
-                "componentHints": ["Text"],
+                "componentHints": ["SecondaryBody"],
             }
         ]
     }

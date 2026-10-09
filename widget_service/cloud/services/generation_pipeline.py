@@ -227,6 +227,7 @@ class DesignCompactProcessor:
                     card_spec=context.card_spec,
                     protocol_profile=design_protocol,
                     layout_scope=context.layout_scope,
+                    enforce_model_component_types=True,
                 )
             except CompactDslValidationError as exc:
                 trace_step(

@@ -8,7 +8,7 @@
 保持“极简 DSL → A2UI → 图模型 → React”链路，不引入模型调用。
 
 - Compact 输入中的基础布局组件只有 Row、Column、Stack；内容组件包含 Text、Image、Divider 和已登记高阶组件，不直接接受 Progress、Button、List 或 Checkbox。
-- CardHeader、旧版 TimelineUnit，以及 PillButton、CircleButton、EmphasizedData、InfoBlock、ProgressCircle、ProgressLine2、TableText、TextBlock、CardButton、ProgressCircleSingle、EventCard、DataDisplay、TopTextBottomValue、SummaryList 均在转换阶段展开为标准 A2UI 基础组件；其中 Progress 和 Button 只可能作为高阶组件的展开结果出现。
+- SingleLineTitle、旧版 TimelineUnit，以及 PillButton、CircleButton、EmphasizedData、InfoBlock、ProgressCircle、ProgressLine2、TableText、TextBlock、CardButton、ProgressCircleSingle、EventCard、DataDisplay、TopTextBottomValue、SummaryList 均在转换阶段展开为标准 A2UI 基础组件；其中 Progress 和 Button 只可能作为高阶组件的展开结果出现。
 - 其中 13 个组件的几何、字号、间距和圆角直接来自共享 `visual-recipes-v1`；SummaryList 与云侧转换器保持同一份固定原生展开。
 - 数据元组写入嵌套对象/数组，支持读取父数组、JSON Pointer 转义、父级替换、零值与 false。
 - `{{ ... }}` 支持路径、字符串、数值、布尔值、算术、比较、逻辑、三元、size；动作参数递归绑定。表达式使用受限语法解析，拒绝任意函数、属性访问、非有限数值及过深嵌套。

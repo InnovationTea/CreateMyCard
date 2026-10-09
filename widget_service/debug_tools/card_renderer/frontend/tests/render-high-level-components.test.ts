@@ -93,3 +93,22 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
     /冲突/,
   );
 });
+
+test("SecondaryBody 继承显示值绑定并按角色限制行数", () => {
+  const source = [
+    '["root","Column",{},["body","metadata"]]',
+    '["body","SecondaryBody",{"role":"body","items":[{"value":{"path":"/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]',
+    '["metadata","SecondaryBody",{"role":"metadata","items":[{"value":"{{ \'更新 \' + ${/updatedAt} }}"}],"fontColor":"#FF1F4799"}]',
+    '["/description","今天适宜户外活动，紫外线较弱"]',
+    '["/updatedAt","10:30"]',
+  ].join("\n");
+  const { graph } = compileMiniDsl(source, { size: "2x2" });
+  const body = graph.getNode("body_item0_value")?.props.styles as Record<string, unknown>;
+  const metadata = graph.getNode("metadata_item0_value")?.props.styles as Record<string, unknown>;
+  assert.equal(body.fontSize, 14);
+  assert.equal(body.fontWeight, 400);
+  assert.equal(body.height, 40);
+  assert.equal(body.maxLines, 2);
+  assert.equal(metadata.fontSize, 12);
+  assert.equal(metadata.height, 18);
+});
