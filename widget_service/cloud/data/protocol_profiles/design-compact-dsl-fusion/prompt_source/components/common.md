@@ -519,7 +519,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 槽位与容量
 
-只进入 2x4 `W-content-side-slots` 或 `W-four-slots` 的 `132×57vp` 固定动作槽；一个实例只绑定一个动作，不用于 2x2。
+只进入 2x4 `W-content-side-slots` 或 `W-four-slots` 的动作槽（参考132×57vp）；槽位关系固定、外框随父区分配伸展，内部文字和图标不缩放。一个实例只绑定一个动作，不用于 2x2。
 它不是普通 `36vp` 底部按钮的替代品。完整正文区下方需要普通动作时使用 `PillButton`；
 不能因为同一卡片另一侧存在辅助槽，就把正文底部动作也改成 `CardButton`。
 计算剩余正文高度时必须扣除实际组件预算：此组件参考高度为 `57vp`，不能按 `36vp`、零高度
@@ -673,7 +673,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 
 #### 槽位与容量
 
-只进入 2x4 `W-top-bottom` 的 list-rows 预设；每项固定为一个 `276×28vp` 单行背板。
+只进入 2x4 `W-top-bottom` 的 list-rows 预设；每项是宽度 `matchParent`、高度固定 `28vp` 的单行背板，参考宽276vp。
 
 #### 示例
 
@@ -764,7 +764,7 @@ Expression 或 PathBinding；颜色必须是静态 `#AARRGGBB`。
 - CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；标题必须是稳定的业务、对象或事项主题，禁止把 `eventCount`、电量、温度、状态等数值或业务数据冒充标题。日期、时间、时长和倒计时短语只能放在内容区，`明天上午10点`、`14:00`、`还有3天` 等即使出现在 userQuery 中也绝对不能作为 CardHeader；存在对应动态字段时更禁止把 userQuery 中的时间硬编码为标题。日程、会议或提醒优先使用真实事项名称或用户明确主题（如“医院复查”）；没有可用事项主题时固定使用默认标题“日程”，不得省略标题。2x2 仅用于正式名称以 `S-title-` 开头的带标题布局；`S-center`、`S-content-dual-action`、`S-dual-info` 不使用。2x4 仅允许 `W-top-bottom` 按预设使用；`W-split-panels`、`W-content-side-slots`、`W-four-slots` 不使用卡级 CardHeader。
 - 必填 `title`（非空文字、完整 Expression 或 PathBinding）、`fontColor`（本卡标题色）；可选 `icon`（候选原始 src）、`fillColor`（单色图标与标题完全同色，多色/品牌图标及位图省略）。不传 icon 就只显示标题，是否传入在布局前按 2.5 节决定，CardHeader 不自行增加图标。
 - 每卡最多一个。2x2 中必须是 root 的第一个且唯一父级的直接子组件，root 必须为 Column；2x4 中必须是 `root Stack` 下全尺寸前景 Column 的第一个且唯一父级的直接子组件。承载 CardHeader 的 Column 必须显式 `width:"matchParent"`、`height:"matchParent"`（2x4）、`padding:12`，并显式使用 `justifyContent:"start"` 或保证首项贴顶的 `"spaceBetween"`，不加 borderWidth。其他内容在标题下方布局，不得嵌套、重复、错序或用 center/spaceAround/spaceEvenly 移动标题。
-- 转换器固定标题行高度 `20vp`、不可收缩，2x2/2x4 宽度分别为 `126/276vp`，左上角均为 `(12,12)`。文字左对齐、垂直居中、`12fp/400`；有图标时文字槽宽分别为 `98/248vp`、间距 8vp，图标固定 20×20vp，左上角分别为 `(118,12)`/`(268,12)`；无图标时文字槽占满，不留空槽。
+- 转换器固定标题行高度 `20vp`、不可收缩，行宽使用 `matchParent` 跟随所属区域，位置由父区 padding 锚定，不输出绝对坐标。文字左对齐、垂直居中、`12fp/400`；有图标时标题文字使用 `layoutWeight:1` 承接剩余宽度、间距固定8vp，图标固定20×20vp并贴所属区域右边；无图标时文字槽占满，不留空槽。`126/276vp` 行宽和 `98/248vp` 文字宽仅为参考容量，不是宿主固定尺寸。
 - 不接受 width/height/padding/margin/fontSize/fontWeight 等覆盖字段。保留完整标题文字要求，槽位不足时缩短非必要标题文案，不靠缩字号或截断掩盖；固定标题行计入 20vp 高度预算，长内容仍需做压力检查。
 - 转换器展开为同 id 的 Row，以及 `<id>_title`、可选 `<id>_icon`；源 DSL 不得再声明这些子组件 id。非法结构或定位属性报错并进入现有修复链路，不自动搬移组件。
 
