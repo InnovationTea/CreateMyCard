@@ -97,18 +97,37 @@ def test_create_prompt_uses_unified_component_terms() -> None:
         ("2x4", "## 2x4 组件选型", "## 2x2 组件选型"),
     ],
 )
-def test_plan_prompt_uses_only_size_specific_component_selection(
+def test_plan_prompt_reuses_full_create_contract_for_size(
     size: str,
     included: str,
     excluded: str,
 ) -> None:
     plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size=size)
 
-    assert "## 组件总表" in plan_prompt
+    assert "你是 HarmonyOS 桌面卡片极简协议 DSL 生成模型" in plan_prompt
+    assert "## 1. 组件总表" in plan_prompt
     assert "| 标题 | `CardHeader` | 单行标题 + 可选主题图标 |" in plan_prompt
     assert "| 多项属性 | `TableText` | 多行标签—值 |" in plan_prompt
+    assert "# 2. Compact DSL 组件合同" in plan_prompt
+    assert "### 7.1 `EventCard`" in plan_prompt
+    assert "## 从事实到组件组合" in plan_prompt
+    assert "# Compact Info Plan" in plan_prompt
+    assert "每张卡最多一个 `CardHeader`" in plan_prompt
+    assert "标题事实不推荐 Text" in plan_prompt
     assert included in plan_prompt
     assert excluded not in plan_prompt
+
+
+def test_plan_prompt_appends_contract_after_complete_create_prompt() -> None:
+    manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
+    prompts = manifest.get("prompts")
+    assert isinstance(prompts, dict)
+    create_references = prompts.get("create")
+    plan_references = prompts.get("plan")
+    assert isinstance(create_references, list)
+    assert isinstance(plan_references, list)
+
+    assert plan_references == [*create_references, "plan.md#contract"]
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -116,9 +135,64 @@ def test_create_and_plan_share_common_component_catalog(size: str) -> None:
     create_prompt = read_prompt(DEFAULT_SOURCE, "create", size=size)
     plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size=size)
 
-    heading = "## 组件总表"
+    heading = "## 1. 组件总表"
+    assert plan_prompt.startswith(create_prompt)
     assert create_prompt.count(heading) == 1
     assert plan_prompt.count(heading) == 1
+
+
+def test_common_component_contract_separates_shared_and_size_specific_rules() -> None:
+    source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    core_source = (DEFAULT_SOURCE / "core.md").read_text(encoding="utf-8")
+    fragments = dict(FRAGMENT.findall(source))
+    core_fragments = dict(FRAGMENT.findall(core_source))
+
+    assert list(fragments) == ["selection", "catalog"]
+    catalog = fragments.get("catalog", "")
+    for removed_heading in (
+        "通用 props 字段",
+        "通用布局与样式 props",
+        "显式样式口径",
+    ):
+        assert removed_heading not in catalog
+    for shared_component in (
+        "CardHeader",
+        "EmphasizedData",
+        "DataDisplay",
+        "InfoBlock",
+        "TableText",
+        "SummaryList",
+        "ProgressCircle",
+        "ProgressLine2",
+        "ProgressCircleSingle",
+        "EventCard",
+        "PillButton",
+    ):
+        assert f"`{shared_component}`" in catalog
+    for dedicated_heading in (
+        "### `CircleButton`",
+        "### `TopTextBottomValue`",
+        "### `TextBlock`",
+        "### `CardButton`",
+    ):
+        assert dedicated_heading not in catalog
+    assert "`width`、`height`、`layoutWeight`、`flexShrink`、`margin`" in catalog
+    assert "进度组件默认不生成" in catalog
+    assert "SVG 默认可染色" in catalog
+    assert (
+        "`Text.fontSize` 只允许 `12`、`14`、`16`、`18`、`20`、`24`、`30`、`32`、`38`"
+        in catalog
+    )
+    assert "格式化主读数例外" in catalog
+    assert "短核心状态例外" in catalog
+    assert "动态文本宽度按以下保守规则静默估算" in catalog
+    core_typography = core_fragments.get("typography", "")
+    assert "`12fp`：标题区" not in core_typography
+    assert "格式化主读数例外" not in core_typography
+    assert (
+        "具体组件的字号、字重、同行对齐和文本压力规则统一由后续组件合同定义"
+        in core_typography
+    )
 
 
 def test_size_component_rules_separate_shared_and_dedicated_components() -> None:
@@ -150,6 +224,10 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
             "wide-components",
             "",
         )
+    assert "2x4 专属组件：`SummaryList`" not in two_by_four_fragments.get(
+        "wide-components",
+        "",
+    )
 
 
 def test_runtime_does_not_depend_on_generated_products() -> None:
@@ -399,7 +477,15 @@ def test_invalid_manifest_is_rejected(tmp_path: Path, mutation: str) -> None:
     elif mutation == "size":
         modules[0]["sizes"] = ["4x4"]
     else:
-        references.pop(0)
+        orphaned_reference = references.pop(0)
+        for prompt_name, prompt_references in prompts.items():
+            if prompt_name == "create" or not isinstance(prompt_references, list):
+                continue
+            prompts[prompt_name] = [
+                reference
+                for reference in prompt_references
+                if reference != orphaned_reference
+            ]
     path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError):
         assemble_prompts(source)

@@ -13,11 +13,11 @@
 | 维护文件（均在 prompt_source 下） | 边界 / 内容 | 配套检查 |
 |---|---|---|
 | `manifest.yaml` | 模块、适用尺寸、片段顺序、案例索引；不发模型 | 加载、来源完整性 |
-| `core.md` | 输入/输出、绑定、数据、事件/资源、单位/字号/颜色、全局禁止和检查 | 协议与绑定测试 |
+| `core.md` | 输入/输出、绑定、数据、事件/资源、单位/颜色、全局禁止和检查 | 协议与绑定测试 |
 | `information/common.md` | 对象、事实关系、主次并列、去重取舍、动作归属 | 通用信息合同 |
 | `information/2x2.md` | 小卡事实容量、双对象关系、日期去重 | 2x2 信息取舍 |
 | `information/2x4.md` | 宽卡主辅/等权关系、多对象最小信息 | 2x4 信息取舍 |
-| `components/common.md` | Row/Column/Stack 基础布局组件与其它组件合同 | 组件转换/校验 |
+| `components/common.md` | Row/Column/Stack、其它组件合同及 Text 字号/压力规则 | 组件转换/校验 |
 | `components/2x2.md` | 小卡图标限制、EventCard、PillButton、CircleButton 等尺寸适配 | 标题/图标/时间线 |
 | `components/2x4.md` | 宽卡组件、固定槽与背板透明度 | 色板与尺寸 |
 | `combinations/common.md` | 多组件组合的共享语义、成立条件、角色数量与排除条件 | 组合语义边界 |
@@ -41,7 +41,7 @@
 默认配置与协议注册表共用它；按源目录和请求尺寸缓存提示词包，启动或首次使用时读取文件并校验。
 
 ```text
-prompt_source → 同源信息/组件选型规则 → Plan → 整卡参考 + 组件局部用法 → Compact DSL
+prompt_source 完整创建合同 → Plan → 已接受 Plan + 可选参考 → Compact DSL
 ```
 
 `manifest.yaml` 使用 YAML 1.2 的 JSON 子集，由标准库解析，不新增部署依赖。
@@ -51,11 +51,11 @@ prompt_source → 同源信息/组件选型规则 → Plan → 整卡参考 + �
 `example-v32`，2x4 使用 `example-v00` 至 `example-v26`。manifest 保留逐案例索引，加载器逐片段检查完整输入/输出，不按整文件放行。
 只有 `<!-- prompt:片段 -->` 与对应结束标记之间的正文发给模型；维护说明、索引、边界表、
 manifest 和标记本身不发。不要把要生效的规则写到标记外。
-信息模块保留连续语义合同，通用组件总表及组合公共模块的 selection 片段供 Plan 与 DSL 复用；Plan
-先读取通用组件总表，再读取当前尺寸组件选型。同一提示词内禁止重复加载同一片段，跨阶段复用不报重复。
-组合不新增 Compact 组件或 Card/Region 等语义协议节点。
+信息模块保留连续语义合同。`selection` 只是组件与组合文档中的选型片段，不是独立模型阶段；Plan
+按与 `create` 完全相同的片段和顺序读取当前尺寸完整合同，再在末尾追加 `plan.md#contract`。
+同一提示词内禁止重复加载同一片段；组合不新增 Compact 组件或 Card/Region 等语义协议节点。
 
-`sizes` 控制阶段提示词按请求尺寸过滤源模块。Plan 阶段加载信息、组件选型与组合知识，不加载 Few-shot；
+`sizes` 控制阶段提示词按请求尺寸过滤源模块。Plan 阶段加载完整创建合同，但不加载 Few-shot；
 Plan 接受后，DSL 阶段在 `WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS=true` 时沿用按信息
 结构、字段语义和动作归属选择完整案例的规则，再为尚未示范的
 组件候选补充最多两种局部用法。局部组件行来自同尺寸完整案例，不带另一套根布局或数据行。

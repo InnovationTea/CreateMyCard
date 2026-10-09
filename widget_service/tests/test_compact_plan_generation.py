@@ -102,6 +102,9 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     assert [item[0] for item in calls] == ["raw-json", "compact-dsl"]
     plan_system = calls[0][1][0]["content"]
     assert "submit_card_plan" in plan_system
+    assert "# 2. Compact DSL 组件合同" in plan_system
+    assert "### 7.1 `EventCard`" in plan_system
+    assert "### `S-title-content-action`" in plan_system
     assert "FEWSHOT" not in plan_system
     dsl_system = calls[1][1][0]["content"]
     assert "已接受的 Compact Info Plan" in dsl_system

@@ -93,6 +93,13 @@ test("CardHeader 可作为任意分区的单行标题", () => {
   assert.equal(graph.getNode("sectionTitle_title")?.props.content, "设备状态");
 });
 
+test("CardHeader 每张卡最多一个", () => {
+  const source = '["root","Row",{},["left","right"]]\n'
+    + '["left","CardHeader",{"title":"手机","fontColor":"#FF000000"}]\n'
+    + '["right","CardHeader",{"title":"手表","fontColor":"#FF000000"}]';
+  assert.throws(() => compileMiniDsl(source, { size: "2x4" }), /最多只能有一个/);
+});
+
 test("TimelineUnit 与 CircleButton 展开为可渲染基础组件", () => {
   const timeline = '["root","Column",{},["line"]]\n["line","TimelineUnit",{"color":"#FF99661F","lineColor":"#1A99661F"}]';
   const graph = compileMiniDsl(timeline).graph;

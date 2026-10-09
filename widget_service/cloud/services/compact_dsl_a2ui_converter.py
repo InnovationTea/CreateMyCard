@@ -711,6 +711,10 @@ def validate_card_header_layout(components: list[ComponentRow], *, size: str) ->
         return
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("CardHeader requires a 2x2 or 2x4 card.")
+    if len(headers) > 1:
+        raise CompactDslConversionError(
+            "CardHeader allows at most one instance per card."
+        )
     for header in headers:
         _validate_high_level_props(
             header,

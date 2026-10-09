@@ -24,6 +24,9 @@ Plan 只确定必须展示的信息与操作；组件和布局只给软候选。
    实际可承载它的组件。`componentHints` 按优先级填写一至三个组件软候选，不必凑满三个；
    同一组件出现在多项事实中，表示这些事实可以
    合并到一个组件，不表示生成多个实例。候选不冻结组件、数量、区域或几何。
+   `CardHeader` 是唯一例外：每张卡最多一个，只有真正作为整卡唯一标题的事实才推荐；一旦推荐
+   `CardHeader`，该事实不再同时推荐 `Text` 或其它替代组件。多个标题字段只能在语义上属于同一个标题，
+   并合并进入同一个 `CardHeader.title`；不能拆成多个 CardHeader。
    `actionId` 只推荐当前尺寸组件选型中明确支持事件的动作组件，不推荐 EventCard、InfoBlock 等内容组件；
    dataId/text 事实不推荐按钮。
    ProgressCircle、ProgressLine2、ProgressCircleSingle 只推荐给本事实直接绑定的 number/integer 字段，
@@ -41,4 +44,5 @@ Plan 只确定必须展示的信息与操作；组件和布局只给软候选。
 - 多项信息都属于同一对象，不代表每项都推荐 InfoBlock；只有当前尺寸允许的固定双信息块/辅助槽才采用它。
 - 先确认所有必要动作，再排除只属于无动作布局的组件；不得推荐后又通过省略操作来满足组件条件。
 - 单事件的标题和起止时间可共同组成 EventCard 的 title/time，不因拆成多个事实就重复创建事件卡或省略结束时间。
+- CardHeader 每卡最多一个；标题事实不推荐 Text，正文、标签、状态和补充说明才使用 Text。
 <!-- /prompt:contract -->

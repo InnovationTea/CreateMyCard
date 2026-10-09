@@ -402,8 +402,8 @@ def test_example_gradients_use_registered_direction_and_stops(
 
 def test_component_catalog_excludes_removed_legacy_components() -> None:
     catalog = PROMPTS["create"]
-    allowed_section = catalog.split("# 五、组件协议", maxsplit=1)[1]
-    allowed_section = allowed_section.split("## 5.1", maxsplit=1)[0]
+    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
+    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
     for component_type in HIGH_LEVEL_COMPONENTS:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):

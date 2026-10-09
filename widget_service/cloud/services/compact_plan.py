@@ -146,6 +146,7 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
             "description": (
                 "按优先级排列的组件软候选，不冻结最终组件。进度组件只推荐给本事实"
                 "直接绑定的 number/integer dataId；字符串、布尔值、静态正文和操作不推荐进度组件。"
+                "CardHeader 是唯一标题组件；推荐后不得同时推荐 Text 或其它替代组件。"
             ),
         },
     }
@@ -247,10 +248,13 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
     payload = json.dumps(plan, ensure_ascii=False, separators=(",", ":"))
     return (
         "# 已接受的 Compact Info Plan\n\n"
-        "以下 Plan 只冻结必须可见的信息、静态正文和操作；componentHints 与 "
-        "layoutHints 都是软候选，不冻结组件实例或最终骨架。每项事实必须由最终 Compact "
+        "以下 Plan 只冻结必须可见的信息、静态正文和操作；除 CardHeader 标题职责外，"
+        "componentHints 与 layoutHints 都是软候选，不冻结组件实例或最终骨架。"
+        "每项事实必须由最终 Compact "
         "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
+        "CardHeader 是整卡唯一标题组件，每卡最多一个；被 Plan 指定给 CardHeader 的一个或多个"
+        "标题事实必须合并到这一个实例的 title 中，不能改由 Text 承载，也不能拆成多个 CardHeader。\n"
         "逐项核对 dataId → 可见组件 Prop：标题、地区、更新时间也必须真实绑定；"
         "不能用用户原话或 sampleValue 写死，即使首帧文字相同。只写数据行、只在事件参数"
         "引用都不算可见。actionId → 所属对象的点击组件或用户明确要求的独立动作槽，"
@@ -280,6 +284,8 @@ def compact_plan_coverage_errors(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     visible_paths: set[str] = set()
     visible_literals: list[str] = []
+    card_header_paths: set[str] = set()
+    card_header_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
     for component in components:
         visible_props = {
@@ -288,11 +294,20 @@ def compact_plan_coverage_errors(
             if key in _VISIBLE_PROP_NAMES
         }
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
+        if component.component_type == "CardHeader":
+            _collect_paths_and_literals(
+                {"title": component.props.get("title")},
+                card_header_paths,
+                card_header_literals,
+            )
         on_click = component.props.get("onClick")
         if isinstance(on_click, list):
             handlers.extend(item for item in on_click if isinstance(item, dict))
     event_handlers = _event_handlers_by_id(task_spec)
     normalized_literals = [_normalize_text(value) for value in visible_literals]
+    normalized_header_literals = [
+        _normalize_text(value) for value in card_header_literals
+    ]
     errors: list[str] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):
@@ -302,8 +317,20 @@ def compact_plan_coverage_errors(
             continue
         requirement = fact.get("requirement")
         label = requirement if isinstance(requirement, str) else "unknown requirement"
+        hints = fact.get("componentHints")
+        requires_card_header = isinstance(hints, list) and "CardHeader" in hints
         if "dataId" in fact and fact["dataId"] not in visible_paths:
             errors.append(f"Plan fact is missing from visible DSL: {label} ({fact['dataId']}).")
+            continue
+        if (
+            "dataId" in fact
+            and requires_card_header
+            and fact["dataId"] not in card_header_paths
+        ):
+            errors.append(
+                "Plan title fact must be visible in the single CardHeader.title: "
+                f"{label} ({fact['dataId']})."
+            )
             continue
         if "actionId" in fact:
             expected = event_handlers.get(fact["actionId"])
@@ -318,6 +345,14 @@ def compact_plan_coverage_errors(
                 expected_text in actual for actual in normalized_literals
             ):
                 errors.append(f"Plan static text is missing from visible DSL: {label}.")
+                continue
+            if requires_card_header and not any(
+                expected_text in actual for actual in normalized_header_literals
+            ):
+                errors.append(
+                    "Plan title fact must be visible in the single CardHeader.title: "
+                    f"{label}."
+                )
     return tuple(errors)
 
 
@@ -434,11 +469,17 @@ def _validate_facts(
                             continue
                     if hint not in accepted_hints:
                         accepted_hints.append(hint)
+                removed_card_header_alternatives = False
+                if "CardHeader" in accepted_hints and accepted_hints != ["CardHeader"]:
+                    accepted_hints = ["CardHeader"]
+                    removed_card_header_alternatives = True
                 if accepted_hints:
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
                     reason = "unsupported or duplicate values."
-                    if removed_target_mismatch:
+                    if removed_card_header_alternatives:
+                        reason = "alternatives because CardHeader is the exclusive title component."
+                    elif removed_target_mismatch:
                         reason = "unsupported, target-incompatible or duplicate values."
                     elif removed_type_mismatch:
                         reason = "unsupported, type-incompatible or duplicate values."

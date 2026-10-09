@@ -44,8 +44,11 @@
 
 - 参考尺寸用于生成预算；实际 surface 变化时，固定宽度内容组在 root 内居中，不把差值堆到单侧。
 - root 固定 `borderRadius:20`、`clip:true`；背景按第十二节的色板或 design 规则生成。
-- 2x2 带标题布局使用卡级 `CardHeader 20vp`；`S-center`、`S-content-dual-action`、`S-dual-info` 和其它无标题布局不使用卡级 CardHeader。只有布局中确有独立内容分区、标题属于该分区且额外 `20vp` 预算成立时，才可在分区内部使用 `CardHeader`。
-- 2x4 只有 `W-top-bottom` 可使用卡级 CardHeader；其它布局的标题必须归属具体内容区。
+- 每张卡最多一个 `CardHeader 20vp`，且标题不能用 Text 替代。2x2 带标题布局把它用于卡级标题；
+  `S-center`、`S-content-dual-action`、`S-dual-info` 和其它无标题布局不生成标题。只有没有卡级标题、
+  布局确有独立内容分区且额外 `20vp` 预算成立时，唯一 CardHeader 才可位于该分区首行。
+- 2x4 的 `W-top-bottom` 可使用唯一的卡级 CardHeader；其它布局最多在一个具体内容区使用唯一 CardHeader，
+  其余区域直接使用语义组件组织内容，不另造 Text 标题。
 
 ## 8.2 数值预算
 

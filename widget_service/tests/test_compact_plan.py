@@ -230,6 +230,32 @@ def test_plan_normalization_removes_target_incompatible_component_hints() -> Non
     )
 
 
+def test_plan_normalization_makes_card_header_an_exclusive_title_hint() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "会议标题",
+                        "dataId": "/data/calendar/events/0/title",
+                        "componentHints": ["Text", "CardHeader", "EventCard"],
+                    }
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    assert result.plan["info_required"][0]["componentHints"] == ["CardHeader"]
+    assert result.warnings == (
+        "info_required[0].componentHints removed alternatives because CardHeader "
+        "is the exclusive title component.",
+    )
+
+
 def test_plan_call_is_normalized_without_freezing_components() -> None:
     result = parse_compact_plan_call(plan_call(), task_spec())
     facts = result.plan["info_required"]
@@ -290,6 +316,38 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     errors = compact_plan_coverage_errors(incomplete, plan, task_spec())
     assert any("会议标题" in item for item in errors)
     assert any("打开日历" in item for item in errors)
+
+
+def test_card_header_plan_fact_cannot_be_covered_by_text() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["CardHeader"],
+            }
+        ]
+    }
+    text_source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+        ]
+    )
+    header_source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","CardHeader",{"title":{"path":'
+            '"/data/calendar/events/0/title"},"fontColor":"#FF1F4799"}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(text_source, plan, spec) == (
+        "Plan title fact must be visible in the single CardHeader.title: "
+        "会议标题 (/data/calendar/events/0/title).",
+    )
+    assert compact_plan_coverage_errors(header_source, plan, spec) == ()
 
 
 def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:

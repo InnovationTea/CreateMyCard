@@ -204,7 +204,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["header_icon"]["styles"]["height"], 20)
         self.assertNotIn("_visualRecipe", result)
 
-    def test_card_header_supports_multiple_section_titles(self) -> None:
+    def test_card_header_rejects_multiple_instances(self) -> None:
         compact_dsl = _serialize(
             [
                 [
@@ -238,18 +238,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ]
         )
 
-        result = convert_compact_dsl_to_a2ui(
-            compact_dsl,
-            size="2x4",
-            protocol_profile=self.profile,
-        )
-        update = json.loads(result.splitlines()[1])["updateComponents"]
-        components = {item["id"]: item for item in update["components"]}
-
-        self.assertEqual(components["left_header"]["styles"]["width"], 132)
-        self.assertEqual(components["left_header"]["styles"]["height"], 20)
-        self.assertEqual(components["right_header"]["styles"]["width"], 132)
-        self.assertEqual(components["right_header"]["styles"]["height"], 20)
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "CardHeader allows at most one instance per card",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
 
     def test_card_header_rejects_height_override(self) -> None:
         compact_dsl = _serialize(

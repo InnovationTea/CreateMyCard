@@ -989,6 +989,10 @@ function expandHighLevel(
 }
 
 export function expandCompactComponents(input: Map<string, MiniNode>, size: CardSize) {
+  const cardHeaderCount = [...input.values()].filter(node => node.type === "CardHeader").length;
+  if (cardHeaderCount > 1) {
+    throw new Error("CardHeader 每张卡最多只能有一个。");
+  }
   const nodes = new Map(input);
   const putExpansion = (
     originalId: string,
