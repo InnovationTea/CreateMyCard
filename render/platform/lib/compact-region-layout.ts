@@ -82,6 +82,8 @@ export function adaptCompactRegions(
   const output = new Map<string, MiniNode>();
   for (const [id, node] of input) output.set(id, { ...node, props: { ...node.props } });
   const boxes = new Map<string, Box>();
+  const blocked = new Map<string, Set<Axis>>();
+  const wrappers: Array<{parent: string; child: string; axis: Axis; weight: number}> = [];
   const slots = adaptiveSlots(authors, input, size);
   const slotActions = new Set([...slots].filter(id => {
     const author = authors.get(id);
@@ -154,7 +156,22 @@ export function adaptCompactRegions(
   }
   const reference = referenceProfile.sizes[size];
   visit("root", { width: reference.width, height: reference.height });
-  // 上层实际压缩会让下层参考盒失真；已知超占用时保留整卡原几何。
+  // 局部压缩风险只传播到后代的相同轴，不能冻结整卡的安全外部分区。
+  function block(id: string, axis: Axis) {
+    const affected = blocked.get(id) ?? new Set<Axis>();
+    if (affected.has(axis)) return;
+    affected.add(axis);
+    blocked.set(id, affected);
+    const node = input.get(id);
+    if (node) for (const child of children(node)) block(child, axis);
+  }
+  function releaseActionHeight(props: Record<string, unknown>) {
+    if (props.constraintSize && typeof props.constraintSize === "object") {
+      const limits = {...props.constraintSize as Record<string, unknown>};
+      delete limits.maxHeight;
+      props.constraintSize = limits;
+    }
+  }
   for (const [id, box] of boxes) {
     const node = input.get(id)!, axis = mainAxis(node), spacing = gap(node);
     if (axis === undefined || spacing === undefined) continue;
@@ -165,7 +182,7 @@ export function adaptCompactRegions(
     for (const child of ids) {
       used += (boxes.get(child)?.[axis] ?? 0) + (inset(input.get(child)!, "margin", axis) ?? 0);
     }
-    if (used > available + 1e-7) return output;
+    if (used > available + 1e-7) block(id, axis);
   }
   for (const [id, box] of boxes) {
     if (!authors.has(id)) continue;
@@ -173,24 +190,29 @@ export function adaptCompactRegions(
     const ids = children(parent);
     for (const child of ids) {
       const node = input.get(child)!, kind = authors.get(child)?.type ?? "", props = node.props;
-      if (constraints.some(key => key in props)) continue;
+      if (constraints.some(key => key in props && !(key === "constraintSize" && slotActions.has(child)))) continue;
       for (const axis of axes) {
         if (axis === main || !(axis === "width" ? widthFill : regions).has(kind)) continue;
         if (inset(node, "margin", axis) !== 0) continue;
+        if (blocked.get(id)?.has(axis)) continue;
         const value = number(props[axis]), available = space[axis];
         if (value !== undefined && value > 0 && available !== undefined && Math.abs(value - available) <= 1e-7) {
           output.get(child)!.props[axis] = "matchParent";
+          if (axis === "height" && slotActions.has(child)) releaseActionHeight(output.get(child)!.props);
         }
       }
     }
     const spacing = gap(parent);
     if (main === undefined || space[main] === undefined || spacing === undefined) continue;
+    if (blocked.get(id)?.has(main)) continue;
     let used = spacing * Math.max(0, ids.length - 1), known = true;
     const candidates: Array<[string, number]> = [];
     for (const child of ids) {
       const node = input.get(child)!, props = node.props;
       const length = boxes.get(child)?.[main], margin = inset(node, "margin", main);
-      if ((number(props.layoutWeight) ?? 0) > 0 || length === undefined || margin === undefined) {
+      const weighted = (number(props.layoutWeight) ?? 0) > 0;
+      const automatic = slots.has(child) && !Object.hasOwn(authors.get(child)?.props ?? {}, "layoutWeight");
+      if ((weighted && !automatic) || length === undefined || margin === undefined) {
         known = false; break;
       }
       used += length + margin;
@@ -200,21 +222,36 @@ export function adaptCompactRegions(
       candidates.push([child, length]);
     }
     if (!known || Math.abs(used - space[main]!) > 1e-7) continue;
-    // Web flex 的 padding 不参与权重分配；原盒比例无法保持时不转换。
+    // 内边距比例不同时，通过零内边距布局壳分配外框。
     const ratios = candidates.map(([child, length]) => {
       const padding = inset(input.get(child)!, "padding", main);
       return padding === undefined ? undefined : padding / length;
     });
-    if (ratios.some(ratio => ratio === undefined || Math.abs(ratio - ratios[0]!) > 1e-7)) continue;
+    if (ratios.some(ratio => ratio === undefined)) continue;
+    const needsWrapper = ratios.some(ratio => Math.abs(ratio! - ratios[0]!) > 1e-7);
+    const cross = main === "width" ? "height" : "width";
+    if (needsWrapper && candidates.some(([child]) => boxes.get(child)?.[cross] === undefined)) continue;
     for (const [child, length] of candidates) {
       const props = output.get(child)!.props;
-      delete props[main]; props.layoutWeight = length;
-      if (main === "height" && slotActions.has(child) && props.constraintSize) {
-        const limits = { ...(props.constraintSize as Record<string, unknown>) };
-        delete limits.maxHeight;
-        props.constraintSize = limits;
-      }
+      if (needsWrapper) wrappers.push({parent: id, child, axis: main, weight: length});
+      else { delete props[main]; props.layoutWeight = length; }
+      if (main === "height" && slotActions.has(child)) releaseActionHeight(props);
     }
+  }
+  for (const {parent, child, axis, weight} of wrappers) {
+    const node = output.get(child)!, ancestor = output.get(parent)!;
+    const cross = axis === "width" ? "height" : "width";
+    let shellId = child + "_region_shell";
+    while (output.has(shellId)) shellId += "_";
+    const props: Record<string, unknown> = {
+      layoutWeight: weight, [cross]: node.props[cross] ?? boxes.get(child)?.[cross],
+      alignItems: "start", justifyContent: "start", itemMargin: 0,
+    };
+    if ("margin" in node.props) { props.margin = node.props.margin; delete node.props.margin; }
+    delete node.props.layoutWeight;
+    node.props.width = "matchParent"; node.props.height = "matchParent";
+    ancestor.children = ancestor.children.map(id => id === child ? shellId : id);
+    output.set(shellId, {type: "Column", props, children: [child]});
   }
   return output;
 }

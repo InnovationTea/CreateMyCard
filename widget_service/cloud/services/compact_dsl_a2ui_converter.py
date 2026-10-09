@@ -695,6 +695,9 @@ def convert_compact_dsl_to_a2ui(
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
     author_types = {component.component_id: component.component_type for component in components}
+    author_weights = frozenset(
+        component.component_id for component in components if "layoutWeight" in component.props
+    )
     region_slots = adaptive_slot_ids(components, size=size)
     slot_actions: set[str] = set()
     protected = {"aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight"}
@@ -733,6 +736,7 @@ def convert_compact_dsl_to_a2ui(
         profile=profile if "sizes" in profile else None,
         slots=region_slots,
         slot_actions=frozenset(slot_actions),
+        author_weights=author_weights,
     )
     if fusion_palette is not None:
         try:
