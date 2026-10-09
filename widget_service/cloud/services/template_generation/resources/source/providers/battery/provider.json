@@ -81,7 +81,7 @@
       "templateId": "BatteryOverviewPercentStatusCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量与充电状态 Compact：左侧以 20vp 大号数字展示电量百分比，辅行展示充电状态，右侧 40vp 电量环，环内可选电量图标，自带圆角底板；用于宽版右列 2x1 组合槽位。 组件形态：percentStatusCompact。",
+      "description": "手机电量与充电状态 Compact：左侧以 20vp 大号数字展示电量百分比，辅行展示充电状态，右侧 40vp 电量环，环内可选电量图标；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentStatusCompact。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -189,7 +189,7 @@
       "templateId": "BatteryOverviewPercentRingCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Compact：自带圆角底板，左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内可选电量图标，不展示充电状态；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact。",
+      "description": "手机电量 Compact：左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内可选电量图标，不展示充电状态；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [

@@ -3,9 +3,8 @@ data = {
   duration: $path("/exerciseDurationText"),
   workoutType: $path("/exerciseTypeName")
 }
-Row({"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent", "padding": 8,
-  "itemMargin": 8, "alignItems": "center", "borderRadius": 16,
-  "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+Row({"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent",
+  "itemMargin": 8, "alignItems": "center"},
   Column({"layoutWeight": 1, "itemMargin": 4},
     Text(data.duration, {"width": "matchParent", "height": 22, "fontSize": 16,
       "fontWeight": 700, "fontColor": $theme('primaryColor'),

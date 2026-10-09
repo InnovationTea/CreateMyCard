@@ -167,7 +167,6 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -292,7 +291,6 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -349,7 +347,6 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -406,7 +403,6 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -1730,9 +1726,6 @@ Row(
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 12, "top": 0, "right": 16, "bottom": 0 },
-    "backgroundColor": $theme('supportContentStyle.backgroundColor'),
-    "borderRadius": $theme('supportContentStyle.borderRadius'),
     "alignItems": "center",
     "clip": true,
     "constraintSize": { "minWidth": 0, "minHeight": 0 }

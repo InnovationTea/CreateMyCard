@@ -755,7 +755,7 @@
       "templateId": "WeatherOverviewConditionFeelsLikeAlertFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气现象大字 Full：自带圆角底板，现象为主视觉，底部体感温度与天气预警（可选）；在 2x4 组合布局中与右侧 Compact 底板风格一致。",
+      "description": "天气现象大字 Full：现象为主视觉，底部体感温度与天气预警（可选）；底板由外层布局提供。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/condition"
@@ -821,7 +821,7 @@
       "templateId": "WeatherOverviewRainWindFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "降水概率 Full：自带圆角底板，展示当天降水概率进度环与风力行，适配出行降雨摘要；在 2x4 组合布局中与右侧 Compact 底板风格一致。",
+      "description": "降水概率 Full：展示当天降水概率进度环与风力行，适配出行降雨摘要；底板由外层布局提供。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/rainProbabilityPercent"

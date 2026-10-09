@@ -402,7 +402,7 @@ Row(
     {
         "_advancedComponent": "SleepOverview",
         "itemMargin": 4, "width": "matchParent", "justifyContent": "spaceBetween",
-        "alignItems": "center", "padding": { "left": 8, "right": 8 },
+        "alignItems": "center",
         "onClick": EventAction(props?.actionId)
     },
     Column(
