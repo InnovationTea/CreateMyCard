@@ -300,8 +300,11 @@
       "templateId": "HeartRateOverviewFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要。 组件形态：full。",
-      "optionalData": [],
+      "description": "运动平均心率摘要，展示平均心率，可补充运动类型与运动时长。 组件形态：full。",
+      "optionalData": [
+        "/exerciseDurationText",
+        "/exerciseTypeName"
+      ],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
         "/exerciseHeartRateAvg"

@@ -1,14 +1,23 @@
 #Template HeartRateOverviewFull@1(props: {})
 data = {
-    average: $path("/exerciseHeartRateAvg")
+    average: $path("/exerciseHeartRateAvg"),
+    typeName: $optionalPath("/exerciseTypeName"),
+    duration: $optionalPath("/exerciseDurationText")
 }
 
 Column(
     { "_advancedComponent": "HeartRateOverview", "itemMargin": 0, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-    Text(
-        "运动平均心率",
-        { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    ),
+    #if data.typeName
+        Text(
+            data.typeName,
+            { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        ),
+    #else
+        Text(
+            "运动平均心率",
+            { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        ),
+    #endif
     Text(
         data.average,
         { "width": "matchParent", "margin": { "top": 4 }, "textAlign": "center", "fontSize": 56, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
@@ -16,7 +25,20 @@ Column(
     Text(
         "次/分钟",
         { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    )
+    ),
+    #if data.duration
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+            Text(
+                "运动时长",
+                { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+            ),
+            Text(
+                data.duration,
+                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            )
+        )
+    #endif
 )
 #End
 

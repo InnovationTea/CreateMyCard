@@ -2822,16 +2822,19 @@ def test_sleep_templates_bind_progress_color_to_dedicated_theme_tokens() -> None
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties.get("color")
-        assert color is not None
-        assert color.kind == "theme"
-        assert color.name == "progressColor"
-        background = options.properties["backgroundColor"]
-        assert background.kind == "theme"
-        assert background.name == "progressBackgroundColor"
+        # SleepOverviewFull 的富/简双布局各含一份 Progress（#if 分支互斥，运行时只
+        # 渲染一份）；Hero 恒为一份。断言所有副本都绑定专属主题 token。
+        assert progress
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties.get("color")
+            assert color is not None
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
+            background = options.properties["backgroundColor"]
+            assert background.kind == "theme"
+            assert background.name == "progressBackgroundColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -3783,7 +3786,12 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
     value, unit = value_row.children
     assert _template_node_options(value)["height"] == 48
     assert unit.values[0].value == "天"
-    assert _template_node_options(unit)["height"] == 16
+    # 单位与 WideHalf/TargetCompact 的旁数单位一致：fontSize 14、无固定高度
+    # （固定 height:16 曾把 12fp 字形压进 9vp 内容盒）、flexShrink 0 防横向挤压。
+    unit_options = _template_node_options(unit)
+    assert unit_options["fontSize"] == 14
+    assert "height" not in unit_options
+    assert unit_options["flexShrink"] == 0
     unit_margin = unit.values[-1].properties["margin"]
     assert unit_margin.kind == "object"
     assert unit_margin.properties["bottom"].value == 6
