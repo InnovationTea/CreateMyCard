@@ -578,6 +578,20 @@
       ]
     },
     {
+      "templateId": "ScheduleOverviewReminderSourceFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "沿用提醒详情 Full 的时间轴版式，展示日程发起人与提前提醒分钟数；不要求重要程度、更新时间或日程标题，不接收展示 Prop。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/senderName"
+      ],
+      "secondaryData": [
+        "/events/0/remindTime/0"
+      ],
+      "optionalData": []
+    },
+    {
       "templateId": "ScheduleOverviewTimezoneWideFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
@@ -820,6 +834,67 @@
         "/events/0/dtStart",
         "/events/0/dtEnd",
         "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewDateLocationTimeFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "沿用日期地点 Full 的版式，展示标题、开始日期、开始时间和地点；不要求结束时间或时区；可选 calendarIcon 与 headerLabel。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewEventCountDatedLocationFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "清点日程的带日期地点详情 Full：头部展示日程总数徽标，时间轴展示首项日程标题、开始日期、开始时间和地点；不要求全天状态、备注或结束时间；可选 calendarIcon 与 headerLabel。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTitleTimeFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "同版式的标题时间 Full：展示标题和开始时间，无动作形态；不要求日期、地点或结束时间；可选 calendarIcon 与 headerLabel。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewReminderFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "同版式的提醒 Full：时间轴展示标题、开始时间和提前提醒分钟数，无动作形态；不要求发起人、重要程度或更新时间；可选 calendarIcon 与 headerLabel。",
+      "entry": "templates/schedule-detail-full.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [
+        "/events/0/remindTime/0"
       ],
       "optionalData": []
     }

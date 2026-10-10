@@ -613,6 +613,30 @@
         "/batteryTemperatureText",
         "/healthStatusDesc"
       ]
+    },
+    {
+      "templateId": "BatteryOverviewPhoneTextSupport@1",
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ],
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量文本 Support：左侧展示电量百分比文本主行与可选充电状态辅行，右侧可选 24vp 电池图标；可在根节点绑定事件；用于双业务 Support 组合布局。",
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/chargingStatusDesc"
+      ],
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "phone-device"
+        ]
+      }
     }
   ],
   "compatibility": {

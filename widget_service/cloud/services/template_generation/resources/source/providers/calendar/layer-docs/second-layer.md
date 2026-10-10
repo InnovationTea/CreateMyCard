@@ -78,6 +78,10 @@
     不猜测枚举含义，不把整数插入仅接受字符串的模板插值。
   - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
     提醒分钟数，不接收展示 Prop。
+  - `ScheduleOverviewReminderSourceFull@1`：同版式的提醒来源 Full；发起人和提前提醒分钟数全部必需，
+    不要求重要程度、更新时间或日程标题，不补造其它日程信息；不接收展示 Prop。
+  - `ScheduleOverviewDateLocationTimeFull@1`：同版式的日期地点时间 Full；标题、真实开始日期、开始时间
+    和地点全部必需，不要求结束时间或时区；可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选
     `calendarIcon` 与 `headerLabel`。真实日期（/events/0/startDate）与距会议天数
     （/events/0/countdownDays）可选，可用时分别在标题上方（12vp 日期行）和卡片底部
@@ -99,6 +103,13 @@
     （日历/闹钟语义）。
   - `ScheduleOverviewTimezoneAllDayFull@1`：时区全天日程 Full；展示标题、全天状态、时区和地点；可选
     `calendarIcon` 与 `headerLabel`；全天文案由端侧 `Expr(...)` 按运行时布尔值计算。
+  - `ScheduleOverviewEventCountDatedLocationFull@1`：清点日程的带日期地点详情 Full；头部展示
+    日程总数徽标，时间轴展示首项日程的标题、开始日期、开始时间和地点，五项全部必需；不要求全天状态、
+    备注或结束时间；可选 `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewTitleTimeFull@1`：同版式的标题时间 Full；标题和开始时间必需，无动作形态；
+    可选 `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewReminderFull@1`：同版式的提醒 Full；时间轴展示标题、开始时间和提前提醒分钟数，
+    三项全部必需，不要求发起人、重要程度或更新时间；可选 `calendarIcon` 与 `headerLabel`。
 - Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 可用于 `SingleFocusLayout@1`、
   `WideTwoFullLayout@1`，或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个
   `IconAction@1`。WideFull 当前只作 `2x4` 预留。

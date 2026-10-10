@@ -23,6 +23,9 @@
 - `2x2` 多业务场景中，用户要求展示手机电量和充电状态且两个字段均可用时，可以选择
   `BatteryOverviewSupport@1`；该模板只占 `TwoSupportLayout@1` 的一个业务槽位。
   该 Support 的数值电量与充电状态均为硬必选；带单位电量文本可选，但不能替代缺失的数值电量。
+- `2x2` 多业务场景中，用户要求展示电量百分比文本（可选叠加充电状态）且 `/batterySOCText` 可用、
+  无数值电量时，可以选择 `BatteryOverviewPhoneTextSupport@1`；该模板只占
+  `TwoSupportLayout@1` 的一个业务槽位，充电状态为可选辅行，缺失时省略。
 - `BatteryOverviewSupportHero@1` 是预留的约 1.5x2 竖版电量面板，数据要求与
   `BatteryOverviewSupport@1` 一致；仅在布局提供对应 1.5x2 槽位时选择，当前没有布局提供该槽位。
 - 根据 `userQuery` 判断出的必须显示电量字段存在支持集合之外的路径时，不得选择。
