@@ -97,9 +97,9 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert label.values[0] == title
     assert _options(label).get("textAlign") == "center"
     for text in (label, location):
-        assert _options(text).get("fontSize") == 16
-        assert _options(text).get("maxFontSize") == 16
-        assert _options(text).get("minFontSize") == 12
+        assert _options(text).get("fontSize") == 12
+        assert _options(text).get("maxFontSize") == 12
+        assert _options(text).get("minFontSize") == 10
         assert _options(text).get("maxLines") == 2
         assert _options(text).get("fontWeight") == 500
     time_size = 24 if with_end else 30
@@ -144,9 +144,9 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
         styles = text.get("styles")
         assert isinstance(styles, dict)
         assert styles.get("maxLines") == (1 if index == 1 else 2)
-        assert styles.get("fontSize") == (time_size if index == 1 else 16)
-        assert styles.get("maxFontSize") == (time_size if index == 1 else 16)
-        assert styles.get("minFontSize") == (time_min_size if index == 1 else 12)
+        assert styles.get("fontSize") == (time_size if index == 1 else 12)
+        assert styles.get("maxFontSize") == (time_size if index == 1 else 12)
+        assert styles.get("minFontSize") == (time_min_size if index == 1 else 10)
         assert styles.get("textOverflow") == "ellipsis"
         if index == 1:
             assert styles.get("height") == 58

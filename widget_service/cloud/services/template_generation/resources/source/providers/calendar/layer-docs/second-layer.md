@@ -33,7 +33,7 @@
     时间段为 24fp/800、最小 18fp；仅开始时间为 30fp/800、最小 24fp，最大字号与默认字号一致，
     时间行高 58vp、可收缩且单行省略，时间段连接符两侧不加空格。顶部组间距 8vp、上边距 4vp，
     外层上下分布、间距 0vp。标题和地点均为
-    16fp/500，最小 12fp、最大 16fp、最多两行省略。用于 2x4
+    12fp/500，最小 10fp、最大 12fp、最多两行省略。用于 2x4
     组合布局的整列业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action；2x4 单业务
     双操作时依次组合本 Full 与两个 `CompactAction@1`（按各自 `allowedActionIds` 语义绑定，如免打扰
     设置 + 一键入会）。一键入会链接（/events/0/oneClickServiceLink）仅作为可选数据进入字段覆盖契约，
