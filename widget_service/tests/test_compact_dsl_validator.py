@@ -609,14 +609,18 @@ def test_design_prompt_routes_single_core_value_to_center_layout() -> None:
     assert "2x2 单数值 Hero 安全盒前置约束" not in prompt
 
 
-def test_accepts_centered_single_value_hero_inside_106_by_58_safe_box() -> None:
-    result = validate_compact_dsl(
-        _centered_single_value_hero_dsl(value_font=38, unit_font=16),
-        task_spec=_centered_single_value_hero_task_spec(30),
-        card_spec={"suggestSize": "2x2", "dataBindings": []},
-    )
+def test_rejects_unmodeled_action_with_hero_inside_safe_box() -> None:
+    with pytest.raises(CompactDslValidationError) as caught:
+        validate_compact_dsl(
+            _centered_single_value_hero_dsl(value_font=38, unit_font=16),
+            task_spec=_centered_single_value_hero_task_spec(30),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
 
-    assert not result.warnings
+    assert caught.value.errors == (
+        "COMPACT_LAYOUT_UNVERIFIED: component action has no definite width/height.",
+        "COMPACT_LAYOUT_UNVERIFIED: component action type ActionUnit is not modeled.",
+    )
 
 
 def test_rejects_centered_single_value_hero_without_safe_box() -> None:
@@ -647,14 +651,18 @@ def test_rejects_centered_single_value_hero_that_exceeds_width_pressure() -> Non
         )
 
 
-def test_accepts_centered_single_value_hero_after_font_downgrade() -> None:
-    result = validate_compact_dsl(
-        _centered_single_value_hero_dsl(value_font=30, unit_font=14),
-        task_spec=_centered_single_value_hero_task_spec(1000),
-        card_spec={"suggestSize": "2x2", "dataBindings": []},
-    )
+def test_rejects_unmodeled_action_after_hero_font_downgrade() -> None:
+    with pytest.raises(CompactDslValidationError) as caught:
+        validate_compact_dsl(
+            _centered_single_value_hero_dsl(value_font=30, unit_font=14),
+            task_spec=_centered_single_value_hero_task_spec(1000),
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
 
-    assert not result.warnings
+    assert caught.value.errors == (
+        "COMPACT_LAYOUT_UNVERIFIED: component action has no definite width/height.",
+        "COMPACT_LAYOUT_UNVERIFIED: component action type ActionUnit is not modeled.",
+    )
 
 
 def test_rejects_centered_single_value_hero_that_exceeds_height_pressure() -> None:

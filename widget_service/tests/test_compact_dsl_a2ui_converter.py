@@ -285,7 +285,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 ],
                 "eventCandidates": [event],
             },
-            card_spec={"dataBindings": []},
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
         )
         a2ui = convert_compact_dsl_to_a2ui(
             compact_dsl,
@@ -1933,14 +1933,21 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertNotIn("width", create_surface)
         self.assertNotIn("height", create_surface)
 
-    def test_validates_task_and_capability_context(self) -> None:
-        result = validate_compact_dsl(
-            self.compact_dsl,
-            task_spec=self.task_spec,
-            card_spec=self.card_spec,
-        )
+    def test_rejects_missing_size_with_valid_task_and_capability_context(self) -> None:
+        with self.assertRaises(CompactDslValidationError) as caught:
+            validate_compact_dsl(
+                self.compact_dsl,
+                task_spec=self.task_spec,
+                card_spec=self.card_spec,
+            )
 
-        self.assertEqual(result.warnings, ())
+        self.assertEqual(
+            caught.exception.errors,
+            (
+                "COMPACT_LAYOUT_UNVERIFIED: root or reference size unavailable; "
+                "geometry incomplete.",
+            ),
+        )
 
     def test_rejects_fixed_root_children_that_overflow_safe_height(self) -> None:
         compact_dsl = _serialize(
@@ -2084,7 +2091,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(result.warnings, ())
 
-    def test_validates_sparse_projected_array_index(self) -> None:
+    def test_rejects_missing_size_with_valid_sparse_projected_array_index(self) -> None:
         compact_dsl = _serialize(
             [
                 ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
@@ -2111,16 +2118,23 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             task_spec=task_spec,
             card_spec=card_spec,
         )
-        result = validate_compact_dsl(
-            repaired,
-            task_spec=task_spec,
-            card_spec=card_spec,
-        )
+        with self.assertRaises(CompactDslValidationError) as caught:
+            validate_compact_dsl(
+                repaired,
+                task_spec=task_spec,
+                card_spec=card_spec,
+            )
 
         self.assertEqual(repaired, compact_dsl)
-        self.assertEqual(result.warnings, ())
+        self.assertEqual(
+            caught.exception.errors,
+            (
+                "COMPACT_LAYOUT_UNVERIFIED: root or reference size unavailable; "
+                "geometry incomplete.",
+            ),
+        )
 
-    def test_validates_array_index_against_homogeneous_item_schema(self) -> None:
+    def test_rejects_missing_size_with_valid_homogeneous_item_schema(self) -> None:
         compact_dsl = _serialize(
             [
                 ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
@@ -2147,13 +2161,20 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "dataBindings": [{"writeResultTo": "/data/weather"}],
         }
 
-        result = validate_compact_dsl(
-            compact_dsl,
-            task_spec=task_spec,
-            card_spec=card_spec,
-        )
+        with self.assertRaises(CompactDslValidationError) as caught:
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec=task_spec,
+                card_spec=card_spec,
+            )
 
-        self.assertEqual(result.warnings, ())
+        self.assertEqual(
+            caught.exception.errors,
+            (
+                "COMPACT_LAYOUT_UNVERIFIED: root or reference size unavailable; "
+                "geometry incomplete.",
+            ),
+        )
 
     def test_rejects_expression_that_wraps_quoted_json_pointer(self) -> None:
         compact_dsl = _serialize(
@@ -2237,7 +2258,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"dataBindings": []},
             )
 
-    def test_allows_slash_as_expression_display_separator(self) -> None:
+    def test_rejects_missing_size_with_valid_expression_display_separator(self) -> None:
         compact_dsl = _serialize(
             [
                 [
@@ -2268,13 +2289,20 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "eventCandidates": [],
         }
 
-        result = validate_compact_dsl(
-            compact_dsl,
-            task_spec=task_spec,
-            card_spec={"dataBindings": []},
-        )
+        with self.assertRaises(CompactDslValidationError) as caught:
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec=task_spec,
+                card_spec={"dataBindings": []},
+            )
 
-        self.assertEqual(result.warnings, ())
+        self.assertEqual(
+            caught.exception.errors,
+            (
+                "COMPACT_LAYOUT_UNVERIFIED: root or reference size unavailable; "
+                "geometry incomplete.",
+            ),
+        )
 
     def test_rejects_compact_data_path_missing_from_task_spec(self) -> None:
         compact_dsl = _serialize(
@@ -2491,14 +2519,14 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             [
                 "progress",
                 "Progress",
-                {"value": {"path": "/battery/level"}, "total": 100},
+                {"value": {"path": "/battery/level"}, "total": 100, "width": 100, "height": 20},
             ],
             ["/battery/level", 68],
         ]
         repaired = repair_compact_dsl_binding_paths(
             _serialize(rows),
             task_spec={"dataModelSchema": {}},
-            card_spec={"dataBindings": []},
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
         )
         repaired_rows = [json.loads(line) for line in repaired.splitlines()]
 
@@ -2512,7 +2540,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "assetCandidates": [],
                 "eventCandidates": [],
             },
-            card_spec={"dataBindings": []},
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
         )
 
     def test_rejects_data_value_that_disagrees_with_schema_type(self) -> None:
@@ -2580,6 +2608,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         result = validate_compact_dsl(
             compact_dsl,
             task_spec={
+                "size": "2x4",
                 "dataModelSchema": {"data": {"weather": {}}},
                 "assetCandidates": [],
                 "eventCandidates": [],

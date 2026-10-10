@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.card_validation.compact_geometry import validate_compact_geometry
 from services.compact_component_runtime import VISUAL_RECIPE_VERSION
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -175,7 +176,7 @@ _PRESERVE_ORIGINAL_COLOR_MARKERS = (
 
 @dataclass(frozen=True)
 class CompactDslValidationResult:
-    """Compact DSL validation warnings returned to the generation pipeline."""
+    """返回原有非阻断警告；新增几何诊断已在校验入口作为错误处理。"""
 
     warnings: tuple[str, ...] = ()
 
@@ -263,6 +264,13 @@ def validate_compact_dsl(
         errors,
     )
     errors.extend(layout_errors)
+    geometry = validate_compact_geometry(
+        components,
+        size=size,
+        protocol_profile=protocol_profile,
+    )
+    errors.extend(geometry.errors)
+    errors.extend(geometry.warnings)
     if errors:
         raise CompactDslValidationError(errors)
 
