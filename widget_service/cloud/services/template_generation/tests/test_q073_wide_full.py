@@ -73,7 +73,7 @@ def test_wide_full_requires_selected_daily_action(
     registry = CardPlanRegistry()
     template_id = "BluetoothDeviceOverviewEarbudsChargingWideFull@1"
     definition = registry.require_template(template_id)
-    source = Path(__file__).parent / "fixtures/ear123_connection_examples.json"
+    source = Path(__file__).parent / "fixtures/q073.json"
     fixture = json.loads(source.read_text(encoding="utf-8"))
     content = fixture.get("content")
     assert isinstance(content, dict)
@@ -134,18 +134,32 @@ def test_wide_full_schema_rejects_missing_action() -> None:
         Draft202012Validator(definition.variants[0].parameters_schema).validate(params)
 
 
-@pytest.mark.parametrize("example_id", ("connected", "disconnected"))
+@pytest.mark.parametrize(
+    ("is_connected", "earphone_name", "battery_levels"),
+    (
+        (True, "FreeBuds Pro 3", (80, 76, 78)),
+        (False, "未连接耳机", (0, 0, 0)),
+    ),
+)
 def test_ear123_connection_examples_keep_runtime_header_and_playlist(
     tmp_path: Path,
-    example_id: str,
+    is_connected: bool,
+    earphone_name: str,
+    battery_levels: tuple[int, int, int],
 ) -> None:
-    source = Path(__file__).parent / "fixtures/ear123_connection_examples.json"
+    source = Path(__file__).parent / "fixtures/q073.json"
     fixture = json.loads(source.read_text(encoding="utf-8"))
-    examples = fixture.get("examples")
-    assert isinstance(examples, list)
-    example = next(item for item in examples if item.get("id") == example_id)
-    earphone_sample = example.get("earphoneData")
-    assert isinstance(earphone_sample, dict)
+    earphone_sample: dict[str, object] = {
+        "isConnected": is_connected,
+        "earphoneName": earphone_name,
+        "batteryLevel": battery_levels[0],
+        "chargingStatusDesc": "未充电",
+        "leftBatteryLevel": battery_levels[1],
+        "leftChargingStatusDesc": "未充电",
+        "rightBatteryLevel": battery_levels[2],
+        "rightChargingStatusDesc": "未充电",
+    }
+    example_id = "connected" if is_connected else "disconnected"
     output = tmp_path / f"{example_id}.json"
     generate(source, output, earphone_sample=earphone_sample)
     messages = json.loads(output.read_text(encoding="utf-8"))
@@ -177,6 +191,6 @@ def test_ear123_connection_examples_keep_runtime_header_and_playlist(
 
 
 def test_ear123_preview_rejects_unknown_sample_field(tmp_path: Path) -> None:
-    source = Path(__file__).parent / "fixtures/ear123_connection_examples.json"
+    source = Path(__file__).parent / "fixtures/q073.json"
     with pytest.raises(ValueError, match="Unknown earphone preview field"):
         generate(source, tmp_path / "invalid.json", earphone_sample={"fakeField": "fake"})
