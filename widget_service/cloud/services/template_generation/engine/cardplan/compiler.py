@@ -1294,10 +1294,10 @@ def _validate_provider_template_state(
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError("Case connection Hero requires connection and battery.")
             return
-        if variant_name == "caseConnectionCompact":
+        if variant_name == "connectionBatterySupport":
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError(
-                    "Case connection Compact requires connection and battery."
+                    "Connection battery Support requires connection and battery."
                 )
             return
         if variant_name == "tripleBatteryWideHalf":
@@ -1348,7 +1348,7 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：不渲染耳机数据，因此不设任何数据前提。
             return
         if variant_name == "earbudPairFull":
@@ -6680,6 +6680,12 @@ def _validate_provider_template_layout_action_requirements(
         ),
     }
     wide_composition = wide_composition_contracts.get(layout_id)
+    if (
+        layout_id == "WideFullTwoCompactLayout"
+        and not action_names
+        and layout_kinds == ("Full", "Support", "Support")
+    ):
+        return
     if layout_id == "WideFullTwoCompactLayout" and action_names == ("CompactAction",) * 2:
         if layout_kinds != ("Full",):
             raise TerselConversionError(

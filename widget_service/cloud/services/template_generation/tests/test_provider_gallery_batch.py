@@ -207,8 +207,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景，以及新增电量、耳机模板的预览。
-    assert len(all_cases) == 203
+    # 包含各业务场景；两个仅支持 2x4 的耳机 Support 不生成 2x2 单模板用例。
+    assert len(all_cases) == 201
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -299,7 +299,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 202
+    assert len(targeted_cases) == 200
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -655,10 +655,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 203
+    assert summary.total == 201
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 197
+    assert summary.not_generated == 195
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -793,7 +793,7 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
     expected_templates: set[str] = set()
     for definition in definitions:
         for template in definition.templates:
-            if template.suffix == "Support":
+            if template.suffix == "Support" and "2x2" in template.supported_card_sizes:
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
     # 三个 Support 不提供自身动作，各少一个双动作场景。

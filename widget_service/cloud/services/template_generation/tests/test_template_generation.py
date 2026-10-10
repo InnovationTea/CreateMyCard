@@ -409,8 +409,12 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     )
 
 
-def test_business_template_suffix_drives_size_and_provider_data_tiers():
+def test_business_template_suffix_or_declaration_drives_size_and_data_tiers():
     registry = get_cardplan_registry()
+    declared_size_overrides = {
+        "BluetoothDeviceOverviewConnectionBatterySupport@1": ("2x4",),
+        "BluetoothDeviceOverviewMusicSupport@1": ("2x4",),
+    }
     layout_kinds = {
         "HeroTitle",
         "HeroContent",
@@ -428,10 +432,13 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         if definition.capability_id is None:
             continue
         layout_kind = provider_template_layout_kind(template_id)
-        expected_sizes = (
-            ("2x4",)
-            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
-            else ("2x2",)
+        expected_sizes = declared_size_overrides.get(
+            template_id,
+            (
+                ("2x4",)
+                if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+                else ("2x2",)
+            ),
         )
         serialized = definition.model_dump(mode="json", by_alias=True)
 
@@ -3090,7 +3097,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarphoneCompact@1", "earphoneIcon"),
         ("BluetoothDeviceOverviewStatusHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewCaseConnectionHero@1", "deviceIcon"),
-        ("BluetoothDeviceOverviewCaseConnectionCompact@1", "caseIcon"),
+        ("BluetoothDeviceOverviewConnectionBatterySupport@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "leftEarIcon"),

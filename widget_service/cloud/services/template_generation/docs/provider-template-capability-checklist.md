@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | HeroTitle | 双业务单 Action 的位置 0；后接 HeroContent | 2x2 |
 | HeroContent | 双业务单 Action 的位置 1；前置 HeroTitle | 2x2 |
-| Support | 约 2x1；由 Planner 组成双 Support，可在业务内部消费 Action | 2x2 |
+| Support | 槽位尺寸随布局决定；默认可组成 2x2 双 Support，显式声明后也可作为 2x4 左 Full + 右双 Support 的右侧 1x2 槽位；可在业务内部消费 Action | 默认 2x2；可声明 2x4 |
 | Compact | 约 2x1；单 Compact + 2 个 PillAction | 2x2 |
 | Hero | 约 2x1.7；Hero + 1 个 PillAction；2x4 双焦点布局中可在根节点内嵌底板事件 | 2x2 |
 | Full | 完整 2x2；无 Action，或 Full + 1 个 IconAction | 2x2 |
@@ -138,8 +138,8 @@
 | ✅ | `BluetoothDeviceOverviewCompletePhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneCaseHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneCaseCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
-| ✅ | `BluetoothDeviceOverviewCaseConnectionCompact@1` | 约 2x1；主行连接状态加粗、次行充电盒电量，可选充电盒图标；用于宽版右列 2x1 组合槽位 | `/isConnected`<br>`/batteryLevel` | 无 | 无 |
-| ✅ | `BluetoothDeviceOverviewMusicCompact@1` | 约 2x1；歌单入口：标题打开歌单、副标题播放我的收藏，右侧 24vp 音乐图标，根节点绑定收藏歌单事件；不展示耳机数据，仅作宽版右列伴生动作槽位 | 无 | 无 | 无 |
+| ✅ | `BluetoothDeviceOverviewConnectionBatterySupport@1` | 约 1x2；主行耳机仓电量加粗、次行连接状态，可选充电盒图标；用于宽版右列 Support 槽位 | `/isConnected`<br>`/batteryLevel` | 无 | 无 |
+| ✅ | `BluetoothDeviceOverviewMusicSupport@1` | 约 1x2；歌单入口：标题打开歌单、副标题播放我的收藏，右侧 24vp 音乐图标，根节点绑定收藏歌单事件；不展示耳机数据，仅作宽版右列伴生 Support 槽位 | 无 | 无 | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewChargeSupport@1` | 约 2x1；左侧双行文本（电量可选，缺失时省略电量行与电量环），右侧 40vp 环与 16vp 盒图标，事件在模板内部 | 无 | `/chargingStatusDesc` | `/batteryLevel` |

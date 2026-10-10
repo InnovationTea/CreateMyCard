@@ -121,7 +121,7 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
     ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
     ("WeatherOverviewUvFull@1", "location"): "青浦区",
     ("ActivityOverviewTrainingSummaryFull@1", "title"): "训练总结",
-    ("BluetoothDeviceOverviewMusicCompact@1", "actionId"): "event.open.music.daily",
+    ("BluetoothDeviceOverviewMusicSupport@1", "actionId"): "event.open.music.daily",
     ("CountdownOverviewDepartureHero@1", "title"): "北京出差",
     ("CountdownOverviewTargetDetailFull@1", "targetDate"): "2026-11-15",
     ("CountdownOverviewTravelSupport@1", "title"): "国庆回家",
@@ -140,7 +140,7 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
         "resources/base/media/icon_earphone.svg",
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
-    ("BluetoothDeviceOverviewMusicCompact@1", "musicIcon"):
+    ("BluetoothDeviceOverviewMusicSupport@1", "musicIcon"):
         "resources/base/media/music_fill.svg",
     ("BatteryOverviewSupport@1", "batteryIcon"):
         "resources/base/media/icon_phone.svg",
@@ -401,7 +401,9 @@ def _build_case(
     registry: CardPlanRegistry,
 ) -> TemplatePreviewCase:
     layout_kind = provider_template_layout_kind(definition.wire_id)
-    size = _SIZE_BY_LAYOUT[layout_kind]
+    variant = definition.variants[0]
+    declared_sizes = variant.supported_card_sizes
+    size = declared_sizes[0] if len(declared_sizes) == 1 else _SIZE_BY_LAYOUT[layout_kind]
     content_height = _CONTENT_HEIGHT_BY_LAYOUT[layout_kind]
     data_schema = _build_data_schema(definition)
     task_spec = TaskSpec(
@@ -411,7 +413,6 @@ def _build_case(
         assetCandidates=[],
         dataModelSchema=data_schema,
     )
-    variant = definition.variants[0]
     bindings = {
         name: _binding_placeholder(definition, binding)
         for name, binding in definition.bindings.items()
