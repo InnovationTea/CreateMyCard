@@ -237,8 +237,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景，以及新增电量、耳机模板的预览。
-    assert len(all_cases) == 201
+    # 包含各业务场景，以及新增电量、耳机和日程模板的预览。
+    assert len(all_cases) == 208
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -329,7 +329,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 200
+    assert len(targeted_cases) == 207
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -685,10 +685,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 201
+    assert summary.total == 208
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 195
+    assert summary.not_generated == 202
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
