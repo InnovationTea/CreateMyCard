@@ -7,12 +7,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-import debug_tools
 import pytest
 from debug_tools.batch_testing.postprocess import PostprocessManager
 from debug_tools.postprocess_plugins.gallery.plugin import BatchGalleryManager, run_builtin
 
-PLUGIN_DIR = Path(debug_tools.__file__).resolve().parent / "postprocess_plugins/quality-score"
+PLUGIN_DIR = Path(__file__).resolve().parents[1] / "debug_tools/postprocess_plugins/quality-score"
 SPEC = importlib.util.spec_from_file_location("quality_plugin_test", PLUGIN_DIR / "plugin.py")
 assert SPEC is not None and SPEC.loader is not None
 plugin = importlib.util.module_from_spec(SPEC)

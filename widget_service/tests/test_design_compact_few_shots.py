@@ -260,7 +260,7 @@ def test_examples_use_only_declared_actions_and_assets(
         ("2x4-V03", {"ProgressLine2", "TextBlock"}),
         ("2x4-V05", {"SingleLineTitle", "TopTextBottomValue"}),
         ("2x4-V18", {"InfoBlock", "CardButton"}),
-        ("2x4-V20", {"ProgressCircle", "SecondaryBody", "CardButton"}),
+        ("2x4-V20", {"ProgressCircle", "InfoBlock", "CardButton"}),
         ("2x4-V21", {"H_BarChart"}),
     ),
 )

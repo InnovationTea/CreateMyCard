@@ -61,9 +61,7 @@ def _convert(rows: list[ComponentRow], size: str = "2x2") -> list[dict[str, Any]
         values.append(value)
     values.append(["/data/batterySOC", 68])
     compact = "\n".join(json.dumps(value) for value in values)
-    return _components(convert_compact_dsl_to_a2ui(
-        compact, size=size, allow_internal_components=True,
-    ))
+    return _components(convert_compact_dsl_to_a2ui(compact, size=size))
 
 
 def _components(a2ui: str) -> list[dict[str, Any]]:
@@ -214,9 +212,7 @@ def test_battery_compact_ring_stays_36vp_after_template_round_trip(fusion: bool)
         original, processor_kind=DslProcessorKind.DESIGN_COMPACT,
         size="2x2", protocol_profile=profile,
     )
-    converted = convert_compact_dsl_to_a2ui(
-        compact, size="2x2", protocol_profile=profile, allow_internal_components=True
-    )
+    converted = convert_compact_dsl_to_a2ui(compact, size="2x2", protocol_profile=profile)
     for output in (original, converted):
         components = _components(output)
         ring = next(item for item in components if item.get("component") == "Progress")

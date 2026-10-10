@@ -65,15 +65,13 @@ def _layout_pseudocodes() -> list[tuple[str, str, str]]:
 def _layout_fixture(layout_id: str) -> str:
     fixture_ids = {
         "S-dual-info": "2x2-V07",
-        "W-content-side-slots": "2x4-V18",
+        "W-content-side-slots": "2x4-V04",
     }
     fixture_id = fixture_ids.get(layout_id)
     assert fixture_id is not None, layout_id
     for identifier, _, _, source in _few_shots():
         if identifier == fixture_id:
-            return source.replace('"device_info"', '"info_slot"').replace(
-                '"contact_action"', '"action_slot"'
-            )
+            return source
     raise AssertionError(f"Missing layout fixture: {layout_id}")
 
 
@@ -93,16 +91,12 @@ def _task_spec_for_source(source: str, *, size: str) -> dict:
         if len(row) < 3:
             continue
         event_candidates.extend(row[2].get("onClick", []))
-    section = PROMPTS["fewshot_2x4"].split("（2x4-V18）", 1)[1].split("<!--", 1)[0]
-    task_match = re.search(r"### user\s*\n```json\s*\n(.*?)\n```", section, re.S)
-    assert task_match is not None
-    original_task = json.loads(task_match.group(1))
     return {
         "userQuery": "布局契约测试",
         "size": size,
         "eventCandidates": event_candidates,
         "assetCandidates": [],
-        "dataModelSchema": original_task.get("dataModelSchema"),
+        "dataModelSchema": {"data": {}},
     }
 
 
@@ -270,7 +264,7 @@ def test_w_content_side_slots_rejects_event_on_information_slot() -> None:
             row[2].pop("onClick", None)
 
     invalid_source = _mutate_rows(source, mutate)
-    with pytest.raises(CompactDslValidationError, match="InfoBlock does not allow onClick"):
+    with pytest.raises(CompactDslValidationError, match="event"):
         validate_compact_dsl(
             invalid_source,
             task_spec=_task_spec_for_source(invalid_source, size="2x4"),

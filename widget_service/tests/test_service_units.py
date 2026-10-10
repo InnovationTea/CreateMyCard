@@ -37,6 +37,8 @@ ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
 REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
 PHASE_TWO_DATA_CAPABILITY_IDS = (
+    "GetMemoData",
+    "GetPhoneCallRecords",
     "GetCurrentTime",
     "GetAppPowerConsumptionRanking",
     "GetDailyMostUsage",
@@ -217,7 +219,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).enable_sensitive_log_fields is True
     assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
     assert Settings(_env_file=None).design_compact_model_backend == "openai"
-    assert Settings(_env_file=None).openai_master_client == "llmclient"
+    assert Settings(_env_file=None).openai_master_client == "deepseek_platform"
     assert Settings(_env_file=None).openai_fallback_client == "llmclient"
     assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
     assert Settings(_env_file=None).model_max_concurrency == 20
@@ -534,15 +536,15 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     assert Settings(_env_file=None).enable_widget_directive_commands is False
 
 
-def test_design_compact_few_shots_are_enabled_by_default_and_can_be_disabled(
+def test_design_compact_few_shots_are_disabled_by_default_and_can_be_enabled(
     monkeypatch,
 ):
     variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS"
     monkeypatch.delenv(variable, raising=False)
-    assert Settings(_env_file=None).enable_design_compact_few_shots is True
-
-    monkeypatch.setenv(variable, "false")
     assert Settings(_env_file=None).enable_design_compact_few_shots is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_few_shots is True
 
 
 def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
@@ -856,7 +858,6 @@ def test_phase_two_version_returns_phase_two_capability_overview():
 
     assert phase_one_ids.isdisjoint(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_ids.issuperset(PHASE_TWO_DATA_CAPABILITY_IDS)
-    assert phase_two_ids.isdisjoint({"GetMemoData", "GetPhoneCallRecords"})
 
 
 def test_phase_two_version_returns_phase_two_capability_schemas():
@@ -865,13 +866,13 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         uid="test-user",
         prdVer=APP_VERSION_11_7_7_328,
         device={"romVersion": ROM_VERSION_7},
-        dataCapabilityIds=[*PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"],
+        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
     )
     phase_two_request = DataCapabilitySchemasRequest(
         uid="test-user",
         prdVer=APP_VERSION_11_7_7_331,
         device={"romVersion": ROM_VERSION_7},
-        dataCapabilityIds=[*PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"],
+        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
     )
 
     phase_one_response = service.get_data_capability_schemas(phase_one_request)
@@ -884,12 +885,14 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         returned_parameters[capability.id] = set(properties)
 
     assert phase_one_response.dataCapabilities == []
-    assert phase_one_response.missingCapabilityIds == [
-        *PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"
-    ]
+    assert phase_one_response.missingCapabilityIds == list(
+        PHASE_TWO_DATA_CAPABILITY_IDS
+    )
     assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
-    assert phase_two_response.missingCapabilityIds == ["GetMemoData", "GetPhoneCallRecords"]
+    assert phase_two_response.missingCapabilityIds == []
     assert returned_parameters == {
+        "GetMemoData": set(),
+        "GetPhoneCallRecords": {"callRecordType"},
         "GetCurrentTime": set(),
         "GetAppPowerConsumptionRanking": {"limit"},
         "GetDailyMostUsage": {"topN"},
@@ -2827,7 +2830,7 @@ def test_design_compact_edit_prompt_contains_previous_design_token(
     assert "{{CREATE_SYSTEM_PROMPT}}" not in prompt[0]["content"]
     assert "上一轮极简协议 Token" in prompt[0]["content"]
     assert "修改后的完整极简协议 Token" in prompt[0]["content"]
-    assert "最终 DSL 只输出已注册的基础布局组件和组件" in prompt[0]["content"]
+    assert "DSL" not in prompt[0]["content"]
     assert "A2UI" not in prompt[0]["content"]
     assert "previousGenui" not in prompt[0]["content"]
     assert prompt[1]["content"].startswith("{")
@@ -3081,7 +3084,6 @@ async def test_model_runtime_collects_llmclient_stream(monkeypatch):
         yield "\n```"
 
     messages = [{"role": "user", "content": "weather"}]
-    monkeypatch.setattr(get_settings(), "deepseek_http_url", "")
     monkeypatch.setattr("custom.model_runtime.stream_genui", fake_stream)
 
     result = await asyncio.to_thread(_generate_with_llmclient, messages)
@@ -3130,38 +3132,48 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     assert '\\"createSurface\\"' in conversion_logs[0]
 
 
-def test_design_converter_expands_current_semantic_components():
-    rows = [
-        ["root", "Column", {}, ["title", "progress", "button"]],
-        ["title", "SingleLineTitle", {"title": "电量", "fontColor": "#FF1F4799"}],
-        ["progress", "ProgressCircleSingle", {
-            "value": 68, "total": 100, "displayValue": "68%", "label": "当前电量",
-            "icon": "resources/base/media/battery_leaf_fill.svg",
-            "fontColor": "#FF1F4799", "color": "#FF1F4799", "backgroundColor": "#331F4799",
-        }],
-        ["button", "PillButton", {
-            "label": "查看", "actionSurface": "#331F4799", "actionInk": "#FF1F4799",
-            "onClick": [{"call": "openSettings", "args": {}}],
-        }],
-    ]
-    source = "\n".join(json_module.dumps(row) for row in rows)
-    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
-        source, size="2x2", design_profile_id="design-compact-dsl",
+def test_design_converter_expands_latest_design_tokens():
+    design_dsl = "\n".join(
+        (
+            '["root","Column",{"width":160,"height":160,"padding":8,'
+            '"itemMargin":4},["hero","title","button","progress","small_progress","check"]]',
+            '["hero","Image",{"src":"resources/base/media/sun_max.svg",'
+            '"design":"media-cover-square","fillColor":"icon_fourth"}]',
+            '["title","Text",{"content":"电量","design":"metric-display-md",'
+            '"fontColor":"font_primary"}]',
+            '["progress","Progress",{"value":68,"total":100,'
+            '"design":"progress-ring-primary"}]',
+            '["small_progress","Progress",{"value":32,"total":100,'
+            '"design":"progress-linear-thin"}]',
+            '["button","Button",{"label":"info","design":"action-icon-round"}]',
+            '["check","Checkbox",{"label":"省电","select":true,'
+            '"design":"checkbox-rounded-check"}]',
+        )
     )
-    update = json_module.loads(result.splitlines()[1]).get("updateComponents")
-    assert isinstance(update, dict)
-    components = update.get("components")
-    assert isinstance(components, list)
-    by_id = {item.get("id"): item for item in components}
-    title = by_id.get("title_title")
-    progress = by_id.get("progress_ring")
-    button = by_id.get("button")
-    assert title is not None and progress is not None and button is not None
-    assert title.get("styles", {}).get("fontSize") == 12
-    assert progress.get("component") == "Progress"
-    assert progress.get("value") == 68
-    assert progress.get("styles", {}).get("strokeWidth") == 6
-    assert button.get("onClick") == [{"call": "openSettings", "args": {}}]
+
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x2",
+        design_profile_id="design-compact-dsl",
+    )
+    components = json_module.loads(result.splitlines()[1])
+    component_by_id = {
+        component["id"]: component
+        for component in components["updateComponents"]["components"]
+    }
+
+    assert component_by_id["hero"]["styles"]["width"] == "matchParent"
+    assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
+    assert component_by_id["title"]["styles"]["fontSize"] == 36
+    assert component_by_id["button"]["styles"]["width"] == 36
+    assert component_by_id["button"]["styles"]["borderRadius"] == 18
+    assert component_by_id["progress"]["styles"]["type"] == "ring"
+    assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
+    assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
+    assert component_by_id["small_progress"]["styles"]["height"] == 4
+    assert component_by_id["small_progress"]["styles"]["borderRadius"] == 2
+    assert component_by_id["check"]["styles"]["shape"] == "rounded_square"
+    assert component_by_id["check"]["styles"]["selectedColor"] == "#33FFFFFF"
 
 
 def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
@@ -3878,7 +3890,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
 
 @pytest.mark.asyncio
-async def test_missing_pill_button_on_click_enters_validation_repair(monkeypatch):
+async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
     settings = get_settings()
     event = CapabilityRegistry(
         version=REGISTRY_VERSION_6
@@ -3890,7 +3902,7 @@ async def test_missing_pill_button_on_click_enters_validation_repair(monkeypatch
     invalid_source = "\n".join(
         [
             '["root","Column",{"width":160,"height":160},["cta"]]',
-            '["cta","PillButton",{"label":"蓝牙设置","actionSurface":"#331F4799","actionInk":"#FF1F4799"}]',
+            '["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置"}]',
             '["/state/ready",true]',
         ]
     )
@@ -3933,7 +3945,7 @@ async def test_missing_pill_button_on_click_enters_validation_repair(monkeypatch
     issue = repair_payload["qualityErrors"][0]
     assert issue["stage"] == "validation"
     assert issue["code"] == "COMPACT_DSL_VALIDATION_FAILED"
-    assert "PillButton requires onClick" in issue["message"]
+    assert "ActionUnit.onClick is required" in issue["message"]
 
 
 @pytest.mark.asyncio

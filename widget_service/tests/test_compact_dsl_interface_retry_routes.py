@@ -282,9 +282,7 @@ def test_real_generation_pipeline_retries_to_valid_artifact(monkeypatch, tmp_pat
             },
             ["title"],
         ],
-        ["title", "SecondaryBody", {
-            "role": "body", "items": [{"value": "天气"}], "fontColor": "#FF000000",
-        }],
+        ["title", "Text", {"content": "天气", "fontSize": 16, "fontColor": "#FF000000"}],
         ["/ui/state", "ready"],
     ]
     token = "\n".join(json.dumps(row, ensure_ascii=False) for row in token_rows)

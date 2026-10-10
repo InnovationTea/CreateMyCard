@@ -4,7 +4,6 @@ import copy
 import json
 from pathlib import Path
 
-import debug_tools
 import pytest
 from debug_tools.batch_testing.api import register_batch_routes
 from debug_tools.batch_testing.postprocess import PostprocessManager
@@ -15,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from jsonschema import Draft202012Validator
 
-PLUGINS = Path(debug_tools.__file__).resolve().parent / "postprocess_plugins"
+PLUGINS = Path(__file__).resolve().parents[1] / "debug_tools/postprocess_plugins"
 
 
 def write_run(root: Path, run_id: str = "run") -> dict:
