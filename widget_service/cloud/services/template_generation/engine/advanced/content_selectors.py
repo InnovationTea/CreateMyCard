@@ -3240,7 +3240,8 @@ def _schedule_date_location_fields(provider: dict[str, Any]) -> dict[str, dict[s
         field = _calendar_variant_schema_leaf(provider, f"/events/0/{name}")
         if not _trusted_schedule_variant_field(field, data_type="string", allow_empty=False):
             return {}
-        assert field is not None
+        if field is None:
+            raise ValueError('field is not None')
         selected[name] = deepcopy(field)
     return selected
 
