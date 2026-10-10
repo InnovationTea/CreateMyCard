@@ -187,12 +187,12 @@ async def test_platform_chat_client_reuses_official_http_api_key_for_tool_calls(
     assert captured["thinking_enabled"] is False
 
 
-def test_debug_agent_uses_configured_official_http_thinking_mode():
+def test_debug_agent_prefers_official_http_when_api_key_is_configured():
     debug_settings = type("DebugSettingsStub", (), {"request_timeout_seconds": 1.0})()
     session = object.__new__(DebugAgentSession)
     session.debug_settings = debug_settings
     settings = _settings(
-        openai_master_client="deepseek_official_http",
+        openai_master_client="llmclient",
         deepseek_official_http_enable_thinking=True,
     )
 

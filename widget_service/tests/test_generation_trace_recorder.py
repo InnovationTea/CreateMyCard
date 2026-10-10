@@ -384,7 +384,6 @@ async def test_compact_mock_flow_records_intermediate_artifacts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_generation_trace_recording", True)
     monkeypatch.setattr(settings, "generation_trace_root", tmp_path / "traces")
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)

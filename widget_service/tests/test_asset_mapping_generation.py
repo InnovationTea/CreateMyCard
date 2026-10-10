@@ -28,14 +28,9 @@ def design_source():
     return "\n".join(
         json.dumps(row, ensure_ascii=False)
         for row in [
-            ["root", "Column", {
-                "width": "matchParent", "height": "matchParent", "padding": 12,
-            }, ["title"]],
-            ["title", "ProgressCircle", {
-                "externalText": "20%", "icon": SRC, "accessibility": {"label": "降雨概率"},
-                "width": 72, "height": 76, "fontColor": "#FF1F4799",
-                "color": "#FF1F4799", "backgroundColor": "#331F4799",
-            }],
+            ["root", "Column", {"width": 320, "height": 160, "padding": 12}, ["title", "image"]],
+            ["title", "Text", {"content": "天气", "fontSize": 16}],
+            ["image", "Image", {"src": SRC, "width": 20, "height": 20}],
             ["/ui/state", "ready"],
         ]
     )

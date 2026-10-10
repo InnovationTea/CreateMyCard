@@ -482,8 +482,8 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
 
     edit_context = json.loads(prompt[1]["content"])
     system_prompt = prompt[0]["content"]
-    assert "## 11.6 2x4 组合落地" in system_prompt
-    assert "W-content-side-slots" in system_prompt
+    assert "# 本轮路由摘要（高优先级）" in system_prompt
+    assert "## 9.2 2x4 固定骨架" in system_prompt
     assert "## 9.1 2x2 固定骨架" not in system_prompt
     assert "### `W8-quad-cells`" not in system_prompt
     assert "### `W9-dual-backboards`" not in system_prompt
