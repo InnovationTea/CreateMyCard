@@ -1208,6 +1208,28 @@ def _has_nearby_metric_label(
             )
             if has_metric_label(text):
                 return True
+            if sibling and sibling.component_type == "SingleLineTitle":
+                if has_metric_label(sibling.props.get("title")):
+                    return True
+            is_semantic_label = sibling is not None and (
+                _uses_visual_recipe_part(sibling, "SingleLineTitle.root")
+                or _uses_visual_recipe_part(sibling, "SecondaryBody.root")
+            )
+            if not is_semantic_label:
+                continue
+            pending = list(sibling.children)
+            for _ in range(3):
+                next_level = []
+                for child_id in pending:
+                    child = components_by_id.get(child_id)
+                    if child is None:
+                        continue
+                    if child.component_type == "Text":
+                        if has_metric_label(child.props.get("content")):
+                            return True
+                    else:
+                        next_level.extend(child.children)
+                pending = next_level
         current = parent.component_id
     return False
 
