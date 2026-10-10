@@ -5,6 +5,7 @@ import { domProps } from "./dom-props.js";
 import type { CSSProperties, MouseEventHandler } from "react";
 import { applyFontScale, mergeCommonStyles, normalizeSchemaColor } from "./common-styles.js";
 import { HARMONY_TEXT_PRIMARY } from "./harmony-defaults.js";
+import { useCompleteText } from "./complete-text.js";
 
 export interface ExtendedTextProps {
   content?: string;
@@ -125,6 +126,11 @@ export function ExtendedText({ content, onClick, ...styleProps }: ExtendedTextPr
   const common = mergeCommonStyles(s);
   const ts = textSchema(s);
   const text = content == null ? "" : typeof content === "object" ? JSON.stringify(content) : String(content);
+  const style = { ...base, ...common, ...ts };
+  const completeText = useCompleteText(
+    text, s.maxLines === 1 && s.textOverflow !== "ellipsis" && s.textOverflow !== "marquee",
+    JSON.stringify(style),
+  );
 
   if (s.textOverflow === "marquee") {
     const kf = `genui-marquee-${uid}`;
@@ -164,12 +170,14 @@ export function ExtendedText({ content, onClick, ...styleProps }: ExtendedTextPr
   return (
     <p
       {...domProps(s)}
-      style={{ ...base, ...common, ...ts }}
+      ref={completeText.ref}
+      aria-label={typeof s["aria-label"] === "string" ? s["aria-label"] : text}
+      style={style}
       onClick={onClick}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
     >
-      {text}
+      {completeText.visibleText}
     </p>
   );
 }
