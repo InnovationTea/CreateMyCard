@@ -11,6 +11,12 @@
 
 解析器会处理 DataModel 路径、受限表达式、动态子节点、基础组件和 13 个高阶组件，并按当前 Design Compact 参考预算推断 2×2（150×150）和 2×4（300×150）画布尺寸。高阶组件直接读取云侧 `visual-recipes-v1.json`，不在浏览器维护副本。
 
+统一工作台的渲染页面还提供“Python 转换并渲染”：调用本地
+`POST /debug/renderer/convert`，直接复用云侧 `compact_dsl_a2ui_converter.py`。
+转换成功后，编辑器显示完整 A2UI，预览使用返回的实际尺寸；转换失败保留原输入并显示错误。
+选择“自动”时按 Compact 的组件宽度推断 2×2 或 2×4，也可以手工指定画布。
+该操作需要 Python 调试后端，frontend/full 模式均可用；原“渲染”操作仍使用浏览器预览。
+
 相对图片资源以 `/resources/` 为默认根目录，由 frontend/full 两种 Python 应用通过受目录约束的只读路由提供；Vite 开发服务提供等价本地中间件。浏览器字体通过 `/fonts/harmonyos/` 复用根 `render` 的 HarmonyOS Sans 与 HarmonyOS Sans SC 资源，保持字宽、字重和换行效果一致。外部图片由浏览器直接读取，失败时显示占位，不提供开放式服务端图片代理。点击动作只回传解析结果，不执行 Intent、Deeplink 或 URL 跳转。
 
 ## 导出

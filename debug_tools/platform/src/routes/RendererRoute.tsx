@@ -222,6 +222,7 @@ export function RendererRoute() {
           key={artifactKey}
           initialValue={selectedCall ? (initialValue ?? '') : initialValue}
           assetBaseUrl={DEFAULT_ASSET_BASE_URL}
+          conversionUrl="/debug/renderer/convert"
           cardSize={rendererCardSize}
           onArtifact={(document) => {
             pushEvent({

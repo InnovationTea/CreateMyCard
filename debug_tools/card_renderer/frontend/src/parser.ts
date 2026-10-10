@@ -462,7 +462,7 @@ function findDeclaredSurface(rows: unknown[]): { width: number | null; height: n
   return { width: null, height: null };
 }
 
-function unwrapRenderableSource(text: string): string {
+export function unwrapRenderableSource(text: string): string {
   const trimmed = text.trim().replace(
     /^```(?:jsonl?|genui|a2ui)?\s*\n([\s\S]*?)\n```$/i,
     '$1',

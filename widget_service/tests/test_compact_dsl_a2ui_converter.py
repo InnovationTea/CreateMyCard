@@ -1904,6 +1904,19 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(pill_components["cta"]["styles"]["borderRadius"], 30)
         self.assertEqual(pill_components["cta"]["onClick"], [handler])
 
+        action = pill_components.get("cta")
+        assert action is not None
+        action_styles = action.get("styles")
+        assert action_styles is not None
+        self.assertEqual(action_styles.get("height"), 36)
+        self.assertEqual(action_styles.get("alignItems"), "center")
+        text = pill_components.get("cta_text")
+        assert text is not None
+        text_styles = text.get("styles")
+        assert text_styles is not None
+        self.assertNotIn("height", text_styles)
+        self.assertEqual(text.get("content"), shared_props.get("label"))
+
     def test_circle_button_expands_inside_right_anchor_slot(self) -> None:
         handler = {"call": "openBluetooth", "args": {}}
         compact_dsl = _serialize(

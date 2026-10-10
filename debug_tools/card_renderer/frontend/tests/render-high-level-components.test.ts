@@ -76,9 +76,10 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
         actionInk: "#FF1F4799",
         actionSurface: "#331F4799",
         onClick: action,
+        width: 120,
       },
     ]), { size: "2x4" }),
-    /2x2/,
+    /PillButton.width/,
   );
   assert.throws(
     () => compileMiniDsl('["root","EmphasizedData",{"value":1,"fontColor":"#FF000000","unknownProp":20}]'),

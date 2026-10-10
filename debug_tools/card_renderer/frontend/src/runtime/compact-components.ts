@@ -667,7 +667,7 @@ function expandHighLevel(
         props: {
           content: p.label,
           maxWidth: 96,
-          height: p.height ?? visual.styles.height ?? 36,
+          // 文字使用自然行高，由父 Row 居中，避免继承按钮外框高度。
           fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
           fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
           fontColor: p.actionInk,

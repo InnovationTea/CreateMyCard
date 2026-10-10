@@ -8,9 +8,72 @@ import { CardRenderer } from '../src/CardRenderer';
 import { CardPreview } from '../src/render';
 import { parseInput } from '../src/parser';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+const CONVERTED_A2UI = [
+  '{"version":"v0.9","createSurface":{"surfaceId":"surface_card","catalogId":"ohos.a2ui.extended.catalog.form"}}',
+  '{"version":"v0.9","updateComponents":{"surfaceId":"surface_card","root":"root","components":[' +
+    '{"id":"root","component":"Column","children":["text"]},' +
+    '{"id":"text","component":"Text","content":"Python 转换结果"}]}}',
+  '{"version":"v0.9","updateDataModel":{"surfaceId":"surface_card","path":"/","value":{}}}',
+].join('\n');
 
 describe('Render 内核预览', () => {
+  it('调用 Python 转换并用返回尺寸渲染 A2UI，更新编辑器', async () => {
+    const source = '["root","Text",{"content":"原始 DSL"}]';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ genui: CONVERTED_A2UI, size: '2x4' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue={source} conversionUrl="/debug/renderer/convert" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Python 转换并渲染' }));
+
+    await waitFor(() => expect(screen.getByText('Python 转换结果')).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('/debug/renderer/convert');
+    expect(JSON.parse(options.body)).toEqual({ source, size: 'auto' });
+    expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(CONVERTED_A2UI);
+    expect(screen.getByRole('combobox', { name: '画布' })).toHaveValue('2x4');
+    expect(screen.getByText(/A2UI · 300 × 150/)).toBeInTheDocument();
+  });
+
+  it('转换失败显示服务端原因并保留原始 DSL', async () => {
+    const source = '["root","Text",{"content":"保留输入"}]';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ detail: 'PillButton requires label' }),
+    }));
+    render(<CardRenderer initialValue={source} conversionUrl="/debug/renderer/convert" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Python 转换并渲染' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('PillButton requires label'));
+    expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(source);
+  });
+
+  it('转换途中编辑输入，取消旧请求且迟到结果不覆盖新内容', async () => {
+    let resolveResponse!: (value: unknown) => void;
+    const fetchMock = vi.fn().mockImplementation(() => new Promise(resolve => {
+      resolveResponse = resolve;
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue='["root","Text",{"content":"旧内容"}]' conversionUrl="/debug/renderer/convert" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Python 转换并渲染' }));
+    const [, options] = fetchMock.mock.calls[0];
+    const nextSource = '["root","Text",{"content":"新内容"}]';
+    fireEvent.change(screen.getByRole('textbox', { name: 'DSL 输入' }), { target: { value: nextSource } });
+    expect(options.signal.aborted).toBe(true);
+    resolveResponse({ ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x2' }) });
+
+    await waitFor(() => expect(screen.getByText('新内容')).toBeInTheDocument());
+    expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(nextSource);
+    expect(screen.queryByText('Python 转换结果')).not.toBeInTheDocument();
+  });
+
   it('使用 renderTree 绘制并安全回传点击动作', async () => {
     const source = [
       '["root","Column",{"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://card"}}]},["text"]]',
