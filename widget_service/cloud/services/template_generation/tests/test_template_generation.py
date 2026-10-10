@@ -3383,7 +3383,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
