@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ValidationFailureCaptureRoute } from './ValidationFailureCaptureRoute';
 
-function response(body: unknown): Response {
-  return { ok: true, status: 200, json: async () => body } as Response;
+function response(body: unknown, status = 200): Response {
+  return { ok: status < 400, status, json: async () => body } as Response;
 }
 
 describe('ValidationFailureCaptureRoute', () => {
@@ -15,7 +15,17 @@ describe('ValidationFailureCaptureRoute', () => {
   });
 
   it('renders validation input DSL and reports invalid DSL without hiding the sample', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, options) => {
+      if (String(input) === '/debug/renderer/convert') {
+        const body = JSON.parse(String(options?.body));
+        expect(body.appVersion).toBe('12.0.0.1');
+        if (body.source.endsWith('{')) return response({ detail: 'DSL 括号未闭合' }, 422);
+        return response({ size: '2x2', genui: [
+          '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+          '{"version":"v0.9","updateComponents":{"surfaceId":"preview","root":"root","components":[{"id":"root","component":"Text","content":"会议"}]}}',
+        ].join('\n') });
+      }
+      return response({
       items: [
         {
           id: 'Q001',
@@ -36,6 +46,7 @@ describe('ValidationFailureCaptureRoute', () => {
               status: 'failed',
               errorTypes: ['COMPACT_DSL_VALIDATION_FAILED'],
               dsl: '["root","Text",{"content":"会议"}]',
+              appVersion: '12.0.0.1',
             },
             {
               captureId: 'Q001-e1-i2-v1',
@@ -45,11 +56,13 @@ describe('ValidationFailureCaptureRoute', () => {
               status: 'success',
               errorTypes: [],
               dsl: '["root","Text",{',
+              appVersion: '12.0.0.1',
             },
           ],
         },
       ],
-    }));
+      });
+    });
 
     const { container } = render(
       <MemoryRouter initialEntries={['/batch/runs/run_001/validation-failure-capture']}>
@@ -68,6 +81,7 @@ describe('ValidationFailureCaptureRoute', () => {
     expect(
       container.querySelector('[data-sample-id="Q001-e1-i1-v1"] .gallery-capture-card'),
     ).toBeTruthy();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url) === '/debug/renderer/convert')).toHaveLength(2);
     expect(
       container.querySelector('[data-sample-id="Q001-e1-i2-v1"] .gallery-capture-placeholder'),
     ).toBeTruthy();

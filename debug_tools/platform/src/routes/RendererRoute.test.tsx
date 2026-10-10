@@ -55,6 +55,7 @@ describe('RendererRoute Compact DSL history', () => {
         artifactDigest: 'sha256:test',
         genui,
         cardSpec: { suggestSize: '2x4' },
+        taskSpec: { appVersion: '12.0.0.1' },
       }),
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -65,6 +66,7 @@ describe('RendererRoute Compact DSL history', () => {
     expect(editor).toHaveValue('');
     expect(editor).not.toHaveValue(RESULT_ENVELOPE);
     await waitFor(() => expect(editor).toHaveValue(genui));
+    expect(screen.getByRole('textbox', { name: '客户端版本' })).toHaveValue('12.0.0.1');
     await waitFor(() => expect(screen.getByText(/300 × 150/)).toBeInTheDocument());
     expect(screen.getByText('artifact 已下载')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(

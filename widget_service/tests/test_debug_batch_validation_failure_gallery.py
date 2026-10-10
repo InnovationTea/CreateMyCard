@@ -336,3 +336,23 @@ def test_validation_failure_gallery_rejects_tampered_trace_blob(tmp_path: Path) 
 
     with pytest.raises(ValueError, match="字节数不匹配|摘要校验失败"):
         manager.items(run_id)
+
+
+def test_validation_history_uses_each_attempt_version(tmp_path: Path) -> None:
+    run_id = "batch_20261009_validation_1234abcd"
+    run_dir = _write_run(tmp_path, run_id)
+    first = run_dir / "Q001" / "attempt_000"
+    final = run_dir / "Q001" / "attempt_001"
+    _write_json(first / "blocks.json", {"taskspec": {"appVersion": "invalid"}})
+    _write_json(first / "request.json", {"deviceInfo": {"prdVer": "12.0.0.1"}})
+    _write_json(final / "request.json", {"deviceInfo": {"prdVer": "12.0.0.2"}})
+    manager = ValidationFailureGalleryManager(tmp_path, "http://127.0.0.1:8888/debug")
+    items = manager.items(run_id)
+    target = next(item for item in items if item.get("id") == "Q001")
+    validations = target.get("validations")
+    assert isinstance(validations, list)
+    assert [item.get("appVersion") for item in validations] == ["invalid", "invalid", "12.0.0.2"]
+    other = next(item for item in items if item.get("id") == "Q002")
+    other_validations = other.get("validations")
+    assert isinstance(other_validations, list)
+    assert other_validations[0].get("appVersion") is None

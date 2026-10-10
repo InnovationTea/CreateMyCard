@@ -37,6 +37,7 @@ class ValidationEvaluation:
     status: str
     dsl: str
     errors: list[dict[str, Any]]
+    app_version: str | None = None
 
 
 @dataclass
@@ -74,6 +75,29 @@ def _read_trace(path: Path) -> list[dict[str, Any]]:
         if isinstance(value, dict):
             records.append(value)
     return records
+
+
+def _attempt_app_version(attempt_dir: Path) -> str | None:
+    """使用该次产物的版本，缺失时读取同次请求，不能用当前配置替换历史版本。"""
+    blocks_path = attempt_dir / "blocks.json"
+    blocks = _read_object(blocks_path) if blocks_path.is_file() else {}
+    task_spec = blocks.get("taskspec", blocks.get("taskSpec"))
+    if isinstance(task_spec, str):
+        task_spec = json.loads(task_spec)
+    version: str | None = None
+    if isinstance(task_spec, dict):
+        candidate = task_spec.get("appVersion")
+        if isinstance(candidate, str):
+            version = candidate
+    request_path = attempt_dir / "request.json"
+    if version is None and request_path.is_file():
+        request = _read_object(request_path)
+        device = request.get("deviceInfo")
+        if isinstance(device, dict):
+            candidate = device.get("prdVer")
+            if isinstance(candidate, str):
+                version = candidate
+    return version
 
 
 def _artifact_reference(record: dict[str, Any] | None, name: str) -> dict[str, Any] | None:
@@ -298,6 +322,9 @@ class ValidationFailureGalleryManager:
                 execution_index,
                 records,
             )
+            app_version = _attempt_app_version(trace_path.parent.parent.parent)
+            for validation in trace_validations:
+                validation.app_version = app_version
             validations.extend(trace_validations)
             interface_retry_count += trace_retries
             repair_attempt_count += trace_repairs
@@ -398,6 +425,7 @@ class ValidationFailureGalleryManager:
                         for error in validation.errors
                     ],
                     "dsl": validation.dsl,
+                    "appVersion": validation.app_version,
                 }
             )
         return {
@@ -560,6 +588,7 @@ class ValidationFailureGalleryManager:
                     "errorTypes": error_types,
                     "dsl": validation.dsl,
                     "size": item.size,
+                    "appVersion": validation.app_version,
                 }
                 if capture.get("status") == "success":
                     sample_rendered += 1

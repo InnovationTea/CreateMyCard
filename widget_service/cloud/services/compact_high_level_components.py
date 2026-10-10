@@ -1186,7 +1186,7 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             {
                 "content": props["label"],
                 "maxWidth": 96,
-                "height": props.get("height", 36),
+                # 文字使用自然行高，由父 Row 居中，避免按钮高度使文字在盒内偏上。
                 "fontSize": props.get("fontSize", 14),
                 "fontWeight": props.get("fontWeight", 500),
                 "fontColor": props["actionInk"],

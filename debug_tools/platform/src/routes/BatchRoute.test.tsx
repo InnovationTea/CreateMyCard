@@ -60,13 +60,18 @@ describe('BatchRoute', () => {
     expect(document.querySelector('.batch-current-state.completed')).toBeNull();
   });
 
-  it('renders a sample with the final CardSpec size instead of the 2x2 default', async () => {
+  it('converts a Compact sample with its final CardSpec size and original request version', async () => {
     const genui = [
       '{"version":"v0.9","createSurface":{"surfaceId":"surface_card"}}',
       '{"version":"v0.9","updateComponents":{"surfaceId":"surface_card","root":"root","components":[{"id":"root","component":"Text","content":"宽卡"}]}}',
     ].join('\n');
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const source = '["root","Text",{"content":"宽卡"}]';
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, options) => {
       const url = String(input);
+      if (url === '/debug/renderer/convert') {
+        expect(JSON.parse(String(options?.body))).toEqual({ source, size: '2x4', appVersion: '12.0.0.1' });
+        return response({ genui, size: '2x4' });
+      }
       if (url === '/debug/batch/tasks/task_1') return response({
         taskId: 'task_1', name: '尺寸回归', datasetId: 'request_dataset', sampleIds: ['Q001'],
         sampleCount: 1, requestOverrides: {}, concurrency: 4, maxRetries: 1,
@@ -77,7 +82,8 @@ describe('BatchRoute', () => {
       if (url === '/debug/batch/runs/run_001') return response(run);
       if (url.endsWith('/samples/Q001')) return response({
         summary: { id: 'Q001', query: '请做一个 2x2 卡片', size: '2x2', finalAttempt: 0 },
-        attempts: [{ name: 'attempt_000', genui, blocks: { cardspec: { suggestSize: '2x4' } } }],
+        attempts: [{ name: 'attempt_000', genui: source, blocks: { cardspec: { suggestSize: '2x4' } },
+          request: { deviceInfo: { prdVer: '12.0.0.1' } } }],
         deviceCapture: {
           id: 'Q001', status: 'success',
           cardUrl: '/debug/batch/runs/run_001/device-captures/Q001/card',
