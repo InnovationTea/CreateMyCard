@@ -156,7 +156,9 @@ def test_few_shot_validates_and_converts(
 
 def test_example_ids_match_selected_library_and_are_unique() -> None:
     expected = [f"2x2-V{index:02d}" for index in range(1, 14)]
-    expected.extend(f"2x4-V{index:02d}" for index in (3, 6, 8, 9, 10, 16, 19, 23, 28))
+    expected.extend(
+        f"2x4-V{index:02d}" for index in (3, 6, 8, 9, 10, 16, 19, 23, 28, 38)
+    )
     assert [item[0] for item in EXAMPLES] == expected
 
 

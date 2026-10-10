@@ -387,7 +387,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     else:
         expected.extend(
             f"example-v{index:02d}"
-            for index in (3, 6, 8, 9, 10, 16, 19, 23, 28)
+            for index in (3, 6, 8, 9, 10, 16, 19, 23, 28, 38)
         )
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
