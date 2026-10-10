@@ -763,8 +763,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ["metric_value", "metric_unit"],
         )
         self.assertEqual(components["metric"]["styles"]["width"], "matchParent")
+        self.assertEqual(components["metric"]["styles"]["justifyContent"], "start")
+        self.assertEqual(components["metric"]["styles"]["alignItems"], "top")
         self.assertEqual(components["metric_value"]["styles"]["fontSize"], 30)
-        self.assertEqual(components["metric_unit"]["styles"]["margin"], {"top": 14})
+        self.assertEqual(components["metric_unit"]["styles"]["margin"], {"top": 17})
         self.assertEqual(components["info"]["component"], "Column")
         self.assertEqual(components["info"]["styles"]["height"], 63)
         self.assertEqual(components["info_primary"]["styles"]["fontWeight"], 700)
@@ -1116,7 +1118,16 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["details"]["children"],
             ["details_item0", "details_item1"],
         )
+        self.assertNotIn("height", components["details"]["styles"])
+        self.assertEqual(components["details"]["itemMargin"], 8)
+        self.assertEqual(components["details"]["styles"]["justifyContent"], "start")
+        self.assertEqual(components["details"]["styles"]["layoutWeight"], 1)
+        self.assertEqual(
+            components["details"]["styles"]["constraintSize"],
+            {"minHeight": 48, "maxHeight": 64},
+        )
         self.assertEqual(components["details_item0"]["styles"]["height"], "matchParent")
+        self.assertEqual(components["details_item0"]["styles"]["layoutWeight"], 1)
         self.assertEqual(
             components["details_item0"]["styles"]["constraintSize"]["minWidth"],
             64,
@@ -1169,6 +1180,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         )
         for index in range(4):
+            self.assertEqual(
+                components[f"details_item{index}"]["styles"]["layoutWeight"],
+                1,
+            )
             self.assertEqual(
                 components[f"details_item{index}"]["styles"]["constraintSize"]["minWidth"],
                 64,

@@ -65,6 +65,40 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
 });
 
+test("EmphasizedData 在满宽根节点内左对齐并补偿字形基线", () => {
+  const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
+  const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
+  assert.equal(root.width, "matchParent");
+  assert.equal(root.justifyContent, "start");
+  assert.equal(root.alignItems, "top");
+  assert.deepEqual(unit.margin, { top: 17 });
+});
+
+test("TextBlock 项目等权撑满并保留固定间距和高度范围", () => {
+  const source = JSON.stringify([
+    "root",
+    "TextBlock",
+    {
+      items: [
+        { label: "照明", value: "18千瓦时" },
+        { label: "空调", value: "34千瓦时" },
+        { label: "设备", value: "29千瓦时" },
+      ],
+      fontColor: "#FF1F4799",
+      backgroundColor: "#99FFFFFF",
+    },
+  ]);
+  const { graph } = compileMiniDsl(source, { size: "2x4" });
+  const root = graph.getNode("root")?.props.styles as Record<string, unknown>;
+  const item = graph.getNode("root_item0")?.props.styles as Record<string, unknown>;
+
+  assert.equal(root.itemMargin, 8);
+  assert.equal(root.justifyContent, "start");
+  assert.equal(root.layoutWeight, 1);
+  assert.deepEqual(root.constraintSize, { minHeight: 48, maxHeight: 64 });
+  assert.equal(item.layoutWeight, 1);
+});
+
 test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲突", () => {
   const action = [{ call: "clickToIntent", args: { intentName: "Test" } }];
   assert.throws(

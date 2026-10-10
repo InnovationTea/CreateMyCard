@@ -515,7 +515,7 @@
           "component": "Row",
           "styles": {
             "itemMargin": 2,
-            "justifyContent": "center",
+            "justifyContent": "start",
             "alignItems": "top",
             "flexShrink": 0,
             "width": "matchParent"
@@ -540,7 +540,7 @@
             "maxLines": 1,
             "flexShrink": 0,
             "margin": {
-              "top": 14
+              "top": 17
             }
           }
         }
@@ -941,11 +941,15 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 64,
-            "itemMargin": 0,
-            "alignItems": "center",
-            "justifyContent": "spaceBetween",
-            "flexShrink": 1
+            "itemMargin": 8,
+            "alignItems": "stretch",
+            "justifyContent": "start",
+            "layoutWeight": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minHeight": 48,
+              "maxHeight": 64
+            }
           }
         },
         "item": {
@@ -960,6 +964,7 @@
             "itemMargin": 2,
             "alignItems": "start",
             "justifyContent": "center",
+            "layoutWeight": 1,
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 64,
