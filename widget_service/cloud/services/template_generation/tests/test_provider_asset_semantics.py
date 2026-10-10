@@ -37,6 +37,13 @@ _SLOTS = (
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon", "icon_earphone.svg"),
     ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon", "earphone_case_16644.svg"),
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon", "icon_earphone.svg"),
+    ("BatteryOverviewPluggedTypeSupport@1", "batteryOrChangeIcon", "bolt_fill.svg"),
+    ("BluetoothDeviceOverviewNameAndConnectionSupport@1", "bluetoothIconOrDeviceIcon",
+     "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewNameAndChargeSupport@1", "bluetoothIconOrDeviceIcon",
+     "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewEarbudsSupport@1", "leftIcon", "l_circle_fill.svg"),
+    ("BluetoothDeviceOverviewEarbudsSupport@1", "rightIcon", "r_circle_fill.svg"),
     ("ScheduleOverviewTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewLocationSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewStartTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
@@ -74,7 +81,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 19
+    assert slot_count == 25
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -95,6 +102,10 @@ def test_mixed_catalog_is_filtered_per_business_slot(
         assert _SOURCE + "earphone_case_16644.svg" not in allowed
     if template_id == "BluetoothDeviceOverviewChargeSupport@1":
         assert _SOURCE + "icon_earphone.svg" not in allowed
+    if parameter == "leftIcon":
+        assert _SOURCE + "r_circle_fill.svg" not in allowed
+    if parameter == "rightIcon":
+        assert _SOURCE + "l_circle_fill.svg" not in allowed
 
 
 def test_battery_support_phone_icon_slot_has_no_live_catalog_asset(
@@ -131,7 +142,7 @@ def test_phone_battery_support_icon_does_not_change_single_business_asset_semant
     "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
     "WeatherOverviewTemperatureSupport@1",
     "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
-    "WeatherOverviewHero@1", "WeatherOverviewFull@1",
+    "WeatherOverviewHero@1", "WeatherOverviewFull@1", "WeatherOverviewConditionSupport@1",
 ))
 def test_weather_slot_separates_single_and_dual_business_assets(
     definitions: dict[str, TemplateDefinition],
@@ -298,6 +309,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         # BatteryOverviewSupport@1 不贡献自身素材：icon_phone 已下架（上游 #410），
         # 其用例仅携带 partner 的温度计素材。
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
+        "BatteryOverviewPluggedTypeSupport@1": "asset.bolt_fill",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
@@ -308,12 +320,14 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "BluetoothDeviceOverviewEarbudsSupport@1": "asset.icon_earphone",
         "BluetoothDeviceOverviewChargeSupport@1": "asset.earphone_case_16644",
         "BluetoothDeviceOverviewConnectionSupport@1": "asset.icon_earphone",
+        "BluetoothDeviceOverviewNameAndConnectionSupport@1": "asset.icon_earphone",
+        "BluetoothDeviceOverviewNameAndChargeSupport@1": "asset.icon_earphone",
         "ScheduleOverviewTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewLocationSupport@1": "asset.calendar_fill",
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 61
+    assert len(provider.cases) == 73
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")
@@ -325,6 +339,8 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
             asset_id = expected.get(template_id)
             if asset_id is not None and asset_id not in expected_ids:
                 expected_ids.append(asset_id)
+            if template_id == "BluetoothDeviceOverviewEarbudsSupport@1":
+                expected_ids.extend(("asset.l_circle_fill", "asset.r_circle_fill"))
         assert asset_ids == expected_ids, case.caseId
         gallery_test = payload.get("galleryTest")
         assert isinstance(gallery_test, dict)

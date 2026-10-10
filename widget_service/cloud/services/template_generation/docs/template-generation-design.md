@@ -5,6 +5,18 @@
 [云侧方案设计](../../../../../docs/云侧方案设计.md)；本文不扩展公共协议支持范围。
 详细作者语法和接入方式见 [Provider 模板接入约定](provider-template-contract.md)。
 
+## 2026-10 双业务 Support 补充
+
+- `BatteryOverviewPluggedTypeSupport@1` 必需电量文本、充电状态、充电器类型，不依赖数值电量。
+- `BluetoothDeviceOverviewNameAndConnectionSupport@1` 必需耳机名称和连接状态；布尔值 false 显示
+  “未连接”，保留运行时刷新。`BluetoothDeviceOverviewNameAndChargeSupport@1` 必需名称和充电状态，
+  盒电量可选，数值 0 合法。
+- `WeatherOverviewConditionSupport@1` 仅要求当前天气现象，图标按天气状态匹配且可省略。
+- 左右耳电量 Support 的设备图标和左右耳标识均可选。左右标识齐全时展示成对图标，否则回退 L/R
+  文本。每个图标槽位单独限制素材语义，左右不能互换。
+- 上述模板复用字段覆盖检索、双业务布局和业务内事件归属规则；同步登记数据层级、素材、事件、
+  提示词规则和画廊输入，不增加用例专用路由。
+
 应用使用时长能力下线后，运行目录移除其 6 个模板及专属主题，并同步清理画廊和预览样例。
 历史设计可通过 Git 历史查阅，不作为在线候选，也不恢复已删除的数据能力。
 模板加载仍严格校验其它模板包的字段定义；不通过吞掉加载异常绕过真实错误。
