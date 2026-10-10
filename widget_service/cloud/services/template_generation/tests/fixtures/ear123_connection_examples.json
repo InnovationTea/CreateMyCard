@@ -1,0 +1,76 @@
+{
+  "content": {
+    "userQuery": "做一个2×4的卡片，显示耳机名称、连接状态，以及耳机盒电量、耳机盒充电状态、左耳机电量、左耳机充电状态、右耳机电量、右耳机充电状态，点一下打开每日30首歌单。",
+    "size": "2x4",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/isConnected",
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.daily",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.icon_left",
+      "asset.icon_right",
+      "asset.earphone_case_16644",
+      "asset.icon_earphone",
+      "asset.music_fill"
+    ]
+  },
+  "examples": [
+    {
+      "id": "connected",
+      "label": "已连接耳机",
+      "earphoneData": {
+        "isConnected": true,
+        "earphoneName": "FreeBuds Pro 3",
+        "batteryLevel": 80,
+        "chargingStatusDesc": "未充电",
+        "leftBatteryLevel": 76,
+        "leftChargingStatusDesc": "未充电",
+        "rightBatteryLevel": 78,
+        "rightChargingStatusDesc": "未充电"
+      },
+      "expectedHeader": "已连接 FreeBuds Pro 3"
+    },
+    {
+      "id": "disconnected",
+      "label": "未连接耳机",
+      "earphoneData": {
+        "isConnected": false,
+        "earphoneName": "未连接耳机",
+        "batteryLevel": 0,
+        "chargingStatusDesc": "未充电",
+        "leftBatteryLevel": 0,
+        "leftChargingStatusDesc": "未充电",
+        "rightBatteryLevel": 0,
+        "rightChargingStatusDesc": "未充电"
+      },
+      "expectedHeader": "未连接"
+    }
+  ]
+}
