@@ -155,21 +155,19 @@ def test_few_shot_validates_and_converts(
 
 
 def test_example_ids_are_contiguous_and_unique() -> None:
-    expected = [f"2x2-V{index:02d}" for index in range(33)]
+    expected = [f"2x2-V{index:02d}" for index in range(1, 14)]
     expected.extend(f"2x4-V{index:02d}" for index in range(49))
     assert [item[0] for item in EXAMPLES] == expected
 
 
-def test_two_by_two_examples_cover_every_declared_layout() -> None:
+def test_two_by_two_examples_cover_expected_layouts() -> None:
     document = PROMPTS["fewshot_2x2"]
     expected = {
         "S-center",
         "S-title-content",
-        "S-title-dual-content",
         "S-quad-content",
         "S-title-content-action",
         "S-title-primary-secondary-action",
-        "S-title-dual-column-action",
         "S-title-anchor",
         "S-content-dual-action",
         "S-dual-info",
@@ -244,14 +242,19 @@ def test_examples_use_only_declared_actions_and_assets(
 @pytest.mark.parametrize(
     ("identifier", "required"),
     (
-        ("2x2-V06", {"EventCard", "PillButton"}),
-        ("2x2-V14", {"SingleLineTitle", "TableText"}),
-        ("2x2-V15", {"SingleLineTitle", "CircleButton"}),
-        ("2x2-V16", {"DataDisplay"}),
-        ("2x2-V18", {"SingleLineTitle", "EmphasizedData", "PillButton"}),
-        ("2x2-V20", {"InfoBlock"}),
-        ("2x2-V21", {"ProgressCircle", "PillButton"}),
-        ("2x2-V31", {"ProgressCircle", "PillButton"}),
+        ("2x2-V01", {"DataDisplay"}),
+        ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
+        ("2x2-V03", {"SecondaryBody", "PillButton"}),
+        ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
+        ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
+        ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
+        ("2x2-V07", {"InfoBlock"}),
+        ("2x2-V08", {"SingleLineTitle", "CircleButton"}),
+        ("2x2-V09", {"DataDisplay"}),
+        ("2x2-V10", {"SingleLineTitle", "EventCard"}),
+        ("2x2-V11", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
+        ("2x2-V12", {"ProgressCircle"}),
+        ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
         ("2x4-V01", {"SingleLineTitle", "SummaryList"}),
         ("2x4-V02", {"ProgressCircleSingle"}),
         ("2x4-V03", {"ProgressLine2", "TextBlock"}),
@@ -435,7 +438,7 @@ def test_unknown_routes_use_current_neutral_examples() -> None:
         eventCandidates=[],
         dataModelSchema={"data": {"project": {"status": {"type": "string"}}}},
     )
-    assert PromptBuilder._visual_route(small) == ("generic", ("2x2-V00",))
+    assert PromptBuilder._visual_route(small) == ("generic", ("2x2-V09",))
     assert PromptBuilder._visual_route(wide) == ("generic", ("2x4-V00",))
 
 
