@@ -20,6 +20,7 @@ type CaptureItem = {
   document: RendererDocument | null;
   size: '2x2' | '2x4';
   error: string;
+  qualityInput?: string;
 };
 
 function renderedCardSize(
@@ -43,10 +44,15 @@ function finalAttempt(detail: BatchSampleDetail): BatchAttempt | null {
 async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
   const items: CaptureItem[] = [];
   for (const sample of run.samples ?? []) {
+    let qualityInput: string | undefined;
     try {
       const detail = await getBatchSample(run.runId, sample.id);
       const attempt = finalAttempt(detail);
       const source = attempt?.genui;
+      qualityInput = JSON.stringify({
+        genui: source ?? '',
+        renderContext: { query: sample.query ?? null, size: sample.size ?? null, blocks: attempt?.blocks ?? null },
+      });
       if (!source) {
         const sampleSize = resolveCardSize(null, sample.query, sample.size);
         items.push({
@@ -54,6 +60,7 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
           document: null,
           size: sampleSize === '2x4' ? '2x4' : '2x2',
           error: sample.error || '该样本没有可渲染的 GenUI',
+          qualityInput,
         });
         continue;
       }
@@ -64,6 +71,7 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
         document,
         size: renderedCardSize(document, cardSize),
         error: '',
+        qualityInput,
       });
     } catch (reason) {
       items.push({
@@ -71,6 +79,7 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
         document: null,
         size: resolveCardSize(null, sample.query, sample.size) === '2x4' ? '2x4' : '2x2',
         error: reason instanceof Error ? reason.message : String(reason),
+        qualityInput,
       });
     }
   }
@@ -134,6 +143,8 @@ export function BatchGalleryCaptureRoute() {
         data-sample-id={item.id}
         data-card-size={item.size}
         data-capture-error={item.error}
+        data-quality-input={item.qualityInput}
+        data-parse-warnings={JSON.stringify(item.document?.warnings ?? [])}
         key={item.id}
       >
         {item.document

@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from .quality import compare as compare_quality
+from .quality import evaluation as quality_evaluation
 from .runner import BatchRunManager
 from .service_manager import load_batch_defaults, probe_service_health
 from .task_manager import BatchTaskManager
@@ -225,7 +227,35 @@ def register_batch_routes(
 
     @app.get("/debug/batch/runs")
     async def batch_runs() -> dict[str, Any]:
-        return {"items": run_manager.list_runs()}
+        names = {item.get("taskId"): item.get("name") for item in task_manager.list_tasks()}
+        runs = run_manager.list_runs()
+        for run in runs:
+            run["name"] = run.get("name") or names.get(run.get("taskId")) or run.get("datasetId")
+        return {"items": runs}
+
+    @app.get("/debug/batch/quality/evaluation")
+    async def batch_quality_evaluation() -> dict[str, Any]:
+        try:
+            return quality_evaluation()
+        except (OSError, ValueError, IndexError) as exc:
+            raise HTTPException(status_code=503, detail="评估方案不可用") from exc
+
+    @app.get("/debug/batch/quality/compare")
+    async def batch_quality_compare(
+        leftRunId: str,
+        rightRunId: str,
+        leftExecutionId: str | None = None,
+        rightExecutionId: str | None = None,
+    ) -> dict[str, Any]:
+        try:
+            return compare_quality(
+                task_manager.postprocess_manager, leftRunId, rightRunId,
+                leftExecutionId, rightExecutionId,
+            )
+        except (KeyError, OSError) as exc:
+            raise HTTPException(status_code=404, detail="批次或评分结果不存在") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get("/debug/batch/runs/{run_id}")
     async def batch_run(run_id: str) -> dict[str, Any]:
