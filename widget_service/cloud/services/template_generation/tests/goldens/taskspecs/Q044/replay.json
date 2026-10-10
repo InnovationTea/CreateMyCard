@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "b21e782f6cd3ffd89cb87b4b58bbb2228bad77b515f4ac88a27ffb3c2a6006c8",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"action\":[\"event.setPowerSavingMode\",\"event.startNavigate\"],\"allowBatterySettingsFallback\":true}"
+    },
+    {
+      "key": "cb7d79a5894232f4edd014c85c8b7ed24e5f5b28e0fc43bb7691e2600e0a4b54",
+      "response": "Template(\"CompactTwoActionLayout@1\", {}, Template(\"BatteryOverviewPercentStatusCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.setPowerSavingMode\", \"label\": \"省电模式\"}), Template(\"PillAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\"}));"
+    }
+  ]
+}

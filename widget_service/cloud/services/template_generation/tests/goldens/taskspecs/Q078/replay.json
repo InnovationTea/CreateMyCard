@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "b027dfec88aa0cbcdc5ec7a8409c69372b4341d86be10b2786cb3a61d6c84e80",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/alertLevel\",\"/daily/0/airQuality\",\"/daily/0/uvIndex\",\"/daily/0/coldLevel\"]},\"action\":[\"event.call.phone\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "ee7426cefc1dc3a5ef398a5765df251c8eb44d7476b7b9f4ed0fd1ecad596028",
+      "response": "Template(\"WideSingleFocusLayout@1\", {}, Template(\"WeatherOverviewCareWideHero@1\", {\"uvIcon\": \"resources/base/media/sun_max.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.call.phone\", \"label\": \"联系家人\"}));"
+    }
+  ]
+}

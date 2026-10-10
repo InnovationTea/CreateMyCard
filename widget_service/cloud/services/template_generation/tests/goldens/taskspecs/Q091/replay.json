@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4a7145827f0f214e29334816d51b8535939d89bb5d4f906aec430598631dfaa3",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"HeartRateOverviewMinMaxFull@1\", {}));"
+    },
+    {
+      "key": "7533a23265c489d4862f4c52679d0e438b1c96401a390baff69d875caf8451d9",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseHeartRateAvg\",\"/exerciseHeartRateMax\",\"/exerciseHeartRateMin\"]},\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

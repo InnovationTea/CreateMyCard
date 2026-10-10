@@ -1,0 +1,727 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-09-03"
+          },
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "forecastDays": 4,
+            "prefectureName": "石家庄市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "description": "倒数天气和电话",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "回家看望"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.calendar_fill",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1",
+        "asset.phone_fill"
+      ],
+      "data": [
+        "GetCountdownDays",
+        "ViewWeather"
+      ],
+      "event": [
+        {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi",
+          "description": "打开拨号界面；提供电话号码时预填该号码。",
+          "id": "event.call.phone"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.calendar_fill",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1",
+        "asset.phone_fill"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-09-03"
+          },
+          "candidateOutputFields": [
+            "/countdownDays"
+          ],
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "forecastDays": 4,
+            "prefectureName": "石家庄市"
+          },
+          "candidateOutputFields": [
+            "/daily/3/temperatureRangeText",
+            "/daily/3/rainProbabilityPercent",
+            "/daily/3/airQuality"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "intentName": "CallPhone",
+              "params": {
+                "phoneNumber": ""
+              }
+            },
+            "call": "clickToApi"
+          },
+          "capabilityId": "event.call.phone"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121259",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121259",
+                      0
+                    ],
+                    [
+                      "#FF2B65D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0",
+                "root_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "styles": {
+                "height": 82,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0",
+              "itemMargin": 6,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "回家看望",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 40,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/countdown/countdownDays} }}",
+              "id": "root_1_0_0_0_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 38,
+                "fontWeight": 700,
+                "height": 40,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "天后出发",
+              "id": "root_1_0_0_0_1_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "height": 16,
+                "maxLines": 1,
+                "padding": {
+                  "bottom": 7
+                },
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_0_1_0",
+              "label": "联系家人",
+              "onClick": [
+                {
+                  "args": {
+                    "intentName": "CallPhone",
+                    "params": {
+                      "phoneNumber": ""
+                    }
+                  },
+                  "call": "clickToApi"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0",
+              "itemMargin": 11,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0",
+                "root_1_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 37,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0_0",
+                "root_1_1_0_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_0_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 19,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "石家庄市",
+              "id": "root_1_1_0_0_0_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "天气",
+              "id": "root_1_1_0_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "2026-09-03",
+              "id": "root_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0",
+                "root_1_1_0_0_1_1",
+                "root_1_1_0_0_1_2"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_1",
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "spaceBetween",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0_0",
+                "root_1_1_0_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1_0",
+              "styles": {
+                "alignItems": "center",
+                "height": 16,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "温度",
+              "id": "root_1_1_0_0_1_0_0",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/3/temperatureRangeText} }}",
+              "id": "root_1_1_0_0_1_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "layoutWeight": 1,
+                "maxLines": 1,
+                "minFontSize": 10,
+                "textAlign": "right",
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_1_0",
+                "root_1_1_0_0_1_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1_1",
+              "styles": {
+                "alignItems": "center",
+                "height": 16,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "降雨",
+              "id": "root_1_1_0_0_1_1_0",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/3/rainProbabilityPercent} }}",
+              "id": "root_1_1_0_0_1_1_1",
+              "styles": {
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_2_0",
+                "root_1_1_0_0_1_2_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1_2",
+              "styles": {
+                "alignItems": "center",
+                "height": 16,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "空气质量",
+              "id": "root_1_1_0_0_1_2_0",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/3/airQuality} }}",
+              "id": "root_1_1_0_0_1_2_1",
+              "styles": {
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "countdown": {
+                "countdownDays": 30
+              },
+              "weather": {
+                "daily": [
+                  null,
+                  null,
+                  null,
+                  {
+                    "airQuality": "良",
+                    "rainProbabilityPercent": "20%",
+                    "temperatureRangeText": "25℃ / 32℃"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+          "id": "asset.calendar_fill",
+          "src": "resources/base/media/calendar_fill.svg"
+        },
+        {
+          "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+          "id": "asset.icon_weather_thermometer",
+          "src": "resources/base/media/icon_weather_thermometer.svg"
+        },
+        {
+          "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+          "id": "asset.drop_1",
+          "src": "resources/base/media/drop_1.svg"
+        },
+        {
+          "description": "样式：电话实心图标，默认黑色，图形为经典听筒造型；适用：拨打电话、通话功能入口。",
+          "id": "asset.phone_fill",
+          "src": "resources/base/media/phone_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "countdown": {
+            "countdownDays": {
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30,
+              "type": "integer"
+            }
+          },
+          "weather": {
+            "daily": [
+              {},
+              {},
+              {},
+              {
+                "airQuality": {
+                  "description": "当天空气质量等级。",
+                  "sampleValue": "良",
+                  "type": "string"
+                },
+                "rainProbabilityPercent": {
+                  "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                  "sampleValue": "20%",
+                  "type": "string"
+                },
+                "temperatureRangeText": {
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi",
+          "description": "打开拨号界面；提供电话号码时预填该号码。",
+          "id": "event.call.phone"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "2026年9月3日回石家庄看妈妈，帮我做个卡片，看离出发还有几天、当天温度范围、下雨概率和空气质量，点一下给妈妈打电话。"
+    }
+  },
+  "caseId": "Q088",
+  "status": "success",
+  "suggestSize": "2x4"
+}

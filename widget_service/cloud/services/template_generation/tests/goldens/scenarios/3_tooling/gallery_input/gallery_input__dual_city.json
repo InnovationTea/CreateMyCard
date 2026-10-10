@@ -1,0 +1,80 @@
+{
+  "bundleName": "com.huawei.genui.evaluation",
+  "content": {
+    "bundleName": "com.huawei.genui.evaluation",
+    "candidateAssetIds": [],
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "成都市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureC",
+          "/current/condition",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather1"
+      },
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureC",
+          "/current/condition",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather2"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "description": "天气模板画廊端到端验证",
+    "size": "2x2",
+    "title": "天气模板画廊",
+    "userQuery": "生成一个2×2完整信息卡片，按“双城市天气 Full，按两次天气能力绑定的顺序并列展示城市、当前温度和天气现象。”展示，不显示操作按钮。按顺序分别展示成都市和上海市的当前温度及天气现象。"
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "Tablet",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "GENUI-GALLERY",
+    "prdVer": "11.7.5.206",
+    "romVersion": "6.0",
+    "sysVer": "HarmonyOS NEXT",
+    "time": "20260826000000000"
+  },
+  "galleryTest": {
+    "sampleOverrides": {
+      "/data/weather1/current/condition": "多云",
+      "/data/weather1/current/temperatureC": 26,
+      "/data/weather1/location/prefectureName": "成都市",
+      "/data/weather2/current/condition": "晴",
+      "/data/weather2/current/temperatureC": 29,
+      "/data/weather2/location/prefectureName": "上海市"
+    }
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": true,
+    "sessionId": "gallery-weather-weather-overview-weather-overview-dual-city-full-single_content-fusion"
+  },
+  "userAuth": {
+    "user": {
+      "userId": "template-gallery"
+    }
+  },
+  "utterance": {
+    "original": "生成一个2×2完整信息卡片，按“双城市天气 Full，按两次天气能力绑定的顺序并列展示城市、当前温度和天气现象。”展示，不显示操作按钮。按顺序分别展示成都市和上海市的当前温度及天气现象。",
+    "type": "text"
+  },
+  "version": "1.0"
+}

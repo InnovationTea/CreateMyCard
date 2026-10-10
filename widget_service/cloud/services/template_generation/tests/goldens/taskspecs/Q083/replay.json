@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "80d4ea90c9f16198871c3de0838e176ed837f1675f47a3bcb2f03a37b4b30b7e",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"WeatherOverviewRainWindFull@1\", {\"location\": \"杭州市\", \"rainIcon\": \"resources/base/media/drop_1.svg\"}), Template(\"BluetoothDeviceOverviewCaseConnectionCompact@1\", {\"caseIcon\": \"resources/base/media/earphone_case_16644.svg\"}), Template(\"BluetoothDeviceOverviewMusicCompact@1\", {\"musicIcon\": \"resources/base/media/music_fill.svg\", \"actionId\": \"event.open.music.favorite\"}));"
+    },
+    {
+      "key": "882554815c9d33bffcce151960314171616c33b7bc441f7e1c4206a04690ed48",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"ViewWeather\": [\n      \"/current/windLevel\",\n      \"/daily/0/rainProbabilityPercent\"\n    ],\n    \"GetEarphoneInfo\": [\n      \"/isConnected\",\n      \"/batteryLevel\"\n    ]\n  },\n  \"action\": [\n    \"event.open.music.favorite\"\n  ],\n  \"allowCalendarViewFallback\": false\n}"
+    }
+  ]
+}

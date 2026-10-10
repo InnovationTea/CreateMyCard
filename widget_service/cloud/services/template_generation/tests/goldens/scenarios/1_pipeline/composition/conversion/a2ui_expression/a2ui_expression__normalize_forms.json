@@ -1,0 +1,8 @@
+{
+  "references": [
+    "/data/items",
+    "/data/connected",
+    "/data/score"
+  ],
+  "value": "{{ size(${/data/items}) > 0 && ${/data/connected} ? ${/data/score} * 2 : 0 }}"
+}

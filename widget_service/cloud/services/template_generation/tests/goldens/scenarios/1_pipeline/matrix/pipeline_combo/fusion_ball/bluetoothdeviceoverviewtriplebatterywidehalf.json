@@ -1,0 +1,965 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FF17734C",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "linearGradient": {
+                    "colors": [
+                      [
+                        "#FF17734C",
+                        0
+                      ],
+                      [
+                        "#FF26BFA6",
+                        1
+                      ]
+                    ],
+                    "direction": "RightBottom"
+                  },
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "height": 59,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/batteryLevel} + '%' }}",
+                "id": "root_1_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "耳机仓",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0",
+                  "root_1_0_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "alignContent": "center",
+                  "flexShrink": 0,
+                  "height": 24,
+                  "width": 24
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#99CCFFF6",
+                  "borderRadius": 8.75,
+                  "height": 17.5,
+                  "width": 17.5
+                }
+              },
+              {
+                "component": "Text",
+                "content": "L",
+                "id": "root_1_0_0_1_0_0_0",
+                "styles": {
+                  "fontColor": "#FFFFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "height": 17.5,
+                  "maxLines": 1,
+                  "textAlign": "center",
+                  "width": 17.5
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_1_0",
+                  "root_1_0_0_1_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_1_1",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/leftBatteryLevel} + '%' }}",
+                "id": "root_1_0_0_1_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "左耳机",
+                "id": "root_1_0_0_1_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0",
+                  "root_1_0_0_2_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "alignContent": "center",
+                  "flexShrink": 0,
+                  "height": 24,
+                  "width": 24
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_2_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#99CCFFF6",
+                  "borderRadius": 8.75,
+                  "height": 17.5,
+                  "width": 17.5
+                }
+              },
+              {
+                "component": "Text",
+                "content": "R",
+                "id": "root_1_0_0_2_0_0_0",
+                "styles": {
+                  "fontColor": "#FFFFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "height": 17.5,
+                  "maxLines": 1,
+                  "textAlign": "center",
+                  "width": 17.5
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_1_0",
+                  "root_1_0_0_2_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_2_1",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/rightBatteryLevel} + '%' }}",
+                "id": "root_1_0_0_2_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "右耳机",
+                "id": "root_1_0_0_2_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 59,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0",
+                  "root_1_1_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0_0",
+                  "root_1_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_1_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "center",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "倒计时",
+                "id": "root_1_1_0_0_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 600,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "距离目标日",
+                "id": "root_1_1_0_0_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_1_0",
+                  "root_1_1_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0_1",
+                "itemMargin": 3,
+                "styles": {
+                  "alignItems": "center",
+                  "flexShrink": 0,
+                  "justifyContent": "end"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/countdown/countdownDays} }}",
+                "id": "root_1_1_0_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 30,
+                  "fontWeight": 800,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "天",
+                "id": "root_1_1_0_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "countdown": {
+                  "countdownDays": 3
+                },
+                "earphone": {
+                  "batteryLevel": 80,
+                  "isConnected": true,
+                  "leftBatteryLevel": 76,
+                  "rightBatteryLevel": 78
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BluetoothDeviceOverviewTripleBatteryWideHalf@1",
+        "CountdownOverviewWideHalf@1",
+        "WideTwoHalfLayout@1"
+      ]
+    },
+    "none": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FF17734C",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "linearGradient": {
+                    "colors": [
+                      [
+                        "#FF17734C",
+                        0
+                      ],
+                      [
+                        "#FF26BFA6",
+                        1
+                      ]
+                    ],
+                    "direction": "RightBottom"
+                  },
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "height": 59,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/batteryLevel} + '%' }}",
+                "id": "root_1_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "耳机仓",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0",
+                  "root_1_0_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "alignContent": "center",
+                  "flexShrink": 0,
+                  "height": 24,
+                  "width": 24
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#99CCFFF6",
+                  "borderRadius": 8.75,
+                  "height": 17.5,
+                  "width": 17.5
+                }
+              },
+              {
+                "component": "Text",
+                "content": "L",
+                "id": "root_1_0_0_1_0_0_0",
+                "styles": {
+                  "fontColor": "#FFFFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "height": 17.5,
+                  "maxLines": 1,
+                  "textAlign": "center",
+                  "width": 17.5
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_1_0",
+                  "root_1_0_0_1_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_1_1",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/leftBatteryLevel} + '%' }}",
+                "id": "root_1_0_0_1_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "左耳机",
+                "id": "root_1_0_0_1_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0",
+                  "root_1_0_0_2_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_2",
+                "itemMargin": 12,
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#33FFFFFF",
+                  "borderRadius": 16,
+                  "height": "matchParent",
+                  "layoutWeight": 1,
+                  "padding": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_2_0",
+                "styles": {
+                  "alignContent": "center",
+                  "flexShrink": 0,
+                  "height": 24,
+                  "width": 24
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0_2_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#99CCFFF6",
+                  "borderRadius": 8.75,
+                  "height": 17.5,
+                  "width": 17.5
+                }
+              },
+              {
+                "component": "Text",
+                "content": "R",
+                "id": "root_1_0_0_2_0_0_0",
+                "styles": {
+                  "fontColor": "#FFFFFFFF",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "height": 17.5,
+                  "maxLines": 1,
+                  "textAlign": "center",
+                  "width": 17.5
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_2_1_0",
+                  "root_1_0_0_2_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_2_1",
+                "itemMargin": 2,
+                "styles": {
+                  "layoutWeight": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/rightBatteryLevel} + '%' }}",
+                "id": "root_1_0_0_2_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 12,
+                  "fontWeight": 700,
+                  "height": 16,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "右耳机",
+                "id": "root_1_0_0_2_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "height": 14,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 59,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0",
+                  "root_1_1_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0_0",
+                  "root_1_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_1_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "center",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "倒计时",
+                "id": "root_1_1_0_0_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 600,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "距离目标日",
+                "id": "root_1_1_0_0_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_1_0",
+                  "root_1_1_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0_1",
+                "itemMargin": 3,
+                "styles": {
+                  "alignItems": "center",
+                  "flexShrink": 0,
+                  "justifyContent": "end"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/countdown/countdownDays} }}",
+                "id": "root_1_1_0_1_0",
+                "styles": {
+                  "fontColor": "#FFCCFFF6",
+                  "fontSize": 30,
+                  "fontWeight": 800,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "天",
+                "id": "root_1_1_0_1_1",
+                "styles": {
+                  "fontColor": "#99CCFFF6",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "countdown": {
+                  "countdownDays": 3
+                },
+                "earphone": {
+                  "batteryLevel": 80,
+                  "isConnected": true,
+                  "leftBatteryLevel": 76,
+                  "rightBatteryLevel": 78
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BluetoothDeviceOverviewTripleBatteryWideHalf@1",
+        "CountdownOverviewWideHalf@1",
+        "WideTwoHalfLayout@1"
+      ]
+    }
+  },
+  "fusionBall": true,
+  "layout": "WideTwoHalfLayout@1",
+  "optionalBindings": [
+    "connected"
+  ],
+  "sampleIds": {
+    "all": "C262",
+    "none": "C263"
+  },
+  "size": "2x4",
+  "templateId": "BluetoothDeviceOverviewTripleBatteryWideHalf@1"
+}

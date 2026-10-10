@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "0379bcd1f1a76d7fdbd421518819cc7ec742fd942cbbac59c7fac373a79c825c",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/isAllDay\"]},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "fdadb5a1c87cf5241c7a51b5486198dab7f0d3e107fccadc85775231b0e6a17d",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewDatedAllDayHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.viewCalendarEvent\", \"label\": \"查看日程\"}));"
+    }
+  ]
+}

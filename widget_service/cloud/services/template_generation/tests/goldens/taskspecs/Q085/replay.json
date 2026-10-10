@@ -1,0 +1,16 @@
+{
+  "recordings": [
+    {
+      "key": "5a0690f4f682a61fbcafc991faea4ae24cd78b14e7ab145da4addb9b4f6388f7",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/nightSleepDurationText\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "989f8715d2d6b0b0be15592c19fdcd72df467702387e0cf1ff158ad9db548bbe",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewScoreFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"BatteryOverviewPercentStatusCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"CompactSubtitleAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
+    },
+    {
+      "key": "ca539f6279d61875ca9b73c08c9e76063a1ab06bed3920857dc0dee1789995d9",
+      "response": "Template(\"WideFullHeroActionLayout@1\", {}, Template(\"SleepOverviewScoreFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"BatteryOverviewChargingRingHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    }
+  ]
+}

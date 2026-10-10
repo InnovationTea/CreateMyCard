@@ -1,0 +1,816 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "漠河市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "description": "拍摄天气风险+手机续航+双入口",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "漠河拍摄"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.icon_weather_thermometer",
+        "asset.icon_weather_wind",
+        "asset.cold",
+        "asset.battery_leaf_fill"
+      ],
+      "data": [
+        "ViewWeather",
+        "GetPhoneBatteryInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        },
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池页。",
+          "id": "event.open.settings.battery"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.icon_weather_thermometer",
+        "asset.icon_weather_wind",
+        "asset.cold",
+        "asset.battery_leaf_fill"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "漠河市"
+          },
+          "candidateOutputFields": [
+            "/current/condition",
+            "/current/feelsLikeC",
+            "/current/windLevel",
+            "/current/alertLevel",
+            "/current/coldLevel",
+            "/location/cityCode",
+            "/location/prefectureName",
+            "/current/temperatureText"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batterySOC",
+            "/chargingStatusDesc",
+            "/batteryTemperatureText",
+            "/pluggedTypeDesc"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "",
+              "bundleName": "",
+              "intentName": "Weather_CityCode",
+              "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.weather"
+        },
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.settings.MainAbility",
+              "bundleName": "com.huawei.hmos.settings",
+              "intentName": "Settings",
+              "uri": "battery"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.settings.battery"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121259",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121259",
+                      0
+                    ],
+                    [
+                      "#FF2B65D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "clip": true,
+                "height": 126,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0",
+                "root_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "itemMargin": 0,
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0_0",
+                "root_1_0_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "alignItems": "top",
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/location/prefectureName} }}",
+              "id": "root_1_0_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_0_0_1",
+              "src": "resources/base/media/icon_weather_wind.svg",
+              "styles": {
+                "fillColor": "#99CCDDFF",
+                "flexShrink": 0,
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1",
+                "root_1_0_0_0_1_2",
+                "root_1_0_0_0_1_3",
+                "root_1_0_0_0_1_4"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/temperatureText} }}",
+              "id": "root_1_0_0_0_1_0",
+              "styles": {
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 30,
+                "fontWeight": 700,
+                "height": 40,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '体感 ' + ${/data/weather/current/feelsLikeC} + '°' }}",
+              "id": "root_1_0_0_0_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/condition} + '｜感冒风险' + ${/data/weather/current/coldLevel} }}",
+              "id": "root_1_0_0_0_1_2",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/alertLevel} }}",
+              "id": "root_1_0_0_0_1_3",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '风力' + ${/data/weather/current/windLevel} + '级' }}",
+              "id": "root_1_0_0_0_1_4",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_0_1_0",
+              "label": "查看详情",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "",
+                    "bundleName": "",
+                    "intentName": "Weather_CityCode",
+                    "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0",
+                "root_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "itemMargin": 0,
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "手机电量",
+              "id": "root_1_1_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 20,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0",
+                "root_1_1_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0_1",
+                "root_1_1_0_0_1_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_1_0_0_1_0",
+              "styles": {
+                "alignContent": "center",
+                "flexShrink": 0,
+                "height": 40,
+                "width": 40
+              }
+            },
+            {
+              "component": "Progress",
+              "id": "root_1_1_0_0_1_0_0",
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "color": "#FFCCDDFF",
+                "height": 40,
+                "strokeWidth": 6,
+                "type": "ring",
+                "width": 40
+              },
+              "total": 100,
+              "value": "{{ ${/data/phoneBattery/batterySOC} }}"
+            },
+            {
+              "component": "Image",
+              "id": "root_1_1_0_0_1_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#99CCDDFF",
+                "height": 16,
+                "objectFit": "contain",
+                "width": 16
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_1_0",
+                "root_1_1_0_0_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_1_1",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "root_1_1_0_0_1_1_0",
+              "styles": {
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
+              "id": "root_1_1_0_0_1_1_1",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_1_1_0",
+              "label": "电池设置",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "intentName": "Settings",
+                    "uri": "battery"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "phoneBattery": {
+                "batterySOC": 68,
+                "batteryTemperatureText": "29.0 ℃",
+                "chargingStatusDesc": "未充电",
+                "pluggedTypeDesc": "未连接充电器"
+              },
+              "weather": {
+                "current": {
+                  "alertLevel": "大风蓝色预警",
+                  "coldLevel": "低",
+                  "condition": "多云",
+                  "feelsLikeC": 31,
+                  "temperatureText": "29℃",
+                  "windLevel": 2
+                },
+                "location": {
+                  "cityCode": "60814",
+                  "prefectureName": "上海市"
+                }
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+          "id": "asset.icon_weather_thermometer",
+          "src": "resources/base/media/icon_weather_thermometer.svg"
+        },
+        {
+          "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+          "id": "asset.icon_weather_wind",
+          "src": "resources/base/media/icon_weather_wind.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框圆形人脸，口鼻处佩戴口罩；适用：佩戴口罩、防护、呼吸道健康或传染风险提示。",
+          "id": "asset.cold",
+          "src": "resources/base/media/cold.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batterySOC": {
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68,
+              "type": "integer"
+            },
+            "batteryTemperatureText": {
+              "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+              "sampleValue": "29.0 ℃",
+              "type": "string"
+            },
+            "chargingStatusDesc": {
+              "description": "当前设备电池的充电状态文本描述。",
+              "sampleValue": "未充电",
+              "type": "string"
+            },
+            "pluggedTypeDesc": {
+              "description": "当前设备连接的充电器类型文本描述。",
+              "sampleValue": "未连接充电器",
+              "type": "string"
+            }
+          },
+          "weather": {
+            "current": {
+              "alertLevel": {
+                "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                "sampleValue": "大风蓝色预警",
+                "type": "string"
+              },
+              "coldLevel": {
+                "description": "感冒指数。",
+                "sampleValue": "低",
+                "type": "string"
+              },
+              "condition": {
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云",
+                "type": "string"
+              },
+              "feelsLikeC": {
+                "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+                "sampleValue": 31,
+                "type": "number"
+              },
+              "temperatureText": {
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃",
+                "type": "string"
+              },
+              "windLevel": {
+                "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                "sampleValue": 2,
+                "type": "integer"
+              }
+            },
+            "location": {
+              "cityCode": {
+                "description": "城市代码，如60814代表青浦区",
+                "sampleValue": "60814",
+                "type": "string"
+              },
+              "prefectureName": {
+                "description": "城市名称",
+                "sampleValue": "上海市",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        },
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池页。",
+          "id": "event.open.settings.battery"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，要去黑龙江漠河拍摄，看当前天气、体感、风力、天气预警和感冒风险，再看手机剩余电量、充电状态、电池温度和充电器类型，可以查看漠河天气详情，也可以打开电池设置。"
+    }
+  },
+  "caseId": "Q074",
+  "status": "success",
+  "suggestSize": "2x4"
+}

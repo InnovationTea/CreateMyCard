@@ -1,0 +1,107 @@
+{
+  "content": {
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VDE-AL10 7.0.0.109",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "title": "运动心率",
+    "userQuery": "做个完整心率卡片，显示运动平均心率",
+    "description": "运动平均心率",
+    "size": "2x2",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/exerciseHeartRateAvg",
+          "/exerciseTypeName",
+          "/exerciseDurationText"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sport"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_heartRate"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VDE-AL10",
+    "prdVer": "11.7.8.321",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260930031932950"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "7120913a-7991-45b6-9d54-c3585f2bb2ef"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VDE-AL10 7.0.0.109",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "title": "运动心率",
+  "userQuery": "做个完整心率卡片，显示运动平均心率",
+  "description": "运动平均心率",
+  "size": "2x2",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/exerciseHeartRateAvg",
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sport"
+    }
+  ],
+  "candidateAssetIds": [
+    "asset.emoji_heartRate"
+  ]
+}

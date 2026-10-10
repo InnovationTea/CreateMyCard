@@ -1,0 +1,119 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，看会议时间、地点和提醒，点击能导航去公司。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/0/remindTime/0"
+        ]
+      }
+    ],
+    "title": "公司会议",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "company",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "会议时间地点提醒+公司导航",
+    "candidateAssetIds": [
+      "asset.icon_meeting",
+      "asset.location_north_up_right_fill",
+      "asset.bell_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "067",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，看会议时间、地点和提醒，点击能导航去公司。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，看会议时间、地点和提醒，点击能导航去公司。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/remindTime/0"
+      ]
+    }
+  ],
+  "title": "公司会议",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.startNavigate",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "company",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "会议时间地点提醒+公司导航",
+  "candidateAssetIds": [
+    "asset.icon_meeting",
+    "asset.location_north_up_right_fill",
+    "asset.bell_fill"
+  ]
+}

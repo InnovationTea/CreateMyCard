@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "099c5ef261ea8ad15021aae4d23caaace233bf02a6b738cc93ce3368f1209c34",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\",\"/pluggedTypeDesc\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batteryTemperatureText\"},\"action\":[],\"allowCalendarViewFallback\":false,\"allowBatterySettingsFallback\":false}"
+    },
+    {
+      "key": "b0f3bd02140afb73b31efa38ad271bdb3fb23e71c6033bdff26c0547daf6a2eb",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"BatteryOverviewTemperatureFull@1\", {\"temperatureIcon\": \"resources/base/media/heat_generation.svg\"}));"
+    }
+  ]
+}

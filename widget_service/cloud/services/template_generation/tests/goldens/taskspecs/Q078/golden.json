@@ -1,0 +1,466 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "长沙市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "description": "天气风险+静态待办+联系妈妈",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "居家关怀"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.sun_max",
+        "asset.cold",
+        "asset.phone_fill",
+        "asset.calendar_fill"
+      ],
+      "data": [
+        "ViewWeather"
+      ],
+      "event": [
+        {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi",
+          "description": "打开拨号界面；提供电话号码时预填该号码。",
+          "id": "event.call.phone"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.sun_max",
+        "asset.cold",
+        "asset.phone_fill",
+        "asset.calendar_fill"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "长沙市"
+          },
+          "candidateOutputFields": [
+            "/current/alertLevel",
+            "/daily/0/airQuality",
+            "/daily/0/uvIndex",
+            "/daily/0/coldLevel"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "intentName": "CallPhone",
+              "params": {
+                "phoneNumber": ""
+              }
+            },
+            "call": "clickToApi"
+          },
+          "capabilityId": "event.call.phone"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121259",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121259",
+                      0
+                    ],
+                    [
+                      "#FF2B65D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0"
+              ],
+              "component": "Column",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "clip": true,
+                "height": 126,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0",
+                "root_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0",
+              "itemMargin": 12,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 82,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1",
+                "root_1_0_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "center",
+                "layoutWeight": 2
+              }
+            },
+            {
+              "component": "Text",
+              "content": "当前城市",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/alertLevel} ? ${/data/weather/current/alertLevel} : '无预警信息' }}",
+              "id": "root_1_0_0_0_1",
+              "styles": {
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "天气预警",
+              "id": "root_1_0_0_0_2",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1",
+                "root_1_0_0_1_2",
+                "root_1_0_0_1_3"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1",
+              "itemMargin": 6,
+              "styles": {
+                "alignItems": "end",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "center",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_1_0",
+              "src": "resources/base/media/sun_max.svg",
+              "styles": {
+                "fillColor": "#99CCDDFF",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '紫外线 ' + ${/data/weather/daily/0/uvIndex} }}",
+              "id": "root_1_0_0_1_1",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '空气质量 ' + ${/data/weather/daily/0/airQuality} }}",
+              "id": "root_1_0_0_1_2",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '感冒指数 ' + ${/data/weather/daily/0/coldLevel} }}",
+              "id": "root_1_0_0_1_3",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_0_1_0",
+              "label": "联系家人",
+              "onClick": [
+                {
+                  "args": {
+                    "intentName": "CallPhone",
+                    "params": {
+                      "phoneNumber": ""
+                    }
+                  },
+                  "call": "clickToApi"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "weather": {
+                "current": {
+                  "alertLevel": "大风蓝色预警"
+                },
+                "daily": [
+                  {
+                    "airQuality": "良",
+                    "coldLevel": "低",
+                    "uvIndex": "中等"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色线框太阳，中央大圆环，周围为八条较长放射线；适用：高亮度、强光、晴天或亮度增大。",
+          "id": "asset.sun_max",
+          "src": "resources/base/media/sun_max.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框圆形人脸，口鼻处佩戴口罩；适用：佩戴口罩、防护、呼吸道健康或传染风险提示。",
+          "id": "asset.cold",
+          "src": "resources/base/media/cold.svg"
+        },
+        {
+          "description": "样式：电话实心图标，默认黑色，图形为经典听筒造型；适用：拨打电话、通话功能入口。",
+          "id": "asset.phone_fill",
+          "src": "resources/base/media/phone_fill.svg"
+        },
+        {
+          "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+          "id": "asset.calendar_fill",
+          "src": "resources/base/media/calendar_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "weather": {
+            "current": {
+              "alertLevel": {
+                "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                "sampleValue": "大风蓝色预警",
+                "type": "string"
+              }
+            },
+            "daily": [
+              {
+                "airQuality": {
+                  "description": "当天空气质量等级。",
+                  "sampleValue": "良",
+                  "type": "string"
+                },
+                "coldLevel": {
+                  "description": "感冒指数。",
+                  "sampleValue": "低",
+                  "type": "string"
+                },
+                "uvIndex": {
+                  "description": "当天紫外线等级。",
+                  "sampleValue": "中等",
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi",
+          "description": "打开拨号界面；提供电话号码时预填该号码。",
+          "id": "event.call.phone"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，看长沙天气预警和接下来一天的空气质量、紫外线、感冒指数，展示待办事项“每天带孩子出去运动两次”，能直接给妈妈打电话。"
+    }
+  },
+  "caseId": "Q078",
+  "status": "success",
+  "suggestSize": "2x4"
+}

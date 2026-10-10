@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "362b9ce0b1d69328f6e2e851bc4c47ba71c89f1bd92723e868d051f3c393c642",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/dtEnd\"]},\"action\":[\"event.enter.meeting\"],\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "c3cb5ef6e92469b5a53ca53c67bc8e2371cf8ee03b02f7df4affc9a7d53689d3",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewTitleHero@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"下一场日程\"}), Template(\"PillAction@1\", {\"actionId\": \"event.enter.meeting\", \"label\": \"一键入会\"}));"
+    }
+  ]
+}

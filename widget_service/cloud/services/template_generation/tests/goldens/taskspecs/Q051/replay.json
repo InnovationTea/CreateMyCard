@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "cd1e8f0d74126714cd15164f037ee14c91f4ba2e33015c82ac45df1bc22738cf",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewTargetDayHealthFull@1\", {\"uvIcon\": \"resources/base/media/sun_max.svg\"}));"
+    },
+    {
+      "key": "ffb9cb3e9937122e28fbdae7de5e5f648b5eefb8ea8661c0a415b3f173ff353e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/districtName\",\"/daily/4/airQuality\",\"/daily/4/uvIndex\",\"/daily/4/coldLevel\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

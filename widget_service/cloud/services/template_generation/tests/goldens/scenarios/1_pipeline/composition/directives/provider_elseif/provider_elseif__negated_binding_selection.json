@@ -1,0 +1,50 @@
+{
+  "after_first_branch__spaced__absent": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "after_first_branch__spaced__present": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "after_first_branch__tight__absent": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "after_first_branch__tight__present": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "leading_if__spaced__absent": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "leading_if__spaced__present": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "leading_if__tight__absent": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "leading_if__tight__present": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  }
+}

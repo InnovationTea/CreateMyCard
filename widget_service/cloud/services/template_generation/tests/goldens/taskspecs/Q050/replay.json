@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1c69cdc0577f8714160d62d7d6b27229ceaf146690297fc22367b8aeea6e29bc",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/dtStart\",\"/events/0/countdownDays\"]},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "64cee1f60769871ec1e22ea4c847628080e6f13c22aae29e52957947265d840d",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewTitleHero@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰设置\"}));"
+    }
+  ]
+}

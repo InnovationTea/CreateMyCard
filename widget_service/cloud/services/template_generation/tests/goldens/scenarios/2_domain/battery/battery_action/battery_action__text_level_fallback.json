@@ -1,0 +1,21 @@
+{
+  "candidates": [
+    "BatteryOverviewChargingProgressHero@1"
+  ],
+  "plans": [
+    {
+      "actionIds": [
+        "event.open.settings.battery"
+      ],
+      "businessTemplateIds": [
+        "BatteryOverviewChargingProgressHero@1"
+      ],
+      "layoutTemplateId": "HeroActionLayout@1"
+    }
+  ],
+  "schemaBatteryFields": [
+    "batteryCapacityLevelDesc",
+    "batterySOCText",
+    "updatedAt"
+  ]
+}

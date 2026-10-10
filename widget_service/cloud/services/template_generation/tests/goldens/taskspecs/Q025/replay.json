@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "0e90b942edf162a6ca1dc9bc01505dada3692563c06670083c8ed28d5123ab76",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WeatherOverviewWindHero@1\", {\"locationIcon\": \"resources/base/media/icon_weather_wind.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
+    },
+    {
+      "key": "bf5c2254c7cc07e7d2f6e63fb66b340e4a87a5f49f7e40e20609453ec1727a35",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/windDirection\",\"/current/windLevel\",\"/updatedAt\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

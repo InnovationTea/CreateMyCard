@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "78094aecc5e3a495ae367623a17b727e754f62430425ccae4209806dbc51a0e2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/deepSleepDurationText\",\"/totalNapDurationText\",\"/nightSleepDurationText\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "a6b5627ce57743ecacc7e035f03c73faec9d4b30bc12b4e3654f6a02e8f8e7c8",
+      "response": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"SleepOverviewScoreDetailWideFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}));"
+    }
+  ]
+}

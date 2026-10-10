@@ -1,0 +1,36 @@
+{
+  "fusion_off": {
+    "componentCandidates": {
+      "WeatherOverview": [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    },
+    "retiredResidue": {
+      "businessComponentIds": [],
+      "providerIds": [],
+      "templateIds": [],
+      "themeIds": [],
+      "themesWithRetiredCapability": []
+    }
+  },
+  "fusion_on": {
+    "componentCandidates": {
+      "WeatherOverview": [
+        "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    },
+    "retiredResidue": {
+      "businessComponentIds": [],
+      "providerIds": [],
+      "templateIds": [],
+      "themeIds": [],
+      "themesWithRetiredCapability": []
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "children": [
+    {
+      "children": [],
+      "component": "Text",
+      "values": [
+        "主内容",
+        {
+          "fontColor": "#FF112233"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "component": "Text",
+      "values": [
+        "辅助内容",
+        {
+          "fontColor": "#99112233"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "component": "Progress",
+      "values": [
+        {
+          "color": "#FF445566",
+          "total": 100,
+          "value": 50
+        }
+      ]
+    }
+  ],
+  "component": "Column",
+  "values": [
+    {
+      "backgroundColor": "#33FFFFFF"
+    }
+  ]
+}

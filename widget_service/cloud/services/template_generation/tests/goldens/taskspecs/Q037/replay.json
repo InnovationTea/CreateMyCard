@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4991ccd096e30fe41d144b8371f0f67ef4740e10e5894958d1907fda888d5a36",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyTotalCaloriesText\",\"/dailyDistanceText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/dailySteps\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "c39f264316c3beb87353bb37749a5c69e4c5d973cf26e4c525c3c8e57509e4ee",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}));"
+    }
+  ]
+}

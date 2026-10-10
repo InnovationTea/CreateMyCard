@@ -1,0 +1,129 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下一场日程是2026年11月15日上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-11-15"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 79
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/entityId"
+        ]
+      }
+    ],
+    "title": "发布会提醒",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "倒数日和日程",
+    "candidateAssetIds": [
+      "asset.hourglass_fill",
+      "asset.calendar_fill",
+      "asset.clock_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "003",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "下一场日程是2026年11月15日上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下一场日程是2026年11月15日上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-11-15"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 79
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/entityId"
+      ]
+    }
+  ],
+  "title": "发布会提醒",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "倒数日和日程",
+  "candidateAssetIds": [
+    "asset.hourglass_fill",
+    "asset.calendar_fill",
+    "asset.clock_fill"
+  ]
+}

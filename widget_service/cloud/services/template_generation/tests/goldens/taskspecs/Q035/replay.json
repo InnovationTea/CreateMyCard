@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "2f25e862815e3d7fcd197a98ec5ca7a9a420a36937b3b51f10c7bf2bb1e07c24",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewEventCountDetailsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.viewCalendarEvent\", \"label\": \"查看日程\"}));"
+    },
+    {
+      "key": "c0cba0233a0f02472abc24b2a71da23a06036d7f91ff1e34562540c65513cfa9",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/eventCount\",\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/description\"]},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}
