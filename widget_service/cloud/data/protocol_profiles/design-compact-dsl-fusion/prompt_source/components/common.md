@@ -101,12 +101,15 @@
 `borderRadius`、`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、
 `backgroundImageSizeWithStyle`、`linearGradient`、`shadow`、`layoutWeight`、`flexShrink`、`visibility`、`clip`。
 子组件宽度、padding 与最小间距之和必须不超过父宽；分布式对齐不能修复负剩余空间。
+`justifyContent` 使用 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍是必须保留的最小间距；
+两者可以同时设置，但只能把扣除最小间距后的非负剩余空间交给分布式对齐。
 
 ### 3.2 `Column`
 
 用于纵向排列有先后层级的子组件。第 4 项 `children` 必填；`itemMargin` 可选数字 vp，`space` 是兼容别名。
 `justifyContent` 与 Row 相同，`alignItems` 只取 `start|center|end`，可使用与 Row 相同的布局与表面字段。
 子组件高度、padding 与最小间距之和必须不超过父高；`layoutWeight` 和 `flexShrink` 不抵消真实最小高度。
+`justifyContent` 使用分布式对齐时同样先扣除 `itemMargin`，不能依赖它消除负剩余空间。
 
 ### 3.3 `Stack`
 

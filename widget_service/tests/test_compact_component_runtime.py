@@ -76,7 +76,7 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
         "maximumItems": 4,
     }
     assert recipe["parts"]["root"]["styles"]["height"] == 64
-    assert recipe["parts"]["item"]["styles"]["height"] == 64
+    assert recipe["parts"]["item"]["styles"]["height"] == "matchParent"
     assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 64
 
 

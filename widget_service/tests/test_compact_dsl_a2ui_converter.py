@@ -1113,7 +1113,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["details"]["children"],
             ["details_item0", "details_item1"],
         )
-        self.assertEqual(components["details_item0"]["styles"]["height"], 64)
+        self.assertEqual(components["details_item0"]["styles"]["height"], "matchParent")
         self.assertEqual(
             components["details_item0"]["styles"]["constraintSize"]["minWidth"],
             64,

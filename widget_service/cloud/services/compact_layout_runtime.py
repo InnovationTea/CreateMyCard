@@ -16,6 +16,7 @@ from services.compact_component_runtime import (
     component_visual_recipe,
 )
 from services.compact_dsl_a2ui_converter import ComponentRow
+from services.compact_region_layout import reference_region_boxes
 
 LAYOUT_CONTRACT_VERSION = "layout-contracts-v1"
 _CONTRACT_PATH = (
@@ -108,7 +109,7 @@ def match_compact_layout(
     layout_scope: str,
 ) -> CompactLayoutMatch:
     """Match raw Compact rows to one formal layout without changing their geometry."""
-    components_by_id = {component.component_id: component for component in components}
+    components_by_id = _reference_components(components, size=size)
     root = components_by_id.get("root")
     if root is None:
         raise CompactLayoutRuntimeError("Compact layout requires a root component.")
@@ -147,6 +148,80 @@ def match_compact_layout(
     raise CompactLayoutRuntimeError(
         f"Compact layout does not match scope {layout_scope} ({allowed}): {detail}."
     )
+
+
+def adaptive_slot_ids(components: list[ComponentRow], *, size: str) -> frozenset[str]:
+    """读取已匹配布局的区域槽身份，区分动作背板与固定高度文字按钮。"""
+    by_id = _reference_components(components, size=size)
+    root = by_id.get("root")
+    if root is None:
+        return frozenset()
+    layouts = _load_contract().get("layouts", {})
+    for layout in layouts.values():
+        if layout.get("size") != size:
+            continue
+        for pattern in layout.get("patterns", []):
+            if _pattern_mismatches(pattern, root, by_id, size=size):
+                continue
+            if _action_count_mismatches(layout, components):
+                continue
+            slots: set[str] = set()
+            for rule in pattern.get("rules", []):
+                if not isinstance(rule.get("slotSize"), dict):
+                    continue
+                component = _component_at_path(root, by_id, rule.get("path"))
+                if component is not None:
+                    slots.add(component.component_id)
+            return frozenset(slots)
+    return frozenset()
+
+
+def _reference_components(
+    components: list[ComponentRow], *, size: str
+) -> dict[str, ComponentRow]:
+    """匹配时求解显式权重，不将参考数值写回模型输入或渲染产物。"""
+    if size not in {"2x2", "2x4"}:
+        return {component.component_id: component for component in components}
+    nodes: list[dict[str, Any]] = []
+    parent_types: dict[str, str] = {}
+    for component in components:
+        for child_id in component.children:
+            parent_types[child_id] = component.component_type
+    for component in components:
+        styles = dict(_component_root_styles(component, size=size) or {})
+        # 与高阶组件展开的缺省外部放置一致：Row 中未指定宽度的填充组件等权分配。
+        row_fill = parent_types.get(component.component_id) == "Row"
+        if row_fill and styles.get("width") == "matchParent" and "width" not in component.props:
+            styles["layoutWeight"] = 1
+        styles.update(component.props)
+        nodes.append({
+            "id": component.component_id,
+            "component": component.component_type,
+            "styles": styles,
+            "children": component.children,
+        })
+    boxes = reference_region_boxes(nodes, size=size)
+    resolved: dict[str, ComponentRow] = {}
+    for component in components:
+        props = dict(component.props)
+        box = boxes.get(component.component_id)
+        # 仅供本次只读匹配使用；覆盖同名输入，不能由模型伪造参考尺寸。
+        reference_dimensions: dict[str, float] = {}
+        if box is not None:
+            for axis in ("width", "height"):
+                length = box.axis(axis)
+                if length is not None:
+                    reference_dimensions[axis] = length
+        props["_referenceDimensions"] = reference_dimensions
+        if box is not None and "layoutWeight" in props:
+            for axis in ("width", "height"):
+                length = box.axis(axis)
+                if axis not in props and length is not None:
+                    props[axis] = length
+        resolved[component.component_id] = ComponentRow(
+            component.component_id, component.component_type, props, component.children
+        )
+    return resolved
 
 
 def _pattern_mismatches(
@@ -200,6 +275,8 @@ def _rule_mismatches(
     if isinstance(props, dict):
         for name, expected in props.items():
             actual = component.props.get(name)
+            if actual == "matchParent" and isinstance(expected, (int, float)):
+                actual = component.props.get("_referenceDimensions", {}).get(name)
             if actual != expected:
                 mismatches.append(
                     f"slot {path_label}.{name} must be {expected!r}, got {actual!r}"
@@ -261,8 +338,8 @@ def _slot_size_mismatches(
         actual = component.props.get(dimension)
         if actual is None and recipe_styles is not None:
             actual = recipe_styles.get(dimension)
-        if actual == "matchParent" and dimension == "width":
-            actual = expected
+        if actual == "matchParent":
+            actual = component.props.get("_referenceDimensions", {}).get(dimension)
         if actual != expected:
             mismatches.append(
                 f"slot {path_label}.{dimension} must resolve to {expected!r}, "
@@ -276,8 +353,6 @@ def _component_root_styles(
     *,
     size: str,
 ) -> dict[str, Any] | None:
-    if component.component_type not in {"InfoBlock", "CardButton"}:
-        return None
     try:
         recipe = component_visual_recipe(component.component_type, size=size)
     except CompactComponentRuntimeError:

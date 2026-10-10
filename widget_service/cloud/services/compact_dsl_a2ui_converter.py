@@ -20,6 +20,7 @@ from services.compact_component_runtime import (
     component_visual_recipe,
     visual_recipe_part,
 )
+from services.compact_region_layout import adapt_region_layout
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
@@ -665,11 +666,26 @@ def convert_compact_dsl_to_a2ui(
     surface_id: str = "surface_card",
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
+    # 布局运行时复用本模块的行类型，延迟导入避免模块初始化循环。
+    from services.compact_layout_runtime import adaptive_slot_ids
+
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
     _validate_compact_component_bindings(components)
     data_model = _build_data_model(data_rows)
+    author_types = {component.component_id: component.component_type for component in components}
+    author_weights = frozenset(
+        component.component_id for component in components if "layoutWeight" in component.props
+    )
+    region_slots = adaptive_slot_ids(components, size=size)
+    slot_actions: set[str] = set()
+    protected = {"aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight"}
+    for component in components:
+        if component.component_type != "CardButton" or component.component_id not in region_slots:
+            continue
+        if not protected.intersection(component.props):
+            slot_actions.add(component.component_id)
     components = expand_high_level_component_rows(
         components,
         size=size,
@@ -694,6 +710,15 @@ def convert_compact_dsl_to_a2ui(
                 card_size=size,
             )
         )
+    converted_components = adapt_region_layout(
+        converted_components,
+        author_types=author_types,
+        size=size,
+        profile=profile if "sizes" in profile else None,
+        slots=region_slots,
+        slot_actions=frozenset(slot_actions),
+        author_weights=author_weights,
+    )
     if fusion_palette is not None:
         try:
             converted_components = expand_fusion_ball_components(
