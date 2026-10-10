@@ -9,7 +9,8 @@
 - Python 3.12。
 - 推荐安装 `uv`；也可以使用已安装依赖的 Python 虚拟环境。
 - 仓库已包含 `debug_tools/dist/`，直接使用 Python 入口时不要求安装 Node.js。
-- 只有修改前端源码时才需要 Node.js 和 npm。
+- 修改前端源码，或运行浏览器截图后处理插件时，还需要 Node.js 和 npm。后处理插件的分类依赖、
+  浏览器和 DevEco 配置见 [`postprocess_plugins/README.md`](postprocess_plugins/README.md#本地环境与配置)。
 
 以下命令均从仓库根目录开始执行。
 

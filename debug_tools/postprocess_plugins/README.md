@@ -4,6 +4,87 @@
 扫描清单，执行时才在独立子进程中加载脚本。插件只负责生产结构化数据和受限文件，调试平台依据清单自动
 生成插件独立看板，不加载或执行插件提供的 HTML、JavaScript 或 React 代码。
 
+## 本地环境与配置
+
+所有插件都复用调试平台的 Python 3.12 运行环境，不需要单独创建插件虚拟环境。从仓库根目录安装
+Python 依赖：
+
+```powershell
+uv sync
+```
+
+`example-metrics`、`complete-showcase` 和 `component-recall` 只需要上述 Python 环境。其它内置插件还需要
+以下按功能安装的本地环境：
+
+| 插件 | Python 外依赖 | 是否需要额外配置 |
+| --- | --- | --- |
+| `browser-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 非标准安装路径的浏览器需配置环境变量 |
+| `validation-failure-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 同上 |
+| `device-gallery` | DevEco JDK、SDK、HDC、Hvigor、ArkTS 渲染工程、HarmonyOS 设备或模拟器 | 必须配置 `debug_agent.yaml` |
+
+### 浏览器截图插件
+
+这两个插件会由 Python 子进程调用 Node.js 截图脚本。仓库只声明 `playwright-core`，不会下载 Playwright
+自带的浏览器；需要本机已安装 Edge、Chrome 或 Chromium。从仓库根目录执行：
+
+```powershell
+cd debug_tools
+npm install
+node -e "import('playwright-core').then(() => console.log('playwright-core OK'))"
+cd ..
+```
+
+截图脚本会自动检查 Windows 的 Edge/Chrome 常见安装路径、macOS 的应用目录，以及 Linux 下常见的
+Edge/Chrome/Chromium 路径。浏览器不在这些位置时，在启动调试平台的同一个终端中指定可执行文件：
+
+```powershell
+$env:WIDGET_DEBUG_GALLERY_BROWSER_EXECUTABLE = 'D:\Tools\Chrome\chrome.exe'
+uv run debug_tools
+```
+
+该变量只对当前终端有效。设置后应保持平台进程从同一终端启动，以便 Node.js 子进程继承配置。
+
+### 真机截图插件
+
+`device-gallery` 会复制一份 ArkTS 渲染工程，通过 Hvigor 构建 HAP，再使用 HDC 安装、启动、截图和
+回收临时文件。先安装 DevEco Studio 及对应 HarmonyOS/OpenHarmony SDK，准备可由 Hvigor 构建的渲染工程，
+然后修改 `debug_tools/end_to_end_debug/backend/debug_agent.yaml` 中的 `device_capture`：
+
+```yaml
+device_capture:
+  hdc: D:/DevEco/sdk/default/openharmony/toolchains/hdc.exe
+  device_sn: null
+  render_project: D:/Workspace/A2UI_Render
+  deveco_sdk_home: D:/DevEco/sdk
+  java_home: D:/DevEco/jbr
+  hvigor: D:/DevEco/tools/hvigor/bin/hvigorw.bat
+  signed_hap_name: entry-default-signed.hap
+  bundle_name: com.example.myapplication
+  ability_name: EntryAbility
+  module_name: entry
+  rawfile_target: entry/src/main/resources/rawfile/test.json
+  hap_output_dir: entry/build/default/outputs/default
+  crop_config: debug_tools/postprocess_plugins/device_capture/device_crop.json
+  auto_start_emulator: false
+```
+
+路径可以是绝对路径，也可以是相对仓库根目录的路径。`rawfile_target` 和 `hap_output_dir` 必须是渲染工程内
+的相对路径。`signed_hap_name` 要与 Hvigor 实际生成的可安装 HAP 文件名一致；真机通常需要已签名产物。
+
+使用已启动的真机或模拟器时，建议保持 `auto_start_emulator: false`。启用前先验证工具和设备：
+
+```powershell
+& 'D:\DevEco\jbr\bin\java.exe' -version
+& 'D:\DevEco\sdk\default\openharmony\toolchains\hdc.exe' list targets
+```
+
+`device_sn` 留空时必须且只能有一台 HDC 设备在线；多设备时填写 `hdc list targets` 返回的目标标识。
+真机需开启开发者模式和 USB 调试，并确认本机已获得设备授权。
+
+需要由平台自动启动 DevEco 模拟器时，再设置 `auto_start_emulator: true`，并补充
+`emulator`、`emulator_name`、`emulator_instance_root` 和 `emulator_image_root`。这些值必须指向本机已创建
+的同一个 DevEco 模拟器实例。
+
 ## v2 清单
 
 ```json
