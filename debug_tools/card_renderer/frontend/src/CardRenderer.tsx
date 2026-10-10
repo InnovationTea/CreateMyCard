@@ -56,6 +56,14 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
     setConverting(false);
   };
 
+  const changeContainerSize = (dimension: 'width' | 'height', value: string) => {
+    window.clearTimeout(renderTimer.current);
+    cancelConversion();
+    const size = Math.max(1, Number(value));
+    if (dimension === 'width') setContainerWidth(size);
+    else setContainerHeight(size);
+  };
+
   useEffect(() => () => { conversionRequest.current?.abort(); }, []);
 
   const changeZoom = (nextZoom: number) => {
@@ -167,8 +175,8 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
       <div className="card-renderer__preview-toolbar">
         <span>{previewDocument ? `${previewDocument.mode} · ${containerWidth} × ${containerHeight}` : '预览'}</span>
         <div className="card-renderer__preview-controls">
-          <label>容器宽度<input type="number" min="1" step="1" value={containerWidth} disabled={!document} onChange={(event) => setContainerWidth(Math.max(1, Number(event.target.value)))} /></label>
-          <label>容器高度<input type="number" min="1" step="1" value={containerHeight} disabled={!document} onChange={(event) => setContainerHeight(Math.max(1, Number(event.target.value)))} /></label>
+          <label>容器宽度<input type="number" min="1" step="1" value={containerWidth} disabled={!document} onChange={(event) => changeContainerSize('width', event.target.value)} /></label>
+          <label>容器高度<input type="number" min="1" step="1" value={containerHeight} disabled={!document} onChange={(event) => changeContainerSize('height', event.target.value)} /></label>
           <label>缩放<input type="range" min="50" max="360" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><span>{zoom}%</span></label>
         </div>
       </div>

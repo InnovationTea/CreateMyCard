@@ -2,7 +2,7 @@
 
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CardRenderer } from '../src/CardRenderer';
 import { CardPreview } from '../src/render';
@@ -10,6 +10,7 @@ import { parseInput } from '../src/parser';
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -252,6 +253,64 @@ describe('Render 内核预览', () => {
     expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(source);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).source).toBe(source);
+  });
+
+  it.each([
+    { label: '容器宽度', value: 240 },
+    { label: '容器高度', value: 180 },
+  ])('$label 修改处理取消旧请求，迟到结果不覆盖尺寸或编辑器', async ({ label, value }) => {
+    let resolveResponse!: (value: unknown) => void;
+    const source = '["root","Text",{"content":"原始输入"}]';
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ genui: textA2ui('初始预览'), size: '2x2' }) })
+      .mockImplementationOnce(() => new Promise(resolve => { resolveResponse = resolve; }));
+    const onArtifact = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue={source} onArtifact={onArtifact} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: '自动渲染' }));
+    fireEvent.click(screen.getByRole('button', { name: /^渲染$/ }));
+    await screen.findByText('初始预览');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Python 转换并渲染' }));
+    const signal = fetchMock.mock.calls[1][1].signal;
+    // 当前 UI 会在转换中禁用控件；直接触发修改处理，验证取消保护不依赖禁用状态。
+    fireEvent.change(screen.getByRole('spinbutton', { name: label }), { target: { value: String(value) } });
+    expect(signal.aborted).toBe(true);
+    await act(async () => {
+      resolveResponse({ ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x2' }) });
+    });
+
+    expect(screen.getByRole('spinbutton', { name: label })).toHaveValue(value);
+    expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(source);
+    expect(screen.queryByText('Python 转换结果')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Python 转换并渲染' })).toBeEnabled();
+    expect(onArtifact).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { label: '容器宽度', value: 240, size: '240x150' },
+    { label: '容器高度', value: 180, size: '150x180' },
+  ])('$label 修改取消尚未开始的自动渲染，保留预览尺寸', async ({ label, value, size }) => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x2' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<CardRenderer initialValue={textA2ui('已有预览')} />);
+    fireEvent.click(screen.getByRole('button', { name: /^渲染$/ }));
+    await screen.findByText('已有预览');
+    vi.useFakeTimers();
+    fireEvent.change(screen.getByRole('textbox', { name: 'DSL 输入' }), {
+      target: { value: '["root","Text",{"content":"等待转换"}]' },
+    });
+    const control = screen.getByRole('spinbutton', { name: label });
+    expect(control).toBeEnabled();
+    fireEvent.change(control, { target: { value: String(value) } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(control).toHaveValue(value);
+    expect(container.querySelector(`[data-renderer-size="${size}"]`)).toBeTruthy();
+    expect(screen.getByText('已有预览')).toBeInTheDocument();
   });
 
   it('previewOnly 的 Compact 输入也调用默认 Python 接口', async () => {
