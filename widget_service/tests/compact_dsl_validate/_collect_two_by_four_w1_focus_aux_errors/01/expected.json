@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux must not repeat the same visible fact in the left focus and a right auxiliary cell. Reassign each requested field to one region only; duplicated paths: ['/data/healthSport/a']."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "3a452626e5cc2aaf9174417882bd344ce5af3f9b34b70537b28c50d4105385c3",
+    "sample_task_spec.json": "4e92578b640f4b38b7659a7366554534df60aabd3a30991e982a0fcc6acf6b1e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -13,10 +13,10 @@ from services.template_generation.engine.cardplan.models import (
     TemplateDefinition,
 )
 from services.template_generation.engine.cardplan.prompt import (
-    _asset_semantic_tags,
     _parameter_allowed_asset_sources,
 )
 from services.template_generation.engine.cardplan.provider_bundle import (
+    asset_semantic_tags,
     load_provider_bundle,
     load_provider_templates,
 )
@@ -27,7 +27,8 @@ _ROOT = Path(__file__).resolve().parents[1]
 _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
 _SOURCE = "resources/base/media/"
 _SLOTS = (
-    ("BatteryOverviewSupport@1", "batteryIcon", "icon_phone.svg"),
+    # BatteryOverviewSupport@1 不在列：上游 #410 下架 icon_phone.svg 后，
+    # 其 batteryIcon 的 phone-device 语义已无在册素材（见下方专项用例）。
     ("BatteryOverviewStatusSupport@1", "batteryIcon", "bolt_fill.svg"),
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
@@ -56,7 +57,7 @@ def catalog_contract() -> HybridBodyContract:
     for asset in assets:
         source = asset.get("src")
         assert isinstance(source, str)
-        tags_by_source[source] = _asset_semantic_tags(asset)
+        tags_by_source[source] = asset_semantic_tags(asset)
     return HybridBodyContract.model_construct(
         allowed_asset_sources=tuple(tags_by_source),
         asset_semantic_tags_by_source=tags_by_source,
@@ -73,8 +74,6 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    # CountdownOverviewTravelSupport@1 不再声明 timerIcon 槽位（出行 Support 仅
-    # 展示主题与剩余天数），支持模板的可执行素材槽位从 20 收敛为 19。
     assert slot_count == 19
 
 
@@ -96,8 +95,25 @@ def test_mixed_catalog_is_filtered_per_business_slot(
         assert _SOURCE + "earphone_case_16644.svg" not in allowed
     if template_id == "BluetoothDeviceOverviewChargeSupport@1":
         assert _SOURCE + "icon_earphone.svg" not in allowed
-    if template_id == "BatteryOverviewSupport@1":
-        assert allowed == (_SOURCE + "icon_phone.svg",)
+
+
+def test_battery_support_phone_icon_slot_has_no_live_catalog_asset(
+    definitions: dict[str, TemplateDefinition],
+    catalog_contract: HybridBodyContract,
+) -> None:
+    """上游 #410 下架 icon_phone.svg 后，phone-device 语义暂无在册素材。"""
+    definition = definitions.get("BatteryOverviewSupport@1")
+    assert definition is not None
+    assert definition.asset_parameter_semantic_tags.get("batteryIcon") == ("phone-device",)
+    assert _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract) == ()
+    for probe in ("drop_1.svg", "bolt_fill.svg"):
+        with pytest.raises(TerselConversionError, match="semantics"):
+            _normalize_template_asset_params(
+                {"batteryIcon": _SOURCE + probe},
+                definition.asset_parameter_semantic_tags,
+                catalog_contract,
+                required_parameters=frozenset(),
+            )
 
 
 def test_phone_battery_support_icon_does_not_change_single_business_asset_semantics(
@@ -130,7 +146,8 @@ def test_weather_slot_separates_single_and_dual_business_assets(
         _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
     }
     temperature_sources = {
-        _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
+        # icon_weather_temperature1.svg 已被上游 #382 从素材目录下架。
+        _SOURCE + "heat_generation.svg",
         _SOURCE + "icon_weather_thermometer_medium.svg",
         _SOURCE + "icon_weather_thermometer.svg",
     }
@@ -168,36 +185,6 @@ def test_weather_slot_separates_single_and_dual_business_assets(
     with pytest.raises(TerselConversionError, match="semantics"):
         _normalize_template_asset_params(
             {"conditionIcon": _SOURCE + "icon_high_temperature.svg"},
-            definition.asset_parameter_semantic_tags,
-            catalog_contract,
-            required_parameters=frozenset(),
-        )
-
-
-@pytest.mark.parametrize("template_id", ("CountdownOverviewSupport@1",))
-def test_countdown_slot_only_accepts_timing_assets(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources("timerIcon", definition, catalog_contract)
-    timing_sources = {
-        _SOURCE + "hourglass_fill.svg",
-        _SOURCE + "stopwatch_fill.svg",
-        _SOURCE + "icon_timing.svg",
-    }
-    assert set(allowed) == timing_sources
-    for source in allowed:
-        normalized = _normalize_template_asset_params(
-            {"timerIcon": source}, definition.asset_parameter_semantic_tags,
-            catalog_contract, required_parameters=frozenset(),
-        )
-        assert normalized == {"timerIcon": source}
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            {"timerIcon": _SOURCE + "clock.svg"},
             definition.asset_parameter_semantic_tags,
             catalog_contract,
             required_parameters=frozenset(),
@@ -308,12 +295,12 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
     manifest = write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
-        "BatteryOverviewSupport@1": "asset.icon_phone",
+        # BatteryOverviewSupport@1 不贡献自身素材：icon_phone 已下架（上游 #410），
+        # 其用例仅携带 partner 的温度计素材。
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
-        "CountdownOverviewSupport@1": "asset.icon_timing",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",

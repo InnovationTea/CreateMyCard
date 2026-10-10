@@ -1,0 +1,8 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"spaceBetween"},["title_area","content_area","action_area","new","new2","new3"]]
+["title_area","Text",{"content":"标题","height":20}]
+["content_area","Text",{"content":"内容","height":40}]
+["action_area","Column",{},["cta"]]
+["cta","Button",{"label":"查看详情","height":36}]
+["new","Text",{"content":"辅助","fontSize":12,"fontWeight":400,"maxLines":1}]
+["new2","Text",{"content":"辅助","fontSize":12,"fontWeight":400,"maxLines":1}]
+["new3","Text",{"content":"辅助","fontSize":12,"fontWeight":400,"maxLines":1}]

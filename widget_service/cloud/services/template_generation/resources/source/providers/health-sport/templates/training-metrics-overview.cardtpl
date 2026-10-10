@@ -1,0 +1,254 @@
+#Template ActivityOverviewTrainingMetricsWideFull@1(props: { stepsIcon?: asset, timeIcon?: asset, heartIcon?: asset, caloriesIcon?: asset })
+data = {
+    steps: $path("/dailySteps"),
+    duration: $path("/exerciseDurationText"),
+    heartRateAvg: $path("/exerciseHeartRateAvg"),
+    calories: $path("/exerciseCalorieText")
+}
+
+Column(
+    {
+        "_advancedComponent": "ActivityOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Row(
+        {
+            "width": "matchParent",
+            "height": "matchParent",
+            "itemMargin": 8,
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Column(
+            {
+                "layoutWeight": 1,
+                "height": "matchParent",
+                "itemMargin": 8,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
+            Row(
+                {
+                    "width": "matchParent",
+                    "height": 59,
+                    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+                    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+                    "borderRadius": $theme("supportContentStyle.borderRadius"),
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                },
+                Column(
+                    {
+                        "layoutWeight": 1,
+                        "itemMargin": 2,
+                        "justifyContent": "center",
+                        "alignItems": "start",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    },
+                    Text(
+                        data.steps,
+                        {
+                            "fontSize": 14,
+                            "fontWeight": 700,
+                            "fontColor": $theme('primaryColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    ),
+                    Text(
+                        "今日步数",
+                        {
+                            "fontSize": 10,
+                            "fontWeight": 400,
+                            "fontColor": $theme('supportContentColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    )
+                ),
+                #if props.stepsIcon
+                    Image(
+                        props.stepsIcon,
+                        {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
+                    )
+                #endif
+            ),
+            Row(
+                {
+                    "width": "matchParent",
+                    "height": 59,
+                    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+                    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+                    "borderRadius": $theme("supportContentStyle.borderRadius"),
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                },
+                Column(
+                    {
+                        "layoutWeight": 1,
+                        "itemMargin": 2,
+                        "justifyContent": "center",
+                        "alignItems": "start",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    },
+                    Text(
+                        data.duration,
+                        {
+                            "fontSize": 14,
+                            "fontWeight": 700,
+                            "fontColor": $theme('primaryColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    ),
+                    Text(
+                        "用时",
+                        {
+                            "fontSize": 10,
+                            "fontWeight": 400,
+                            "fontColor": $theme('supportContentColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    )
+                ),
+                #if props.timeIcon
+                    Image(
+                        props.timeIcon,
+                        {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
+                    )
+                #endif
+            )
+        ),
+        Column(
+            {
+                "layoutWeight": 1,
+                "height": "matchParent",
+                "itemMargin": 8,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
+            Row(
+                {
+                    "width": "matchParent",
+                    "height": 59,
+                    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+                    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+                    "borderRadius": $theme("supportContentStyle.borderRadius"),
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                },
+                Column(
+                    {
+                        "layoutWeight": 1,
+                        "itemMargin": 2,
+                        "justifyContent": "center",
+                        "alignItems": "start",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    },
+                    Text(
+                        Expr(data.heartRateAvg + "次/分钟"),
+                        {
+                            "fontSize": 14,
+                            "fontWeight": 700,
+                            "fontColor": $theme('primaryColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    ),
+                    Text(
+                        "平均心率",
+                        {
+                            "fontSize": 10,
+                            "fontWeight": 400,
+                            "fontColor": $theme('supportContentColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    )
+                ),
+                #if props.heartIcon
+                    Image(
+                        props.heartIcon,
+                        {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
+                    )
+                #endif
+            ),
+            Row(
+                {
+                    "width": "matchParent",
+                    "height": 59,
+                    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+                    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+                    "borderRadius": $theme("supportContentStyle.borderRadius"),
+                    "justifyContent": "spaceBetween",
+                    "alignItems": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                },
+                Column(
+                    {
+                        "layoutWeight": 1,
+                        "itemMargin": 2,
+                        "justifyContent": "center",
+                        "alignItems": "start",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    },
+                    Text(
+                        data.calories,
+                        {
+                            "fontSize": 14,
+                            "fontWeight": 700,
+                            "fontColor": $theme('primaryColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    ),
+                    Text(
+                        "总消耗热量",
+                        {
+                            "fontSize": 10,
+                            "fontWeight": 400,
+                            "fontColor": $theme('supportContentColor'),
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                            "width": "matchParent",
+                            "textAlign": "start",
+                            "constraintSize": {"minWidth": 0, "minHeight": 0}
+                        }
+                    )
+                ),
+                #if props.caloriesIcon
+                    Image(
+                        props.caloriesIcon,
+                        {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
+                    )
+                #endif
+            )
+        )
+    )
+)
+#End

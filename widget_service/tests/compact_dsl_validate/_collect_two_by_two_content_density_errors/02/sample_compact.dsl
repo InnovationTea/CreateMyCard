@@ -1,0 +1,6 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4},["value_row","minimum"]]
+["value_row","Row",{"width":126,"height":40},["maximum"]]
+["maximum","Text",{"content":{"path":"/data/healthSport/max"},"fontSize":30,"fontWeight":700,"maxLines":1}]
+["minimum","Text",{"content":"{{ '最低 ' + ${/data/healthSport/min} + '次/分钟' }}","height":18,"fontSize":12,"fontWeight":400,"maxLines":1}]
+["/data/healthSport/max",168]
+["/data/healthSport/min",96]

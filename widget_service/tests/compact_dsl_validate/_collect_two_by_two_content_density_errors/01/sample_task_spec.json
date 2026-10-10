@@ -1,0 +1,16 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {},
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ]
+}

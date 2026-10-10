@@ -143,12 +143,23 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT` 配置先提醒的次数；默认值为 `1`，即同一
 `requestId` 第一次返回原有提醒，第二次仍出现字符串化 `arguments` 时调用 A2UI client 修复。修复调用使用
 `cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/argument_repair.md` 中的独立 JSON Prompt，
-不加载卡片生成系统 Prompt。模型输入以 `rawArguments` 原样携带原始字符串，不使用 `json_repair` 或其它
-启发式修复结果作为模型输入。`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS` 默认值为 `2`；
+不加载卡片生成系统 Prompt。模型输入以 `rawArguments` 原样携带原始字符串；代码先按可证明的根对象
+边界严格解析完整字段和损坏数组前的完整项，数据与素材候选通过独立预检后分别放入 `lockedFields`
+或 `lockedArrayItems`，由代码合并保留。遇到不明确的层级边界时停止提取，不通过全局同名键匹配猜测。
+模型只修复其余字段，损坏数组必须返回完整数组并保留已锁定位置；不得省略或清空损坏字段。
+`json_repair` 生成的 `syntaxRepairSuggestion` 仅作为层级修复参考，原字符串仍是事实来源。
+`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS` 默认值为 `2`；
 第一次输出无法通过严格 JSON、请求结构校验时，第二次会同时携带上次输出和具体错误进行定向纠正。
-合法模型结果还会按当前 App/ROM 能力清单重建事件 `actionTemplate`，只保留清单声明的动态参数，并移除
-无法通过生成预检的候选。全部模型输出仍失败时，服务从原始字符串中无损提取可识别的需求文本，构造不含
-动态候选的最小静态请求继续生成。恢复结果替换请求 `content` 后，仍需通过正常生成、校验和存储流程；
+模型输出语法非法时，也尝试受限 `json_repair`：修复前后字段和值的标量序列、类型必须一致，禁止补业务值、
+删字段、重复键和非有限数字；之后仍需严格 JSON、请求结构和生成预检。合法结果按当前 App/ROM 清单
+重建事件 `actionTemplate`，只保留声明的动态参数，并移除未锁定且无法通过预检的候选；不得改变或丢弃
+已锁定内容，全部候选被移除也不能继续静态生成。校验错误参与模型下一轮修复，次数有界。
+每轮记录模型输出正文、尝试次数；沿用隐私日志开关，默认遮蔽 uid/odid 等标识，非法 JSON 也做遮蔽。
+恢复收口记录 content、warnings 和候选删除明细。
+全部尝试失败时返回 `failed / A2UI_GENERATION_FAILED`，details.stage 为 `argumentRepair`、
+retryable 为 false，明确要求主 Agent 停止本轮自动调用，提示用户“卡片生成失败，请重试一下”。
+不再存在 `mode=minimal`，失败时不调用生成模型、不保存产物，也不进入接口级重试。
+恢复成功替换请求 `content` 后，仍需通过正常生成、校验和存储流程；
 任意一次不再携带字符串化 `arguments` 的请求会清除该 `requestId` 的连续计数。
 
 `generateWidgetCardTerseDslNested2` 从

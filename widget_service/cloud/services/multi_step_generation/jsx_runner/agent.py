@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import re
 import sys
@@ -8,7 +9,12 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from .config import MODEL_THINKING_MODE, RESOURCE_STAGES, THINKING_MODES
+from .config import MODEL_THINKING_MODE, THINKING_MODES
+from .fewshot_retrieval import select_generation_examples, select_repair_example
+from .info_block_fallback import (
+    icon_omission_improves_text,
+    omit_clipped_info_block_icons,
+)
 from .prompt import (
     build_layout_fallback_prompt,
     build_plan_context,
@@ -17,6 +23,7 @@ from .prompt import (
     build_user_prompt,
 )
 from .resources import GenerationResources
+from .python_validation import validate_python_layout
 from .tool_arguments import ToolArgumentError
 from .tool_arguments import parse_tool_arguments as _arguments
 from .validation import (
@@ -26,6 +33,7 @@ from .validation import (
     browser_overlap_involves_emphasized_data,
     browser_layout_requires_pattern_change,
     compact_validation_feedback,
+    semantic_runtime_template_findings,
     validate_generated_card,
 )
 from .workflow import (
@@ -42,16 +50,52 @@ from .workflow import (
 
 
 SUBMIT_MODES = ("direct", "auto")
+
+
+async def _validate_submission_with_modes(
+    *,
+    source: str,
+    task: dict[str, Any],
+    component_name: str,
+    decision: dict[str, Any],
+    python_validation: bool,
+    browser_validation: bool,
+) -> dict[str, Any]:
+    python_report = (
+        validate_python_layout(source=source, component_name=component_name)
+        if python_validation else None
+    )
+    if python_report is not None and not python_report["ok"]:
+        return python_report
+    if browser_validation or not python_validation:
+        report = await validate_generated_card(
+            source=source,
+            task=task,
+            component_name=component_name,
+            decision=decision,
+            browser=browser_validation,
+            browser_only=browser_validation,
+        )
+        if python_report is not None:
+            report = {
+                **report,
+                "findings": [*python_report["findings"], *report.get("findings", [])],
+            }
+        return report
+    return python_report
 PLAN_MAX_TOKENS = 2048
 DEFAULT_PLAN_MAX_TOKENS = 1024
 DEFAULT_MAX_TOKENS = 4096
 LAYOUT_FALLBACK_SUBMISSION_LIMITS = {
     "compact_component": 2,
+    # Keep the historical trace key; this stage may omit one non-Action display
+    # component and records partial output.
     "drop_optional_component": 3,
 }
 STATIC_CAPACITY_REPAIR_LIMIT = 3
 POST_BROWSER_REPAIR_LIMIT = 6
 COMPACT_REQUIRED_INFORMATION_LIMIT = 3
+COMPACT_TOTAL_FAILURE_LIMIT = 4
 
 MAX_CONSECUTIVE_NO_TOOL_CALLS = 3
 
@@ -230,6 +274,8 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "strategy",
         "layoutBudgetFailures",
         "repairStrategy",
+        "repairScope",
+        "semanticTarget",
         "anchorLayoutAttempted",
         "requiredFactsChecked",
         "requiredFactsAdvisory",
@@ -240,6 +286,7 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "repeatedFindings",
         "findings",
         "warnings",
+        "automaticInfoBlockIconOmission",
         "validationMode",
     )
     return {field: result[field] for field in fields if field in result}
@@ -280,7 +327,7 @@ def _consumes_layout_fallback_attempt(
     *,
     browser_failure: bool,
 ) -> bool:
-    """Charge fallback budgets only for actual layout-capacity attempts."""
+    """Charge capacity-attempt budgets only for layout-capacity failures."""
 
     if (
         result.get("ok")
@@ -373,6 +420,7 @@ def _semantic_repair_scope_instruction(
 ) -> str:
     if _is_missing_required_action_failure(result):
         action_ids = sorted(_required_action_ids(task, required_facts))
+        card_size = str(task.get("size") or "")
         instruction = (
             "当前错误是必需 Action 缺失，属于操作槽与布局结构错误，不是组件 Prop 的局部错误。"
             f"必须保留并分别放置全部 Action：{action_ids!r}；每个 Action 使用一个合法操作槽，"
@@ -380,6 +428,13 @@ def _semantic_repair_scope_instruction(
             "只能包含一个位于最后的 PillButton，不得在同一 Region 追加第二个 PillButton 或 CardButton；"
             "同步更新 Card.layout 和 Region.variant；decision 由 Runner 自动派生。"
         )
+        if card_size == "2x2":
+            instruction += (
+                " 2×2 的一个文字 Action 使用 wide-title-content-action 或"
+                " wide-title-primary-secondary-action；两个文字 Action 使用"
+                " wide-content-two-actions；只有一个仅靠 Icon 即可明确表达且不会遮挡正文的"
+                " Action 才使用 wide-title-anchor-action。"
+            )
         if (
             submitted_jsx
             and len(action_ids) == 2
@@ -389,11 +444,26 @@ def _semantic_repair_scope_instruction(
                 " 当前使用 main-right-double 且存在两个必需 Action。先按业务归属分配："
                 "如果 main 业务组拥有一个 Action，优先使用 wide-title-content-action 或"
                 " wide-title-primary-secondary-action，并把该 Action 作为 main Region 最后的 PillButton；"
-                "另一个 Action 放入 side-top 或 side-bottom 的 CardButton，剩余固定侧槽可保留一个"
-                " InfoBlock。若侧边不需要信息模块，也可以使用两个 CardButton。只有 main 无法使用"
+                "若另一个 Action 与一项侧边信息组成混合固定槽，必须使用 side-top 的 InfoBlock 和"
+                " side-bottom 的 CardButton，不得上下互换。若侧边不需要信息模块，也可以使用两个"
+                " CardButton。只有 main 无法使用"
                 "合法 Action variant 且侧边槽不足时，才更换父布局。"
             )
         return instruction
+    findings = result.get("findings")
+    duplicate_errors = [
+        item for item in findings
+        if isinstance(item, dict)
+        and item.get("severity") == "error"
+        and item.get("code") == "duplicate-visible-data-id"
+    ] if isinstance(findings, list) else []
+    if duplicate_errors:
+        return (
+            "同一 dataId 被多处可见展示。按 findings 指出的位置为每个重复 ID "
+            "保留语义最合适的一处，移除其余重复行或组件；保留其他唯一信息与全部 Action。"
+            "优先局部修复；只有删除重复项后当前 Region.variant 不再合法时，才调整该"
+            " Region.variant。不要改动无关区域。"
+        )
     if _is_local_component_repair(result):
         return (
             "本轮全部 ERROR 都是数据绑定、静态文字绑定或组件 Prop 错误，属于局部修复："
@@ -403,8 +473,9 @@ def _semantic_repair_scope_instruction(
         )
     if browser_failure or _is_static_layout_failure(result) or fallback_stage is not None:
         return (
-            "本轮存在布局类 findings 或 Runner 已进入布局兜底阶段，可以依据当前完整内容"
-            "调整 variant/layout；decision 由 Runner 根据语义标识自动更新。"
+            "本轮存在布局类 findings 或 Runner 已进入布局兜底阶段。先调整受影响组件的密度或"
+            "表达方式，再调整 Region.variant；只有当前 Card.layout 的合法 variant 都无法闭合时"
+            "才更换 Card.layout。decision 由 Runner 根据语义标识自动更新。"
         )
     return (
         "本轮 findings 尚未证明布局结构或容量不成立；保持上一版 Card.layout、"
@@ -439,7 +510,7 @@ def _pillbutton_anchor_repair_instruction() -> str:
         "浏览器已确认 PillButton 与上方内容的真实间距不足。兜底前必须优先评估"
         "“标题锚点内容”布局：当前任务为 2×2、单 Action 且输入提供了资源候选。"
         "只有某个 assetCandidates.src 能准确表达该 Action、完整操作名称可写入 ariaLabel，"
-        "并且右下 40×40vp 操作槽能与正文安全避让时，才把 PillButton 改为 CircleButton；"
+        "并且 `wide-title-anchor-action` 的锚点操作槽能与正文安全避让时，才把 PillButton 改为 CircleButton；"
         "必须保留全部必需事实、dataIds 和 actionId。若任一条件不成立，不得机械替换或"
         "编造 Icon；提交一个保持语义完整的合法方案，后续相同间距错误才进入通用兜底。"
     )
@@ -452,36 +523,74 @@ def _static_layout_repair_feedback(
     """Escalate repeated static layout repairs without changing validation severity."""
     circle_button_hint = (
         "若空间不足且存在符合文档、按钮数量和图标资源约束的图标按钮布局，"
-        "请优先重新评估 CircleButton Layout Pattern；不能机械替换按钮或删除必需信息。"
+        "请优先重新评估承载 CircleButton 的 Region.variant；不能机械替换按钮或删除必需信息。"
         if result.get("phase") == "layout_budget"
         else ""
     )
+    has_structure_finding = any(
+        item.get("code") == "layout-structure"
+        for item in result.get("findings", [])
+        if isinstance(item, dict)
+    )
+
+    def semantic_target(scope: str) -> str:
+        return {
+            "component": "component-density",
+            "sublayout": "Region.variant",
+            "parent-layout": "Card.layout",
+        }[scope]
+
+    def findings_with_scope(scope: str) -> list[Any]:
+        scoped: list[Any] = []
+        for item in result.get("findings", []):
+            if (
+                isinstance(item, dict)
+                and item.get("severity") == "error"
+                and item.get("code") in {"layout-budget", "layout-structure"}
+            ):
+                scoped.append({
+                    **item,
+                    "repairScope": scope,
+                    "semanticTarget": semantic_target(scope),
+                })
+            else:
+                scoped.append(item)
+        return scoped
+
+    initial_scope = "sublayout" if has_structure_finding else "component"
     updated = {
         **result,
+        "findings": findings_with_scope(initial_scope),
         "layoutBudgetFailures": consecutive_failures,
-        "repairStrategy": "targeted",
+        "repairStrategy": "structural" if initial_scope == "sublayout" else "targeted",
+        "repairScope": initial_scope,
+        "semanticTarget": semantic_target(initial_scope),
     }
     if consecutive_failures == 1:
         return updated
     if consecutive_failures == 2:
         updated["repairStrategy"] = "rebudget"
+        updated["repairScope"] = "sublayout"
+        updated["semanticTarget"] = semantic_target("sublayout")
+        updated["findings"] = findings_with_scope("sublayout")
         updated["instruction"] = (
-            "这是连续第 2 次确定性布局预算失败。不要只修改当前报错中的一个数字；"
-            "请从每个受影响组件的共同父容器重新计算标题、正文、按钮的固定最小尺寸，"
-            "以及全部 gap、padding、top 和 bottom，并一次解决 findings 中的所有 ERROR。"
+            "这是连续第 2 次确定性布局预算失败。不要继续局部修改展开后的几何属性；"
+            "先无损合并内容或改用高密度业务组件，再为受影响区域选择容量匹配的 Region.variant，"
+            "并一次解决 findings 中的所有 ERROR。"
             "WARNING 仍只作提示；必须保留用户明确要求的信息、动态 dataIds 和 actionId，"
-            "不得依赖 overflow、裁剪或压缩固定组件规避问题。"
+            "不得依赖裁剪或隐藏必需内容规避问题。"
             + circle_button_hint
         )
         return updated
     updated["repairStrategy"] = "structural"
+    updated["repairScope"] = "parent-layout"
+    updated["semanticTarget"] = semantic_target("parent-layout")
+    updated["findings"] = findings_with_scope("parent-layout")
     updated["instruction"] = (
         f"这是连续第 {consecutive_failures} 次确定性布局预算失败，当前布局仍未闭合。"
-        "停止逐个调整 2–4vp 或只移动单个组件；请重新分配整个受影响内容区，"
-        "重新分组共同父容器，并在必要时更换 Layout Pattern。"
-        "如果原结构经过完整重算可以闭合，也可以保留，但必须一次满足所有固定最小尺寸"
-        "和规范间距。必须保留用户明确要求的信息、动态 dataIds 和 actionId；"
-        "不得通过删除必需内容、静态化动态值、overflow 或裁剪绕过校验。"
+        "组件密度和 Region.variant 修复仍未闭合；请重新评估 Card.layout，并重新分配受影响"
+        "Region。必须保留用户明确要求的信息、动态 dataIds 和 actionId；"
+        "不得通过删除必需内容、静态化动态值或裁剪绕过校验。"
         + circle_button_hint
     )
     return updated
@@ -497,7 +606,22 @@ def _layout_failure_fingerprint(result: dict[str, Any]) -> tuple[tuple[str, str]
             continue
         message = re.sub(r"\d+(?:\.\d+)?vp", "<vp>", str(item.get("message", "")))
         fingerprints.append((str(item.get("code")), message))
+    if not fingerprints:
+        message = re.sub(r"\d+(?:\.\d+)?vp", "<vp>", str(result.get("error", "")))
+        fingerprints.append((str(result.get("phase") or "layout"), message))
     return tuple(sorted(fingerprints))
+
+
+def _advance_static_layout_failure_streak(
+    result: dict[str, Any],
+    previous_fingerprint: tuple[tuple[str, str], ...] | None,
+    previous_streak: int,
+) -> tuple[int, tuple[tuple[str, str], ...]]:
+    """Escalate only when the same static layout failure survives a repair."""
+
+    fingerprint = _layout_failure_fingerprint(result)
+    streak = previous_streak + 1 if fingerprint == previous_fingerprint else 1
+    return streak, fingerprint
 
 
 def _tool_result_log_level(result: dict[str, Any]) -> str:
@@ -561,6 +685,7 @@ class JsxA2UIAgent:
         request_timeout: float = 900.0,
         max_validation_repairs: int = 3,
         browser_validation: bool = False,
+        python_validation: bool = False,
         validation_enabled: bool = True,
         layout_budget_validation: bool = True,
         validate_dynamic_values: bool = True,
@@ -614,6 +739,7 @@ class JsxA2UIAgent:
             raise ValueError(f"unsupported submit mode: {submit_mode!r}")
         self.max_validation_repairs = max_validation_repairs
         self.browser_validation = browser_validation
+        self.python_validation = python_validation
         self.validation_enabled = validation_enabled
         self.layout_budget_validation = layout_budget_validation
         self.validate_dynamic_values = validate_dynamic_values
@@ -656,6 +782,7 @@ class JsxA2UIAgent:
             validation_enabled
             and getattr(self, "browser_validation", False)
         )
+        python_validation = validation_enabled and getattr(self, "python_validation", False)
         layout_budget_validation = (
             validation_enabled
             and getattr(self, "layout_budget_validation", True)
@@ -672,14 +799,28 @@ class JsxA2UIAgent:
             enable_dynamic_data_binding=getattr(self, "enable_dynamic_data_binding", True),
             require_semantic_layout=True,
         )
+        prompt_bundle = state.resources.bundle(state.expected_card_size)
+        state.mark_prompt_bundle_loaded(prompt_bundle)
+        system_prompt = build_system_prompt(
+            component_name,
+            task.get("size"),
+            validation_enabled=validation_enabled,
+        )
+        system_prompt += (
+            "\n\n<plan_submission_rules>\n"
+            + build_plan_prompt()
+            + "\n</plan_submission_rules>"
+        )
+        if prompt_bundle.initial_content:
+            system_prompt += (
+                "\n\n<generation_contracts>\n"
+                + prompt_bundle.initial_content
+                + "\n</generation_contracts>"
+            )
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
-                "content": build_system_prompt(
-                    component_name,
-                    task.get("size"),
-                    validation_enabled=validation_enabled,
-                ),
+                "content": system_prompt,
             },
             {"role": "user", "content": build_user_prompt(task)},
         ]
@@ -687,6 +828,8 @@ class JsxA2UIAgent:
         turn_trace: list[dict[str, Any]] = []
         validation_reports: list[dict[str, Any]] = []
         plan: dict[str, Any] | None = None
+        selected_fewshot_keys: list[str] = []
+        selected_repair_example_keys: list[str] = []
         failed_submissions = 0
         repair_calls = 0
         fallback_history: list[str] = []
@@ -700,8 +843,10 @@ class JsxA2UIAgent:
         browser_failures = 0
         post_browser_repair_failures = 0
         compact_required_information_streak = 0
+        compact_total_failures = 0
         pillbutton_anchor_attempted = False
         static_layout_failure_streak = 0
+        previous_static_layout_fingerprint: tuple[tuple[str, str], ...] | None = None
         static_capacity_failure_streak = 0
         previous_failed_submission: tuple[str, str] | None = None
         previous_layout_fingerprints: frozenset[str] = frozenset()
@@ -721,6 +866,11 @@ class JsxA2UIAgent:
                 "turn_trace": turn_trace,
                 "validation_reports": validation_reports,
                 "plan": plan,
+                "selected_fewshot_keys": list(selected_fewshot_keys),
+                "selected_repair_example_keys": list(selected_repair_example_keys),
+                "prompt_source_files": list(state.prompt_source_files),
+                "repair_prompt_loaded": state.repair_prompt_loaded,
+                "repair_source_files": list(state.repair_source_files),
             })
 
         self._log(
@@ -739,17 +889,15 @@ class JsxA2UIAgent:
             f"{LAYOUT_FALLBACK_SUBMISSION_LIMITS}"
         )
 
-        last_directive_target: str | None = None
+        # Plan instructions are part of the stable system prefix, leaving the
+        # task JSON as the final message of the first request.
+        last_directive_target: str | None = "submit_card_plan"
         consecutive_no_tool_calls = 0
         recovery_message_index: int | None = None
         for turn in range(1, self.max_turns + 1):
-            plan_due = plan is None and state.next_stage_index >= 2
-            if plan_due:
+            if plan is None:
                 expected_target = "submit_card_plan"
                 expected_tool = "submit_card_plan"
-            elif state.expected_stage is not None:
-                expected_target = state.expected_stage.key
-                expected_tool = "read_generation_resource"
             else:
                 expected_target = "submit_card_jsx"
                 expected_tool = "submit_card_jsx"
@@ -770,7 +918,11 @@ class JsxA2UIAgent:
             ]
             request: dict[str, Any] = {
                 "model": self.model,
-                "messages": messages,
+                # Freeze the outbound snapshot.  The conversation list keeps
+                # growing after this await; sharing it by reference makes
+                # request traces (and some compatible SDKs) observe later
+                # repair messages as if they had been present initially.
+                "messages": copy.deepcopy(messages),
                 "tools": expected_tools,
                 "tool_choice": {
                     "type": "function",
@@ -807,17 +959,15 @@ class JsxA2UIAgent:
                         "type": "disabled" if turn_thinking_mode == "disable" else "enabled"
                     }
                 }
-                # Resource reads stay on the broadly compatible auto mode. The final
-                # submission prefers a forced call so the model cannot spend thousands
-                # of visible tokens narrating before submit_card_jsx. If the endpoint
-                # rejects forced tool choice, the request loop falls back once and
-                # caches auto mode for the rest of the batch.
+                # Direct plan/JSX submission prevents the model from spending
+                # thousands of visible tokens narrating before the tool call. If the
+                # endpoint rejects forced tool choice, the request loop falls back
+                # once and caches auto mode for the rest of the batch.
                 forced_support = getattr(
                     self, "_deepseek_forced_tool_choice_supported", None
                 )
                 if (
-                    expected_tool == "read_generation_resource"
-                    or submit_mode == "auto"
+                    submit_mode == "auto"
                     or forced_support is False
                 ):
                     request["tool_choice"] = "auto"
@@ -888,6 +1038,9 @@ class JsxA2UIAgent:
                 setattr(exc, "turn_trace", turn_trace)
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
+                setattr(exc, "prompt_source_files", list(state.prompt_source_files))
+                setattr(exc, "repair_prompt_loaded", state.repair_prompt_loaded)
+                setattr(exc, "repair_source_files", list(state.repair_source_files))
                 setattr(exc, "validation_reports", validation_reports)
                 setattr(exc, "plan", plan)
                 raise exc
@@ -969,6 +1122,9 @@ class JsxA2UIAgent:
                     error.turn_trace = turn_trace
                     error.loaded_resources = list(state.loaded_resources)
                     error.resource_reads = list(state.resource_reads)
+                    error.prompt_source_files = list(state.prompt_source_files)
+                    error.repair_prompt_loaded = state.repair_prompt_loaded
+                    error.repair_source_files = list(state.repair_source_files)
                     error.validation_reports = validation_reports
                     raise error
                 if recovery_message_index is None:
@@ -1076,13 +1232,12 @@ class JsxA2UIAgent:
             )
             browser_failure = False
             if expected_tool == "submit_card_plan" and terminal_error is None:
-                remaining_resources = len(RESOURCE_STAGES) - state.next_stage_index
                 if result.get("ok"):
-                    if turn + remaining_resources + 1 > self.max_turns:
+                    if turn + 1 > self.max_turns:
                         result.update({"ok": False, "phase": "workflow_budget", "retryable": False,
-                                       "error": "Info Plan is valid but required resource/JSX turns do not remain."})
+                                       "error": "Info Plan is valid but a JSX submission turn does not remain."})
                         terminal_error = RuntimeError(
-                            "workflow_budget: Info Plan accepted too late to read remaining resources and submit JSX"
+                            "workflow_budget: Info Plan accepted too late to submit JSX"
                         )
                 else:
                     # Protocol and Info Plan contract errors retry the same
@@ -1091,11 +1246,11 @@ class JsxA2UIAgent:
                     result.update({
                         "retryTarget": "submit_card_plan",
                     })
-                    if turn + remaining_resources + 2 > self.max_turns:
+                    if turn + 2 > self.max_turns:
                         result["retryable"] = False
                         terminal_error = RuntimeError(
                             "workflow_budget: Info Plan could not be validated before "
-                            "the remaining resource/JSX turns; "
+                            "the final JSX turn; "
                             "no JSX was accepted. Last plan error: " + str(result.get("error"))
                         )
             if function.name == "submit_card_jsx" and result.get("ok") and state.pending_submission is not None:
@@ -1112,17 +1267,62 @@ class JsxA2UIAgent:
                             ),
                         )
                     )
-                    if state.active_layout_fallback == "drop_optional_component":
-                        state.pending_submission.semantic_status = "partial"
+                if state.active_layout_fallback == "drop_optional_component":
+                    state.pending_submission.semantic_status = "partial"
                 try:
-                    report = await validate_generated_card(
+                    report = await _validate_submission_with_modes(
                         source=state.pending_submission.source,
                         task=task,
                         component_name=component_name,
                         decision=state.pending_submission.decision,
-                        browser=browser_validation,
-                        browser_only=browser_validation,
+                        python_validation=python_validation,
+                        browser_validation=browser_validation,
                     )
+                    if browser_validation and report.get("ok") and not preservation_errors:
+                        original_submission = state.pending_submission
+                        try:
+                            rewritten, removed_icons = omit_clipped_info_block_icons(
+                                original_submission.semantic_source,
+                                component_name,
+                                report,
+                            )
+                            if rewritten is not None:
+                                rewritten_result = state.submit_card_jsx(
+                                    rewritten,
+                                    decision=original_submission.decision,
+                                    coverage=original_submission.coverage,
+                                    unmet_requirements=original_submission.unmet_requirements,
+                                )
+                                if rewritten_result.get("ok") and state.pending_submission is not None:
+                                    state.pending_submission.semantic_status = original_submission.semantic_status
+                                    improved_report = await validate_generated_card(
+                                        source=state.pending_submission.source,
+                                        task=task,
+                                        component_name=component_name,
+                                        decision=state.pending_submission.decision,
+                                        browser=True,
+                                        browser_only=True,
+                                    )
+                                    if icon_omission_improves_text(report, improved_report, removed_icons):
+                                        report = {
+                                            **improved_report,
+                                            "postprocess": {
+                                                "infoBlockIconsOmitted": list(removed_icons),
+                                            },
+                                        }
+                                        result["automaticInfoBlockIconOmission"] = list(removed_icons)
+                                    else:
+                                        state.pending_submission = original_submission
+                                else:
+                                    state.pending_submission = original_submission
+                        except Exception as exc:
+                            # The optional fallback must never discard a valid
+                            # model submission when its second browser pass fails.
+                            state.pending_submission = original_submission
+                            self._log(
+                                "[JSX Agent] InfoBlock Icon 省略兜底未生效，"
+                                f"保留原候选：{type(exc).__name__}: {exc}"
+                            )
                     if report.get("ok") and not preservation_errors:
                         state.apply_rendered_layout(report.get("renderedLayout"))
                 except Exception as exc:
@@ -1166,15 +1366,20 @@ class JsxA2UIAgent:
                             **result,
                             "pendingBrowserValidation": False,
                             "browserValidation": "passed" if browser_validation else "skipped",
-                            "validationMode": "browser" if browser_validation else "static-only",
+                            "validationMode": "browser" if browser_validation else "python" if python_validation else "static-only",
                         }
                     else:
                         report_errors = []
                         for item in report.get("findings", []):
                             if isinstance(item, dict) and item.get("severity") != "warning":
                                 report_errors.append(item)
+                        semantic_template_errors = (
+                            semantic_runtime_template_findings(report)
+                            if state.pending_submission.semantic_source is not None
+                            else []
+                        )
                         current_layout_fingerprints = browser_layout_fingerprints(report)
-                        has_browser_error = bool(current_layout_fingerprints)
+                        has_browser_error = bool(current_layout_fingerprints) and not semantic_template_errors
                         pillbutton_gap_failure = browser_has_pillbutton_gap_error(report)
                         runtime_errors = []
                         for item in report_errors:
@@ -1188,6 +1393,11 @@ class JsxA2UIAgent:
                                 "not a layout repair: "
                                 + str(runtime_errors)
                             )
+                        if semantic_template_errors:
+                            terminal_error = RuntimeError(
+                                "runtime_template: semantic layout lowering produced an invalid "
+                                "title/content gap; regenerate the runtime template, not model JSX"
+                            )
                         needs_restructure, repeated_findings = (
                             browser_layout_needs_restructure(
                                 report,
@@ -1197,9 +1407,10 @@ class JsxA2UIAgent:
                         requires_pattern_change = browser_layout_requires_pattern_change(report)
                         if current_layout_fingerprints:
                             previous_layout_fingerprints = current_layout_fingerprints
-                            structural_browser_repair = (
-                                structural_browser_repair or needs_restructure
-                            )
+                            structural_browser_repair = needs_restructure
+                        else:
+                            previous_layout_fingerprints = frozenset()
+                            structural_browser_repair = False
                         use_structural_repair = bool(
                             current_layout_fingerprints and structural_browser_repair
                         )
@@ -1209,30 +1420,40 @@ class JsxA2UIAgent:
                             browser_repair_baseline or state.pending_submission
                         )
                         state.reject_pending_submission()
-                        feedback = compact_validation_feedback(
+                        feedback = semantic_template_errors or compact_validation_feedback(
                             report,
                             structural_repair=use_structural_repair,
                         )
                         codes = {str(item.get("code")) for item in feedback}
                         phase = (
+                            "runtime_template"
+                            if semantic_template_errors
+                            else
                             "duplicate_action"
                             if "duplicate-action-control" in codes
-                            else "browser_layout" if has_browser_error else "static_validation"
+                            else "browser_layout" if has_browser_error
+                            else "layout_budget" if python_validation and report.get("mode") == "python"
+                            else "static_validation"
                         )
-                        if has_browser_error:
+                        if semantic_template_errors:
+                            repair_instruction = (
+                                "语义标识已正确降级；请修复程序拥有的 runtime template。"
+                                "不要更换业务组件、Region.variant 或 Card.layout。"
+                            )
+                        elif has_browser_error:
                             repair_instruction = (
                                 "浏览器已确认至少一个业务组件的真实尺寸明显超过直接父槽，"
-                                "当前 Layout Pattern / Sub Pattern 容量不成立。必须更换布局或子布局，"
-                                "为该组件分配更大的连续区域；不要继续通过 flex、justify、gap 或固定"
-                                "尺寸做局部微调，也不得删除必需信息或 Action。"
+                                "当前语义槽容量不成立。先更换受影响 Region.variant；若当前 Card.layout "
+                                "的合法 variant 都无法闭合，再更换 Card.layout。不得删除必需信息或 Action。"
                                 if requires_pattern_change
                                 else
-                                "当前布局需要整体重构，不要继续逐个移动组件。重新分配正文区域，"
-                                "一次解决 findings 中的全部冲突；保留已选信息，"
+                                "当前布局需要区域级修复。先无损合并内容或改用高密度业务组件，再更换"
+                                "受影响 Region.variant，一次解决 findings 中的全部冲突；保留已选信息，"
                                 "但不得删除交互、把动态值改成静态文本或用裁剪隐藏问题。"
                                 if use_structural_repair
                                 else
-                                "根据 findings 一次修复全部明确错误，并再次调用 submit_card_jsx；"
+                                "根据 findings 先在受影响区域内调整组件密度或表达方式，一次修复全部明确错误，"
+                                "并再次调用 submit_card_jsx；"
                                 "保持现有动态绑定和交互，不要通过隐藏或删除必需信息规避问题。"
                             ) + (
                                 " 修复基线使用的 dataIds="
@@ -1256,6 +1477,9 @@ class JsxA2UIAgent:
                             "ok": False,
                             "phase": phase,
                             "error": (
+                                "语义布局的程序展开模板未满足标题间距合同"
+                                if semantic_template_errors
+                                else
                                 "JSX 未通过真实 React 浏览器校验"
                                 if has_browser_error
                                 else "JSX 未通过静态声明式校验"
@@ -1263,14 +1487,40 @@ class JsxA2UIAgent:
                             "findings": feedback,
                             "instruction": repair_instruction,
                         }
-                        if runtime_errors:
+                        if semantic_template_errors:
+                            result.update(
+                                phase="runtime_template",
+                                retryable=False,
+                                semanticTarget="runtime-template:title-content-gap",
+                            )
+                        elif runtime_errors:
                             result.update(phase="validation_runtime", retryable=False,
                                           instruction="渲染器或资源执行失败；先排查环境、资源和运行时堆栈，不自动进行布局重生成。")
-                        if has_browser_error and not runtime_errors:
+                        if has_browser_error and not runtime_errors and not semantic_template_errors:
                             browser_failure = True
                             browser_failures += 1
+                            feedback_scopes = {
+                                str(item.get("repairScope") or "")
+                                for item in feedback
+                                if isinstance(item, dict)
+                            }
+                            repair_scope = (
+                                "parent-layout"
+                                if requires_pattern_change or "parent-layout" in feedback_scopes
+                                else "sublayout"
+                                if use_structural_repair or "sublayout" in feedback_scopes
+                                else "component"
+                            )
                             result.update(
-                                repairStrategy="structural" if use_structural_repair else "targeted",
+                                repairStrategy=(
+                                    "structural" if repair_scope != "component" else "targeted"
+                                ),
+                                repairScope=repair_scope,
+                                semanticTarget={
+                                    "component": "component-density",
+                                    "sublayout": "Region.variant",
+                                    "parent-layout": "Card.layout",
+                                }[repair_scope],
                                 browserFailures=browser_failures,
                                 remainingRepairs=max(0, self.max_validation_repairs - browser_failures),
                             )
@@ -1285,6 +1535,8 @@ class JsxA2UIAgent:
                                 pillbutton_anchor_attempted = True
                                 result.update(
                                     repairStrategy="circle_button_anchor",
+                                    repairScope="sublayout",
+                                    semanticTarget="Region.variant",
                                     anchorLayoutAttempted=True,
                                     instruction=_pillbutton_anchor_repair_instruction(),
                                 )
@@ -1304,7 +1556,14 @@ class JsxA2UIAgent:
                 if no_progress:
                     result['noProgress'] = True
                 if _is_static_layout_failure(result):
-                    static_layout_failure_streak += 1
+                    (
+                        static_layout_failure_streak,
+                        previous_static_layout_fingerprint,
+                    ) = _advance_static_layout_failure_streak(
+                        result,
+                        previous_static_layout_fingerprint,
+                        static_layout_failure_streak,
+                    )
                     result = _static_layout_repair_feedback(result, static_layout_failure_streak)
                     if any(item.get("code") == "layout-structure" for item in result.get("findings", [])):
                         result["instruction"] = (
@@ -1313,9 +1572,12 @@ class JsxA2UIAgent:
                         )
                 else:
                     static_layout_failure_streak = 0
+                    previous_static_layout_fingerprint = None
 
                 if _is_static_capacity_failure(result):
-                    static_capacity_failure_streak += 1
+                    # A different capacity finding is a new repair target, not
+                    # evidence that the previous repair strategy failed again.
+                    static_capacity_failure_streak = static_layout_failure_streak
                     result["staticCapacityFailures"] = static_capacity_failure_streak
                 else:
                     static_capacity_failure_streak = 0
@@ -1338,6 +1600,9 @@ class JsxA2UIAgent:
 
                 active_fallback = state.active_layout_fallback
                 if active_fallback == "compact_component":
+                    compact_total_failures += 1
+                    result["compactTotalFailures"] = compact_total_failures
+                if active_fallback == "compact_component":
                     if (
                         _is_required_information_failure(result)
                         and not _is_missing_required_action_failure(result)
@@ -1355,19 +1620,26 @@ class JsxA2UIAgent:
                     result.update(fallbackStage=active_fallback, fallbackAttempt=attempt,
                                   fallbackAttemptLimit=limit, fallbackRemainingAttempts=max(0, limit - attempt))
                     fallback_exhausted = attempt >= limit
-                compact_repair_exhausted = active_fallback == "compact_component" and (
+                compact_failure_limit_reached = (
                     fallback_exhausted
                     or compact_required_information_streak >= COMPACT_REQUIRED_INFORMATION_LIMIT
+                    or compact_total_failures >= COMPACT_TOTAL_FAILURE_LIMIT
+                )
+                compact_repair_exhausted = (
+                    active_fallback == "compact_component" and compact_failure_limit_reached
                 )
                 if compact_repair_exhausted and not _is_missing_required_action_failure(result):
                     state.active_layout_fallback = "drop_optional_component"
                     compact_required_information_streak = 0
+                    compact_total_failures = 0
                     previous_failed_submission = None
                     fallback_history.append("drop_optional_component")
                     result.update(
                         nextFallbackStrategy="drop_optional_component",
-                        instruction=str(result.get("instruction", "")) + "\n"
-                        + build_layout_fallback_prompt("drop_optional_component"),
+                        instruction=(
+                            "上一版 findings 见上；现已切换至 drop 兜底，按本阶段规则处理：\n"
+                            + build_layout_fallback_prompt("drop_optional_component")
+                        ),
                     )
                     fallback_exhausted = False
                 elif (
@@ -1375,12 +1647,13 @@ class JsxA2UIAgent:
                     and not fallback_exhausted
                     and consumes_fallback_attempt
                 ):
-                    result["instruction"] = str(result.get("instruction", "")) + (
-                        "\n继续重新分配剩余内容的空间；不得再删除第二个业务显示组件或任何 Action。"
+                    result["instruction"] = (
+                        "按上方 findings 修复剩余内容和语义槽位；不得再删除第二个业务显示组件或任何 Action，"
+                        "不得静态化动态值。"
                     )
                 if fallback_exhausted:
                     terminal_error = RuntimeError(
-                        "bounded fallback repairs exhausted; required facts were preserved. "
+                        "bounded fallback repairs exhausted. "
                         + str(result.get("error"))
                     )
                 elif (
@@ -1481,26 +1754,98 @@ class JsxA2UIAgent:
                 )
                 result["instruction"] = (
                     str(result.get("instruction", ""))
-                    + "\n2x4 修复必须继续提交 Card.layout + Region；findings 的 Stack 是程序展开结果，"
+                    + f"\n{state.expected_card_size} 修复必须继续提交 Card.layout + Region；findings 的 Stack 是程序展开结果，"
                     "不得手改外壳的 flex、宽高、对齐或间距，也不得复制展开结果或在 Region 内提交 Stack/Grid。"
-                    "先调整内容组件或 Region.variant；多个紧凑占比使用 NumericRatioStack。"
+                    "先调整内容组件或 Region.variant；多个紧凑占比使用当前尺寸组件规范允许的组合组件。"
                     "新增或恢复组件时复核内容关系：核心与辅助需上下分离时使用双内容槽。"
                     + "\n" + repair_scope
-                    + "\n不得因更换布局删除 Info Plan 冻结的事实或 Action。"
-                    "保留各业务组与其 Action 的归属。"
+                    + (
+                        "\n当前是 drop_optional_component：仅可依专用规则省略一个非 Action 业务显示组件；"
+                        "不得删除 Action 或静态化动态值；其余信息保持绑定。"
+                        if state.active_layout_fallback == "drop_optional_component"
+                        else "\n不得因更换布局删除 Info Plan 冻结的事实或 Action；"
+                        "保持必需事实、绑定和明确的 Action 作用范围。"
+                    )
+                    + "信息分区是软引导，findings 要求重新组织时允许调整。"
                 )
             messages.append(tool_result_message(first.id, result))
-            if function.name == "submit_card_plan" and result.get("ok") and plan is not None:
-                messages.append({"role": "user", "content": build_plan_context(plan)})
             for extra in calls[1:]:
                 messages.append(tool_result_message(extra.id, {"ok": False, "error": "每轮只能调用一个工具"}))
+            if function.name == "submit_card_plan" and result.get("ok") and plan is not None:
+                messages.append({"role": "user", "content": build_plan_context(plan)})
+                if getattr(state.resources, "include_few_shot", False):
+                    examples = select_generation_examples(
+                        plan, card_size=state.expected_card_size, limit=4,
+                    )
+                    if examples:
+                        selected_fewshot_keys.extend(example.key for example in examples)
+                        state.resource_reads.append({
+                            "resource": "retrieved_generation_examples",
+                            "case_keys": list(selected_fewshot_keys),
+                            "source_files": list(dict.fromkeys(
+                                str(example.source.resolve()) for example in examples
+                            )),
+                        })
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "<retrieved_generation_examples>\n"
+                                "以下案例仅展示相近 Data/Action 数量如何在合法槽位中完整放下。"
+                                "它们的业务值、ID、布局和组件不是本任务答案；以已接受的 Info Plan、当前输入及正式合同为准。\n"
+                                + "\n\n".join(example.text for example in examples)
+                                + "\n</retrieved_generation_examples>"
+                            ),
+                        })
             if repairable_failure and terminal_error is None:
+                if not state.repair_prompt_loaded:
+                    repair_part = state.resources.repair(state.expected_card_size)
+                    state.mark_repair_prompt_loaded(repair_part)
+                    if repair_part.content:
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "<repair_contract>\n"
+                                + repair_part.content
+                                + "\n</repair_contract>"
+                            ),
+                        })
+                if (
+                    getattr(state.resources, "include_few_shot", False)
+                    and plan is not None
+                    and len(selected_repair_example_keys) < 2
+                ):
+                    example = select_repair_example(
+                        result, plan=plan, submitted_jsx=submitted_jsx,
+                        used_keys=set(selected_repair_example_keys),
+                        card_size=state.expected_card_size,
+                    )
+                    if example is not None:
+                        selected_repair_example_keys.append(example.key)
+                        state.repair_source_files = list(dict.fromkeys([
+                            *state.repair_source_files, str(example.source.resolve()),
+                        ]))
+                        state.resource_reads.append({
+                            "resource": "retrieved_repair_example",
+                            "case_keys": [example.key],
+                            "source_files": [str(example.source.resolve())],
+                        })
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "<retrieved_repair_example>\n"
+                                "仅参考此例从失败版到修复版的空间调整方法。"
+                                "必须针对当前 findings 保留本任务必要数据、绑定和 Action；"
+                                "不得复制示例值、ID 或与当前任务不符的布局。\n"
+                                + example.text + "\n</retrieved_repair_example>"
+                            ),
+                        })
                 messages.append({
                     "role": "user",
                     "content": (
                         "上一次提交未通过。请根据上一条工具结果中的 findings 和修复要求，"
                         "直接调用 submit_card_jsx，提交修复后的完整 JSX 和必需参数。"
-                        "保留要求的数据绑定和动作，不要输出普通文本、分析、解释或 Markdown。"
+                        "除明确的 drop 阶段外保留要求的数据绑定，始终保留动作；"
+                        "不要输出普通文本、分析、解释或 Markdown。"
                     ),
                 })
             level = _tool_result_log_level(result)
@@ -1521,14 +1866,6 @@ class JsxA2UIAgent:
                 for finding_line in _tool_result_log_findings(result):
                     self._log(finding_line)
             trace_tool_result = _tool_result_summary(result)
-            if (
-                function.name == "read_generation_resource"
-                and result.get("ok")
-                and state.resource_reads
-            ):
-                trace_tool_result["source_files"] = list(
-                    state.resource_reads[-1]["source_files"]
-                )
             turn_record.update({
                 "status": "tool_completed" if result.get("ok") else "tool_failed",
                 "tool": str(function.name),
@@ -1548,6 +1885,9 @@ class JsxA2UIAgent:
                 setattr(terminal_error, "turn_trace", turn_trace)
                 setattr(terminal_error, "loaded_resources", list(state.loaded_resources))
                 setattr(terminal_error, "resource_reads", list(state.resource_reads))
+                setattr(terminal_error, "prompt_source_files", list(state.prompt_source_files))
+                setattr(terminal_error, "repair_prompt_loaded", state.repair_prompt_loaded)
+                setattr(terminal_error, "repair_source_files", list(state.repair_source_files))
                 setattr(terminal_error, "validation_reports", validation_reports)
                 setattr(terminal_error, "plan", plan)
                 raise terminal_error
@@ -1574,10 +1914,15 @@ class JsxA2UIAgent:
                     "warnings": state.submission.warnings,
                     "loaded_resources": state.loaded_resources,
                     "resource_reads": state.resource_reads,
+                    "prompt_source_files": state.prompt_source_files,
+                    "repair_prompt_loaded": state.repair_prompt_loaded,
+                    "repair_source_files": state.repair_source_files,
                     "model": self.model,
                     "provider": self.provider,
                     "thinking_mode": self.thinking_mode,
                     "plan": plan,
+                    "selected_fewshot_keys": selected_fewshot_keys,
+                    "selected_repair_example_keys": selected_repair_example_keys,
                     "turns": turn,
                     "failed_submissions": failed_submissions,
                     "repair_calls": repair_calls,
@@ -1590,6 +1935,7 @@ class JsxA2UIAgent:
                     "turn_trace": turn_trace,
                     "validation_reports": validation_reports,
                     "browser_validation": "enabled" if browser_validation else "skipped",
+                    "python_validation": "enabled" if python_validation else "disabled",
                     "layout_budget_validation": (
                         "enabled" if layout_budget_validation else "disabled"
                     ),
@@ -1601,16 +1947,21 @@ class JsxA2UIAgent:
                         if not validation_enabled
                         else "browser"
                         if browser_validation
+                        else "python"
+                        if python_validation
                         else "static-only"
                     ),
                 }
 
         error = RuntimeError(
-            f"JSX Agent 在 {self.max_turns} 轮内未完成；已读取 {state.loaded_resources}"
+            f"JSX Agent 在 {self.max_turns} 轮内未完成；已注入 {state.loaded_resources}"
         )
         setattr(error, "turn_trace", turn_trace)
         setattr(error, "loaded_resources", list(state.loaded_resources))
         setattr(error, "resource_reads", list(state.resource_reads))
+        setattr(error, "prompt_source_files", list(state.prompt_source_files))
+        setattr(error, "repair_prompt_loaded", state.repair_prompt_loaded)
+        setattr(error, "repair_source_files", list(state.repair_source_files))
         setattr(error, "validation_reports", validation_reports)
         setattr(error, "plan", plan)
         raise error

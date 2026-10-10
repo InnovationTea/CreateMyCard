@@ -664,7 +664,6 @@ class WidgetGenerationService:
                     design_system_prompt,
                     policy.source_format,
                     previous_design_token=previous_design_token,
-                    extrainfo=request.extrainfo,
                     defer_compact_examples=(
                         policy.operation == "generateWidgetCardCompactDsl"
                         and not settings.enable_a2ui_model_mock
@@ -678,7 +677,6 @@ class WidgetGenerationService:
                     previous_genui=(
                         source_load_result.artifact.genui if source_load_result else None
                     ),
-                    extrainfo=request.extrainfo,
                 )
             prompt_log_summary = build_prompt_log_summary(
                 prompt,
@@ -976,7 +974,6 @@ class WidgetGenerationService:
                     design_system_prompt,
                     policy.source_format,
                     previous_design_token=previous_design_token,
-                    extrainfo=request.extrainfo,
                     compact_plan=accepted_compact_plan,
                 )
                 trace_record(

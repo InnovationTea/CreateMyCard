@@ -1,10 +1,12 @@
-"""Build Theme-owned deterministic 2x2 fusion-ball backgrounds."""
+"""Build Theme-owned deterministic 2x2/2x4 fusion-ball backgrounds."""
 
 from __future__ import annotations
 
 from services.fusion_ball_expander import (
+    FUSION_BALL_SIZES,
     FusionBallPalette,
     build_fusion_ball_content_id,
+    fusion_ball_layout,
     fusion_ball_relative_size,
 )
 from services.template_generation.engine.tersel_converter import Nested2Node
@@ -15,53 +17,61 @@ _TEMPLATE_ROOT_ID = "template_root"
 _SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 
 
-def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
-    """Return the expanded fusion-ball Tersel background tree for a 160vp card."""
-    large_ball = _ball(
-        "fusionBallLarge",
-        210,
-        palette.large,
-        parent_width=180,
-        parent_height=44,
-    )
-    medium_ball = _ball(
-        "fusionBallMedium",
-        160,
-        palette.medium,
-        parent_width=80,
-        parent_height=220,
-    )
-    small_ball = _ball(
-        "fusionBallSmall",
-        100,
-        palette.small,
-        parent_width=195,
-        parent_height=190,
-    )
+def build_fusion_ball_background(
+    palette: FusionBallPalette,
+    *,
+    size: str = "2x2",
+) -> Nested2Node:
+    """Return the expanded fusion-ball Tersel background tree for one card size."""
+    (canvas_width, canvas_height), slots = fusion_ball_layout(size)
+    ball_colors = {
+        "fusionBallLarge": palette.large,
+        "fusionBallMedium": palette.medium,
+        "fusionBallSmall": palette.small,
+    }
+    slot_nodes: list[Nested2Node] = []
+    for slot_id, ball_id, slot_width, slot_height, alignment, diameter in slots:
+        ball_color = ball_colors.get(ball_id)
+        if ball_color is None:
+            raise KeyError(f"Unknown fusion-ball component id: {ball_id}")
+        ball = _ball(
+            ball_id,
+            diameter,
+            ball_color,
+            parent_width=slot_width,
+            parent_height=slot_height,
+        )
+        slot_nodes.append(
+            _ball_slot(
+                slot_id,
+                fusion_ball_relative_size(slot_width, canvas_width),
+                fusion_ball_relative_size(slot_height, canvas_height),
+                alignment,
+                ball,
+            ),
+        )
     return Nested2Node(
         "Stack",
         (
             "overlay",
             {
                 "_id": "fusionBallBackground",
-                "width": fusion_ball_relative_size(160),
-                "height": fusion_ball_relative_size(160),
+                "width": "100%",
+                "height": "100%",
                 "borderRadius": 18,
                 "alignContent": "topStart",
                 "clip": True,
             },
         ),
         (
-            _ball_slot("fusionBallLargeSlot", 180, 44, "center", large_ball),
-            _ball_slot("fusionBallMediumSlot", 80, 220, "bottom", medium_ball),
-            _ball_slot("fusionBallSmallSlot", 195, 190, "bottomEnd", small_ball),
+            *slot_nodes,
             Nested2Node(
                 "Divider",
                 (
                     {
                         "_id": "fusionBallGlassLayer",
-                        "width": fusion_ball_relative_size(160),
-                        "height": fusion_ball_relative_size(160),
+                        "width": "100%",
+                        "height": "100%",
                         "strokeWidth": 0,
                         "color": "#00000000",
                         "backgroundColor": "#0DFFFFFF",
@@ -80,8 +90,8 @@ def apply_fusion_ball_background(
     size: str,
     palette: FusionBallPalette | None,
 ) -> Nested2Node:
-    """Expand an eligible 2x2 card into standard Tersel components."""
-    if size != "2x2" or palette is None:
+    """Expand an eligible 2x2/2x4 card into standard Tersel components."""
+    if size not in FUSION_BALL_SIZES or palette is None:
         return card
     _validate_root_card(card)
     skeleton = _content_skeleton(card)
@@ -119,7 +129,7 @@ def apply_fusion_ball_background(
     return Nested2Node(
         "Stack",
         ("card", root_options),
-        (build_fusion_ball_background(palette), foreground),
+        (build_fusion_ball_background(palette, size=size), foreground),
     )
 
 
@@ -128,8 +138,8 @@ def apply_content_safe_inset(
     *,
     size: str,
 ) -> Nested2Node:
-    """Move the safe inset off a non-fusion 2x2 skeleton and mark it for overflow."""
-    if size != "2x2":
+    """Move the safe inset off a supported template skeleton and mark it for overflow."""
+    if size not in {"2x2", "2x4"}:
         return card
     _validate_root_card(card)
     if len(card.children) != 1:
@@ -188,8 +198,8 @@ def _ball(
 
 def _ball_slot(
     component_id: str,
-    width: int,
-    height: int,
+    width: str,
+    height: str,
     alignment: str,
     ball: Nested2Node,
 ) -> Nested2Node:
@@ -199,8 +209,8 @@ def _ball_slot(
             "overlay",
             {
                 "_id": component_id,
-                "width": fusion_ball_relative_size(width),
-                "height": fusion_ball_relative_size(height),
+                "width": width,
+                "height": height,
                 "alignContent": alignment,
             },
         ),

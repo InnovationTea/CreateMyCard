@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux may contain only one 20fp-or-larger primary focus in the left zone. Keep peer metrics as ordinary auxiliary content instead of manufacturing a second hero."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1bbf48b9a67930641967114a4fb14a2e609801c6437536546a98ae74c6a43fa6",
+    "sample_task_spec.json": "4e92578b640f4b38b7659a7366554534df60aabd3a30991e982a0fcc6acf6b1e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

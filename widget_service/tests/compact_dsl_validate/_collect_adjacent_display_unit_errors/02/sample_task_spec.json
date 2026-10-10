@@ -1,0 +1,30 @@
+{
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "openMusic",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "steps": {
+          "type": "integer"
+        },
+        "calorieText": {
+          "type": "string"
+        },
+        "heartRateText": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/base/media/music_fill.svg",
+      "description": "音乐入口"
+    }
+  ]
+}

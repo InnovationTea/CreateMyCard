@@ -1,0 +1,9 @@
+{
+  "userQuery": "生成静态天气入口卡",
+  "size": "2x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": []
+}

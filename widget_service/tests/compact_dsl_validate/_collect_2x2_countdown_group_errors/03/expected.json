@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 V01 countdown meta_row may contain only the unit and the optional time on the same line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "cc58135b083384463204fefccd39e21fa82163dd7557dfec05bbb71533537eb7",
+    "sample_task_spec.json": "782c40c23dbf1bc1a32eb611d5f2636c811f623f969b172ec69b479a0cd5bd56",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

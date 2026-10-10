@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 phone-and-earphone W1 focus must use a compact ring Progress for numeric phone battery percentage; do not use a horizontal linear bar. If only formatted battery text exists, remove Progress and display that complete text instead."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "2b949eb2d1ffb84e96fa155249a3a7b89708a52cd0a42960d4848a80dc0f64b5",
+    "sample_task_spec.json": "d7ac36fb7002e094d0eb6c1463bc1185d0cf6f34f9f9b6b518d447ab6ca2cc17",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

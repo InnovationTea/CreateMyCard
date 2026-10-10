@@ -1,0 +1,63 @@
+#Template BluetoothDeviceOverviewTripleBatteryWideHalf@1(props: { deviceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+data = { battery: $path("/batteryLevel"), left: $path("/leftBatteryLevel"), right: $path("/rightBatteryLevel"), connected: $optionalPath("/isConnected") }
+Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 8},
+  Row({"layoutWeight": 1, "height": "matchParent", "padding": 8, "itemMargin": 12,
+    "alignItems": "center", "borderRadius": 16,
+    "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    #if props.deviceIcon
+      Image(props.deviceIcon, {"width": 24, "height": 24, "flexShrink": 0,
+        "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #endif
+    Column({"layoutWeight": 1, "itemMargin": 2},
+      Text(Expr(data.battery + '%'), {"height": 16, "fontSize": 12, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text("耳机仓", {"height": 14, "fontSize": 10, "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    )
+  ),
+  Row({"layoutWeight": 1, "height": "matchParent", "padding": 8, "itemMargin": 12,
+    "alignItems": "center", "borderRadius": 16,
+    "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    #if props.leftEarIcon
+      Image(props.leftEarIcon, {"width": 24, "height": 24, "flexShrink": 0,
+        "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
+    Column({"layoutWeight": 1, "itemMargin": 2},
+      Text(Expr(data.left + '%'), {"height": 16, "fontSize": 12, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text("左耳机", {"height": 14, "fontSize": 10, "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    )
+  ),
+  Row({"layoutWeight": 1, "height": "matchParent", "padding": 8, "itemMargin": 12,
+    "alignItems": "center", "borderRadius": 16,
+    "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    #if props.rightEarIcon
+      Image(props.rightEarIcon, {"width": 24, "height": 24, "flexShrink": 0,
+        "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
+    Column({"layoutWeight": 1, "itemMargin": 2},
+      Text(Expr(data.right + '%'), {"height": 16, "fontSize": 12, "fontWeight": 700,
+        "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text("右耳机", {"height": 14, "fontSize": 10, "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    )
+  )
+)
+#End

@@ -1,0 +1,38 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "a": {
+          "type": "integer",
+          "sampleValue": 5000
+        },
+        "b": {
+          "type": "string",
+          "sampleValue": "距离 3km"
+        },
+        "c": {
+          "type": "string",
+          "sampleValue": "热量 120kcal"
+        },
+        "d": {
+          "type": "string",
+          "sampleValue": "今日"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

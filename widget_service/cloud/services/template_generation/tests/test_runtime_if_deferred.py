@@ -7,7 +7,11 @@ from typing import Any
 
 import pytest
 
-from services.card_validation import validate_card, validate_compact_dsl
+from services.card_validation import (
+    CompactDslValidationError,
+    validate_card,
+    validate_compact_dsl,
+)
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
@@ -148,12 +152,14 @@ def test_public_compact_pipeline_rejects_deferred_runtime_if(component: str) -> 
         size="2x2", card_spec={"dataBindings": []}, task_spec=_task(),
         protocol_profile=A2UIProtocolRegistry().get_profile(),
     )
-    # 公共转换器保持基线职责：数据契约合法，但最终 A2UI 校验拒绝未知组件。
-    validate_compact_dsl(source, task_spec=context.task_spec, card_spec=context.card_spec)
+    # 严格单树解析后，仅由 childrenIf 挂载的子件在公共校验入口即被拒绝
+    # （紧凑 DSL 语法只沿 children 建树）。拒绝时机比旧契约（数据契约放行、
+    # 最终 A2UI 校验报 DSL_COMPONENT_UNKNOWN）更早，但“公共链路拒绝暂缓
+    # 运行时 IF”的职责不变。
+    with pytest.raises(CompactDslValidationError):
+        validate_compact_dsl(source, task_spec=context.task_spec, card_spec=context.card_spec)
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
-    assert not result.errors
-    report = validate_card(dsl_text=result.standard_dsl)
-    assert any(item.code == "DSL_COMPONENT_UNKNOWN" for item in report.diagnostics)
+    assert result.errors
 
 
 def test_public_a2ui_validator_rejects_deferred_runtime_if() -> None:
@@ -178,7 +184,10 @@ def test_template_source_adapter_rejects_deferred_runtime_if() -> None:
 
 @pytest.mark.parametrize("sample", (0, 1, None, ""))
 def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
-    definition = _definition('Text(Expr(data.eventCont > 0 ? "有日程" : "暂无日程"))')
+    # 文案带「今天」时间范围标记：日历 eventCount 语义规则（必须同时给出时间
+    # 范围与日程含义）由 #422 收紧后生效，样例文案需符合产品规则，
+    # 本测试的主体是 Expr 条件表达式仍走通公共处理链。
+    definition = _definition('Text(Expr(data.eventCont > 0 ? "今天有日程" : "今天暂无日程"))')
     root = _instantiate_blueprint(
         definition.variants[0].root, {}, {"eventCont": "${data.calendar.eventCount}"},
     )
@@ -196,6 +205,9 @@ def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
     )
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     assert not result.errors
-    assert "{{ ${/data/calendar/eventCount} > 0 ? '有日程' : '暂无日程' }}" in result.standard_dsl
+    assert (
+        "{{ ${/data/calendar/eventCount} > 0 ? '今天有日程' : '今天暂无日程' }}"
+        in result.standard_dsl
+    )
     report = validate_card(dsl_text=result.standard_dsl, cardspec=context.card_spec)
     assert not [item for item in report.diagnostics if item.severity == "error"]

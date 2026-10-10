@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component scoreLabel: smaller Text in mixed-size Row progressText must use padding.bottom 2 to compensate the visible glyph baseline after Row alignItems \"bottom\" aligns the Text boxes."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "49a51cbacafbead6e92a264255accedd5786c4eb9203d769b387b18f8c7d78d1",
+    "sample_task_spec.json": "0abf91df25a4ade957140e12cc7b6dc1ab6ca2bea306253e57f33179e0c90ee1",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

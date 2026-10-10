@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 must not duplicate the same action across both backboards. Keep each requested candidate action exactly once."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "fab625f967703b0c4000107dbc7bd0f0e1c9c1ec12b5056d33da7585327bb1f7",
+    "sample_task_spec.json": "e4c44a17745244f251a43bb010771bd3b140991a7462861ba4641db0c01fb01b",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

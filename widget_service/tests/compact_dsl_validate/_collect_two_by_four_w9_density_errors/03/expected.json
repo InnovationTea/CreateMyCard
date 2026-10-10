@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 backboard phoneZone with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line after its business title. Merge auxiliary fields with ' | '."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5eb397d432c3a91f127b2772584179d08d1b27fa89e63949cd3daf8059edc5c4",
+    "sample_task_spec.json": "2e522c872bd3a709972023d9f9871086bfd70c45a997dd774c69743b006e6b8c",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

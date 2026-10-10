@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 full-width action cta must be a direct child of the matchParent foreground Column; do not nest it inside a fixed-height main/body container where content can overlap."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5c6be01f6d603ed785481e1c1e6a90015030b1b4faeb177a9f4b472ec49b151e",
+    "sample_task_spec.json": "1660a9dcbfb261ad53a55ffeee3af9a3503a748fc41a7bdeb60110ec0f52574e",
+    "sample_card_spec.json": "aff56f20553ea10833d1552aa4ac7334626a944702fb92777f67f9cf7f18555d"
+  }
+}

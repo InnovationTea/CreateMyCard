@@ -7,7 +7,7 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 
 ## 1. 组件总览
 
-> 阅读约定：每个组件的“组件属性”就是生成代码时可使用的真实显示 Props；“空间占位”只记录与 runtime 对齐、且会影响布局容量判断的外部几何；字体、颜色、背景、圆角、描边、内部 Icon 尺寸与交互态等无需模型控制的组件内部样式不在生成文档中重复。“布局约束”记录组件与 `Card`、`Stack`、`Grid` 的组合方式。设计必选与 runtime 容错会在同一张属性表中分别说明。设计构成字段不一定是 JSX Props。每个组件允许绑定的数据字段和动作均在本文件对应组件章节内说明；所有 `icon` 和数组项中的 Icon 都必须逐字使用当前输入 `assetCandidates[].src` 中已有的模型侧值，并按候选项 `description` 选择语义匹配的资源。默认媒体资源只写 `icon_weather1.svg` 这样的文件名，由 runtime 和后续转换层补全 `resources/base/media/`；非默认目录资源保留输入给出的路径。示例路径不是内建资源，也不能在其他任务中直接复用；当前任务没有同名候选时不得使用示例资源。可选 Icon 没有候选时省略；Icon 必选的组件没有语义匹配候选时不要选用。
+> 阅读约定：每个组件的“组件属性”就是生成代码时可使用的真实显示 Props；“空间占位”只记录与 runtime 对齐、且会影响布局容量判断的外部几何；字体、颜色、背景、圆角、描边、内部 Icon 尺寸与交互态等无需模型控制的组件内部样式不在生成文档中重复。“布局约束”记录组件可进入的 `Card.layout` 与 `Region.variant`。设计必选与 runtime 容错会在同一张属性表中分别说明。设计构成字段不一定是 JSX Props。每个组件允许绑定的数据字段和动作均在本文件对应组件章节内说明；所有 `icon` 和数组项中的 Icon 都必须逐字使用当前输入 `assetCandidates[].src` 中已有的模型侧值，并按候选项 `description` 选择语义匹配的资源。默认媒体资源只写 `icon_weather1.svg` 这样的文件名，由 runtime 和后续转换层补全 `resources/base/media/`；非默认目录资源保留输入给出的路径。示例路径不是内建资源，也不能在其他任务中直接复用；当前任务没有同名候选时不得使用示例资源。可选 Icon 没有候选时省略；Icon 必选的组件没有语义匹配候选时不要选用。
 
 ### 数据与动作引用共同约定
 
@@ -29,15 +29,44 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 
 本文件只包含两种 Card 尺寸都可使用的组件。Runner 会根据当前任务的 `Card.size`，继续拼接对应尺寸的专属组件文档。
 
-`SingleLineTitle`、`DoubleLineTitle`、`Badge`、`EmphasizedData`、`EmphasisText`、`SecondaryBody`、`DataDisplay`、`InfoBlock`、`TableText`、`ProgressLine2`、`ProgressCircleSingle`、`ProgressCircle`、`NumericRatio`、`EventCard`、`H_BarChart`、`PillButton`
+`SingleLineTitle`、`DoubleLineTitle`、`Badge`、`EmphasizedData`、`EmphasisText`、`SecondaryBody`、`DataDisplay`、`InfoBlock`、`TableText`、`ProgressLine2`、`ProgressCircleSingle`、`ProgressCircle`、`NumericRatio`、`NumericRatioStack`、`EventCard`、`H_BarChart`、`PillButton`
 
 ### 1.2 动态数据与显式单位
 
-- 原始数据及其类型不变。有独立 `unit` 槽的组件（EmphasizedData、InfoBlock、NumericRatio、ProgressLine2 / ProgressLine2WithData），绑定无单位数字时，最终 JSX 使用原始数值加显式静态 `unit`，例如 `value={80} unit="%" dataIds={{value:"earphone.batteryLevel"}}`。
-- 纯数字字符串如 `"80.00"` 也可配合显式单位，但必须保留字符串及其精度，不能擅自改为数字 `80`。完整带单位文本如 `"80%"`、`"4.60 公里"`、`"7小时1分"` 原样绑定，不再添加静态单位，也不拆成写死的业务数据。
-- 单位依据当前输入的明确说明填写，不能根据字段名称猜测。显式 `unit=""` 关闭对裸数字的额外单位，独立 `dataIds.unit` 必须保留。单位冲突不得冒充单位换算。
-- 没有单位槽的普通文本属性继续使用绑定层兼容格式化；不得给 SecondaryBody.items 等不支持单位属性的结构添加 `unit`。进度计算参数始终保留原值，百分比组件既有的取整与默认百分比语义不变。
-- 动态完整文本仍由组件按原有设计拆为数字和小单位，生成代码不能把当前样例中的数字或单位拆成写死的业务数据。
+1. 只有表达完成度、达成率、使用率、剩余占比或其他真实比例关系的百分比，才按进度处理。湿度、概率等普通百分比属性如果只是辅助事实，应作为辅助文本，不得仅因数值带 `%` 就选择进度组件。同一对象中的 `percent`、`current`、`total` 与可用量、剩余量或当前量共同构成一个进度关系，不拆成多个独立数据性质；`percent` 优先驱动进度，缺少时才使用 `current ÷ total × 100`。当真实比例只提供格式化百分比字符串（例如 `"68%"`、`"43.75%"`）时，该字段仍视为可驱动进度的 percent；字符串必须完整匹配“数字 + `%`”格式，不得从“剩余68%”“约68%”等混合文案中猜测数值。单个此类占比不得仅因输入类型为 string 退化为 `EmphasizedData`。手机电量、耳机仓电量等单个设备的剩余电量表示“当前余量状态”，不是朝目标推进的完成进度；默认使用 `ProgressCircleSingle`，当它与另一组“主文本 + 副文本 + 尾部视觉”的紧凑信息共同构成两个固定高度信息块时，也可使用 `InfoBlock` 的 `visual.type="progressCircle"` 表达。即使输入同时提供 `current`、`total=100` 或格式化百分比，也不得仅为了突出数值改用 `ProgressLine2`。`total` 默认只用于计算或提供上下文，不直接显示。
+2. 丰富信息中的非核心数字属性可以作为辅助文本组织，不因包含数字就单独提升为核心单值；多个次要字段统一使用“｜”分隔，不使用“·”。
+
+## 单组件候选总表
+
+### B2. 从信息语义选择具体组件
+
+先判断信息承担的角色，再判断同类数据的数量，最后判断是否需要操作入口。下表中的“字段结构示例”描述输入信息的语义结构，不是可以直接复制到 JSX 的 Props；选定组件后，必须再按照本 Skill 中对应组件章节将字段映射为真实 JSX Props。
+
+| 数据性质 / 信息形态 | 字段结构示例 | 选择组件 | 选择条件 | 不应选择的情况 |
+|---|---|---|---|---|
+| 单层标题 | `{title}` | `SingleLineTitle` | 只有一行纯文本标题 | 标题还需要表达连接状态、地点等第二层信息时不用；不向该组件添加 Icon |
+| 标题 + 次要信息 | `{title, secondaryInfo}` | `DoubleLineTitle` | `title` 与 `secondaryInfo` 均有独立语义，例如设备名称 + 连接状态 | 不要把普通说明文字放进 `secondaryInfo`；严禁同时出现`SingleLineTitle`与`DoubleLineTitle` |
+| 标题中的数量 | `{title, count: number \| formattedNumber}` | `Badge` | 未读数、总数、数量等与标题绑定的数值；字符串只用于 `99+` 等格式化数值 | 不用于状态、类别、普通标签或说明文字 |
+| 纯单值 | `{label?, value, unit? / supportingText?}` | `DataDisplay` / `EmphasizedData` | 不包含目标、基准、等级、时间轴、分段或进度关系的数值事实。先以整张卡片为单位统计数据叙事：有且仅有一个完整数据叙事，结构为 `label + value + unit／supportingText`，且不存在标题、操作或其他并列数据事实时，选择 `DataDisplay` 并固定使用无标题的“核心居中”；丰富信息中与用户意图相关性最高的核心数值选择 `EmphasizedData`，由数值与单位构成，单位可由独立 `unit` 或完整格式化字符串承载；同一分区只允许一个核心信息 | 不得为了选择 `DataDisplay` 将天气状态、空气质量、最高温度、最低温度等并列事实拼成一条辅助信息；不得在同一分区并列或堆叠多个 `EmphasizedData`，也不得再用 `EmphasisText` 强调另一项核心信息；进度关系中的绝对值不重复映射为纯单值；区间档位、可比较数据或多维同等属性不用 |
+| 核心文本 | `{mainText, secondaryText?}` | `EmphasisText` | 分区内与用户意图相关性最高的核心文本数据；由一个主文本字段，或主文本加次文本两个字段构成，`secondaryText` 非必选；同一分区只允许一个核心信息 | 没有真实且必要的第二字段时省略 `secondaryText`，不得虚构；不得在同一分区并列或堆叠多个 `EmphasisText`，也不得再用 `EmphasizedData` 强调另一项核心信息；纯数值与单位优先使用 `EmphasizedData` |
+| 次要正文与补充说明 | `{items: [{label?, value}, ...]}` | `SecondaryBody` | 分区内核心信息之外的其余补充说明，由至少两个次要字段构成；必须与同一分区内的核心数据搭配使用，不会作为该分区唯一的业务信息独立存在。适合值本身能够清楚表达含义，或多个字段需要作为简短正文连续阅读的情况；继续按实际可用宽度自适应分组和换行 | 单个补充字段不用；若去掉逐项标签后会产生“良｜中等｜低”这类无法判断字段归属的裸值组合，应改用 `TableText` 保留标签；不得用多个单项 `SecondaryBody` 模拟纵向表格；不承载核心数值，不增加背板、图标或按钮 |
+| 同一实体的多维同等属性或带标签明细 | `{items: [{label, value, unit?}, ...]}` | `TableText` / `TopTextBottomValue` / `TextBlock` | 两项及以上数据属于同一实体，每项都能形成“左侧短标识 + 右侧参数”，彼此确实同等且需要逐项识别时可使用；`TableText.label` 可绑定每行的动态标识。已经存在核心组件时，如果剩余明细的值必须依赖“空气质量、紫外线、感冒指数”等逐项标签才能准确理解，也应使用 `TableText` 保留标签。全为数值单位且宽度充足时可选择 `TopTextBottomValue` 或 `TextBlock`；`TopTextBottomValue` 仅用于恰好三组数值单位数据 | 不用于自然语言正文；不得把核心字段一起塞入 `TableText` 取消主次层级；不能仅因字段可写成“标签 + 参数”、存在按钮或空间紧张就把整卡全部判定为同级；只有一项时不用这些多项组件 |
+| 核心数值 + 线性进度 | `{label?, percent?, current?, total?, displayValue?: {value, unit?, qualifier?}}` | `ProgressLine2` | 存在明确方向和参照终点，需要表达“当前完成到哪里、距离目标还差多少”时使用，例如步数／目标步数、任务完成量／总量、下载或安装进度；容量占用率只有在语义明确为“已使用／总容量”时才可使用 | 手机、耳机或其他单个设备的剩余电量不用；当前状态余量、普通百分比属性、不需要核心数值槽，或必须在 Track 下方同时显示左右标签时不用 |
+| 多项同指标比较 | `{items: [{label, value, unit?}, ...]}` | `H_BarChart` | 至少两项同维度数据，每项有主体标签和同一指标值，单位相同或可统一，并且需要比较大小或排序；总表中的 `BarChart` 对应真实 JSX 组件 `H_BarChart` | 只有一项时不用；同一实体的跨单位、跨类型属性且各项同等时改按多维属性选择；不能统一为同一比较尺度时不用 |
+| 1 个占比值 | `{label, percent, displayValue?, secondaryLabel?, icon}` | `ProgressCircleSingle` / `InfoBlock` | 默认使用 `ProgressCircleSingle` 表达单个对象的当前占比或余量状态；需要单环右侧的 Label、Value + Unit 和可选 Secondary Label 时必须使用它。当该占比可完整表达为“主文本 + 副文本 + 尾部进度环”，并且需与另一个 `InfoBlock` 组成两个连续的固定槽信息块时，可改用 `InfoBlock visual={{ type: "progressCircle", ... }}` | 不用于同时比较多个同级占比值；存在明确目标终点且重点是完成差距时改用 `ProgressLine2`；只有一组紧凑信息或需要显示第三行状态时不用 `InfoBlock` |
+| 日程、会议、时间序列事件 | `{events: [{title, time | (dtStart + dtEnd), date?, location?}]}` | `EventCard` | 一个 `EventCard.items` 最多放两条日程；每条的标题和时间必选，地点可选；两条按时间先后排列并由组件自适应分配间距，禁止拆成两个 `EventCard` | 不用于普通提醒或无时间信息的内容；当前无月份视图组件 |
+| 没有明确操作 | `{action: null}` | 不创建按钮 | 卡片仅用于信息查看 | 不为了填充版面而增加无业务意义的按钮 |
+
+### 多字段文本选择顺序
+
+多字段文本按以下顺序选择：
+
+1. 先判断字段之间是否存在核心与明细层级。普通的多字段信息卡默认必须根据用户目的、问题焦点和业务语义选出一个相关性最高的动态核心字段；除非用户明确要求列表、清单、逐项查看、对比或等权汇总，不得把全部字段直接声明为同级属性。
+2. 存在核心值时，每个分区只选择一个 `EmphasizedData`、`EmphasisText` 或对应进度组件作为核心信息；不得在同一分区制造第二个核心信息。剩余两项及以上补充字段根据表达清晰度选择一个 `SecondaryBody` 或一个 `TableText`：值本身自描述、适合连续阅读时使用 `SecondaryBody`；值是“良、中等、低、是、否”等离开逐项标签就无法判断含义的状态或等级时，使用 `TableText` 保留标签。
+3. 静态类别标题（例如“设备状态”“天气信息”“健康指数”）只负责说明卡片主题，不是动态核心信息，不能据此省略强调组件。
+4. 只有用户明确表达列表、清单、逐项查看、对比或等权汇总，并且不存在可识别的核心字段时，才能将至少两项“静态标签 + 独立动态参数”作为同级属性交给 `TableText`；字段数量多、可写成键值对、布局空间紧张或存在按钮都不是同级证据。
+5. `SecondaryBody` 必须与核心组件搭配，不独立存在；多个补充字段选择它时使用一个 `SecondaryBody` 的多个 item，不得拆成多个单项组件。不得把三个及以上不同语义字段压入 `EmphasisText.secondaryText` 的一个无标签字符串；需要逐项标签时改用 `TableText`。
+6. 请求进度组件但输入缺少目标值、总量或比例时，可以报告进度要求无法满足，但仍须保持核心字段的视觉层级，不得将核心值降级为普通辅助正文。
 
 ## 2. 标题组件
 
@@ -200,8 +229,8 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 - 核心信息之外的多个补充字段按可读性选择同分区内的一个 `SecondaryBody` 或一个 `TableText`。值本身自描述、适合作为简短正文连续阅读时使用 `SecondaryBody`，并保留此前规定的自适应换行规则；值是“良、中等、低、是、否”等离开逐项标签就无法判断含义的状态或等级时，使用 `TableText` 保留每项标签。空间不足时应更换可闭合的 Layout Pattern、使用规范允许的紧凑规格或选择能够无损承载相同事实的核心组件；不得仅为通过布局校验取消核心层级并把包括核心在内的全部事实压成 `TableText`。
 - 普通多字段信息卡默认必须依据用户目的、问题焦点和业务语义选出一个相关性最高的动态核心字段。静态类别标题（例如“设备状态”“天气信息”“健康指数”）只说明卡片主题，不是核心业务事实，不能代替 `EmphasisText`、`EmphasizedData` 或其他核心组件。
 - 只有用户明确要求列表、清单、逐项查看、对比或等权汇总，并且两个及以上字段在用户意图中确实同级时，才能使用 `TableText` 作为唯一业务组件。已经存在独立核心组件时，`TableText` 可以承载必须依赖逐项标签才能准确理解的补充明细。左侧 `label` 可以是静态标签，也可以是每行的动态短标识。不能仅因为字段可写成“标签 + 参数”、数量较多、空间紧张或存在按钮，就把包括核心在内的全部信息判定为同级。若核心信息已经由标题表达，该标题必须真实绑定并展示用户关注的动态核心字段；普通静态标题不满足这一条件。
-- `EmphasisText.secondaryText` 只承载一个次文本字段，或少量组合后仍可立即理解的紧密关联字段。单个裸数值使用 `{value}` 模板补充语义；多 ID 次文本必须使用 `{0}`、`{1}`……索引模板逐项标注。不得把三个及以上不同语义的补充字段压入同一行；这种情况应保留核心组件，并将补充字段改用带逐项标签的 `TableText`。
-- 同一语义分区最多只能有一个强调核心：`EmphasisText` 和 `EmphasizedData` 合并计数，任意组合总数超过一个均为错误。普通包装 `Stack` 不会建立新的语义分区；只有当前 Layout Pattern 明确划分的独立业务分区才分别计算。
+- `EmphasisText.secondaryText` 只承载一个次文本字段，或少量组合后仍可立即理解的紧密关联字段。不得把三个及以上不同语义的补充字段合并成“良 ｜ 中等 ｜ 低”这类无标签值串；这种情况应保留核心组件，并将补充字段改用带逐项标签的 `TableText`。
+- 同一语义分区最多只能有一个强调核心：`EmphasisText` 和 `EmphasizedData` 合并计数，任意组合总数超过一个均为错误。只有当前 Layout Pattern 明确划分的独立业务分区才分别计算。
 
 ### 3.1 EmphasizedData
 
@@ -471,14 +500,14 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 静态说明文字不需要绑定。下面示例中，`label` 和 `supportingText` 是静态 UI 文案，只有动态倒计时数值绑定数据：
 
 ```jsx
-<Stack direction="column" width={116} height={110} align="center" justify="center">
+<Region slot="main" variant="wide-center">
   <DataDisplay
     label="马拉松还剩"
     value={7}
     supportingText="天"
     dataIds={{ value: "marathon.remainingDays" }}
   />
-</Stack>
+</Region>
 ```
 
 即使 `label` 或 `supportingText` 的显示文案与输入数据内容相同，也不得为它们填写 `dataIds`。动态更新只作用于中间的核心 `value`，不会改变三行结构、样式或布局。
@@ -488,7 +517,7 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 | Card 尺寸 | `width` | `height` | 说明 |
 |---|---|---|---|
 | `2x2` | `max-content`，最大 126vp | 114vp | 三行分别占 18vp、60vp、20vp，两处垂直间距各 8vp；在 126 × 126vp 安全内容区内居中 |
-| `2x4` | `100%`，最大为父槽宽度 | 110vp | 三行分别占 18vp、64vp、20vp，两处间距各 4vp；“左右双区”在 116 × 110vp 安全区内居中，“左内容右侧双槽／左侧双槽右内容”在 132 × 126vp 内容区内居中 |
+| `2x4` | `100%`，最大为父槽宽度 | 112vp | 三行分别占 18vp、64vp、20vp，两处垂直间距各 5vp；可闭合于 118 × 112vp 的 Sub-118-A，也可在 140 × 136vp 的 Sub-140-A 内居中 |
 
 2×4 模式下，组件宽度随“左右双区”或“左内容右侧双槽／左侧双槽右内容”的父槽变化；`label`、`value` 和 `supportingText` 均保持单行，超出当前宽度时省略，不通过缩小字号或增加组件高度解决。
 
@@ -501,9 +530,7 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 
 ### 3.6 InfoBlock
 
-高度由固定槽决定、宽度填满父槽的紧凑信息组件：2×2 高 63vp，2×4 高 57vp。由主文本、副文本和背板组成，并可按需增加右侧尾部视觉。
-
-**先确认槽位再选择：**2×4 的 InfoBlock 是固定槽模块，不是普通内容组件；仅用于“左内容右侧双槽／左侧双槽右内容”的固定槽列或“四槽宫格”。所有 Sub-118／Sub-140 内容区均禁止使用，包裹 Stack/Grid 也不能改变这一限制；合法 Region.slot 见[语义布局接口](../layouts/semantic_layouts_2x4.md#infoblock-槽位限制)。普通内容区的主副文本优先考虑 EmphasisText，核心数值考虑 EmphasizedData，单设备余量考虑 ProgressCircleSingle（子布局用 size="compact"）；按组件合同保留全部信息和绑定，不机械替换 Props，也不为使用 InfoBlock 虚构其他固定槽模块。2×2“双信息块”用法不变。
+高度由固定槽决定、宽度填满父槽的紧凑信息组件：2×2 高 63vp，2×4 高 57vp。由主文本、副文本和背板组成，并可按需增加右侧尾部视觉。存在明确的图形识别或 0–100 占比／进度语义时，尾部视觉在 Icon 与 ProgressCircle 中二选一；没有合适视觉或需要为文本保留完整宽度时可以省略 `visual`。
 
 #### 组件属性
 
@@ -550,7 +577,7 @@ description: 根据信息语义选择单个组件，并填写该组件的 Props�
 
 | 占位属性 | 值 | 说明 |
 |---|---|---|
-| `size` | 父槽宽度 × 固定槽高 | 2×2“双信息块”为 134 × 63vp；2×4“四槽宫格／左内容右侧双槽／左侧双槽右内容”固定槽为 132 × 57vp |
+| `size` | 父槽宽度 × 固定槽高 | 宽度填满 Layout Pattern 分配的父槽；2×2“双信息块”中为 134 × 63vp，2×4 固定槽中为 132 × 57vp |
 | `overflow` | 单行省略 | 主文本和副文本超宽时不换行，不增加组件高度 |
 
 #### 合法 JSX 示例与布局约束
@@ -917,7 +944,7 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 
 布局约束：
 
-- 2×2 与 2×4 Card 均可使用；外层 `Stack`、`Grid` 或 Layout Pattern 决定它占据的模块。
+- 2×2 与 2×4 Card 均可使用；当前 `Region.variant` 决定它占据的模块。
 - 只在存在至少两条同维度、可比较的数据时使用；单条数据必须改用与其语义匹配的其他数据组件。
 - `H_BarChart` 是整宽组件，父槽必须提供明确宽度；不要通过 `style`、`className` 或组件业务 Props 改写宽度。
 - 数据绑定只更新可见的 `valueUnit`；`label` 和 `percent` 是生成时确定的静态配置。
@@ -1060,17 +1087,18 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 />
 ```
 
-同时展示两个同级占比值时，两个 `ProgressCircle` 必须放入占满完整可用宽度的横向父 `Stack`。父容器使用 `direction="row"` 横排、`align="center"` 控制垂直居中，并使用 `justify="space-between"` 分配剩余横向空间：
+同时展示两个同级占比值时，使用 `wide-two-column-action`，将两个 `ProgressCircle` 作为标题后的直属内容；程序负责横排、居中和等宽分配：
 
 ```jsx
-<Stack direction="row" width={120} gap={8} align="center" justify="space-between">
+<Region slot="main" variant="wide-two-column-action">
+  <SingleLineTitle title="设备电量" />
   <ProgressCircle
     ...
   />
   <ProgressCircle
     ...
   />
-</Stack>
+</Region>
 ```
 
 #### 布局约束（非 ProgressCircle Props）
@@ -1086,9 +1114,9 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 
 > `density="compact-4"` 仅由 runtime 暂时兼容旧 JSX，新生成契约已禁止该属性；四值场景统一使用 `size="sm"`。
 
-### 4.6 NumericRatio
+### 4.6 NumericRatio 与 NumericRatioStack
 
-文档中名称为“数值占比”。同时展示三个占比值时，分别使用三个 `NumericRatio`，并通过外层标准 `Stack` 决定横向或纵向排列；不使用额外的组合组件；不要拆分到两个`Stack`中使用。不得在 `value` 中增加“耳机盒”“左耳”等纯文本 Label；对象语义必须由对应 Icon 表达。若 Icon 无法充分区分对象，应改选带文本 Label 槽的组件，而不是扩展 `NumericRatio` 的内容结构。
+`NumericRatio` 是单项数值占比的内部单元。2×2 语义 JSX 在紧凑展示恰好三个同级占比值时使用一个 `NumericRatioStack`，不得直接输出多个 `NumericRatio` 或使用容器包装。一项或两项不得使用 `NumericRatioStack`。不得在 `value` 中增加“耳机盒”“左耳”等纯文本 Label；对象语义必须由对应 Icon 表达。若 Icon 无法充分区分对象，应改选带文本 Label 槽的组件。
 
 #### 组件属性
 
@@ -1162,14 +1190,22 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 
 | 占位属性 | 值 | 说明 |
 |---|---|---|
-| `height` | 16vp | 单项固定占高；三个组件纵排并使用 4vp 间距时共占 56vp |
-| `width` | `max-content` | Icon、4vp 间距和数值共同决定自然宽度；横排时由外层 `Stack` 判断并分配可用宽度 |
+| `height` | 16vp | 单个 `NumericRatio` 固定占高；组合高度由 `NumericRatioStack.direction` 决定 |
+| `width` | 横排为父槽宽度；纵排为 `max-content` | 组合内部的间距与分布由组件处理 |
+
+`NumericRatioStack` 属性：
+
+| 属性名 | JSX 类型 | 设计约束 | runtime 默认 / 容错 | 说明 |
+|---|---|---|---|---|
+| `items` | `Array<{ key?, icon, value, unit?, dataIds? }>` | 必选，恰好 3 项 | 无默认内容 | 每项合同与 `NumericRatio` 相同 |
+| `direction` | `"row" \| "column"` | 必选 | `"column"` | 选择横排或纵排 |
+| `appearance` | `"card"` | 必选 | 默认 img 模式 | 启用卡片 Icon mask |
 
 ### 4.7 EventCard
 
 时间线式日程组件，由圆圈、装饰线、日程标题、时间和可选地点组成。组件宽度由父布局槽位决定：2×2 中最大为 116vp；2×4 中取消该上限并使用父槽提供的完整可用宽度。
 
-`EventCard` 是一个完整的日程组组件，通过 `items` 承载一条或两条日程；一张卡片最多只能生成一个 `EventCard`，不得把两条日程拆成两个独立的 `EventCard`。两条日程按时间先后排列：组件优先使用 8vp 条目间距；若两条日程的实际内容高度加 8vp 后超过父槽，则自动降为 4vp。间距只能是 8vp 或 4vp，不使用 `space-between` 把两条日程推到父槽上下两端。该间距由组件内部处理，模型不得在两条日程之间添加 `Stack`、固定 `gap`、空白占位或其他业务组件。
+`EventCard` 是一个完整的日程组组件，通过 `items` 承载一条或两条日程；一张卡片最多只能生成一个 `EventCard`，不得把两条日程拆成两个独立的 `EventCard`。两条日程按时间先后排列：组件优先使用 8vp 条目间距；若两条日程的实际内容高度加 8vp 后超过父槽，则自动降为 4vp。间距只能是 8vp 或 4vp，不使用 `space-between` 把两条日程推到父槽上下两端。该间距由组件内部处理，模型不得在两条日程之间添加容器、固定间距、空白占位或其他业务组件。
 
 `EventCard.items[].title` 表示某一条具体事件的标题，例如“产品发布会”或“医院复查”；它不是整张卡片或内容区的标题，不能自动替代 `SingleLineTitle`。当所选 Layout Type 包含标题区时，必须在该标题区另外生成 `SingleLineTitle`，再把整个 `EventCard` 放入下方内容区。只有所选 Layout Type 明确允许无标题，并且省略后仍不会丢失卡片对象、时间范围或必要上下文时，才可以只显示 `EventCard`。
 
@@ -1322,7 +1358,7 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 
 | 占位属性 | 值 | 说明 |
 |---|---|---|
-| `size` | 2×2 为 126 × 36vp；2×4“左右双区”为 116 × 36vp；“左内容右侧双槽／左侧双槽右内容”为 132 × 36vp | 由布局上下文确定，不新增尺寸 Prop |
+| `size` | 2×2 默认 126 × 36vp；2×4 宽布局 132 × 36vp、紧凑背板内 116 × 36vp | 通过 runtime 上下文样式自动切换；不新增尺寸 Prop，也不超出父槽宽度 |
 
 # 2×2 专属组件
 

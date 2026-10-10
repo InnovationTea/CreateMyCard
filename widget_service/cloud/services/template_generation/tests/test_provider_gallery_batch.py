@@ -24,6 +24,36 @@ from services.template_generation.test_support.provider_gallery import (
 
 _WEATHER_ASSET_IDS: list[str] = []
 
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("status", ["success", "failed", "missing", "not_generated"])
+def test_gallery_result_preserves_declared_size_for_every_status(
+    tmp_path: Path, size: str, status: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = manifest.providers[0].cases[0].model_copy(update={"cardSize": size})
+    result = ProviderGalleryBatchRunner._base_result(case, status, "reason")
+    assert result.get("cardSize") == size
+    assert result.get("status") == status
+    assert result.get("errorMessage") == "reason"
+
+
+def test_gallery_output_declares_mixed_sizes_without_relabeling_cases(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    provider = manifest.providers[0]
+    case = provider.cases[0]
+    square = ProviderGalleryBatchRunner._base_result(case, "success", "")
+    wide = ProviderGalleryBatchRunner._base_result(
+        case.model_copy(update={"cardSize": "2x4"}), "failed", "wide failure",
+    )
+    output = ProviderGalleryBatchRunner._output_manifest(
+        [provider], {provider.providerId: [square, wide]},
+    )
+    assert output.get("cardSize") == "mixed"
+    assert output.get("counts") == {
+        "total": 2, "success": 1, "failed": 1, "missing": 0, "notGenerated": 0,
+    }
+
 _FUSION_CAPABILITY_IDS = {
     "GetCalendarEvents",
     "GetCountdownDays",
@@ -207,7 +237,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    assert len(all_cases) == 147
+    # 包含各业务场景，以及新增电量、耳机模板的预览。
+    assert len(all_cases) == 201
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -289,6 +320,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "/events/0/dtStart",
         "/events/0/dtEnd",
         "/events/0/eventLocation",
+        # 50434950：日程备注进入 NextEventHero 可选数据。
+        "/events/0/description",
     ]
 
     targeted_cases = []
@@ -296,7 +329,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 144
+    assert len(targeted_cases) == 200
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -306,6 +339,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewTemperatureFull@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
     }
     battery_charging = _find_case(
         manifest,
@@ -319,6 +358,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert charging_request["galleryTest"]["sampleOverrides"] == {
         "/data/phoneBattery/batterySOCText": "68%",
         "/data/phoneBattery/chargingStatusDesc": "正在充电",
+        # 50434950：电量等级进入 ChargingProgressHero 可选数据。
+        "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
     }
     battery_compact = _find_case(
         manifest,
@@ -489,7 +530,8 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         "CountdownOverview",
         "single-two-actions",
     )
-    assert countdown_compact.missingReason == "缺失 Compact 模板"
+    assert countdown_compact.targetTemplateId == "CountdownOverviewTargetCompact@1"
+    assert countdown_compact.missingReason == ""
     calendar_hero_ids = set()
     for provider in manifest.providers:
         for case in provider.cases:
@@ -502,6 +544,7 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewEventCountDetailsHero@1",
         "ScheduleOverviewLocationHero@1",
+        "ScheduleOverviewMeetingEntryHero@1",
         "ScheduleOverviewNextEventHero@1",
         "ScheduleOverviewReminderDetailsHero@1",
         "ScheduleOverviewReminderHero@1",
@@ -549,23 +592,34 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     )
 
     assert not stale_output.exists()
-    assert summary.total == 3
-    assert summary.success == 2
+    assert summary.total == 6
+    assert summary.success == 6
     assert summary.failed == 0
-    assert summary.missing == 1
-    assert len(service.requests) == 2
-    assert service.prd_versions.count(FUSION_PRD_VERSION) == 2
+    assert summary.missing == 0
+    assert len(service.requests) == 6
+    assert service.prd_versions.count(FUSION_PRD_VERSION) == 6
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
-    assert sorted(len(item) for item in service.template_action_ids) == [0, 1]
-    assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
+    assert sorted(len(item) for item in service.template_action_ids) == [
+        0,
         0,
         1,
+        1,
+        1,
+        2,
+    ]
+    assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
+        0,
+        0,
+        1,
+        1,
+        1,
+        2,
     ]
     output_manifest = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
     assert len(output_manifest["providers"]) == 1
     cases = output_manifest["providers"][0]["cases"]
-    assert {case["status"] for case in cases} == {"missing", "success"}
+    assert {case["status"] for case in cases} == {"success"}
     assert {case["appearanceId"] for case in cases} == {"fusion"}
     for case in cases:
         if case["status"] != "success":
@@ -631,10 +685,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 147
+    assert summary.total == 201
     assert summary.failed == 0
-    assert summary.missing == 8
-    assert summary.not_generated == 139
+    assert summary.missing == 6
+    assert summary.not_generated == 195
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -772,7 +826,7 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
             if template.suffix == "Support":
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
-    # 通用倒计时 Support 未开放事件白名单，各少一个带动作场景。
+    # 两个天气 Support 不提供自身动作，各少一个双动作场景。
     assert len(provider.cases) == len(expected_templates) * 3 - 2 == 61
     assert len({case.caseId for case in provider.cases}) == 61
     for case in provider.cases:

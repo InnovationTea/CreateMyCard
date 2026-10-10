@@ -1,0 +1,52 @@
+{
+  "userQuery": "同时看上海和北京现在的温度与天气，不需要按钮。",
+  "size": "2x2",
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "shanghai": {
+        "location": {
+          "prefectureName": {
+            "type": "string",
+            "description": "城市名称",
+            "sampleValue": "上海"
+          }
+        },
+        "current": {
+          "temperatureText": {
+            "type": "string",
+            "description": "含单位的当前温度文本",
+            "sampleValue": "29°C"
+          },
+          "condition": {
+            "type": "string",
+            "description": "天气状况",
+            "sampleValue": "多云"
+          }
+        }
+      },
+      "beijing": {
+        "location": {
+          "prefectureName": {
+            "type": "string",
+            "description": "城市名称",
+            "sampleValue": "北京"
+          }
+        },
+        "current": {
+          "temperatureText": {
+            "type": "string",
+            "description": "含单位的当前温度文本",
+            "sampleValue": "18°C"
+          },
+          "condition": {
+            "type": "string",
+            "description": "天气状况",
+            "sampleValue": "晴"
+          }
+        }
+      }
+    }
+  }
+}

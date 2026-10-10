@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 clickable backboard phone_row must not show action hint Text phone_value; bind the action only to the backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "4909f7371391765904a73b77be4e8efa029115b42634bd234bebdd0b9ca0789a",
+    "sample_task_spec.json": "825013ce72a0f1abf01de2be42b9f265f06b9a59da59a46f9eb74234fbd22942",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

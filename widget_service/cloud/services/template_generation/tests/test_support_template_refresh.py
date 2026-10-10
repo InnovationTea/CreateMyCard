@@ -25,13 +25,13 @@ _CALENDAR_SUPPORTS = (
 
 # 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
+    "WeatherOverviewFeelsLikeWindSupport@1": (0,),
     "ActivityOverviewSupport@1": (0,),
     "BatteryOverviewSupport@1": (0,),
     "BatteryOverviewStatusSupport@1": (0,),
     "BluetoothDeviceOverviewEarbudsSupport@1": (0,),
     "BluetoothDeviceOverviewChargeSupport@1": (0,),
     "BluetoothDeviceOverviewConnectionSupport@1": (0,),
-    "CountdownOverviewSupport@1": (0,),
     "CountdownOverviewTravelSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
     "ResourceUsageOverviewSupport@1": (0, 1),
@@ -148,7 +148,6 @@ def test_support_ux_spacing_typography_and_right_icon(
         assert isinstance(styles, dict)
         primary = index in primary_indexes
         subtitle_size = 10 if template_id in {
-            "CountdownOverviewSupport@1",
             "CountdownOverviewTravelSupport@1",
             "WeatherOverviewDaily2TravelSupport@1",
             "WeatherOverviewTravelSupport@1",
@@ -191,17 +190,12 @@ def test_health_support_combines_numeric_value_and_unit_with_runtime_binding(
     assert texts[1].values[0] == caption
 
 
-@pytest.mark.parametrize("title", (None, "运动会倒计时", "倒计时与天气"))
-def test_countdown_support_prioritizes_remaining_days(title: str | None) -> None:
-    params = {"title": title} if title is not None else {}
-    root = _instantiate("CountdownOverviewSupport@1", {"days": "${data.countdown.days}"}, params)
-    texts = _nodes(root, "Text")
-    assert len(texts) == 2
-    assert texts[0].values[0] == "{{ '剩余' + ${/data/countdown/days} + '天' }}"
-    assert texts[1].values[0] == (title if title is not None else "倒计时")
-    # 显式主行容器隔离下一行标题，避免其中的“天”被误识别为数值单位。
-    assert root.children[0].children[0].component_type == "Row"
-    assert len(root.children[0].children[0].children) == 1
+def test_removed_countdown_support_is_not_registered_or_previewed() -> None:
+    registry = get_cardplan_registry()
+    assert "CountdownOverviewSupport@1" not in registry.templates
+    assert "CountdownOverviewTravelSupport@1" in registry.templates
+    cases = build_template_preview_cases()
+    assert all(case.template_id != "CountdownOverviewSupport@1" for case in cases)
 
 
 @pytest.mark.parametrize("template_id", (
@@ -256,6 +250,7 @@ def test_support_inventory_removes_deleted_templates() -> None:
     supports = {key for key in registry.templates if key.endswith("Support@1")}
     assert len(supports) == 21
     assert not supports.intersection({
+        "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",
     })

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "/data/weather/humidityPercent: data row type string does not match schema type number declared by TaskSpec."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "a0482273d8c1bfa6e7fa059739f875c3462490bb24fa6fcbae45d0567c5997c3",
+    "sample_task_spec.json": "14effaf910f0f14aed5236100ae2d6c4a18a0fad9c9e03b98c97476f77314ddb",
+    "sample_card_spec.json": "003ff3d88dedd65c7feaf3ce26e6a8d13e9838eec0bb7fa4651951ec57ccb413"
+  }
+}

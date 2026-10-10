@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 150vp single-business content contains multiple 30fp/38fp values. Treat peer metrics as ordinary complete text lines instead of manufacturing multiple hero values."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "efe2768ce657cf64b2fa6a8b54448a45a59f6db9dcbc8f788a7f4ca8bf1b400e",
+    "sample_task_spec.json": "7350797151403621a53eadbb3544313e462ae7bf9ceb8b9e5fffe7db70d4693a",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

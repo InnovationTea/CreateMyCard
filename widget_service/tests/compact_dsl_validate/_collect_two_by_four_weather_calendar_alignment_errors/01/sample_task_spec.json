@@ -1,0 +1,26 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "current": {
+          "temperatureText": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          }
+        }
+      },
+      "calendar": {
+        "title": {
+          "type": "string",
+          "sampleValue": "会议"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

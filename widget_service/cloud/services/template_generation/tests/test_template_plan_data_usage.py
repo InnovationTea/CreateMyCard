@@ -4,7 +4,10 @@ import pytest
 
 from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.ux_mixed_prompt import build_ux_mixed_prompt
-from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
 from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
     planner_component_candidates,
@@ -50,7 +53,12 @@ def test_richer_templates_win_then_equal_usage_keeps_search_order() -> None:
             "ViewWeather": ("/current/condition",),
         }
     )
-    registry = get_cardplan_registry()
+    # ConditionFeelsLikeAlertFull 以 condition 为主数据匹配（主数据优先规则，
+    # 已由 test_primary_data_stays_ahead_of_richer_secondary_data 覆盖）；
+    # 本测试的主体是“富数据模板胜出、同用量保持检索序”，故禁用它保持主体。
+    registry = CardPlanRegistry(
+        disabled_template_ids=("WeatherOverviewConditionFeelsLikeAlertFull@1",),
+    )
     task = _weather_task()
     search = search_template_variants(
         intent,

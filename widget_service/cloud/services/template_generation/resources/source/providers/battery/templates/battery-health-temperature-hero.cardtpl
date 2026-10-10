@@ -1,0 +1,33 @@
+#Template BatteryOverviewHealthTemperatureHero@1(props: {})
+data = {
+    health: $path("/healthStatusDesc"),
+    temperature: $path("/batteryTemperatureText")
+}
+
+Column(
+  {
+    "_advancedComponent": "BatteryOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 0, "top": 0, "right": 0, "bottom": 0},
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Text(
+      "电池体检",
+      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Text(
+      data.health,
+      {"width": "matchParent", "height": 24, "fontSize": 18, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Text(
+      data.temperature,
+      {"width": "matchParent", "height": 18, "fontSize": 14, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+)
+#End
