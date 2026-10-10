@@ -48,7 +48,7 @@ def verify(folder: Path, validator) -> str | None:
 def main() -> int:
     root = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cloud", type=Path, default=root.parents[1] / "widget_service/cloud")
+    parser.add_argument("--cloud", type=Path, default=root.parents[1] / "cloud")
     args = parser.parse_args()
     validator = load_validator(args.cloud)
     passed = 0

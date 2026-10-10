@@ -11,14 +11,14 @@
 在项目根目录运行：
 
 ```powershell
-D:\ProgramFiles\anaconda3\envs\CreateMyCard\python.exe testdata\compact_dsl_validate\verify_cases.py
+D:\ProgramFiles\anaconda3\envs\CreateMyCard\python.exe widget_service\tests\compact_dsl_validate\verify_cases.py
 ```
 
 脚本直接调用完整校验入口，核对异常类型、完整错误列表和文件校验和。校验和在统一 CRLF、CR 为 LF 后计算，不受 Git 检出换行格式影响。修改样例或校验器后如回放失败，需要重新核对 expected.json。
 
 ## 验证记录
 
-逐组完整入口回放：LF 与 CRLF 两种换行格式均为 153 通过、0 失败。新回放脚本 Ruff 通过，git diff --check 通过。
+逐组完整入口回放：LF 与 CRLF 两种换行格式均为 153 通过、0 失败。清除 PYTHONPATH 且不传 `--cloud` 的默认入口 smoke 回放为 153 通过、0 失败。新回放脚本 Ruff 通过，git diff --check 通过。
 收集项目测试输入时执行相关 7 个测试文件：408 通过、6 失败。失败来自当前工作区原有测试预期与校验器不一致：1 个模板空容器被解析器提前拦截、3 个格式化读数目前被接受、2 个 W9 样例直接显示布尔字段。此次仅新增数据与回放脚本，未修改生产代码。
 
 ## 逐错误位置索引
