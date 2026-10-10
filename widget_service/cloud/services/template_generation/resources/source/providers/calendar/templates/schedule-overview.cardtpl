@@ -4055,26 +4055,24 @@ data = {
     end: $optionalPath("/events/0/dtEnd"),
     joinLink: $optionalPath("/events/0/oneClickServiceLink")
 }
-Column(
+Stack(
     {
         "_advancedComponent": "ScheduleOverview",
-        "itemMargin": 0,
         "width": "matchParent",
-        "height": "matchParent",
-        "justifyContent": "spaceBetween",
-        "alignItems": "center",
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
+        "height": "matchParent"
     },
     Column(
         {
-            "itemMargin": 8,
+            "itemMargin": 0,
             "width": "matchParent",
-            "justifyContent": "start",
+            "height": "matchParent",
+            "justifyContent": "spaceBetween",
             "alignItems": "center",
-            "margin": {"top": 4}
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
         Text(props.title,
             {
+                "margin": {"top": 4},
                 "width": "matchParent",
                 "fontSize": 16,
                 "maxFontSize": 16,
@@ -4087,54 +4085,53 @@ Column(
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         ),
-        Row(
+        Text(data.location,
             {
-                "width": "matchParent",
-                "height": 58,
-                "flexShrink": 1,
-                "justifyContent": "center",
-                "alignItems": "center",
-            },
-            #if data.end
-            Text(`${data.start}-${data.end}`,
-                {
-                    "fontSize": 24,
-                    "maxFontSize": 24,
-                    "minFontSize": 16,
-                    "fontWeight": 800,
-                    "fontColor": $theme('primaryColor'),
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0}
-                }
-            ),
-            #else
-            Text(`${data.start}`,
-                {
-                    "fontSize": 30,
-                    "maxFontSize": 30,
-                    "minFontSize": 24,
-                    "fontWeight": 800,
-                    "fontColor": $theme('primaryColor'),
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0}
-                }
-            ),
-            #endif
-        ),
+                "fontSize": 12,
+                "maxFontSize": 12,
+                "minFontSize": 10,
+                "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 2,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
     ),
-    Text(data.location,
+    Row(
         {
-            "fontSize": 12,
-            "maxFontSize": 12,
-            "minFontSize": 10,
-            "fontWeight": 500,
-            "fontColor": $theme('supportContentColor'),
-            "maxLines": 2,
-            "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
-    )
+            "width": "matchParent",
+            "height": 58,
+            "justifyContent": "center",
+            "alignItems": "center",
+        },
+        #if data.end
+        Text(`${data.start}-${data.end}`,
+            {
+                "fontSize": 24,
+                "maxFontSize": 24,
+                "minFontSize": 16,
+                "fontWeight": 800,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #else
+        Text(`${data.start}`,
+            {
+                "fontSize": 30,
+                "maxFontSize": 30,
+                "minFontSize": 24,
+                "fontWeight": 800,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #endif
+    ),
 )
 #End

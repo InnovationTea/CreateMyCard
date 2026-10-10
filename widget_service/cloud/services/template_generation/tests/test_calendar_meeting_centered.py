@@ -1,4 +1,4 @@
-"""分组会议详情的文本契约、可选时间及实际 A2UI 回归。"""
+"""叠层会议详情的文本契约、可选时间及实际 A2UI 回归。"""
 
 from __future__ import annotations
 
@@ -76,29 +76,31 @@ def test_meeting_admission_requires_a_trusted_card_title(title: Any) -> None:
 
 @pytest.mark.parametrize("with_end", [False, True])
 @pytest.mark.parametrize("title", ["今日日程", "跨时区项目联合评审及下一阶段计划安排"])
-def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
+def test_stacked_meeting_preserves_optional_time_and_final_a2ui(
     with_end: bool, title: str,
 ) -> None:
     omitted = frozenset() if with_end else frozenset({"end"})
     root = _expanded(_TEMPLATE_ID, omitted=omitted, props={"title": title})
     options = _options(root)
+    assert root.component_type == "Stack"
     assert options.get("_advancedComponent") == "ScheduleOverview"
-    assert options.get("justifyContent") == "spaceBetween"
-    assert options.get("alignItems") == "center"
-    assert options.get("itemMargin") == 0
+    assert options.get("width") == "matchParent"
+    assert options.get("height") == "matchParent"
     assert len(root.children) == 2
-    top, location = root.children
-    assert top.component_type == "Column"
-    assert _options(top).get("itemMargin") == 8
-    assert _options(top).get("margin") == {"top": 4}
-    assert _options(top).get("justifyContent") == "start"
-    assert _options(top).get("alignItems") == "center"
-    assert len(top.children) == 2
-    label, time_row = top.children
+    edges, time_row = root.children
+    assert edges.component_type == "Column"
+    assert _options(edges).get("itemMargin") == 0
+    assert _options(edges).get("width") == "matchParent"
+    assert _options(edges).get("height") == "matchParent"
+    assert _options(edges).get("justifyContent") == "spaceBetween"
+    assert _options(edges).get("alignItems") == "center"
+    assert len(edges.children) == 2
+    label, location = edges.children
+    assert _options(label).get("margin") == {"top": 4}
     assert time_row.component_type == "Row"
     assert _options(time_row).get("width") == "matchParent"
     assert _options(time_row).get("height") == 58
-    assert _options(time_row).get("flexShrink") == 1
+    assert "flexShrink" not in _options(time_row)
     assert _options(time_row).get("justifyContent") == "center"
     assert _options(time_row).get("alignItems") == "center"
     assert len(time_row.children) == 1
@@ -142,7 +144,7 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     texts = [component for component in components if component.get("component") == "Text"]
     assert len(texts) == 3
     assert texts[0].get("content") == title
-    expression = texts[1].get("content")
+    expression = texts[2].get("content")
     assert isinstance(expression, str)
     assert "/events/0/dtStart" in expression
     assert ("/events/0/dtEnd" in expression) is with_end
@@ -154,29 +156,40 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     time_row_styles = rows[0].get("styles")
     assert isinstance(time_row_styles, dict)
     assert time_row_styles.get("height") == 58
-    assert time_row_styles.get("flexShrink") == 1
+    assert "flexShrink" not in time_row_styles
     assert time_row_styles.get("justifyContent") == "center"
     assert time_row_styles.get("alignItems") == "center"
-    assert rows[0].get("children") == [texts[1].get("id")]
-    top_group = next(
+    assert rows[0].get("children") == [texts[2].get("id")]
+    edge_group = next(
         component for component in components
-        if component.get("children") == [texts[0].get("id"), rows[0].get("id")]
+        if component.get("children") == [texts[0].get("id"), texts[1].get("id")]
     )
-    top_styles = top_group.get("styles")
-    assert isinstance(top_styles, dict)
-    assert top_styles.get("justifyContent") == "start"
-    assert top_styles.get("alignItems") == "center"
-    font_sizes = (16, time_size, 12)
-    min_font_sizes = (12, time_min_size, 10)
+    edge_styles = edge_group.get("styles")
+    assert isinstance(edge_styles, dict)
+    assert edge_styles.get("height") == "matchParent"
+    assert edge_styles.get("justifyContent") == "spaceBetween"
+    assert edge_styles.get("alignItems") == "center"
+    stack = next(
+        component for component in components
+        if component.get("children") == [edge_group.get("id"), rows[0].get("id")]
+    )
+    assert stack.get("component") == "Stack"
+    stack_styles = stack.get("styles")
+    assert isinstance(stack_styles, dict)
+    assert stack_styles.get("height") == "matchParent"
+    font_sizes = (16, 12, time_size)
+    min_font_sizes = (12, 10, time_min_size)
     for index, text in enumerate(texts):
         styles = text.get("styles")
         assert isinstance(styles, dict)
-        assert styles.get("maxLines") == (1 if index == 1 else 2)
+        assert styles.get("maxLines") == (1 if index == 2 else 2)
         assert styles.get("fontSize") == font_sizes[index]
         assert styles.get("maxFontSize") == font_sizes[index]
         assert styles.get("minFontSize") == min_font_sizes[index]
         assert styles.get("textOverflow") == "ellipsis"
-        if index == 1:
+        if index == 0:
+            assert styles.get("margin") == {"top": 4}
+        if index == 2:
             assert "height" not in styles
             assert "flexShrink" not in styles
 
