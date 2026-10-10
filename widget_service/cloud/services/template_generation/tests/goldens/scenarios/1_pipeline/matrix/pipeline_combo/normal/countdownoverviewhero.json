@@ -151,10 +151,10 @@
                     "minHeight": 0,
                     "minWidth": 0
                   },
+                  "flexShrink": 0,
                   "fontColor": "#9999521F",
-                  "fontSize": 12,
+                  "fontSize": 14,
                   "fontWeight": 500,
-                  "height": 16,
                   "margin": {
                     "bottom": 6
                   },

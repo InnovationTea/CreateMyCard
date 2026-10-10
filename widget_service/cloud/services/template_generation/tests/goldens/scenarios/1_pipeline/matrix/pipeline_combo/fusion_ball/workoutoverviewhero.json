@@ -2821,14 +2821,14 @@
     "workoutType"
   ],
   "sampleIds": {
-    "absent_heartRateAvg": "C531",
-    "absent_heartRateAvg+workoutCalories": "C532",
-    "absent_heartRateAvg+workoutType": "C533",
-    "absent_workoutCalories": "C534",
-    "absent_workoutCalories+workoutType": "C535",
-    "absent_workoutType": "C536",
-    "all": "C537",
-    "none": "C538"
+    "absent_heartRateAvg": "C600",
+    "absent_heartRateAvg+workoutCalories": "C601",
+    "absent_heartRateAvg+workoutType": "C602",
+    "absent_workoutCalories": "C603",
+    "absent_workoutCalories+workoutType": "C604",
+    "absent_workoutType": "C605",
+    "all": "C606",
+    "none": "C607"
   },
   "size": "2x2",
   "templateId": "WorkoutOverviewHero@1"

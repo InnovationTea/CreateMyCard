@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "93641ac03365ddea6a01bd9f146af84856fd42b18bdcc1f823a3c435d5785c44",
+      "key": "8cea8bf191c6d19ff66d89a736d1851858d7de478366023f700c5fd1075e3ebd",
       "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"HeartRateOverviewMinMaxFull@1\", {}));"
     },
     {

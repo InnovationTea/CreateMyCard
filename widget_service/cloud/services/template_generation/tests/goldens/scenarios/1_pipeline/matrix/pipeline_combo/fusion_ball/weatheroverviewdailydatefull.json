@@ -618,8 +618,8 @@
     "district"
   ],
   "sampleIds": {
-    "all": "C664",
-    "none": "C665"
+    "all": "C733",
+    "none": "C734"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewDailyDateFull@1"

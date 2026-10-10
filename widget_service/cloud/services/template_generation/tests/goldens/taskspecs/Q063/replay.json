@@ -1,8 +1,8 @@
 {
   "recordings": [
     {
-      "key": "21d8de11fa16d679c2cf4e1d0a1f21b2bf1776f25c4589f57d1c5d8270a19ca6",
-      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.health.sleep\", \"label\": \"睡眠详情\", \"icon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
+      "key": "6fbce39fc8781e4cf756abec7e4b7d3c1d281e535793d0c3a076a8375e510562",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewFull@1\", {}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.health.sleep\", \"label\": \"睡眠详情\", \"icon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
     },
     {
       "key": "b9e49da0ba91b5ef45bb9b3c6131b7e2488ed583e5598c2a53e10eae6adb0cd9",

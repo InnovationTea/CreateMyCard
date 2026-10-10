@@ -5,8 +5,8 @@
       "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseCalorieText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseHeartRateAvg\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "6a726c1b8921afd7530418154471022b9480eae40f43dd085f75e3315d3fcafb",
-      "response": "Template(\"WideTwoFullLayout@1\", {}, Template(\"ActivityOverviewTrainingSummaryFull@1\", {\"title\": \"训练概览\"}), Template(\"WorkoutOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}));"
+      "key": "6cdc37011377b13f35989e78c168126317417266b0e232a9b34d90ae4dac3710",
+      "response": "Template(\"WideTwoFullLayout@1\", {}, Template(\"ActivityOverviewTrainingSummaryFull@1\", {\"title\": \"训练概览\"}), Template(\"WorkoutOverviewFull@1\", {}));"
     }
   ]
 }

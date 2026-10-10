@@ -45,6 +45,8 @@
   },
   "HeartRateOverviewMinMaxFull@1": {
     "optional": [
+      "/exerciseHeartRateAvg",
+      "/exerciseTypeName",
       "/updatedAt"
     ],
     "primary": [

@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "19c5571544ddee968d034037eaae406e569643720eb7e4f6c28f133bff51514b",
-      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewCaseSettingsHero@1\", {}), Template(\"BatteryOverviewStatusRingHero@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
+      "key": "63ef2646e85e2e43e53230cb880043ec32c874813d0b17d6798408d0e37b859d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/chargingStatusDesc\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/pluggedTypeDesc\"]},\"action\":[\"event.open.settings.bluetooth\",\"event.open.settings.battery\"],\"allowCalendarViewFallback\":false}"
     },
     {
-      "key": "63ef2646e85e2e43e53230cb880043ec32c874813d0b17d6798408d0e37b859d",
-      "response": "{\"requiredOutputFieldsByCapability\": {\"GetEarphoneInfo\": [\"/chargingStatusDesc\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\", \"/chargingStatusDesc\", \"/pluggedTypeDesc\"]}, \"action\": [\"event.open.settings.bluetooth\", \"event.open.settings.battery\"]}"
+      "key": "be1e5cea7b6ecbaf2d499c10f46578ccc9e2185de26a3415b07d7f6ce4d5827a",
+      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewCaseSettingsHero@1\", {}), Template(\"BatteryOverviewStatusRingHero@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.battery\", \"label\": \"电池设置\"}));"
     }
   ]
 }

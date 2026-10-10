@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "c98acb71a811c9f26c0325806d65580aa325bb97ceb8543874a15f4a5c113a50",
+      "key": "495685a22e82312125549a3ad243eea5be76e0fa173def399511177983683b35",
       "response": "Template(\"HeroActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewHero@1\", {\"leftEarIcon\": \"resources/base/media/icon_earphone.svg\", \"rightEarIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\"}));"
     },
     {

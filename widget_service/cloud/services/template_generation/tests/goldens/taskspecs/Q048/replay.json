@@ -1,12 +1,12 @@
 {
   "recordings": [
     {
-      "key": "1553d5ae4b1609b9cabda800da939e4edf83dd5f4dfe5963fa47ea1db0522631",
+      "key": "26ee3ad09aa724cb8534971625074179017f31f16e86675c5767c302148c46c4",
       "response": "Template(\"CompactTwoActionLayout@1\", {}, Template(\"BluetoothDeviceOverviewEarphoneCompact@1\", {\"earphoneIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.daily\", \"label\": \"每日推荐\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰设置\"}));"
     },
     {
       "key": "dbe57358f3f186fa5052fc34c9556a716bb407536f16334669a13a7c4d868986",
-      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/earphoneName\",\"/batteryLevel\"]},\"action\":[\"event.open.music.daily\",\"event.open.settings.dnd\"],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true}"
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/earphoneName\",\"/batteryLevel\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.music.daily\",\"event.open.settings.dnd\"],\"excludedActionIds\":[],\"allowEarphoneCandidateActions\":true,\"allowCalendarViewFallback\":false}"
     }
   ]
 }

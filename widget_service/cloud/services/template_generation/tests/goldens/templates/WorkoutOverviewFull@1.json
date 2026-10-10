@@ -50,7 +50,8 @@
           {
             "children": [
               "template_root_0_0",
-              "template_root_0_1"
+              "template_root_0_1",
+              "template_root_0_2"
             ],
             "component": "Column",
             "id": "template_root_0",
@@ -70,85 +71,42 @@
             "children": [
               "template_root_0_0_0"
             ],
-            "component": "Column",
+            "component": "Row",
             "id": "template_root_0_0",
             "itemMargin": 4,
             "styles": {
+              "alignItems": "center",
               "constraintSize": {
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "justifyContent": "start",
+              "justifyContent": "center",
               "width": "matchParent"
-            }
-          },
-          {
-            "children": [
-              "template_root_0_0_0_0",
-              "template_root_0_0_0_1"
-            ],
-            "component": "Row",
-            "id": "template_root_0_0_0",
-            "itemMargin": 4,
-            "styles": {
-              "alignItems": "start",
-              "constraintSize": {
-                "minHeight": 0,
-                "minWidth": 0
-              },
-              "justifyContent": "start",
-              "width": "matchParent"
-            }
-          },
-          {
-            "component": "Image",
-            "id": "template_root_0_0_0_0",
-            "src": "resources/base/media/figure_run.svg",
-            "styles": {
-              "flexShrink": 0,
-              "height": 20,
-              "objectFit": "contain",
-              "width": 20
             }
           },
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
-            "id": "template_root_0_0_0_1",
+            "id": "template_root_0_0_0",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
                 "minWidth": 0
               },
               "fontColor": "#9999521F",
-              "fontSize": 12,
+              "fontSize": 16,
               "fontWeight": 500,
               "maxLines": 1,
+              "minFontSize": 12,
+              "textAlign": "center",
               "textOverflow": "ellipsis",
-              "width": "matchParent"
-            }
-          },
-          {
-            "children": [
-              "template_root_0_1_0",
-              "template_root_0_1_1"
-            ],
-            "component": "Column",
-            "id": "template_root_0_1",
-            "itemMargin": 4,
-            "styles": {
-              "constraintSize": {
-                "minHeight": 0,
-                "minWidth": 0
-              },
-              "justifyContent": "start",
               "width": "matchParent"
             }
           },
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/exerciseCalorieText} }}",
-            "id": "template_root_0_1_0",
+            "id": "template_root_0_1",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -159,15 +117,17 @@
               "fontWeight": 800,
               "height": 24,
               "maxLines": 1,
-              "textOverflow": "ellipsis"
+              "textAlign": "center",
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
             }
           },
           {
             "children": [
-              "template_root_0_1_1_0"
+              "template_root_0_2_0"
             ],
-            "component": "Row",
-            "id": "template_root_0_1_1",
+            "component": "Column",
+            "id": "template_root_0_2",
             "itemMargin": 4,
             "styles": {
               "alignItems": "center",
@@ -175,14 +135,31 @@
                 "minHeight": 0,
                 "minWidth": 0
               },
-              "justifyContent": "start",
+              "justifyContent": "center",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_2_0_0"
+            ],
+            "component": "Row",
+            "id": "template_root_0_2_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "justifyContent": "center",
               "width": "matchParent"
             }
           },
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/exerciseDurationText} + ' | ' + ${/data/healthSport/exerciseEndTimeText} }}",
-            "id": "template_root_0_1_1_0",
+            "id": "template_root_0_2_0_0",
             "styles": {
               "constraintSize": {
                 "minHeight": 0,
@@ -208,9 +185,12 @@
         "value": {
           "data": {
             "healthSport": {
+              "dailySteps": 68,
+              "dailyTotalCaloriesText": "示例数据",
               "exerciseCalorieText": "260 千卡",
               "exerciseDurationText": "40分",
               "exerciseEndTimeText": "19:10",
+              "exerciseStartTimeText": "18:30",
               "exerciseTypeName": "户外跑步"
             }
           }

@@ -360,7 +360,8 @@
             {
               "children": [
                 "root_1_1_0_0_0",
-                "root_1_1_0_0_1"
+                "root_1_1_0_0_1",
+                "root_1_1_0_0_2"
               ],
               "component": "Column",
               "id": "root_1_1_0_0",
@@ -380,86 +381,42 @@
               "children": [
                 "root_1_1_0_0_0_0"
               ],
-              "component": "Column",
+              "component": "Row",
               "id": "root_1_1_0_0_0",
               "itemMargin": 4,
               "styles": {
+                "alignItems": "center",
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
-                "justifyContent": "start",
+                "justifyContent": "center",
                 "width": "matchParent"
-              }
-            },
-            {
-              "children": [
-                "root_1_1_0_0_0_0_0",
-                "root_1_1_0_0_0_0_1"
-              ],
-              "component": "Row",
-              "id": "root_1_1_0_0_0_0",
-              "itemMargin": 4,
-              "styles": {
-                "alignItems": "top",
-                "constraintSize": {
-                  "minHeight": 0,
-                  "minWidth": 0
-                },
-                "justifyContent": "start",
-                "width": "matchParent"
-              }
-            },
-            {
-              "component": "Image",
-              "id": "root_1_1_0_0_0_0_0",
-              "src": "resources/base/media/figure_run.svg",
-              "styles": {
-                "fillColor": "#FFFFFFFF",
-                "flexShrink": 0,
-                "height": 20,
-                "objectFit": "contain",
-                "width": 20
               }
             },
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
-              "id": "root_1_1_0_0_0_0_1",
+              "id": "root_1_1_0_0_0_0",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
                   "minWidth": 0
                 },
                 "fontColor": "#99FFFFFF",
-                "fontSize": 12,
+                "fontSize": 16,
                 "fontWeight": 500,
                 "maxLines": 1,
+                "minFontSize": 12,
+                "textAlign": "center",
                 "textOverflow": "ellipsis",
-                "width": "matchParent"
-              }
-            },
-            {
-              "children": [
-                "root_1_1_0_0_1_0",
-                "root_1_1_0_0_1_1"
-              ],
-              "component": "Column",
-              "id": "root_1_1_0_0_1",
-              "itemMargin": 4,
-              "styles": {
-                "constraintSize": {
-                  "minHeight": 0,
-                  "minWidth": 0
-                },
-                "justifyContent": "start",
                 "width": "matchParent"
               }
             },
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/exerciseCalorieText} }}",
-              "id": "root_1_1_0_0_1_0",
+              "id": "root_1_1_0_0_1",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,
@@ -470,15 +427,17 @@
                 "fontWeight": 800,
                 "height": 24,
                 "maxLines": 1,
-                "textOverflow": "ellipsis"
+                "textAlign": "center",
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
               }
             },
             {
               "children": [
-                "root_1_1_0_0_1_1_0"
+                "root_1_1_0_0_2_0"
               ],
-              "component": "Row",
-              "id": "root_1_1_0_0_1_1",
+              "component": "Column",
+              "id": "root_1_1_0_0_2",
               "itemMargin": 4,
               "styles": {
                 "alignItems": "center",
@@ -486,14 +445,31 @@
                   "minHeight": 0,
                   "minWidth": 0
                 },
-                "justifyContent": "start",
+                "justifyContent": "center",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_2_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_2_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
                 "width": "matchParent"
               }
             },
             {
               "component": "Text",
               "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
-              "id": "root_1_1_0_0_1_1_0",
+              "id": "root_1_1_0_0_2_0_0",
               "styles": {
                 "constraintSize": {
                   "minHeight": 0,

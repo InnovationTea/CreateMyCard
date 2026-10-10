@@ -2233,14 +2233,14 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C606",
-    "absent_city+coldLevel": "C607",
-    "absent_city+district": "C608",
-    "absent_coldLevel": "C609",
-    "absent_coldLevel+district": "C610",
-    "absent_district": "C611",
-    "all": "C612",
-    "none": "C613"
+    "absent_city": "C675",
+    "absent_city+coldLevel": "C676",
+    "absent_city+district": "C677",
+    "absent_coldLevel": "C678",
+    "absent_coldLevel+district": "C679",
+    "absent_district": "C680",
+    "all": "C681",
+    "none": "C682"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewCompact@1"

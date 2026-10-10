@@ -151,9 +151,9 @@
   },
   "usage_ranking_condition": {
     "orderedPlanTemplates": [
-      "WeatherOverviewConditionFeelsLikeAlertFull@1",
       "WeatherOverviewHumidityFull@1",
-      "WeatherOverviewUvFull@1"
+      "WeatherOverviewUvFull@1",
+      "WeatherOverviewFull@1"
     ]
   }
 }

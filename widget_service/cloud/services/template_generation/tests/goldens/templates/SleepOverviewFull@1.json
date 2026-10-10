@@ -49,9 +49,7 @@
           },
           {
             "children": [
-              "template_root_0_0",
-              "template_root_0_1",
-              "template_root_0_2"
+              "template_root_0_0"
             ],
             "component": "Column",
             "id": "template_root_0",
@@ -72,21 +70,28 @@
             "children": [
               "template_root_0_0_0",
               "template_root_0_0_1",
-              "template_root_0_0_2"
+              "template_root_0_0_2",
+              "template_root_0_0_3",
+              "template_root_0_0_4"
             ],
             "component": "Column",
             "id": "template_root_0_0",
-            "itemMargin": 8,
+            "itemMargin": 4,
             "styles": {
-              "justifyContent": "start",
-              "layoutWeight": 1,
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "spaceBetween",
               "width": "matchParent"
             }
           },
           {
             "children": [
-              "template_root_0_0_0_0",
-              "template_root_0_0_0_1"
+              "template_root_0_0_0_0"
             ],
             "component": "Row",
             "id": "template_root_0_0_0",
@@ -106,18 +111,6 @@
               "fontSize": 12,
               "fontWeight": 400,
               "maxLines": 1
-            }
-          },
-          {
-            "component": "Image",
-            "id": "template_root_0_0_0_1",
-            "src": "resources/base/media/moon_z_fill_1.svg",
-            "styles": {
-              "fillColor": "#9999521F",
-              "flexShrink": 0,
-              "height": 20,
-              "objectFit": "contain",
-              "width": 20
             }
           },
           {
@@ -160,12 +153,12 @@
           },
           {
             "children": [
-              "template_root_0_1_0",
-              "template_root_0_1_1",
-              "template_root_0_1_2"
+              "template_root_0_0_3_0",
+              "template_root_0_0_3_1",
+              "template_root_0_0_3_2"
             ],
             "component": "Row",
-            "id": "template_root_0_1",
+            "id": "template_root_0_0_3",
             "itemMargin": 4,
             "styles": {
               "alignItems": "center",
@@ -176,7 +169,7 @@
           {
             "component": "Text",
             "content": "睡眠监测评分",
-            "id": "template_root_0_1_0",
+            "id": "template_root_0_0_3_0",
             "styles": {
               "fontColor": "#9999521F",
               "fontSize": 12,
@@ -187,7 +180,7 @@
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/sleepScore} }}",
-            "id": "template_root_0_1_1",
+            "id": "template_root_0_0_3_1",
             "styles": {
               "fontColor": "#FF99521F",
               "fontSize": 12,
@@ -198,7 +191,7 @@
           {
             "component": "Text",
             "content": "分",
-            "id": "template_root_0_1_2",
+            "id": "template_root_0_0_3_2",
             "styles": {
               "fontColor": "#9999521F",
               "fontSize": 12,
@@ -208,11 +201,11 @@
           },
           {
             "children": [
-              "template_root_0_2_0",
-              "template_root_0_2_1"
+              "template_root_0_0_4_0",
+              "template_root_0_0_4_1"
             ],
             "component": "Row",
-            "id": "template_root_0_2",
+            "id": "template_root_0_0_4",
             "itemMargin": 4,
             "styles": {
               "alignItems": "center",
@@ -223,7 +216,7 @@
           {
             "component": "Text",
             "content": "深度睡眠",
-            "id": "template_root_0_2_0",
+            "id": "template_root_0_0_4_0",
             "styles": {
               "fontColor": "#9999521F",
               "fontSize": 12,
@@ -234,7 +227,7 @@
           {
             "component": "Text",
             "content": "{{ ${/data/healthSport/deepSleepDurationText} }}",
-            "id": "template_root_0_2_1",
+            "id": "template_root_0_0_4_1",
             "styles": {
               "fontColor": "#FF99521F",
               "fontSize": 12,

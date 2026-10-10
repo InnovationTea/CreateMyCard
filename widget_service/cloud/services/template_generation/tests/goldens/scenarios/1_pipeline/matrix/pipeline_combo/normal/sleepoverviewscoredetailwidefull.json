@@ -2961,14 +2961,14 @@
     "status"
   ],
   "sampleIds": {
-    "absent_deepDuration": "C512",
-    "absent_deepDuration+napDuration": "C513",
-    "absent_deepDuration+status": "C514",
-    "absent_napDuration": "C515",
-    "absent_napDuration+status": "C516",
-    "absent_status": "C517",
-    "all": "C518",
-    "none": "C519"
+    "absent_deepDuration": "C521",
+    "absent_deepDuration+napDuration": "C522",
+    "absent_deepDuration+status": "C523",
+    "absent_napDuration": "C524",
+    "absent_napDuration+status": "C525",
+    "absent_status": "C526",
+    "all": "C527",
+    "none": "C528"
   },
   "size": "2x4",
   "templateId": "SleepOverviewScoreDetailWideFull@1"

@@ -373,7 +373,7 @@
   "layout": "SingleFocusLayout@1",
   "optionalBindings": [],
   "sampleIds": {
-    "all": "C573"
+    "all": "C642"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewCareAlertFull@1"

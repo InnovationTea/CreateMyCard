@@ -1,7 +1,7 @@
 {
   "recordings": [
     {
-      "key": "68d27fb89d4c781f0e7be910014de185518118cc0ef79140986195f2d23fb1cd",
+      "key": "15551efe8a871e7aef1465a7035ab4f782502ec808c41596876b0813049f2ca8",
       "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"BatteryOverviewStatusSupport@1\", {\"batteryIcon\": \"resources/base/media/bolt_fill.svg\", \"actionId\": \"event.open.settings.battery\"}), Template(\"BluetoothDeviceOverviewChargeSupport@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\"}));"
     },
     {

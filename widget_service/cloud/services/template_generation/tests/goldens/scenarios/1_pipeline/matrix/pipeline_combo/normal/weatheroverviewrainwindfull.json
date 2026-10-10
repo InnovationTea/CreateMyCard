@@ -1993,14 +1993,14 @@
     "windDirection"
   ],
   "sampleIds": {
-    "absent_city": "C1062",
-    "absent_city+district": "C1063",
-    "absent_city+windDirection": "C1064",
-    "absent_district": "C1065",
-    "absent_district+windDirection": "C1066",
-    "absent_windDirection": "C1067",
-    "all": "C1068",
-    "none": "C1069"
+    "absent_city": "C1131",
+    "absent_city+district": "C1132",
+    "absent_city+windDirection": "C1133",
+    "absent_district": "C1134",
+    "absent_district+windDirection": "C1135",
+    "absent_windDirection": "C1136",
+    "all": "C1137",
+    "none": "C1138"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewRainWindFull@1"

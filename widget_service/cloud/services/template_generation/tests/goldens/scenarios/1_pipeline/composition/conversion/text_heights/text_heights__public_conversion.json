@@ -543,12 +543,7 @@
     }
   },
   "CountdownOverviewFull@1::2x2": {},
-  "CountdownOverviewHero@1::2x2": {
-    "template_root_0_1_1": {
-      "after": 16,
-      "before": 16
-    }
-  },
+  "CountdownOverviewHero@1::2x2": {},
   "CountdownOverviewSupport@1::2x2": {},
   "CountdownOverviewTargetCompact@1::2x2": {},
   "CountdownOverviewTargetDetailFull@1::2x2": {
@@ -608,6 +603,14 @@
     "template_root_0_2": {
       "after": null,
       "before": null
+    },
+    "template_root_0_3_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_3_1": {
+      "after": null,
+      "before": null
     }
   },
   "HeartRateOverviewHero@1::2x2": {
@@ -642,6 +645,10 @@
   },
   "HeartRateOverviewMinMaxFull@1::2x2": {
     "template_root_0_0_0_0": {
+      "after": null,
+      "before": null
+    },
+    "template_root_0_0_1_1": {
       "after": null,
       "before": null
     },
@@ -950,23 +957,23 @@
       "after": null,
       "before": null
     },
-    "template_root_0_1_0": {
+    "template_root_0_0_3_0": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_1": {
+    "template_root_0_0_3_1": {
       "after": null,
       "before": null
     },
-    "template_root_0_1_2": {
+    "template_root_0_0_3_2": {
       "after": null,
       "before": null
     },
-    "template_root_0_2_0": {
+    "template_root_0_0_4_0": {
       "after": null,
       "before": null
     },
-    "template_root_0_2_1": {
+    "template_root_0_0_4_1": {
       "after": null,
       "before": null
     }
@@ -1669,11 +1676,7 @@
     }
   },
   "WorkoutOverviewFull@1::2x2": {
-    "template_root_0_0_0_1": {
-      "after": null,
-      "before": null
-    },
-    "template_root_0_1_1_0": {
+    "template_root_0_2_0_0": {
       "after": null,
       "before": null
     }

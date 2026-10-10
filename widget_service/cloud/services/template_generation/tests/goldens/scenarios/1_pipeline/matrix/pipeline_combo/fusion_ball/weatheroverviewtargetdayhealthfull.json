@@ -1490,10 +1490,10 @@
     "district"
   ],
   "sampleIds": {
-    "absent_city": "C1070",
-    "absent_district": "C1071",
-    "all": "C1072",
-    "none": "C1073"
+    "absent_city": "C1139",
+    "absent_district": "C1140",
+    "all": "C1141",
+    "none": "C1142"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewTargetDayHealthFull@1"

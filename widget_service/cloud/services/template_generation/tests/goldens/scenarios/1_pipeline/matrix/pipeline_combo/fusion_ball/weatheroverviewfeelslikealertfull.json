@@ -3113,14 +3113,14 @@
     "district"
   ],
   "sampleIds": {
-    "absent_alertLevel": "C677",
-    "absent_alertLevel+city": "C678",
-    "absent_alertLevel+district": "C679",
-    "absent_city": "C680",
-    "absent_city+district": "C681",
-    "absent_district": "C682",
-    "all": "C683",
-    "none": "C684"
+    "absent_alertLevel": "C746",
+    "absent_alertLevel+city": "C747",
+    "absent_alertLevel+district": "C748",
+    "absent_city": "C749",
+    "absent_city+district": "C750",
+    "absent_district": "C751",
+    "all": "C752",
+    "none": "C753"
   },
   "size": "2x2",
   "templateId": "WeatherOverviewFeelsLikeAlertFull@1"

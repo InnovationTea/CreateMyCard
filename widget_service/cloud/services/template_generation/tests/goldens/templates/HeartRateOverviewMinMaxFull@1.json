@@ -96,7 +96,7 @@
           },
           {
             "component": "Text",
-            "content": "心率监测",
+            "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
             "id": "template_root_0_0_0_0",
             "styles": {
               "fontColor": "#9999521F",
@@ -107,7 +107,8 @@
           },
           {
             "children": [
-              "template_root_0_0_1_0"
+              "template_root_0_0_1_0",
+              "template_root_0_0_1_1"
             ],
             "component": "Row",
             "id": "template_root_0_0_1",
@@ -119,7 +120,7 @@
           },
           {
             "component": "Text",
-            "content": "{{ '' + ${/data/healthSport/exerciseHeartRateMin} + '/' + ${/data/healthSport/exerciseHeartRateMax} }}",
+            "content": "{{ ${/data/healthSport/exerciseHeartRateAvg} }}",
             "id": "template_root_0_0_1_0",
             "styles": {
               "constraintSize": {
@@ -135,7 +136,23 @@
           },
           {
             "component": "Text",
-            "content": "每分钟心率区间",
+            "content": "次/分钟",
+            "id": "template_root_0_0_1_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#9999521F",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ '区间 ' + ${/data/healthSport/exerciseHeartRateMin} + '/' + ${/data/healthSport/exerciseHeartRateMax} + ' 次/分钟' }}",
             "id": "template_root_0_0_2",
             "styles": {
               "constraintSize": {
@@ -210,8 +227,10 @@
         "value": {
           "data": {
             "healthSport": {
+              "exerciseHeartRateAvg": 135,
               "exerciseHeartRateMax": 168,
               "exerciseHeartRateMin": 112,
+              "exerciseTypeName": "示例数据",
               "updatedAt": "今天 09:00"
             }
           }

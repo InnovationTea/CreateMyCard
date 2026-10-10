@@ -1,0 +1,103 @@
+{
+  "content": {
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VDE-AL10 7.0.0.109",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "title": "夜间睡眠",
+    "userQuery": "做个卡片，显示夜间睡眠总时长",
+    "description": "夜间睡眠总时长",
+    "size": "2x2",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "candidateOutputFields": [
+          "/nightSleepDurationText"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sleep"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_sleep"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VDE-AL10",
+    "prdVer": "11.7.8.321",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260930092506628"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "7bf53424-0dda-4950-9968-7742dc812588"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VDE-AL10 7.0.0.109",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "title": "夜间睡眠",
+  "userQuery": "做个卡片，显示夜间睡眠总时长",
+  "description": "夜间睡眠总时长",
+  "size": "2x2",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "candidateOutputFields": [
+        "/nightSleepDurationText"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sleep"
+    }
+  ],
+  "candidateAssetIds": [
+    "asset.emoji_sleep"
+  ]
+}

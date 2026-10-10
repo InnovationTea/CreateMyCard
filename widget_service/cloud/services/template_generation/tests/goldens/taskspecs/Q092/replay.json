@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "a6f54ee8e40903a46a90399a9706e09bea76df3f08928b745e5fa102c3a5936f",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"HeartRateOverviewFull@1\", {}));"
+    },
+    {
+      "key": "dfb1a85acf6d1bbd569d990f940157e01cc19af4fc930a2ff1cbdbd35b2d4427",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseHeartRateAvg\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/exerciseHeartRateAvg\"},\"action\":[]}"
+    }
+  ]
+}
