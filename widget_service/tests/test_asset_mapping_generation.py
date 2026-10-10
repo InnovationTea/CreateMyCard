@@ -30,7 +30,7 @@ def design_source():
         for row in [
             ["root", "Column", {"width": 320, "height": 160, "padding": 12}, ["title", "image"]],
             ["title", "Text", {"content": "天气", "fontSize": 16}],
-            ["image", "Image", {"src": SRC, "width": 20, "height": 20, "fillColor": "#FF1F4799"}],
+            ["image", "Image", {"src": SRC, "width": 20, "height": 20}],
             ["/ui/state", "ready"],
         ]
     )
