@@ -91,6 +91,7 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert top.component_type == "Column"
     assert _options(top).get("itemMargin") == 8
     assert _options(top).get("margin") == {"top": 4}
+    assert _options(top).get("justifyContent") == "start"
     assert _options(top).get("alignItems") == "center"
     assert len(top.children) == 2
     label, time_row = top.children
@@ -104,14 +105,14 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     time = time_row.children[0]
     assert label.values[0] == title
     assert _options(label).get("textAlign") == "center"
-    for text, font_size in ((label, 14), (location, 12)):
+    for text, font_size, min_font_size in ((label, 16, 12), (location, 12, 10)):
         assert _options(text).get("fontSize") == font_size
         assert _options(text).get("maxFontSize") == font_size
-        assert _options(text).get("minFontSize") == 10
+        assert _options(text).get("minFontSize") == min_font_size
         assert _options(text).get("maxLines") == 2
         assert _options(text).get("fontWeight") == 500
     time_size = 24 if with_end else 30
-    time_min_size = 18 if with_end else 24
+    time_min_size = 16 if with_end else 24
     assert _options(time).get("fontSize") == time_size
     assert _options(time).get("maxFontSize") == time_size
     assert _options(time).get("minFontSize") == time_min_size
@@ -157,14 +158,23 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert time_row_styles.get("justifyContent") == "center"
     assert time_row_styles.get("alignItems") == "center"
     assert rows[0].get("children") == [texts[1].get("id")]
-    font_sizes = (14, time_size, 12)
+    top_group = next(
+        component for component in components
+        if component.get("children") == [texts[0].get("id"), rows[0].get("id")]
+    )
+    top_styles = top_group.get("styles")
+    assert isinstance(top_styles, dict)
+    assert top_styles.get("justifyContent") == "start"
+    assert top_styles.get("alignItems") == "center"
+    font_sizes = (16, time_size, 12)
+    min_font_sizes = (12, time_min_size, 10)
     for index, text in enumerate(texts):
         styles = text.get("styles")
         assert isinstance(styles, dict)
         assert styles.get("maxLines") == (1 if index == 1 else 2)
         assert styles.get("fontSize") == font_sizes[index]
         assert styles.get("maxFontSize") == font_sizes[index]
-        assert styles.get("minFontSize") == (time_min_size if index == 1 else 10)
+        assert styles.get("minFontSize") == min_font_sizes[index]
         assert styles.get("textOverflow") == "ellipsis"
         if index == 1:
             assert "height" not in styles
