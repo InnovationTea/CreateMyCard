@@ -21,7 +21,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Text(
     "跨时区日程",
-    {"height": 20, "fontSize": 14, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    {"height": 20, "fontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}}
   ),
   Column(
     {"width": "matchParent", "height": 102, "itemMargin": 1, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},

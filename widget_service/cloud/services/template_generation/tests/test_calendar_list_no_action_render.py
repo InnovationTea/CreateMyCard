@@ -344,8 +344,14 @@ def test_list_templates_keep_every_requested_item_within_300x150(
     header_style = _styles(headers[0])
     assert header_style.get("height") == (16 if case.event_count == 4 else 20)
     assert header_style.get("fontSize") == (12 if case.event_count == 4 else 14)
-    if case.fields == ("description",):
+    if case.event_count == 3:
         assert header_style.get("fontWeight") == 400
+    if "eventLocation" in case.fields:
+        support_styles = _text_styles(content, "/events/0/eventLocation")
+        assert len(support_styles) == 1
+        support_color = support_styles[0].get("fontColor")
+        assert isinstance(support_color, str)
+        assert header_style.get("fontColor") == support_color
     for path in case.required:
         matches = _text_styles(content, path)
         assert len(matches) == 1
