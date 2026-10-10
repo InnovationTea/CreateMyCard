@@ -69,8 +69,8 @@ def test_richer_templates_win_then_equal_usage_keeps_search_order() -> None:
     )
     plans = plan_template_candidates(intent, search, task, registry)
     assert [plan.business_slots[0].template_id for plan in plans] == [
-        "WeatherOverviewHumidityFull@1",
         "WeatherOverviewUvFull@1",
+        "WeatherOverviewHumidityFull@1",
         "WeatherOverviewFull@1",
     ]
     projection = build_ux_mixed_prompt(

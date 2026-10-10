@@ -324,7 +324,11 @@ def test_search_keeps_optional_only_template_and_reports_concise_coverage() -> N
     hero_title = candidates.get("WeatherOverviewHeroTitle@1")
     assert hero_title is not None
     assert hero_title.covered_explicit_fields == weather.explicit_fields
-    assert set(result.model_dump(by_alias=True)) == {"cardSize", "businessCandidates"}
+    assert set(result.model_dump(by_alias=True)) == {
+        "cardSize",
+        "businessCandidates",
+        "droppedCapabilities",
+    }
 
 
 @pytest.mark.parametrize("second_temperature", ("number", "string", "missing"))

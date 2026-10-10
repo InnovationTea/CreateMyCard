@@ -202,6 +202,11 @@ def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
         size="2x2",
         card_spec={"title": "日程", "description": "日程状态", "suggestSize": "2x2"},
         task_spec=_task(sample), protocol_profile=profile, design_profile_id="design-compact-dsl",
+        # 模板来源的 compact DSL（cardtpl tersel -> A2UI -> prepare_template_source_dsl）
+        # 与 generate_widget_card_terse_dsl_nested2 一样跳过模型边界的语义组件门
+        # （widget_generation_service.py 对 template 源亦传 skip_compact_dsl_validation）；
+        # 门本身仍由 test_public_compact_pipeline_rejects_deferred_runtime_if 在公共入口覆盖。
+        skip_compact_dsl_validation=True,
     )
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     assert not result.errors
