@@ -3,6 +3,7 @@
 import copy
 import json
 import math
+import re
 from typing import Any
 
 from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
@@ -93,14 +94,47 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
     )
 
 
-def _layout_geometry(size: str, action_count: int) -> dict[str, Any]:
+def compact_plan_capacity_context(size: str) -> str:
+    """在选型前提供完整容量合同，不依据尚未提交的事实预锁骨架。"""
+    layouts = _layout_geometry(size, None)
+    registered = load_visual_recipe_contract().get("components", {})
+    packing: dict[str, Any] = {}
+    for count in range(1, 5):
+        packing[str(count)] = _packing_options(size, count)
+    payload = {
+        "referenceCanvasOnly": {
+            "width": reference_dimension(size, "width"),
+            "height": reference_dimension(size, "height"),
+        },
+        "layouts": layouts,
+        "recipeParts": _recipe_geometry(size, set(registered)),
+        "ordinaryPackingByItemCount": packing,
+        "contentBudgets": _content_budgets(size, layouts, 2),
+    }
+    return (
+        "# Plan 分区与合组容量合同\n\n"
+        "先确定必要事实和动作，再从 layouts 选一个完整变体；variant 从1开始，"
+        "path 从root子序号开始。提交 composition 的每组事实索引和可见属性落点。"
+        "正文、标题、按钮都计入各区预算，不能将动作放到另一对象或复制填槽。"
+        "布局高度不等于文字高度；recipeParts 是部件，按实际条数/行数/方向合计。"
+        "contentBudgets 已扣区域内边距，不重复扣；独立动作区也不重复预留。"
+        "长日期、地点、状态、带单位读数逐项核对自己列宽，不默认使用双列。"
+        "额外高度留在正文承载区，文字间距与字号保持原设计；"
+        "参考数字仅用于容量核算，区域仍自适应。全区预算不成立时先重选组合再提交。\n\n"
+        f"```json\n{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}\n```"
+    )
+
+
+def _layout_geometry(size: str, action_count: int | None) -> dict[str, Any]:
     layouts = load_layout_contract().get("layouts", {})
     output: dict[str, Any] = {}
     for name, layout in layouts.items():
         if layout.get("size") != size:
             continue
         count = layout.get("actionCount", {})
-        if not count.get("min", 0) <= action_count <= count.get("max", action_count):
+        if action_count is not None and not (
+            count.get("min", 0) <= action_count <= count.get("max", action_count)
+        ):
             continue
         patterns: list[list[dict[str, Any]]] = []
         for pattern in layout.get("patterns", []):
@@ -157,8 +191,14 @@ def _fact_packing(
             item["pressureSampleOnly"] = copy.deepcopy(field.get("sampleValue"))
             item["meaning"] = field.get("description")
         required.append(item)
+    return {"requiredFacts": required, "options": _packing_options(size, len(required)),
+            "warning": "Do not shrink existing focal fonts or discard facts to select an option. "
+                       "Pressure samples are not real device measurements or static bindings. "
+                       "For more than four facts split legal semantic groups and sum all heights."}
+
+
+def _packing_options(size: str, count: int) -> list[dict[str, Any]]:
     options: list[dict[str, Any]] = []
-    count = len(required)
     if 1 <= count <= 4:
         variant = "multiline" if count > 2 else None
         recipe = component_visual_recipe("SecondaryBody", size=size, variant=variant)
@@ -190,10 +230,68 @@ def _fact_packing(
                             "Natural label plus gap plus complete value fits one row; "
                             "use only semantically related attributes"
                         )})
-    return {"requiredFacts": required, "options": options,
-            "warning": "Do not shrink existing focal fonts or discard facts to select an option. "
-                       "Pressure samples are not real device measurements or static bindings. "
-                       "For more than four facts split legal semantic groups and sum all heights."}
+    return options
+
+
+def composition_region_capacity(
+    size: str, layout: str, variant: int, path: list[int],
+) -> dict[str, Any] | None:
+    layouts = _layout_geometry(size, None)
+    patterns = layouts.get(layout, [])
+    if not 1 <= variant <= len(patterns):
+        return None
+    selected = {layout: [patterns[variant - 1]]}
+    for area in _content_budgets(size, selected, 0):
+        if area.get("path") == path:
+            fixed_gap = None
+            for rule in patterns[variant - 1]:
+                if rule.get("path") == path:
+                    fixed_gap = rule.get("fixedProps", {}).get("itemMargin")
+            return {"width": float(area.get("innerWidth")),
+                    "height": float(area.get("innerHeight")), "fixedGap": fixed_gap}
+    return None
+
+
+def composition_group_minimum_height(size: str, group: dict[str, Any]) -> float | None:
+    """核算能够无歧义确定条数的文本组合；其它组件继续由完整合同核算。"""
+    name = group.get("component")
+    if name in {"SingleLineTitle", "PillButton", "CardButton", "CircleButton"}:
+        recipe = component_visual_recipe(name, size=size)
+        return float(recipe.get("parts", {}).get("root", {}).get("styles", {}).get("height"))
+    if name not in {"SecondaryBody", "TableText"}:
+        return None
+    indexes: set[int] = set()
+    for placement in group.get("placements", []):
+        match = re.match(r"items\[(\d+)\]\.", placement)
+        if match is not None:
+            indexes.add(int(match.group(1)))
+    if not indexes or indexes != set(range(len(indexes))):
+        return None
+    count = len(indexes)
+    if name == "TableText":
+        if count not in (2, 3):
+            return None
+        recipe = component_visual_recipe(name, size=size, variant="compact" if count == 3 else None)
+        height = recipe.get("parts", {}).get("row", {}).get("styles", {}).get("height", 0)
+        gap_key = "threeRowGap" if count == 3 else "twoRowGap"
+        return float(count * height + (count - 1) * recipe.get("metrics", {}).get(gap_key, 0))
+    role = group.get("role", "supporting")
+    variant = "body" if role == "body" else "metadata" if role == "metadata" else None
+    if role == "supporting" and count > 2:
+        variant = "multiline"
+    recipe = component_visual_recipe(name, size=size, variant=variant)
+    styles = recipe.get("parts", {}).get("text", {}).get("styles", {})
+    line_height = styles.get("height", 0) / styles.get("maxLines", 1)
+    columns = group.get("columns", 2)
+    lines = group.get("lines", [1] * count)
+    if len(lines) != count:
+        return None
+    height = 0.0
+    for start in range(0, count, columns):
+        height += line_height * max(lines[start:start + columns])
+    rows = math.ceil(count / columns)
+    gap = recipe.get("parts", {}).get("root", {}).get("styles", {}).get("itemMargin", 0)
+    return height + (rows - 1) * gap
 
 
 def _padding_pair(value: Any, axis: str) -> float:

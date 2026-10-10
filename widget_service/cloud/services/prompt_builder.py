@@ -7,7 +7,10 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
-from services.compact_composition_context import compact_composition_context
+from services.compact_composition_context import (
+    compact_composition_context,
+    compact_plan_capacity_context,
+)
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
@@ -1642,7 +1645,8 @@ class PromptBuilder:
         tool = build_compact_plan_tool(task_spec_value)
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         effective_system_prompt = (
-            f"{system_prompt}\n\n# 可用工具合同\n\n{tool_payload}\n\n"
+            f"{system_prompt}\n\n{compact_plan_capacity_context(task_spec.size)}\n\n"
+            f"# 可用工具合同\n\n{tool_payload}\n\n"
             "只输出一个 JSON 工具调用包："
             '{"name":"submit_card_plan","arguments":{...}}。'
             "不要输出 Markdown、解释、Compact DSL 或其它字段。"
