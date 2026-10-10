@@ -1424,9 +1424,11 @@ def test_q004_weather_alert_fields_match_alert_full() -> None:
         _card_spec(),
     )
 
-    assert result.component_candidates[0].available_template_ids == (
+    # 候选元组的顺序随注册表迭代不稳定，多成员一律按排序比较。
+    assert sorted(result.component_candidates[0].available_template_ids) == [
         "WeatherOverviewAlertFull@1",
-    )
+        "WeatherOverviewUpdatedAtFull@1",
+    ]
 
 
 def test_q025_weather_wind_fields_match_wind_hero() -> None:
@@ -1490,10 +1492,11 @@ def test_q025_weather_wind_fields_match_wind_hero() -> None:
 
     # 风况字段同时精确覆盖 WindFull（风向+风力为主数据）与 WindHero 的契约，
     # 两者都进入候选（与 q001 的 Full+Hero 组合一致）。
-    assert result.component_candidates[0].available_template_ids == (
+    assert sorted(result.component_candidates[0].available_template_ids) == [
+        "WeatherOverviewUpdatedAtFull@1",
         "WeatherOverviewWindFull@1",
         "WeatherOverviewWindHero@1",
-    )
+    ]
 
 
 def test_q034_two_weather_bindings_match_dual_city_full() -> None:
@@ -1928,10 +1931,11 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     template_ids = set(result.component_candidates[0].available_template_ids)
     # AlertInfoFull / UpdatedAtFull share Full@1's primary/secondary contract,
     # so the condition-only query matches them too.
+    # UpdatedAtFull 的 updatedAt 已改为必出主数据，本意图不提供 updatedAt，
+    # 不再进入候选。
     assert template_ids == {
         "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
         "WeatherOverviewConditionFeelsLikeAlertFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     }
 
 

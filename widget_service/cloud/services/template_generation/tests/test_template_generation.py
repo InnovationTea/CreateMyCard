@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 234
+    assert len(registry.provider_template_ids) == 235
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -490,9 +490,9 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
             "WeatherOverviewDailyDateFull@1",
             ("/daily/1/condition",),
             ("/daily/1/date", "/daily/1/weekday"),
-            ("/location/districtName",),
+            ("/location/districtName", "/daily/1/temperatureRangeText"),
             ("date", "weekday", "condition"),
-            ("district",),
+            ("district", "temperatureRange"),
         ),
         (
             "WeatherOverviewDailyRainFull@1",
@@ -695,21 +695,20 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
         "/current/windDirection",
         "/current/windLevel",
     )
-    assert definition.secondary_data == (
-        "/location/prefectureName",
-    )
+    assert definition.secondary_data == ()
     assert definition.optional_data == (
         "/updatedAt",
         "/current/temperatureText",
         "/current/condition",
         "/location/cityCode",
+        "/location/prefectureName",
     )
     assert variant.required_bindings == (
-        "city",
         "windDirection",
         "windLevel",
     )
     assert variant.optional_bindings == (
+        "city",
         "updatedAt",
         "temperatureText",
         "condition",
@@ -1200,7 +1199,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3383,7 +3382,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -7357,7 +7356,6 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     weather_full_candidates = [
         "WeatherOverviewFull@1",
         "WeatherOverviewAlertInfoFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
@@ -8282,6 +8280,7 @@ async def test_template_exception_obeys_route_failure_policy(
 
     class ModelClient:
         model_failure_retry_count = 0
+        use_mock = True
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls
@@ -8388,6 +8387,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
 
     class ModelClient:
         model_failure_retry_count = 0
+        use_mock = False
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls

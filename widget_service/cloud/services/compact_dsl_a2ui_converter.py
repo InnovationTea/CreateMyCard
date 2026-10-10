@@ -66,6 +66,10 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
         "Column",
         "Stack",
         "Text",
+        "Image",
+        "Divider",
+        "Progress",
+        "Button",
         "ProgressCircle",
         "PillButton",
         "CircleButton",
@@ -90,9 +94,18 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
     }
 )
 
-# Historical Few-shot and local conversion fixtures may still contain direct Text rows.
-# The live model boundary uses this narrower set and requires semantic text components.
-MODEL_COMPACT_INPUT_COMPONENT_TYPES = COMPACT_INPUT_COMPONENT_TYPES - {"Text"}
+# Historical Few-shot and local conversion fixtures may still contain direct Text rows;
+# template sources additionally expand asset icons, fusion-ball backdrops and low-level
+# controls into raw Image/Divider/Progress/Button rows. The live model boundary uses this
+# narrower set and requires semantic text components (converter-internal types stay
+# non-generatable for the model).
+MODEL_COMPACT_INPUT_COMPONENT_TYPES = COMPACT_INPUT_COMPONENT_TYPES - {
+    "Text",
+    "Image",
+    "Divider",
+    "Progress",
+    "Button",
+}
 _CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),

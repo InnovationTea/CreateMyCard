@@ -116,12 +116,16 @@ def test_wide_full_hero_action_flexes_within_content_budget(template_id):
 
 def test_production_prompt_uses_current_wide_canvas():
     cloud = Path(__file__).resolve().parents[3]
-    prompt = (cloud / "data/protocol_profiles/design-compact-dsl/PROMPT.md").read_text(
-        encoding="utf-8"
+    # #469 起 design-compact-dsl 的 PROMPT.md 被 design-compact-dsl-fusion 的
+    # prompt_source/ 目录取代，宽幅画布规格迁移到 layouts/2x4.md。
+    prompt_source = cloud / "data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
+    prompt = "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(prompt_source.rglob("*.md"))
     )
-    assert "300vp × 150vp" in prompt
-    assert "276vp × 126vp" in prompt
-    assert "59 + 8 + 59 = 126" in prompt
+    assert "300×150vp" in prompt
+    assert "276×126vp" in prompt
+    assert "132 + 12 + 132 = 276vp" in prompt
+    assert "57 + 12 + 57 = 126vp" in prompt
     assert "320vp × 160vp" not in prompt
     assert "296×136" not in prompt
     assert "320×160" not in prompt
