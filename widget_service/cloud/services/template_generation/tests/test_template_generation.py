@@ -1275,13 +1275,13 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
         ("GetHealthAndSportSummary",),
     ) == "2x2-two-support"
     assert registry.theme_reference_values("2x2-two-support") == {
-        "primaryColor": "#E61F4595",
-        "supportContentColor": "#991F4595",
-        "progressColor": "#E61F4595",
-        "progressBackgroundColor": "#330A59F7",
-        "actionStyle.backgroundColor": "#330A59F7",
+        "primaryColor": "#E61F4799",
+        "supportContentColor": "#991F4799",
+        "progressColor": "#E61F4799",
+        "progressBackgroundColor": "#CCFFFFFF",
+        "actionStyle.backgroundColor": "#CCFFFFFF",
         "actionStyle.contentColor": "#E61F4799",
-        "supportContentStyle.backgroundColor": "#1A2E529E",
+        "supportContentStyle.backgroundColor": "#CCFFFFFF",
         "supportContentStyle.borderRadius": 16,
     }
 

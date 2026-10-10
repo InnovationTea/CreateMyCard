@@ -246,7 +246,7 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     assert "CountdownOverviewTravelSupport@1" in output.template_ids
     assert "${/data/weather/daily/2/condition}" in output.a2ui
     assert "${/data/weather/daily/2/temperatureRangeText}" in output.a2ui
-    assert output.a2ui.count('"backgroundColor":"#1A2E529E"') == 2
+    assert output.a2ui.count('"backgroundColor":"#CCFFFFFF"') == 2
     assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
 

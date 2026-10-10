@@ -43,7 +43,10 @@ Generation 测试。
 布局专用主题不进入第一层 LLM 主题候选。Search 只判断业务模板的数据可用性；Planner 可以在两个业务
 分别存在完整覆盖显式字段的 Support 时组成 `TwoSupportLayout`，也可以在完整 HeroTitle + HeroContent +
 单 Action 组合成立时选择对应布局。`2x2-two-support` 由服务端在确定选出两个 Support 业务后按布局和
-能力切换。应用使用时长主题的固定颜色为：
+能力切换。该双业务主题使用朝右下的 `#FFCBDDFE` 到 `#FFF1F6FE` 渐变，主内容及 Action 内容为
+`#E61F4799`，辅助内容为 `#991F4799`；内容块与 Action 背板均为 `#CCFFFFFF`。
+内容块圆角仍为 16vp，整卡边距为 12vp，不启用融球。
+应用使用时长主题的固定颜色为：
 白色底、10% 黑色到透明白色渐变、90% 黑色主内容、60% 黑色辅助内容、蓝色 Action 内容和 10% 蓝色
 Action 背板。天气非融球主题使用 `#FFE5EDFE` 纯色背景，不配置渐变；主内容和 Action 内容为
 `#FF1F4799`，辅助内容为 `#991F4799`，Action 背板为 `#330A59F7`。

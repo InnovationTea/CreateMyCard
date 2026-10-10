@@ -93,12 +93,20 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert _options(top).get("margin") == {"top": 4}
     assert _options(top).get("alignItems") == "center"
     assert len(top.children) == 2
-    label, time = top.children
+    label, time_row = top.children
+    assert time_row.component_type == "Row"
+    assert _options(time_row).get("width") == "matchParent"
+    assert _options(time_row).get("height") == 58
+    assert _options(time_row).get("flexShrink") == 1
+    assert _options(time_row).get("justifyContent") == "center"
+    assert _options(time_row).get("alignItems") == "center"
+    assert len(time_row.children) == 1
+    time = time_row.children[0]
     assert label.values[0] == title
     assert _options(label).get("textAlign") == "center"
-    for text in (label, location):
-        assert _options(text).get("fontSize") == 12
-        assert _options(text).get("maxFontSize") == 12
+    for text, font_size in ((label, 14), (location, 12)):
+        assert _options(text).get("fontSize") == font_size
+        assert _options(text).get("maxFontSize") == font_size
         assert _options(text).get("minFontSize") == 10
         assert _options(text).get("maxLines") == 2
         assert _options(text).get("fontWeight") == 500
@@ -107,8 +115,8 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert _options(time).get("fontSize") == time_size
     assert _options(time).get("maxFontSize") == time_size
     assert _options(time).get("minFontSize") == time_min_size
-    assert _options(time).get("height") == 58
-    assert _options(time).get("flexShrink") == 1
+    assert "height" not in _options(time)
+    assert "flexShrink" not in _options(time)
     assert _options(time).get("maxLines") == 1
     assert "margin" not in _options(time)
     assert _options(time).get("fontWeight") == 800
@@ -140,17 +148,27 @@ def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     assert ("'-'" in expression) is with_end
     assert " - " not in expression
     assert "/events/0/title" not in a2ui
+    rows = [component for component in components if component.get("component") == "Row"]
+    assert len(rows) == 1
+    time_row_styles = rows[0].get("styles")
+    assert isinstance(time_row_styles, dict)
+    assert time_row_styles.get("height") == 58
+    assert time_row_styles.get("flexShrink") == 1
+    assert time_row_styles.get("justifyContent") == "center"
+    assert time_row_styles.get("alignItems") == "center"
+    assert rows[0].get("children") == [texts[1].get("id")]
+    font_sizes = (14, time_size, 12)
     for index, text in enumerate(texts):
         styles = text.get("styles")
         assert isinstance(styles, dict)
         assert styles.get("maxLines") == (1 if index == 1 else 2)
-        assert styles.get("fontSize") == (time_size if index == 1 else 12)
-        assert styles.get("maxFontSize") == (time_size if index == 1 else 12)
+        assert styles.get("fontSize") == font_sizes[index]
+        assert styles.get("maxFontSize") == font_sizes[index]
         assert styles.get("minFontSize") == (time_min_size if index == 1 else 10)
         assert styles.get("textOverflow") == "ellipsis"
         if index == 1:
-            assert styles.get("height") == 58
-            assert styles.get("flexShrink") == 1
+            assert "height" not in styles
+            assert "flexShrink" not in styles
 
 
 def test_meeting_preview_supplies_required_trusted_title() -> None:
