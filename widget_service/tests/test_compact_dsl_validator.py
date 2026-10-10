@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 
+import json
 import re
 from pathlib import Path
 
@@ -480,6 +481,47 @@ def test_accepts_registered_progress_circle_in_fusion_composition() -> None:
             ],
         },
         card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+
+@pytest.mark.parametrize("label_component", ["SingleLineTitle", "SecondaryBody"])
+def test_accepts_adjacent_semantic_metric_label(label_component: str) -> None:
+    label_props = {"fontColor": "#FF563D99"}
+    if label_component == "SingleLineTitle":
+        label_props["title"] = "睡眠得分"
+    else:
+        label_props["role"] = "metadata"
+        label_props["items"] = [{"value": "睡眠得分"}]
+    rows = [
+        ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["label", "value"]],
+        ["label", label_component, label_props],
+        [
+            "value",
+            "EmphasizedData",
+            {"value": {"path": "/data/sleep/score"}, "unit": "分", "fontColor": "#FF563D99"},
+        ],
+        ["/data/sleep/score", 82],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    validate_compact_dsl(
+        source,
+        task_spec={
+            "size": "2x4",
+            "eventCandidates": [],
+            "assetCandidates": [],
+            "dataModelSchema": {
+                "data": {
+                    "sleep": {
+                        "score": {
+                            "type": "integer",
+                            "description": "睡眠得分",
+                            "sampleValue": 82,
+                        }
+                    }
+                }
+            },
+        },
+        card_spec={"suggestSize": "2x4"},
     )
 
 
