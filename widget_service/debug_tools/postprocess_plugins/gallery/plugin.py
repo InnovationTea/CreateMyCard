@@ -162,10 +162,10 @@ class BatchGalleryManager:
         run_dir: Path,
         capture_result: dict[str, Any],
         temporary_dir: Path,
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, Any]]:
         target_root = run_dir / "gallery_captures"
         target_root.mkdir(parents=True, exist_ok=True)
-        result: list[dict[str, str]] = []
+        result: list[dict[str, Any]] = []
         for item in list(capture_result.get("items") or []):
             if not isinstance(item, dict):
                 continue
@@ -178,13 +178,20 @@ class BatchGalleryManager:
                 inside_root = source.is_relative_to(temporary_dir.resolve())
                 if inside_root and source.is_file():
                     shutil.copy2(source, target_root / f"{sample_id}.png")
-                    result.append({"sampleId": sample_id, "status": "success"})
+                    result.append(
+                        {
+                            "sampleId": sample_id,
+                            "status": "success",
+                            "quality": item.get("quality"),
+                        }
+                    )
                     continue
             result.append(
                 {
                     "sampleId": sample_id,
                     "status": "failed",
                     "error": str(item.get("error") or "Web 渲染截图未生成"),
+                    "quality": item.get("quality"),
                 }
             )
         return result
@@ -437,14 +444,32 @@ async def run_builtin(
         sample_id = str(item.get("sampleId") or "")
         sample_status = "success" if item.get("status") == "success" else "failed"
         sample_artifacts: list[dict[str, Any]] = []
+        quality = item.get("quality")
         if sample_status == "success":
+            # 新执行的图片必须留在独立历史目录，后续重跑画廊不能替换旧评分配图。
+            image_target = _output_dir / f"{sample_id}.png"
+            image_target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(manager.capture_path(run_id, sample_id), image_target)
+            execution_id = _output_dir.parent.parent.name
+            image_url = (
+                f"/debug/batch/runs/{quote(run_id, safe='')}/postprocess/"
+                f"{quote(execution_id, safe='')}/assets/browser-gallery/"
+                f"{quote(image_target.name, safe='')}"
+            )
+            if isinstance(quality, dict):
+                quality = dict(quality)
+                quality["imageRunPath"] = image_target.relative_to(
+                    manager.output_root / run_id
+                ).as_posix()
             sample_artifacts.append(
                 {
                     "key": "browser-capture",
-                    "url": manager.capture_url(run_id, sample_id),
+                    "url": image_url,
                     "alt": f"{sample_id} Web 渲染截图",
                 }
             )
+        if isinstance(quality, dict):
+            sample_artifacts.append({"key": "web-quality-evidence", "data": quality})
         sample_results.append(
             {
                 "sampleId": sample_id,

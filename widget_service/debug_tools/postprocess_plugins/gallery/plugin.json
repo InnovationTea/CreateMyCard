@@ -2,11 +2,18 @@
   "apiVersion": "batch-postprocess-v2",
   "id": "browser-gallery",
   "name": "浏览器渲染画廊",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "通过浏览器渲染全部样本，并生成内嵌截图、可离线打开的 HTML 画廊。",
   "entrypoint": "builtin",
   "dependence": [],
   "outputs": [
+    {
+      "key": "web-quality-evidence",
+      "scope": "sample",
+      "title": "Web 质量检测证据",
+      "dataType": "json",
+      "required": false
+    },
     {
       "key": "browser-capture",
       "scope": "sample",
