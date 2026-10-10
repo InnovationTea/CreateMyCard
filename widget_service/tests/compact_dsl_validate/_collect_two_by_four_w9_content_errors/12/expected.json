@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 multi-day weather backboard left must not insert Divider components between compact day rows."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "635e34114b34655deaec33c04cd93385e1d8c165ba055d1267ca8f099113cd24",
+    "sample_task_spec.json": "770c20215f6b2baa4f15d67bb9864b539cc5916bc925956297e59a0e9c0affed",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

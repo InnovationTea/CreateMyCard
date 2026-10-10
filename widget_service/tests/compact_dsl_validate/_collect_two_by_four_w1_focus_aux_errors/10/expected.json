@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 may contain at most two Text nodes. Merge its auxiliary information."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "b40a890d710def09e2465b204184b8a63f4eaaf6444dc65b1ea6d933966871b3",
+    "sample_task_spec.json": "0154f5d423ee4fb93a8c943171eb2cdfe73710b7cbf1c4a963a7a543a0c01c7e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

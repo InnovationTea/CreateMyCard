@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard left action must be 114x36."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "dfd61fc4ca39b4a9349b4518b28f17c1fc6efc2b5a08b9675cdcc4498d31c2e7",
+    "sample_task_spec.json": "7b54e4f27ca0280ab7b987c17a57d5c857d95de112b7da6afe9613bfaa0e652a",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

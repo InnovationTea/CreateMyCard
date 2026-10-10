@@ -80,8 +80,9 @@ class JsxA2UIBridge:
             request_timeout=resolved.request_timeout,
             max_validation_repairs=resolved.browser_fallback_after,
             browser_validation=resolved.browser_validation,
+            python_validation=resolved.python_validation,
             validation_enabled=resolved.validation_enabled,
-            # 与 phone 入口一致：几何检查交给浏览器，不启用 Python 尺寸估算。
+            # 旧预算开关保持停用；新 Python 校验由 python_validation 独立控制。
             layout_budget_validation=False,
             validate_dynamic_values=resolved.validate_dynamic_values,
             enable_dynamic_data_binding=resolved.enable_dynamic_data_binding,
@@ -216,6 +217,15 @@ class JsxA2UIBridge:
                 "task": prompt_task,
                 "status": "failed" if error is not None else "completed",
                 "loaded_resources": trace_data.get("loaded_resources", []),
+                "prompt_source_files": result.get(
+                    "prompt_source_files", trace_data.get("prompt_source_files", [])
+                ),
+                "repair_prompt_loaded": result.get(
+                    "repair_prompt_loaded", trace_data.get("repair_prompt_loaded", False)
+                ),
+                "repair_source_files": result.get(
+                    "repair_source_files", trace_data.get("repair_source_files", [])
+                ),
                 "reasoning_trace": trace_data.get("reasoning_trace", []),
                 "turn_trace": trace_data.get("turn_trace", []),
                 "validation_reports": trace_data.get("validation_reports", []),
@@ -235,6 +245,7 @@ class JsxA2UIBridge:
                 "tool_argument_repairs": result.get("tool_argument_repairs", 0),
                 "protocol_retries": result.get("protocol_retries", 0),
                 "browser_validation": result.get("browser_validation", "unknown"),
+                "python_validation": result.get("python_validation", "unknown"),
                 "validation_mode": result.get("validation_mode", "unknown"),
                 "layout_budget_validation": result.get(
                     "layout_budget_validation",
@@ -294,6 +305,9 @@ class JsxA2UIBridge:
             "turn_trace",
             "loaded_resources",
             "resource_reads",
+            "prompt_source_files",
+            "repair_prompt_loaded",
+            "repair_source_files",
             "validation_reports",
             "plan",
             "decision",

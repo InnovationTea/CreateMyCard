@@ -1,0 +1,5 @@
+["root","Column",{"width":"matchParent","height":"matchParent"},["action_area"]]
+["action_area","Column",{"width":136,"height":36},["action"]]
+["action","Row",{"width":96,"height":36,"padding":8,"borderRadius":18,"itemMargin":8,"justifyContent":"center","alignItems":"center","onClick":[{"call":"clickToIntent","args":{"intentName":"Open"}}]},["icon","label"]]
+["icon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799"}]
+["label","Text",{"content":"打开","fontSize":14,"maxLines":1}]

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 countdown must be displayed as ordinary 14fp/700 primary text inside its backboard; do not reuse the V01 30fp/38fp hero or standalone countdown group."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "26a39510f01dc83694fcf8aacc50b80276c9309ae7452bde4efac9c1788efff4",
+    "sample_task_spec.json": "5ccfc29de2c51a8ec4c7b5cded52fde3c156f1d9fbb8d9215de563c4053f73a4",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

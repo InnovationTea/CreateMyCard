@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 compact ring group root must use alignItems \"center\" so the ring and its single status line remain horizontally centered."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9a1743626a8ace1f4f1b5cf2c4f8d45a9d330fdb3d5cd142532cd21b3fe55f71",
+    "sample_task_spec.json": "8ca5e9e26eb2ed07dd85d31491de1f6f8c60003ecc497b2719018cea779bef16",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

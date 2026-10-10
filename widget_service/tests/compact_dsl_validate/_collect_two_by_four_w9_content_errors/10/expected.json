@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 countdown value left1 must not share a Row with unit `天`; keep the single unit below the numeric hero."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "60b1b93b2f56a743d5bc62af045ba503dc0e1e46bdd98b8a1351fd82e9cbfedd",
+    "sample_task_spec.json": "366d69805a1b953cbb33e0c88d916c0def0d0fde00fdcb0c729d02bf9aa3d159",
+    "sample_card_spec.json": "21876ba5647241226dbf524779d39679ce1b40a5ae1e106512a567b16ca01a20"
+  }
+}

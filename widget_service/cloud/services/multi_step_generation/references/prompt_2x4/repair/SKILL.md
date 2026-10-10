@@ -54,4 +54,4 @@ description: 收到合同、绑定或浏览器校验反馈后，按错误层级�
 3. 依据组件实际宽高和标题高度检查容量，紧凑模式不以截断地点、设备名等必要信息换取通过。
 4. JSX 只包含 Card、Region 与直属业务组件，不输出或复制程序展开的 Stack/Grid。正常修复保持上一版合法布局；只有布局类 findings 或 Runner 明确进入布局兜底阶段时，才允许更换语义布局标识，decision 由 Runner 自动派生。
 
-新增或恢复组件时重新检查内容关系：核心在上、辅助沉底时使用双内容 variant，两个模块直接放在 Region 下；仅恰好三个紧凑占比使用 `NumericRatioStack`，一项或两项必须改选其他组件。更换布局不得删除 Info Plan 冻结的事实、绑定或 Action。
+新增或恢复组件时重新检查内容关系：核心在上、辅助沉底时使用双内容 variant，两个模块直接放在 Region 下；仅恰好三个紧凑占比使用 `NumericRatioStack`，一项或两项必须改选其他组件。普通修复与 compact 不得删除 Info Plan 冻结的事实或绑定；仅 Runner 明确进入 drop 时可依专用反馈省略一个非 Action 业务显示组件并记为 partial，任何阶段都不得删除 Action。

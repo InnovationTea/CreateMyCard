@@ -317,6 +317,20 @@ def _components(a2ui: str) -> list[dict[str, Any]]:
     raise AssertionError("A2UI 缺少 updateComponents")
 
 
+_EXPECTED_COMPLETE: dict[str, set[str]] = {
+    "Q018": {
+        "ScheduleOverviewLocationHero@1",
+        "ScheduleOverviewMeetingEntryHero@1",
+        "ScheduleOverviewMeetingSenderFull@1",
+    },
+    # Q035 不提供 /events/0/isAllDay，因此只补齐 Hero；Full 变体的次要数据
+    # 含 isAllDay（schedule-overview.cardtpl 时间轴的全天文案行），不再完整。
+    "Q035": {
+        "ScheduleOverviewEventCountDetailsHero@1",
+    },
+}
+
+
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
 def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) -> None:
     task = _task(case)
@@ -331,7 +345,7 @@ def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) ->
     complete_template_ids = set(candidate.available_template_ids)
     for group in selection.required_template_groups:
         complete_template_ids.intersection_update(group)
-    expected_ids = {case.template_id}
+    expected_ids = set(_EXPECTED_COMPLETE.get(case.case_id, {case.template_id}))
     if case.case_id == "Q024":
         expected_ids.add("ScheduleOverviewReminderDetailsFull@1")
     assert complete_template_ids == expected_ids
@@ -351,13 +365,22 @@ def test_real_case_retrieves_and_projects_target_template(case: CalendarCase) ->
     assert set(_PROJECTED_FIELDS[case.case_id]) <= set(calendar)
 
 
+# 一键入会链接（/events/0/oneClickServiceLink）只进入这些模板的绑定契约
+# （provider.json optionalData），由动作参数按字面复制消费，模板内不展示。
+_JOIN_LINK_CONTRACT_TEMPLATES = frozenset({"LocationHero", "TitleHero"})
+
 _CONTRACTS = {
     "TwoEventsFull": ("/events/0/title /events/1/title|/events/0/dtStart /events/1/dtStart|"),
     "LocationDescriptionEndFull": (
         "/events/0/description|/events/0/dtEnd /events/0/eventLocation|"
     ),
-    "LocationHero": "/events/0/eventLocation /events/0/dtStart||/events/0/dtEnd",
-    "TitleHero": "/events/0/title /events/0/dtStart||/events/0/dtEnd",
+    "LocationHero": (
+        "/events/0/eventLocation /events/0/dtStart||/events/0/dtEnd /events/0/oneClickServiceLink"
+    ),
+    "TitleHero": (
+        "/events/0/title /events/0/dtStart||"
+        "/events/0/dtEnd /events/0/startDate /events/0/countdownDays /events/0/oneClickServiceLink"
+    ),
     "ReminderDetailsHero": (
         "/events/0/senderName|/events/0/importantEventType /events/0/remindTime/0 /updatedAt|"
     ),
@@ -369,6 +392,9 @@ _CONTRACTS = {
     ),
     "EventCountDetailsHero": (
         "/eventCount /events/0/title|/events/0/dtStart /events/0/description|"
+    ),
+    "EventCountDetailsFull": (
+        "/eventCount /events/0/title|/events/0/dtStart /events/0/isAllDay|/events/0/description"
     ),
     "DatedAllDayHero": "/events/0/startDate /events/0/title|/events/0/isAllDay|",
 }
@@ -387,7 +413,10 @@ def test_new_template_provider_contract_is_exact(suffix: str) -> None:
     assert definition.optional_data == optional
     declared = {*primary, *secondary, *optional}
     assert "/events/0/entityId" not in declared
-    assert "/events/0/oneClickServiceLink" not in declared
+    # entityId 只作为动作参数消费；一键入会链接仅在上游声明了它的模板契约中出现。
+    assert ("/events/0/oneClickServiceLink" in declared) is (
+        suffix in _JOIN_LINK_CONTRACT_TEMPLATES
+    )
 
 
 @pytest.mark.parametrize("suffix", ("Title", "Location"))
@@ -422,7 +451,9 @@ def test_title_and_location_are_mutually_exclusive_for_new_hero_templates() -> N
     complete = set(selection.component_candidates[0].available_template_ids)
     for group in selection.required_template_groups:
         complete.intersection_update(group)
-    assert complete == {"ScheduleOverviewNextEventLocationFull@1"}
+    assert complete == {
+        "ScheduleOverviewNextEventLocationFull@1",
+    }
 
 
 def test_q006_keeps_two_event_indices_distinct_and_rejects_short_array() -> None:

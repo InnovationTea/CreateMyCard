@@ -244,7 +244,7 @@ def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
                     "width": 276,
                     "height": 64,
                     "content": "Static card",
-                    "fontSize": 20,
+                    "fontSize": 18,
                     "fontWeight": 700,
                     "fontColor": "#E5000000",
                     "maxLines": 1,

@@ -1,0 +1,18 @@
+#Template PlaylistCompactAction@1(props: { actionId: string, label: string, icon: asset })
+data = {}
+Stack({"width": "matchParent", "height": "matchParent", "borderRadius": 16,
+  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+  "onClick": EventAction(props.actionId)},
+  Row({"width": "matchParent", "height": "matchParent", "padding": 8,
+    "itemMargin": 8, "alignItems": "center"},
+    Column({"layoutWeight": 1, "itemMargin": 2},
+      Text("30 首", {"width": "matchParent", "height": 22, "fontSize": 16,
+        "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text(props.label, {"width": "matchParent", "height": 14, "fontSize": 10,
+        "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1})
+    ),
+    Image(props.icon, {"width": 24, "height": 24, "objectFit": "contain",
+      "flexShrink": 0, "fillColor": $theme('primaryColor')})
+  )
+)
+#End

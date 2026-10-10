@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: capsule ActionUnit.label must be a non-empty string."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "aaa0d62ac15a51a743b97a243bf8b38f9ab91b3aa6b6b4afd89c365c359e1e5b",
+    "sample_task_spec.json": "c9b64440706735ca7476a46aba48f1a6bc91d29067d8943a301b327ee633b69c",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component cta: ActionUnit.onClick is required."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "cfb53d4822748a7b3f0b0a5611a105e0971252b7e7f2361f99fe699bb6f9552b",
+    "sample_task_spec.json": "e5265f7f77dcd449521a1d26f36b3372a500b994d4c61de69fac5bafba46efca",
+    "sample_card_spec.json": "5e58d75376b3f287aa6a1e6ff33e041a0d6795f4704c9fadcf5cafd2dd6cab73"
+  }
+}

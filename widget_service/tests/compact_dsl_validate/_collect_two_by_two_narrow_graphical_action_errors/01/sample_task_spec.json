@@ -1,0 +1,19 @@
+{
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "Open"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/icon.svg"
+    }
+  ]
+}

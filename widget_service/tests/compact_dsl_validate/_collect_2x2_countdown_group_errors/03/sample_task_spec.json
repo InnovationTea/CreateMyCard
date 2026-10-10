@@ -1,0 +1,16 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "countdownDays": {
+          "type": "integer",
+          "sampleValue": 10
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示倒计时"
+}

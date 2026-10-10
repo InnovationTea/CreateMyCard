@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 small backboard weather may contain at most two Text nodes. Keep one primary line and one supporting line instead of clipping a third line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1683c2329a9695964433b0899c7b88bdc9a65a2aec4dec0c683f1808db3a2834",
+    "sample_task_spec.json": "28ce177fe42ea97dd7cda3edc4ff3d12ff1ecddba225749a08a5a0c7a8e7c632",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

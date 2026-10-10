@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component status: boolean field(s) /data/device/isConnected must be mapped to user-facing Text with a conditional expression; do not display raw true/false."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "aead92d23cddb09c94ff7d39900a15857849ab2a8589182694b9b0059538db1e",
+    "sample_task_spec.json": "3df40045f7d52b909909aee524a237744c5a99d0c6320c1d0f674fc7953be6b6",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

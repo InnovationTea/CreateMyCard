@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 countdown with an action or additional visible data must place the countdown number in a left-aligned value_row; do not keep the V01 centered vertical number/unit layout."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "915d2cfc33b202863f186f7ca58ba5bde83c961ad254a29d4bd4fc008f9891d2",
+    "sample_task_spec.json": "c627718685330a30e4256c2ded5c2c5190d38b70817bbe370fb5e59bd287545f",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

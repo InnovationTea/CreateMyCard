@@ -9,7 +9,7 @@ from typing import Any
 TOP_LEVEL_2X2_TYPES = frozenset(
     {"0", "1", "2", "3", "6", "10-A", "10-B", "12", "14", "15"}
 )
-TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15", "15-R"})
+TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15"})
 FIXED_SLOT_COMPONENTS = frozenset({"CardButton", "InfoBlock"})
 
 # Public names are the exact labels exposed to the generation model. The
@@ -32,30 +32,9 @@ LAYOUT_PATTERN_2X4_CODES = {
     "左右双区": "13",
     "四槽宫格": "14",
     "左内容右侧双槽": "15",
-    "左侧双槽右内容": "15-R",
 }
-SUB_PATTERN_2X4_GROUPS = {
-    "Sub-118-A 核心居中": "118",
-    "Sub-118-B 标题单内容": "118",
-    "Sub-118-C 标题双内容": "118",
-    "Sub-118-D 标题内容单按钮": "118",
-    "Sub-118-E 标题双列内容可选按钮": "118",
-    "Sub-118-F 内容双按钮": "118",
-    "Sub-140-A 核心居中": "140",
-    "Sub-140-B 标题单内容": "140",
-    "Sub-140-C 标题内容单按钮": "140",
-    "Sub-140-D 标题双列内容可选按钮": "140",
-    "Sub-140-E 上下双信息块": "140",
-    "Sub-140-F 标题主次内容单按钮": "140",
-    "Sub-140-G 标题双内容": "140",
-    "Sub-140-H 内容四宫格": "140",
-    "Sub-140-I 标题双列内容可选按钮": "140",
-    "Sub-140-J 内容双按钮": "140",
-}
-
 LAYOUT_PATTERN_2X2_NAMES = tuple(LAYOUT_PATTERN_2X2_CODES)
 LAYOUT_PATTERN_2X4_NAMES = tuple(LAYOUT_PATTERN_2X4_CODES)
-SUB_PATTERN_2X4_NAMES = tuple(SUB_PATTERN_2X4_GROUPS)
 
 _LAYOUT_PATTERN_2X2_NAMES_BY_CODE = {
     code: name for name, code in LAYOUT_PATTERN_2X2_CODES.items()
@@ -631,7 +610,7 @@ def _type13_parent_errors(
         region = "left" if index == 0 else "right"
         if child.props.get("surface") != "backplate":
             errors.append(
-                f'2x4 layout "左右双区" {region} Sub-118 region requires a backplate'
+                f'2x4 layout "左右双区" {region} compact region requires a backplate'
             )
         for axis, expected in (("width", 132), ("height", 126)):
             value = preferred_axis_size(child, root, axis)
@@ -644,7 +623,7 @@ def _type13_parent_errors(
         inner = child.child_elements()
         if len(inner) != 1 or inner[0].tag != "Stack":
             errors.append(
-                f'2x4 layout "左右双区" {region} backplate requires one 116 × 110vp Sub-118 container'
+                f'2x4 layout "左右双区" {region} backplate requires one compact content container'
             )
             continue
         content = inner[0]

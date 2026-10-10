@@ -1,0 +1,16 @@
+{
+  "size": "4x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "windLevel": {
+          "type": "integer",
+          "description": "当前风速档位",
+          "sampleValue": 2
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component title: action-like Text '点击打开' has no clickable ancestor. Bind the matching event to its action slot or remove the action wording."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "3efd8341f3ea667e6e18669cb297e1249302f3df8a86d8fb7a18bd85966fcc8e",
+    "sample_task_spec.json": "50ccf7c5716a8a3a7e97c0212efb80595bcbf246fcdcaf5fea0e688285e632d6",
+    "sample_card_spec.json": "003ff3d88dedd65c7feaf3ce26e6a8d13e9838eec0bb7fa4651951ec57ccb413"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "genui": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"header_icon\"],\"itemMargin\":4,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"linearGradient\":{\"angle\":180,\"colors\":[[\"#FFE3F4F2\",0],[\"#FFF1FCFA\",1]]},\"justifyContent\":\"spaceBetween\",\"alignItems\":\"center\"}},{\"id\":\"header_icon\",\"component\":\"Image\",\"src\":\"{{ ${/data/assetPath} }}\",\"styles\":{\"width\":20,\"height\":20,\"objectFit\":\"contain\",\"fillColor\":\"#FF1F8A7A\",\"flexShrink\":0}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"assetPath\":\"resources/base/media/local_fill.svg\"}}}}",
+  "effectiveCapabilities": {
+    "data": [
+      {
+        "id": "Data",
+        "writeResultTo": "/data"
+      }
+    ],
+    "event": [],
+    "asset": [
+      {
+        "id": "resources/base/media/local_fill.svg",
+        "src": "resources/base/media/local_fill.svg"
+      }
+    ]
+  }
+}
