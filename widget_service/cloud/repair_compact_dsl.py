@@ -13,6 +13,7 @@ from config.config import get_settings
 from custom.a2ui_model_client import A2UIModelClient
 from models.artifact import WidgetArtifact
 from models.generation import TaskSpec
+from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessingResult,
@@ -78,12 +79,14 @@ async def repair_compact_dsl(
     artifact_path: str | Path,
     *,
     max_repair_attempts: int | None = None,
+    repair_context: RepairGuidanceContext | None = None,
 ) -> CompactDslRepairResult:
     """从完整结果件复用第四接口上下文，修复其中的 Design Compact DSL。"""
     source = load_compact_dsl_artifact(artifact_path)
     return await _repair_compact_dsl_source(
         source,
         max_repair_attempts=max_repair_attempts,
+        repair_context=repair_context,
     )
 
 
@@ -91,6 +94,7 @@ async def _repair_compact_dsl_source(
     source: CompactDslArtifactSource,
     *,
     max_repair_attempts: int | None = None,
+    repair_context: RepairGuidanceContext | None = None,
 ) -> CompactDslRepairResult:
     """执行与第四接口一致的 prompt、转换、校验和 repair 链路。"""
     compact_dsl = source.compact_dsl
@@ -125,6 +129,7 @@ async def _repair_compact_dsl_source(
         task_spec=task_spec_value,
         protocol_profile=design_protocol,
         design_profile_id=design_profile_id,
+        repair_context=repair_context,
     )
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
     latest_dsl = ""

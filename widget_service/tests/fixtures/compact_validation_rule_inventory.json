@@ -1,0 +1,2360 @@
+{
+  "baselineCommit": "9d567c5f994903882802dab620171d010124ad90",
+  "sourceSha256": "43f4a940390993db8b028388cb120a09c2cf52d92a14e479ef22689523d7ca78",
+  "sites": [
+    {
+      "legacyAstSha256": "56a0b4ff3b21a2be5656aae6d2c953cebd5b78d1827cc313240507d3482c3e71",
+      "observation": "OBS-L290",
+      "originalFunction": "_collect_asset_source_errors",
+      "module": "semantic/effective.py",
+      "function": "_collect_asset_source_errors",
+      "code": "COMPACT_ASSET_NOT_ALLOWED",
+      "category": "effective",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[asset-outside-candidates]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "55c2a067a37eff74e0284069c7d9a6d8186c89657035260d0fc2472bd7169fcb",
+      "observation": "OBS-L332",
+      "originalFunction": "_collect_asset_color_errors",
+      "module": "semantic/layout/assets.py",
+      "function": "_collect_asset_color_errors",
+      "code": "COMPACT_SVG_FILL_COLOR_MISSING",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_overloaded_fusion_composition",
+        "tests/test_compact_dsl_validator.py::test_rejects_tintable_card_header_svg_without_fill_color",
+        "tests/test_compact_dsl_validator.py::test_rejects_tintable_svg_image_without_fill_color"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a6e5c1779c1f7b587f2e7e1951dbe944042383332567b86fc85d75c1a966ceaf",
+      "observation": "OBS-L391",
+      "originalFunction": "_collect_hero_value_errors",
+      "module": "semantic/layout/typography.py",
+      "function": "_collect_primary_value_errors",
+      "code": "COMPACT_LAYOUT_PRIMARY_TEXT_ELIGIBILITY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dual_action.py::test_rejects_invalid_s3_slots[font]",
+        "tests/test_compact_hero_typography.py::test_invalid_template_marker_keeps_hero_validation[dangling]",
+        "tests/test_compact_hero_typography.py::test_invalid_template_marker_keeps_hero_validation[duplicate]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "fa0b623927c03702cb33ef933dc8966c8ca9238de083e018bea471d8804a2e1a",
+      "observation": "OBS-L406",
+      "originalFunction": "_collect_hero_value_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_hero_suffix_errors",
+      "code": "COMPACT_DISPLAY_FORMATTED_VALUE_SUFFIX",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[formatted-hero-suffix]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "00c816957505050418ebdb3d3ccebe4349ee2128613941b3dd9b4001e4b4a236",
+      "observation": "OBS-L425",
+      "originalFunction": "_collect_hero_value_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_hero_suffix_errors",
+      "code": "COMPACT_DISPLAY_HERO_SUFFIX_UNIT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_hero_typography.py::test_invalid_template_marker_keeps_hero_validation[dangling]",
+        "tests/test_compact_hero_typography.py::test_invalid_template_marker_keeps_hero_validation[duplicate]",
+        "tests/test_compact_hero_typography.py::test_invalid_template_marker_keeps_hero_validation[missing]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "57f99d0718a0b82df21359821cff1a352bc577bd3fded3d73497f44cf0dc6f4c",
+      "observation": "OBS-L461",
+      "originalFunction": "_collect_two_by_two_weather_date_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_two_by_two_weather_date_errors",
+      "code": "COMPACT_DISPLAY_WEATHER_DATE_WEEKDAY",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[weather-date-weekday]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "de5af1a10dd1887c8610803929877584bd6511b340f486754126661d3d63aa95",
+      "observation": "OBS-L763",
+      "originalFunction": "_collect_adjacent_display_unit_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_non_numeric_primary_suffix_error",
+      "code": "COMPACT_DISPLAY_NON_NUMERIC_PRIMARY_SUFFIX",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[adjacent-string-30]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d9730ee635205072995037a8f662eb3d82005d1ab1684660ed5f88df17a65823",
+      "observation": "OBS-L825",
+      "originalFunction": "_collect_adjacent_display_unit_errors",
+      "module": "semantic/layout/typography.py",
+      "function": "_collect_numeric_unit_alignment_errors",
+      "code": "COMPACT_LAYOUT_NUMERIC_UNIT_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[adjacent-number-30]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ab7a573a1c4a05e2455dc25e5fbfceee8b374811763025cd041bcd928811fd04",
+      "observation": "OBS-L836",
+      "originalFunction": "_collect_adjacent_display_unit_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_non_numeric_display_unit_error",
+      "code": "COMPACT_DISPLAY_UNIT_ON_NON_NUMERIC",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[adjacent-string-12]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "69b4fe7facef7967ed13687724576b806273c75350c2b4c7b71e1ade3ea49d45",
+      "observation": "OBS-L1130",
+      "originalFunction": "_collect_mixed_font_row_alignment_errors",
+      "module": "semantic/layout/typography.py",
+      "function": "_collect_mixed_font_row_alignment_errors",
+      "code": "COMPACT_LAYOUT_MIXED_FONT_ROW_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[mixed-font-row]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "eed67fb88cbd0fc05ade67ee78519e6d3c824f13995402a6d9cba4c9a308aea3",
+      "observation": "OBS-L1154",
+      "originalFunction": "_collect_mixed_font_row_alignment_errors",
+      "module": "semantic/layout/typography.py",
+      "function": "_collect_mixed_font_row_alignment_errors",
+      "code": "COMPACT_LAYOUT_MIXED_FONT_PADDING",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[mixed-font-row]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8ee2a83097be43157b55fd186c2f49a59034bdffa5fdda8192f25d8ebb3e0532",
+      "observation": "OBS-L1203",
+      "originalFunction": "_collect_two_by_four_small_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_SMALL_TEXT_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[small-Column-False-3-None]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6354a4f791b7b71b34ceb17c7e6f3ff5d2ee48876991d27948d5a664fa2e2fcb",
+      "observation": "OBS-L1214",
+      "originalFunction": "_collect_two_by_four_small_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_SMALL_VISUAL_ROW",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[small-Column-True-2-None]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d1f293adf4ec646b0a2dae81997852a6796bdd7e25c3ce256e6c4be627e8de92",
+      "observation": "OBS-L1221",
+      "originalFunction": "_collect_two_by_four_small_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_SMALL_TEXT_COLUMN",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[small-Row-False-2-None]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a8b9cd26401b7f05576724d4c085995fdfe83c6824513af8ccaddf012cdf6d9e",
+      "observation": "OBS-L1227",
+      "originalFunction": "_collect_two_by_four_small_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_small_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_SMALL_TEXT_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[small-Column-False-3-None]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "9eb898f5f694b279d76db93309b08ade6e652389a649b88eb9efde1bb29588a3",
+      "observation": "OBS-L1320",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_ORDER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-order]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "b40c2706bdc396346c7f88cf04ab23fadb3e7b2ea4bdf888c49af63c1123ecbf",
+      "observation": "OBS-L1328",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_SIZE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-size]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "72dae7f6c2d068e0656fca6a6b557ea03c85fd8cf97c0289847bda272fa873af",
+      "observation": "OBS-L1337",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_STRUCTURE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-siblings]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d9dd3364388f0c97b584454a633d74f3042d7f5fee89ab5f158c0f17119a0fd1",
+      "observation": "OBS-L1344",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_CONTENT_TYPE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-order]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-missing]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a35090ed14b0252f6f82aeb98f400364704a6ad866277e6e1f561825b86e92c3",
+      "observation": "OBS-L1349",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_CONTENT_WEIGHT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-weight-and-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d9bc3496e9e0f9d010559f3bddcba8635dcf7ba81a8d4eacaa03bae98a1f888a",
+      "observation": "OBS-L1354",
+      "originalFunction": "_collect_two_by_four_action_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_TEXT_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-weight-and-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "69f41095e08cb520a00a5d49a4e8cfcd6c957b65bd9c201359e6ea3c5609fa2c",
+      "observation": "OBS-L1374",
+      "originalFunction": "_collect_two_by_four_action_row_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_action_row_errors",
+      "code": "COMPACT_LAYOUT_2X4_ACTION_ROW_LAYOUT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-backboard-graphical]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "93065940d172dd3efdfadfbb5a0d157a38e6352d4e4f9bb41689d889142e32fb",
+      "observation": "OBS-L1423",
+      "originalFunction": "_collect_two_by_two_narrow_graphical_action_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_narrow_graphical_action_errors",
+      "code": "COMPACT_LAYOUT_2X2_NARROW_ACTION_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_narrow_2x2_graphical_action_without_parent_centering",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case11]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "4fee0583d0bab26fd1accae7b7e1c906f929a184809aeca40b087f0b0411cf3e",
+      "observation": "OBS-L1454",
+      "originalFunction": "_collect_two_by_four_full_width_action_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "code": "COMPACT_LAYOUT_2X4_FULL_ACTION_PARENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[full-action-wrong-parent]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "223410381ccd8b0f899c0cab694d21b2de786e1bcc73e24d7dcbaa8e3bec6403",
+      "observation": "OBS-L1464",
+      "originalFunction": "_collect_two_by_four_full_width_action_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "code": "COMPACT_LAYOUT_2X4_FULL_ACTION_ORDER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[full-action-order]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "fdf00f1947e1c6fcbdca8a35679dd88166007cafd388aeab9f4b3dff308e5fd7",
+      "observation": "OBS-L1473",
+      "originalFunction": "_collect_two_by_four_full_width_action_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_full_width_action_errors",
+      "code": "COMPACT_LAYOUT_2X4_FULL_ACTION_CONTENT_WEIGHT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[full-action-content-weight]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "7db2a533db2b202f1f6a6613f2d94fda1e543cf61ec1f46fc2a9fe33bdb3f364",
+      "observation": "OBS-L1564",
+      "originalFunction": "_collect_raw_boolean_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_raw_boolean_text_errors",
+      "code": "COMPACT_DISPLAY_RAW_BOOLEAN",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case75]",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case76]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2dc1dd2db2083933c779d9f5bca155311b32fa27469b3b9d672487bc9aa33823",
+      "observation": "OBS-L1590",
+      "originalFunction": "_collect_progress_value_errors",
+      "module": "semantic/bindings.py",
+      "function": "_collect_progress_value_errors",
+      "code": "COMPACT_BINDING_PROGRESS_TYPE",
+      "category": "binding",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[progress-string-binding]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "02f6cafd2b6916f5ae5189e4ca0626317f1a49e9291fa8384b763d149101cbf0",
+      "observation": "OBS-L1729",
+      "originalFunction": "_collect_two_by_four_w9_density_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_two_by_four_w9_density_errors",
+      "code": "COMPACT_LAYOUT_W9_PEER_METRIC_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-hero-density]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f0fc07134afe4fa0340d1f076115993f5e8a4986b019e410144f4d8498e922fd",
+      "observation": "OBS-L1736",
+      "originalFunction": "_collect_two_by_four_w9_density_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_two_by_four_w9_density_errors",
+      "code": "COMPACT_LAYOUT_W9_HERO_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-hero-density]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "af7f04dae6b6991b453945b11718fed4018aa02dd8c536b61e3c48c962f2d978",
+      "observation": "OBS-L1742",
+      "originalFunction": "_collect_two_by_four_w9_density_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_two_by_four_w9_density_errors",
+      "code": "COMPACT_LAYOUT_W9_HERO_LINE_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-hero-density]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "5b2c3a4af5c682108e28ef48efa3fe1d5c58102a329b50e1367c201d9c6a11c5",
+      "observation": "OBS-L1814",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_content_row_limit",
+      "code": "COMPACT_LAYOUT_W9_CONTENT_ROW_LIMIT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-hero-density]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "338e851f50cf4129d991c4edca500c07e30f16ffea088304e449778efc9ebb87",
+      "observation": "OBS-L1842",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_text_fact_density",
+      "code": "COMPACT_LAYOUT_W9_TEXT_FACT_DENSITY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-hero-density]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "e7034582eed099852e7f188ef7f536bbca6ac6f708868c30f4065d669d3acec5",
+      "observation": "OBS-L1851",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_business_roots",
+      "code": "COMPACT_DISPLAY_W9_BUSINESS_ROOTS",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_business_action_ownership_and_count_remain_separate_display_checks"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "08ee74f8635ff38f23e6f317aed6045b4514af5dd368a6b4b5a07a131667e525",
+      "observation": "OBS-L1875",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_action_ownership",
+      "code": "COMPACT_DISPLAY_W9_ACTION_OWNERSHIP",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_business_action_ownership_and_count_remain_separate_display_checks"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "41f1e871108570ee8cc48c8a7118cba80cafe8fde938d979872c628c4e02910f",
+      "observation": "OBS-L1894",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_countdown_typography",
+      "code": "COMPACT_LAYOUT_W9_COUNTDOWN_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-countdown-unit]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ef3a20301292dcc73ef0a07411712927546bfcbb0791450ec1c1fedaccd59db4",
+      "observation": "OBS-L1899",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_countdown_unit",
+      "code": "COMPACT_DISPLAY_W9_COUNTDOWN_UNIT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-countdown-unit]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "9145a87765fed38ae6b2af08ebef5d3e0948834d6685d2d72ee476920d742e4d",
+      "observation": "OBS-L1919",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_countdown_unit_position",
+      "code": "COMPACT_LAYOUT_W9_COUNTDOWN_UNIT_POSITION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-countdown-unit]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "c1c84b1d4910badcd840a704a2d1a71318bbd30334837e7b30d05e1ac99fdb0d",
+      "observation": "OBS-L1945",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_weather_date_weekday",
+      "code": "COMPACT_DISPLAY_W9_WEATHER_DATE_WEEKDAY",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-multi-day]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "5e900d28d33b264b62413d4072e92d1bdf0a8db548e6702713a7762ae2cb7df6",
+      "observation": "OBS-L1955",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_day_typography",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_DAY_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-multi-day]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6a004090b0d6ca1d2838887f1ce08e31d85bcf18a608fadbda941194a5cc09b6",
+      "observation": "OBS-L1960",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_day_rows",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_DAY_ROWS",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-multi-day]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "944a491a46dd0e3b1ae34535f9c9e680c014c51efd5c4dba6f4eb981e842c1e2",
+      "observation": "OBS-L1969",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_divider",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_DIVIDER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-multi-day]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "4edabf240556751a07084896d2b875acec721059360d38d1bc2df3c23c729976",
+      "observation": "OBS-L1976",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_action_usage",
+      "code": "COMPACT_DISPLAY_W9_DUPLICATE_ACTION",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-actions-duplicate]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "0b6d8633b3f986032a927f1a8d80041cc941d2782dc4551d088d5c1da70104ba",
+      "observation": "OBS-L1981",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_action_usage",
+      "code": "COMPACT_DISPLAY_W9_ACTION_COUNT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_business_action_ownership_and_count_remain_separate_display_checks"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f516e739b1555307ee34130f31c98f4fa0627fe1a1ac76a141b7687993f21414",
+      "observation": "OBS-L2009",
+      "originalFunction": "_collect_two_by_four_w9_content_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_action_usage",
+      "code": "COMPACT_DISPLAY_W9_REQUIRED_ACTIONS",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w9-actions-missing]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "331aa7e4a295b68ee140086e67564b27c79884eef655e4c094027efc131dfbbb",
+      "observation": "OBS-L2032",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_s4_text_budget",
+      "code": "COMPACT_LAYOUT_S4_TEXT_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8fa579bf1ea157504dec8b107afeb970dd07cc2ee6a99b1733102c7b3adc1db4",
+      "observation": "OBS-L2039",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_s4_text_budget",
+      "code": "COMPACT_LAYOUT_S4_TEXT_MAX_LINES",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bfa6ee5b8bb421d393bbac9eded322914c34ebb3d610bdd6dc7726522cd72aae",
+      "observation": "OBS-L2056",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_s4_text_budget",
+      "code": "COMPACT_LAYOUT_S4_STATIC_TEXT_WIDTH",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "0463b33d48f64730d57a48725ee5c945740bd0c63a0982ae585753f581829ed7",
+      "observation": "OBS-L2069",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_s4_action_hint",
+      "code": "COMPACT_DISPLAY_S4_ACTION_HINT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "4e6866518d8abb375c8b6b7fef141b939db77eeb066bcbf6226a0deea2e598f9",
+      "observation": "OBS-L2087",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_s4_calendar_typography",
+      "code": "COMPACT_LAYOUT_S4_MEETING_TIME",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "cea23b51ad6ab5a7fa563349ef33f6b427d1566e6f4dfeef13c403463054f466",
+      "observation": "OBS-L2099",
+      "originalFunction": "_collect_two_by_two_s4_text_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_s4_calendar_typography",
+      "code": "COMPACT_LAYOUT_S4_MEETING_TITLE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-text-mixed]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "56ddd4e3e1ebb49e5dd7f0aa4b597b23559fcfdc05259d6d68f43de3d67af4d8",
+      "observation": "OBS-L2130",
+      "originalFunction": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "code": "COMPACT_LAYOUT_S4_TEXT_ONLY_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-vertical-False]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "9eef5357bce39cea57370f5e4f19267accec44e46c4b60a12a800494bcc8f7be",
+      "observation": "OBS-L2147",
+      "originalFunction": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+      "code": "COMPACT_LAYOUT_S4_TEXT_GROUP_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-vertical-True]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f06a45d30904973b36e22588c918f0d27cee351bddb14b4b47add4fe2fc0af3b",
+      "observation": "OBS-L2191",
+      "originalFunction": "_collect_two_by_two_ring_group_alignment_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_ring_group_alignment_errors",
+      "code": "COMPACT_LAYOUT_2X2_RING_GROUP_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[ring-group]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a2717b9298f4dd3c70700c1a78629d88d6cb4814183499810522656244a74001",
+      "observation": "OBS-L2235",
+      "originalFunction": "_collect_two_by_two_s4_palette_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_s4_palette_errors",
+      "code": "COMPACT_LAYOUT_S4_PALETTE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-palette]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "15f58deccc7dbf787b09782dc7b9a4d782d4442d35e1b1d9774421783c5b89f1",
+      "observation": "OBS-L2326",
+      "originalFunction": "_collect_two_by_four_aux_icon_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_aux_icon_errors",
+      "code": "COMPACT_LAYOUT_2X4_AUX_ICON_STRUCTURE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[aux-icon-False]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "20a3912a70f5c6f5d23015c6bb39d16c9968163bc216a7a736fa1510f317f331",
+      "observation": "OBS-L2392",
+      "originalFunction": "_collect_two_by_four_w1_focus_alignment_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_two_by_four_w1_focus_alignment_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_TEXT_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "70f3439f652bd4bfff4aa2ece2e1df0c6911ec0c1b20fb3a20e28fab92405227",
+      "observation": "OBS-L2401",
+      "originalFunction": "_collect_two_by_four_w1_focus_alignment_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_two_by_four_w1_focus_alignment_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_VERTICAL_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "7911b9d6db841b5af32f7cf91615016a830430ba3e45c2f64b6280ac8c83c715",
+      "observation": "OBS-L2408",
+      "originalFunction": "_collect_two_by_four_w1_focus_alignment_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_two_by_four_w1_focus_alignment_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_HORIZONTAL_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a3955822ec6c7e712ba3afbe129e35c695f9bfd5503306fd5666e5e71f5faa2b",
+      "observation": "OBS-L2430",
+      "originalFunction": "_collect_two_by_four_w1_focus_alignment_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_two_by_four_w1_focus_alignment_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_GROUP_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d97e7139fbeced53518752e1f7b42c6d5ffd7e9bdb4f03205f0d144b79ac7c8b",
+      "observation": "OBS-L2437",
+      "originalFunction": "_collect_two_by_four_w1_focus_alignment_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_two_by_four_w1_focus_alignment_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_COLUMN_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "956d5082ff258b8c8019492e3f3e5776e814dc01e599850c7f7321599afb6287",
+      "observation": "OBS-L2469",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w1_duplicate_facts",
+      "code": "COMPACT_DISPLAY_W1_DUPLICATE_FACT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "5adf5030aee9ffb12ec0e19d28578b0dcbf0dcd380d0104a30dc15cac573ed26",
+      "observation": "OBS-L2491",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_focus_structure_errors",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_DECORATION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ff9abc9a46702f376cf89d7002f3f79b9727a2eb129e096df7fc04e37c2c73a2",
+      "observation": "OBS-L2504",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_focus_structure_errors",
+      "code": "COMPACT_LAYOUT_W1_PRIMARY_FOCUS_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8766ea00d22c9750e7c691afd515f6e0ee967b64a614168889a030a943522bc3",
+      "observation": "OBS-L2510",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_focus_structure_errors",
+      "code": "COMPACT_LAYOUT_W1_ACTION_PLACEMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "3e1262dd9fb4b7076bd6286ebd559db036b38f4af544322ed70edaf124ee481e",
+      "observation": "OBS-L2526",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w1_progress_request_error",
+      "code": "COMPACT_DISPLAY_W1_PROGRESS_NOT_REQUESTED",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ccdd539a5bbfe0d511f69b2af862ce9710f2e3f420b6e01aefd4bbb6b83b2b3e",
+      "observation": "OBS-L2541",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_progress_readout",
+      "code": "COMPACT_LAYOUT_W1_PROGRESS_READOUT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "7ddcec2751009f8e9e2890128c87230b7632be0186a0c39c8129a8c32e117327",
+      "observation": "OBS-L2571",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_battery_progress_shape",
+      "code": "COMPACT_LAYOUT_W1_BATTERY_PROGRESS_SHAPE",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "4a182628cd2402d202028f6cf635039f52a0ed3110e454a5ad2ee428e2aeecd8",
+      "observation": "OBS-L2609",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w1_required_action_cells",
+      "code": "COMPACT_DISPLAY_W1_REQUIRED_ACTION_CELLS",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "67ae9e76433bc1ab4bf2e19c3be4c76b835d8a265955a82103f81ff414cd8915",
+      "observation": "OBS-L2641",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_cell_text_layout",
+      "code": "COMPACT_LAYOUT_W1_CELL_TEXT_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "146e6344cbc5b6dd0b74ec6cc43be95643ebd11e02a28399bb211cd5028802f8",
+      "observation": "OBS-L2651",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_cell_text_layout",
+      "code": "COMPACT_LAYOUT_W1_CELL_TEXT_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2c9681021a156388b7266d1bc1c3c81a0e6fe4fcee2736aeab943e6de93e707a",
+      "observation": "OBS-L2673",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_cell_fact_density",
+      "code": "COMPACT_LAYOUT_W1_CELL_FACT_DENSITY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "cbbdd580558ba2a54d829ae7992d53cd0fe93c6ef4945d7a1985a708919b02fd",
+      "observation": "OBS-L2679",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_cell_fact_density",
+      "code": "COMPACT_LAYOUT_W1_CELL_FACT_LINES",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-nested-and-cell-budget]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8f5339b77c2e4c761733b342e4d589615e8a1914d64713df41934b71f2bc8643",
+      "observation": "OBS-L2692",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w1_complete_fact_lines",
+      "code": "COMPACT_DISPLAY_W1_COMPLETE_FACT_LINES",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ce2154371a085a01f990e1cd14cceb22440741b081971254b25c57b00c470ae3",
+      "observation": "OBS-L2702",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/layout/w1.py",
+      "function": "_collect_w1_nested_action",
+      "code": "COMPACT_LAYOUT_W1_CELL_NESTED_ACTION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bb5f90421d0ac8faee16cc2d7045c8c74c4ce1a0b07d277de4d46221bfc722d7",
+      "observation": "OBS-L2722",
+      "originalFunction": "_collect_two_by_four_w1_focus_aux_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w1_cell_business_roots",
+      "code": "COMPACT_DISPLAY_W1_CELL_BUSINESS_ROOTS",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-dense]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-sparse]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[w1-progress]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8086d2656c6373d7f009c24188668868ecf463329dbb4aba88535ffa4234b623",
+      "observation": "OBS-L2757",
+      "originalFunction": "_collect_two_by_four_w9_weather_triplet_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_decoration",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_DECORATION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_weather_triplet_preserves_interleaved_errors_and_skips_duplicate_field"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f0134149b5d5b991b6dab988996ca071d9e1aaca781fee17ab5401c12e234b5d",
+      "observation": "OBS-L2766",
+      "originalFunction": "_collect_two_by_four_w9_weather_triplet_errors",
+      "module": "semantic/display.py",
+      "function": "_has_w9_weather_field_count_error",
+      "code": "COMPACT_DISPLAY_W9_WEATHER_FIELD_COUNT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_weather_triplet_preserves_interleaved_errors_and_skips_duplicate_field"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "fa0caecbd432710b0da3e7feb71bc7b17be618526abf83dfc0fc4c56b21d2283",
+      "observation": "OBS-L2774",
+      "originalFunction": "_collect_two_by_four_w9_weather_triplet_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_fact_rows",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_FACT_ROWS",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_weather_triplet_preserves_interleaved_errors_and_skips_duplicate_field"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ed7ea5b3d534e2a275d7fb612591c46982dd2b171f3d0d89f6061ed26225bea4",
+      "observation": "OBS-L2781",
+      "originalFunction": "_collect_two_by_four_w9_weather_triplet_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_w9_weather_fact_rows",
+      "code": "COMPACT_LAYOUT_W9_WEATHER_TRIPLET_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_weather_triplet_preserves_interleaved_errors_and_skips_duplicate_field"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bed48de88ef5eda82915cb1606cc0e31eaf3f9f778de2288e801947f35c29615",
+      "observation": "OBS-L2787",
+      "originalFunction": "_collect_two_by_four_w9_weather_triplet_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_w9_weather_metric_label",
+      "code": "COMPACT_DISPLAY_W9_WEATHER_METRIC_LABEL",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_w9.py::test_weather_triplet_preserves_interleaved_errors_and_skips_duplicate_field"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6e71fb505f51828a991c999d5e2916397b1849185ebf1a82cb8a4a1134e2777c",
+      "observation": "OBS-L3131",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_SAFE_BOX",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_centered_single_value_hero_without_safe_box",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case20]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[centered-hero-value-tier]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "b7867d94f862aa88dab89d63ce5aca2386c3d5d5ddf4983c7dcc3cab1c9456ce",
+      "observation": "OBS-L3139",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_FONT_TIER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[centered-hero-value-tier]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a31f104582be9f189ba5528d9a6afdc26b7c05aed3b352833dbb257ff5aea5f5",
+      "observation": "OBS-L3151",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_UNIT_FONT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[centered-hero-unit-font-missing]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "da6e11bd9934e61e55d5eca7c3f38e7c53c17b57d940de725ed878e0f5e5d655",
+      "observation": "OBS-L3156",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_UNIT_FONT_PAIR",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[centered-hero-unit-font-large]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2c04759ba817cc767d5f9f1491283d13aae6486cb29326b21b220dbf455e4c12",
+      "observation": "OBS-L3178",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_WIDTH_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_centered_single_value_hero_that_exceeds_width_pressure",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case21]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[centered-hero-unit-font-large]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6690c8283e9d7a161c9610c6927a12f44bd5469026aee4668a2334003522ca53",
+      "observation": "OBS-L3195",
+      "originalFunction": "_collect_two_by_two_centered_hero_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_centered_hero_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_HEIGHT_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_centered_single_value_hero_that_exceeds_height_pressure",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case23]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f0c1d2a83283cb9dd06606b712ce7e3e4ca0c2f9d602aadc47a091e198a3e979",
+      "observation": "OBS-L3266",
+      "originalFunction": "_collect_two_by_two_content_density_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_content_density_errors",
+      "code": "COMPACT_LAYOUT_2X2_PEER_METRIC_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_large_hero_for_peer_metrics_on_150vp_card",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case24]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[density-multiple-heroes]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6b3bbf466549e8a98c9101e16c0732f4d4752b7fcb1ec05c3138234be84455f3",
+      "observation": "OBS-L3273",
+      "originalFunction": "_collect_two_by_two_content_density_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_content_density_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[density-multiple-heroes]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "801d5458a4b78d0bc30b59a7e86de81ae077e99407aecab362c1213009815bf4",
+      "observation": "OBS-L3279",
+      "originalFunction": "_collect_two_by_two_content_density_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_content_density_errors",
+      "code": "COMPACT_LAYOUT_2X2_HERO_LINE_BUDGET",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[density-multiple-heroes]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f5fda3d6a7e13a780dfeb220ca629df8150564efde5d8c05f1cef78914b0b79a",
+      "observation": "OBS-L3296",
+      "originalFunction": "_collect_two_by_two_content_density_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_content_density_errors",
+      "code": "COMPACT_LAYOUT_2X2_ACTION_CONTENT_LINES",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[density-four-action-lines]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "643724e0c0546290b2b85140c97ca22f08cf5dafab70a081779c27f6090d79b7",
+      "observation": "OBS-L3310",
+      "originalFunction": "_collect_two_by_two_content_density_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_two_by_two_content_density_errors",
+      "code": "COMPACT_LAYOUT_2X2_ACTION_CONTENT_FONT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[density-three-large-action-lines]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "36aca7c5e5508a676a93cf193d74dcce4601cccdba940933fb229c7d1e513c3b",
+      "observation": "OBS-L3378",
+      "originalFunction": "_collect_two_by_four_detached_unit_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_detached_unit_errors",
+      "code": "COMPACT_LAYOUT_2X4_DETACHED_UNIT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[detached-unit]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "7315bf5589bbc0f0850186875baa40daeda15c61c3f226ad08758f35583ebf89",
+      "observation": "OBS-L3419",
+      "originalFunction": "_collect_two_by_four_weather_calendar_alignment_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_weather_calendar_alignment_errors",
+      "code": "COMPACT_LAYOUT_2X4_WEATHER_CALENDAR_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[weather-calendar-alignment]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bd78dab2a8d92ea90976c0b5a3902cdc42f19a786568b6a51a8a8771b4176224",
+      "observation": "OBS-L3455",
+      "originalFunction": "_collect_two_by_four_countdown_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_countdown_backboard_errors",
+      "code": null,
+      "category": null,
+      "status": "legacy",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership"
+      ],
+      "behaviorCovered": false,
+      "deferredReason": "BASE-02: W9 倒计时结构冲突"
+    },
+    {
+      "legacyAstSha256": "c9c1c9166dfc3ba447dc62ddc79905662d73a6951210891c8571a2e52a9756c2",
+      "observation": "OBS-L3469",
+      "originalFunction": "_collect_two_by_four_countdown_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_countdown_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_COUNTDOWN_ORDER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-order-and-alignment]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d404c04758f5f6a9486a1c5ceecb3e78988fcbff1946a48828a5a3df3a7c214f",
+      "observation": "OBS-L3479",
+      "originalFunction": "_collect_two_by_four_countdown_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_countdown_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_COUNTDOWN_DISTRIBUTION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-order-and-alignment]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "be372479ea1e138b54e5a2ca738e3a6f5a5cc3b01f44a8a5c2d08579ab894413",
+      "observation": "OBS-L3488",
+      "originalFunction": "_collect_two_by_four_countdown_backboard_errors",
+      "module": "semantic/layout/two_by_four.py",
+      "function": "_collect_two_by_four_countdown_backboard_errors",
+      "code": "COMPACT_LAYOUT_2X4_COUNTDOWN_TEXT_WIDTH",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-order-and-alignment]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-order-and-alignment]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-order-and-alignment]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2c61cbfdbd875d75b0d26e4a295ebb1e19d5eeccd3fbb0430ffcb3669660e58f",
+      "observation": "OBS-L3595",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_stacked_backboards",
+      "code": "COMPACT_LAYOUT_2X4_STACKED_FULL_BACKBOARDS",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-stacked-and-actions]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "aabd4e01a8f15f8e4ac7f23e045e35eb31b767de925bc53a9d6ce259ba1cb83c",
+      "observation": "OBS-L3614",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_backboard_action_count",
+      "code": "COMPACT_LAYOUT_2X4_BACKBOARD_ACTION_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-stacked-and-actions]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "e107d8d0a9c721d6267cc03beda1ebac2149358d1071ea63cbca62aea65e5c7e",
+      "observation": "OBS-L3626",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_single_business_structure",
+      "code": "COMPACT_LAYOUT_S4_OBJECT_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-route-one-object]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "a08d16155da85ceeff6b2603b0a170df8fc7d67a579f7dcea95788781817c25a",
+      "observation": "OBS-L3634",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_single_business_structure",
+      "code": "COMPACT_LAYOUT_2X2_SINGLE_BUSINESS_WIDTH",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-isolated-small]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "80fa90c308166d43b62ca39941e080b71efe56e953843687896f0550b2cd2735",
+      "observation": "OBS-L3660",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_validate_w1_skeleton",
+      "code": "COMPACT_LAYOUT_W1_FOCUS_AUX_SKELETON",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-focus-aux]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2fda3c4a77976b09f95006a6f8f5b4060f20a8288c58c78794e71f1d4cec8032",
+      "observation": "OBS-L3674",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_w8_skeleton",
+      "code": "COMPACT_LAYOUT_W8_SKELETON",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-2x4-4]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "719c0c68716b7365edce5c4819570fb0387d9ec5e493d081ccce7c1e2d47877b",
+      "observation": "OBS-L3685",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_w10_skeleton",
+      "code": "COMPACT_LAYOUT_W10_SKELETON",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-2x4-3]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "e107d8d0a9c721d6267cc03beda1ebac2149358d1071ea63cbca62aea65e5c7e",
+      "observation": "OBS-L3698",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_s4_object_count",
+      "code": "COMPACT_LAYOUT_S4_OBJECT_COUNT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-route-one-object]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "3e51bc4e42cd8f44ad7ef74a1a4898cb3c839f169817679acec634bcef896736",
+      "observation": "OBS-L3743",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_collect_s4_countdown_typography",
+      "code": "COMPACT_LAYOUT_S4_COUNTDOWN_TYPOGRAPHY",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[s4-route-countdown-typography]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "24269023c15f54834229f09d12dd37da877f453e17a32b28886b29107addbecb",
+      "observation": "OBS-L3751",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_validate_s4_skeleton",
+      "code": "COMPACT_LAYOUT_S4_SKELETON",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-2x2-2]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "0d8a3bb8e85d811dd0eafb1d0f8bb3035a0dc497e8a860fc00593ebd5edccfe4",
+      "observation": "OBS-L3769",
+      "originalFunction": "_collect_layout_route_errors",
+      "module": "semantic/layout/routing.py",
+      "function": "_validate_w9_skeleton",
+      "code": "COMPACT_LAYOUT_W9_SKELETON",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[route-2x4-2]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "d59f8141f499e0f69f8fd3e85526060e545900bbf83d329217d12caa133613dd",
+      "observation": "OBS-L3800",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_countdown_duplicate_unit",
+      "code": "COMPACT_DISPLAY_2X2_COUNTDOWN_DUPLICATE_UNIT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-duplicate-unit]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "4384e1d7123973cc5a310f64c525cf8eb419f12d3595d344d03f4c319d3f5da0",
+      "observation": "OBS-L3834",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_COUNTDOWN_VALUE_ROW",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-expanded-no-row]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "52dc798aa5097e725502afeb73ea44029bca8f964a7b0a7ee268110296aefce3",
+      "observation": "OBS-L3842",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_COUNTDOWN_VALUE_GROUP",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-expanded-no-column]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "66b6968d5b2e9d52a4aa8eb0d3cbbbc7a3b347c7569b6a00bbf74ec6c20f2862",
+      "observation": "OBS-L3850",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_COUNTDOWN_ALIGNMENT",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case81]",
+        "tests/test_design_compact_few_shots.py::test_countdown_with_action_rejects_centered_value_row",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-expanded-wrong-order]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f8e035f63d7e7695dd99e7c882653aed3771a572dbaeea17f115c123de5e432f",
+      "observation": "OBS-L3856",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_COUNTDOWN_ROW_ORDER",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-expanded-wrong-order]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "dbdf066c2c30f6b2a64fed94fb462842f9a0d545b13e6a4a2092c9a58b8df523",
+      "observation": "OBS-L3860",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_COUNTDOWN_GROUP_ROWS",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-expanded-many-rows]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "c9602f0d6153b554bc1b4be575e4393fb3a9a3b47a4683203569b5ae53853189",
+      "observation": "OBS-L3869",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_V01_COUNTDOWN_ROWS",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-v01-three-rows]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "1ea7d2b736bf3939b1d42b18f58ba518dabd23111b1a6fcea3a9061f4cbaf4c1",
+      "observation": "OBS-L3879",
+      "originalFunction": "_collect_2x2_countdown_group_errors",
+      "module": "semantic/layout/two_by_two.py",
+      "function": "_collect_2x2_countdown_layout",
+      "code": "COMPACT_LAYOUT_2X2_V01_META_ROW",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[countdown-v01-meta]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6886fc28158b4a3943c9657ddb835120beffde1bf4cdc0a6226db6f98bf49026",
+      "observation": "OBS-L3909",
+      "originalFunction": "_collect_two_by_four_w9_sparse_layout_errors",
+      "module": "semantic/layout/w9.py",
+      "function": "_collect_two_by_four_w9_sparse_layout_errors",
+      "code": null,
+      "category": null,
+      "status": "legacy",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership"
+      ],
+      "behaviorCovered": false,
+      "deferredReason": "BASE-02: W9 稀疏背板结构冲突"
+    },
+    {
+      "legacyAstSha256": "4502191ee6ff0ed5e72e38dd29f50a3fcc0b580b18355c1f17e8ca150caf9abc",
+      "observation": "OBS-L4030",
+      "originalFunction": "_collect_fusion_composition_errors",
+      "module": "semantic/layout/fusion.py",
+      "function": "_collect_fusion_composition_errors",
+      "code": "COMPACT_LAYOUT_FUSION_FOCUS_COMPOSITION",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_overloaded_fusion_composition",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case15]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "560426f5773372804950ab488d993a711fb832f550ad05d3570ca68609d3160a",
+      "observation": "OBS-L4116",
+      "originalFunction": "_collect_semantic_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": "COMPACT_DISPLAY_DANGLING_RANGE",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[reminder-and-range]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "8c4f0729363dcd9b9e1259d00c1a26ca35c6ee25fe1eef92064116ecf629b18e",
+      "observation": "OBS-L4139",
+      "originalFunction": "_collect_semantic_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": null,
+      "category": null,
+      "status": "legacy",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership"
+      ],
+      "behaviorCovered": false,
+      "deferredReason": "BASE-04: eventCount 适用边界"
+    },
+    {
+      "legacyAstSha256": "948176ff530c5e4ce817949608c876a6a4d9e8e6ec9a2d0bffcf5b895a8cc4df",
+      "observation": "OBS-L4153",
+      "originalFunction": "_collect_semantic_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": "COMPACT_DISPLAY_REMINDER_UNIT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[reminder-and-range]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bfccb3e7c7e40098bc5dd5af11ace651d033c7550789cd583cde6092df1a4f37",
+      "observation": "OBS-L4163",
+      "originalFunction": "_collect_semantic_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": "COMPACT_DISPLAY_WIND_METRIC_LABEL",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_unit_only_expression_for_ambiguous_metric",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case18]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6a9025b2e1a139770d4438ce2cd0b837912cdc2eb1558e2407c993398152e96c",
+      "observation": "OBS-L4207",
+      "originalFunction": "_collect_unbound_action_hint_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_unbound_action_hint_errors",
+      "code": "COMPACT_DISPLAY_UNBOUND_ACTION_HINT",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[unbound-action-hint]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "c9898813ed2fc17512b692831100e91f2097a8f6c69733d10c08129c35f3afeb",
+      "observation": "OBS-L4285",
+      "originalFunction": "_collect_ambiguous_metric_text_errors",
+      "module": "semantic/display.py",
+      "function": "_collect_ambiguous_metric_text_errors",
+      "code": "COMPACT_DISPLAY_AMBIGUOUS_METRIC",
+      "category": "display",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_ambiguous_index_value_without_metric_label",
+        "tests/test_compact_dsl_validator.py::test_rejects_unit_only_expression_for_ambiguous_metric",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case16]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "aa3f5c601fe3a047f62769b1db58e7b5e2a10d433a2ebb2e568e0fa67dc8b527",
+      "observation": "OBS-L4302",
+      "originalFunction": "_collect_component_contract_errors",
+      "module": "api.py",
+      "function": "_collect_component_contract_errors",
+      "code": null,
+      "category": null,
+      "status": "legacy",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership"
+      ],
+      "behaviorCovered": false,
+      "deferredReason": "外部 CardHeader 校验委托"
+    },
+    {
+      "legacyAstSha256": "aa3f5c601fe3a047f62769b1db58e7b5e2a10d433a2ebb2e568e0fa67dc8b527",
+      "observation": "OBS-L4306",
+      "originalFunction": "_collect_component_contract_errors",
+      "module": "api.py",
+      "function": "_collect_component_contract_errors",
+      "code": null,
+      "category": null,
+      "status": "legacy",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership"
+      ],
+      "behaviorCovered": false,
+      "deferredReason": "外部 TimelineUnit 校验委托"
+    },
+    {
+      "legacyAstSha256": "e0979ae30b7f884015339a66077c5c9144a03eb5a8f143901b409bbdc4603f34",
+      "observation": "OBS-L4324",
+      "originalFunction": "_collect_component_parent_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_component_parent_errors",
+      "code": "COMPACT_COMPONENT_DUPLICATE_CHILD",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[duplicate-and-multiple-parents]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "210bb23fa910023da0f046fc1900a62733790239290c9bedf299e02914433272",
+      "observation": "OBS-L4336",
+      "originalFunction": "_collect_component_parent_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_component_parent_errors",
+      "code": "COMPACT_COMPONENT_MULTIPLE_PARENTS",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[duplicate-and-multiple-parents]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "1816e464af9daca5edcef94145dab632038beeefc3eb89d79af34fb7a89141b5",
+      "observation": "OBS-L4351",
+      "originalFunction": "_collect_container_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_container_errors",
+      "code": "COMPACT_COMPONENT_EMPTY_CONTAINER",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_empty_container_before_a2ui_conversion[Column]",
+        "tests/test_compact_dsl_validator.py::test_rejects_empty_container_before_a2ui_conversion[List]",
+        "tests/test_compact_dsl_validator.py::test_rejects_empty_container_before_a2ui_conversion[Row]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "f0f07c4152fb7365069239e1aa31ca290840be171d2ab4d2afeb21b03fdf11e4",
+      "observation": "OBS-L4383",
+      "originalFunction": "_collect_height_budget_errors",
+      "module": "semantic/layout/geometry.py",
+      "function": "_collect_height_budget_errors",
+      "code": "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+      "category": "layout",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_rejects_centered_single_value_hero_that_exceeds_height_pressure",
+        "tests/test_compact_dual_action.py::test_rejects_invalid_s3_slots[icon]",
+        "tests/test_compact_hero_typography.py::test_template_keeps_other_compact_validations[height-vertical layout]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2ad8f7a90f488b24b44046e696088f5569437607947da774b2f5686083a9a260",
+      "observation": "OBS-L4527",
+      "originalFunction": "_collect_action_unit_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_action_unit_errors",
+      "code": "COMPACT_ACTION_STATE_INVALID",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-invalid]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "dde5c071034985adeabeffa57e3fb9511c3fd8d9540469524ef54625bbe55cb9",
+      "observation": "OBS-L4532",
+      "originalFunction": "_collect_action_unit_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_action_unit_errors",
+      "code": "COMPACT_ACTION_CHILDREN_FORBIDDEN",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-capsule]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-icon-round]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "b13bd508bb3f3c57cf249287e4ba8f88aeab2b54bf1a92b0b831a533788dad45",
+      "observation": "OBS-L4534",
+      "originalFunction": "_collect_action_unit_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_action_unit_errors",
+      "code": "COMPACT_ACTION_CLICK_REQUIRED",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-capsule]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-icon-round]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "9439f3a86f38ddee5f09a1fa064ddf47c3902f0552e768574bdbd30ec0827170",
+      "observation": "OBS-L4543",
+      "originalFunction": "_collect_action_unit_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_action_unit_errors",
+      "code": "COMPACT_ACTION_ICON_INVALID",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-capsule]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "373135cb17a8f509109d6137757fcc63311f3a690e8e0e1a382b7c6e5591bf29",
+      "observation": "OBS-L4554",
+      "originalFunction": "_collect_action_unit_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_action_unit_errors",
+      "code": "COMPACT_ACTION_ICON_LABEL_FORBIDDEN",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-icon-round]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "94ce0852af90c3ebf084afbf20877e39d6d1254c6ec218ca6e53efa54754c371",
+      "observation": "OBS-L4564",
+      "originalFunction": "_collect_required_non_empty_string",
+      "module": "syntax/components.py",
+      "function": "_collect_required_non_empty_string",
+      "code": "COMPACT_COMPONENT_REQUIRED_STRING",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-capsule]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[action-shape-icon-round]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "7b307ae5670065b7bd21eb455b85bcebf8c1b90b8c1c4a9d2e9e8853232f6f86",
+      "observation": "OBS-L4577",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_COUNT",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-0]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-1]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "41156042b05342f6c8cddd3dd9a7311dbc57538ecfbc20515569a01c388617ea",
+      "observation": "OBS-L4581",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_OBJECT",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-2]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "5ca6ab15245e6281cc6b5b68c98b50b6489d13e2d691d3683159a2633172762f",
+      "observation": "OBS-L4584",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_FIELDS",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-3]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "aa15ba948bfdd972e284b7b794005fe1ea9c94e2ec96626454e7ba84129669e9",
+      "observation": "OBS-L4589",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_CALL_INVALID",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-4]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2d68e77032891525cccc8e6c5d8d0d62f24a251a0d79baa9f0572a9b6deee69a",
+      "observation": "OBS-L4592",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_ARGS_INVALID",
+      "category": "component",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-5]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "77188b64b44f16fe15f63ac20854fe32b8d6ba4d5bb334938ea75c308709dd03",
+      "observation": "OBS-L4595",
+      "originalFunction": "_collect_on_click_errors",
+      "module": "semantic/effective.py",
+      "function": "_collect_event_candidate_error",
+      "code": "COMPACT_EVENT_NOT_ALLOWED",
+      "category": "effective",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[handler-6]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "358af5c3c94f26f9b3bb80d590f4dbf7675bcfea3fd509315b1e111023a2f4b5",
+      "observation": "OBS-L4683",
+      "originalFunction": "_collect_expression_context",
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_WRAPPER",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-0]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "0cbd9888c2e1cbe9905a534f7234659204503cdfe5bfe90aca6a7ff9e10ef438",
+      "observation": "OBS-L4692",
+      "originalFunction": "_collect_expression_context",
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_QUOTED_POINTER",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_design_processor_reports_compact_contract_as_validation",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case6]",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-2]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "3fc37497dab6ed848b2462c30d34bf2f0a0dedcc53130a6eb7ec8ef151b6ca4d",
+      "observation": "OBS-L4701",
+      "originalFunction": "_collect_expression_context",
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_MISSING",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-1]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "2f68694cdcbbb117a906231582d70ebef8d6f88cc64774815818126d5e71a08a",
+      "observation": "OBS-L4708",
+      "originalFunction": "_collect_expression_context",
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_INCOMPLETE",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-3]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "546cf93bcf5a889ec95b14f158ae78696b3112ac723bb66b2032045f301e18e2",
+      "observation": "OBS-L4712",
+      "originalFunction": "_collect_expression_context",
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_ABSOLUTE",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-4]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "6f296a61768495b3d1c0b9ec1acaa5ad6462c0d166bdc73fc2ab9c20fa252b7d",
+      "observation": "OBS-L4762",
+      "originalFunction": "_collect_path_binding",
+      "module": "syntax/expressions.py",
+      "function": "_collect_path_binding",
+      "code": "COMPACT_PATH_BINDING_ABSOLUTE",
+      "category": "expression",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[expression-5]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "ede90742e819cd44bdaa66a0decea5e6dc24b28a15c43173a8cf0a58b6bf4ecd",
+      "observation": "OBS-L4776",
+      "originalFunction": "_collect_data_context_errors",
+      "module": "semantic/bindings.py",
+      "function": "_collect_binding_data_errors",
+      "code": "COMPACT_BINDING_DATA_MISSING",
+      "category": "binding",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_hero_typography.py::test_template_keeps_other_compact_validations[binding-not declared]",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case27]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "e5ed9bcbc0dd3cbb55e54ae579e24581139bd233cb18da0d5d22efb03bdb95c8",
+      "observation": "OBS-L4780",
+      "originalFunction": "_collect_data_context_errors",
+      "module": "semantic/cross_file.py",
+      "function": "_checked_data_schema",
+      "code": "COMPACT_CONTEXT_SCHEMA_INVALID",
+      "category": "cross_file",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[missing-service-schema]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "bfcc635db083396acc998aa6d7b49700131a459963d2d70a451b22915dcfc190",
+      "observation": "OBS-L4800",
+      "originalFunction": "_collect_undeclared_data_path_error",
+      "module": "semantic/cross_file.py",
+      "function": "_collect_undeclared_data_path_error",
+      "code": "COMPACT_CROSS_FILE_UNDECLARED_PATH",
+      "category": "cross_file",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_dsl_validator.py::test_design_processor_reports_compact_contract_as_validation",
+        "tests/test_compact_hero_typography.py::test_template_keeps_other_compact_validations[binding-not declared]",
+        "tests/test_compact_validation_equivalence.py::test_public_validator_matches_original[case27]"
+      ],
+      "behaviorCovered": true
+    },
+    {
+      "legacyAstSha256": "b249ca9b04d35b367438910a7927554c8517deb3a45799f9c71a0b4d4d8d9d8d",
+      "observation": "OBS-L4824",
+      "originalFunction": "_collect_data_type_error",
+      "module": "semantic/cross_file.py",
+      "function": "_collect_data_type_error",
+      "code": "COMPACT_CROSS_FILE_DATA_TYPE",
+      "category": "cross_file",
+      "status": "structured",
+      "tests": [
+        "tests/test_compact_validation_architecture.py::test_all_original_sites_keep_legacy_expressions_and_registered_ownership",
+        "tests/test_compact_validation_rule_cases.py::test_rule_flow_matches_original[wrong-data-type]"
+      ],
+      "behaviorCovered": true
+    }
+  ]
+}

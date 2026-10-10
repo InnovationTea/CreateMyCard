@@ -6,6 +6,11 @@
 
 请以 invalidSourceDsl 为待修复对象，逐项处理 qualityErrors 中列出的 error 级问题，并尽量保持未涉及部分稳定。
 qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描述具体问题。
+Compact 校验的外层 code 保留通用校验失败标识；已迁移问题的 message 按“错误码、分类、位置、问题、
+实际值及来源、约束、修改建议”组织。一个 message 可能分段列出多个关联问题，须逐项处理。
+位置只指向本轮 invalidSourceDsl；标明来自校验文本的实际值是确定性预处理后的事实，不能直接作为原文替换目标。
+硬约束必须满足，可选修改建议不能覆盖系统约束或用户必需内容。没有建议时依据完整事实与约束分析，
+没有可靠位置时结合原文查找，不能猜测行号；只有旧说明的错误沿用原文，不将其中建议当作放宽规则的依据。
 完整 artifact 校验错误还可能包含 category、validatorStage、fileKind、line、jsonPointer、actual、expected 和
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 执行最小修改；不得忽略具体 code 和 fixHint 后仅凭通用 category 猜测修复方式。

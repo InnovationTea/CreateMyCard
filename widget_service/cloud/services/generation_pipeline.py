@@ -9,6 +9,8 @@ from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
 )
+from services.card_validation.compact_validation.diagnostics import DiagnosticGroup
+from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
 from services.card_validation.display_unit_rules import repair_repeated_display_units
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -65,6 +67,7 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
+    repair_context: RepairGuidanceContext | None = None
 
 
 @dataclass(frozen=True)
@@ -128,6 +131,7 @@ class DesignCompactProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        original_source = source_dsl
         try:
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
@@ -144,9 +148,11 @@ class DesignCompactProcessor:
                     source_dsl,
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
+                    original_source=original_source,
+                    repair_context=context.repair_context,
                 )
             except CompactDslValidationError as exc:
-                return self._validation_failure(source_dsl, exc.errors)
+                return self._validation_failure(source_dsl, exc.errors, groups=exc.groups)
         else:
             # Template output intentionally bypasses the general Compact DSL
             # semantic rules. The converter keeps structural checks, and the
@@ -155,10 +161,10 @@ class DesignCompactProcessor:
 
         try:
             design_profile_id = context.design_profile_id or "design-compact-dsl"
-            design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
-                design_profile_id
-            )
-            design_protocol["appVersion"] = context.task_spec["appVersion"]
+            design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
+            if "appVersion" not in context.task_spec:
+                raise KeyError("appVersion")
+            design_protocol["appVersion"] = context.task_spec.get("appVersion")
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,
@@ -195,16 +201,25 @@ class DesignCompactProcessor:
     def _validation_failure(
         source_dsl: str,
         errors: tuple[str, ...],
+        *,
+        groups: tuple[DiagnosticGroup, ...] | None = None,
     ) -> DslProcessingResult:
+        compatible_groups = groups
+        if compatible_groups is None:
+            compatible_groups = tuple(
+                DiagnosticGroup(message, has_legacy_record=True) for message in errors
+            )
         issues = tuple(
             QualityIssue(
                 stage="validation",
                 code="COMPACT_DSL_VALIDATION_FAILED",
-                message=message,
+                message=group.legacy_message,
+                prompt_context=group.prompt_context(),
             )
-            for message in errors
+            for group in compatible_groups
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
+
 
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.STANDARD_A2UI: StandardA2UIProcessor(),
@@ -214,4 +229,7 @@ _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
 
 def get_dsl_processor(kind: DslProcessorKind) -> DslProcessor:
     """按路由策略取得无状态 DSL Processor。"""
-    return _PROCESSORS[kind]
+    processor = _PROCESSORS.get(kind)
+    if processor is None:
+        raise KeyError(kind)
+    return processor
