@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component root: vertical layout requires at least 180vp within 160vp; it overflows by 20vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "3e16f30f5118d6a974f5d597c38c40a2e102ba0c7a929b90e103e3943a79778b",
+    "sample_task_spec.json": "50ccf7c5716a8a3a7e97c0212efb80595bcbf246fcdcaf5fea0e688285e632d6",
+    "sample_card_spec.json": "003ff3d88dedd65c7feaf3ce26e6a8d13e9838eec0bb7fa4651951ec57ccb413"
+  }
+}

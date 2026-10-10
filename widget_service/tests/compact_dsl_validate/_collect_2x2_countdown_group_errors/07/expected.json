@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 expanded countdown value_row must be the first child of value_group."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "d61de3b4faa1f21af3aecb684da71e20ea025c010f5113652d29415329efed55",
+    "sample_task_spec.json": "5e0f0c50d4aac02aaa75062010f4de0bfb1decb89c814918c50aa4fece19252e",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

@@ -61,7 +61,8 @@
   使用 `ScheduleOverviewHeroContent@1` 时进入 HeroTitle + HeroContent 组合，并固定作为第二个业务位置。
 - 当前存在提醒 Compact（`ScheduleOverviewReminderCompact@1`）与会议详情 Full
   （`ScheduleOverviewMeetingSenderFull@1`）；单业务双 Action 场景当显式字段被对应模板完整覆盖时
-  进入模板路线。`2x4` 场景下，会议详情 Full 以时间轴展示首项日程的可选标题、时间段和地点，
+  进入模板路线。`2x4` 场景下，会议详情 Full 居中展示可信业务标题、首项日程时间和地点，
+  结束时间可选；静态业务标题不覆盖 `/events/0/title`，显式要求日程标题时必须选择实际绑定该字段的模板。
   两个 Action 由 `WideFullTwoCompactLayout@1` 的 `CompactAction@1` 槽位按语义消费。
 - 使用包含 `allowCalendarViewFallback` 的 Search 首层协议时，单日历日程且用户未明确禁止按钮、
   操作或跳转，应标记 `allowCalendarViewFallback=true`；旧 LLM 选择器不输出此字段。

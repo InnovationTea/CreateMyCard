@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component main: Text label after the large numeric value must contain only a real unit for the preceding value. Move labels or descriptions to a separate line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "a71f1b4b1c601b12d38359cd6a6d727034ad000b943e67f8a4b3d5a08ceb837c",
+    "sample_task_spec.json": "0de133af65727a2bbbd1fb7c4cf79f6e74c3a1669e5630ebe85a7ca14ed24b0e",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

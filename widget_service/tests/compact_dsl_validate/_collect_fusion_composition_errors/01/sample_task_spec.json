@@ -1,0 +1,17 @@
+{
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "openBattery",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/battery.svg"
+    }
+  ]
+}

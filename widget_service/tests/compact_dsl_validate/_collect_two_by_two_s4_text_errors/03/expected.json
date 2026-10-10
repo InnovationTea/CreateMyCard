@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 Text name must use maxLines 1; a backboard must never render a third line."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "dbd1c81f46fb48bd178002f177340f08e96db5fec59fbad3ea6af2d2f8ca4341",
+    "sample_task_spec.json": "8700bd7c2f232190954b1bb71472fcee829182ef87abb2f13fbee9367162b495",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

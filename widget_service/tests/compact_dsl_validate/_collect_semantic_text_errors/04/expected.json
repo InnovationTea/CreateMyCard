@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9b880ae06ecb8e5147bc7f73a17318295697ee31ea25bb00cc91544f9a181a37",
+    "sample_task_spec.json": "04d3742ab206068e481ad985abb7a3f0278f7e64df7841998483c313c6152996",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

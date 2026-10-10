@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 expanded countdown value_group may contain only the value_row and one optional auxiliary-data row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "fe10a370c3668d8d14c736dc81b2c1e5ec3398baab5f8ad5858a66e81a9efd31",
+    "sample_task_spec.json": "f83874f4cea03d88ed16f93270d8ca39b197a0de78bb7cd7c06581b687dfdfdc",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

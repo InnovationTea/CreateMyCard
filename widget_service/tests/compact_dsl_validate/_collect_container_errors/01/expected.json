@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component root: Stack.children must be non-empty; use parent itemMargin, padding, or layout alignment instead of an empty spacer container."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "c7a403504f0ee85f9461e7bf7bfd2ececef1c345dc33fc12228061106f5ca0bb",
+    "sample_task_spec.json": "980b7297f3acab553f5c5c537d161abbc7c6b351728d7c1d4a2870ac470ef07f",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

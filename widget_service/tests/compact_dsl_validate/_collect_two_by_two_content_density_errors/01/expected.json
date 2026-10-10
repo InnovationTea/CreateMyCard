@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 150vp single-business pure-text content with an action may contain at most one prominent line and two 12fp/400 auxiliary lines. Merge related auxiliary fields with ' | ' and remove lower-priority update text."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "d983109a221a91bf60b7879b02ee5346bb54a19e0fb0640f9ac45c58ffca293b",
+    "sample_task_spec.json": "48c61a296961cbddf15354f201b9196c9035349ae2c0df609dd57df90992c729",
+    "sample_card_spec.json": "d17f83d749e7ef6dd906c72470af20c0b3b34d24aca0c4aaaaaf8bf72b6c999e"
+  }
+}

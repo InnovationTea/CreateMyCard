@@ -1044,6 +1044,10 @@ def _required_parameter_is_satisfiable(
     has_numbers: bool,
 ) -> bool:
     template_name = template_id.rpartition("@")[0]
+    if template_name == "ScheduleOverviewMeetingSenderFull" and name == "title":
+        # 该标题来自可信 CardSpec 文案，不要求同名运行时数据字段；
+        # 二层提示词和编译器继续约束其实际取值。
+        return True
     if (
         template_name
         in {"GenericMetricOverviewCompact", "GenericMetricOverviewDualCompact"}

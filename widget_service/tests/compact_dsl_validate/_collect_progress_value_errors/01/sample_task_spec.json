@@ -1,0 +1,20 @@
+{
+  "size": "4x2",
+  "dataModelSchema": {
+    "data": {
+      "metric": {
+        "x": {
+          "type": "string",
+          "sampleValue": "68%"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]
+["main","Row",{"width":126,"height":28},["current","label"]]
+["current","Text",{"content":"1","width":126,"height":34,"fontSize":24,"maxLines":1}]
+["label","Text",{"content":"电流","fontSize":12,"maxLines":1}]
+["/data/phoneBattery/nowCurrentText","-151 mA"]

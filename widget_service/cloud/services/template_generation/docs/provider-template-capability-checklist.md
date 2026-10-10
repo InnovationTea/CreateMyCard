@@ -118,7 +118,6 @@
 | ✅ | `CountdownOverviewWideHalf@1` | 约 4x1；用于 2x4 半高组合布局 | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
 | ✅ | `CountdownOverviewTravelSupport@1` | 双 Support；出行倒计时，可选计时图标，可内嵌闹钟跳转 | `/countdownDays` | 无 | 无 |
-| ✅ | `CountdownOverviewSupport@1` | 约 2x1；双 Support，可选计时图标，事件在模板内部 | `/countdownDays` | 无 | 无 |
 
 ## BluetoothDeviceOverview
 

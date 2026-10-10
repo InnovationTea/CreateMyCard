@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 compact weather day left0 must not show both full date and weekday in the same 114vp row. Keep the weekday and remove the redundant date."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "577d6e56702f219414b380ff4648cad7432b449627efea70555ee41edc04f60a",
+    "sample_task_spec.json": "06fd796e98728165e1f188844c5246cdeeb38ce60a5f211e31f06bb2b0b443a7",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

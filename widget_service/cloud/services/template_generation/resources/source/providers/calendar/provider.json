@@ -205,7 +205,7 @@
       "templateId": "ScheduleOverviewThreeMeetingsFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "三场会议 Full：无背板，按时间顺序展示三场会议各自的开始时间、标题和地点，每场会议以时间轴圆点开始；用于 2x4 组合布局的整列业务槽位。",
+      "description": "三场会议 Full：无背板，按时间顺序展示三场会议各自的开始时间、标题和地点，每场会议以时间轴圆点开始，条目间距设为 2vp；用于 2x4 组合布局的整列业务槽位。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title",
@@ -356,7 +356,7 @@
       "templateId": "ScheduleOverviewEventCountDetailsFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "近期日程清点 Full，并列展示日程总数、首项日程标题/开始时间/全天状态，备注为可选；可选日历图标与标题文案。",
+      "description": "近期日程清点 Full，上方以 4vp 间距展示高 24vp、顶部对齐的标题与数量徽标行及 20fp 日程标题，下方以 4vp 间距展示开始时间、全天状态和可选备注；有备注时，时间与全天状态同排、备注单独一行，无备注时，时间与全天状态各占一行，不显示时间轴；可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/eventCount",
@@ -548,7 +548,7 @@
       "templateId": "ScheduleOverviewMeetingSenderFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "Q077 会议详情 Full：顶部展示今日日程标题，时间轴依次展示首项日程标题（可选，缺失时隐藏）、时间段（缺结束时间时仅开始时间）、两行地点；用于 2x4 组合布局的整列业务槽位（如 WideFullTwoCompactLayout 的 Full 槽位），不内嵌 Action。标题 14vp/700，副标题 10vp/400。",
+      "description": "Q077 会议详情 Full：可信静态标题与地点在全高 Column 中上下分布、水平居中，首项日程时间使用独立 Row 叠放在 Stack 中央，不展示时间轴或动态日程标题。title 必填并逐字复用 businessTitleCandidate；标题为 16fp/500、最小 12fp，地点为 12fp/500、最小 10fp，最多两行。时间段为 24fp/800、最小 16fp，只有开始时间时为 30fp/800、最小 24fp，时间容器高 58vp、上边距 4vp，文字在容器内双轴居中且单行。标题上边距 4vp，标题与地点所在 Column 间距 0vp，时间段连接符两侧不加空格。用于 2x4 组合布局的整列业务槽位（如 WideFullTwoCompactLayout 的 Full 槽位），不内嵌 Action。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/dtStart"
@@ -557,7 +557,6 @@
         "/events/0/eventLocation"
       ],
       "optionalData": [
-        "/events/0/title",
         "/events/0/dtEnd",
         "/events/0/oneClickServiceLink"
       ]

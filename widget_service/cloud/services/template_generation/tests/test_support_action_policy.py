@@ -96,7 +96,6 @@ _APPROVED = {
         "event.viewCalendarEvent",
         "event.enter.meeting"
     ],
-    "CountdownOverviewSupport@1": [],
     "CountdownOverviewTravelSupport@1": [
         "event.open.clock.alarm"
     ],
@@ -253,7 +252,7 @@ def test_missing_or_empty_allowlist_denies_embedded_action() -> None:
     assert not supports_business_action(definition, _binding("event.open.weather"), "2x2")
 
 
-def test_bundle_rejects_allowlist_without_optional_action_prop(tmp_path: Path) -> None:
+def test_bundle_rejects_allowlist_without_action_prop(tmp_path: Path) -> None:
     target = tmp_path / "weather"
     shutil.copytree(_ROOT / "resources/source/providers/weather", target)
     manifest_path = target / "provider.json"
@@ -263,7 +262,7 @@ def test_bundle_rejects_allowlist_without_optional_action_prop(tmp_path: Path) -
     entry = next(item for item in templates if item.get("templateId") == "WeatherOverviewFull@1")
     entry["supportedEventIds"] = ["event.open.weather"]
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(ValueError, match="requires optional actionId"):
+    with pytest.raises(ValueError, match="requires actionId"):
         load_provider_bundle(target)
 
 
@@ -337,18 +336,10 @@ def test_two_events_for_one_business_cannot_spill_into_partner() -> None:
 
 
 @pytest.mark.parametrize("events", ((), ("event.open.weather",)))
-def test_countdown_can_pair_without_own_action(events: tuple[str, ...]) -> None:
+def test_travel_countdown_can_pair_without_own_action(events: tuple[str, ...]) -> None:
     assert _plans(
-        ("CountdownOverviewSupport@1", "WeatherOverviewTemperatureSupport@1"), events,
+        ("CountdownOverviewTravelSupport@1", "WeatherOverviewTemperatureSupport@1"), events,
     )
-
-
-def test_countdown_cannot_use_alarm_as_a_related_event() -> None:
-    with pytest.raises(TemplateRetrievalMiss, match="cannot form"):
-        _plans(
-            ("CountdownOverviewSupport@1", "WeatherOverviewTemperatureSupport@1"),
-            ("event.open.clock.alarm",),
-        )
 
 
 def test_compiler_rechecks_policy_even_if_the_plan_is_forged() -> None:
@@ -410,8 +401,8 @@ def test_prompt_projects_only_matching_action_instances() -> None:
 def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path) -> None:
     manifest = provider_gallery.write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
-    assert len(provider.cases) == 63
-    countdown_cases = []
+    assert len(provider.cases) == 61
+    assert all(case.targetTemplateId != "CountdownOverviewSupport@1" for case in provider.cases)
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")
@@ -424,11 +415,6 @@ def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path
             if definition.supported_event_ids:
                 allowed.append(definition.supported_event_ids[0])
         assert [event.get("capabilityId") for event in events] == allowed[:len(events)]
-        if case.targetTemplateId == "CountdownOverviewSupport@1":
-            countdown_cases.append(case.scenarioId)
-            assert all(event.get("capabilityId") == "event.open.weather" for event in events)
-    # 通用倒计时无动作，搭档天气仍可消费一个显式事件。
-    assert set(countdown_cases) == {"dual-support-content", "dual-support-one-action"}
 
 
 @pytest.mark.parametrize(
@@ -438,7 +424,7 @@ def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path
 def test_real_compiler_enforces_support_event_ownership(
     use_planner: bool, wrong_target: bool,
 ) -> None:
-    template_ids = ("BatteryOverviewSupport@1", "CountdownOverviewSupport@1")
+    template_ids = ("BatteryOverviewSupport@1", "CountdownOverviewTravelSupport@1")
     events = ("event.open.settings.battery",)
     registry = get_cardplan_registry()
     plans = _plans(template_ids, events)

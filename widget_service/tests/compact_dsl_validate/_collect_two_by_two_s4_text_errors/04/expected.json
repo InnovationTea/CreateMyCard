@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 S4 static Text shanghaiValue exceeds its 110vp single-line width; shorten the wording while keeping its meaning. Do not wrap it, add a third line, or move the visual."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "ae603b11fce14b8b031b9ae81a174f91f369b8885ce972af957ec2efa759c87d",
+    "sample_task_spec.json": "e8facb9cc12ebc1bdb873f81041e4793e7f4574e5f22e72dd21b52bb73a368ca",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

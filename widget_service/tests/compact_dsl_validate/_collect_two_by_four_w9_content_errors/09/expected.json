@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 countdown left1 must use a 30fp/38fp, 700-weight numeric hero in its own backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "5532ae461b054a97cbc671a4f4b143d857b7d55c5a2555b8c7e52bb8736b41b0",
+    "sample_task_spec.json": "366d69805a1b953cbb33e0c88d916c0def0d0fde00fdcb0c729d02bf9aa3d159",
+    "sample_card_spec.json": "21876ba5647241226dbf524779d39679ce1b40a5ae1e106512a567b16ca01a20"
+  }
+}

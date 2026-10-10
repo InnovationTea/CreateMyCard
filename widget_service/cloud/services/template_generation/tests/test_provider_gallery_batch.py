@@ -24,6 +24,36 @@ from services.template_generation.test_support.provider_gallery import (
 
 _WEATHER_ASSET_IDS: list[str] = []
 
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("status", ["success", "failed", "missing", "not_generated"])
+def test_gallery_result_preserves_declared_size_for_every_status(
+    tmp_path: Path, size: str, status: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    case = manifest.providers[0].cases[0].model_copy(update={"cardSize": size})
+    result = ProviderGalleryBatchRunner._base_result(case, status, "reason")
+    assert result.get("cardSize") == size
+    assert result.get("status") == status
+    assert result.get("errorMessage") == "reason"
+
+
+def test_gallery_output_declares_mixed_sizes_without_relabeling_cases(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    provider = manifest.providers[0]
+    case = provider.cases[0]
+    square = ProviderGalleryBatchRunner._base_result(case, "success", "")
+    wide = ProviderGalleryBatchRunner._base_result(
+        case.model_copy(update={"cardSize": "2x4"}), "failed", "wide failure",
+    )
+    output = ProviderGalleryBatchRunner._output_manifest(
+        [provider], {provider.providerId: [square, wide]},
+    )
+    assert output.get("cardSize") == "mixed"
+    assert output.get("counts") == {
+        "total": 2, "success": 1, "failed": 1, "missing": 0, "notGenerated": 0,
+    }
+
 _FUSION_CAPABILITY_IDS = {
     "GetCalendarEvents",
     "GetCountdownDays",
@@ -208,7 +238,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
     # 包含各业务场景，以及新增电量、耳机和日程模板的预览。
-    assert len(all_cases) == 210
+    assert len(all_cases) == 208
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -299,7 +329,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 209
+    assert len(targeted_cases) == 207
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -655,10 +685,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 210
+    assert summary.total == 208
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 204
+    assert summary.not_generated == 202
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -796,9 +826,9 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
             if template.suffix == "Support":
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
-    # 三个 Support 不提供自身动作，各少一个双动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 3 == 63
-    assert len({case.caseId for case in provider.cases}) == 63
+    # 两个天气 Support 不提供自身动作，各少一个双动作场景。
+    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 61
+    assert len({case.caseId for case in provider.cases}) == 61
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -824,11 +854,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 63
-    assert summary.success == 60
+    assert summary.total == 61
+    assert summary.success == 58
     assert summary.missing == 3
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 60
+    assert len(service.requests) == 58
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 countdown backboard left must use justifyContent \"spaceBetween\" and alignItems \"center\" so the title, number, and unit have balanced vertical spacing."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "ee302334053a63e530a10a83eed975dfb1bdd32ac228330a3245f325dfcc5b75",
+    "sample_task_spec.json": "a20845835b08e271dc81c9e7e1c0d7639e35aa825ec9d89e06ffa4f1a32fb146",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

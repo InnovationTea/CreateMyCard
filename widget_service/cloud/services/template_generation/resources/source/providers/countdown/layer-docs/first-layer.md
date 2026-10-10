@@ -4,12 +4,12 @@
 
 - 支持的 TaskSpec 数据路径：`{{dataRoot:GetCountdownDays}}/countdownDays`。
 - 适用于高考、考试、节日、纪念日、旅行或赛事等通用剩余天数，0 天合法。
-- 当前提供 Full、Hero、Compact、TravelSupport 和 Support 模板。通用 Full/Hero 保留居中摘要；TargetDetailFull
+- 当前提供 Full、Hero、Compact 和出行专用 TravelSupport 模板。通用 Full/Hero 保留居中摘要；TargetDetailFull
   使用自适应内容布局并可补充可信标题、目标日期，2x4 蒙版由双 Full 布局统一提供；EventHero 用于
   节日或重要事件，DepartureHero 仅用于明确的旅行、返乡或出发语义；TargetCompact 用于目标日或
   比赛倒计时的紧凑蒙版。
-- Hero 用于单业务加一个 PillAction，Compact 可用于 Compact 槽位，Support 用于
-  `TwoSupportLayout@1` 的一个业务槽位。TravelSupport 展示可信出行标题与剩余天数，
+- Hero 用于单业务加一个 PillAction，Compact 可用于 Compact 槽位；通用 Support 已下架。
+  TravelSupport 仅用于明确出行语义的 `TwoSupportLayout@1` 业务槽位，展示可信出行标题与剩余天数，
   可消费用户明确要求的闹钟跳转。
 - 同时出现节日/重要事件和返乡出发语义时，若倒计时目标明确命名为节日或重要事件，优先保留
   EventHero 的“天”单位；只有倒计时目标本身是行程出发且没有更高优先级事件目标时才使用

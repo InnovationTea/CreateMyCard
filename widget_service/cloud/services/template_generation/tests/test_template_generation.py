@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 235
+    assert len(registry.provider_template_ids) == 234
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -1275,13 +1275,13 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
         ("GetHealthAndSportSummary",),
     ) == "2x2-two-support"
     assert registry.theme_reference_values("2x2-two-support") == {
-        "primaryColor": "#E61F4595",
-        "supportContentColor": "#991F4595",
-        "progressColor": "#E61F4595",
-        "progressBackgroundColor": "#330A59F7",
-        "actionStyle.backgroundColor": "#330A59F7",
+        "primaryColor": "#E61F4799",
+        "supportContentColor": "#991F4799",
+        "progressColor": "#E61F4799",
+        "progressBackgroundColor": "#CCFFFFFF",
+        "actionStyle.backgroundColor": "#CCFFFFFF",
         "actionStyle.contentColor": "#E61F4799",
-        "supportContentStyle.backgroundColor": "#1A2E529E",
+        "supportContentStyle.backgroundColor": "#CCFFFFFF",
         "supportContentStyle.borderRadius": 16,
     }
 
@@ -2349,14 +2349,25 @@ def test_activity_full_renders_metric_rows_only_when_fields_are_advertised():
     assert any(node.component_type == "Progress" for node in walk(complete))
 
 
-def test_workout_template_requires_one_complete_training_session():
+def test_workout_template_full_tiers_and_latest_session_facts():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverviewFull@1")
 
+    # 时长为唯一必选主字段：仅查“运动了多久”的请求也能落地 Full 形态；
+    # 热量、起止时间、运动类型与当日步数/热量全部可选，缺失时按条件分支省略。
+    # Full 形态不带图标：标题/主数据/详情三行纯文本居中（sourceIcon 仅保留在
+    # Hero/Compact/Support 变体上）。
     assert definition.primary_data == ("/exerciseDurationText",)
-    assert definition.secondary_data == ("/exerciseCalorieText",)
-    assert definition.optional_data == ("/exerciseEndTimeText", "/exerciseTypeName")
-    assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
+    assert definition.secondary_data == ()
+    assert definition.optional_data == (
+        "/exerciseCalorieText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/exerciseEndTimeText",
+        "/exerciseStartTimeText",
+        "/exerciseTypeName",
+    )
+    assert set(definition.variants[0].parameters_schema["properties"]) == set()
 
     hero = registry.require_template("WorkoutOverviewHero@1")
     assert hero.primary_data == ("/exerciseDurationText",)
@@ -2482,7 +2493,6 @@ def test_first_layer_receives_workout_session_routing_rules_and_required_paths()
     )
     assert template["requiredTaskSpecPaths"] == [
         "/data/healthSport/exerciseDurationText",
-        "/data/healthSport/exerciseCalorieText",
     ]
     provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
     assert "最近一次特定运动训练会话" in provider_rules
@@ -2822,16 +2832,19 @@ def test_sleep_templates_bind_progress_color_to_dedicated_theme_tokens() -> None
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties.get("color")
-        assert color is not None
-        assert color.kind == "theme"
-        assert color.name == "progressColor"
-        background = options.properties["backgroundColor"]
-        assert background.kind == "theme"
-        assert background.name == "progressBackgroundColor"
+        # SleepOverviewFull 的富/简双布局各含一份 Progress（#if 分支互斥，运行时只
+        # 渲染一份）；Hero 恒为一份。断言所有副本都绑定专属主题 token。
+        assert progress
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties.get("color")
+            assert color is not None
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
+            background = options.properties["backgroundColor"]
+            assert background.kind == "theme"
+            assert background.name == "progressBackgroundColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -3104,7 +3117,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("HeartRateOverviewIconHero@1", "sourceIcon"),
         ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
         ("HeartRateOverviewSupport@1", "heartIcon"),
-        ("SleepOverviewFull@1", "sourceIcon"),
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
         ("SleepOverviewScoreCompact@1", "sourceIcon"),
@@ -3132,7 +3144,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
     }
     expected_inherited_assets = {
-        ("WorkoutOverviewFull@1", "sourceIcon"),
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
         ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
@@ -3523,7 +3534,7 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
-        "CountdownOverview": "CountdownOverviewSupport@1",
+        "CountdownOverview": "CountdownOverviewTravelSupport@1",
         "HeartRateOverview": "HeartRateOverviewSupport@1",
         "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
         "SleepOverview": "SleepOverviewSupport@1",
@@ -3540,7 +3551,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
     ("template_id", "params"),
     (
         ("ScheduleOverviewTimeSupport@1", {}),
-        ("CountdownOverviewSupport@1", {"title": "高考倒计时"}),
     ),
 )
 def test_new_support_templates_follow_two_line_contract(
@@ -3592,27 +3602,17 @@ def test_new_support_templates_follow_two_line_contract(
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    expected_item_margin = 2 if template_id == "ScheduleOverviewTimeSupport@1" else 4
-    assert content_options.get("itemMargin") == expected_item_margin
+    assert content_options.get("itemMargin") == 2
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    if template_id == "ScheduleOverviewTimeSupport@1":
-        # 时间 Support 主辅行有固定行高。
-        assert primary_options.get("height") == 20
-        assert support_options.get("height") == 16
-    else:
-        assert primary_options.get("height") is None
-        assert support_options.get("height") is None
+    assert primary_options.get("height") == 20
+    assert support_options.get("height") == 16
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    if template_id == "CountdownOverviewSupport@1":
-        # 双业务 Support 主标题 14vp、副标题 10vp。
-        assert support_options.get("fontSize") == 10
-    else:
-        assert support_options.get("fontSize") == 12
+    assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
 
 
@@ -3788,7 +3788,12 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
     value, unit = value_row.children
     assert _template_node_options(value)["height"] == 48
     assert unit.values[0].value == "天"
-    assert _template_node_options(unit)["height"] == 16
+    # 单位与 WideHalf/TargetCompact 的旁数单位一致：fontSize 14、无固定高度
+    # （固定 height:16 曾把 12fp 字形压进 9vp 内容盒）、flexShrink 0 防横向挤压。
+    unit_options = _template_node_options(unit)
+    assert unit_options["fontSize"] == 14
+    assert "height" not in unit_options
+    assert unit_options["flexShrink"] == 0
     unit_margin = unit.values[-1].properties["margin"]
     assert unit_margin.kind == "object"
     assert unit_margin.properties["bottom"].value == 6

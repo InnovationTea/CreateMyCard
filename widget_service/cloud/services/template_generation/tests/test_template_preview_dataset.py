@@ -20,11 +20,11 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 205
+    assert manifest.get("templateCount") == 204
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 22,
+        "Support": 21,
         "Compact": 24,
         "Hero": 52,
         "Full": 71,
@@ -32,8 +32,8 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 171, "2x4": 34}
-    assert len(cases) == 205
+    assert manifest.get("countsBySize") == {"2x2": 170, "2x4": 34}
+    assert len(cases) == 204
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 205
+    assert len(template_ids) == 204
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -148,12 +148,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/condition",
             )
         elif case.template_id == "HeartRateOverviewMinMaxFull@1":
+            # 平均心率与运动类型为可选数据：存在时平均心率为大字、类型为标签，区间退为辅行。
             assert case.primary_data == (
                 "/exerciseHeartRateMax",
                 "/exerciseHeartRateMin",
             )
             assert case.secondary_data == ()
-            assert case.optional_data == ("/updatedAt",)
+            assert case.optional_data == (
+                "/exerciseHeartRateAvg", "/exerciseTypeName", "/updatedAt",
+            )
         elif case.template_id == "BatteryOverviewSupport@1":
             # 充电状态与电池温度为可选数据：辅行充电优先、温度回退，电量环仍由数值电量驱动。
             assert case.primary_data == ("/batterySOC",)

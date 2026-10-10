@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 must keep its text group left-aligned. Use Row justifyContent start or Column alignItems start, and Text textAlign start; only vertical centering is allowed."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "7989455a99cbb0261f1a837de405acfbbd785d3e2af333382e6f9800e14b5a57",
+    "sample_task_spec.json": "4e92578b640f4b38b7659a7366554534df60aabd3a30991e982a0fcc6acf6b1e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

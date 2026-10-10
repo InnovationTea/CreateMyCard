@@ -1,0 +1,57 @@
+{
+  "userQuery": "下一场日程是18天后的产品发布会，显示离发布会还有几天、日程标题和开始时间，并提供查看详情按钮。",
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "ViewCalendarEvent",
+        "params": {
+          "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+        }
+      }
+    },
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "countdownDays": {
+          "type": "integer",
+          "description": "距离目标日期的自然日天数纯整数，返回值不包含‘天’",
+          "sampleValue": 18
+        }
+      },
+      "calendar": {
+        "events": [
+          {
+            "title": {
+              "type": "string",
+              "description": "日程标题",
+              "sampleValue": "产品发布会"
+            },
+            "dtStart": {
+              "type": "string",
+              "description": "格式化后的日程开始时间短文本",
+              "sampleValue": "上午10:00"
+            },
+            "entityId": {
+              "type": "string",
+              "description": "系统日程的全局唯一实体ID",
+              "sampleValue": "event-001"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ]
+}

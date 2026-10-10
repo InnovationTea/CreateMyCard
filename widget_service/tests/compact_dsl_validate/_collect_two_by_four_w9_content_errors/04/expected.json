@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 backboard leftZone may contain at most four content Text rows. Merge same-object fields instead of stacking additional rows."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "89e52db13752713e8eeb74650f27fcf4f0b22836b3ac0b41b87420c3225a8944",
+    "sample_task_spec.json": "e985f494158d0004cb7df0168eb578c7905061ce73636278b64f8a2bbe7620dd",
+    "sample_card_spec.json": "aff56f20553ea10833d1552aa4ac7334626a944702fb92777f67f9cf7f18555d"
+  }
+}

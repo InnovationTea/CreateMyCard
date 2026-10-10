@@ -14,20 +14,24 @@
   ],
   "supportedLayoutIds": ["TwoSupportLayout"],
   "paletteSceneIds": ["layout.twoSupport"],
-  "primaryColor": "#E61F4595",
-  "supportContentColor": "#991F4595",
+  "primaryColor": "#E61F4799",
+  "supportContentColor": "#991F4799",
   "rootStyle": {
     "backgroundColor": "#1A0A59F7",
     "borderRadius": 18,
     "padding": 12,
-    "clip": true
+    "clip": true,
+    "linearGradient": {
+      "direction": "RightBottom",
+      "colors": [["#FFCBDDFE", 0], ["#FFF1F6FE", 1]]
+    }
   },
   "actionStyle": {
-    "backgroundColor": "#330A59F7",
+    "backgroundColor": "#CCFFFFFF",
     "contentColor": "#E61F4799"
   },
   "supportContentStyle": {
-    "backgroundColor": "#1A2E529E",
+    "backgroundColor": "#CCFFFFFF",
     "borderRadius": 16
   }
 }
