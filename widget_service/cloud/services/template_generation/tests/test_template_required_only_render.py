@@ -117,6 +117,8 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
     assert paths, f"{template_id} declares no required data"
 
     parameters: dict[str, str] = {}
+    if template_id == "ScheduleOverviewMeetingSenderFull@1":
+        parameters["title"] = "会议详情"
     asset_candidates: list[dict[str, object]] = []
     if template_id == "BluetoothDeviceOverviewMusicFull@1":
         icon_path = "resources/base/media/earphone_case_16644.svg"
@@ -147,6 +149,8 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
             }
         ],
     }
+    if template_id == "ScheduleOverviewMeetingSenderFull@1":
+        card_spec["title"] = "会议详情"
     intent = {
         "requiredOutputFieldsByCapability": {definition.capability_id: paths},
         "primaryOutputFieldByCapability": {},

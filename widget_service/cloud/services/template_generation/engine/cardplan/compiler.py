@@ -1201,6 +1201,7 @@ def _validate_provider_template_state(
             "percentRingHero",
             "percentStatusCompact",
             "phoneTextCompact",
+            "pluggedTypeSupport",
             "progressCompact",
             "progressSupport",
             "statusIconCompact",
@@ -1237,6 +1238,9 @@ def _validate_provider_template_state(
                     "Battery Provider Template variant does not match the phone-earphone layout."
                 )
     if wire_id == "BluetoothDeviceOverview@1":
+        if variant_name in {"nameAndConnectionSupport", "nameAndChargeSupport"}:
+            # 必需字段和类型由模板绑定契约校验，不附加旧状态分类所需的电量或连接字段。
+            return
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if facts is None:
             raise TerselConversionError(

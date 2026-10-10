@@ -25,6 +25,10 @@ _CALENDAR_SUPPORTS = (
 
 # 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
+    "BatteryOverviewPluggedTypeSupport@1": (0,),
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": (0,),
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": (0,),
+    "WeatherOverviewConditionSupport@1": (0,),
     "WeatherOverviewFeelsLikeWindSupport@1": (0,),
     "ActivityOverviewSupport@1": (0,),
     "BatteryOverviewSupport@1": (0,),
@@ -161,10 +165,14 @@ def test_support_ux_spacing_typography_and_right_icon(
             assert styles.get("fontWeight") in (400, 500)
         assert styles.get("minFontSize", font_size) == font_size
 
-    for node in _standalone_images(root):
+    for index, node in enumerate(_standalone_images(root)):
         styles = node.values[-1]
         assert isinstance(styles, dict)
-        assert styles.get("width") == styles.get("height") == 24
+        inline_earbud_icon = (
+            template_id == "BluetoothDeviceOverviewEarbudsSupport@1" and index < 2
+        )
+        size = 16 if inline_earbud_icon else 24
+        assert styles.get("width") == styles.get("height") == size
         assert styles.get("flexShrink") == 0
     assert _serialize_node(root).count('"onClick":') == int(with_action)
 
@@ -248,7 +256,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 21
+    assert len(supports) == 25
     assert not supports.intersection({
         "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
@@ -403,7 +411,13 @@ def test_two_support_layout_keeps_two_equal_row_slots() -> None:
 
 def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
     expected = {
-        "BluetoothDeviceOverviewEarbudsSupport@1": ["icon_earphone.svg"],
+        "BluetoothDeviceOverviewEarbudsSupport@1": [
+            "l_circle_fill.svg", "r_circle_fill.svg", "icon_earphone.svg",
+        ],
+        "BatteryOverviewPluggedTypeSupport@1": ["bolt_fill.svg"],
+        "BluetoothDeviceOverviewNameAndConnectionSupport@1": ["icon_earphone.svg"],
+        "BluetoothDeviceOverviewNameAndChargeSupport@1": ["icon_earphone.svg"],
+        "WeatherOverviewConditionSupport@1": [],
         "BluetoothDeviceOverviewChargeSupport@1": ["earphone_case_16644.svg"],
         "BluetoothDeviceOverviewConnectionSupport@1": ["icon_earphone.svg"],
         "HeartRateOverviewSupport@1": ["heart_fill.svg"],

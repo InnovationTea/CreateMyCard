@@ -11,8 +11,14 @@
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名，左右耳电量可选；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。左右耳充电状态可选，各自可用时以 12vp
     「左/右耳图标 + 状态文本」行展示。
-  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；Planner 可将其用于
-    `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon`、`leftIcon`、`rightIcon`
+    均可选。左右图标齐全时显示对应图标和百分比，缺任意一侧时使用 L/R 文本，不互换左右素材。
+    Planner 可将其用于 `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewNameAndConnectionSupport@1`：必需名称和连接状态，分别作为主行和辅行；
+    `false` 合法，显示“未连接”，保留运行时刷新表达式，不要求电量。
+  - `BluetoothDeviceOverviewNameAndChargeSupport@1`：必需名称和充电状态，盒电量可选；有电量时显示
+    “电量 N%·充电状态”，没有电量时只展示充电状态，0% 不应被省略。
+    两种名称 Support 的 `bluetoothIconOrDeviceIcon` 均为可选蓝牙或耳机本体图标，支持可选蓝牙设置事件。
   - `BluetoothDeviceOverviewConnectionSupport@1`：主行加粗展示连接状态，可选次行展示仓电量，
     右侧 40vp 电量环，环内图标为 16vp，无电量时为 24vp 耳机图标；
     用于 `TwoSupportLayout@1`。`deviceIcon` 必填，且必须表达耳机本体。
