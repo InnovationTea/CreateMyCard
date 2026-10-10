@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 172 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
+- [x] 179 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -33,13 +33,13 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 25 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 33 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 36 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 51 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 11 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 27 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 38 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
-| weather | `ViewWeather` | `/data/weather` | 39 | 启用 |
+| weather | `ViewWeather` | `/data/weather` | 42 | 启用 |
 
 下方列出主要形态及本轮调整的 Support；非 Support 条目保留原有摘要，
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
@@ -50,7 +50,7 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：24。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：26。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -63,6 +63,7 @@
 | ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
 | ✅ | `BatteryOverviewSupport@1` | 约 2x1；左侧文本（充电状态可选辅行，缺失时回退展示电池温度，均缺失时单行），右侧 40vp 环、可选 16vp 内图标，事件在模板内部 | `/batterySOC` | 无 | `/chargingStatusDesc`<br>`/batterySOCText`<br>`/batteryTemperatureText` |
 | ✅ | `BatteryOverviewStatusSupport@1` | 约 2x1；左侧双行文本展示充电状态与充电器类型，右侧可选 24vp 电池图标，事件在模板内部 | `/chargingStatusDesc` | `/pluggedTypeDesc` | 无 |
+| ✅ | `BatteryOverviewPhoneTextSupport@1` | 约 2x1；左侧电量文本主行与充电状态辅行（可选），右侧可选 24vp 电池图标，事件在模板内部；仅用于双业务 Support 组合布局 | `/batterySOCText` | 无 | `/chargingStatusDesc` |
 | ✅ | `BatteryOverviewStatusHero@1` | 约 2x2 焦点面板；顶部“手机电量”标签行 + 电量大字 + 充电状态辅行，用于 `WideTwoFocus` 系列双焦点布局 | `/batterySOC` | `/chargingStatusDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
@@ -81,7 +82,7 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：33。
+- 数据能力：`GetCalendarEvents`；模板数：38。
 - 当前没有 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
@@ -99,6 +100,9 @@
 | ✅ | `ScheduleOverviewReminderDetailsFull@1` | 完整 2x2；沿用时区日期日程版式 | `/events/0/senderName` | `/events/0/importantEventType`<br>`/events/0/remindTime/0`<br>`/updatedAt` | 无 |
 | ✅ | `ScheduleOverviewReminderSourceFull@1` | 完整 2x2；沿用提醒详情 Full 时间轴版式，只展示发起人与提前提醒 | `/events/0/senderName` | `/events/0/remindTime/0` | 无 |
 | ✅ | `ScheduleOverviewDateLocationTimeFull@1` | 完整 2x2；沿用日期地点 Full 版式，展示标题、日期、开始时间与地点 | `/events/0/title`<br>`/events/0/startDate`<br>`/events/0/dtStart` | `/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewEventCountDatedLocationFull@1` | 完整 2x2；头部日程总数徽标 + 时间轴展示首项标题、日期、开始时间与地点 | `/eventCount`<br>`/events/0/title`<br>`/events/0/startDate`<br>`/events/0/dtStart` | `/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewTitleTimeFull@1` | 完整 2x2；沿用日期地点 Full 版式，展示标题与开始时间，无动作形态 | `/events/0/title`<br>`/events/0/dtStart` | 无 | 无 |
+| ✅ | `ScheduleOverviewReminderFull@1` | 完整 2x2；时间轴展示标题、开始时间与提前提醒，无动作形态 | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/remindTime/0` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/dtStart` | 无 | `/events/0/title`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` |
@@ -221,7 +225,7 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：39。
+- 数据能力：`ViewWeather`；模板数：42。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -232,6 +236,7 @@
 | ✅ | `WeatherOverviewDaily2TravelSupport@1` | 约 2x1；后日出行天气双层信息块，可选温度计或天气状态图标 | `/daily/2/condition` | `/daily/2/temperatureRangeText` | 无 |
 | ✅ | `WeatherOverviewTravelSupport@1` | 双 Support；ConditionHero 风格的出行天气主视觉，可选温度计或天气状态图标，可内嵌天气跳转 | 无 | 无 | `/daily/4/condition`<br>`/daily/4/temperatureRangeText`<br>`/daily/4/rainProbabilityPercent`<br>`/current/temperatureC`<br>`/current/condition` |
 | ✅ | `WeatherOverviewTemperatureUvSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/current/condition`<br>`/current/uvIndex` | `/location/prefectureName`<br>`/location/districtName` |
+| ✅ | `WeatherOverviewTemperatureHumiditySupport@1` | 约 2x1；双 Support，主行温度与现象、辅助行湿度与空气质量（可选），事件在模板内部；仅用于双业务 Support 组合布局 | `/current/temperatureText` | `/current/condition` | `/current/humidityPercent`<br>`/current/airQuality` |
 | ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |

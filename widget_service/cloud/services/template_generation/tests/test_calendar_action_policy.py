@@ -112,10 +112,12 @@ def test_calendar_hero_fallback_preserves_all_fields_and_uses_one_view_action(
     fields: tuple[str, ...], template: str,
 ) -> None:
     case = _calendar_case(fields)
-    # Keep the Hero-only precondition with both reminder and wide-branch count Fulls.
+    # Keep the Hero-only precondition with the reminder, reminder-source and
+    # wide-branch count Fulls competing for the same field combinations.
     registry = CardPlanRegistry(disabled_template_ids=(
         "ScheduleOverviewReminderDetailsFull@1",
         "ScheduleOverviewEventCountDetailsFull@1",
+        "ScheduleOverviewReminderFull@1",
     ))
     result = _search(case, registry)
     intent = resolve_calendar_view_fallback(case.intent, result, case.task, registry)

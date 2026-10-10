@@ -28,6 +28,11 @@
     主数据：/chargingStatusDesc；次要数据：/pluggedTypeDesc；可选数据：无。
     接收可选 `batteryIcon` 与 Planner 分配的 `actionId`；事件仅限打开电池设置、电池健康或省电模式，
     未分配事件时省略，根节点不生成 `onClick`。
+  - `BatteryOverviewPhoneTextSupport@1`：约 2x1 的双业务电量文本摘要；左侧以 16vp 主行展示
+    “电量 + /batterySOCText”，充电状态为可选辅行（缺失时省略），右侧可选 24vp 电池图标。
+    主数据：/batterySOCText；次要数据：无；可选数据：/chargingStatusDesc。
+    接收可选 `batteryIcon` 与 Planner 分配的 `actionId`；事件仅限打开电池设置、电池健康或省电模式，
+    未分配事件时省略，根节点不生成 `onClick`。仅用于双业务 Support 组合布局。
   - `BatteryOverviewPercentRingHero@1`：手机电量百分比环形 Hero，居中展示电量进度环和剩余电量百分比；
     显示文本通过端侧 Expr 拼接数值和百分号，不依赖格式化电量字段。底部按钮由第二层组合
     `PillAction@1`。主数据：/batterySOC；次要数据：无；可选数据：无。

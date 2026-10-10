@@ -78,6 +78,24 @@ _SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
         ),
     ),
     (
+        "allDayLocation",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("isAllDay", "/events/0/isAllDay", "boolean", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
+        "eventCountDatedLocation",
+        (
+            ("eventCount", "/eventCount", "integer", False),
+            ("title", "/events/0/title", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
         "eventCountDetails",
         (
             ("eventCount", "/eventCount", "integer", False),

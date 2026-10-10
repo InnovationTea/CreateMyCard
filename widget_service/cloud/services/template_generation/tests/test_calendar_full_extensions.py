@@ -55,6 +55,16 @@ _CASES = {
         "/events/0/title", "/events/0/startDate", "/events/0/dtStart",
         "/events/0/eventLocation",
     ),
+    "EventCountDatedLocationFull": (
+        "/eventCount", "/events/0/title", "/events/0/startDate", "/events/0/dtStart",
+        "/events/0/eventLocation",
+    ),
+    "TitleTimeFull": (
+        "/events/0/title", "/events/0/dtStart",
+    ),
+    "ReminderFull": (
+        "/events/0/title", "/events/0/dtStart", "/events/0/remindTime/0",
+    ),
 }
 _SNAPSHOTS = json.loads(
     (Path(__file__).parent / "fixtures/calendar_existing_preview_hashes.json").read_text(
