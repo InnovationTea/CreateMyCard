@@ -96,7 +96,11 @@ def plan_template_candidates(
     if search_result.card_size != task_spec.size:
         raise TemplateRetrievalMiss("Search result card size does not match TaskSpec")
     groups_by_capability = _groups_by_capability(search_result)
-    requested_capabilities = tuple(intent.required_output_fields_by_capability)
+    requested_capabilities = tuple(
+        capability_id
+        for capability_id in intent.required_output_fields_by_capability
+        if capability_id not in search_result.dropped_capabilities
+    )
     if any(capability_id not in groups_by_capability for capability_id in requested_capabilities):
         raise TemplateRetrievalMiss("Search result does not cover every requested capability")
     action_ids = _selected_action_ids(intent, task_spec)
@@ -198,7 +202,7 @@ def plan_template_candidates(
             continue
         same_theme.append(item)
     selected = list(same_theme[:_MAX_PLANS])
-    _verify_plans_cover_request(selected, intent)
+    _verify_plans_cover_request(selected, intent, search_result.dropped_capabilities)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
         for index, item in enumerate(selected)
@@ -208,12 +212,21 @@ def plan_template_candidates(
 def _verify_plans_cover_request(
     drafts: list[_PlanDraft],
     intent: TemplateSearchIntent,
+    dropped_capabilities: tuple[str, ...] = (),
 ) -> None:
     """每个输出计划都必须覆盖全部请求业务和显式展示字段，禁止部分覆盖成卡。"""
+    dropped = set(dropped_capabilities)
     requested_fields = {
-        path for paths in intent.required_output_fields_by_capability.values() for path in paths
+        path
+        for capability_id, paths in intent.required_output_fields_by_capability.items()
+        if capability_id not in dropped
+        for path in paths
     }
-    requested_businesses = set(intent.required_output_fields_by_capability)
+    requested_businesses = {
+        capability_id
+        for capability_id in intent.required_output_fields_by_capability
+        if capability_id not in dropped
+    }
     for item in drafts:
         plan = item.plan
         covered_fields = {
