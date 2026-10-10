@@ -26,12 +26,13 @@
     不接收展示 Prop。
   - `ScheduleOverviewMeetingEntryHero@1`：会议条目 Hero；以时间轴样式展示首项日程的开始时间和地点，
     两者均为必需；不接收展示 Prop，不含动作。
-  - `ScheduleOverviewMeetingSenderFull@1`：会议详情 Full；居中排列标题、时间和地点，不展示时间轴。
+  - `ScheduleOverviewMeetingSenderFull@1`：会议详情 Full；顶部组居中排列标题和时间，底部展示地点，不展示时间轴。
     `title` 必填，只能逐字复用 `cardComposition.businessTitleCandidate`；没有可信标题时不得选用。
     不接收 `headerLabel`，不绑定 `/events/0/title`，不能覆盖用户显式要求的动态日程标题。
     开始时间和地点必需，结束时间可选；有结束时间时展示时间段，否则只展示开始时间，不保留分隔符。
-    时间统一为 24fp/800，最小 18fp、最大 24fp、单行省略，时间段连接符两侧不加空格。
-    三行统一间距 8vp，时间不额外增加上边距。标题和地点均为
+    时间段为 24fp/800、最小 18fp；仅开始时间为 30fp/800、最小 24fp，最大字号与默认字号一致，
+    时间行高 58vp、可收缩且单行省略，时间段连接符两侧不加空格。顶部组间距 8vp、上边距 4vp，
+    外层上下分布、间距 0vp。标题和地点均为
     16fp/500，最小 12fp、最大 16fp、最多两行省略。用于 2x4
     组合布局的整列业务槽位（如 `WideFullTwoCompactLayout@1` 的 Full 槽位），不内嵌 Action；2x4 单业务
     双操作时依次组合本 Full 与两个 `CompactAction@1`（按各自 `allowedActionIds` 语义绑定，如免打扰

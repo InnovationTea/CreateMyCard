@@ -110,7 +110,6 @@ _GENERIC_PREVIEW_VALUES = {
     "/exerciseHeartRateAvg": {"type": "integer", "description": "平均心率", "sampleValue": 88},
 }
 _TEXT_BY_TEMPLATE_PARAMETER = {
-    ("ScheduleOverviewMeetingSenderFull@1", "title"): "今日日程",
     ("GenericMetricOverviewCompact@1", "title"): "步数",
     ("GenericMetricOverviewCompact@1", "valuePath"): "/dailySteps",
     ("GenericMetricOverviewDualCompact@1", "firstTitle"): "步数",
@@ -151,8 +150,6 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
         "resources/base/media/icon_weather_thermometer.svg",
     ("WeatherOverviewTravelSupport@1", "conditionIcon"):
         "resources/base/media/icon_weather_thermometer.svg",
-    ("CountdownOverviewSupport@1", "timerIcon"):
-        "resources/base/media/icon_timing.svg",
 }
 # 预览用可选 actionId 参数：取事件能力目录（data/capabilities/*/event_capabilities.json）
 # 中与业务语义一致的真实事件 id，与评测语料的 candidateEventCandidates 保持同源。

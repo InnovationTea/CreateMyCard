@@ -58,7 +58,7 @@ UX 模板编译不再因正文未包含 CardSpec `title` 而自动补充标题 T
 温度要求；Search 仍须完整覆盖用户显式字段。该调整不放开单业务天气卡的必需字段门禁，整卡主题仍归 HeroContent。
 
 出行组合补充两个受控形态：无动作的“倒计时 + 后日天气”使用
-`CountdownOverviewSupport@1 + WeatherOverviewDaily2TravelSupport@1`；带一个动作的出行请求使用
+`CountdownOverviewTravelSupport@1 + WeatherOverviewDaily2TravelSupport@1`；带一个动作的出行请求使用
 `CountdownOverviewTravelSupport@1 + WeatherOverviewTravelSupport@1`。天气内容沿用
 `WeatherOverviewConditionHero@1` 的天气现象主视觉和无内层底板结构，并在辅助行展示温度及降雨概率；
 布局将出行倒计时与天气分别放入两个等高、独立底色和圆角的 Support 胶囊槽，胶囊间距及左右内边距均为

@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 220
+    assert len(registry.provider_template_ids) == 219
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -3523,7 +3523,7 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
-        "CountdownOverview": "CountdownOverviewSupport@1",
+        "CountdownOverview": "CountdownOverviewTravelSupport@1",
         "HeartRateOverview": "HeartRateOverviewSupport@1",
         "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
         "SleepOverview": "SleepOverviewSupport@1",
@@ -3540,7 +3540,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
     ("template_id", "params"),
     (
         ("ScheduleOverviewTimeSupport@1", {}),
-        ("CountdownOverviewSupport@1", {"title": "高考倒计时"}),
     ),
 )
 def test_new_support_templates_follow_two_line_contract(
@@ -3592,27 +3591,17 @@ def test_new_support_templates_follow_two_line_contract(
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    expected_item_margin = 2 if template_id == "ScheduleOverviewTimeSupport@1" else 4
-    assert content_options.get("itemMargin") == expected_item_margin
+    assert content_options.get("itemMargin") == 2
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    if template_id == "ScheduleOverviewTimeSupport@1":
-        # 时间 Support 主辅行有固定行高。
-        assert primary_options.get("height") == 20
-        assert support_options.get("height") == 16
-    else:
-        assert primary_options.get("height") is None
-        assert support_options.get("height") is None
+    assert primary_options.get("height") == 20
+    assert support_options.get("height") == 16
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    if template_id == "CountdownOverviewSupport@1":
-        # 双业务 Support 主标题 14vp、副标题 10vp。
-        assert support_options.get("fontSize") == 10
-    else:
-        assert support_options.get("fontSize") == 12
+    assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
 
 

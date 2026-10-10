@@ -74,7 +74,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 20
+    assert slot_count == 19
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -191,36 +191,6 @@ def test_weather_slot_separates_single_and_dual_business_assets(
         )
 
 
-@pytest.mark.parametrize("template_id", ("CountdownOverviewSupport@1",))
-def test_countdown_slot_only_accepts_timing_assets(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources("timerIcon", definition, catalog_contract)
-    timing_sources = {
-        _SOURCE + "hourglass_fill.svg",
-        _SOURCE + "stopwatch_fill.svg",
-        _SOURCE + "icon_timing.svg",
-    }
-    assert set(allowed) == timing_sources
-    for source in allowed:
-        normalized = _normalize_template_asset_params(
-            {"timerIcon": source}, definition.asset_parameter_semantic_tags,
-            catalog_contract, required_parameters=frozenset(),
-        )
-        assert normalized == {"timerIcon": source}
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            {"timerIcon": _SOURCE + "clock.svg"},
-            definition.asset_parameter_semantic_tags,
-            catalog_contract,
-            required_parameters=frozenset(),
-        )
-
-
 def test_countdown_travel_support_declares_no_asset_slot(
     definitions: dict[str, TemplateDefinition],
 ) -> None:
@@ -331,7 +301,6 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
-        "CountdownOverviewSupport@1": "asset.icon_timing",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",
@@ -344,7 +313,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 63
+    assert len(provider.cases) == 61
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

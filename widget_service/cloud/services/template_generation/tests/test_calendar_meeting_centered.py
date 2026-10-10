@@ -1,4 +1,4 @@
-"""居中会议详情的文本契约、可选时间及实际 A2UI 回归。"""
+"""分组会议详情的文本契约、可选时间及实际 A2UI 回归。"""
 
 from __future__ import annotations
 
@@ -46,8 +46,8 @@ def test_meeting_contract_covers_time_and_location_without_dynamic_title() -> No
     definition = get_cardplan_registry().require_template(_TEMPLATE_ID)
     assert definition.primary_data == ("/events/0/dtStart",)
     assert definition.secondary_data == ("/events/0/eventLocation",)
-    assert definition.optional_data == ("/events/0/dtEnd",)
-    assert set(definition.bindings) == {"start", "end", "location"}
+    assert definition.optional_data == ("/events/0/dtEnd", "/events/0/oneClickServiceLink")
+    assert set(definition.bindings) == {"start", "end", "location", "joinLink"}
 
 
 def test_meeting_static_title_does_not_require_a_runtime_title_field() -> None:
@@ -76,17 +76,24 @@ def test_meeting_admission_requires_a_trusted_card_title(title: Any) -> None:
 
 @pytest.mark.parametrize("with_end", [False, True])
 @pytest.mark.parametrize("title", ["今日日程", "跨时区项目联合评审及下一阶段计划安排"])
-def test_centered_meeting_preserves_optional_time_and_final_a2ui(
+def test_grouped_meeting_preserves_optional_time_and_final_a2ui(
     with_end: bool, title: str,
 ) -> None:
     omitted = frozenset() if with_end else frozenset({"end"})
     root = _expanded(_TEMPLATE_ID, omitted=omitted, props={"title": title})
     options = _options(root)
     assert options.get("_advancedComponent") == "ScheduleOverview"
-    assert options.get("justifyContent") == options.get("alignItems") == "center"
-    assert options.get("itemMargin") == 8
-    assert len(root.children) == 3
-    label, time, location = root.children
+    assert options.get("justifyContent") == "spaceBetween"
+    assert options.get("alignItems") == "center"
+    assert options.get("itemMargin") == 0
+    assert len(root.children) == 2
+    top, location = root.children
+    assert top.component_type == "Column"
+    assert _options(top).get("itemMargin") == 8
+    assert _options(top).get("margin") == {"top": 4}
+    assert _options(top).get("alignItems") == "center"
+    assert len(top.children) == 2
+    label, time = top.children
     assert label.values[0] == title
     assert _options(label).get("textAlign") == "center"
     for text in (label, location):
@@ -95,9 +102,13 @@ def test_centered_meeting_preserves_optional_time_and_final_a2ui(
         assert _options(text).get("minFontSize") == 12
         assert _options(text).get("maxLines") == 2
         assert _options(text).get("fontWeight") == 500
-    assert _options(time).get("fontSize") == 24
-    assert _options(time).get("maxFontSize") == 24
-    assert _options(time).get("minFontSize") == 18
+    time_size = 24 if with_end else 30
+    time_min_size = 18 if with_end else 24
+    assert _options(time).get("fontSize") == time_size
+    assert _options(time).get("maxFontSize") == time_size
+    assert _options(time).get("minFontSize") == time_min_size
+    assert _options(time).get("height") == 58
+    assert _options(time).get("flexShrink") == 1
     assert _options(time).get("maxLines") == 1
     assert "margin" not in _options(time)
     assert _options(time).get("fontWeight") == 800
@@ -133,10 +144,13 @@ def test_centered_meeting_preserves_optional_time_and_final_a2ui(
         styles = text.get("styles")
         assert isinstance(styles, dict)
         assert styles.get("maxLines") == (1 if index == 1 else 2)
-        assert styles.get("fontSize") == (24 if index == 1 else 16)
-        assert styles.get("maxFontSize") == (24 if index == 1 else 16)
-        assert styles.get("minFontSize") == (18 if index == 1 else 12)
+        assert styles.get("fontSize") == (time_size if index == 1 else 16)
+        assert styles.get("maxFontSize") == (time_size if index == 1 else 16)
+        assert styles.get("minFontSize") == (time_min_size if index == 1 else 12)
         assert styles.get("textOverflow") == "ellipsis"
+        if index == 1:
+            assert styles.get("height") == 58
+            assert styles.get("flexShrink") == 1
 
 
 def test_meeting_preview_supplies_required_trusted_title() -> None:
@@ -148,4 +162,4 @@ def test_meeting_preview_supplies_required_trusted_title() -> None:
     assert isinstance(update, dict)
     components = update.get("components")
     assert isinstance(components, list)
-    assert any(component.get("content") == "今日日程" for component in components)
+    assert any(component.get("content") == "UI需求评审会" for component in components)

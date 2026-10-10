@@ -3896,54 +3896,67 @@ data = {
 Column(
     {
         "_advancedComponent": "ScheduleOverview",
-        "itemMargin": 8,
+        "itemMargin": 0,
         "width": "matchParent",
         "height": "matchParent",
-        "justifyContent": "center",
+        "justifyContent": "spaceBetween",
         "alignItems": "center",
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text(props.title,
+    Column(
         {
+            "itemMargin": 8,
             "width": "matchParent",
-            "fontSize": 16,
-            "maxFontSize": 16,
-            "minFontSize": 12,
-            "fontWeight": 500,
-            "fontColor": $theme('supportContentColor'),
-            "maxLines": 2,
-            "textAlign": "center",
-            "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+            "margin": {"top": 4}
+        },
+        Text(props.title,
+            {
+                "width": "matchParent",
+                "fontSize": 16,
+                "maxFontSize": 16,
+                "minFontSize": 12,
+                "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 2,
+                "textAlign": "center",
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #if data.end
+        Text(`${data.start}-${data.end}`,
+            {
+                "height": 58,
+                "flexShrink": 1,
+                "fontSize": 24,
+                "maxFontSize": 24,
+                "minFontSize": 18,
+                "fontWeight": 800,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #else
+        Text(`${data.start}`,
+            {
+                "height": 58,
+                "flexShrink": 1,
+                "fontSize": 30,
+                "maxFontSize": 30,
+                "minFontSize": 24,
+                "fontWeight": 800,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #endif
     ),
-    #if data.end
-    Text(`${data.start}-${data.end}`,
-        {
-            "fontSize": 24,
-            "maxFontSize": 24,
-            "minFontSize": 18,
-            "fontWeight": 800,
-            "fontColor": $theme('primaryColor'),
-            "maxLines": 1,
-            "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
-    ),
-    #else
-    Text(`${data.start}`,
-        {
-            "fontSize": 24,
-            "maxFontSize": 24,
-            "minFontSize": 18,
-            "fontWeight": 800,
-            "fontColor": $theme('primaryColor'),
-            "maxLines": 1,
-            "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
-    ),
-    #endif
     Text(data.location,
         {
             "fontSize": 16,

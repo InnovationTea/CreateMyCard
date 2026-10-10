@@ -177,7 +177,6 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
-    "CountdownOverviewSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),

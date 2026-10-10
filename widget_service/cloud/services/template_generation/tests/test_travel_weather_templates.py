@@ -228,8 +228,8 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     )
     body = (
         'Template("TwoSupportLayout@1",{},'
-        'Template("CountdownOverviewSupport@1",'
-        '{"timerIcon":"resources/base/media/icon_timing.svg"}),'
+        'Template("CountdownOverviewTravelSupport@1",'
+        '{}),'
         'Template("WeatherOverviewDaily2TravelSupport@1",'
         '{"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
     )
@@ -243,11 +243,11 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     )
 
     assert "WeatherOverviewDaily2TravelSupport@1" in output.template_ids
-    assert "CountdownOverviewSupport@1" in output.template_ids
+    assert "CountdownOverviewTravelSupport@1" in output.template_ids
     assert "${/data/weather/daily/2/condition}" in output.a2ui
     assert "${/data/weather/daily/2/temperatureRangeText}" in output.a2ui
     assert output.a2ui.count('"backgroundColor":"#1A2E529E"') == 2
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
 
 

@@ -42,9 +42,6 @@ _TIMEZONE_TEMPLATES = frozenset({
     "ScheduleOverviewTimezoneDateEndFull@1",
     "ScheduleOverviewTimezoneAllDayFull@1",
 })
-# EventCountDetailsFull 的时间轴内容列在“时间 · 全天”之后还有一行可选备注
-# （$optionalPath /events/0/description），比其他非时区模板多一个 Text。
-_DESCRIPTION_TEMPLATES = frozenset({"ScheduleOverviewEventCountDetailsFull@1"})
 
 
 def _options(node: Nested2Node) -> dict[str, Any]:
