@@ -337,7 +337,8 @@ def test_w9_allows_battery_percentage_formatted_hero(font_size: int, height: int
             '["earphone","Column",{"width":138,"height":134,"padding":12},["earphoneContent"]]',
             '["earphoneContent","Column",{"width":114,"layoutWeight":1,'
             '"justifyContent":"center"},["status"]]',
-            '["status","Text",{"content":{"path":"/data/earphone/isConnected"},'
+            '["status","Text",{"content":"{{ ${/data/earphone/isConnected} ? '
+            "\'已连接\' : \'未连接\' }}\","
             '"width":114,"fontSize":14,"maxLines":1}]',
             '["/data/phoneBattery/batterySOCText","68%"]',
             '["/data/earphone/isConnected",true]',

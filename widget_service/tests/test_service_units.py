@@ -37,8 +37,6 @@ ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
 REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
 PHASE_TWO_DATA_CAPABILITY_IDS = (
-    "GetMemoData",
-    "GetPhoneCallRecords",
     "GetCurrentTime",
     "GetAppPowerConsumptionRanking",
     "GetDailyMostUsage",
@@ -841,6 +839,7 @@ def test_phase_two_version_returns_phase_two_capability_overview():
 
     assert phase_one_ids.isdisjoint(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_ids.issuperset(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_two_ids.isdisjoint({"GetMemoData", "GetPhoneCallRecords"})
 
 
 def test_phase_two_version_returns_phase_two_capability_schemas():
@@ -849,13 +848,13 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         uid="test-user",
         prdVer=APP_VERSION_11_7_7_328,
         device={"romVersion": ROM_VERSION_7},
-        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
+        dataCapabilityIds=[*PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"],
     )
     phase_two_request = DataCapabilitySchemasRequest(
         uid="test-user",
         prdVer=APP_VERSION_11_7_7_331,
         device={"romVersion": ROM_VERSION_7},
-        dataCapabilityIds=list(PHASE_TWO_DATA_CAPABILITY_IDS),
+        dataCapabilityIds=[*PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"],
     )
 
     phase_one_response = service.get_data_capability_schemas(phase_one_request)
@@ -868,14 +867,12 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         returned_parameters[capability.id] = set(properties)
 
     assert phase_one_response.dataCapabilities == []
-    assert phase_one_response.missingCapabilityIds == list(
-        PHASE_TWO_DATA_CAPABILITY_IDS
-    )
+    assert phase_one_response.missingCapabilityIds == [
+        *PHASE_TWO_DATA_CAPABILITY_IDS, "GetMemoData", "GetPhoneCallRecords"
+    ]
     assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
-    assert phase_two_response.missingCapabilityIds == []
+    assert phase_two_response.missingCapabilityIds == ["GetMemoData", "GetPhoneCallRecords"]
     assert returned_parameters == {
-        "GetMemoData": set(),
-        "GetPhoneCallRecords": {"callRecordType"},
         "GetCurrentTime": set(),
         "GetAppPowerConsumptionRanking": {"limit"},
         "GetDailyMostUsage": {"topN"},
