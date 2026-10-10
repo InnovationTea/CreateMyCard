@@ -59,7 +59,7 @@
     单侧耳塞或通用音乐图标。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。
 - `BluetoothDeviceOverviewTripleBatteryWideHalf@1`：横向三块耳机仓、左耳、右耳电量，适用于 WideHalf 槽位；只覆盖三项电量，不覆盖连接状态，不含动作。deviceIcon 为耳机仓，左右耳图标按语义选择，输入无对应素材时省略，不能自行增加素材候选。
-- `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073、EAR123 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段。左侧连接摘要和左右耳44vp电量环及充电状态，右上耳机仓电量和充电状态；deviceIcon 为充电盒，左右耳图标不可互换。仅在规划器分配已批准的每日歌单 actionId 时显示右下歌单面板，将点击绑定到面板根节点；无动作时整块隐藏，耳机仓面板填满右侧。两侧面板使用主题底色，外侧安全边距由骨架提供。
+- `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073、EAR123 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段。左侧连接摘要和左右耳44vp电量环及充电状态，右上耳机仓电量和充电状态；deviceIcon 为充电盒，左右耳图标不可互换。仅在本轮已选择每日歌单动作且规划器将其分配给本模板时可选，actionId 必填；右下固定显示每日歌单面板，点击绑定面板根节点。不支持无动作隐藏面板的变体。两侧面板使用主题底色，外侧安全边距由骨架提供。
   顶部摘要按运行时连接状态显示：已连接才拼接耳机名称，未连接只显示“未连接”，不显示“未连接耳机”或上次设备名称。保留名称绑定，不按首帧样例值裁剪，以支持连接状态刷新。
 - `BluetoothDeviceOverviewCaseConnectionHero@1`：展示耳机仓电量环、百分比及连接状态，只需 isConnected 和 batteryLevel，deviceIcon 使用充电盒素材；通过既有 Hero 布局组合操作，保持 Q060 充电状态模板独立。
 - `BluetoothDeviceOverviewCaseSettingsHero@1`：2x2 耳机仓充电状态 Hero，只需 chargingStatusDesc，不要求电量或素材；不内置操作按钮，通过既有 HeroActionLayout 与 PillAction 组合。内容尺寸跟随父槽位，底色和安全边距交由骨架处理。画廊使用示例充电状态展示，不改变输入字段、现有布局或检索分支。

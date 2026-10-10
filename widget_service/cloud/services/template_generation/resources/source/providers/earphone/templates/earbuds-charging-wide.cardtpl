@@ -1,4 +1,4 @@
-#Template BluetoothDeviceOverviewEarbudsChargingWideFull@1(props: { actionId?: string, leftEarIcon?: asset, rightEarIcon?: asset, deviceIcon?: asset, musicIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsChargingWideFull@1(props: { actionId: string, leftEarIcon?: asset, rightEarIcon?: asset, deviceIcon?: asset, musicIcon?: asset })
 data = {
   name: $path("/earphoneName"), connected: $path("/isConnected"),
   battery: $path("/batteryLevel"), chargingStatus: $path("/chargingStatusDesc"),
@@ -78,7 +78,6 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
           "flexShrink": 0, "fillColor": $theme('supportContentColor')})
       #endif
     ),
-    #if props.actionId
     Stack({"width": "matchParent", "layoutWeight": 1, "borderRadius": 16,
       "onClick": EventAction(props.actionId),
       "backgroundColor": $theme('supportContentStyle.backgroundColor')},
@@ -96,7 +95,6 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
         #endif
       )
     )
-    #endif
   )
 )
 #End

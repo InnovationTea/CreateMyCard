@@ -499,9 +499,8 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         if entry.supported_event_ids:
             for variant in definition.variants:
                 properties = variant.parameters_schema.get("properties", {})
-                required = variant.parameters_schema.get("required", ())
-                if "actionId" not in properties or "actionId" in required:
-                    raise ValueError("Provider supportedEventIds requires optional actionId")
+                if "actionId" not in properties:
+                    raise ValueError("Provider supportedEventIds requires actionId")
         _validate_provider_template_data_contract(definition, entry)
         definitions.append(definition)
 
@@ -2875,6 +2874,15 @@ def _provider_variant_binding_admission(
     values_by_field = _provider_sample_values_by_field(task_spec.dataModelSchema)
     properties = variant.parameters_schema.get("properties", {})
     for name in variant.parameters_schema.get("required", ()):
+        if name == "actionId" and definition.supported_event_ids:
+            has_supported_action = any(
+                event.id in definition.supported_event_ids for event in task_spec.eventCandidates
+            )
+            if not has_supported_action:
+                return ProviderTemplateAdmission(
+                    False, "business-action-unavailable", binding_name=name
+                )
+            continue
         if name.casefold().endswith("path"):
             continue
         if name in definition.asset_parameter_semantic_tags:

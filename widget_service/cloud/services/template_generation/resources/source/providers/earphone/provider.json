@@ -449,7 +449,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "左侧顶部已连接时显示连接状态与名称，未连接时仅显示未连接，下方左右耳44vp电量环及充电状态；右侧耳机仓电量和状态，有已批准的每日歌单动作时显示可点击歌单面板，无动作时隐藏歌单面板。",
+      "description": "左侧顶部已连接时显示连接状态与名称，未连接时仅显示未连接，下方左右耳44vp电量环及充电状态；右侧耳机仓电量和状态，仅在本轮已选择每日歌单动作并分配给本模板时可选，右下固定显示可点击每日歌单面板，actionId必填。",
       "entry": "templates/earbuds-charging-wide.cardtpl",
       "assetParameterSemanticTags": {
         "deviceIcon": ["earphone-case"],

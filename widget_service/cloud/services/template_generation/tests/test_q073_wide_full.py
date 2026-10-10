@@ -4,23 +4,22 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, ValidationError
 
-from models.generation import TaskSpec
-from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
-from services.template_generation.engine.cardplan.compiler import (
-    _instantiate_blueprint,
-    _serialize_effective_document,
-    _strip_advanced_component_markers,
-)
+from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.cardplan.preview_dataset import (
-    _binding_placeholder,
     _build_data_schema,
-    _preview_root,
-    _preview_theme,
     _template_parameters,
 )
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
-from services.template_generation.engine.tersel_converter import convert_tersel_to_a2ui
+from services.template_generation.engine.cardplan.template_plan_planner import (
+    plan_template_candidates,
+)
+from services.template_generation.engine.cardplan.template_retrieval import (
+    TemplateRetrievalMiss,
+    TemplateSearchIntent,
+    search_template_variants,
+)
 from services.template_generation.tests.helpers.generate_q073_preview import generate
 
 
@@ -57,50 +56,88 @@ def test_q073_full_fields_and_embedded_daily_action(tmp_path):
     assert "resources/base/media/music_fill.svg" in [node.get("src") for node in images]
 
 
-@pytest.mark.parametrize("with_music_icon", (False, True))
-def test_wide_full_without_action_hides_entire_playlist_panel(with_music_icon: bool) -> None:
+@pytest.mark.parametrize(
+    ("candidate_event", "selected_event", "expected_selected"),
+    (
+        (None, None, False),
+        ("event.open.music.daily", None, False),
+        ("event.open.music.favorite", "event.open.music.favorite", False),
+        ("event.open.music.daily", "event.open.music.daily", True),
+    ),
+)
+def test_wide_full_requires_selected_daily_action(
+    candidate_event: str | None,
+    selected_event: str | None,
+    expected_selected: bool,
+) -> None:
     registry = CardPlanRegistry()
-    definition = registry.require_template("BluetoothDeviceOverviewEarbudsChargingWideFull@1")
+    template_id = "BluetoothDeviceOverviewEarbudsChargingWideFull@1"
+    definition = registry.require_template(template_id)
+    source = Path(__file__).parent / "fixtures/ear123_connection_examples.json"
+    fixture = json.loads(source.read_text(encoding="utf-8"))
+    content = fixture.get("content")
+    assert isinstance(content, dict)
+    bindings = tuple(
+        CandidateDataBinding.model_validate(item)
+        for item in content.get("candidateDataBindings", [])
+    )
+    assert len(bindings) == 1
+    events = []
+    if candidate_event is not None:
+        events.append(
+            EventAction(
+                id=candidate_event,
+                call="clickToDeeplink",
+                args={"uri": "music:test"},
+            )
+        )
     task = TaskSpec(
-        userQuery="显示耳机名称、连接状态和耳机仓及左右耳的电量与充电状态",
+        userQuery="查看耳机名称、连接状态和三处电量及充电状态",
         size="2x4",
         dataModelSchema=_build_data_schema(definition),
-        eventCandidates=[],
+        eventCandidates=events,
         assetCandidates=[],
     )
-    bindings: dict[str, str] = {}
-    for name, binding in definition.bindings.items():
-        bindings[name] = _binding_placeholder(definition, binding)
+    card_spec = {"suggestSize": "2x4", "dataBindings": [item.model_dump() for item in bindings]}
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetEarphoneInfo": bindings[0].candidateOutputFields},
+        action=() if selected_event is None else (selected_event,),
+    )
+    search = search_template_variants(intent, task, registry, bindings, card_spec)
+    try:
+        plans = plan_template_candidates(intent, search, task, registry)
+    except TemplateRetrievalMiss as exc:
+        assert not expected_selected, str(exc)
+        return
+    matching_plans = []
+    for plan in plans:
+        for slot in plan.business_slots:
+            if slot.template_id == template_id:
+                matching_plans.append(plan)
+                break
+    assert bool(matching_plans) == expected_selected
+    for plan in matching_plans:
+        assert len(plan.action_assignments) == 1
+        assignment = plan.action_assignments[0]
+        assert assignment.consumer == "business-template"
+        assert assignment.action_id == "event.open.music.daily"
+
+
+def test_wide_full_schema_rejects_missing_action() -> None:
+    definition = CardPlanRegistry().require_template(
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1"
+    )
     params = _template_parameters(definition)
+    Draft202012Validator(definition.variants[0].parameters_schema).validate(params)
     params.pop("actionId", None)
-    if not with_music_icon:
-        params.pop("musicIcon", None)
-    theme = _preview_theme(definition, registry)
-    content = _instantiate_blueprint(
-        definition.variants[0].root, params, bindings, theme.reference_values,
-    )
-    root = _preview_root(_strip_advanced_component_markers(content), 136, theme.root_style)
-    profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
-    a2ui = convert_tersel_to_a2ui(
-        _serialize_effective_document(root, task, True),
-        size="2x4", protocol_profile=profile, task_spec=task.model_dump(mode="json"),
-    )
-    nodes = []
-    for line in a2ui.splitlines():
-        nodes.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    assert not any(node.get("onClick") for node in nodes)
-    assert "打开歌单" not in a2ui
-    assert "播放每日30首" not in a2ui
-    assert "music_fill.svg" not in a2ui
-    assert "耳机仓" in a2ui
-    for binding in definition.bindings.values():
-        assert binding.path in a2ui
-    assert len([node for node in nodes if node.get("component") == "Progress"]) == 2
+    with pytest.raises(ValidationError, match="actionId"):
+        Draft202012Validator(definition.variants[0].parameters_schema).validate(params)
 
 
 @pytest.mark.parametrize("example_id", ("connected", "disconnected"))
 def test_ear123_connection_examples_keep_runtime_header_and_playlist(
-    tmp_path: Path, example_id: str,
+    tmp_path: Path,
+    example_id: str,
 ) -> None:
     source = Path(__file__).parent / "fixtures/ear123_connection_examples.json"
     fixture = json.loads(source.read_text(encoding="utf-8"))

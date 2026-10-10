@@ -253,7 +253,7 @@ def test_missing_or_empty_allowlist_denies_embedded_action() -> None:
     assert not supports_business_action(definition, _binding("event.open.weather"), "2x2")
 
 
-def test_bundle_rejects_allowlist_without_optional_action_prop(tmp_path: Path) -> None:
+def test_bundle_rejects_allowlist_without_action_prop(tmp_path: Path) -> None:
     target = tmp_path / "weather"
     shutil.copytree(_ROOT / "resources/source/providers/weather", target)
     manifest_path = target / "provider.json"
@@ -263,7 +263,7 @@ def test_bundle_rejects_allowlist_without_optional_action_prop(tmp_path: Path) -
     entry = next(item for item in templates if item.get("templateId") == "WeatherOverviewFull@1")
     entry["supportedEventIds"] = ["event.open.weather"]
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(ValueError, match="requires optional actionId"):
+    with pytest.raises(ValueError, match="requires actionId"):
         load_provider_bundle(target)
 
 
