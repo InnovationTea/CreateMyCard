@@ -21,6 +21,15 @@ const CONVERTED_A2UI = [
   '{"version":"v0.9","updateDataModel":{"surfaceId":"surface_card","path":"/","value":{}}}',
 ].join('\n');
 
+function textA2ui(content: string) {
+  return [
+    { version: 'v0.9', createSurface: { surfaceId: 'preview', width: 150, height: 150 } },
+    { version: 'v0.9', updateComponents: {
+      surfaceId: 'preview', root: 'root', components: [{ id: 'root', component: 'Text', content }],
+    } },
+  ].map(row => JSON.stringify(row)).join('\n');
+}
+
 describe('Render 内核预览', () => {
   it('调用 Python 转换并用返回尺寸渲染 A2UI，更新编辑器', async () => {
     const source = '["root","Text",{"content":"原始 DSL"}]';
@@ -65,6 +74,9 @@ describe('Render 内核预览', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Python 转换并渲染' }));
     const [, options] = fetchMock.mock.calls[0];
     const nextSource = '["root","Text",{"content":"新内容"}]';
+    fetchMock.mockResolvedValueOnce({
+      ok: true, json: async () => ({ genui: textA2ui('新内容'), size: '2x2' }),
+    });
     fireEvent.change(screen.getByRole('textbox', { name: 'DSL 输入' }), { target: { value: nextSource } });
     expect(options.signal.aborted).toBe(true);
     resolveResponse({ ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x2' }) });
@@ -74,12 +86,19 @@ describe('Render 内核预览', () => {
     expect(screen.queryByText('Python 转换结果')).not.toBeInTheDocument();
   });
 
-  it('使用 renderTree 绘制并安全回传点击动作', async () => {
+  it.each(['action', 'onClick'])('使用 renderTree 绘制并安全回传 %s 点击动作', async (eventField) => {
+    const handler = { call: 'clickToDeeplink', args: { uri: 'demo://card' } };
     const source = [
-      '["root","Column",{"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://card"}}]},["text"]]',
-      '["text","Text",{"content":"打开详情"}]',
+      '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+      JSON.stringify({ version: 'v0.9', updateComponents: {
+        surfaceId: 'preview', root: 'root', components: [
+          { id: 'root', component: 'Column', children: ['text'],
+            [eventField]: eventField === 'action' ? [{ functionCall: handler }] : [handler] },
+          { id: 'text', component: 'Text', content: '打开详情' },
+        ],
+      } }),
     ].join('\n');
-    const document = parseInput(source);
+    const document = await parseInput(source);
     const onAction = vi.fn();
 
     const { container } = render(<CardPreview document={document} onAction={onAction} />);
@@ -93,10 +112,12 @@ describe('Render 内核预览', () => {
     expect(onAction.mock.calls[0][1].id).toBe('root');
   });
 
-  it('按 assetBaseUrl 重写本地素材路径', () => {
-    const document = parseInput(
-      '["root","Image",{"src":"resources/base/media/sun_max.svg","width":20,"height":20}]',
-    );
+  it('按 assetBaseUrl 重写本地素材路径', async () => {
+    const document = await parseInput([
+      '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+      '{"version":"v0.9","updateComponents":{"surfaceId":"preview","root":"root","components":[' +
+        '{"id":"root","component":"Image","src":"resources/base/media/sun_max.svg","styles":{"width":20,"height":20}}]}}',
+    ].join('\n'));
     const { container } = render(
       <CardPreview document={document} assetBaseUrl="/custom-assets/" />,
     );
@@ -116,7 +137,7 @@ describe('Render 内核预览', () => {
         '{"id":"echo","component":"Text","content":{"path":"/name"}}]}}',
       '{"version":"v0.9","updateDataModel":{"surfaceId":"form","path":"/name","value":"初始值"}}',
     ].join('\n');
-    const document = parseInput(source);
+    const document = await parseInput(source);
 
     render(<CardPreview document={document} />);
     const input = screen.getByRole('textbox');
@@ -128,6 +149,10 @@ describe('Render 内核预览', () => {
   });
 
   it('保留 CardRenderer 编辑器与自动渲染状态', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ genui: textA2ui('迁移完成'), size: '2x2' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
     render(<CardRenderer initialValue='["root","Text",{"content":"迁移完成"}]' />);
 
     expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(
@@ -135,13 +160,15 @@ describe('Render 内核预览', () => {
     );
     await waitFor(() => expect(screen.getByText(/已渲染 1 个组件/)).toBeInTheDocument());
     expect(screen.getByText('迁移完成')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][0]).toBe('/debug/renderer/convert');
   });
 
   it('supports preview-only rendering with host-controlled zoom', async () => {
     const onZoomChange = vi.fn();
     const { container, rerender } = render(
       <CardRenderer
-        initialValue='["root","Text",{"content":"精简预览"}]'
+        initialValue={textA2ui('精简预览')}
         previewOnly
         zoom={175}
         onZoomChange={onZoomChange}
@@ -156,7 +183,7 @@ describe('Render 内核预览', () => {
     fireEvent.change(screen.getByRole('slider', { name: /^缩放/ }), { target: { value: '190' } });
     expect(onZoomChange).toHaveBeenCalledWith(190);
 
-    rerender(<CardRenderer initialValue='["root","Text",{"content":"另一条样本"}]' previewOnly zoom={190} onZoomChange={onZoomChange} />);
+    rerender(<CardRenderer initialValue={textA2ui('另一条样本')} previewOnly zoom={190} onZoomChange={onZoomChange} />);
     await waitFor(() => expect(screen.getByText('另一条样本')).toBeInTheDocument());
     expect(screen.getByRole('slider', { name: /^缩放/ })).toHaveValue('190');
     expect(container.querySelector('.card-renderer--preview-only')).toBeTruthy();
@@ -165,7 +192,7 @@ describe('Render 内核预览', () => {
   it('使用宿主从 CardSpec 或 query 解析出的卡片尺寸', async () => {
     const { container } = render(
       <CardRenderer
-        initialValue='["root","Text",{"content":"宽卡"}]'
+        initialValue={textA2ui('宽卡')}
         cardSize="2x4"
       />,
     );
@@ -177,7 +204,7 @@ describe('Render 内核预览', () => {
 
   it('允许用户调整卡片容器宽高且不显示示例入口', async () => {
     const { container } = render(
-      <CardRenderer initialValue='["root","Text",{"content":"自定义尺寸"}]' />,
+      <CardRenderer initialValue={textA2ui('自定义尺寸')} />,
     );
 
     await waitFor(() => expect(screen.getByText(/150 × 150/)).toBeInTheDocument());
@@ -195,5 +222,46 @@ describe('Render 内核预览', () => {
 
     expect(screen.getByText(/240 × 180/)).toBeInTheDocument();
     expect(container.querySelector('[data-renderer-size="240x180"]')).toBeTruthy();
+  });
+
+  it('手工渲染走 Python，保留原始输入并取消自动渲染定时器', async () => {
+    const source = '["root","PillButton",{"label":"省电"}]';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x2' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue={source} />);
+    fireEvent.click(screen.getByRole('button', { name: /^渲染$/ }));
+    await screen.findByText('Python 转换结果');
+    expect(screen.getByRole('textbox', { name: 'DSL 输入' })).toHaveValue(source);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).source).toBe(source);
+  });
+
+  it('previewOnly 的 Compact 输入也调用默认 Python 接口', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ genui: CONVERTED_A2UI, size: '2x4' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue='["root","Text",{"content":"宿主预览"}]' previewOnly />);
+    await screen.findByText('Python 转换结果');
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(screen.getByText(/300 × 150/)).toBeInTheDocument();
+  });
+
+  it('切换画布取消旧请求，迟到结果不改变预览', async () => {
+    let resolveOld!: (value: unknown) => void;
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => ({ genui: textA2ui('新尺寸'), size: '2x4' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue='["root","Text",{"content":"旧尺寸"}]' />);
+    fireEvent.click(screen.getByRole('button', { name: /^渲染$/ }));
+    fireEvent.change(screen.getByRole('combobox', { name: '画布' }), { target: { value: '2x4' } });
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    resolveOld({ ok: true, json: async () => ({ genui: textA2ui('过时结果'), size: '2x2' }) });
+    await screen.findByText('新尺寸');
+    expect(screen.queryByText('过时结果')).not.toBeInTheDocument();
+    expect(screen.getByText(/300 × 150/)).toBeInTheDocument();
   });
 });

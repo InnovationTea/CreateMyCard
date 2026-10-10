@@ -65,7 +65,7 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
         continue;
       }
       const cardSize = resolveCardSize(attempt.blocks, sample.query, sample.size);
-      const document = parseInput(source, { cardSize });
+      const document = await parseInput(source, { cardSize });
       items.push({
         id: sample.id,
         document,

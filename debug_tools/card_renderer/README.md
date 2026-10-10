@@ -9,13 +9,16 @@
 - Design Compact DSL：在 Compact DSL 上增加 `design` token；
 - JSONL、连续 JSON 值，以及包含 `genui`/`cardSpec`/`artifact` 字段的常见 artifact 外壳。
 
-解析器会处理 DataModel 路径、受限表达式、动态子节点、基础组件和 13 个高阶组件，并按当前 Design Compact 参考预算推断 2×2（150×150）和 2×4（300×150）画布尺寸。高阶组件直接读取云侧 `visual-recipes-v1.json`，不在浏览器维护副本。
+Compact DSL 和 Design Compact DSL 的基础组件、高阶组件、设计 token 和数据路径统一由现有 Python 转换器处理。
+浏览器只解析 A2UI、维护 UIGraph 并绘制基础组件；不再维护 Compact 编译器或高阶组件展开副本。
 
-统一工作台的渲染页面还提供“Python 转换并渲染”：调用本地
+所有渲染入口（自动渲染、手工渲染、批跑详情、DSL 画廊和截图页面）调用本地
 `POST /debug/renderer/convert`，直接复用云侧 `compact_dsl_a2ui_converter.py`。
-转换成功后，编辑器显示完整 A2UI，预览使用返回的实际尺寸；转换失败保留原输入并显示错误。
+预览使用返回的实际尺寸；转换失败保留原输入并显示错误，不回退到浏览器转换。
+普通渲染保留原始 DSL，“Python 转换并渲染”额外将编辑器内容更新为完整 A2UI。
 选择“自动”时按 Compact 的组件宽度推断 2×2 或 2×4，也可以手工指定画布。
-该操作需要 Python 调试后端，frontend/full 模式均可用；原“渲染”操作仍使用浏览器预览。
+Compact 预览需要 Python 调试后端，frontend/full 模式均可用；两种 Vite 开发入口均代理转换接口。
+已有 A2UI 或 Graph JSONL 在浏览器直接解析，不请求转换后端。
 
 相对图片资源以 `/resources/` 为默认根目录，由 frontend/full 两种 Python 应用通过受目录约束的只读路由提供；Vite 开发服务提供等价本地中间件。浏览器字体通过 `/fonts/harmonyos/` 复用根 `render` 的 HarmonyOS Sans 与 HarmonyOS Sans SC 资源，保持字宽、字重和换行效果一致。外部图片由浏览器直接读取，失败时显示占位，不提供开放式服务端图片代理。点击动作只回传解析结果，不执行 Intent、Deeplink 或 URL 跳转。
 
@@ -36,7 +39,8 @@ import {
 />
 ```
 
-`CardPreview` 用于统一工作台已经有输入编辑器的场景；`parseInput` 是无 DOM 的纯函数，便于接口调试结果导入、单元测试和状态检查。
+`CardPreview` 接收已经解析的文档。`parseInput` 无 DOM 依赖，返回 `Promise<RendererDocument>`，
+调用方必须 `await parseInput(source, { cardSize, signal })`；`conversionUrl` 可覆盖默认接口地址。
 
 迁入运行时位于 `card_renderer/runtime/`，来源和同步规则见其中的 `SOURCE.md`。根目录 `render` 保留为上游行为对照；同步运行时代码后必须重跑本包测试、平台回归和浏览器检查。
 

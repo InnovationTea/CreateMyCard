@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardPreview } from './render';
-import { CardSize, ComponentNode, parseInput, RendererDocument, unwrapRenderableSource } from './parser';
+import { CardSize, ComponentNode, parseInput, RendererDocument } from './parser';
 import { SAMPLE_COMPACT } from './fixtures';
 import './styles.css';
 
@@ -9,7 +9,7 @@ export interface CardRendererProps {
   initialValue?: string;
   /** Base URL used for relative image resources. Defaults to same-origin /resources/. */
   assetBaseUrl?: string;
-  /** Optional local backend endpoint for explicit Python conversion. */
+  /** Backend endpoint used for every Compact DSL preview. */
   conversionUrl?: string;
   /** Host-resolved card size, usually from the final CardSpec or request query. */
   cardSize?: CardSize;
@@ -32,7 +32,7 @@ function sourceValue(value: string | undefined): string {
   return typeof value === 'string' ? value : DEFAULT_SOURCE;
 }
 
-export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conversionUrl, cardSize: hostCardSize = 'auto', onArtifact, onAction, previewOnly = false, zoom: controlledZoom, onZoomChange, className = '' }: CardRendererProps) {
+export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conversionUrl = '/debug/renderer/convert', cardSize: hostCardSize = 'auto', onArtifact, onAction, previewOnly = false, zoom: controlledZoom, onZoomChange, className = '' }: CardRendererProps) {
   const [source, setSource] = useState(() => sourceValue(initialValue));
   const [cardSize, setCardSize] = useState<CardSize>(hostCardSize);
   const [internalZoom, setInternalZoom] = useState(220);
@@ -77,7 +77,8 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
     setCardSize(hostCardSize);
   }, [hostCardSize]);
 
-  const render = (nextSource = source) => {
+  const render = async (nextSource = source, replaceSource = false) => {
+    window.clearTimeout(renderTimer.current);
     cancelConversion();
     const text = nextSource.trim();
     if (!text) {
@@ -85,59 +86,28 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
       setError('');
       return;
     }
-    try {
-      const parsed = parseInput(text, { cardSize });
-      setDocument(parsed);
-      setContainerWidth(parsed.surface.width);
-      setContainerHeight(parsed.surface.height);
-      setError('');
-      onArtifact?.(parsed);
-    } catch (reason) {
-      setDocument(null);
-      setError(reason instanceof Error ? reason.message : String(reason));
-    }
-  };
-
-  useEffect(() => {
-    if (!autoRender) return;
-    renderTimer.current = window.setTimeout(() => render(), 250);
-    return () => window.clearTimeout(renderTimer.current);
-  }, [source, cardSize, autoRender]);
-
-  const convertWithPython = async () => {
-    if (!conversionUrl || !source.trim()) return;
-    window.clearTimeout(renderTimer.current);
-    cancelConversion();
     const controller = new AbortController();
     conversionRequest.current = controller;
     setConverting(true);
+    setDocument(null);
     setError('');
     try {
-      const response = await fetch(conversionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: unwrapRenderableSource(source), size: cardSize }),
-        signal: controller.signal,
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(typeof result.detail === 'string' ? result.detail : '输入或尺寸不合法');
-      }
-      if (typeof result.genui !== 'string' || !['2x2', '2x4'].includes(result.size)) {
-        throw new Error('转换服务返回了无效结果');
-      }
+      const parsed = await parseInput(text, { cardSize, conversionUrl, signal: controller.signal });
       if (conversionRequest.current !== controller) return;
-      const parsed = parseInput(result.genui, { cardSize: result.size });
-      setSource(result.genui);
-      setCardSize(result.size);
-      setDocument(parsed);
+      if (replaceSource) {
+        setSource(parsed.jsonl);
+        setCardSize(parsed.surface.width > parsed.surface.height ? '2x4' : '2x2');
+      }
+      const displayed = replaceSource ? { ...parsed, mode: 'A2UI' as const } : parsed;
+      setDocument(displayed);
       setContainerWidth(parsed.surface.width);
       setContainerHeight(parsed.surface.height);
-      setInteraction('');
-      onArtifact?.(parsed);
+      setError('');
+      onArtifact?.(displayed);
     } catch (reason) {
       if (conversionRequest.current !== controller) return;
-      setError(`Python 转换失败：${reason instanceof Error ? reason.message : String(reason)}`);
+      setDocument(null);
+      setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       if (conversionRequest.current === controller) {
         conversionRequest.current = null;
@@ -145,6 +115,16 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
       }
     }
   };
+
+  useEffect(() => {
+    if (!autoRender) return;
+    renderTimer.current = window.setTimeout(() => { void render(); }, 250);
+    return () => {
+      window.clearTimeout(renderTimer.current);
+      conversionRequest.current?.abort();
+      conversionRequest.current = null;
+    };
+  }, [source, cardSize, autoRender, conversionUrl]);
 
   const status = useMemo(() => {
     if (converting) return '正在转换为 A2UI…';
@@ -164,9 +144,9 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
   return <section className={`card-renderer${previewOnly ? ' card-renderer--preview-only' : ''} ${className}`.trim()} aria-label="卡片生成结果渲染器">
     {!previewOnly && <div className="card-renderer__editor">
       <div className="card-renderer__toolbar">
-        <button type="button" className="is-primary" onClick={() => render()}>渲染</button>
-        {conversionUrl && <button type="button" disabled={converting || !source.trim()} onClick={() => { void convertWithPython(); }}>{converting ? '正在转换…' : 'Python 转换并渲染'}</button>}
-        <button type="button" onClick={() => { setSource(''); render(''); }}>清空</button>
+        <button type="button" className="is-primary" onClick={() => { void render(); }}>渲染</button>
+        <button type="button" disabled={converting || !source.trim()} onClick={() => { void render(source, true); }}>{converting ? '正在转换…' : 'Python 转换并渲染'}</button>
+        <button type="button" onClick={() => { setSource(''); void render(''); }}>清空</button>
         <label className="card-renderer__control">画布<select value={cardSize} onChange={(event) => { cancelConversion(); setCardSize(event.target.value as CardSize); }}><option value="auto">自动</option><option value="2x2">2×2 · 150×150</option><option value="2x4">2×4 · 300×150</option></select></label>
         <label className="card-renderer__check"><input type="checkbox" checked={autoRender} onChange={(event) => { cancelConversion(); setAutoRender(event.target.checked); }} />自动渲染</label>
       </div>
