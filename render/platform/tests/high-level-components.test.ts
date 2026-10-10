@@ -85,9 +85,13 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const emphasized = compileMiniDsl(fixtures.examples[4].source, { size: "2x2" }).graph;
   assert.equal((emphasized.getNode("metric_value")?.props.styles as Record<string, unknown>).fontSize, 30);
+  assert.equal(
+    (emphasized.getNode("metric")?.props.styles as Record<string, unknown>).alignItems,
+    "top",
+  );
   assert.deepEqual(
     (emphasized.getNode("metric_unit")?.props.styles as Record<string, unknown>).margin,
-    { top: 14 },
+    { top: 17 },
   );
 
   const progressCircle = compileMiniDsl(fixtures.examples[5].source, { size: "2x2" }).graph;
@@ -140,6 +144,15 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
     (shared.getNode("ratio_item0_value_group")?.props.styles as Record<string, unknown>).itemMargin,
     0,
   );
+});
+
+test("EmphasizedData 在满宽根节点内左对齐并补偿字形基线", () => {
+  const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
+  const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
+  assert.equal(root.width, "matchParent");
+  assert.equal(root.justifyContent, "start");
+  assert.equal(root.alignItems, "top");
+  assert.deepEqual(unit.margin, { top: 17 });
 });
 
 test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲突", () => {
@@ -217,8 +230,18 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
       },
     ]);
     const { graph } = compileMiniDsl(source, { size: "2x4" });
+    const rootStyles = graph.getNode("root")?.props.styles as Record<string, unknown>;
+    const itemStyles = graph.getNode(`root_item${count - 1}`)?.props.styles as Record<string, unknown>;
     assert.equal(graph.getNode("root")?.children.length, count);
+    assert.equal(rootStyles.itemMargin, 8);
+    assert.equal(rootStyles.justifyContent, "start");
+    assert.equal(rootStyles.layoutWeight, 1);
+    assert.deepEqual(rootStyles.constraintSize, {
+      minHeight: 48,
+      maxHeight: 64,
+    });
     assert.ok(graph.getNode(`root_item${count - 1}`));
+    assert.equal(itemStyles.layoutWeight, 1);
   }
   assert.throws(
     () => compileMiniDsl(JSON.stringify([

@@ -34,6 +34,13 @@ textarea { flex: 1; min-height: 430px; width: calc(100% - 32px); margin: 0 16px;
 .tabs { display: flex; gap: 4px; background: #f2f4f7; padding: 3px; border-radius: 8px; }
 .tabs button { border: 0; background: transparent; padding: 7px 15px; }
 .tabs button[aria-selected="true"] { background: white; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
+.preview-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
+.size-presets { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: #f2f4f7; }
+.size-presets button { display: flex; align-items: baseline; gap: 5px; padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: #6e7b90; }
+.size-presets button strong { font-size: 11px; font-weight: 700; }
+.size-presets button span { font-size: 9px; color: #929bac; }
+.size-presets button[aria-pressed="true"] { background: #fff; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
+.size-presets button[aria-pressed="true"] span { color: #6d84c8; }
 .dimensions { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #929bac; }
 .dimensions label { display: flex; align-items: center; gap: 5px; }
 .dimensions input { width: 58px; padding: 6px; border: 1px solid #e3e7ee; border-radius: 5px; font-size: 11px; color: #48566b; }
@@ -50,4 +57,4 @@ textarea { flex: 1; min-height: 430px; width: calc(100% - 32px); margin: 0 16px;
 .event-panel > div { display: flex; justify-content: space-between; align-items: center; }
 .event-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #52647d; }
 .event-panel p { color: #929bac; font-size: 11px; }
-@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; padding: 16px; } .app-header { padding: 0 18px; height: 65px; } .header-description, .local-badge { display: none; } .header-actions { gap: 0; } textarea { min-height: 320px; } }
+@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; padding: 16px; } .app-header { padding: 0 18px; height: 65px; } .header-description, .local-badge { display: none; } .header-actions { gap: 0; } .preview-controls { justify-content: flex-start; } textarea { min-height: 320px; } }

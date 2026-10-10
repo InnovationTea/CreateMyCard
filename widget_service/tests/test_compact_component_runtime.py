@@ -68,6 +68,16 @@ def test_single_line_title_visual_recipe_is_text_only() -> None:
     assert "variants" not in recipe
 
 
+def test_emphasized_data_visual_recipe_aligns_content_to_start_and_baseline() -> None:
+    recipe = component_visual_recipe("EmphasizedData", size="2x2")
+
+    root = recipe["parts"]["root"]["styles"]
+    assert root["width"] == "matchParent"
+    assert root["justifyContent"] == "start"
+    assert root["alignItems"] == "top"
+    assert recipe["parts"]["unit"]["styles"]["margin"] == {"top": 17}
+
+
 def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
     recipe = component_visual_recipe("TextBlock", size="2x4")
 
@@ -75,8 +85,14 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
         "minimumItems": 2,
         "maximumItems": 4,
     }
-    assert recipe["parts"]["root"]["styles"]["height"] == 64
+    root = recipe["parts"]["root"]["styles"]
+    assert "height" not in root
+    assert root["itemMargin"] == 8
+    assert root["justifyContent"] == "start"
+    assert root["layoutWeight"] == 1
+    assert root["constraintSize"] == {"minHeight": 48, "maxHeight": 64}
     assert recipe["parts"]["item"]["styles"]["height"] == "matchParent"
+    assert recipe["parts"]["item"]["styles"]["layoutWeight"] == 1
     assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 64
 
 
