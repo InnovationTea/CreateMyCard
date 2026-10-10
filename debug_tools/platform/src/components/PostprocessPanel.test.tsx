@@ -155,6 +155,8 @@ describe('PostprocessPanel', () => {
     expect(screen.queryByRole('checkbox', { name: '质量评分' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始后处理' })).toBeDisabled();
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  });
+
   it('shows running progress and exposes the partial dashboard without selecting plugins', async () => {
     render(<MemoryRouter><PostprocessPanel
       runId="run_1"

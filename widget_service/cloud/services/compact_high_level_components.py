@@ -43,6 +43,7 @@ CompactRow = ComponentRow | DataRow
 
 
 _PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
+_TWO_BY_FOUR_FIXED_SLOT_TYPES = frozenset({"InfoBlock", "CardButton"})
 
 
 def _place_high_level_root(
@@ -58,6 +59,29 @@ def _place_high_level_root(
         if name in original.props:
             props[name] = copy.deepcopy(original.props[name])
     if "width" in original.props and "layoutWeight" not in original.props:
+        props.pop("layoutWeight", None)
+    return ComponentRow(expanded.component_id, expanded.component_type, props, expanded.children)
+
+
+def _stabilize_two_by_four_fixed_slot(
+    original: ComponentRow,
+    expanded: ComponentRow,
+    parent: ComponentRow | None,
+    *,
+    size: str,
+) -> ComponentRow:
+    """Keep 2x4 information and action slots on the same fixed outer height."""
+    if size != "2x4" or original.component_type not in _TWO_BY_FOUR_FIXED_SLOT_TYPES:
+        return expanded
+    _, slot_styles = _visual_recipe_part_for_converter(
+        original.component_type,
+        "root",
+        size=size,
+    )
+    props = copy.deepcopy(expanded.props)
+    props["height"] = slot_styles["height"]
+    props["flexShrink"] = slot_styles["flexShrink"]
+    if parent is not None and parent.component_type == "Column":
         props.pop("layoutWeight", None)
     return ComponentRow(expanded.component_id, expanded.component_type, props, expanded.children)
 
@@ -169,6 +193,12 @@ def expand_high_level_component_rows(
         if expander is not None:
             rows[0] = _place_high_level_root(
                 component, rows[0], parent
+            )
+            rows[0] = _stabilize_two_by_four_fixed_slot(
+                component,
+                rows[0],
+                parent,
+                size=size,
             )
         elif component.component_type == "SingleLineTitle":
             header = ComponentRow(
@@ -493,7 +523,11 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
                         "text",
                         size=size,
                         variant=variant,
-                        props={"content": label, "fontColor": component.props["fontColor"]},
+                        props={
+                            "content": label,
+                            "fontColor": component.props["fontColor"],
+                            "flexShrink": 0,
+                        },
                     )
                 )
             value_id = f"{item_id}_value"
@@ -1154,6 +1188,16 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
 
     icon_id = f"{component.component_id}_icon"
     text_id = f"{component.component_id}_text"
+    _, icon_props = _visual_recipe_part_for_converter(
+        "PillButton",
+        "icon",
+        size=size,
+    )
+    _, label_props = _visual_recipe_part_for_converter(
+        "PillButton",
+        "label",
+        size=size,
+    )
     root_props.update(
         {
             "itemMargin": 8,
@@ -1172,11 +1216,8 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             icon_id,
             "Image",
             {
+                **icon_props,
                 "src": icon,
-                "width": 20,
-                "height": 20,
-                "objectFit": "contain",
-                "flexShrink": 0,
                 "fillColor": props["actionInk"],
             },
         ),
@@ -1184,15 +1225,11 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             text_id,
             "Text",
             {
+                **label_props,
                 "content": props["label"],
-                "maxWidth": 96,
-                "height": props.get("height", 36),
                 "fontSize": props.get("fontSize", 14),
                 "fontWeight": props.get("fontWeight", 500),
                 "fontColor": props["actionInk"],
-                "textAlign": "center",
-                "maxLines": 1,
-                "flexShrink": 0,
             },
         ),
     ]
@@ -1798,7 +1835,9 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
     rows: list[ComponentRow] = []
     for index, item in enumerate(items):
         item_id = f"{component.component_id}_item{index}"
+        label_slot_id = f"{item_id}_label_slot"
         label_id = f"{item_id}_label"
+        value_slot_id = f"{item_id}_value_slot"
         value_id = f"{item_id}_value"
         children.append(item_id)
         rows.extend(
@@ -1811,7 +1850,14 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                     props={
                         "backgroundColor": component.props["backgroundColor"],
                     },
-                    children=(label_id, value_id),
+                    children=(label_slot_id, value_slot_id),
+                ),
+                _visual_row(
+                    label_slot_id,
+                    "TextBlock",
+                    "labelSlot",
+                    size=size,
+                    children=(label_id,),
                 ),
                 _visual_row(
                     label_id,
@@ -1822,6 +1868,13 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                         "content": copy.deepcopy(item["label"]),
                         "fontColor": component.props["fontColor"],
                     },
+                ),
+                _visual_row(
+                    value_slot_id,
+                    "TextBlock",
+                    "valueSlot",
+                    size=size,
+                    children=(value_id,),
                 ),
                 _visual_row(
                     value_id,

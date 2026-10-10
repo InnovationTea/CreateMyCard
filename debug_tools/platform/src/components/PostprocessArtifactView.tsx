@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { CardPreview, parseInput, resolveCardSize } from '@widget-debug/card-renderer';
+import { CardPreview, parseInput, resolveAppVersion, resolveCardSize, type RendererDocument } from '@widget-debug/card-renderer';
 import type { PostprocessArtifact } from '../batchApi';
 import { DEFAULT_ASSET_BASE_URL } from '../config';
 
@@ -121,22 +121,29 @@ function RemoteText({ url }: { url: string }) {
 }
 
 function DslGalleryPreview({ item }: { item: RecordRow }) {
-  const result = useMemo(() => {
+  const [result, setResult] = useState<{ document: RendererDocument | null; error: string }>({
+    document: null, error: '',
+  });
+  useEffect(() => {
+    const controller = new AbortController();
+    setResult({ document: null, error: '' });
     const dsl = typeof item.dsl === 'string' ? item.dsl : '';
-    if (!dsl) return { document: null, error: '' };
-    try {
-      const size = typeof item.size === 'string' ? item.size : '2x2';
-      const cardSize = resolveCardSize(null, '', size);
-      return { document: parseInput(dsl, { cardSize }), error: '' };
-    } catch (reason) {
-      return {
-        document: null,
-        error: reason instanceof Error ? reason.message : String(reason),
-      };
+    if (dsl) {
+      const cardSize = resolveCardSize(null, '', typeof item.size === 'string' ? item.size : '2x2');
+      parseInput(dsl, { cardSize, appVersion: resolveAppVersion(item), signal: controller.signal })
+        .then((document) => {
+          if (!controller.signal.aborted) setResult({ document, error: '' });
+        })
+        .catch((reason) => {
+          if (!controller.signal.aborted) setResult({
+            document: null, error: reason instanceof Error ? reason.message : String(reason),
+          });
+        });
     }
-  }, [item.dsl, item.size]);
+    return () => controller.abort();
+  }, [item.dsl, item.size, item.appVersion]);
   if (!result.document) {
-    return <div className="postprocess-image-error">{result.error || 'DSL 无法解析'}</div>;
+    return <div className="postprocess-image-error">{result.error || '正在渲染…'}</div>;
   }
   return <div className={`postprocess-dsl-preview ${item.size === '2x4' ? 'wide' : ''}`}>
     <CardPreview document={result.document} assetBaseUrl={DEFAULT_ASSET_BASE_URL} />

@@ -1,14 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_A2UI, SAMPLE_COMPACT, SAMPLE_DESIGN } from '../src/fixtures';
 import { parseInput, resolveCardSize, resolveTemplate, sizeForCard } from '../src/parser';
 
 describe('card renderer parser', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({ genui: SAMPLE_A2UI, size: '2x2' }),
+  })));
+  afterEach(() => vi.unstubAllGlobals());
   it.each([
     ['A2UI', SAMPLE_A2UI],
     ['Compact DSL', SAMPLE_COMPACT],
     ['Design Compact DSL', SAMPLE_DESIGN],
-  ])('recognizes %s fixtures', (expectedMode, source) => {
-    const document = parseInput(source);
+  ])('recognizes %s fixtures', async (expectedMode, source) => {
+    const document = await parseInput(source);
     expect(document.mode).toBe(expectedMode);
     expect(document.components.size).toBeGreaterThan(0);
     expect(document.surface.width).toBeGreaterThan(0);
@@ -40,13 +44,13 @@ describe('card renderer parser', () => {
     expect(resolveCardSize('{"cardSpec":{"suggestSize":"2x2"}}', '')).toBe('2x2');
   });
 
-  it('accepts single-component A2UI updates and artifact envelopes', () => {
+  it('accepts single-component A2UI updates and artifact envelopes', async () => {
     const genui = [
       '{"version":"v0.9","createSurface":{"surfaceId":"card","width":180,"height":120}}',
       '{"version":"v0.9","updateComponents":{"surfaceId":"card","component":{"id":"root","component":"Extended.Text","content":{"path":"/title"}}}}',
       '{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/title","value":"单条更新"}}',
     ].join('\n');
-    const document = parseInput(JSON.stringify({ artifact: { genui } }));
+    const document = await parseInput(JSON.stringify({ artifact: { genui } }));
 
     expect(document.mode).toBe('A2UI');
     expect(document.surface).toEqual({ width: 180, height: 120 });
@@ -54,8 +58,8 @@ describe('card renderer parser', () => {
     expect(document.graph.getDataModelValue('card', '/title')).toBe('单条更新');
   });
 
-  it('keeps valid graph commands when another record is malformed', () => {
-    const document = parseInput([
+  it('keeps valid graph commands when another record is malformed', async () => {
+    const document = await parseInput([
       '{"root":{"type":"Extended.Text","props":{"content":"可渲染"}}}',
       '{broken}',
     ].join('\n'));
@@ -64,8 +68,8 @@ describe('card renderer parser', () => {
     expect(document.warnings).toHaveLength(1);
   });
 
-  it('honors an explicit card size over input dimensions', () => {
-    const document = parseInput(SAMPLE_A2UI, { cardSize: '2x4' });
+  it('honors an explicit card size over input dimensions', async () => {
+    const document = await parseInput(SAMPLE_A2UI, { cardSize: '2x4' });
     expect(document.surface).toEqual({ width: 300, height: 150 });
   });
 });

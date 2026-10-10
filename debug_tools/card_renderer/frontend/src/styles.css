@@ -131,6 +131,7 @@
 .card-renderer__file-button input { display: none; }
 .card-renderer__control, .card-renderer__check { display: inline-flex; align-items: center; gap: 6px; color: var(--renderer-muted); font-size: 13px; }
 .card-renderer select { border: 1px solid var(--renderer-line); border-radius: 8px; padding: 7px 9px; color: var(--renderer-text); background: #fff; }
+.card-renderer__control input[type="text"] { width: 118px; border: 1px solid var(--renderer-line); border-radius: 8px; padding: 7px 9px; font: inherit; color: var(--renderer-text); background: #fff; }
 .card-renderer textarea { width: 100%; min-height: 0; height: 100%; resize: none; padding: 12px; border: 1px solid var(--renderer-line); border-radius: 10px; outline: none; color: #111827; background: #fbfdff; font-family: Consolas, "Courier New", monospace; font-size: 13px; line-height: 1.5; tab-size: 2; overflow: auto; }
 .card-renderer textarea:focus { border-color: var(--renderer-brand); box-shadow: 0 0 0 3px rgb(53 103 239 / 12%); }
 .card-renderer__status { min-height: 20px; color: var(--renderer-muted); font-size: 13px; }

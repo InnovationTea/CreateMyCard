@@ -83,9 +83,19 @@ function rewriteAssets(value: unknown, assetBaseUrl: string): unknown {
 }
 
 function nodeCommand(node: UINode, assetBaseUrl: string): Record<string, unknown> {
+  const props = rewriteAssets(node.props, assetBaseUrl) as Record<string, unknown>;
+  // 云侧 A2UI 使用 onClick call/args；Web interactionHost 使用 functionCall action。
+  if (Array.isArray(props.onClick) && props.onClick.every((handler) => (
+    handler && typeof handler === 'object' && typeof handler.call === 'string'
+  ))) {
+    if (props.action === undefined) {
+      props.action = props.onClick.map((handler) => ({ functionCall: handler }));
+    }
+    delete props.onClick;
+  }
   const definition: Record<string, unknown> = {
     type: node.type,
-    props: rewriteAssets(node.props, assetBaseUrl),
+    props,
   };
   if (node.dynamicChildrenTemplate) {
     definition.dynamicChildrenTemplate = { ...node.dynamicChildrenTemplate };

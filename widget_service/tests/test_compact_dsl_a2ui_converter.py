@@ -764,9 +764,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["metric"]["styles"]["width"], "matchParent")
         self.assertEqual(components["metric"]["styles"]["justifyContent"], "start")
-        self.assertEqual(components["metric"]["styles"]["alignItems"], "top")
+        self.assertEqual(components["metric"]["styles"]["alignItems"], "baseline")
         self.assertEqual(components["metric_value"]["styles"]["fontSize"], 30)
-        self.assertEqual(components["metric_unit"]["styles"]["margin"], {"top": 17})
+        self.assertEqual(components["metric_value"]["styles"]["height"], 30)
+        self.assertEqual(components["metric_value"]["styles"]["lineHeight"], 1)
+        self.assertEqual(components["metric_unit"]["styles"]["height"], 12)
+        self.assertEqual(components["metric_unit"]["styles"]["lineHeight"], 1)
+        self.assertNotIn("margin", components["metric_unit"]["styles"])
         self.assertEqual(components["info"]["component"], "Column")
         self.assertEqual(components["info"]["styles"]["height"], 63)
         self.assertEqual(components["info_primary"]["styles"]["fontWeight"], 700)
@@ -944,7 +948,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["metadata_item0_value"]["styles"]["fontWeight"], 400)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 1)
         self.assertEqual(components["supporting_item0_label"]["content"], "状态 ")
+        self.assertEqual(
+            components["supporting_item0_label"]["styles"]["flexShrink"],
+            0,
+        )
         self.assertEqual(components["supporting_item0_value"]["content"], "正常")
+        self.assertEqual(
+            components["supporting_item0_value"]["styles"]["flexShrink"],
+            1,
+        )
 
     def test_secondary_body_rejects_uncontrolled_text_shapes(self) -> None:
         invalid_props = [
@@ -1111,26 +1123,72 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["info"]["styles"]["width"], "matchParent")
         self.assertEqual(components["info"]["styles"]["height"], 57)
         self.assertEqual(components["progress"]["children"][-1], "progress_bar")
+        self.assertEqual(components["progress"]["itemMargin"], 4)
         self.assertEqual(components["progress_bar"]["component"], "Progress")
         self.assertEqual(components["progress_bar"]["styles"]["strokeWidth"], 8)
+        self.assertEqual(components["progress_readout"]["styles"]["height"], 30)
+        self.assertEqual(components["progress_readout"]["styles"]["alignItems"], "baseline")
+        self.assertEqual(components["progress_value"]["styles"]["height"], 30)
+        self.assertEqual(components["progress_value"]["styles"]["lineHeight"], 1)
         self.assertEqual(components["progress_unit"]["styles"]["fontSize"], 12)
+        self.assertEqual(components["progress_unit"]["styles"]["height"], 12)
+        self.assertEqual(components["progress_unit"]["styles"]["lineHeight"], 1)
+        self.assertNotIn("margin", components["progress_unit"]["styles"])
         self.assertEqual(
             components["details"]["children"],
             ["details_item0", "details_item1"],
         )
-        self.assertNotIn("height", components["details"]["styles"])
+        self.assertEqual(components["details"]["styles"]["height"], "matchParent")
         self.assertEqual(components["details"]["itemMargin"], 8)
         self.assertEqual(components["details"]["styles"]["justifyContent"], "start")
         self.assertEqual(components["details"]["styles"]["layoutWeight"], 1)
         self.assertEqual(
             components["details"]["styles"]["constraintSize"],
-            {"minHeight": 48, "maxHeight": 64},
+            {"minHeight": 48},
         )
         self.assertEqual(components["details_item0"]["styles"]["height"], "matchParent")
         self.assertEqual(components["details_item0"]["styles"]["layoutWeight"], 1)
         self.assertEqual(
             components["details_item0"]["styles"]["constraintSize"]["minWidth"],
             64,
+        )
+        self.assertEqual(
+            components["details_item0"]["children"],
+            ["details_item0_label_slot", "details_item0_value_slot"],
+        )
+        self.assertEqual(components["details_item0_label_slot"]["styles"]["height"], 18)
+        self.assertEqual(
+            components["details_item0_label_slot"]["styles"]["alignItems"],
+            "center",
+        )
+        self.assertEqual(
+            components["details_item0_label_slot"]["children"],
+            ["details_item0_label"],
+        )
+        self.assertNotIn("height", components["details_item0_label"]["styles"])
+        self.assertEqual(components["details_item0_label"]["styles"]["fontSize"], 12)
+        self.assertEqual(components["details_item0_label"]["styles"]["fontWeight"], 700)
+        self.assertEqual(components["details_item0_label"]["styles"]["textAlign"], "start")
+        self.assertEqual(
+            components["details_item0_label"]["styles"]["textOverflow"],
+            "ellipsis",
+        )
+        self.assertEqual(components["details_item0_value_slot"]["styles"]["height"], 16)
+        self.assertEqual(
+            components["details_item0_value_slot"]["styles"]["alignItems"],
+            "center",
+        )
+        self.assertEqual(
+            components["details_item0_value_slot"]["children"],
+            ["details_item0_value"],
+        )
+        self.assertNotIn("height", components["details_item0_value"]["styles"])
+        self.assertEqual(components["details_item0_value"]["styles"]["fontSize"], 10)
+        self.assertEqual(components["details_item0_value"]["styles"]["fontWeight"], 500)
+        self.assertEqual(components["details_item0_value"]["styles"]["textAlign"], "start")
+        self.assertEqual(
+            components["details_item0_value"]["styles"]["textOverflow"],
+            "ellipsis",
         )
         self.assertEqual(components["action"]["component"], "Row")
         self.assertEqual(components["action"]["onClick"], [handler])
@@ -1140,6 +1198,60 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["action_label"]["styles"]["fontSize"], 14)
         self.assertEqual(components["action_visual"]["component"], "Divider")
+
+    def test_two_by_four_info_and_action_slots_keep_equal_fixed_height(self) -> None:
+        action = {"call": "openSettings", "args": {}}
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 132, "height": 126, "itemMargin": 12},
+                    ["status", "settings"],
+                ],
+                [
+                    "status",
+                    "InfoBlock",
+                    {
+                        "variant": "slot",
+                        "primaryText": "连接状态",
+                        "secondaryText": "连接正常",
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#99FFFFFF",
+                        "width": "matchParent",
+                        "layoutWeight": 1,
+                    },
+                ],
+                [
+                    "settings",
+                    "CardButton",
+                    {
+                        "label": "设备设置",
+                        "fontColor": "#FF1F4799",
+                        "backgroundColor": "#99FFFFFF",
+                        "onClick": [action],
+                        "width": "matchParent",
+                        "layoutWeight": 1,
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        for identifier in ("status", "settings"):
+            styles = components[identifier]["styles"]
+            self.assertEqual(styles["height"], 57)
+            self.assertEqual(styles["flexShrink"], 0)
+            self.assertNotIn("layoutWeight", styles)
+        self.assertEqual(components["status_primary"]["styles"]["fontSize"], 14)
+        self.assertEqual(components["settings_label"]["styles"]["fontSize"], 14)
 
     def test_text_block_expands_two_to_four_items_with_equal_width(self) -> None:
         compact_dsl = _serialize(
@@ -1518,7 +1630,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(small_components["circle"]["styles"]["height"], 52)
         self.assertEqual(small_components["circle_ring_stack"]["styles"]["width"], 52)
         self.assertEqual(small_components["circle_ring"]["styles"]["width"], 52)
-        self.assertEqual(small_components["circle_labels"]["styles"]["width"], 66)
+        self.assertNotIn("width", small_components["circle_labels"]["styles"])
+        self.assertEqual(small_components["circle_labels"]["styles"]["layoutWeight"], 1)
         self.assertEqual(small_components["circle_display"]["styles"]["fontSize"], 10)
         self.assertEqual(small_components["circle_secondary"]["styles"]["height"], 16)
 
@@ -1881,6 +1994,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "#FF9E6D20",
         )
         self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
+        self.assertEqual(components["cta"]["styles"]["alignItems"], "center")
+        self.assertEqual(components["cta_icon"]["styles"]["height"], 20)
+        self.assertEqual(components["cta_text"]["styles"]["height"], 17)
 
     def test_pill_button_uses_versioned_visual_geometry(self) -> None:
         handler = {"call": "openSettings", "args": {}}

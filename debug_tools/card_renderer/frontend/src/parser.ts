@@ -8,7 +8,6 @@
 
 import { UIGraph } from '@genui-sdk/graph';
 import { JsonlStreamParser } from '@genui-sdk/parser';
-import { compileMiniDsl } from './runtime/mini-renderer';
 
 export const COMPONENT_TYPES = new Set([
   'Row',
@@ -54,6 +53,9 @@ export interface RendererDocument {
 
 export interface ParseOptions {
   cardSize?: CardSize;
+  appVersion?: string;
+  conversionUrl?: string;
+  signal?: AbortSignal;
 }
 
 export const COLOR_TOKENS: Record<string, string> = {
@@ -327,15 +329,15 @@ function parseRows(text: string): unknown[] {
   return rows;
 }
 
-export function parseInput(text: string, options: ParseOptions = {}): RendererDocument {
+export async function parseInput(text: string, options: ParseOptions = {}): Promise<RendererDocument> {
   const rows = parseRows(text);
   const compactRows = rows.filter((row): row is unknown[] => Array.isArray(row));
-  if (compactRows.length > 0) {
+  if (compactRows.length > 0 || unwrapRenderableSource(text).trim().startsWith('[')) {
     return compileCompactDocument(
       unwrapRenderableSource(text),
       compactRows,
       rows,
-      options,
+      { ...options, appVersion: resolveAppVersion(text) ?? options.appVersion },
     );
   }
   const a2uiRows = rows.filter(isA2uiRow);
@@ -345,28 +347,69 @@ export function parseInput(text: string, options: ParseOptions = {}): RendererDo
   return compileGraphDocument(source, rows, options);
 }
 
-function compileCompactDocument(
+async function compileCompactDocument(
   source: string,
   compactRows: unknown[][],
   allRows: unknown[],
   options: ParseOptions,
-): RendererDocument {
-  const selectedSize = options.cardSize === '2x2' || options.cardSize === '2x4'
-    ? options.cardSize
-    : undefined;
-  const result = compileMiniDsl(source, { size: selectedSize });
+): Promise<RendererDocument> {
+  const response = await fetch(options.conversionUrl ?? '/debug/renderer/convert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source, size: options.cardSize ?? 'auto', appVersion: options.appVersion }),
+    signal: options.signal,
+  });
+  const result: unknown = await response.json();
+  if (!response.ok) {
+    const detail = isRecord(result) && typeof result.detail === 'string'
+      ? result.detail : '输入或尺寸不合法';
+    throw new Error(`Python 转换失败：${detail}`);
+  }
+  if (!isRecord(result) || typeof result.genui !== 'string'
+    || !['2x2', '2x4'].includes(String(result.size))) {
+    throw new Error('Python 转换服务返回了无效结果');
+  }
+  options.signal?.throwIfAborted();
+  const convertedRows = parseRows(result.genui);
+  if (!convertedRows.some(isA2uiRow) || convertedRows.some(Array.isArray)) {
+    throw new Error('Python 转换服务未返回 A2UI');
+  }
+  const document = compileGraphDocument(result.genui, convertedRows, {
+    ...options, cardSize: result.size as '2x2' | '2x4',
+  });
   const mode = compactRows.some((row) => isRecord(row[2]) && typeof row[2].design === 'string')
     ? 'Design Compact DSL'
     : 'Compact DSL';
-  return documentFromGraph({
-    graph: result.graph,
-    jsonl: result.jsonl,
-    mode,
-    options,
-    rows: allRows,
-    suggestedSize: result.size,
-    warnings: result.warnings,
-  });
+  return { ...document, mode, rows: allRows, jsonl: result.genui };
+}
+
+/** Read the original client version without inferring it from the A2UI protocol version. */
+export function resolveAppVersion(...sources: unknown[]): string | undefined {
+  const visit = (source: unknown, depth: number, taskOnly: boolean): string | undefined => {
+    if (depth > 12) return undefined;
+    const value = typeof source === 'string' ? safeJsonParse(source) : source;
+    if (!isRecord(value)) return undefined;
+    for (const key of ['taskSpec', 'taskspec']) {
+      const version = visit(value[key], depth + 1, false);
+      if (version !== undefined) return version;
+    }
+    // Keep even an invalid/empty version so a fallback cannot bypass the Python gate.
+    if (!taskOnly && typeof value.appVersion === 'string') return value.appVersion;
+    const device = isRecord(value.deviceInfo) ? value.deviceInfo : undefined;
+    if (!taskOnly && device && typeof device.prdVer === 'string') return device.prdVer;
+    for (const key of ['artifact', 'blocks', 'raw', 'data', 'response', 'request', 'payload', 'params']) {
+      const version = visit(value[key], depth + 1, taskOnly);
+      if (version !== undefined) return version;
+    }
+    return undefined;
+  };
+  for (const taskOnly of [true, false]) {
+    for (const source of sources) {
+      const version = visit(source, 0, taskOnly);
+      if (version !== undefined) return version;
+    }
+  }
+  return undefined;
 }
 
 function compileGraphDocument(
@@ -462,7 +505,7 @@ function findDeclaredSurface(rows: unknown[]): { width: number | null; height: n
   return { width: null, height: null };
 }
 
-function unwrapRenderableSource(text: string): string {
+export function unwrapRenderableSource(text: string): string {
   const trimmed = text.trim().replace(
     /^```(?:jsonl?|genui|a2ui)?\s*\n([\s\S]*?)\n```$/i,
     '$1',
@@ -542,65 +585,6 @@ function parseA2ui(rows: UnknownRecord[], allRows: unknown[], options: ParseOpti
     warnings: [],
     jsonl: rows.map((row) => JSON.stringify(row)).join('\n'),
   };
-}
-
-function parseCompact(rows: unknown[][], options: ParseOptions): RendererDocument {
-  const data: Record<string, unknown> = {};
-  const components = new Map<string, ComponentNode>();
-  let rootId = 'root';
-
-  for (const row of rows) {
-    if (isComponentRow(row)) {
-      const id = String(row[0]);
-      const type = normalizeType(row[1]);
-      const props = normalizeDesignProps(type, isRecord(row[2]) ? { ...row[2] } : {});
-      const nestedStyles = isRecord(props.styles) ? props.styles : null;
-      if (nestedStyles) {
-        delete props.styles;
-        Object.assign(props, nestedStyles);
-      }
-      components.set(id, {
-        id,
-        type,
-        props,
-        children: Array.isArray(row[3])
-          ? row[3].filter((item): item is string => typeof item === 'string')
-          : [],
-      });
-      if (components.size === 1 || id === 'root') rootId = id;
-    } else if (isPathRow(row)) {
-      setPath(data, row[0], row[1]);
-    }
-  }
-  const root = components.get(rootId) ?? components.values().next().value;
-  const inferred = inferSurface(root);
-  const selected = sizeForCard(options.cardSize);
-  return {
-    mode: hasDesignToken(components) ? 'Design Compact DSL' : 'Compact DSL',
-    surface: selected ?? inferred,
-    rootId: root?.id ?? rootId,
-    components,
-    data,
-    dataPathCount: countLeafPaths(data),
-    rows,
-    graph: new UIGraph(),
-    warnings: [],
-    jsonl: rows.map((row) => JSON.stringify(row)).join('\n'),
-  };
-}
-
-function normalizeDesignProps(type: string, props: Record<string, unknown>): Record<string, unknown> {
-  const design = props.design;
-  if (typeof design !== 'string') return props;
-  const token = DESIGN_TOKENS[type]?.[design];
-  props.__design = design;
-  delete props.design;
-  return token ? { ...token, ...props } : props;
-}
-
-function hasDesignToken(components: Map<string, ComponentNode>): boolean {
-  for (const component of components.values()) if (component.props.__design != null) return true;
-  return false;
 }
 
 function inferSurface(root: ComponentNode | undefined): SurfaceSize {

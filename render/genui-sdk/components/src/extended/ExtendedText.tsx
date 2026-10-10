@@ -5,6 +5,7 @@ import { domProps } from "./dom-props.js";
 import type { CSSProperties, MouseEventHandler } from "react";
 import { applyFontScale, mergeCommonStyles, normalizeSchemaColor } from "./common-styles.js";
 import { HARMONY_TEXT_PRIMARY } from "./harmony-defaults.js";
+import { useCompleteText } from "./complete-text.js";
 
 export interface ExtendedTextProps {
   content?: string;
@@ -34,6 +35,10 @@ function textSchema(styles?: Record<string, unknown>): CSSProperties {
   } else if (fw === "300" || fw === "400" || fw === "500" || fw === "600" || fw === "700" || fw === "normal" || fw === "bold") {
     o.fontWeight = fw;
   }
+  const lineHeight = styles.lineHeight;
+  if (typeof lineHeight === "number" && Number.isFinite(lineHeight) && lineHeight > 0) {
+    o.lineHeight = lineHeight;
+  }
   const fc = normalizeSchemaColor(typeof styles.fontColor === "string" ? styles.fontColor : undefined);
   if (fc) o.color = fc;
   const ta = styles.textAlign;
@@ -55,7 +60,11 @@ function textSchema(styles?: Record<string, unknown>): CSSProperties {
   // marquee: handled in component wrapper
 
   const ml = styles.maxLines;
-  if (typeof ml === "number" && ml > 0) {
+  if (ml === 1) {
+    // 固定高度可能高于单行行高；禁止换行，避免多行截断露出第二行字形。
+    o.overflow = "hidden";
+    o.whiteSpace = "nowrap";
+  } else if (typeof ml === "number" && ml > 0) {
     o.display = "-webkit-box";
     o.WebkitBoxOrient = "vertical";
     o.WebkitLineClamp = ml;
@@ -121,6 +130,11 @@ export function ExtendedText({ content, onClick, ...styleProps }: ExtendedTextPr
   const common = mergeCommonStyles(s);
   const ts = textSchema(s);
   const text = content == null ? "" : typeof content === "object" ? JSON.stringify(content) : String(content);
+  const style = { ...base, ...common, ...ts };
+  const completeText = useCompleteText(
+    text, s.maxLines === 1 && s.textOverflow !== "ellipsis" && s.textOverflow !== "marquee",
+    JSON.stringify(style),
+  );
 
   if (s.textOverflow === "marquee") {
     const kf = `genui-marquee-${uid}`;
@@ -160,12 +174,14 @@ export function ExtendedText({ content, onClick, ...styleProps }: ExtendedTextPr
   return (
     <p
       {...domProps(s)}
-      style={{ ...base, ...common, ...ts }}
+      ref={completeText.ref}
+      aria-label={typeof s["aria-label"] === "string" ? s["aria-label"] : text}
+      style={style}
       onClick={onClick}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
     >
-      {text}
+      {completeText.visibleText}
     </p>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArtifactPreview, type ArtifactRecord } from '@widget-debug/end-to-end';
-import { CardRenderer, resolveCardSize } from '@widget-debug/card-renderer';
+import { CardRenderer, resolveAppVersion, resolveCardSize } from '@widget-debug/card-renderer';
 import { parseLegacyToolResponse, parsePythonRepr } from '@widget-debug/interface';
 import { useWorkbench } from '../context';
 import { DEFAULT_ASSET_BASE_URL } from '../config';
@@ -222,7 +222,9 @@ export function RendererRoute() {
           key={artifactKey}
           initialValue={selectedCall ? (initialValue ?? '') : initialValue}
           assetBaseUrl={DEFAULT_ASSET_BASE_URL}
+          conversionUrl="/debug/renderer/convert"
           cardSize={rendererCardSize}
+          appVersion={resolveAppVersion(activeArtifact, selectedCall?.request)}
           onArtifact={(document) => {
             pushEvent({
               channel: 'renderer',

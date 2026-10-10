@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PostprocessArtifact } from '../batchApi';
 import { PostprocessArtifactView } from './PostprocessArtifactView';
 
 describe('PostprocessArtifactView', () => {
+  afterEach(() => vi.unstubAllGlobals());
   it.each([
     ['metrics', 'kpi', [{ label: '召回率', value: 87.5, unit: '%' }], '87.5'],
     ['records', 'table', [{ component: 'SingleLineTitle', matched: 3 }], 'SingleLineTitle'],
@@ -87,7 +88,7 @@ describe('PostprocessArtifactView', () => {
     expect(screen.getByRole('img', { name: '第一次校验' })).toBeInTheDocument();
   });
 
-  it('renders DSL items when a finalized image is not available yet', () => {
+  it('renders DSL items when a finalized image is not available yet', async () => {
     render(<PostprocessArtifactView artifact={{
       key: 'validation-renders',
       title: '收尾中的 DSL',
@@ -104,6 +105,24 @@ describe('PostprocessArtifactView', () => {
       }],
     }} />);
 
-    expect(screen.getByText('DSL 预览')).toBeInTheDocument();
+    expect(await screen.findByText('DSL 预览')).toBeInTheDocument();
+  });
+
+  it('converts Compact gallery items through Python before showing them', async () => {
+    const source = '["root","PillButton",{"label":"后处理"}]';
+    const genui = [
+      '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+      '{"version":"v0.9","updateComponents":{"surfaceId":"preview","root":"root","components":[{"id":"root","component":"Text","content":"Python 画廊"}]}}',
+    ].join('\n');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ genui, size: '2x4' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<PostprocessArtifactView artifact={{
+      key: 'gallery', title: '画廊', dataType: 'image', renderer: 'gallery',
+      data: [{ label: 'Compact', dsl: source, size: '2x4', appVersion: '12.0.0.1' }],
+    }} />);
+    expect(await screen.findByText('Python 画廊')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][0]).toBe('/debug/renderer/convert');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: '2x4', appVersion: '12.0.0.1' });
   });
 });

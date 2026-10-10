@@ -104,7 +104,7 @@ WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_API_KEY=<your-api-key>
 适合检查已有 A2UI、Compact DSL、Design Compact DSL 或 artifact：
 
 1. 将内容粘贴到左侧编辑器，或从左侧接口调用历史选择生成结果。
-2. 点击“渲染”，必要时手工切换 `2×2` 或 `2×4` 画布。
+2. 点击“渲染”或启用自动渲染：Compact 输入统一经 Python 转换为 A2UI 后预览，已有 A2UI 直接解析。点击“Python 转换并渲染”还会将编辑器内容更新为 A2UI，便于复制和检查。必要时手工切换 `2×2` 或 `2×4` 画布。
 3. 在中间预览布局、缩放和数据绑定效果。
 4. 在右侧 Artifact 检查器确认解析出的产物信息。
 

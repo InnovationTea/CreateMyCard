@@ -413,6 +413,7 @@ function expandHighLevel(
           rows.push(row(labelId, type, "text", size, {
             content: item.label,
             fontColor: p.fontColor,
+            flexShrink: 0,
           }, [], variant));
         }
         const valueId = `${itemId}_value`;
@@ -644,6 +645,8 @@ function expandHighLevel(
     }
     const iconId = `${id}_icon`;
     const textId = `${id}_text`;
+    const iconVisual = visualRecipePart(type, "icon", size);
+    const labelVisual = visualRecipePart(type, "label", size);
     return [
       [id, {
         type: "Row",
@@ -651,29 +654,22 @@ function expandHighLevel(
         children: [iconId, textId],
       }],
       [iconId, {
-        type: "Image",
+        type: iconVisual.component,
         props: {
+          ...iconVisual.styles,
           src: p.icon,
-          width: 20,
-          height: 20,
-          objectFit: "contain",
-          flexShrink: 0,
           fillColor: p.actionInk,
         },
         children: [],
       }],
       [textId, {
-        type: "Text",
+        type: labelVisual.component,
         props: {
+          ...labelVisual.styles,
           content: p.label,
-          maxWidth: 96,
-          height: p.height ?? visual.styles.height ?? 36,
           fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
           fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
           fontColor: p.actionInk,
-          textAlign: "center",
-          maxLines: 1,
-          flexShrink: 0,
         },
         children: [],
       }],
@@ -963,6 +959,9 @@ function expandHighLevel(
       const itemId = `${id}_${isTable ? "row" : "item"}${index}`;
       const labelId = `${itemId}_label`;
       const valueId = `${itemId}_value`;
+      const labelSlotId = `${itemId}_label_slot`;
+      const valueSlotId = `${itemId}_value_slot`;
+      const itemChildren = isTable ? [labelId, valueId] : [labelSlotId, valueSlotId];
       children.push(itemId);
       rows.push(row(
         itemId,
@@ -970,9 +969,12 @@ function expandHighLevel(
         isTable ? "row" : "item",
         size,
         isTable ? {} : { backgroundColor: p.backgroundColor },
-        [labelId, valueId],
+        itemChildren,
         variant,
       ));
+      if (!isTable) {
+        rows.push(row(labelSlotId, type, "labelSlot", size, {}, [labelId], variant));
+      }
       rows.push(row(
         labelId,
         type,
@@ -985,6 +987,9 @@ function expandHighLevel(
         [],
         variant,
       ));
+      if (!isTable) {
+        rows.push(row(valueSlotId, type, "valueSlot", size, {}, [valueId], variant));
+      }
       rows.push(row(
         valueId,
         type,
@@ -1400,6 +1405,12 @@ export function expandCompactComponents(
         if (node.props[key] !== undefined) props[key] = clone(node.props[key]);
       }
       if (node.props.width !== undefined && node.props.layoutWeight === undefined) delete props.layoutWeight;
+      if (size === "2x4" && ["InfoBlock", "CardButton"].includes(node.type)) {
+        const slotRoot = visualRecipePart(node.type, "root", size).styles;
+        props.height = slotRoot.height;
+        props.flexShrink = slotRoot.flexShrink;
+        if (parent?.type === "Column") delete props.layoutWeight;
+      }
       putExpansion(id, node.type, rows);
     }
   }

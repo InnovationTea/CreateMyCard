@@ -13,18 +13,12 @@
 | Components | `render/genui-sdk/components/src/` | `debug_tools/card_renderer/runtime/components/src/` | 源码副本。基础组件、Extended 组件、样式转换或表单行为变化时同步；同步后必须重新应用下述图片代理差异。 |
 | Interactions | `render/genui-sdk/interactions/src/` | `debug_tools/card_renderer/runtime/interactions/src/` | 源码副本。表达式、路径绑定、事件上下文或 action dispatch 变化时同步。 |
 | Renderer | `render/genui-sdk/renderer/src/` | `debug_tools/card_renderer/runtime/renderer/src/` | 源码副本。registry、`renderTree`、动态子节点、循环或 TextInput 写回行为变化时同步。 |
-| Mini DSL 编译 | `render/platform/lib/mini-renderer.ts` | `debug_tools/card_renderer/frontend/src/runtime/mini-renderer.ts` | 源码副本并带本地诊断增强。Compact DSL 编译、高阶组件展开入口或 Design 处理顺序变化时同步。 |
-| 高阶组件展开 | `render/platform/lib/compact-components.ts` | `debug_tools/card_renderer/frontend/src/runtime/compact-components.ts` | 源码副本，仅调整视觉 Recipe 的相对导入路径。高阶组件清单、Recipe 参数映射或展开结构变化时同步。 |
-| Design 样式 | `render/platform/lib/design-handle.ts` | `debug_tools/card_renderer/frontend/src/runtime/design-handle.ts` | 当前为原样副本。Design token、渐变、背景素材或样式合并规则变化时同步。 |
-| 视觉 Recipe | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json` | 由 `frontend/src/runtime/compact-components.ts` 直接导入 | 单一真实来源，不复制。Recipe 版本、组件参数或布局几何变化会立即影响构建，需同步适配展开逻辑和测试期望。 |
+| 视觉 Recipe | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json` | 由云侧 Python 高阶组件模块读取 | 单一真实来源，不复制。Recipe 版本、组件参数或布局几何变化会立即影响构建，需同步适配展开逻辑和测试期望。 |
 | 布局契约 | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/layout-contracts-v1.json` | 当前不被浏览器运行时直接导入 | 间接契约。更新后应检查生成 DSL 是否引入新布局字段，并评估 parser、components、renderer 是否需要同步；不要为它创建本地副本。 |
 | 卡片素材 | `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。新增或替换素材会直接生效；目录迁移时必须同时修改 `debug_tools/static_site.py`、`debug_tools/platform/vite.config.ts` 和资源兼容测试。 |
 | 背景素材 | `render/platform/public/background_assets/` | Python `/background_assets/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。目录或命名规则变化时同步两套服务入口和测试。 |
 | Concert One 字体 | `render/platform/public/fonts/ConcertOne-Regular.ttf` | `debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 二进制副本。源文件哈希变化时重新复制并执行 Vite build。 |
 | HarmonyOS 字体 | `render/platform/public/fonts/harmonyos/` | CSS `/fonts/harmonyos/` 引用、Python 资源路由和 Vite 本地中间件 | 实时目录依赖，不复制。字体目录变化时同步 `styles.css`、`debug_tools/static_site.py` 和两处 Vite 配置。 |
-| Render 示例 | `render/platform/src/example-dsl.ts` | `debug_tools/card_renderer/frontend/tests/fixtures/example-dsl.ts` | 测试副本。示例协议或受支持组件变化时同步。 |
-| Render 测试数据 | `render/platform/fixtures/high-level-component-examples.json`、`fusion-examples.json` | `debug_tools/card_renderer/frontend/tests/fixtures/` | 测试副本。新增高阶组件、Fusion 样例或素材引用时同步。 |
-| Render 测试逻辑 | `render/platform/tests/mini-renderer.test.ts`、`high-level-components.test.ts`、`fusion-compatibility.test.ts` | `frontend/tests/render-*.test.ts` | 适配后的测试副本。上游测试新增协议行为时同步相应用例，不以覆盖方式丢弃 Debug Tools 专属断言。 |
 
 运行时包名仍使用 `@genui-sdk/graph`、`@genui-sdk/parser`、`@genui-sdk/components`、
 `@genui-sdk/interactions` 和 `@genui-sdk/renderer`。这些包在
@@ -44,16 +38,13 @@ Debug Tools 自己的集成层，不是根 `render` 文件的副本：它们分�
    - 根 `render` 会把外部 HTTP(S) 图片改写到 Next.js `/img-proxy`。
    - Debug Tools 不提供开放式代理，外部图片必须保持浏览器直读；`resources/...` 才改写为本地
      `/resources/...`，加载失败显示占位。
-2. `frontend/src/runtime/compact-components.ts`
-   - 视觉 Recipe 必须从云侧版本化文件直接导入。
-   - 同步上游代码后只调整相对路径，禁止复制 `visual-recipes-v1.json` 到 Debug Tools。
-3. `frontend/src/runtime/mini-renderer.ts`
-   - Debug Tools 的 JSON 解析错误包含底层原因和最多 120 字符的输入片段，便于批跑与手工调试。
-   - 上游解析流程变化时合并该诊断能力，不要退回只有行号的错误。
+2. Compact 转换不从根 `render/platform/lib/` 同步；由 `/debug/renderer/convert` 调用现有 Python 转换器。
+   高阶组件、设计 token 和布局规则统一在云侧模块维护，不恢复前端编译副本。
+3. 公共 `parseInput` 返回 Promise；调用方须等待转换并处理取消、失败和截图就绪状态。
 4. `runtime/*/package.json`
    - 这些文件是供 Debug Tools npm workspace 直接引用源码的极简 manifest，不是上游构建配置副本。
 
-`frontend/src/runtime/design-handle.ts` 和 Concert One 字体当前与来源一致；如果同步后出现差异，应在本节
+Concert One 字体当前与来源一致；如果同步后出现差异，应在本节
 补充差异原因。生产目录 `debug_tools/dist/` 只能通过构建生成，禁止从 `render` 手工复制。
 
 ## 同步流程
@@ -74,7 +65,7 @@ git diff --name-status <旧版本> <新版本> -- widget_service/cloud/data/prot
 
 - `graph`、`parser`、`components`、`interactions`、`renderer` 只同步各自的 `src/`。
 - 不复制根 `render` 的 Next.js 页面、`llm-client`、Prompt、Skill、分析器、构建产物或整套 HarmonyOS 字体。
-- 同步 `mini-renderer.ts`、`compact-components.ts`、`design-handle.ts` 后，逐项重新应用本地差异。
+- 不同步根 `render/platform/lib/` 的 Compact 编译、高阶展开或 Design 样式副本。
 - 上游新增跨包 import 时，同时更新对应 `runtime/*/package.json` 和
   `card_renderer/frontend/package.json`；然后在 `debug_tools/` 执行 `npm install` 更新锁文件。
 - 上游删除或重命名文件时，不要机械覆盖或递归删除。先用 `rg` 确认 Debug Tools 没有额外引用，再删除
@@ -95,9 +86,8 @@ Copy-Item -Recurse -Force 'render/genui-sdk/renderer/src/*' 'debug_tools/card_re
 
 ### 3. 同步配置、素材与测试
 
-- `visual-recipes-v1.json` 是直接依赖，文件内容不复制；若版本文件改名，需同时修改
-  `compact-components.ts` 的 import、`VISUAL_RECIPE_VERSION` 和相关测试。
-- `layout-contracts-v1.json` 更新时检查新增字段是否已经由 `compileMiniDsl` 和组件 registry 支持。
+- `visual-recipes-v1.json` 由 Python 转换器读取；云侧版本变化后运行 Python 转换回归和 Web 请求链路测试。
+- `layout-contracts-v1.json` 更新时检查新增字段是否已经由 Python 转换器和组件 registry 支持。
 - `resources/` 与 `background_assets/` 是实时读取目录，只需同步引用和测试；目录根变化时必须保持
   frontend/full Python 服务与 Vite 开发服务一致，并继续拒绝 `..` 等目录穿越。
 - Concert One 字体只有哈希变化时才重新复制。HarmonyOS 字体通过受限静态路由复用，不把根 `render` 的字体目录迁入 Debug Tools。
