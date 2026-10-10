@@ -174,6 +174,8 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
+    "BatteryOverviewPluggedTypeSupport@1": ("asset.bolt_fill",),
+    "WeatherOverviewConditionSupport@1": (),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
@@ -181,7 +183,11 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
     "HeartRateOverviewSupport@1": ("asset.heart_fill",),
-    "BluetoothDeviceOverviewEarbudsSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewEarbudsSupport@1": (
+        "asset.icon_earphone", "asset.l_circle_fill", "asset.r_circle_fill",
+    ),
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": ("asset.icon_earphone",),
     "BluetoothDeviceOverviewChargeSupport@1": ("asset.earphone_case_16644",),
     "BluetoothDeviceOverviewConnectionSupport@1": ("asset.icon_earphone",),
     "ScheduleOverviewTimeSupport@1": ("asset.calendar_fill",),

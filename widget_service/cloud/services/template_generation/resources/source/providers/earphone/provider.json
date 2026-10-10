@@ -121,11 +121,17 @@
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-body"
+        ],
+        "leftIcon": [
+          "earphone-left"
+        ],
+        "rightIcon": [
+          "earphone-right"
         ]
       },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机电量 Support，展示左右耳电量和设备图标；可由 Planner 放入双业务布局，并按需在内部绑定事件。",
+      "description": "耳机电量 Support：展示左右耳电量；设备图标可选，左右耳图标均提供时展示成对图标与百分比，否则回退为 L/R 文本。可放入双业务布局，并在根节点绑定蓝牙设置事件。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/leftBatteryLevel",
@@ -133,6 +139,52 @@
       ],
       "secondaryData": [],
       "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewNameAndConnectionSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称与连接状态 Support：名称和连接状态必需，运行时显示已连接或未连接；蓝牙或耳机本体图标可选，不需要电量，根节点可绑定蓝牙设置事件。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/earphoneName"
+      ],
+      "secondaryData": [
+        "/isConnected"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "bluetoothIconOrDeviceIcon": [
+          "bluetooth-device"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewNameAndChargeSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机名称与充电状态 Support：名称和充电状态必需，盒电量可选；电量存在时与充电状态同行显示，0% 合法。蓝牙或耳机本体图标可选，根节点可绑定蓝牙设置事件。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/earphoneName"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ],
+      "optionalData": [
+        "/batteryLevel"
+      ],
+      "assetParameterSemanticTags": {
+        "bluetoothIconOrDeviceIcon": [
+          "bluetooth-device"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.bluetooth"
+      ]
     },
     {
       "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
@@ -282,7 +334,9 @@
     {
       "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1",
       "assetParameterSemanticTags": {
-        "deviceIcon": ["earphone-case"]
+        "deviceIcon": [
+          "earphone-case"
+        ]
       },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
@@ -313,7 +367,9 @@
     {
       "templateId": "BluetoothDeviceOverviewEarphoneHero@1",
       "assetParameterSemanticTags": {
-        "deviceIcon": ["earphone-body"]
+        "deviceIcon": [
+          "earphone-body"
+        ]
       },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
@@ -363,7 +419,9 @@
     {
       "templateId": "BluetoothDeviceOverviewMusicFull@1",
       "assetParameterSemanticTags": {
-        "deviceIcon": ["earphone-case"]
+        "deviceIcon": [
+          "earphone-case"
+        ]
       },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
@@ -452,8 +510,12 @@
       "description": "左侧顶部已连接时显示连接状态与名称，未连接时仅显示未连接，下方左右耳44vp电量环及充电状态；右侧耳机仓电量和状态，仅在本轮已选择每日歌单动作并分配给本模板时可选，右下固定显示可点击每日歌单面板，actionId必填。",
       "entry": "templates/earbuds-charging-wide.cardtpl",
       "assetParameterSemanticTags": {
-        "deviceIcon": ["earphone-case"],
-        "musicIcon": ["music"]
+        "deviceIcon": [
+          "earphone-case"
+        ],
+        "musicIcon": [
+          "music"
+        ]
       },
       "primaryData": [
         "/earphoneName",

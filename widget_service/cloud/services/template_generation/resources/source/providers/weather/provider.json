@@ -55,8 +55,30 @@
       }
     },
     {
+      "templateId": "WeatherOverviewConditionSupport@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "当前天气现象 Support：主行展示天气现象，辅行显示当前天气状态；仅依赖当前天气现象，不需要城市或温度。天气状态图标可选，根节点可绑定天气详情事件。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/condition"
+      ],
+      "secondaryData": [],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.weather"
+      ]
+    },
+    {
       "templateId": "WeatherOverviewTravelSupport@1",
-      "supportedEventIds": ["event.open.weather"],
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "出行天气 Support，参考 ConditionHero 以天气现象为主视觉，并辅助展示 daily[4] 的温度范围和降雨概率，或当前温度；可选表达气温的温度计或与天气一致的状态图标，可在胶囊内部绑定天气详情跳转。",
@@ -416,7 +438,9 @@
       "secondaryData": [
         "/location/prefectureName"
       ],
-      "optionalData": ["/updatedAt"]
+      "optionalData": [
+        "/updatedAt"
+      ]
     },
     {
       "templateId": "WeatherOverviewDualCityFull@1",
