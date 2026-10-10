@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.compact_component_bindings import collect_compact_component_binding_errors
 from services.compact_component_runtime import VISUAL_RECIPE_VERSION
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
@@ -228,6 +229,12 @@ def validate_compact_dsl(
                 )
             except CompactLayoutRuntimeError as exc:
                 layout_errors.append(str(exc))
+    binding_contract_errors = _compact_component_binding_errors(
+        components,
+        task_spec.get("dataModelSchema"),
+    )
+    if binding_contract_errors:
+        raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
     try:
         components = expand_high_level_component_rows(
             components,
@@ -277,6 +284,27 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _compact_component_binding_errors(
+    components: list[ComponentRow],
+    data_model_schema: Any,
+) -> list[str]:
+    def schema_type_for_path(path: str) -> str | None:
+        return _schema_type(_schema_node_at_path(data_model_schema, path))
+
+    errors: list[str] = []
+    resolver = schema_type_for_path if isinstance(data_model_schema, dict) else None
+    for component in components:
+        errors.extend(
+            collect_compact_component_binding_errors(
+                component.component_id,
+                component.component_type,
+                component.props,
+                schema_type_resolver=resolver,
+            )
+        )
+    return errors
 
 
 def _collect_asset_source_errors(

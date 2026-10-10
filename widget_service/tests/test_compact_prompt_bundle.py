@@ -190,7 +190,12 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
         "",
     )
     assert "`Text` 只由转换器在展开语义组件时生成" in catalog
-    assert "| `role` | string | 单项必填" in catalog
+    assert "| `role` | string | 仅静态 | 单项必填" in catalog
+    assert "| `items[].label` | 显示值 | 静态 / Expression / PathBinding" in catalog
+    progress_binding_contract = (
+        "| `value` | number / string / PathBinding | 静态 / PathBinding；不接受 Expression"
+    )
+    assert progress_binding_contract in catalog
     assert '`role:"body"`' in catalog
     assert "单行内容保留约 20% 宽度余量" in catalog
     core_typography = core_fragments.get("typography", "")

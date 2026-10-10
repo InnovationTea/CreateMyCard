@@ -118,8 +118,9 @@
 
 - 模型不直接生成 `Text`。标题、核心数字、核心文本、普通正文、metadata、主辅信息、事件和操作分别使用
   对应语义组件；转换器再将这些组件确定性展开为 A2UI 基础文字节点。
-- 属性表标记为“显示值”的字段均支持非空静态字符串、完整 Expression 或 PathBinding。动态数据必须绑定
-  真实路径，不能把 `sampleValue` 写成静态文字；boolean 必须用 Expression 映射为用户可读文案。
+- 每个组件的属性表分别声明绑定能力；未声明可绑定的 Prop 只能使用静态值。`显示值`支持非空静态字符串、
+  完整 Expression 或 PathBinding；直接 PathBinding 只绑定 string/number/integer，boolean 必须先用 Expression
+  映射为用户可读文案。动态数据必须绑定真实路径，不能把 `sampleValue` 写成静态文字。
 - 普通正文、普通时间、来源、更新时间、弱提示或没有更强语义结构的剩余单段内容使用
   `SecondaryBody`；一个文本结论或状态需要成为主焦点时使用 `EmphasisText`；量化主值使用
   `EmphasizedData` 或对应进度组件。
@@ -144,10 +145,10 @@
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `title` | 显示值 | 必填；非空静态值、完整 Expression 或 PathBinding |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -173,11 +174,11 @@
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `title` | 显示值 | 必填；最多一行 |
-| `secondaryInfo` | 显示值 | 必填；最多两行 |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `title` | 显示值 | 静态 / Expression / PathBinding | 必填；最多一行 |
+| `secondaryInfo` | 显示值 | 静态 / Expression / PathBinding | 必填；最多两行 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -197,11 +198,11 @@
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `value` | 显示值 | 必填；短数量或 `99+` |
-| `fontColor` | `#AARRGGBB` | 必填 |
-| `backgroundColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `value` | 显示值 | 静态 / Expression / PathBinding | 必填；短数量或 `99+` |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -219,11 +220,11 @@
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `value` | 显示值 | 必填；静态值、Expression 或 PathBinding |
-| `unit` | string | 可选；仅用于静态单位 |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `value` | 显示值 | 静态 / Expression / PathBinding | 必填；一个核心值 |
+| `unit` | string | 静态 / Expression / string PathBinding | 可选；只绑定或填写单位文本 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -248,11 +249,11 @@
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `mainText` | 显示值 | 必填；核心文本 |
-| `secondaryText` | 显示值 | 可选；同一语义的一条短补充 |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `mainText` | 显示值 | 静态 / Expression / PathBinding | 必填；核心文本 |
+| `secondaryText` | 显示值 | 静态 / Expression / PathBinding | 可选；同一语义的一条短补充 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
 ["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"},"fontColor":"#FF1F4799"}]
@@ -267,12 +268,15 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；1–4 项，每项含显示值 `value`，可选静态 `label` 和 `maxLines` |
-| `role` | string | 单项必填；`body|metadata|supporting`；多项新生成也应显式填写 |
-| `separator` | string | 可选；默认 ` ｜ ` |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | Array | 数组结构仅静态 | 必填；1–4 项 |
+| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见内容 |
+| `items[].label` | string | 仅静态 | 可选；短标签 |
+| `items[].maxLines` | number | 仅静态 | 可选；只取 `1|2` |
+| `role` | string | 仅静态 | 单项必填；`body|metadata|supporting`；多项新生成也应显式填写 |
+| `separator` | string | 仅静态 | 可选；默认 ` ｜ ` |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 `role:"body"` 恰好一项，不写 label，`maxLines` 可为 `1|2`；`role:"metadata"` 恰好一项且只能单行；
 `role:"supporting"` 支持 1–4 项，每项只能单行，每行最多两项，超过两项自动分为两行。为兼容旧 DSL，
@@ -293,12 +297,12 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `label` | string | 必填；静态非空短文本 |
-| `value` | 显示值 | 必填；唯一核心值 |
-| `supportingText` | string | 必填；静态单位或短说明 |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `label` | string | 仅静态 | 必填；非空短文本 |
+| `value` | 显示值 | 静态 / Expression / PathBinding | 必填；唯一核心值 |
+| `supportingText` | string | 仅静态 | 必填；单位或短说明 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -324,16 +328,16 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `primaryText` | 显示值 | 必填 |
-| `secondaryText` | 显示值 | 必填；与主信息属于同一对象或指标 |
-| `unit` | string | 可选；主信息未包含单位时使用 |
-| `fontColor` | `#AARRGGBB` | 必填 |
-| `backgroundColor` | `#AARRGGBB` | 必填 |
-| `variant` | string | 按尺寸文件填写；2x2 可省略，2x4 必填 |
-| `visual` | object | 可选；`{type:"icon",icon,color?:"native"}` 或 `{type:"progressCircle",icon}` |
-| `fillColor` | `#AARRGGBB` | 可选；用于可染色 visual 图标 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `primaryText` | 显示值 | 静态 / Expression / PathBinding | 必填 |
+| `secondaryText` | 显示值 | 静态 / Expression / PathBinding | 必填；与主信息属于同一对象或指标 |
+| `unit` | string | 仅静态 | 可选；主信息未包含单位时使用 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `variant` | string | 仅静态 | 按尺寸文件填写；2x2 可省略，2x4 必填 |
+| `visual` | object | 仅静态 | 可选；`{type:"icon",icon,color?:"native"}` 或 `{type:"progressCircle",icon}` |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 可选；用于可染色 visual 图标 |
 
 #### 槽位与容量
 
@@ -359,12 +363,12 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；2–3 项，每项只含 `label`、`value` |
-| `items[].label` | string | 必填；静态非空标签 |
-| `items[].value` | 显示值 | 必填；静态值、Expression 或 PathBinding |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | Array | 数组结构仅静态 | 必填；2–3 项，每项只含 `label`、`value` |
+| `items[].label` | 显示值 | 静态 / Expression / PathBinding | 必填；非空标签 |
+| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见值 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -388,11 +392,11 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；2–3 条显示值 |
-| `fontColor` | `#AARRGGBB` | 必填 |
-| `backgroundColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | 显示值数组 | 数组结构仅静态；每项可静态 / Expression / PathBinding | 必填；2–3 条显示值 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -423,16 +427,16 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `externalText` | number / string / PathBinding | 必填；`0–100` 数值、纯数值字符串或完整百分比字符串；动态绑定也可引用样例满足该格式的 string 字段 |
-| `icon` | string | 必填；逐字使用当前素材候选路径 |
-| `accessibility` | object | 必填；包含静态非空 `label`，可选 `description` |
-| `width`、`height` | number | 必填；按当前槽位填写正数 vp |
-| `fontColor` | `#AARRGGBB` | 必填；环外读数颜色 |
-| `color` | `#AARRGGBB` | 必填；完成轨道颜色 |
-| `backgroundColor` | `#AARRGGBB` | 必填；未完成轨道颜色 |
-| `fillColor` | `#AARRGGBB` | 可选；单色环心图标颜色 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `externalText` | number / string / PathBinding | 静态 / PathBinding；不接受 Expression | 必填；`0–100` 数值、纯数值字符串或完整百分比字符串；绑定字段样例也须满足该格式 |
+| `icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
+| `accessibility` | object | 仅静态 | 必填；包含非空 `label`，可选 `description` |
+| `width`、`height` | number | 仅静态 | 必填；按当前槽位填写正数 vp |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填；环外读数颜色 |
+| `color` | `#AARRGGBB` | 仅静态 | 必填；完成轨道颜色 |
+| `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填；未完成轨道颜色 |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 可选；单色环心图标颜色 |
 
 #### 槽位与容量
 
@@ -457,13 +461,13 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `value` | number / string / PathBinding | 必填；当前值可为数值、纯数值字符串或完整百分比字符串；百分比字符串按 `total` 等比换算 |
-| `total` | number | 必填；静态正数 |
-| `displayValue` | 显示值 | 必填；与 `value/total` 表达同一事实 |
-| `unit` | string | 可选；读数未包含单位时填写 |
-| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `value` | number / string / PathBinding | 静态 / PathBinding；不接受 Expression | 必填；数值、纯数值字符串或完整百分比字符串；百分比字符串按 `total` 等比换算 |
+| `total` | number | 仅静态 | 必填；正数 |
+| `displayValue` | 显示值 | 静态 / Expression / PathBinding | 必填；与 `value/total` 表达同一事实 |
+| `unit` | string | 静态 / Expression / string PathBinding | 可选；读数未包含单位时填写 |
+| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -488,15 +492,15 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `value` | number / string / PathBinding | 必填；数值、纯数值字符串或完整百分比字符串；百分比字符串按 `total` 等比换算 |
-| `total` | number | 必填；静态正数 |
-| `icon` | string | 必填；逐字使用当前素材候选路径 |
-| `displayValue` | 显示值 | 必填；与环形进度表达同一数值 |
-| `label` | string | 必填；静态非空说明 |
-| `secondaryLabel` | 显示值 | 可选；同一对象的一条状态说明 |
-| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `value` | number / string / PathBinding | 静态 / PathBinding；不接受 Expression | 必填；数值、纯数值字符串或完整百分比字符串；百分比字符串按 `total` 等比换算 |
+| `total` | number | 仅静态 | 必填；正数 |
+| `icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
+| `displayValue` | 显示值 | 静态 / Expression / PathBinding | 必填；与环形进度表达同一数值 |
+| `label` | 显示值 | 静态 / Expression / PathBinding | 必填；非空说明 |
+| `secondaryLabel` | 显示值 | 静态 / Expression / PathBinding | 可选；同一对象的一条状态说明 |
+| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -521,13 +525,13 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；2–3 项，每项只含 `label`、`valueUnit`、`percent` |
-| `items[].label` | string | 必填；静态对象标签 |
-| `items[].valueUnit` | 显示值 | 必填；真实可见值 |
-| `items[].percent` | number | 必填；静态 `0–100`，按同一尺度决定柱长 |
-| `fontColor`、`barColor`、`trackColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | Array | 数组结构仅静态 | 必填；2–3 项，每项只含 `label`、`valueUnit`、`percent` |
+| `items[].label` | string | 仅静态 | 必填；对象标签 |
+| `items[].valueUnit` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见值 |
+| `items[].percent` | number | 仅静态 | 必填；`0–100`，按同一尺度决定柱长 |
+| `fontColor`、`barColor`、`trackColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
 ["energy_compare","H_BarChart",{"items":[{"label":"客厅","valueUnit":{"path":"/data/energy/livingText"},"percent":80},{"label":"书房","valueUnit":{"path":"/data/energy/studyText"},"percent":45}],"fontColor":"#FF1F4799","barColor":"#FF1F4799","trackColor":"#331F4799"}]
@@ -542,11 +546,14 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；恰好三项，每项含 `icon`、`value`，可选静态 `unit` |
-| `direction` | `row` / `column` | 可选；默认 `column` |
-| `fontColor`、`fillColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | Array | 数组结构仅静态 | 必填；恰好三项 |
+| `items[].icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
+| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见数值 |
+| `items[].unit` | string | 仅静态 | 可选；完整值已含单位时不得重复 |
+| `direction` | `row` / `column` | 仅静态 | 可选；默认 `column` |
+| `fontColor`、`fillColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
 ["storage_ratio","NumericRatioStack",{"direction":"column","items":[{"icon":"resources/base/media/externaldrive_fill.svg","value":{"path":"/data/storage/nodeA/usedPercent"},"unit":"%"},{"icon":"resources/base/media/earphone_case_16644.svg","value":{"path":"/data/storage/nodeB/usedPercent"},"unit":"%"},{"icon":"resources/base/media/l_circle_fill.svg","value":{"path":"/data/storage/nodeC/usedPercent"},"unit":"%"}],"fontColor":"#FF1F4799","fillColor":"#FF1F4799"}]
@@ -563,11 +570,14 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `items` | Array | 必填；1–2 项，每项含 `title`、`time`，可选 `location` |
-| `density` | `compact` | 可选；两项普通高度放不下时使用 |
-| `fontColor` | `#AARRGGBB` | 必填 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `items` | Array | 数组结构仅静态 | 必填；1–2 项 |
+| `items[].title` | 显示值 | 静态 / Expression / PathBinding | 必填；事件标题 |
+| `items[].time` | 显示值 | 静态 / Expression / PathBinding | 必填；事件时间 |
+| `items[].location` | 显示值 | 静态 / Expression / PathBinding | 可选；事件地点 |
+| `density` | `compact` | 仅静态 | 可选；两项普通高度放不下时使用 |
+| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -594,16 +604,16 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 组件属性
 
-| Prop | 类型 | 要求 |
-|---|---|---|
-| `label` | string | 必填；静态非空动作文字 |
-| `onClick` | EventHandler[] | 必填；恰好一个当前事件候选中的 handler |
-| `actionSurface` | `#AARRGGBB` | 必填；按钮背景色 |
-| `actionInk` | `#AARRGGBB` | 必填；文字与单色图标颜色 |
-| `icon` | string | 可选；逐字使用当前素材候选路径 |
-| `fontSize` | number | 可选；只允许 `14` |
-| `fontWeight` | number | 可选；只允许 `400` 或 `500` |
-| `width` | number / `matchParent` | 可选；按尺寸文件合法槽位填写 |
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `label` | string | 仅静态 | 必填；非空动作文字 |
+| `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
+| `actionSurface` | `#AARRGGBB` | 仅静态 | 必填；按钮背景色 |
+| `actionInk` | `#AARRGGBB` | 仅静态 | 必填；文字与单色图标颜色 |
+| `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
+| `fontSize` | number | 仅静态 | 可选；只允许 `14` |
+| `fontWeight` | number | 仅静态 | 可选；只允许 `400` 或 `500` |
+| `width` | number / `matchParent` | 仅静态 | 可选；按尺寸文件合法槽位填写 |
 
 #### 槽位与容量
 

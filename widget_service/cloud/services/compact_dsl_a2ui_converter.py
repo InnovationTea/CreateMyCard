@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.compact_component_bindings import collect_compact_component_binding_errors
 from services.compact_component_runtime import (
     CompactComponentRuntimeError,
     component_visual_recipe,
@@ -667,6 +668,7 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    _validate_compact_component_bindings(components)
     data_model = _build_data_model(data_rows)
     components = expand_high_level_component_rows(
         components,
@@ -1823,10 +1825,8 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
     _require_text_value(component, "value")
     _require_color(component, "fontColor")
     unit = component.props.get("unit")
-    if unit is not None and (not isinstance(unit, str) or not unit.strip()):
-        raise CompactDslConversionError(
-            f"{component.component_id}: EmphasizedData.unit must be non-empty text."
-        )
+    if unit is not None:
+        _require_string_display_value(component, "unit")
 
     value_id = f"{component.component_id}_value"
     children = [value_id]
@@ -1859,7 +1859,7 @@ def _expand_emphasized_data(component: ComponentRow, size: str) -> list[Componen
                 "unit",
                 size=size,
                 props={
-                    "content": unit,
+                    "content": copy.deepcopy(unit),
                     "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
@@ -2163,10 +2163,8 @@ def _expand_progress_line_two(
     _validate_high_level_props(component, required=required, allowed=allowed)
     _require_text_value(component, "displayValue")
     unit = component.props.get("unit")
-    if unit is not None and (not isinstance(unit, str) or not unit.strip()):
-        raise CompactDslConversionError(
-            f"{component.component_id}: ProgressLine2.unit must be non-empty text."
-        )
+    if unit is not None:
+        _require_string_display_value(component, "unit")
     for name in ("fontColor", "color", "backgroundColor"):
         _require_color(component, name)
     total = component.props.get("total")
@@ -2242,7 +2240,7 @@ def _expand_progress_line_two(
                 "unit",
                 size=size,
                 props={
-                    "content": unit,
+                    "content": copy.deepcopy(unit),
                     "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
@@ -2279,7 +2277,7 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
                     size=size,
                     variant=variant,
                     props={
-                        "content": item["label"],
+                        "content": copy.deepcopy(item["label"]),
                         "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
@@ -2350,7 +2348,7 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                     "label",
                     size=size,
                     props={
-                        "content": item["label"],
+                        "content": copy.deepcopy(item["label"]),
                         "fontColor": component.props["fontColor"],
                     },
                 ),
@@ -2481,10 +2479,7 @@ def _expand_progress_circle_single(
     _validate_high_level_props(component, required=required, allowed=allowed)
     _require_text_value(component, "value")
     _require_text_value(component, "displayValue")
-    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
-        raise CompactDslConversionError(
-            f"{component.component_id}: ProgressCircleSingle.label must be non-empty text."
-        )
+    _require_text_value(component, "label")
     total = component.props.get("total")
     if isinstance(total, bool) or not isinstance(total, (int, float)) or total <= 0:
         raise CompactDslConversionError(
@@ -2577,7 +2572,7 @@ def _expand_progress_circle_single(
             size=size,
             variant=variant,
             props={
-                "content": component.props["label"],
+                "content": copy.deepcopy(component.props["label"]),
                 "fontColor": component.props["fontColor"],
             },
         ),
@@ -3095,6 +3090,20 @@ def _is_display_value(value: Any) -> bool:
     return valid_scalar or valid_text or _is_path_binding(value)
 
 
+def _validate_compact_component_bindings(components: list[ComponentRow]) -> None:
+    errors: list[str] = []
+    for component in components:
+        errors.extend(
+            collect_compact_component_binding_errors(
+                component.component_id,
+                component.component_type,
+                component.props,
+            )
+        )
+    if errors:
+        raise CompactDslConversionError(errors[0])
+
+
 def _validate_label_value_items(
     component: ComponentRow,
     *,
@@ -3113,9 +3122,9 @@ def _validate_label_value_items(
                 f"{component.component_id}: items[{index}] requires label/value only."
             )
         label = item.get("label")
-        if not isinstance(label, str) or not label.strip():
+        if not _is_display_value(label):
             raise CompactDslConversionError(
-                f"{component.component_id}: items[{index}].label must be non-empty text."
+                f"{component.component_id}: items[{index}].label must be display text."
             )
         if not _is_display_value(item.get("value")):
             raise CompactDslConversionError(
@@ -3186,6 +3195,16 @@ def _require_text_value(component: ComponentRow, name: str) -> None:
         return
     raise CompactDslConversionError(
         f"{component.component_id}: {component.component_type}.{name} must be display text."
+    )
+
+
+def _require_string_display_value(component: ComponentRow, name: str) -> None:
+    value = component.props.get(name)
+    valid_text = isinstance(value, str) and bool(value.strip())
+    if valid_text or _is_path_binding(value):
+        return
+    raise CompactDslConversionError(
+        f"{component.component_id}: {component.component_type}.{name} must be string display text."
     )
 
 
@@ -3266,9 +3285,9 @@ def _validate_item_component(
                 f"{component.component_id}: items[{index}] requires label/value only."
             )
         label = item.get("label")
-        if not isinstance(label, str) or not label.strip():
+        if not _is_display_value(label):
             raise CompactDslConversionError(
-                f"{component.component_id}: items[{index}].label must be non-empty text."
+                f"{component.component_id}: items[{index}].label must be display text."
             )
         value = item.get("value")
         valid_value = isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -4102,47 +4121,6 @@ def _is_path_binding(value: Any) -> bool:
     return isinstance(path, str) and path.startswith("/")
 
 
-def _is_simple_a2ui_binding_expression(value: str) -> bool:
-    match = _A2UI_BINDING_EXPRESSION_PATTERN.fullmatch(value.strip())
-    if match is None:
-        return False
-    parts = [part.strip() for part in match.group("body").split("+")]
-    if not parts:
-        return False
-
-    has_binding = False
-    for part in parts:
-        if not part:
-            return False
-        path_match = _A2UI_BINDING_PATH_PATTERN.fullmatch(part)
-        if path_match is not None:
-            _decode_json_pointer(path_match.group("path"))
-            has_binding = True
-            continue
-        if not _is_quoted_literal(part):
-            return False
-    return has_binding
-
-
-def _is_quoted_literal(value: str) -> bool:
-    if len(value) < 2 or value[0] not in {"'", '"'}:
-        return False
-    quote = value[0]
-    if value[-1] != quote:
-        return False
-    escaped = False
-    for char in value[1:-1]:
-        if escaped:
-            escaped = False
-            continue
-        if char == "\\":
-            escaped = True
-            continue
-        if char == quote:
-            return False
-    return not escaped
-
-
 def _split_component_rows(
     rows: list[CompactRow],
 ) -> tuple[list[ComponentRow], list[DataRow]]:
@@ -4798,7 +4776,7 @@ def _collect_binding_paths(value: Any, paths: list[str]) -> None:
 
 
 def _collect_a2ui_expression_paths(value: str, paths: list[str]) -> None:
-    if not _is_simple_a2ui_binding_expression(value):
+    if _A2UI_BINDING_EXPRESSION_PATTERN.fullmatch(value.strip()) is None:
         return
     for match in _A2UI_BINDING_PATH_PATTERN.finditer(value):
         paths.append(match.group("path"))
@@ -4841,7 +4819,8 @@ def _replace_a2ui_expression_paths(
     value: str,
     path_replacements: dict[str, str],
 ) -> str:
-    if not path_replacements or not _is_simple_a2ui_binding_expression(value):
+    is_expression = _A2UI_BINDING_EXPRESSION_PATTERN.fullmatch(value.strip()) is not None
+    if not path_replacements or not is_expression:
         return value
 
     def replace_match(match: re.Match[str]) -> str:

@@ -1234,7 +1234,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "action",
                     "CardButton",
                     {
-                        "label": {"path": "/data/sleep/actionLabel"},
+                        "label": "查看详情",
                         "onClick": [handler],
                         "fontColor": "#FF563D99",
                         "backgroundColor": "#99FFFFFF",
@@ -1242,7 +1242,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 ],
                 ["/data/sleep/score", 82],
                 ["/data/sleep/entityId", "sleep-001"],
-                ["/data/sleep/actionLabel", "查看详情"],
             ]
         )
 
@@ -1261,7 +1260,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(
             components["action_label"]["content"],
-            "{{ ${/data/sleep/actionLabel} }}",
+            "查看详情",
         )
         self.assertEqual(
             components["action"]["onClick"][0]["args"]["entityId"],
