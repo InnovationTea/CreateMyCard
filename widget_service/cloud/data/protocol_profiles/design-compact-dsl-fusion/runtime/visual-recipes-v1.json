@@ -1,7 +1,7 @@
 {
   "version": "visual-recipes-v1",
   "components": {
-    "CardHeader": {
+    "SingleLineTitle": {
       "alignment": "aligned",
       "parts": {
         "root": {
@@ -18,30 +18,435 @@
         "title": {
           "component": "Text",
           "styles": {
-            "layoutWeight": 1,
             "fontSize": 12,
             "fontWeight": 400,
             "textAlign": "start",
             "maxLines": 1,
             "flexShrink": 0
           }
-        },
-        "icon": {
-          "component": "Image",
+        }
+      }
+    },
+    "DoubleLineTitle": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
           "styles": {
-            "width": 20,
+            "width": "matchParent",
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "title": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 12,
+            "fontWeight": 500,
+            "maxLines": 2,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minHeight": 18,
+              "maxHeight": 36
+            }
+          }
+        }
+      }
+    },
+    "Badge": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "padding": {
+              "left": 6,
+              "right": 6
+            },
+            "borderRadius": 8,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "EmphasisText": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 2,
+            "alignItems": "start",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            }
+          }
+        },
+        "main": {
+          "component": "Text",
+          "styles": {
+            "height": 24,
+            "fontSize": 18,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        }
+      }
+    },
+    "SecondaryBody": {
+      "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 1,
+        "maximumItems": 4
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 2,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "row": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
             "height": 20,
-            "objectFit": "contain",
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "height": 20,
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            }
+          }
+        },
+        "text": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        },
+        "separator": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "maxLines": 1,
             "flexShrink": 0
           }
         }
       },
       "variants": {
-        "withIcon": {
+        "body": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 20
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 20
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 20,
+                "fontSize": 14,
+                "fontWeight": 400,
+                "maxLines": 1
+              }
+            }
+          }
+        },
+        "bodyMultiline": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 40,
+                "alignItems": "top"
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 40,
+                "alignItems": "top"
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 40,
+                "fontSize": 14,
+                "fontWeight": 400,
+                "maxLines": 2
+              }
+            }
+          }
+        },
+        "metadata": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1
+              }
+            }
+          }
+        },
+        "multiline": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12
+              }
+            },
+            "separator": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12
+              }
+            }
+          }
+        }
+      }
+    },
+    "H_BarChart": {
+      "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 2,
+        "maximumItems": 3
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 11,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "item": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 0
+          }
+        },
+        "meta": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 20,
+            "itemMargin": 8,
+            "alignItems": "bottom",
+            "justifyContent": "spaceBetween",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "layoutWeight": 1
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "textAlign": "end",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "bar": {
+          "component": "Progress",
+          "styles": {
+            "width": "matchParent",
+            "height": 6,
+            "strokeWidth": 6,
+            "borderRadius": 2,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "threeItems": {
           "parts": {
             "root": {
               "styles": {
-                "itemMargin": 8
+                "itemMargin": 7
+              }
+            },
+            "bar": {
+              "styles": {
+                "height": 4,
+                "strokeWidth": 4
+              }
+            }
+          }
+        }
+      }
+    },
+    "NumericRatioStack": {
+      "alignment": "aligned",
+      "metrics": {
+        "items": 3
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 0
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "height": 16,
+            "itemMargin": 4,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "iconSlot": {
+          "component": "Stack",
+          "styles": {
+            "width": 16,
+            "height": 16,
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 12,
+            "height": 12,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "valueGroup": {
+          "component": "Row",
+          "styles": {
+            "height": 16,
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "row": {
+          "parts": {
+            "root": {
+              "component": "Row",
+              "styles": {
+                "width": "matchParent",
+                "itemMargin": 0,
+                "alignItems": "center",
+                "justifyContent": "spaceBetween"
+              }
+            },
+            "item": {
+              "styles": {
+                "itemMargin": 2
+              }
+            },
+            "iconSlot": {
+              "styles": {
+                "width": 12
               }
             }
           }
@@ -52,7 +457,7 @@
       "alignment": "aligned",
       "parts": {
         "root": {
-          "component": "ActionUnit",
+          "component": "Button",
           "styles": {
             "height": 36,
             "borderRadius": 30,
@@ -80,11 +485,11 @@
       "alignment": "aligned",
       "parts": {
         "root": {
-          "component": "ActionUnit",
+          "component": "Stack",
           "styles": {
-            "width": 36,
-            "height": 36,
-            "borderRadius": 18,
+            "width": 40,
+            "height": 40,
+            "borderRadius": 20,
             "padding": 0,
             "flexShrink": 0
           }
@@ -206,8 +611,8 @@
         "primary": {
           "component": "Text",
           "styles": {
-            "height": 20,
-            "fontSize": 14,
+            "height": 22,
+            "fontSize": 16,
             "fontWeight": 700,
             "maxLines": 1,
             "flexShrink": 1,
@@ -220,8 +625,8 @@
         "secondary": {
           "component": "Text",
           "styles": {
-            "height": 18,
-            "fontSize": 12,
+            "height": 16,
+            "fontSize": 10,
             "fontWeight": 500,
             "maxLines": 1,
             "flexShrink": 1,
@@ -232,6 +637,52 @@
           }
         },
         "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 24,
+            "height": 24,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "primaryRow": {
+          "component": "Row",
+          "styles": {
+            "height": 22,
+            "itemMargin": 2,
+            "alignItems": "bottom",
+            "flexShrink": 0
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "progressStack": {
+          "component": "Stack",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "progress": {
+          "component": "Progress",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "progressIcon": {
           "component": "Image",
           "styles": {
             "width": 20,
@@ -274,6 +725,61 @@
                 "height": 57
               }
             }
+          }
+        }
+      }
+    },
+    "ProgressCircle": {
+      "alignment": "aligned",
+      "metrics": {
+        "externalTextHeight": 14,
+        "itemMargin": 2,
+        "minimumRingDiameter": 40,
+        "strokeWidth": 6
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 2,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "ringStack": {
+          "component": "Stack",
+          "styles": {
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "ring": {
+          "component": "Progress",
+          "styles": {
+            "type": "ring",
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "externalText": {
+          "component": "Text",
+          "styles": {
+            "height": 14,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
           }
         }
       }
@@ -342,6 +848,10 @@
     },
     "TableText": {
       "alignment": "aligned",
+      "metrics": {
+        "twoRowGap": 2,
+        "threeRowGap": 2
+      },
       "parts": {
         "root": {
           "component": "Column",
@@ -357,7 +867,7 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 16,
+            "height": 18,
             "itemMargin": 8,
             "alignItems": "bottom",
             "justifyContent": "spaceBetween",
@@ -367,8 +877,8 @@
         "label": {
           "component": "Text",
           "styles": {
-            "height": 16,
-            "fontSize": 10,
+            "height": 18,
+            "fontSize": 12,
             "fontWeight": 500,
             "maxLines": 1,
             "flexShrink": 0,
@@ -378,8 +888,8 @@
         "value": {
           "component": "Text",
           "styles": {
-            "height": 16,
-            "fontSize": 10,
+            "height": 18,
+            "fontSize": 12,
             "fontWeight": 500,
             "textAlign": "end",
             "maxLines": 1,
@@ -391,25 +901,46 @@
           }
         }
       },
-      "sizes": {
-        "2x2": {
-          "metrics": {
-            "twoRowGap": 2,
-            "threeRowGap": 2
+      "variants": {
+        "compact": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 16,
+                "alignItems": "top"
+              }
+            },
+            "label": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10
+              }
+            },
+            "value": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10
+              }
+            }
           }
         }
       }
     },
     "TextBlock": {
       "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 2,
+        "maximumItems": 4
+      },
       "parts": {
         "root": {
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 48,
-            "itemMargin": 8,
+            "height": 64,
+            "itemMargin": 0,
             "alignItems": "center",
+            "justifyContent": "spaceBetween",
             "flexShrink": 1
           }
         },
@@ -427,10 +958,9 @@
             "justifyContent": "center",
             "flexShrink": 1,
             "constraintSize": {
-              "minWidth": 0,
+              "minWidth": 64,
               "minHeight": 0
-            },
-            "layoutWeight": 1
+            }
           }
         },
         "label": {
@@ -500,8 +1030,8 @@
         "icon": {
           "component": "Image",
           "styles": {
-            "width": 20,
-            "height": 20,
+            "width": 24,
+            "height": 24,
             "objectFit": "contain",
             "flexShrink": 0
           }
@@ -509,9 +1039,9 @@
         "placeholder": {
           "component": "Divider",
           "styles": {
-            "width": 20,
-            "height": 20,
-            "borderRadius": 10,
+            "width": 24,
+            "height": 24,
+            "borderRadius": 12,
             "strokeWidth": 0,
             "color": "#00FFFFFF",
             "flexShrink": 0
@@ -631,12 +1161,99 @@
               }
             }
           }
+        },
+        "twoByTwo": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "width": 66,
+                "height": 52
+              }
+            }
+          }
+        },
+        "twoByTwoWithSecondary": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "width": 66,
+                "height": 52
+              }
+            },
+            "display": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            },
+            "secondary": {
+              "styles": {
+                "height": 16
+              }
+            }
+          }
         }
       }
     },
     "EventCard": {
       "alignment": "aligned",
       "parts": {
+        "multiRoot": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 8,
+            "alignItems": "start",
+            "justifyContent": "start",
+            "flexShrink": 1,
+            "clip": true
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 7,
+            "alignItems": "top",
+            "flexShrink": 0,
+            "clip": true
+          }
+        },
         "root": {
           "component": "Row",
           "styles": {
@@ -700,7 +1317,7 @@
           "styles": {
             "width": "matchParent",
             "fontSize": 14,
-            "fontWeight": 500,
+            "fontWeight": 700,
             "maxLines": 2,
             "flexShrink": 0,
             "constraintSize": {
@@ -722,6 +1339,27 @@
               "minWidth": 0
             }
           }
+        },
+        "metaRow": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 14,
+            "itemMargin": 4,
+            "alignItems": "center",
+            "flexShrink": 0,
+            "clip": true
+          }
+        },
+        "separator": {
+          "component": "Text",
+          "styles": {
+            "height": 14,
+            "fontSize": 10,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
         }
       },
       "variants": {
@@ -735,6 +1373,43 @@
           "metrics": {
             "height": 50,
             "lineHeight": 32
+          }
+        },
+        "compact": {
+          "metrics": {
+            "height": 32,
+            "lineHeight": 19
+          },
+          "parts": {
+            "rail": {
+              "styles": {
+                "padding": {
+                  "top": 4,
+                  "bottom": 0
+                },
+                "itemMargin": 4
+              }
+            },
+            "copy": {
+              "styles": {
+                "itemMargin": 2
+              }
+            },
+            "title": {
+              "styles": {
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1
+              }
+            },
+            "meta": {
+              "styles": {
+                "height": 14,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            }
           }
         }
       }

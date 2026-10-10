@@ -536,6 +536,17 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     assert Settings(_env_file=None).enable_widget_directive_commands is False
 
 
+def test_design_compact_few_shots_are_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_few_shots is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_few_shots is True
+
+
 def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
     monkeypatch.delenv(
         "WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK",

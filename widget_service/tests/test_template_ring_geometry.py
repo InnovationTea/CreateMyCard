@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""模板进度环经过公共转换后保留尺寸，普通卡片沿用尺寸规则。"""
+"""公共转换保留显式进度环几何和层级，不再按布局猜测并重写。"""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any
 import pytest
 
 from services.compact_dsl_a2ui_converter import (
+    CompactDslConversionError,
     ComponentRow,
-    _normalize_ring_stack_children,
     convert_compact_dsl_to_a2ui,
 )
 from services.generation_pipeline import DslProcessorKind
@@ -101,12 +101,12 @@ def test_template_ring_retains_explicit_geometry_and_layer_order(
     stack = _component(components, "ring_stack")
     assert _styles(stack).get("width") == width
     assert _styles(stack).get("height") == height
-    assert stack.get("children") == ["icon", "ring"]
+    assert stack.get("children") == ["ring", "icon"]
     assert _styles(_component(components, "row")).get("height") == 36
     assert _styles(_component(components, "icon")).get("width") == 12
     outside_styles = _styles(_component(components, "outside"))
-    assert outside_styles.get("width") == (52 if size == "2x2" else 36)
-    assert outside_styles.get("strokeWidth") == (6 if size == "2x2" else 4)
+    assert outside_styles.get("width") == 36
+    assert outside_styles.get("strokeWidth") == 4
 
 
 def test_template_ring_does_not_gain_undeclared_geometry() -> None:
@@ -123,8 +123,9 @@ def test_template_ring_does_not_gain_undeclared_geometry() -> None:
 @pytest.mark.parametrize("marker_state", [
     "missing", "dangling", "unreferenced", "nested", "duplicate", "no-root",
 ])
-def test_invalid_template_marker_keeps_ring_size_policy(marker_state: str) -> None:
+def test_invalid_template_marker_does_not_rewrite_ring_geometry(marker_state: str) -> None:
     rows = _ring_rows()
+    expected_error = ""
     if marker_state == "missing":
         rows[0] = ComponentRow("root", "Stack", {}, ("row", "outside"))
         rows.pop(1)
@@ -133,6 +134,7 @@ def test_invalid_template_marker_keeps_ring_size_policy(marker_state: str) -> No
         rows.pop(1)
     elif marker_state == "unreferenced":
         rows[0] = ComponentRow("root", "Stack", {}, ("row", "outside"))
+        expected_error = "Unreachable component"
     elif marker_state == "nested":
         rows[0] = ComponentRow("root", "Stack", {}, ("wrapper", "outside"))
         rows.append(ComponentRow("wrapper", "Column", {}, ("template_root",)))
@@ -140,16 +142,19 @@ def test_invalid_template_marker_keeps_ring_size_policy(marker_state: str) -> No
         rows.append(rows[1])
     else:
         rows.pop(0)
-    # 在归一化入口验证无效标记；公共解析器另有既有去重/修复策略。
-    normalized = _normalize_ring_stack_children(rows, size="2x2")
-    for row in normalized:
-        if row.component_id in {"ring_stack", "ring"}:
-            assert row.props.get("width") == row.props.get("height") == 52
-        if row.component_id == "ring":
-            assert row.props.get("strokeWidth") == 6
+        expected_error = "root component is missing"
+    if expected_error:
+        with pytest.raises(CompactDslConversionError, match=expected_error):
+            _convert(rows)
+        return
+    components = _convert(rows)
+    for component_id in ("ring_stack", "ring"):
+        styles = _styles(_component(components, component_id))
+        assert styles.get("width") == styles.get("height") == 36
+    assert _styles(_component(components, "ring")).get("strokeWidth") == 4
 
 
-def test_unmarked_dual_zone_ring_keeps_44vp_policy() -> None:
+def test_unmarked_dual_zone_ring_keeps_explicit_geometry() -> None:
     rows = _ring_rows()
     rows[0] = ComponentRow("root", "Column", {}, ("zone", "other_zone"))
     rows[1] = ComponentRow("zone", "Column", {"width": 136, "height": 64}, ("row",))
@@ -157,8 +162,8 @@ def test_unmarked_dual_zone_ring_keeps_44vp_policy() -> None:
     components = _convert(rows)
     for component_id in ("ring_stack", "ring", "outside"):
         styles = _styles(_component(components, component_id))
-        assert styles.get("width") == styles.get("height") == 44
-    assert _styles(_component(components, "ring")).get("strokeWidth") == 6
+        assert styles.get("width") == styles.get("height") == 36
+    assert _styles(_component(components, "ring")).get("strokeWidth") == 4
 
 
 def test_linear_progress_and_events_remain_unchanged() -> None:

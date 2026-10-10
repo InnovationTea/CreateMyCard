@@ -17,7 +17,7 @@ const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margi
 
 export const VISUAL_RECIPE_VERSION = "visual-recipes-v1";
 export const HIGH_LEVEL_COMPONENT_TYPES = [
-  "PillButton", "CircleButton", "EmphasizedData", "InfoBlock", "ProgressLine2",
+  "PillButton", "CircleButton", "EmphasizedData", "SecondaryBody", "InfoBlock", "ProgressLine2",
   "TableText", "TextBlock", "CardButton", "ProgressCircleSingle", "EventCard",
   "DataDisplay", "TopTextBottomValue", "SummaryList",
 ] as const;
@@ -273,6 +273,87 @@ function expandHighLevel(
       ));
     }
     return rows;
+  }
+
+  if (type === "SecondaryBody") {
+    const allowed = ["items", "role", "separator", "fontColor"];
+    requireProps(id, type, p, ["items", "fontColor"], allowed);
+    requireColor(id, type, p, "fontColor");
+    if (!Array.isArray(p.items) || p.items.length < 1 || p.items.length > 4) {
+      throw new Error(`${id}: SecondaryBody.items 需要 1–4 项。`);
+    }
+    const role = p.role ?? (p.items.length > 1 ? "supporting" : undefined);
+    if (role === undefined) throw new Error(`${id}: 单项 SecondaryBody 必须声明 role。`);
+    if (!["body", "metadata", "supporting"].includes(String(role))) {
+      throw new Error(`${id}: SecondaryBody.role 只接受 body、metadata 或 supporting。`);
+    }
+    if (["body", "metadata"].includes(String(role)) && p.items.length !== 1) {
+      throw new Error(`${id}: SecondaryBody role ${String(role)} 只能包含一项。`);
+    }
+    const items = p.items.map((item, index) => {
+      if (!record(item) || !("value" in item) || !isDisplayValue(item.value)
+        || Object.keys(item).some(key => !["label", "value", "maxLines"].includes(key))
+        || (item.label !== undefined && (typeof item.label !== "string" || !item.label.trim()))) {
+        throw new Error(`${id}: SecondaryBody.items[${index}] 只接受有效的 label/value/maxLines。`);
+      }
+      if (role === "body" && item.label !== undefined) {
+        throw new Error(`${id}: body SecondaryBody 不接受 item.label。`);
+      }
+      const maxLines = item.maxLines ?? 1;
+      if (!Number.isInteger(maxLines) || ![1, 2].includes(maxLines as number)) {
+        throw new Error(`${id}: SecondaryBody.items[${index}].maxLines 只接受 1 或 2。`);
+      }
+      if (role !== "body" && maxLines !== 1) {
+        throw new Error(`${id}: 只有 body SecondaryBody 支持两行。`);
+      }
+      return item;
+    });
+    const separator = p.separator ?? " ｜ ";
+    if (typeof separator !== "string" || !separator) {
+      throw new Error(`${id}: SecondaryBody.separator 必须是非空文本。`);
+    }
+    let variant: string | undefined;
+    if (role === "body") variant = items[0].maxLines === 2 ? "bodyMultiline" : "body";
+    else if (role === "metadata") variant = "metadata";
+    else if (items.length > 2) variant = "multiline";
+    const rootChildren: string[] = [];
+    const rows: Array<[string, MiniNode]> = [];
+    for (let start = 0, rowIndex = 0; start < items.length; start += 2, rowIndex++) {
+      const rowId = `${id}_row${rowIndex}`;
+      rootChildren.push(rowId);
+      const rowChildren: string[] = [];
+      items.slice(start, start + 2).forEach((item, localIndex) => {
+        const itemIndex = start + localIndex;
+        if (rowChildren.length) {
+          const separatorId = `${rowId}_separator`;
+          rowChildren.push(separatorId);
+          rows.push(row(separatorId, type, "separator", size, {
+            content: separator,
+            fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+          }, [], variant));
+        }
+        const itemId = `${id}_item${itemIndex}`;
+        const itemChildren: string[] = [];
+        rowChildren.push(itemId);
+        if (item.label !== undefined) {
+          const labelId = `${itemId}_label`;
+          itemChildren.push(labelId);
+          rows.push(row(labelId, type, "text", size, {
+            content: item.label,
+            fontColor: p.fontColor,
+          }, [], variant));
+        }
+        const valueId = `${itemId}_value`;
+        itemChildren.push(valueId);
+        rows.push(row(valueId, type, "text", size, {
+          content: item.value,
+          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+        }, [], variant));
+        rows.push(row(itemId, type, "item", size, { layoutWeight: 1 }, itemChildren, variant));
+      });
+      rows.push(row(rowId, type, "row", size, {}, rowChildren, variant));
+    }
+    return [row(id, type, "root", size, {}, rootChildren, variant), ...rows];
   }
 
   if (type === "InfoBlock") {
@@ -835,20 +916,19 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
   const fusion = typeof rootDesign === "string" && Object.hasOwn(FUSION_PALETTES, rootDesign);
   for (const [id, node] of [...nodes]) {
     const p = node.props;
-    if (!["CardHeader", "TimelineUnit", "ActionUnit"].includes(node.type)) continue;
+    if (!["SingleLineTitle", "TimelineUnit", "ActionUnit"].includes(node.type)) continue;
     requireNoChildren(id, node.type, node.children);
-    if (node.type === "CardHeader") {
-      const allowed = ["title", "fontColor", "icon", "fillColor"];
+    if (node.type === "SingleLineTitle") {
+      const allowed = ["title", "fontColor"];
       const invalid = Object.keys(p).some(key => !allowed.includes(key) && !PLACEMENT_PROPS.includes(key))
         || p.title == null
         || typeof p.fontColor !== "string";
       if (invalid) {
-        throw new Error("CardHeader 需要 title/fontColor，只接受可选 icon/fillColor。");
+        throw new Error("SingleLineTitle 只接受 title/fontColor 和合法布局属性。");
       }
       const children = [`${id}_title`];
       add(children[0], "Text", {
         content: p.title,
-        layoutWeight: 1,
         fontSize: 12,
         fontWeight: 400,
         fontColor: p.fontColor,
@@ -856,17 +936,6 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
         maxLines: 1,
         flexShrink: 0,
       });
-      if (p.icon) {
-        children.push(`${id}_icon`);
-        add(`${id}_icon`, "Image", {
-          src: p.icon,
-          width: 20,
-          height: 20,
-          objectFit: "contain",
-          flexShrink: 0,
-          ...(p.fillColor ? { fillColor: p.fillColor } : {}),
-        });
-      }
       nodes.set(id, {
         type: "Row",
         props: {
@@ -874,7 +943,7 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
           height: 20,
           ...([...input.values()].some(item => item.type === "Row" && item.children.includes(id))
             && p.width === undefined ? { layoutWeight: 1 } : {}),
-          itemMargin: p.icon ? 8 : 0,
+          itemMargin: 0,
           flexShrink: 0,
           justifyContent: "start",
           alignItems: "center",

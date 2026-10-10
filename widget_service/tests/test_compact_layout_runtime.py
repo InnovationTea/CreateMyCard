@@ -49,8 +49,8 @@ def _components(source: str) -> list[ComponentRow]:
     ]
 
 
-def _layout_examples() -> list[tuple[str, str, str]]:
-    examples: list[tuple[str, str, str]] = []
+def _layout_pseudocodes() -> list[tuple[str, str, str]]:
+    pseudocodes: list[tuple[str, str, str]] = []
     for size in ("2x2", "2x4"):
         document = (PROMPT_SOURCE / f"layouts/{size}.md").read_text(encoding="utf-8")
         for section in re.split(r"(?m)^### `", document)[1:]:
@@ -58,15 +58,21 @@ def _layout_examples() -> list[tuple[str, str, str]]:
             source = re.search(r"```genui\s*\n(.*?)\n```", section, re.S)
             if layout_id.startswith(("S-", "W-")):
                 assert source is not None, layout_id
-                examples.append((layout_id, size, source.group(1)))
-    return examples
+                pseudocodes.append((layout_id, size, source.group(1)))
+    return pseudocodes
 
 
-def _layout_example(layout_id: str) -> str:
-    for current_id, _, source in _layout_examples():
-        if current_id == layout_id:
+def _layout_fixture(layout_id: str) -> str:
+    fixture_ids = {
+        "S-dual-info": "2x2-V05",
+        "W-content-side-slots": "2x4-V04",
+    }
+    fixture_id = fixture_ids.get(layout_id)
+    assert fixture_id is not None, layout_id
+    for identifier, _, _, source in _few_shots():
+        if identifier == fixture_id:
             return source
-    raise AssertionError(f"Missing layout example: {layout_id}")
+    raise AssertionError(f"Missing layout fixture: {layout_id}")
 
 
 def _mutate_rows(source: str, mutator) -> str:
@@ -141,20 +147,22 @@ def test_formal_few_shot_matches_its_layout(
 
 @pytest.mark.parametrize(
     "layout_id,size,source",
-    _layout_examples(),
-    ids=[item[0] for item in _layout_examples()],
+    _layout_pseudocodes(),
+    ids=[item[0] for item in _layout_pseudocodes()],
 )
-def test_documented_example_matches_its_executable_layout(
+def test_documented_layout_uses_abstract_genui_pseudocode(
     layout_id: str,
     size: str,
     source: str,
 ) -> None:
-    result = match_compact_layout(
-        _components(source),
-        size=size,
-        layout_scope=layout_id,
+    del layout_id, size
+    rows = [json.loads(line) for line in source.splitlines()]
+    assert rows[0][0] == "root"
+    assert any(
+        isinstance(row[1], str) and row[1].startswith("<")
+        for row in rows
+        if len(row) >= 3
     )
-    assert result.layout_id == layout_id
 
 
 def test_layout_scope_rejects_wrong_geometry_before_expansion() -> None:
@@ -185,7 +193,7 @@ def test_unknown_layout_scope_is_rejected() -> None:
 
 
 def test_s_dual_info_rejects_non_contract_slot_heights() -> None:
-    source = _layout_example("S-dual-info")
+    source = _layout_fixture("S-dual-info")
 
     def mutate(row: list) -> None:
         if row[0] == "zone_a":
@@ -204,7 +212,7 @@ def test_s_dual_info_rejects_non_contract_slot_heights() -> None:
 
 
 def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
-    source = _layout_example("W-content-side-slots")
+    source = _layout_fixture("W-content-side-slots")
 
     def mutate(row: list) -> None:
         if row[0] == "info_slot":
@@ -223,7 +231,7 @@ def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
 
 
 def test_w_content_side_slots_rejects_action_then_information() -> None:
-    source = _layout_example("W-content-side-slots")
+    source = _layout_fixture("W-content-side-slots")
 
     def mutate(row: list) -> None:
         if row[0] == "info_slot":
@@ -244,7 +252,7 @@ def test_w_content_side_slots_rejects_action_then_information() -> None:
 
 
 def test_w_content_side_slots_rejects_event_on_information_slot() -> None:
-    source = _layout_example("W-content-side-slots")
+    source = _layout_fixture("W-content-side-slots")
     action: list[dict] = []
     for line in source.splitlines():
         row = json.loads(line)

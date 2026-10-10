@@ -9,15 +9,17 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.compact_component_bindings import collect_compact_component_binding_errors
 from services.compact_component_runtime import VISUAL_RECIPE_VERSION
 from services.compact_dsl_a2ui_converter import (
+    MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     CompactDslConversionError,
     ComponentRow,
     DataRow,
     build_compact_data_model,
     expand_high_level_component_rows,
     parse_compact_dsl_rows,
-    validate_card_header_layout,
+    validate_single_line_title_layout,
 )
 from services.compact_layout_runtime import (
     CompactLayoutRuntimeError,
@@ -31,7 +33,7 @@ _STRING_LITERAL_PATTERN = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
 _SIMPLE_FORMATTED_EXPRESSION_PATTERN = re.compile(
     r"^\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*'(?P<unit>[^']+)'\s*\}\}$"
 )
-_NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _VISUAL_RECIPE_MARKER_PREFIX = f"{VISUAL_RECIPE_VERSION}:"
 _TWO_BY_FOUR_MULTI_LARGE_WIDTH = 132
 _TWO_BY_FOUR_MULTI_LARGE_HEIGHT = 126
@@ -162,17 +164,6 @@ _AMBIGUOUS_STATUS_MARKERS = (
     "未连接",
     "已连接",
 )
-_PRESERVE_ORIGINAL_COLOR_MARKERS = (
-    "不可染色",
-    "禁止染色",
-    "保留原色",
-    "多色",
-    "渐变",
-    "品牌色",
-    "插画原色",
-)
-
-
 @dataclass(frozen=True)
 class CompactDslValidationResult:
     """Compact DSL validation warnings returned to the generation pipeline."""
@@ -196,6 +187,7 @@ def validate_compact_dsl(
     card_spec: dict[str, Any],
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
+    enforce_model_component_types: bool = False,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
@@ -204,7 +196,23 @@ def validate_compact_dsl(
         raise CompactDslValidationError([str(exc)]) from exc
 
     components = [row for row in rows if isinstance(row, ComponentRow)]
+    if enforce_model_component_types:
+        unsupported_model_components = [
+            row
+            for row in components
+            if row.component_type not in MODEL_COMPACT_INPUT_COMPONENT_TYPES
+        ]
+        if unsupported_model_components:
+            errors = [
+                (
+                    f"component {row.component_id}: {row.component_type} is converter-internal "
+                    "and cannot be generated directly; use a semantic Compact component."
+                )
+                for row in unsupported_model_components
+            ]
+            raise CompactDslValidationError(errors)
     data_rows = [row for row in rows if isinstance(row, DataRow)]
+    data_model = build_compact_data_model(data_rows)
     size = card_spec.get("suggestSize") or task_spec.get("size")
     layout_errors: list[str] = []
     if layout_scope is not None:
@@ -221,15 +229,24 @@ def validate_compact_dsl(
                 )
             except CompactLayoutRuntimeError as exc:
                 layout_errors.append(str(exc))
+    binding_contract_errors = _compact_component_binding_errors(
+        components,
+        task_spec.get("dataModelSchema"),
+    )
+    if binding_contract_errors:
+        raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
     try:
-        components = expand_high_level_component_rows(components, size=size)
+        components = expand_high_level_component_rows(
+            components,
+            size=size,
+            data_model=data_model,
+        )
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
     binding_paths: list[str] = []
     visible_binding_paths: list[str] = []
     errors: list[str] = []
     _collect_asset_source_errors(components, task_spec, errors)
-    _collect_asset_color_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
     _collect_semantic_text_errors(components, task_spec, errors)
@@ -254,7 +271,6 @@ def validate_compact_dsl(
             [],
         )
 
-    data_model = build_compact_data_model(data_rows)
     _collect_data_context_errors(
         binding_paths,
         data_rows,
@@ -268,6 +284,27 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _compact_component_binding_errors(
+    components: list[ComponentRow],
+    data_model_schema: Any,
+) -> list[str]:
+    def schema_type_for_path(path: str) -> str | None:
+        return _schema_type(_schema_node_at_path(data_model_schema, path))
+
+    errors: list[str] = []
+    resolver = schema_type_for_path if isinstance(data_model_schema, dict) else None
+    for component in components:
+        errors.extend(
+            collect_compact_component_binding_errors(
+                component.component_id,
+                component.component_type,
+                component.props,
+                schema_type_resolver=resolver,
+            )
+        )
+    return errors
 
 
 def _collect_asset_source_errors(
@@ -287,12 +324,7 @@ def _collect_asset_source_errors(
         if isinstance(src, str):
             sources.add(src)
     for component in components:
-        keys = ["backgroundImage"]
-        if component.component_type == "Image":
-            keys.append("src")
-        elif component.component_type in {"ActionUnit", "CardHeader"}:
-            keys.append("icon")
-        for key in keys:
+        for key in ("backgroundImage",):
             value = component.props.get(key)
             if not isinstance(value, str) or value.strip().startswith("{{"):
                 continue
@@ -301,49 +333,6 @@ def _collect_asset_source_errors(
                     f"component {component.component_id}.props.{key}: "
                     "asset must use an original src from TaskSpec.assetCandidates."
                 )
-
-
-def _collect_asset_color_errors(
-    components: list[ComponentRow],
-    task_spec: dict[str, Any],
-    errors: list[str],
-) -> None:
-    """Require explicit tinting for SVG assets whose source color is not protected."""
-    candidates = task_spec.get("assetCandidates")
-    if not isinstance(candidates, list):
-        return
-
-    descriptions: dict[str, str] = {}
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        source = candidate.get("src")
-        if not isinstance(source, str):
-            continue
-        description = candidate.get("description")
-        descriptions[source] = description if isinstance(description, str) else ""
-
-    for component in components:
-        source: Any = None
-        if component.component_type == "Image":
-            source = component.props.get("src")
-        elif component.component_type == "CardHeader":
-            source = component.props.get("icon")
-        if not isinstance(source, str) or not source.casefold().endswith(".svg"):
-            continue
-        description = descriptions.get(source)
-        if description is None:
-            continue
-        preserve_original = any(
-            marker in description for marker in _PRESERVE_ORIGINAL_COLOR_MARKERS
-        )
-        if preserve_original or "fillColor" in component.props:
-            continue
-        errors.append(
-            f"component {component.component_id}: tintable SVG {source} must set "
-            "fillColor explicitly; omitting it renders the asset's default black."
-        )
-
 
 def _collect_hero_value_errors(
     components: list[ComponentRow],
@@ -931,6 +920,10 @@ def _collect_progress_value_errors(
         value_path = _pure_binding_path(component.props.get("value"))
         if not value_path:
             continue
+        if value_path.startswith("/__display/") and value_path.endswith(
+            "/progressValue"
+        ):
+            continue
         schema_type = _schema_type(_schema_node_at_path(data_model_schema, value_path))
         if schema_type in _NUMERIC_SCHEMA_TYPES:
             continue
@@ -1259,14 +1252,12 @@ def _collect_component_contract_errors(
 ) -> None:
     _collect_component_parent_errors(components, errors)
     try:
-        validate_card_header_layout(components, size=task_spec.get("size"))
+        validate_single_line_title_layout(components, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         errors.append(str(exc))
     allowed_handlers = _task_event_handlers(task_spec)
     for component in components:
         _collect_container_errors(component, errors)
-        if component.component_type == "ActionUnit":
-            _collect_action_unit_errors(component, errors)
         _collect_on_click_errors(component, allowed_handlers, errors)
 
 
@@ -1323,7 +1314,7 @@ def _collect_height_budget_errors(
     """Reject vertical layouts whose declared minimum height cannot fit."""
     components_by_id = {component.component_id: component for component in components}
     for component in components:
-        if component.component_type not in {"Column", "List"}:
+        if component.component_type != "Column":
             continue
         available_height = _component_available_height(
             component,
@@ -1399,7 +1390,7 @@ def _minimum_outer_height(
     components_by_id: dict[str, ComponentRow],
     visiting: set[str],
 ) -> float:
-    if component.component_type == "CardHeader":
+    if component.component_type == "SingleLineTitle":
         return 20.0
     shrink = _non_negative_number(component.props.get("flexShrink"))
     weight = _non_negative_number(component.props.get("layoutWeight"))
@@ -1410,8 +1401,6 @@ def _minimum_outer_height(
     explicit_height = _non_negative_number(component.props.get("height"))
     if explicit_height is not None:
         return explicit_height
-    if component.component_type == "ActionUnit":
-        return _action_unit_minimum_height(component)
     if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
         return 0.0
     if component.component_id in visiting:
@@ -1427,7 +1416,7 @@ def _minimum_outer_height(
         child_heights.append(child_height + _vertical_margin(child.props))
     visiting.remove(component.component_id)
 
-    if component.component_type in {"Column", "List"}:
+    if component.component_type == "Column":
         content_height = sum(child_heights)
         content_height += _vertical_gap(component, len(child_heights))
     else:
@@ -1435,19 +1424,10 @@ def _minimum_outer_height(
     return _vertical_padding(component.props) + content_height
 
 
-def _action_unit_minimum_height(component: ComponentRow) -> float:
-    if component.props.get("state") == "capsule":
-        return 36.0
-    if component.props.get("state") == "icon-round":
-        return 30.0
-    return 0.0
-
-
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:
     if child_count < 2:
         return 0.0
-    property_name = "space" if component.component_type == "List" else "itemMargin"
-    gap = _non_negative_number(component.props.get(property_name))
+    gap = _non_negative_number(component.props.get("itemMargin"))
     if gap is None:
         return 0.0
     return gap * (child_count - 1)
@@ -1484,50 +1464,6 @@ def _format_vp(value: float) -> str:
     if value.is_integer():
         return str(int(value))
     return f"{value:.2f}".rstrip("0").rstrip(".")
-
-
-def _collect_action_unit_errors(
-    component: ComponentRow,
-    errors: list[str],
-) -> None:
-    location = f"component {component.component_id}"
-    state = component.props.get("state")
-    if state not in {"capsule", "icon-round"}:
-        errors.append(f'{location}: ActionUnit.state must be "capsule" or "icon-round".')
-        return
-    if component.children:
-        errors.append(f"{location}: ActionUnit must not declare children.")
-    if "onClick" not in component.props:
-        errors.append(f"{location}: ActionUnit.onClick is required.")
-    if state == "capsule":
-        _collect_required_non_empty_string(
-            component.props.get("label"),
-            f"{location}: capsule ActionUnit.label",
-            errors,
-        )
-        icon = component.props.get("icon")
-        if icon is not None and (not isinstance(icon, str) or not icon.strip()):
-            errors.append(
-                f"{location}: capsule ActionUnit.icon must be a non-empty string when provided."
-            )
-        return
-    _collect_required_non_empty_string(
-        component.props.get("icon"),
-        f"{location}: icon-round ActionUnit.icon",
-        errors,
-    )
-    if "label" in component.props:
-        errors.append(f"{location}: icon-round ActionUnit must not declare label.")
-
-
-def _collect_required_non_empty_string(
-    value: Any,
-    field: str,
-    errors: list[str],
-) -> None:
-    if isinstance(value, str) and value.strip():
-        return
-    errors.append(f"{field} must be a non-empty string.")
 
 
 def _collect_on_click_errors(

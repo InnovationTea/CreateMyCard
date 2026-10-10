@@ -3,67 +3,67 @@
   "description": "首期代表性样本的高阶组件召回真值；结构组件和基础 Text 不计入召回单元。",
   "samples": {
     "Q001": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["InfoBlock", "TextBlock"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q003": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["EmphasizedData", "TopTextBottomValue", "DataDisplay"], ["EventCard", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q009": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["InfoBlock", "SummaryList", "TableText"]]
     },
     "Q011": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["EmphasizedData", "InfoBlock", "DataDisplay"]]
     },
     "Q012": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["ProgressLine2", "ProgressCircleSingle", "DataDisplay"], ["SummaryList", "TableText"]]
     },
     "Q015": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["ProgressCircleSingle", "EmphasizedData", "DataDisplay"]]
     },
     "Q022": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["DataDisplay", "SummaryList", "TableText"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q034": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["SummaryList", "TableText", "InfoBlock"]]
     },
     "Q053": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["SummaryList", "TableText", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q054": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["ProgressLine2", "ProgressCircleSingle", "DataDisplay"], ["SummaryList", "TableText"]]
     },
     "Q055": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["SummaryList", "EventCard", "TableText"]]
     },
     "Q061": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["EventCard", "InfoBlock"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q063": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["ProgressLine2", "DataDisplay", "SummaryList"], ["PillButton", "CircleButton", "CardButton"]]
     },
     "Q064": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["SummaryList", "TableText", "DataDisplay"]]
     },
     "Q065": {
-      "required": ["CardHeader", "EventCard", "InfoBlock"],
+      "required": ["SingleLineTitle", "EventCard", "InfoBlock"],
       "anyOf": [["PillButton", "CircleButton", "CardButton"]]
     },
     "Q081": {
-      "required": ["CardHeader"],
+      "required": ["SingleLineTitle"],
       "anyOf": [["SummaryList", "TableText"], ["ProgressLine2", "DataDisplay"]]
     }
   }

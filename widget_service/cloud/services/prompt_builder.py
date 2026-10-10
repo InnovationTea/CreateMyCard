@@ -5,6 +5,7 @@ import json
 import re
 from typing import Any
 
+from config.config import get_settings
 from models.generation import TaskSpec
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
@@ -23,7 +24,7 @@ REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(
 _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
 本次请求未启用融球能力。忽略本提示词中所有允许使用融球的场景、规则和示例。
-禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用普通组件、渐变、圆形、
+禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用其它组件、渐变、圆形、
 光斑或其它方式模拟融球效果。root 必须按非融球背景规则生成。"""
 
 _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
@@ -34,7 +35,7 @@ _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优�
 拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
 
 - 没有可见按钮、也没有额外展示数据时使用 `S-title-content`。
-- 固定视觉顺序：顶部使用左对齐的 CardHeader 显示目标名称；下方 `content` 固定
+- 固定视觉顺序：顶部使用左对齐的 SingleLineTitle 显示目标名称；下方 `content` 固定
   `126×100vp`，使用 `justifyContent:"end"` 与 `alignItems:"start"`，让唯一主值组贴底。
 - 主值使用左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的 12fp 单位“天”。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
@@ -51,7 +52,7 @@ FEWSHOT_2x2 的 V25，使用标题主次内容单按钮结构，
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown`
 与 `/data/calendar` 拆成两个业务对象。两者共同描述同一个倒计时目标。
 
-- root 依次包含 `CardHeader` 和 `126×100vp` body；body 内是 `126×56vp` content、
+- root 依次包含 `SingleLineTitle` 和 `126×100vp` body；body 内是 `126×56vp` content、
   `8vp` 间距和沉底的 `126×36vp` action_area。
 - content 第一行必须是左对齐的 `value_row`，横向放置 30fp 倒计时数字和紧邻的
   12fp 单位“天”；第二行仅在用户确实要求时显示一条 12fp/400 补充事实。
@@ -127,8 +128,8 @@ W1-focus-aux，不得改用全宽纵排、三列指标、W9 等权双背板或�
   “未充电”；第二行只有提供独立信息时才保留。未被用户要求的 updatedAt 不得用于填满槽位。
 - 固定槽优先选语义与容量匹配的 InfoBlock / CardButton，内部几何遵守组件合同，
   不另行指定 padding、字号或图标尺寸。先扣除内部 padding、图标和间距，再检查
-  完整标签与值的文字宽度；放不下先取消可选图标，仍不够则用基础文字组合。
-  基础组合保持文字左对齐、整体垂直居中，不能靠裁切、缩略值或隐藏单位塞进槽位。
+  完整标签与值的文字宽度；放不下先取消可选图标，仍不够则用 Row/Column 组织 Text。
+  文字组合保持左对齐、整体垂直居中，不能靠裁切、缩略值或隐藏单位塞进槽位。
 - userQuery 明确要求动作时先为动作保留右侧槽，再放辅助事实；明确要求两个动作时
   两个右侧槽都作为动作入口，不得让低优先级指标挤掉动作。一个动作时，另一槽只放
   与主焦点最相关的一项事实或两行紧密摘要。
@@ -349,8 +350,8 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
     "weather-readout": (
         "本卡是单业务天气路由：先按字段语义选择主焦点；温度、降雨概率等量化字段"
         "使用 value-led，天气现象、预警、日期和星期使用 status-led。地点只消除歧义，"
-        "辅助指标不得平均铺开。2x2 稀疏天气卡先用字号、位置和留白建立焦点；存在与"
-        "整卡主题精确匹配、状态中性的素材且标题宽度成立时，默认放入 CardHeader 右上角。"
+        "辅助指标不得平均铺开。2x2 稀疏天气卡先用字号、位置和留白建立焦点；"
+        "SingleLineTitle 只承载标题文字，不添加主题图标。"
         "量化主值的 Row 仍只包含数字和真实单位，直接说明贴近主值，独立范围或更新时间沉底。"
         "若用户要求三个同级状态或指数概览，则整组作为焦点并使用对齐的标签—值列表，"
         "不得从中任意挑选一个无标签状态放大。"
@@ -1058,7 +1059,6 @@ class PromptBuilder:
         examples = "、".join(example_ids)
         instruction = _VISUAL_ROUTE_INSTRUCTIONS[route]
         density_instruction = ""
-        icon_instruction = ""
         if task_spec.size == "2x2" and "adaptive" in layout_scope:
             density_instruction = (
                 "- 密度处理：内容稀疏时不要全部贴顶；无动作的一至三行 content_area 默认"
@@ -1067,14 +1067,6 @@ class PromptBuilder:
                 "禁止用 ` | ` 横向硬塞。仅当结构是标题＋唯一纯数字主值＋单动作时，"
                 "使用 126vp 居中 content_area 内的 106×58vp Hero 安全盒，并按 "
                 "38/16fp、30/14fp、24/12fp、20/12fp 逐档降级直至长值压力成立。\n"
-            )
-            icon_instruction = (
-                "- 图标机会：若已有 CardHeader，候选中存在与整卡主题精确匹配、状态中性的"
-                "业务/对象/指标图标，且扣除 20vp 图标槽后标题仍完整，则默认保留一枚右上角"
-                "图标；只有标题压力、状态风险、用户禁用或主视觉冲突时才省略。可染色 SVG"
-                "必须显式写 fillColor：浅色卡跟随 CardHeader.fontColor，深色或融球卡使用白色"
-                "或对应图标角色色；不得遗漏后显示默认黑色。明确保留原色的 SVG 和 PNG 不写"
-                " fillColor。\n"
             )
         if "adaptive" in layout_scope:
             skeleton_instruction = (
@@ -1089,7 +1081,6 @@ class PromptBuilder:
             f"{skeleton_instruction}"
             f"- 视觉重点：{instruction}\n"
             f"{density_instruction}"
-            f"{icon_instruction}"
             "- 信息裁决：只保留 userQuery 明确要求及消除歧义所需的字段，"
             "不要用弱字段填满空间。\n"
             f"- 动作处理：{PromptBuilder._action_guidance(task_spec, route)}\n"
@@ -1127,7 +1118,7 @@ class PromptBuilder:
                 return (
                     "# 本轮双动作预算\n\n"
                     "使用 S-content-dual-action：正文38、间距8、按钮36、间距8、按钮36。"
-                    "不增加 CardHeader 或独立标题，不使用融球；必要对象名并入正文短行。"
+                    "不增加 SingleLineTitle 或独立标题，不使用融球；必要对象名并入正文短行。"
                     "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
                 )
             if layout_scope == "S-quad-content":
@@ -1512,7 +1503,7 @@ class PromptBuilder:
             layout_scope,
         )
         prompt = system_prompt
-        if include_examples:
+        if include_examples and get_settings().enable_design_compact_few_shots:
             examples = A2UIProtocolRegistry.read_design_few_shot(
                 DESIGN_COMPACT_PROFILE_ID, task_spec.size
             )
@@ -1530,10 +1521,11 @@ class PromptBuilder:
             f"{prompt}\n\n# 本轮组件与布局选择\n\n"
             f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
             "以已接受 Plan 的必要事实与动作为硬合同；优先落实语义、类型和容量匹配的"
-            "高阶组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
+            "组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
             "不能按业务名称、候选字段总数或示例强制构图。"
-            "组件不适配时允许基础组合，不能改变内部 Recipe、删事实或动作来提高使用率。"
-            "最终 DSL 只输出已注册的基础/高阶组件，不输出布局 ID、Card 或 Region 节点。"
+            "候选组件不适配时改选其它已注册组件或合法组件组合，不能改变内部 Recipe、"
+            "删事实或动作来提高使用率。最终 DSL 只输出已注册的基础布局组件和组件，"
+            "不输出布局 ID、Card 或 Region 节点。"
         )
         formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
         if formatted_percent_instruction:

@@ -7,11 +7,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from config.config import get_settings
 from services.card_validation import validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_prompt_loader import assemble_prompts
 from services.prompt_builder import PromptBuilder
+from services.protocol_registry import A2UIProtocolRegistry
 
 PROMPT_SOURCE = (
     Path(__file__).resolve().parents[1]
@@ -20,13 +22,20 @@ PROMPT_SOURCE = (
 PROMPTS = assemble_prompts(PROMPT_SOURCE)
 HIGH_LEVEL_COMPONENTS = {
     "CardButton",
-    "CardHeader",
+    "SingleLineTitle",
     "CircleButton",
     "DataDisplay",
+    "DoubleLineTitle",
+    "Badge",
     "EmphasizedData",
+    "EmphasisText",
+    "SecondaryBody",
     "EventCard",
+    "H_BarChart",
     "InfoBlock",
+    "NumericRatioStack",
     "PillButton",
+    "ProgressCircle",
     "ProgressCircleSingle",
     "ProgressLine2",
     "SummaryList",
@@ -82,6 +91,32 @@ def _rows(source: str) -> list[list]:
 
 def _component_types(source: str) -> list[str]:
     return [row[1] for row in _rows(source) if len(row) >= 3]
+
+
+def _is_ring_external_readout(component_id: str, rows: list[list]) -> bool:
+    rows_by_id = {}
+    for row in rows:
+        if len(row) >= 3 and isinstance(row[0], str):
+            rows_by_id[row[0]] = row
+
+    for parent in rows:
+        if len(parent) < 4 or parent[1] != "Column":
+            continue
+        children = parent[3]
+        if not isinstance(children, list) or component_id not in children:
+            continue
+        for sibling_id in children:
+            sibling = rows_by_id.get(sibling_id)
+            if not sibling or len(sibling) < 4 or sibling[1] != "Stack":
+                continue
+            stack_children = sibling[3]
+            if not isinstance(stack_children, list):
+                continue
+            for child_id in stack_children:
+                child = rows_by_id.get(child_id)
+                if child and len(child) >= 3 and child[1] == "Progress":
+                    return child[2].get("type") == "ring"
+    return False
 
 
 @pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
@@ -152,16 +187,24 @@ def test_few_shot_has_readable_nonempty_content(
     source: str,
 ) -> None:
     del task
-    for row in _rows(source):
+    rows = _rows(source)
+    for row in rows:
         if len(row) < 3:
             continue
-        _, component, props, *children = row
+        component_id, component, props, *children = row
         assert "textOverflow" not in props, identifier
         if component == "Text":
             assert props.get("content") != "", identifier
             assert props.get("content") != " ", identifier
-            assert props.get("fontSize", 12) >= 12, identifier
-        if component in {"Row", "Column", "Stack", "List"}:
+            font_size = props.get("fontSize", 12)
+            if font_size < 12:
+                assert _is_ring_external_readout(component_id, rows), identifier
+                assert font_size == 10, identifier
+                assert props.get("fontWeight") == 500, identifier
+                assert props.get("height") == 14, identifier
+                assert props.get("textAlign") == "center", identifier
+                assert props.get("maxLines") == 1, identifier
+        if component in {"Row", "Column", "Stack"}:
             assert children and children[0], identifier
 
 
@@ -202,16 +245,20 @@ def test_examples_use_only_declared_actions_and_assets(
     ("identifier", "required"),
     (
         ("2x2-V06", {"EventCard", "PillButton"}),
-        ("2x2-V14", {"CardHeader", "TableText"}),
-        ("2x2-V15", {"CardHeader", "CircleButton"}),
+        ("2x2-V14", {"SingleLineTitle", "TableText"}),
+        ("2x2-V15", {"SingleLineTitle", "CircleButton"}),
         ("2x2-V16", {"DataDisplay"}),
-        ("2x2-V18", {"CardHeader", "EmphasizedData", "PillButton"}),
+        ("2x2-V18", {"SingleLineTitle", "EmphasizedData", "PillButton"}),
         ("2x2-V20", {"InfoBlock"}),
-        ("2x4-V01", {"CardHeader", "SummaryList"}),
+        ("2x2-V21", {"ProgressCircle", "PillButton"}),
+        ("2x2-V31", {"ProgressCircle", "PillButton"}),
+        ("2x4-V01", {"SingleLineTitle", "SummaryList"}),
         ("2x4-V02", {"ProgressCircleSingle"}),
-        ("2x4-V03", {"CardHeader", "ProgressLine2", "TextBlock"}),
-        ("2x4-V05", {"CardHeader", "TopTextBottomValue"}),
+        ("2x4-V03", {"ProgressLine2", "TextBlock"}),
+        ("2x4-V05", {"SingleLineTitle", "TopTextBottomValue"}),
         ("2x4-V18", {"InfoBlock", "CardButton"}),
+        ("2x4-V20", {"ProgressCircle", "InfoBlock", "CardButton"}),
+        ("2x4-V21", {"H_BarChart"}),
     ),
 )
 def test_examples_use_available_high_level_components(
@@ -234,6 +281,7 @@ def test_examples_use_only_supported_component_types(
 ) -> None:
     del task
     types = set(_component_types(source))
+    assert "Progress" not in types, identifier
     assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
 
 
@@ -279,6 +327,29 @@ def test_example_reaches_its_generation_route(
         assert selected_id in assembled
     if "adaptive" not in layout_scope:
         assert f"### `{layout_scope}`" in assembled
+
+
+def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_design_compact_few_shots", False)
+
+    def reject_few_shot_read(*_args, **_kwargs) -> str:
+        raise AssertionError("Few-shot 文档不应在开关关闭时读取")
+
+    monkeypatch.setattr(
+        A2UIProtocolRegistry,
+        "read_design_few_shot",
+        reject_few_shot_read,
+    )
+    task_spec = SimpleNamespace(**EXAMPLES[0][1])
+
+    assembled = PromptBuilder._with_size_few_shot(PROMPTS["create"], task_spec)
+
+    assert "本轮实现参考" not in assembled
+    assert "# 本轮组件与布局选择" in assembled
+    assert "基础布局组件和组件" in assembled
+    for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
+        assert deprecated not in assembled
 
 
 def _palette_rows() -> list[list[str]]:
@@ -338,12 +409,17 @@ def test_example_gradients_use_registered_direction_and_stops(
 
 def test_component_catalog_excludes_removed_legacy_components() -> None:
     catalog = PROMPTS["create"]
-    allowed_section = catalog.split("# 五、组件协议", maxsplit=1)[1]
-    allowed_section = allowed_section.split("## 5.1", maxsplit=1)[0]
+    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
+    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
     for component_type in HIGH_LEVEL_COMPONENTS:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):
         assert f"`{removed_type}`" not in allowed_section
+    for removed_base_type in ("Button", "Divider", "Image", "List"):
+        assert f"| `{removed_base_type}` |" not in allowed_section
+
+    for removed_input_type in ("Divider", "Image"):
+        assert f"`{removed_input_type}`" not in allowed_section
 
 
 def test_unknown_routes_use_current_neutral_examples() -> None:

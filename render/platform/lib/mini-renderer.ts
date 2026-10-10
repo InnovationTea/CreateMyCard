@@ -13,7 +13,7 @@ export const SURFACE_ID = "dsl-preview";
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): v is RecordValue => typeof v === "object" && v !== null && !Array.isArray(v);
 const TYPES = new Set([
-  ..."Card Row Column Text Image Button ActionUnit CardHeader TimelineUnit Input TextInput Radio Checkbox CheckboxGroup Select Toggle Progress Divider Grid GridRow List Stack Tabs TabContent Web Navigation".split(" "),
+  ..."Card Row Column Text Image SingleLineTitle TimelineUnit Input TextInput Radio CheckboxGroup Select Toggle Divider Grid GridRow Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
 
@@ -53,6 +53,60 @@ function parseTuples(source: string): unknown[][] {
   return rows;
 }
 
+function pointerTokens(path: string): string[] {
+  if (!path.startsWith("/")) throw new Error(`数据路径不是 JSON Pointer：${path}`);
+  if (path === "/") return [];
+  return path.slice(1).split("/").map(token => token.replaceAll("~1", "/").replaceAll("~0", "~"));
+}
+
+function setPointer(root: RecordValue, path: string, value: unknown): void {
+  const tokens = pointerTokens(path);
+  if (!tokens.length) {
+    if (!record(value)) throw new Error("根数据路径只能写入对象。");
+    Object.assign(root, cloneValue(value));
+    return;
+  }
+  let current: RecordValue | unknown[] = root;
+  tokens.forEach((token, index) => {
+    const last = index === tokens.length - 1;
+    if (Array.isArray(current)) {
+      if (!/^\d+$/.test(token)) throw new Error(`数组数据路径索引无效：${path}`);
+      const itemIndex = Number(token);
+      if (last) {
+        current[itemIndex] = cloneValue(value);
+        return;
+      }
+      if (!record(current[itemIndex]) && !Array.isArray(current[itemIndex])) {
+        current[itemIndex] = /^\d+$/.test(tokens[index + 1]) ? [] : {};
+      }
+      current = current[itemIndex] as RecordValue | unknown[];
+      return;
+    }
+    if (last) {
+      current[token] = cloneValue(value);
+      return;
+    }
+    if (!record(current[token]) && !Array.isArray(current[token])) {
+      current[token] = /^\d+$/.test(tokens[index + 1]) ? [] : {};
+    }
+    current = current[token] as RecordValue | unknown[];
+  });
+}
+
+function readPointer(root: RecordValue, path: string): unknown {
+  let current: unknown = root;
+  for (const token of pointerTokens(path)) {
+    if (Array.isArray(current) && /^\d+$/.test(token)) current = current[Number(token)];
+    else if (record(current)) current = current[token];
+    else return undefined;
+  }
+  return current;
+}
+
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export function compileMiniDsl(source: string, options: { size?: CardSize } = {}) {
   const rows = parseTuples(source);
   let nodes = new Map<string, MiniNode>();
@@ -77,7 +131,16 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
   if (!nodes.size) throw new Error("DSL 中没有组件。");
   const sourceCount = nodes.size;
   const size = options.size ?? ([...nodes.values()].some(n => typeof n.props.width === "number" && n.props.width >= 240) ? "2x4" : "2x2");
-  nodes = expandCompactComponents(nodes, size);
+  const initialData: RecordValue = {};
+  for (const [path, value] of data) setPointer(initialData, String(path), value);
+  const derivedData: unknown[][] = [];
+  nodes = expandCompactComponents(nodes, size, {
+    get: path => readPointer(initialData, path),
+    setDerived: (path, value) => {
+      setPointer(initialData, path, value);
+      derivedData.push([path, value]);
+    },
+  });
   const parents = new Map<string, string>();
   for (const [id, node] of nodes) for (const child of node.children) {
     if (!nodes.has(child)) throw new Error(`组件 ${id} 引用了不存在的子节点 ${child}。`);
@@ -102,6 +165,25 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
     const { styles: nested, onClick, action, ...flat } = node.props;
     const props: RecordValue = { ...(record(nested) ? nested : {}), ...flat };
     const type = node.type === "Input" ? "TextInput" : node.type;
+    if (type === "Progress" && props.type === "ring") {
+      const width = props.width;
+      const height = props.height;
+      const validWidth = typeof width === "number" && Number.isFinite(width) && width > 0;
+      const validHeight = typeof height === "number" && Number.isFinite(height) && height > 0;
+      if (!validWidth || !validHeight) {
+        throw new Error(`组件 ${id}：ring Progress 的 width/height 必须是正数。`);
+      }
+      if (width !== height) throw new Error(`组件 ${id}：ring Progress 的 width/height 必须相等。`);
+      if (props.strokeWidth !== undefined && props.strokeWidth !== 6) {
+        throw new Error(`组件 ${id}：ring Progress.strokeWidth 必须是 6。`);
+      }
+      if ("trackColor" in props) {
+        throw new Error(`组件 ${id}：ring Progress 使用 backgroundColor，不使用 trackColor。`);
+      }
+      if ("icon" in props || "externalText" in props) {
+        throw new Error(`组件 ${id}：环心图标和环外读数必须使用 Stack/Column 组合。`);
+      }
+    }
     const { content, label, text, src, value, total, enabled, select, accessibility, ...styleProps } = props;
     // Explicit compact styles are authoritative. Apply legacy presets only when requested.
     const styles = styleProps.design ? applyDesignStyles(type, styleProps) : styleProps;
@@ -115,6 +197,7 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
   }
   // Apply data after the root: UIGraph resets its data model when a fresh root is installed.
   for (const [path, value] of data) messages.push({ version: "v0.9", updateDataModel: { surfaceId: SURFACE_ID, path, value } });
+  for (const [path, value] of derivedData) messages.push({ version: "v0.9", updateDataModel: { surfaceId: SURFACE_ID, path, value } });
   const graph = new UIGraph();
   for (const message of messages) {
     const normalized = tryNormalizeV09Protocol(message);

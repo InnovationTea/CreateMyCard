@@ -9,18 +9,41 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+from services.compact_dsl_a2ui_converter import (
+    MODEL_COMPACT_INPUT_COMPONENT_TYPES,
+    ComponentRow,
+    parse_compact_dsl_rows,
+)
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
 _JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
 _BINDING_PATH = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
+_PERCENTAGE_VALUE = re.compile(r"^\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*[%％]\s*$")
 _FACT_KEYS = frozenset(
     {"requirement", "dataId", "actionId", "text", "componentHints"}
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
-_BASE_FACT_COMPONENTS = ("Text", "Image", "Progress", "Button")
-_NUMERIC_FACT_COMPONENTS = frozenset({"Progress", "ProgressLine2", "ProgressCircleSingle"})
+_SHARED_FACT_COMPONENTS = (
+    "SingleLineTitle",
+    "DoubleLineTitle",
+    "Badge",
+    "EmphasizedData",
+    "EmphasisText",
+    "SecondaryBody",
+    "InfoBlock",
+    "H_BarChart",
+    "NumericRatioStack",
+    "ProgressCircleSingle",
+    "ProgressCircle",
+    "TableText",
+    "EventCard",
+    "PillButton",
+)
+_PROGRESS_FACT_COMPONENTS = frozenset(
+    {"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"}
+)
+_ACTION_FACT_COMPONENTS = frozenset({"PillButton", "CircleButton", "CardButton"})
 _VISIBLE_PROP_NAMES = frozenset(
     {
         "content",
@@ -28,39 +51,31 @@ _VISIBLE_PROP_NAMES = frozenset(
         "items",
         "label",
         "location",
+        "mainText",
         "primaryText",
+        "secondaryInfo",
         "secondaryLabel",
         "secondaryText",
-        "src",
         "supportingText",
         "time",
         "title",
         "total",
         "unit",
         "value",
+        "externalText",
     }
 )
 _COMPONENT_HINTS = {
     "2x2": (
-        *_BASE_FACT_COMPONENTS,
-        "CardHeader",
-        "EmphasizedData",
-        "InfoBlock",
-        "TableText",
+        *_SHARED_FACT_COMPONENTS,
         "DataDisplay",
-        "EventCard",
-        "PillButton",
         "CircleButton",
     ),
     "2x4": (
-        *_BASE_FACT_COMPONENTS,
-        "CardHeader",
-        "EmphasizedData",
-        "InfoBlock",
+        *_SHARED_FACT_COMPONENTS,
         "ProgressLine2",
         "TextBlock",
         "CardButton",
-        "ProgressCircleSingle",
         "TopTextBottomValue",
         "SummaryList",
     ),
@@ -135,8 +150,11 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
             "maxItems": 3,
             "uniqueItems": True,
             "description": (
-                "按优先级排列的组件软候选，不冻结最终组件。进度组件只推荐给本事实"
-                "直接绑定的 number/integer dataId；字符串、布尔值、静态正文和操作不推荐进度组件。"
+                "按优先级排列的组件软候选，不冻结最终组件。真实占比或进度可以绑定"
+                "number/integer dataId，或样例为完整数值百分比的 string dataId；"
+                "普通字符串、布尔值、静态正文和操作不推荐进度组件。"
+                "SingleLineTitle 承担单行标题；DoubleLineTitle 承担标题加紧密相关的次信息。"
+                "标题事实不得同时推荐正文或其它标题替代组件。"
             ),
         },
     }
@@ -238,10 +256,14 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
     payload = json.dumps(plan, ensure_ascii=False, separators=(",", ":"))
     return (
         "# 已接受的 Compact Info Plan\n\n"
-        "以下 Plan 只冻结必须可见的信息、静态正文和操作；componentHints 与 "
-        "layoutHints 都是软候选，不冻结组件实例或最终骨架。每项事实必须由最终 Compact "
+        "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"
+        "componentHints 与 layoutHints 都是软候选，不冻结组件实例或最终骨架。"
+        "每项事实必须由最终 Compact "
         "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
+        "一个语义分区可使用一个 SingleLineTitle；2x4 左右独立分区"
+        "可分别使用 SingleLineTitle。被 Plan 指定给 SingleLineTitle 的标题事实必须出现在某个"
+        "SingleLineTitle.title 中，不能改由正文组件承载。需要标题加次信息时使用 DoubleLineTitle。\n"
         "逐项核对 dataId → 可见组件 Prop：标题、地区、更新时间也必须真实绑定；"
         "不能用用户原话或 sampleValue 写死，即使首帧文字相同。只写数据行、只在事件参数"
         "引用都不算可见。actionId → 所属对象的点击组件或用户明确要求的独立动作槽，"
@@ -271,6 +293,8 @@ def compact_plan_coverage_errors(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     visible_paths: set[str] = set()
     visible_literals: list[str] = []
+    single_line_title_paths: set[str] = set()
+    single_line_title_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
     for component in components:
         visible_props = {
@@ -279,11 +303,20 @@ def compact_plan_coverage_errors(
             if key in _VISIBLE_PROP_NAMES
         }
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
+        if component.component_type == "SingleLineTitle":
+            _collect_paths_and_literals(
+                {"title": component.props.get("title")},
+                single_line_title_paths,
+                single_line_title_literals,
+            )
         on_click = component.props.get("onClick")
         if isinstance(on_click, list):
             handlers.extend(item for item in on_click if isinstance(item, dict))
     event_handlers = _event_handlers_by_id(task_spec)
     normalized_literals = [_normalize_text(value) for value in visible_literals]
+    normalized_header_literals = [
+        _normalize_text(value) for value in single_line_title_literals
+    ]
     errors: list[str] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):
@@ -293,8 +326,20 @@ def compact_plan_coverage_errors(
             continue
         requirement = fact.get("requirement")
         label = requirement if isinstance(requirement, str) else "unknown requirement"
+        hints = fact.get("componentHints")
+        requires_single_line_title = isinstance(hints, list) and "SingleLineTitle" in hints
         if "dataId" in fact and fact["dataId"] not in visible_paths:
             errors.append(f"Plan fact is missing from visible DSL: {label} ({fact['dataId']}).")
+            continue
+        if (
+            "dataId" in fact
+            and requires_single_line_title
+            and fact["dataId"] not in single_line_title_paths
+        ):
+            errors.append(
+                "Plan title fact must be visible in a SingleLineTitle.title: "
+                f"{label} ({fact['dataId']})."
+            )
             continue
         if "actionId" in fact:
             expected = event_handlers.get(fact["actionId"])
@@ -309,6 +354,14 @@ def compact_plan_coverage_errors(
                 expected_text in actual for actual in normalized_literals
             ):
                 errors.append(f"Plan static text is missing from visible DSL: {label}.")
+                continue
+            if requires_single_line_title and not any(
+                expected_text in actual for actual in normalized_header_literals
+            ):
+                errors.append(
+                    "Plan title fact must be visible in a SingleLineTitle.title: "
+                    f"{label}."
+                )
     return tuple(errors)
 
 
@@ -350,9 +403,13 @@ def _validate_facts(
     if len(value) > 24:
         raise CompactPlanValidationError(["info_required must contain at most 24 facts."])
     data_paths = set(compact_plan_data_paths(task_spec))
-    numeric_paths: list[str] = []
-    _collect_schema_paths(task_spec.get("dataModelSchema"), (), numeric_paths, numeric_only=True)
-    numeric_data_paths = set(numeric_paths)
+    progress_paths: list[str] = []
+    _collect_progress_schema_paths(
+        task_spec.get("dataModelSchema"),
+        (),
+        progress_paths,
+    )
+    progress_data_paths = set(progress_paths)
     action_ids = set(compact_plan_action_ids(task_spec))
     allowed_hints = set(_component_hints(task_spec.get("size")))
     user_query = task_spec.get("userQuery")
@@ -411,20 +468,36 @@ def _validate_facts(
             else:
                 accepted_hints: list[str] = []
                 removed_type_mismatch = False
+                removed_target_mismatch = False
                 for hint in hints:
                     if not isinstance(hint, str) or hint not in allowed_hints:
                         continue
-                    if hint in _NUMERIC_FACT_COMPONENTS:
-                        if target != "dataId" or target_value not in numeric_data_paths:
+                    is_action_hint = hint in _ACTION_FACT_COMPONENTS
+                    if (target == "actionId") != is_action_hint:
+                        removed_target_mismatch = True
+                        continue
+                    if hint in _PROGRESS_FACT_COMPONENTS:
+                        if target != "dataId" or target_value not in progress_data_paths:
                             removed_type_mismatch = True
                             continue
                     if hint not in accepted_hints:
                         accepted_hints.append(hint)
+                removed_single_line_title_alternatives = False
+                if "SingleLineTitle" in accepted_hints and accepted_hints != ["SingleLineTitle"]:
+                    accepted_hints = ["SingleLineTitle"]
+                    removed_single_line_title_alternatives = True
                 if accepted_hints:
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
                     reason = "unsupported or duplicate values."
-                    if removed_type_mismatch:
+                    if removed_single_line_title_alternatives:
+                        reason = (
+                            "alternatives because SingleLineTitle is the exclusive "
+                            "title component."
+                        )
+                    elif removed_target_mismatch:
+                        reason = "unsupported, target-incompatible or duplicate values."
+                    elif removed_type_mismatch:
                         reason = "unsupported, type-incompatible or duplicate values."
                     warnings.append(f"{location}.componentHints removed {reason}")
         identity = (target, target_value)
@@ -514,6 +587,40 @@ def _collect_schema_paths(
         _collect_schema_paths(child, (*path, key), output, numeric_only=numeric_only)
 
 
+def _collect_progress_schema_paths(
+    value: Any,
+    path: tuple[str | int, ...],
+    output: list[str],
+) -> None:
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _collect_progress_schema_paths(item, (*path, index), output)
+        return
+    if not isinstance(value, dict):
+        return
+    if _is_schema_leaf(value):
+        field_type = value.get("type")
+        sample_value = value.get("sampleValue")
+        numeric_field = field_type in {"number", "integer"}
+        percentage_text = (
+            field_type == "string"
+            and isinstance(sample_value, str)
+            and _PERCENTAGE_VALUE.fullmatch(sample_value) is not None
+        )
+        if path and (numeric_field or percentage_text):
+            output.append(_json_pointer(path))
+        return
+    if value.get("type") == "array" and "items" in value:
+        _collect_progress_schema_paths(value["items"], (*path, 0), output)
+        return
+    if value.get("type") == "object" and isinstance(value.get("properties"), dict):
+        for key, child in value["properties"].items():
+            _collect_progress_schema_paths(child, (*path, key), output)
+        return
+    for key, child in value.items():
+        _collect_progress_schema_paths(child, (*path, key), output)
+
+
 def _is_schema_leaf(value: dict[str, Any]) -> bool:
     field_type = value.get("type")
     if isinstance(field_type, str) and field_type not in {"array", "object"}:
@@ -571,7 +678,12 @@ def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]
 
 
 def _component_hints(size: Any) -> tuple[str, ...]:
-    return _COMPONENT_HINTS.get(size, _BASE_FACT_COMPONENTS)
+    candidates = _COMPONENT_HINTS.get(size, _SHARED_FACT_COMPONENTS)
+    return tuple(
+        component
+        for component in candidates
+        if component in MODEL_COMPACT_INPUT_COMPONENT_TYPES
+    )
 
 
 def _layout_hints(size: Any) -> tuple[str, ...]:

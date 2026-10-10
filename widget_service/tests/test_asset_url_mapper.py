@@ -110,7 +110,7 @@ def test_task_spec_keeps_original_assets_with_configured_mapping(monkeypatch):
     assert task.assetCandidates == [{"id": "asset.drop_1", "src": SRC, "description": "雨伞"}]
 
 
-def test_mapping_covers_expanded_header_and_action_icons():
+def test_mapping_covers_expanded_action_icon():
     token = "\n".join(
         json.dumps(row)
         for row in [
@@ -122,16 +122,17 @@ def test_mapping_covers_expanded_header_and_action_icons():
             ],
             [
                 "header",
-                "CardHeader",
-                {"title": "天气", "icon": SRC, "fontColor": "#FF000000", "fillColor": "#FF000000"},
+                "SingleLineTitle",
+                {"title": "天气", "fontColor": "#FF000000"},
             ],
             [
                 "action",
-                "ActionUnit",
+                "PillButton",
                 {
-                    "state": "capsule",
                     "label": "查看",
                     "icon": SRC,
+                    "actionSurface": "#33000000",
+                    "actionInk": "#FF000000",
                     "onClick": [{"call": "test", "args": {}}],
                 },
             ],
@@ -141,7 +142,7 @@ def test_mapping_covers_expanded_header_and_action_icons():
     dsl = convert_compact_dsl_to_a2ui(token, size="2x2")
     result = AssetUrlMapper({SRC: URL}, {SRC}).rewrite_standard(dsl)
     images = [item for item in components(result) if item.get("component") == "Image"]
-    assert len(images) == 2
+    assert len(images) == 1
     for item in images:
         assert item.get("src") == URL
 
@@ -163,8 +164,18 @@ def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
     token = "\n".join(
         json.dumps(row)
         for row in [
-            ["root", "Column", {"width": 320, "height": 160}, ["image"]],
-            ["image", "Image", {"src": src, "width": 20, "height": 20}],
+            ["root", "Column", {"width": 300, "height": 150}, ["action"]],
+            [
+                "action",
+                "PillButton",
+                {
+                    "label": "查看",
+                    "icon": src,
+                    "actionSurface": "#33000000",
+                    "actionInk": "#FF000000",
+                    "onClick": [{"call": "test", "args": {}}],
+                },
+            ],
             ["/ui/state", "ready"],
         ]
     )
@@ -175,7 +186,7 @@ def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
     )
     asset_errors = []
     for diagnostic in reporter.diagnostics:
-        if diagnostic.json_pointer != "/updateComponents/componentsById/image/src":
+        if diagnostic.json_pointer != "/updateComponents/componentsById/action_icon/src":
             continue
         if diagnostic.code in {"EFFECTIVE_ASSET_NOT_ALLOWED", "ASSET_REMOTE_URL_FORBIDDEN"}:
             asset_errors.append(diagnostic)
@@ -188,13 +199,13 @@ def test_restore_old_token_only_changes_asset_properties():
         json.dumps(row)
         for row in [
             ["root", "Column", {}, ["img", "text"]],
-            ["img", "Image", {"src": URL}],
+            ["img", "PillButton", {"label": "查看", "icon": URL}],
             ["text", "Text", {"content": URL}],
             ["/ui/address", URL],
         ]
     )
     rows = [json.loads(line) for line in mapper.restore_design_token(token).splitlines()]
-    assert rows[1][2].get("src") == SRC
+    assert rows[1][2].get("icon") == SRC
     assert rows[2][2].get("content") == URL
     assert rows[3] == ["/ui/address", URL]
 
@@ -221,8 +232,8 @@ def test_repair_diagnostics_use_original_asset_paths():
 @pytest.mark.parametrize("src", [URL, LOCAL])
 def test_compact_validation_rejects_non_candidate_source_before_conversion(src):
     token = "\n".join(json.dumps(row) for row in [
-        ["root", "Column", {"width": 320, "height": 160}, ["image"]],
-        ["image", "Image", {"src": src, "width": 20, "height": 20}],
+        ["root", "Column", {"width": 320, "height": 160, "backgroundImage": src}, ["text"]],
+        ["text", "Text", {"content": "天气", "fontSize": 14, "fontColor": "#FF000000"}],
         ["/ui/state", "ready"],
     ])
     with pytest.raises(CompactDslValidationError, match="original src"):

@@ -31,6 +31,8 @@ compact_dsl_argument_repair_reminder_count: 1
 compact_dsl_argument_repair_max_attempts: 2
 # 参数兜底、归一化及请求校验完成后，仅对 Compact DSL 生成流程进行接口级重试。
 enable_compact_dsl_interface_retry: false
+# 是否在 Design Compact 的 DSL 生成阶段加载同尺寸 Few-shot；Plan 阶段始终不加载。
+enable_design_compact_few_shots: false
 # 首次生成之外的额外重试次数；0 不重试，1 表示最多执行两次生成。必须为非负整数。
 compact_dsl_interface_retry_count: 1
 enable_openai_fallback: true
