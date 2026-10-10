@@ -208,7 +208,9 @@ async def _render_case_extension(kind: str, fusion: bool) -> dict[str, Any]:
     event_id, label = _SETTINGS, "电池设置"
     if kind == "charging":
         fields = ("/batterySOCText", "/chargingStatusDesc")
-        template = "BatteryOverviewChargingProgressHero@1"
+        # 充电-only 走 #425 新增的 PercentTextFull（Hero 现在强制带设置动作，
+        # 空动作组合不再被编译器接受，见 charging-only-hero 一类）。
+        template = "BatteryOverviewPercentTextFull@1"
     case = _case(fields)
     task = case.task
     render_intent = case.intent
@@ -224,6 +226,9 @@ async def _render_case_extension(kind: str, fusion: bool) -> dict[str, Any]:
         event_id, label = _HEALTH, "电池健康"
     body = 'Template("HeroActionLayout@1",{},Template(' + json.dumps(template) + ',{}),'
     body += 'Template("PillAction@1",' + json.dumps({"actionId": event_id, "label": label}) + '));'
+    if kind == "charging":
+        # 充电意图不带事件候选：单业务 Hero 走 SingleFocusLayout，无动作位。
+        body = 'Template("SingleFocusLayout@1",{},Template(' + json.dumps(template) + ',{}));'
     output = await pipeline.generate_template_a2ui(
         task, case.card, (case.binding,), _ScriptedModel(case.intent, body),
         enable_fusion_ball=fusion,

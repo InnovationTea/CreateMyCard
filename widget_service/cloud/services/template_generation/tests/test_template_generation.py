@@ -3001,6 +3001,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewCaseConnectionHero@1",
         "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
         "BluetoothDeviceOverviewMusicFull@1",
     }
     progress_count = 0
@@ -3508,31 +3509,36 @@ def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
 
 @scenario("templgen__battery_compact__no_icon")
 def _build_battery_compact_no_icon() -> dict:
+    # #425 起 batteryIcon 为必填素材参数：无 icon 实例化在编译期被拒，
+    # 场景改为冻结该契约错误（errorType + message）。
     definition = get_cardplan_registry().require_template("BatteryOverviewCompact@1")
-    return _nested2_scenario_payload(
-        _instantiate_blueprint(
-            definition.variants[0].root,
-            {},
-            {
-                "percent": "${data.phoneBattery.batterySOC}",
-                "charging": "${data.phoneBattery.chargingStatusDesc}",
-            },
-            {
-                "primaryColor": "#FF17324D",
-                "supportContentColor": "#9917324D",
-                "progressColor": "#FF26BFA6",
-                "progressBackgroundColor": "#3326BFA6",
-            },
+    try:
+        return _nested2_scenario_payload(
+            _instantiate_blueprint(
+                definition.variants[0].root,
+                {},
+                {
+                    "percent": "${data.phoneBattery.batterySOC}",
+                    "charging": "${data.phoneBattery.chargingStatusDesc}",
+                },
+                {
+                    "primaryColor": "#FF17324D",
+                    "supportContentColor": "#9917324D",
+                    "progressColor": "#FF26BFA6",
+                    "progressBackgroundColor": "#3326BFA6",
+                },
+            )
         )
-    )
+    except TerselConversionError as exc:
+        return {"errorType": type(exc).__name__, "message": str(exc)}
 
 
-def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:
+def test_battery_compact_uses_required_icon_and_36vp_ring() -> None:
     definition = get_cardplan_registry().require_template("BatteryOverviewCompact@1")
     variant = definition.variants[0]
     parameters_schema = variant.parameters_schema
 
-    # 规则级契约：batteryIcon 可选参数 + 36vp 圆环 + 12vp 图标槽位。
+    # 规则级契约：batteryIcon 必填参数 + 36vp 圆环 + 12vp 图标槽位。
     assert set(parameters_schema["properties"]) == {"batteryIcon"}
     assert parameters_schema.get("required", []) == ["batteryIcon"]
     content_row = variant.root.children[0]
@@ -5542,7 +5548,9 @@ async def test_2x4_battery_multi_field_without_complete_plan_returns_route_miss(
     assert model.second_layer_prompt is None
 
 
-async def _render_battery_charging_progress_hero() -> Any:
+async def _render_battery_charging_progress_hero(
+    with_level: bool = False, with_temperature: bool = False,
+) -> Any:
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -5590,46 +5598,37 @@ async def _render_battery_charging_progress_hero() -> Any:
     )
 
 
-@scenario("templgen__battery_charging_progress_hero")
-def _build_battery_charging_progress_hero() -> dict:
-    return a2ui_messages(asyncio.run(_render_battery_charging_progress_hero()))
+def _register_battery_charging_progress_hero_scenarios() -> None:
+    for with_level in (False, True):
+        for with_temperature in (False, True):
+            def _build(
+                with_level: bool = with_level, with_temperature: bool = with_temperature,
+            ) -> dict:
+                return a2ui_messages(asyncio.run(
+                    _render_battery_charging_progress_hero(with_level, with_temperature)
+                ))
 
-    components = {}
-    for line in output.a2ui.splitlines():
-        update = json.loads(line).get("updateComponents", {})
-        for component in update.get("components", []):
-            components[component.get("id")] = component
-    status = next(
-        item for item in components.values() if "chargingStatusDesc" in str(item.get("content", ""))
-    )
-    body = next(
-        item for item in components.values() if status.get("id") in item.get("children", [])
-    )
-    children = body.get("children", [])
-    assert len(children) == 3
-    status_content = str(status.get("content", ""))
-    assert ("状态：" in status_content) == (not with_level and not with_temperature)
-    assert (" · " in status_content) == (with_level or with_temperature)
-    assert ("batteryTemperatureText" in status_content) == with_temperature
-    assert ("batteryCapacityLevelDesc" in status_content) == with_level
-    title = components.get(children[0])
-    readout = components.get(children[1])
-    assert isinstance(title, dict)
-    assert isinstance(readout, dict)
-    number = components.get(readout.get("children", [])[0])
-    assert isinstance(number, dict)
-    top = readout.get("styles", {}).get("margin", {}).get("top", 0)
-    height = title.get("styles", {}).get("height", 0)
-    height += number.get("styles", {}).get("height", 0)
-    height += status.get("styles", {}).get("height", 0)
-    height += top + 2 * body.get("itemMargin", 0)
-    assert top == 0
-    assert height == 80
-    assert height <= 150 - 24 - 36 - 8
+            slug = (
+                "templgen__battery_charging_progress_hero"
+                f"__level{'on' if with_level else 'off'}__temp{'on' if with_temperature else 'off'}"
+            )
+            scenario(slug)(_build)
 
 
-def test_2x2_battery_charging_progress_hero_uses_status_fields():
-    assert_golden_scenario("templgen__battery_charging_progress_hero")
+_register_battery_charging_progress_hero_scenarios()
+
+
+_BATTERY_CHARGING_HERO_SCENARIO_IDS = tuple(
+    "templgen__battery_charging_progress_hero"
+    f"__level{'on' if with_level else 'off'}__temp{'on' if with_temperature else 'off'}"
+    for with_level in (False, True)
+    for with_temperature in (False, True)
+)
+
+
+@pytest.mark.parametrize("scenario_id", _BATTERY_CHARGING_HERO_SCENARIO_IDS)
+def test_2x2_battery_charging_progress_hero_uses_status_fields(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)
 
 async def _render_battery_health_level_hero() -> Any:
     binding = CandidateDataBinding(

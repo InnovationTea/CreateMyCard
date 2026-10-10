@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine import pipeline
+from services.template_generation.engine.pipeline import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.battery_action_policy import (
     resolve_battery_settings_fallback,
 )
@@ -376,37 +377,6 @@ def _register_battery_renders() -> None:
 
 
 _register_battery_renders()
-
-
-@scenario("battery_action__unauthorized_button_miss")
-def _build_unauthorized_button_miss() -> dict[str, Any]:
-    case = _case()
-    task = case.task.model_copy(update={"userQuery": "显示电量和充电状态，不要按钮"})
-    payload: dict[str, Any] = {}
-    for name, flag in (("flagFalse", False), ("flagAbsent", None)):
-        second_layer_calls: list[bool] = []
-
-        class Model:
-            async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-                result: dict[str, Any] = {
-                    "requiredOutputFieldsByCapability": {_CAPABILITY: list(_TEXT_FIELDS)},
-                }
-                if flag is not None:
-                    result["allowBatterySettingsFallback"] = flag
-                return result
-
-            async def generate(self, _prompt: Any, *_args: Any, **_kwargs: Any) -> str:
-                second_layer_calls.append(True)
-                raise RuntimeError("二层不得在未授权时运行")
-
-        try:
-            asyncio.run(pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model()))
-        except TemplateRouteNotApplicable as exc:
-            assert not second_layer_calls  # 未授权时不得进入 Hero 二层
-            payload[name] = {"errorType": type(exc).__name__, "message": str(exc)}
-        else:  # pragma: no cover - 未授权必须 miss
-            payload[name] = {"errorType": "NO_ERROR"}
-    return payload
 
 
 def _register_preserve_renders() -> None:

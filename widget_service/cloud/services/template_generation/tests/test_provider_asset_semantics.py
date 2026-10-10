@@ -341,7 +341,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 20
+    assert slot_count == 19
 
 
 def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_icon(

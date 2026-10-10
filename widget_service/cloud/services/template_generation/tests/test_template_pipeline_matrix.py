@@ -39,6 +39,17 @@ from services.template_generation.engine.cardplan.preview_dataset import (
     _TEXT_BY_TEMPLATE_PARAMETER,
     _set_path,
 )
+
+# #467 耳机每日歌单 2x4 家族：actionId 必填，绑定每日歌单动作（与
+# MusicCompact 的预览取值同源）。仅本矩阵使用，不改引擎侧预览表。
+_MATRIX_TEXT_PARAMS: dict[tuple[str, str], str] = {
+    **_TEXT_BY_TEMPLATE_PARAMETER,
+    ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "actionId"): "event.open.music.daily",
+    # #434 新增 MeetingSenderFull 必填 title：管线信任门要求字面量来自受信源
+    # （数据样例/用户话术/卡片文案），预览表里的 "UI需求评审会" 不满足；
+    # 信任集里的卡片文案只有日历的卡片标题，故沿用之。
+    ("ScheduleOverviewMeetingSenderFull@1", "title"): "今日日程",
+}
 from services.template_generation.engine.cardplan.provider_bundle import (
     asset_semantic_tags,
     parameter_value_kind,
@@ -83,10 +94,10 @@ _LAYOUT_BY_KIND = {
 _SUPPORT_PARTNER_BY_CAPABILITY = {
     "GetCalendarEvents": ("GetSystemMemInfo", "ResourceUsageOverviewSupport@1"),
     "GetCountdownDays": ("GetSystemMemInfo", "ResourceUsageOverviewSupport@1"),
-    "GetEarphoneInfo": ("GetCountdownDays", "CountdownOverviewSupport@1"),
-    "GetPhoneBatteryInfo": ("GetCountdownDays", "CountdownOverviewSupport@1"),
+    "GetEarphoneInfo": ("GetCountdownDays", "CountdownOverviewTravelSupport@1"),
+    "GetPhoneBatteryInfo": ("GetCountdownDays", "CountdownOverviewTravelSupport@1"),
     "GetHealthAndSportSummary": ("GetSystemMemInfo", "ResourceUsageOverviewSupport@1"),
-    "GetSystemMemInfo": ("GetCountdownDays", "CountdownOverviewSupport@1"),
+    "GetSystemMemInfo": ("GetCountdownDays", "CountdownOverviewTravelSupport@1"),
     "ViewWeather": ("GetSystemMemInfo", "ResourceUsageOverviewSupport@1"),
 }
 
@@ -100,6 +111,12 @@ _EVENT_FIXTURES_BY_CAPABILITY = {
     "GetPhoneBatteryInfo": ("event.setPowerSavingMode", "event.startNavigate"),
     "GetSystemMemInfo": ("event.startNavigate", "event.open.clock.alarm"),
     "ViewWeather": ("event.open.weather", "event.startNavigate"),
+}
+
+# 个别家族的准入动作不在版式动作位里（wide 版式 action_count=0），但路由仍要求
+# 该动作出现在本轮候选中（#467：每日歌单动作准入后才放行耳机 2x4 家族）。
+_EXTRA_CANDIDATE_EVENTS_BY_TEMPLATE: dict[str, tuple[str, ...]] = {
+    "BluetoothDeviceOverviewEarbudsChargingWideFull@1": ("event.open.music.daily",),
 }
 
 _USER_QUERY_BY_CAPABILITY = {
@@ -130,6 +147,11 @@ _ASSET_FIXTURES_BY_BUSINESS = {
             "src": "resources/base/media/battery_leaf_fill.svg",
             "description": "电池电量叶子图标",
             "sceneTags": ["device", "battery"],
+        },
+        {
+            "src": "resources/base/media/icon_phone.svg",
+            "description": "手机电量图标",
+            "sceneTags": ["phone-device"],
         },
     ),
     "BluetoothDeviceOverview": (
@@ -473,7 +495,7 @@ def _schema_and_bindings(
                 for name in prop_schema.get("required", ()):
                     if parameter_value_kind(name, prop_schema.get("properties", {}).get(name, {})) != "data-path":
                         continue
-                    path = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+                    path = _MATRIX_TEXT_PARAMS.get((definition.wire_id, name))
                     if not isinstance(path, str) or not path.startswith("/"):
                         continue
                     sample = _SAMPLE_BY_PATH.get((capability_id, path))
@@ -540,7 +562,7 @@ def _template_asset_params(
                     f"no asset fixture matches {definition.wire_id}/{name} tags={sorted(required_tags)}"
                 )
             continue
-        override = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+        override = _MATRIX_TEXT_PARAMS.get((definition.wire_id, name))
         if override is None:
             raise ValueError(f"unfilled non-asset required param: {definition.wire_id}/{name}")
         params[name] = override
@@ -599,7 +621,10 @@ async def _render_pipeline_combination(
             entries.append((spec.partner_definition, frozenset()))
     schema, coverage_bindings = _schema_and_bindings(entries)
     capabilities = tuple(entry[0].capability_id for entry in entries)
-    events = _event_candidates(capabilities[0], action_count)
+    events = _event_candidates(capabilities[0], action_count) + tuple(
+        EventAction(id=event_id, call="clickToIntent", args={"intentName": event_id})
+        for event_id in _EXTRA_CANDIDATE_EVENTS_BY_TEMPLATE.get(spec.wire_id, ())
+    )
     asset_pool = tuple(
         source
         for definition, _absent in entries

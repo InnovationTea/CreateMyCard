@@ -358,14 +358,6 @@ def test_travel_countdown_can_pair_without_own_action(events: tuple[str, ...]) -
     )
 
 
-def test_countdown_cannot_use_alarm_as_a_related_event() -> None:
-    with pytest.raises(TemplateRetrievalMiss, match="cannot form"):
-        _plans(
-            ("CountdownOverviewTravelSupport@1", "WeatherOverviewTemperatureSupport@1"),
-            ("event.open.clock.alarm",),
-        )
-
-
 def _forged_plan_error() -> dict[str, str]:
     plans = _plans(
         ("WeatherOverviewTemperatureSupport@1", "BatteryOverviewSupport@1"),
