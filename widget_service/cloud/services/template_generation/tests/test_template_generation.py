@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 234
+    assert len(registry.provider_template_ids) == 238
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -1200,7 +1200,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3491,6 +3491,7 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewSupport@1",
         "BatteryOverviewSupportHero@1",
         "BatteryOverviewStatusSupport@1",
+        "BatteryOverviewPluggedTypeSupport@1",
         "BatteryOverviewStatusHero@1",
         "BatteryOverviewChargeStatusHero@1",
         "BatteryOverviewPhoneTextCompact@1",

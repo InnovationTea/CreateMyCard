@@ -437,8 +437,17 @@ def test_q112_template_reference_keeps_unused_fields_optional() -> None:
 def test_battery_reference_does_not_drop_explicit_plugged_type() -> None:
     case = _case((*_TEXT_FIELDS, "/pluggedTypeDesc"))
     case.task.userQuery = "显示电量、充电状态和充电类型，三项都要"
-    with pytest.raises(TemplateRetrievalMiss, match="no provider template covers"):
-        _search(case, CardPlanRegistry())
+    registry = CardPlanRegistry()
+    result = _search(case, registry)
+    candidates = result.business_candidates[0].candidates
+    assert [candidate.template_id for candidate in candidates] == [
+        "BatteryOverviewPluggedTypeSupport@1",
+    ]
+    assert case.intent.required_output_fields_by_capability.get(_CAPABILITY) == (
+        *_TEXT_FIELDS, "/pluggedTypeDesc",
+    )
+    with pytest.raises(TemplateRetrievalMiss, match="cannot form a supported atomic plan"):
+        plan_template_candidates(case.intent, result, case.task, registry)
 
 
 @pytest.mark.asyncio
