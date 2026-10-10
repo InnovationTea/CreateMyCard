@@ -1035,7 +1035,9 @@ function expandHighLevel(
   }
 
   if (type === "ProgressCircleSingle") {
-    if (size !== "2x4") throw new Error("ProgressCircleSingle 仅支持 2x4 卡片。");
+    if (size !== "2x2" && size !== "2x4") {
+      throw new Error("ProgressCircleSingle 仅支持 2x2 或 2x4 卡片。");
+    }
     const allowed = [
       "value", "total", "icon", "displayValue", "label", "secondaryLabel", "fontColor",
       "color", "backgroundColor",
