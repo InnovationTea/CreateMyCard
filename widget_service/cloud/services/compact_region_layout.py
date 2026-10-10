@@ -12,7 +12,7 @@ from services.compact_reference_canvas import reference_dimension
 _AXES = ("width", "height")
 _REGIONS = frozenset({"Row", "Column", "InfoBlock", "CardButton"})
 _WIDTH_FILL = _REGIONS | {"Text", "Button", "PillButton", "SingleLineTitle"}
-_FIXED_ACTIONS = frozenset({"Button", "PillButton", "CircleButton", "ActionUnit"})
+_FIXED_ACTIONS = frozenset({"Button", "PillButton", "CircleButton"})
 _CONSTRAINTS = frozenset(
     {
         "aspectRatio",

@@ -951,7 +951,7 @@
         "item": {
           "component": "Column",
           "styles": {
-            "height": 64,
+            "height": "matchParent",
             "padding": {
               "left": 8,
               "right": 8

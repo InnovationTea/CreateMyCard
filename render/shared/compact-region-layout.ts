@@ -10,7 +10,7 @@ type Axis = "width" | "height";
 type Box = Record<Axis, number | undefined>;
 const regions = new Set(["Row", "Column", "InfoBlock", "CardButton"]);
 const widthFill = new Set([...regions, "Text", "Button", "PillButton", "SingleLineTitle"]);
-const actions = new Set(["Button", "PillButton", "CircleButton", "ActionUnit"]);
+const actions = new Set(["Button", "PillButton", "CircleButton"]);
 const constraints = ["aspectRatio", "constraintSize", "minWidth", "maxWidth", "minHeight", "maxHeight", "borderWidth"];
 const axes: Axis[] = ["width", "height"];
 const number = (value: unknown): number | undefined =>

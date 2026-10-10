@@ -13,6 +13,7 @@ import {
   type PostprocessSampleResult,
 } from '../batchApi';
 import { PostprocessArtifactView } from '../components/PostprocessArtifactView';
+import { useQualityRun } from '../components/useQualityRun';
 
 const PAGE_SIZE = 25;
 
@@ -47,6 +48,8 @@ export function PostprocessDashboardRoute() {
   const [offset, setOffset] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const qualityRun = useQualityRun(runId);
+  const isQuality = pluginId === 'quality-score';
 
   const loadDashboard = useCallback(async () => {
     const [nextRun, nextDashboard] = await Promise.all([
@@ -69,6 +72,8 @@ export function PostprocessDashboardRoute() {
   const backPath = run?.taskId ? `/batch/tasks/${encodeURIComponent(run.taskId)}`
     : `/batch/legacy/${encodeURIComponent(runId)}`;
   const datasetArtifacts = dashboard?.datasetResult.artifacts ?? [];
+  const qualitySelection = dashboard?.selection?.sampleIds
+    ?? (dashboard?.samples.length === dashboard?.totalSamples ? dashboard?.samples.map((item) => item.sampleId) : []);
 
   useEffect(() => {
     document.documentElement.classList.add('postprocess-dashboard-active');
@@ -112,6 +117,7 @@ export function PostprocessDashboardRoute() {
   };
 
   const rerun = async () => {
+    if (isQuality) { await qualityRun.start(qualitySelection ?? []); return; }
     setBusy(true); setError('');
     try {
       const execution = await startPostprocess(runId, [pluginId], {}, true);
@@ -134,21 +140,34 @@ export function PostprocessDashboardRoute() {
         <Link to={backPath}>← 返回批量测试结果</Link>
         <h1>{dashboard.plugin.name}</h1>
         <p>后处理插件 · 当前结果 {dashboard.status}</p>
+        {isQuality && <>
+          <p>本次 {dashboard.totalSamples} / 来源 {dashboard.sourceTotalSamples ?? run?.total ?? '—'} 个样本；再次运行保留本次选择。</p>
+          <nav className="quality-links" aria-label="质量工具">
+            <Link to={`/quality?runId=${encodeURIComponent(runId)}`}>选择批次</Link>
+            <Link to="/quality/evaluation">评估方案（当前版本）</Link>
+            <Link to={`/quality/compare?leftRunId=${encodeURIComponent(runId)}&leftExecutionId=${encodeURIComponent(executionId)}`}>批次对比</Link>
+          </nav>
+        </>}
       </div>
       <div className="postprocess-dashboard-actions">
-        <label>历史执行<select value={executionId} onChange={(event) => changeExecution(event.target.value)}>
+        <label>历史执行<select disabled={qualityRun.busy} value={executionId} onChange={(event) => changeExecution(event.target.value)}>
           {(run?.postprocessExecutions ?? []).filter((item) => (
             item.plugins?.some((plugin) => plugin.id === pluginId)
           )).map((item) => <option key={item.executionId} value={item.executionId}>
             {item.createdAt} · {item.status}
           </option>)}
         </select></label>
-        <button type="button" disabled={busy || run?.status !== 'completed'} onClick={rerun}>
-          {busy ? '正在提交…' : '↻ 再次运行'}
+        <button type="button" disabled={busy || qualityRun.busy || run?.status !== 'completed' || (isQuality && !qualitySelection?.length)} onClick={rerun}>
+          {qualityRun.busy ? qualityRun.status : busy ? '正在提交…' : '↻ 再次运行'}
         </button>
       </div>
     </header>
-    {error && <div className="batch-error" role="alert">{error}</div>}
+    {(error || qualityRun.error) && <div className="batch-error" role="alert">{error || qualityRun.error}</div>}
+    {isQuality && <div className="quality-dashboard-note">
+      <p>本次历史参数以本看板 policy 产物为准。再次运行使用当前方案并复用画廊；旧证据可能待评，请先到画廊看板显式再次运行。</p>
+      {!qualitySelection?.length && <p>该历史结果没有完整样本选择，请先重新选择批次与样本。</p>}
+      {qualityRun.busy && <p role="status">{qualityRun.status} 完成后打开新结果。</p>}
+    </div>}
     <section className="postprocess-overview">
       {datasetArtifacts.map((artifact) => <PostprocessArtifactView key={artifact.key} artifact={artifact} />)}
       {!datasetArtifacts.length && <div className="postprocess-empty">该插件没有数据集层产物</div>}

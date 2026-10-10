@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 3000 -H 127.0.0.1",
     "export:components": "node ../genui-sdk/node_modules/tsx/dist/cli.mjs --tsconfig ../genui-sdk/tsconfig.base.json scripts/export-component-gallery.ts",
+    "export:runner-results": "node ../genui-sdk/node_modules/tsx/dist/cli.mjs --tsconfig ../genui-sdk/tsconfig.base.json scripts/export-runner-results.ts",
     "test": "node ../genui-sdk/node_modules/tsx/dist/cli.mjs --tsconfig ../genui-sdk/tsconfig.base.json --test tests/*.test.ts"
   },
   "dependencies": {

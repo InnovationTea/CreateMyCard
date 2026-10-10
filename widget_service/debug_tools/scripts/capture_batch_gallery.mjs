@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from 'playwright-core';
+import { createHash } from 'node:crypto';
+import { collectWebQuality } from './web_quality.mjs';
 
 function parseArgs(argv) {
   const result = {};
@@ -68,6 +70,8 @@ async function main() {
     });
     await page.goto(args.url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
     await page.waitForSelector('html[data-gallery-capture="ready"]', { timeout: 600_000 });
+    const fatal = page.locator('.gallery-capture-fatal');
+    if (await fatal.count()) throw new Error((await fatal.first().textContent()) || '画廊页面加载失败');
     const items = page.locator('.gallery-capture-item');
     const count = await items.count();
     const captured = [];
@@ -77,6 +81,11 @@ async function main() {
       const size = await item.getAttribute('data-card-size');
       const error = await item.getAttribute('data-capture-error');
       const card = item.locator('.gallery-capture-card');
+      const input = JSON.parse(await item.getAttribute('data-quality-input') || 'null');
+      const provenance = input ? {
+        sourceSha256: createHash('sha256').update(input.genui.replace(/\r\n?/g, '\n')).digest('hex'),
+        renderContext: input.renderContext,
+      } : {};
       if (await card.count()) {
         const runtimeError = card.locator('.card-renderer__runtime-error');
         if (await runtimeError.count()) {
@@ -85,14 +94,19 @@ async function main() {
             file: '',
             size,
             error: (await runtimeError.textContent())?.trim() || '卡片渲染失败',
+            quality: { schemaVersion: 'web-quality-v1', complete: false, renderFailed: true, ...provenance },
           });
           continue;
         }
         const file = `${String(index + 1).padStart(4, '0')}.png`;
+        const quality = await card.evaluate(collectWebQuality);
+        quality.parseWarnings = JSON.parse(await item.getAttribute('data-parse-warnings') || '[]');
         await card.screenshot({ path: path.join(args.output, file), animations: 'disabled', scale: 'css' });
-        captured.push({ id, file, size, error: '' });
+        const imageSha256 = createHash('sha256').update(await fs.readFile(path.join(args.output, file))).digest('hex');
+        captured.push({ id, file, size, error: '', quality: { ...quality, ...provenance, imageSha256 } });
       } else {
-        captured.push({ id, file: '', size, error: error || '该样本没有可渲染的 GenUI' });
+        captured.push({ id, file: '', size, error: error || '该样本没有可渲染的 GenUI',
+          quality: input?.genui ? { schemaVersion: 'web-quality-v1', complete: false, renderFailed: true, ...provenance } : null });
       }
     }
     await fs.writeFile(

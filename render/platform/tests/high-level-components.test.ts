@@ -111,7 +111,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal((progress.getNode("progress_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
   const detailStyles = progress.getNode("details_item0")?.props.styles as Record<string, unknown>;
   const detailConstraint = detailStyles.constraintSize as Record<string, unknown>;
-  assert.equal(detailStyles.height, 64);
+  assert.equal(detailStyles.height, "matchParent");
   assert.equal(detailConstraint.minWidth, 64);
 
   const circle = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;

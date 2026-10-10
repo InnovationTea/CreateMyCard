@@ -101,7 +101,10 @@ export function BatchTaskCenterRoute() {
           <h1>批量测试任务</h1>
           <p>创建可重复运行的测试任务；执行完成后，可进入任务选择插件进行后处理。</p>
         </div>
-        <Link className="batch-primary-link" to="/batch/new">创建任务</Link>
+        <div className="quality-links">
+          <Link className="batch-primary-link" to="/quality">质量评分</Link>
+          <Link className="batch-primary-link" to="/batch/new">创建任务</Link>
+        </div>
       </header>
       {error && <div className="batch-error" role="alert">{error}</div>}
 
@@ -177,6 +180,7 @@ export function BatchTaskCenterRoute() {
                   </div></td>
                   <td>{formatDate(task.updatedAt)}</td>
                   <td><div className="task-row-actions" onClick={(event) => event.stopPropagation()}>
+                    {run?.status === 'completed' && <Link to={`/quality?runId=${encodeURIComponent(run.runId)}`}>质量评分</Link>}
                     <button type="button" disabled={isActive || busy === task.taskId} onClick={() => runAction(task.taskId, () => enqueueBatchTask(task.taskId))}>再次执行</button>
                     {isActive && run && <button type="button" className="danger" onClick={() => runAction(run.runId, () => cancelBatchRun(run.runId))}>停止</button>}
                     <button type="button" className="danger" disabled={isActive || busy === `delete-${task.taskId}`} onClick={() => deleteTask(task)}>删除</button>

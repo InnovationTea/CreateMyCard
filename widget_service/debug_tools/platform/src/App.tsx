@@ -11,6 +11,9 @@ import { BatchTaskCenterRoute } from './routes/BatchTaskCenterRoute';
 import { BatchTaskCreateRoute } from './routes/BatchTaskCreateRoute';
 import { BatchGalleryCaptureRoute } from './routes/BatchGalleryCaptureRoute';
 import { PostprocessDashboardRoute } from './routes/PostprocessDashboardRoute';
+import { QualityRoute } from './routes/QualityRoute';
+import { QualityCompareRoute } from './routes/QualityCompareRoute';
+import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
 import { BackendStatusWidget } from './components/BackendStatusWidget';
 
 const navigation = [
@@ -18,6 +21,7 @@ const navigation = [
   { path: '/interface', label: '接口调试', detail: 'WebSocket · API 调试' },
   { path: '/renderer', label: '卡片渲染', detail: 'GenUI · 预览检查' },
   { path: '/batch', label: '批量测试', detail: '数据集 · Trace 分析' },
+  { path: '/quality', label: '质量评分', detail: '样本选择 · 评分与对比' },
   { path: '/settings', label: '连接配置', detail: '地址 · 固定参数' },
 ];
 
@@ -64,6 +68,9 @@ function Shell() {
             <Route path="/batch/new" element={<BatchTaskCreateRoute />} />
             <Route path="/batch/tasks/:taskId" element={<BatchRoute />} />
             <Route path="/batch/legacy/:runId" element={<BatchRoute />} />
+            <Route path="/quality" element={<QualityRoute />} />
+            <Route path="/quality/compare" element={<QualityCompareRoute />} />
+            <Route path="/quality/evaluation" element={<QualityEvaluationRoute />} />
             <Route path="/settings" element={<SettingsPanel />} />
             <Route path="*" element={<Navigate replace to="/end-to-end" />} />
           </Routes>

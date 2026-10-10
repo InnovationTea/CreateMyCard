@@ -66,6 +66,7 @@ export type DeviceCaptureConfig = {
 
 export type BatchRun = {
   runId: string;
+  name?: string | null;
   status: string;
   startedAt: string;
   finishedAt?: string;
@@ -209,7 +210,53 @@ export type PostprocessDashboard = {
   datasetResult: PostprocessResult;
   counts: Record<string, number>;
   totalSamples: number;
+  sourceTotalSamples?: number;
+  selection?: { sampleIds: string[]; count?: number };
   samples: PostprocessDashboardSample[];
+};
+
+export type QualityEvaluation = {
+  markdown: string;
+  policy: Record<string, unknown>;
+  policySha256: string;
+};
+
+export type QualityIssueDiff = { code: string; left: number; right: number; delta: number };
+export type QualityComparisonSide = {
+  score: number | null;
+  scoreLow: number | null;
+  verdict: string;
+  query: string;
+  size: string;
+  issues: Record<string, number>;
+};
+export type QualityComparisonSummary = {
+  runId: string;
+  executionId: string;
+  total: number;
+  scored: number;
+  passCount: number;
+  passRate: number | null;
+  meanScore: number | null;
+};
+export type QualityComparison = {
+  left: QualityComparisonSummary;
+  right: QualityComparisonSummary;
+  comparable: boolean;
+  warnings: string[];
+  passRateDelta: number | null;
+  rows: Array<{
+    sampleId: string;
+    alignment: string;
+    left: QualityComparisonSide | null;
+    right: QualityComparisonSide | null;
+    scoreDelta: number | null;
+    issueDiff: QualityIssueDiff[];
+  }>;
+  issueDistribution: QualityIssueDiff[];
+  confirmedIssueDistribution?: QualityIssueDiff[];
+  pendingIssueDistribution?: QualityIssueDiff[];
+  passDefinition: string;
 };
 
 export type PostprocessSamplePage = {
@@ -455,6 +502,21 @@ export function getBatchRun(runId: string): Promise<BatchRun> {
   return requestJson(`/debug/batch/runs/${encodeURIComponent(runId)}`);
 }
 
+export function getQualityEvaluation(): Promise<QualityEvaluation> {
+  return requestJson('/debug/batch/quality/evaluation');
+}
+
+export function getQualityComparison(options: {
+  leftRunId: string;
+  rightRunId: string;
+  leftExecutionId?: string;
+  rightExecutionId?: string;
+}): Promise<QualityComparison> {
+  const params = new URLSearchParams();
+  Object.entries(options).forEach(([key, value]) => { if (value) params.set(key, value); });
+  return requestJson(`/debug/batch/quality/compare?${params}`);
+}
+
 export function getBatchSample(runId: string, sampleId: string): Promise<BatchSampleDetail> {
   return requestJson(
     `/debug/batch/runs/${encodeURIComponent(runId)}/samples/${encodeURIComponent(sampleId)}`,
@@ -481,6 +543,15 @@ export function startPostprocess(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ pluginIds, configs, rerun }),
   });
+}
+
+export function getPostprocessExecution(
+  runId: string, executionId: string, signal?: AbortSignal,
+): Promise<PostprocessExecution> {
+  return requestJson(
+    `/debug/batch/runs/${encodeURIComponent(runId)}/postprocess/${encodeURIComponent(executionId)}`,
+    { signal },
+  );
 }
 
 export function getPostprocessDashboard(

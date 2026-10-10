@@ -1,0 +1,41 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "quality-score",
+  "name": "单批 Web 质量评分",
+  "version": "1.1.0",
+  "description": "复用四类扣分模型，展示当前 Web 截图、问题证据和分数范围；不修改 DSL，不代表训练验收。",
+  "entrypoint": "plugin.py",
+  "dependence": ["browser-gallery"],
+  "timeoutSeconds": 60,
+  "configSchema": {
+    "type": "object", "additionalProperties": false,
+    "properties": {
+      "sampleIds": {"type": "array", "title": "所选样本 ID", "minItems": 1, "uniqueItems": true,
+        "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}},
+      "count": {"type": "integer", "title": "前 N 条（与 ID 列表互斥）", "minimum": 1}
+    },
+    "not": {"required": ["sampleIds", "count"]}
+  },
+  "outputs": [
+    {"key": "score", "scope": "sample", "title": "检查范围内得分", "dataType": "metrics", "renderer": "kpi", "required": true},
+    {"key": "capture", "scope": "sample", "title": "本次 Web 渲染截图", "dataType": "image", "renderer": "gallery"},
+    {"key": "deductions", "scope": "sample", "title": "分类扣分", "dataType": "records", "renderer": "table"},
+    {"key": "issues", "scope": "sample", "title": "逐项问题及证据", "dataType": "issues", "renderer": "table", "required": true},
+    {"key": "coverage", "scope": "sample", "title": "检查边界", "dataType": "text", "required": true},
+    {"key": "detail", "scope": "sample", "title": "评分与证据 JSON", "dataType": "json"},
+    {"key": "overview", "scope": "dataset", "title": "整批汇总", "dataType": "metrics", "renderer": "kpi", "required": true},
+    {"key": "distribution", "scope": "dataset", "title": "分数分布（排除待评）", "dataType": "records", "renderer": "bar"},
+    {"key": "scores", "scope": "dataset", "title": "全部样本", "dataType": "records", "renderer": "table"},
+    {"key": "policy", "scope": "dataset", "title": "评分口径与权重", "dataType": "json"}
+  ],
+  "presentation": {
+    "defaultView": "table",
+    "sampleFields": [
+      {"key": "score", "label": "已确认扣分后", "type": "number", "sortable": true},
+      {"key": "scoreLow", "label": "含疑似问题下界", "type": "number", "sortable": true},
+      {"key": "verdict", "label": "质量状态", "type": "string", "sortable": true},
+      {"key": "confirmed", "label": "确认问题组", "type": "number", "sortable": true},
+      {"key": "pending", "label": "待确认问题组", "type": "number", "sortable": true}
+    ]
+  }
+}
