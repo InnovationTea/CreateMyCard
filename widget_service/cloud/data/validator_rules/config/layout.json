@@ -1,6 +1,6 @@
 {
   "defaultPadding": 12,
-  "allowedFontSizes": [10, 12, 14, 16, 18, 20, 32, 40],
+  "allowedFontSizes": [10, 12, 14, 16, 18, 20, 24, 30, 32, 38, 40],
   "allowedSpacing": [0, 2, 4, 6, 8, 10, 12, 14, 16],
   "minClickableSize": 24,
   "maxMeaninglessWhitespace": 18,

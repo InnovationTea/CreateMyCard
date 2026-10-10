@@ -17,9 +17,13 @@ class CardValidationReport:
 
     errors: list[str]
     warnings: list[str]
+    blocking_warnings: list[str] | None = None
 
     def passed(self, strict: bool = False) -> bool:
-        return not self.errors and (not strict or not self.warnings)
+        strict_warnings = self.blocking_warnings
+        if strict_warnings is None:
+            strict_warnings = self.warnings
+        return not self.errors and (not strict or not strict_warnings)
 
 
 def validate_card(
@@ -41,13 +45,31 @@ def validate_card(
         cardspec=cardspec,
         effective_capabilities=effective_capabilities,
     )
-    errors = [_format_diagnostic(item) for item in reporter.diagnostics if item.severity == "error"]
-    warnings = [
-        _format_diagnostic(item) for item in reporter.diagnostics if item.severity == "warning"
+    errors = [
+        _format_diagnostic(item)
+        for item in reporter.diagnostics
+        if item.severity == "error" and item.stage != "quality"
     ]
+    warning_diagnostics = [item for item in reporter.diagnostics if item.severity == "warning"]
+    warnings = [_format_diagnostic(item) for item in warning_diagnostics]
+    blocking_warnings = [
+        _format_diagnostic(item)
+        for item in warning_diagnostics
+        if item.stage != "quality"
+    ]
+    quality_observations = [
+        _format_diagnostic(item)
+        for item in reporter.diagnostics
+        if item.severity == "error" and item.stage == "quality"
+    ]
+    warnings.extend(quality_observations)
     if strict:
-        errors.extend(warnings)
-    return CardValidationReport(errors=errors, warnings=warnings)
+        errors.extend(blocking_warnings)
+    return CardValidationReport(
+        errors=errors,
+        warnings=warnings,
+        blocking_warnings=blocking_warnings,
+    )
 
 
 def _format_diagnostic(diagnostic: Diagnostic) -> str:
