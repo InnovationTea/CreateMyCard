@@ -348,7 +348,7 @@ function expandHighLevel(
   }
 
   if (type === "SecondaryBody") {
-    const allowed = ["items", "role", "separator", "fontColor"];
+    const allowed = ["items", "role", "columns", "separator", "fontColor"];
     requireProps(id, type, p, ["items", "fontColor"], allowed);
     requireColor(id, type, p, "fontColor");
     if (!Array.isArray(p.items) || p.items.length < 1 || p.items.length > 4) {
@@ -375,12 +375,13 @@ function expandHighLevel(
       if (!Number.isInteger(maxLines) || ![1, 2].includes(maxLines as number)) {
         throw new Error(`${id}: SecondaryBody.items[${index}].maxLines 只接受 1 或 2。`);
       }
-      if (role !== "body" && maxLines !== 1) {
-        throw new Error(`${id}: 只有 body SecondaryBody 支持两行。`);
-      }
       return item;
     });
     const separator = p.separator ?? " ｜ ";
+    const columns = p.columns ?? 2;
+    if (!Number.isInteger(columns) || ![1, 2].includes(columns as number)) {
+      throw new Error(`${id}: SecondaryBody.columns 只接受 1 或 2。`);
+    }
     if (typeof separator !== "string" || !separator) {
       throw new Error(`${id}: SecondaryBody.separator 必须是非空文本。`);
     }
@@ -388,13 +389,19 @@ function expandHighLevel(
     if (role === "body") variant = items[0].maxLines === 2 ? "bodyMultiline" : "body";
     else if (role === "metadata") variant = "metadata";
     else if (items.length > 2) variant = "multiline";
+    const textStyles = recipe(type, size, variant).parts.text.styles;
+    const lineHeight = Number(textStyles.height) / Number(textStyles.maxLines ?? 1);
     const rootChildren: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
-    for (let start = 0, rowIndex = 0; start < items.length; start += 2, rowIndex++) {
+    for (let start = 0, rowIndex = 0; start < items.length; start += Number(columns), rowIndex++) {
       const rowId = `${id}_row${rowIndex}`;
       rootChildren.push(rowId);
       const rowChildren: string[] = [];
-      items.slice(start, start + 2).forEach((item, localIndex) => {
+      const rowItems = items.slice(start, start + Number(columns));
+      const rowHeight = lineHeight * Math.max(...rowItems.map(item => Number(item.maxLines ?? 1)));
+      rowItems.forEach((item, localIndex) => {
+        const maxLines = Number(item.maxLines ?? 1);
+        const itemHeight = lineHeight * maxLines;
         const itemIndex = start + localIndex;
         if (rowChildren.length) {
           const separatorId = `${rowId}_separator`;
@@ -413,6 +420,7 @@ function expandHighLevel(
           rows.push(row(labelId, type, "text", size, {
             content: item.label,
             fontColor: p.fontColor,
+            height: lineHeight, maxLines: 1, flexShrink: 0,
           }, [], variant));
         }
         const valueId = `${itemId}_value`;
@@ -420,10 +428,15 @@ function expandHighLevel(
         rows.push(row(valueId, type, "text", size, {
           content: item.value,
           fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+          height: itemHeight, maxLines, layoutWeight: 1,
         }, [], variant));
-        rows.push(row(itemId, type, "item", size, { layoutWeight: 1 }, itemChildren, variant));
+        rows.push(row(itemId, type, "item", size, {
+          layoutWeight: 1, height: itemHeight, alignItems: "start",
+        }, itemChildren, variant));
       });
-      rows.push(row(rowId, type, "row", size, {}, rowChildren, variant));
+      rows.push(row(rowId, type, "row", size, {
+        height: rowHeight, alignItems: "start",
+      }, rowChildren, variant));
     }
     return [row(id, type, "root", size, {}, rootChildren, variant), ...rows];
   }
@@ -836,7 +849,7 @@ function expandHighLevel(
       textChildren[0] = primaryRowId;
       rows.push(
         row(primaryRowId, type, "primaryRow", size, {}, [primaryValueId, unitId]),
-        row(primaryValueId, type, "primary", size, {
+        row(primaryValueId, type, "primaryValue", size, {
           content: p.primaryText, fontColor: p.fontColor,
         }),
         row(unitId, type, "unit", size, {

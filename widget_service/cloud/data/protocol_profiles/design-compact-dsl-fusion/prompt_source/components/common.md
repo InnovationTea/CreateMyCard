@@ -283,18 +283,24 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 | `items[].label` | string | 仅静态 | 可选；短标签 |
 | `items[].maxLines` | number | 仅静态 | 可选；只取 `1|2` |
 | `role` | string | 仅静态 | 单项必填；`body|metadata|supporting`；多项新生成也应显式填写 |
+| `columns` | number | 仅静态 | 可选；`1|2`，缺省 2；长说明使用 1，让每项占完整行宽 |
 | `separator` | string | 仅静态 | 可选；默认 ` ｜ ` |
 | `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
-`role:"body"` 恰好一项，不写 label，`maxLines` 可为 `1|2`；`role:"metadata"` 恰好一项且只能单行；
-`role:"supporting"` 支持 1–4 项，每项只能单行，每行最多两项，超过两项自动分为两行。为兼容旧 DSL，
+`role:"body"` 恰好一项，不写 label；`role:"metadata"` 恰好一项；各角色每项 `maxLines` 可为 `1|2`。
+`role:"supporting"` 支持 1–4 项；`columns:1` 每项独占一行，`columns:2` 每行最多两项。
+标签保持自然宽度，值承接剩余宽度；标签也很长时使用无标签 body 展示完整句子，不挤压值。
+单行角色高度沿用 Recipe：body/一至两项 supporting 为20，metadata/三至四项 supporting 为18；
+每行高度取该行最大 maxLines × 行高，行间距2。两行不是免费空间，必须计入正文预算。
+长时间戳、地点、时长和带完整单位的值，不默认塞进双列单行；选择单列或两行仍不够时重排布局。
+为兼容旧 DSL，
 2–4 项省略 role 时按 supporting 处理；新生成必须显式填写 role。完整显示值保留原样，不拆单位，也不开放
 字号、字重、padding 或内部对齐等任意样式属性。
 
 ```genui
 ["description","SecondaryBody",{"role":"body","items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]
-["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}"}],"fontColor":"#FF1F4799"}]
-["sleep_detail","SecondaryBody",{"role":"supporting","items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"}},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"fontColor":"#FF563D99"}]
+["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}","maxLines":2}],"fontColor":"#FF1F4799"}]
+["sleep_detail","SecondaryBody",{"role":"supporting","columns":1,"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"},"maxLines":2},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"fontColor":"#FF563D99"}]
 ```
 
 ### 5.7 `DataDisplay`
@@ -380,7 +386,9 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 #### 槽位与容量
 
-两种尺寸共用。两行最小高度 `34vp`，三行 `52vp`；只进入尺寸文件允许且能完整容纳所有行的连续内容槽。
+两种尺寸共用。两行最小高度 `38vp`（18×2+2），三行 `52vp`（16×3+2×2）；只进入能完整容纳所有行的连续内容槽。
+标签使用自然宽度，值占扣除标签和8vp间距后的剩余宽度；不是左右各占一半。两列均为单行，
+长标签或完整值仍容不下时，改用 SecondaryBody 单列/两行并重算正文预算，不能截去单位或末尾文字。
 
 #### 示例
 

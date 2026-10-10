@@ -658,6 +658,16 @@
             "flexShrink": 0
           }
         },
+        "primaryValue": {
+          "component": "Text",
+          "styles": {
+            "height": 22,
+            "fontSize": 16,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        },
         "unit": {
           "component": "Text",
           "styles": {
@@ -885,8 +895,7 @@
             "fontSize": 12,
             "fontWeight": 500,
             "maxLines": 1,
-            "flexShrink": 0,
-            "layoutWeight": 31
+            "flexShrink": 0
           }
         },
         "value": {
@@ -901,7 +910,7 @@
             "constraintSize": {
               "minWidth": 0
             },
-            "layoutWeight": 28
+            "layoutWeight": 1
           }
         }
       },
@@ -1385,7 +1394,7 @@
         "compact": {
           "metrics": {
             "height": 32,
-            "lineHeight": 19
+            "lineHeight": 16
           },
           "parts": {
             "rail": {
@@ -1407,7 +1416,10 @@
                 "height": 16,
                 "fontSize": 12,
                 "fontWeight": 700,
-                "maxLines": 1
+                "maxLines": 1,
+                "constraintSize": {
+                  "minHeight": 16
+                }
               }
             },
             "meta": {

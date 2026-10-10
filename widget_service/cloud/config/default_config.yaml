@@ -33,6 +33,8 @@ compact_dsl_argument_repair_max_attempts: 2
 enable_compact_dsl_interface_retry: false
 # 是否在 Design Compact 的 DSL 生成阶段加载同尺寸 Few-shot；Plan 阶段始终不加载。
 enable_design_compact_few_shots: true
+# 关闭筛选时提供当前尺寸全部完整案例；开启则恢复业务与 Plan 筛选、局部用法补充。
+enable_design_compact_few_shot_selection: false
 # 首次生成之外的额外重试次数；0 不重试，1 表示最多执行两次生成。必须为非负整数。
 compact_dsl_interface_retry_count: 1
 enable_openai_fallback: true

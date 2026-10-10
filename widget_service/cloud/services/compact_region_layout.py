@@ -212,12 +212,17 @@ class _ReferenceGeometry:
         return RegionBox(*lengths)
 
 
-def reference_region_boxes(nodes: list[dict[str, Any]], *, size: str) -> dict[str, RegionBox]:
+def reference_region_boxes(
+    nodes: list[dict[str, Any]], *, size: str, profile: dict[str, Any] | None = None
+) -> dict[str, RegionBox]:
     """只读求解参考盒，用于校验显式权重；未知自然尺寸保留 None。"""
     geometry = _ReferenceGeometry(nodes)
     geometry.visit(
         "root",
-        RegionBox(reference_dimension(size, "width"), reference_dimension(size, "height")),
+        RegionBox(
+            reference_dimension(size, "width", profile),
+            reference_dimension(size, "height", profile),
+        ),
         set(),
     )
     return geometry.boxes

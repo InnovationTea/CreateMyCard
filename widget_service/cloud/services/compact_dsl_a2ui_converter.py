@@ -1401,12 +1401,18 @@ def _parse_children(
     if len(value) != 4:
         return ()
     if not isinstance(value[3], list):
-        return ()
+        raise CompactDslConversionError(
+            f"{component_id}: children must be a list of component id strings."
+        )
 
     children: list[str] = []
     for child in value[3]:
-        if isinstance(child, str) and child:
-            children.append(child)
+        if not isinstance(child, str) or not child:
+            raise CompactDslConversionError(
+                f"{component_id}: children must contain only non-empty component id strings; "
+                "declare each child component in its own JSONL row, not inside children."
+            )
+        children.append(child)
     return tuple(dict.fromkeys(children))
 
 
