@@ -188,7 +188,6 @@
     ],
     "fewshot_2x2": [
       "fewshots/2x2.md#preamble",
-      "fewshots/2x2.md#example-v00",
       "fewshots/2x2.md#example-v01",
       "fewshots/2x2.md#example-v02",
       "fewshots/2x2.md#example-v03",
@@ -201,26 +200,7 @@
       "fewshots/2x2.md#example-v10",
       "fewshots/2x2.md#example-v11",
       "fewshots/2x2.md#example-v12",
-      "fewshots/2x2.md#example-v13",
-      "fewshots/2x2.md#example-v14",
-      "fewshots/2x2.md#example-v15",
-      "fewshots/2x2.md#example-v16",
-      "fewshots/2x2.md#example-v17",
-      "fewshots/2x2.md#example-v18",
-      "fewshots/2x2.md#example-v19",
-      "fewshots/2x2.md#example-v20",
-      "fewshots/2x2.md#example-v21",
-      "fewshots/2x2.md#example-v22",
-      "fewshots/2x2.md#example-v23",
-      "fewshots/2x2.md#example-v24",
-      "fewshots/2x2.md#example-v25",
-      "fewshots/2x2.md#example-v26",
-      "fewshots/2x2.md#example-v27",
-      "fewshots/2x2.md#example-v28",
-      "fewshots/2x2.md#example-v29",
-      "fewshots/2x2.md#example-v30",
-      "fewshots/2x2.md#example-v31",
-      "fewshots/2x2.md#example-v32"
+      "fewshots/2x2.md#example-v13"
     ],
     "fewshot_2x4": [
       "fewshots/2x4.md#preamble",
@@ -321,10 +301,6 @@
     "repair": [],
     "2x2": [
       {
-        "id": "2x2-V00",
-        "source": "fewshots/2x2.md#example-v00"
-      },
-      {
         "id": "2x2-V01",
         "source": "fewshots/2x2.md#example-v01"
       },
@@ -375,82 +351,6 @@
       {
         "id": "2x2-V13",
         "source": "fewshots/2x2.md#example-v13"
-      },
-      {
-        "id": "2x2-V14",
-        "source": "fewshots/2x2.md#example-v14"
-      },
-      {
-        "id": "2x2-V15",
-        "source": "fewshots/2x2.md#example-v15"
-      },
-      {
-        "id": "2x2-V16",
-        "source": "fewshots/2x2.md#example-v16"
-      },
-      {
-        "id": "2x2-V17",
-        "source": "fewshots/2x2.md#example-v17"
-      },
-      {
-        "id": "2x2-V18",
-        "source": "fewshots/2x2.md#example-v18"
-      },
-      {
-        "id": "2x2-V19",
-        "source": "fewshots/2x2.md#example-v19"
-      },
-      {
-        "id": "2x2-V20",
-        "source": "fewshots/2x2.md#example-v20"
-      },
-      {
-        "id": "2x2-V21",
-        "source": "fewshots/2x2.md#example-v21"
-      },
-      {
-        "id": "2x2-V22",
-        "source": "fewshots/2x2.md#example-v22"
-      },
-      {
-        "id": "2x2-V23",
-        "source": "fewshots/2x2.md#example-v23"
-      },
-      {
-        "id": "2x2-V24",
-        "source": "fewshots/2x2.md#example-v24"
-      },
-      {
-        "id": "2x2-V25",
-        "source": "fewshots/2x2.md#example-v25"
-      },
-      {
-        "id": "2x2-V26",
-        "source": "fewshots/2x2.md#example-v26"
-      },
-      {
-        "id": "2x2-V27",
-        "source": "fewshots/2x2.md#example-v27"
-      },
-      {
-        "id": "2x2-V28",
-        "source": "fewshots/2x2.md#example-v28"
-      },
-      {
-        "id": "2x2-V29",
-        "source": "fewshots/2x2.md#example-v29"
-      },
-      {
-        "id": "2x2-V30",
-        "source": "fewshots/2x2.md#example-v30"
-      },
-      {
-        "id": "2x2-V31",
-        "source": "fewshots/2x2.md#example-v31"
-      },
-      {
-        "id": "2x2-V32",
-        "source": "fewshots/2x2.md#example-v32"
       }
     ],
     "2x4": [

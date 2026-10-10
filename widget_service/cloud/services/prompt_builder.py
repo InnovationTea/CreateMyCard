@@ -324,22 +324,22 @@ _IMPLICIT_ROUTE_EVENT_MARKERS = {
         "运动",
     ),
 }
-_TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V05"
-_TWO_BY_TWO_QUAD_FEW_SHOT_ID = "2x2-V24"
+_TWO_BY_TWO_DUAL_FEW_SHOT_ID = "2x2-V07"
+_TWO_BY_TWO_QUAD_FEW_SHOT_ID = "2x2-V12"
 _TWO_BY_FOUR_DUAL_FEW_SHOT_ID = "2x4-V09"
 _GENERIC_FEW_SHOT_IDS = {
-    "2x2": ("2x2-V00",),
+    "2x2": ("2x2-V09",),
     "2x4": ("2x4-V00",),
 }
 _GENERIC_MULTI_FEW_SHOT_IDS = {
-    "2x2": ("2x2-V20",),
+    "2x2": ("2x2-V07",),
     "2x4": ("2x4-V13",),
 }
 _VISUAL_ROUTE_INSTRUCTIONS = {
     "countdown": "本卡是量化主值路由：让倒计时数字成为唯一第一焦点，标题和单位只做上下文。",
     "earphone-status": (
         "本卡是状态主导路由：先读连接/充电状态，再读设备名称或电量，按钮保持次级。"
-        "用户明确要求右下图标入口且具备准确素材时参考 2x2-V15；否则优先使用带文字的 PillButton。"
+        "用户明确要求右下图标入口且具备准确素材时参考 2x2-V08；否则优先使用带文字的 PillButton。"
     ),
     "battery-readout": (
         "本卡是量化主值路由：电量、温度、电流、电压、功率等测量值中只选择一个主读数使用最大安全字号，"
@@ -667,9 +667,9 @@ class PromptBuilder:
 
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
-                "2x2-V25"
+                "2x2-V05"
                 if PromptBuilder._uses_expanded_countdown_layout(task_spec)
-                else "2x2-V23"
+                else "2x2-V01"
             )
             return "countdown", (example_id,)
 
@@ -709,7 +709,7 @@ class PromptBuilder:
         if task_spec.size == "2x2" and event_count == 1 and _contains_any(
             query, ("右下", "图标按钮", "圆形按钮", "圆钮"),
         ):
-            return "generic", ("2x2-V15",)
+            return "generic", ("2x2-V08",)
 
         normalized_roots = {root.casefold() for root in roots}
         if "earphone" in normalized_roots:
@@ -727,15 +727,15 @@ class PromptBuilder:
                 and PromptBuilder._query_requests_action(task_spec)
                 and PromptBuilder._has_compact_numeric_battery(task_spec)
             ):
-                return "battery-readout", ("2x2-V31",)
+                return "battery-readout", ("2x2-V13",)
             dense_with_action = (
                 PromptBuilder._schema_leaf_count(task_spec.dataModelSchema.get("data")) >= 4
                 and event_count > 0
                 and PromptBuilder._query_requests_action(task_spec)
             )
             if task_spec.size == "2x2" and dense_with_action:
-                return "battery-readout", ("2x2-V29",)
-            return "battery-readout", (("2x2-V09",) if task_spec.size == "2x2" else ("2x4-V02",))
+                return "battery-readout", ("2x2-V06",)
+            return "battery-readout", (("2x2-V06",) if task_spec.size == "2x2" else ("2x4-V02",))
         if "weather" in normalized_roots or any(
             _contains_any(query, markers)
             for markers in (("天气", "温度", "空气质量"),)
@@ -744,9 +744,9 @@ class PromptBuilder:
                 task_spec.size == "2x2"
                 and PromptBuilder._has_explicit_non_weather_action(task_spec)
             ):
-                return "weather-readout", ("2x2-V26",)
+                return "weather-readout", ("2x2-V07",)
             return "weather-readout", (
-                ("2x2-V04", "2x2-V14")
+                ("2x2-V07",)
                 if task_spec.size == "2x2"
                 else ("2x4-V11",)
             )
@@ -755,13 +755,13 @@ class PromptBuilder:
         ):
             if task_spec.size == "2x2":
                 if PromptBuilder._schema_has_field(task_spec, ("eventCount",)):
-                    return "calendar-event", ("2x2-V27",)
+                    return "calendar-event", ("2x2-V04",)
                 has_time_range = PromptBuilder._schema_has_field(
                     task_spec, ("dtStart",)
                 ) and PromptBuilder._schema_has_field(task_spec, ("dtEnd",))
                 if has_time_range:
-                    return "calendar-event", ("2x2-V32",)
-                return "calendar-event", ("2x2-V06",)
+                    return "calendar-event", ("2x2-V04",)
+                return "calendar-event", ("2x2-V04",)
             if event_count >= 2 and PromptBuilder._query_requests_action(task_spec):
                 return "calendar-event", ("2x4-V08",)
             if PromptBuilder._calendar_event_count(task_spec) >= 2 or _contains_any(
@@ -783,23 +783,23 @@ class PromptBuilder:
                     )
                 )
                 if has_exercise_summary and PromptBuilder._query_requests_action(task_spec):
-                    return "health-readout", ("2x2-V11",)
+                    return "health-readout", ("2x2-V07",)
                 has_sleep_summary = PromptBuilder._schema_has_field(
                     task_spec,
                     ("sleepDuration", "deepSleepDuration", "sleepType"),
                 )
                 if has_sleep_summary and _contains_any(query, ("睡眠", "睡了", "深睡")):
                     if event_count > 0 and PromptBuilder._query_requests_action(task_spec):
-                        return "health-readout", ("2x2-V30",)
-                    return "health-readout", ("2x2-V12",)
+                        return "health-readout", ("2x2-V11",)
+                    return "health-readout", ("2x2-V09",)
                 has_heart_rate_range = PromptBuilder._schema_has_field(
                     task_spec, ("heartRateMax", "maximumHeartRate")
                 ) and PromptBuilder._schema_has_field(
                     task_spec, ("heartRateMin", "minimumHeartRate")
                 )
                 if has_heart_rate_range:
-                    return "health-readout", ("2x2-V13",)
-                return "health-readout", ("2x2-V07", "2x2-V13")
+                    return "health-readout", ("2x2-V07",)
+                return "health-readout", ("2x2-V09", "2x2-V07")
             has_sleep_score = PromptBuilder._schema_has_field(task_spec, ("sleepScore",))
             has_sleep_duration = PromptBuilder._schema_has_field(
                 task_spec,
@@ -833,11 +833,11 @@ class PromptBuilder:
                 bool(task_spec.eventCandidates) and PromptBuilder._query_requests_action(task_spec)
             )
             if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
-                return ("2x2-V28",)
+                return ("2x2-V02", "2x2-V04")
             if normalized_roots == {"phonebattery", "earphone"}:
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             if PromptBuilder._query_mentions_weather(task_spec):
-                return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID, "2x2-V10")
+                return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             return ()
         if PromptBuilder._uses_two_dense_business_panels(task_spec):
             if (

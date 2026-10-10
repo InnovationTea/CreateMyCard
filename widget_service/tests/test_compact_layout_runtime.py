@@ -64,7 +64,7 @@ def _layout_pseudocodes() -> list[tuple[str, str, str]]:
 
 def _layout_fixture(layout_id: str) -> str:
     fixture_ids = {
-        "S-dual-info": "2x2-V05",
+        "S-dual-info": "2x2-V07",
         "W-content-side-slots": "2x4-V04",
     }
     fixture_id = fixture_ids.get(layout_id)
@@ -196,17 +196,15 @@ def test_s_dual_info_rejects_non_contract_slot_heights() -> None:
     source = _layout_fixture("S-dual-info")
 
     def mutate(row: list) -> None:
-        if row[0] == "zone_a":
+        if row[0] == "shanghai":
             row[2]["height"] = 55
-        if row[0] == "zone_b":
+        if row[0] == "beijing":
             row[2]["height"] = 71
 
-    invalid_source = _mutate_rows(source, mutate)
-    with pytest.raises(CompactDslValidationError, match="height"):
-        validate_compact_dsl(
-            invalid_source,
-            task_spec=_task_spec_for_source(invalid_source, size="2x2"),
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
+    with pytest.raises(CompactLayoutRuntimeError, match="height"):
+        match_compact_layout(
+            _components(_mutate_rows(source, mutate)),
+            size="2x2",
             layout_scope="S-dual-info",
         )
 
