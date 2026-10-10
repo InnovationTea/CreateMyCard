@@ -150,7 +150,10 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
             "maxItems": 3,
             "uniqueItems": True,
             "description": (
-                "按优先级排列的组件软候选，不冻结最终组件。真实占比或进度可以绑定"
+                "按优先级排列的组件候选；第一项是合同条件成立时应落实的首选，"
+                "其余为不适配时的备选，不冻结实例数量。先按对象和信息关系合组，"
+                "再给组内事实推荐可共同承载它们的组件，不默认逐字段拆成单文字组件。"
+                "真实占比或进度可以绑定"
                 "number/integer dataId，或样例为完整数值百分比的 string dataId；"
                 "普通字符串、布尔值、静态正文和操作不推荐进度组件。"
                 "SingleLineTitle 承担单行标题；DoubleLineTitle 承担标题加紧密相关的次信息。"
@@ -257,7 +260,10 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
     return (
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"
-        "componentHints 与 layoutHints 都是软候选，不冻结组件实例或最终骨架。"
+        "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+        "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
+        "具体条件不成立才改选合法备选或组件组合。先按对象和信息关系合组，再映射可见 Prop。"
+        "不能因为完整案例使用了其它组件就将匹配的信息组拆成逐字段的单文字组件。"
         "每项事实必须由最终 Compact "
         "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
@@ -277,6 +283,35 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
         "第二行只放另一项必要事实，不重复主行标签；取消可选图标仍放不下时改用基础组合。"
         "动作先留足高度，环、状态、标题的总高度不能超出剩余正文；layoutWeight 不会让"
         "文字或环缩小。时间段、日期时间和带长单位的指标使用普通字号或分行，不套用大数字。\n\n"
+        f"```json\n{payload}\n```"
+        f"{_component_intent_context(plan)}"
+    )
+
+
+def _component_intent_context(plan: dict[str, Any]) -> str:
+    """把已接受的首选映射成核对表，不新增硬使用率门禁或模型调用。"""
+    allowed = set(_COMPONENT_HINTS["2x2"]) | set(_COMPONENT_HINTS["2x4"])
+    groups: dict[str, list[int]] = {}
+    for index, fact in enumerate(plan.get("info_required", []), start=1):
+        if not isinstance(fact, dict):
+            continue
+        hints = fact.get("componentHints")
+        if not isinstance(hints, list) or not hints:
+            continue
+        preferred = hints[0]
+        if isinstance(preferred, str) and preferred in allowed:
+            groups.setdefault(preferred, []).append(index)
+    if not groups:
+        return ""
+    payload = json.dumps(groups, ensure_ascii=False, separators=(",", ":"))
+    return (
+        "\n\n# 本轮首选组件落点核对\n\n"
+        "编号是 info_required 中从 1 开始的事实序号，不是组件数量。"
+        "同对象、同事件或同级信息组才合并实例，不混合不同对象。"
+        "生成和修复前核对首选是否落实，不适配时按具体语义、绑定、容量原因改选。"
+        "此核对不输出解释、不添加协议字段、不删事实凑组件。"
+        "保留正式骨架的父容器与层级，组件放在内容槽内；"
+        "逐 Prop 核对自身绑定合同，不借用其它组件属性。\n\n"
         f"```json\n{payload}\n```"
     )
 

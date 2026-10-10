@@ -1,8 +1,13 @@
 import visualRecipes from "../../../../../cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json";
+import { adaptCompactRegions } from "../../../../../../render/shared/compact-region-layout";
 
 /** Expansion contracts from the shared Fusion Compact component runtime. */
 export type MiniNode = { type: string; props: Record<string, unknown>; children: string[] };
 export type CardSize = "2x2" | "2x4";
+export type ExpansionDataContext = {
+  get: (path: string) => unknown;
+  setDerived: (path: string, value: unknown) => void;
+};
 type RecordValue = Record<string, unknown>;
 type RecipePart = { component: string; styles: RecordValue };
 type Recipe = {
@@ -16,7 +21,9 @@ const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margi
 
 export const VISUAL_RECIPE_VERSION = "visual-recipes-v1";
 export const HIGH_LEVEL_COMPONENT_TYPES = [
-  "PillButton", "CircleButton", "EmphasizedData", "SecondaryBody", "InfoBlock", "ProgressLine2",
+  "DoubleLineTitle", "Badge", "EmphasisText", "SecondaryBody", "H_BarChart",
+  "NumericRatioStack",
+  "PillButton", "CircleButton", "EmphasizedData", "InfoBlock", "ProgressCircle", "ProgressLine2",
   "TableText", "TextBlock", "CardButton", "ProgressCircleSingle", "EventCard",
   "DataDisplay", "TopTextBottomValue", "SummaryList",
 ] as const;
@@ -192,86 +199,152 @@ function colorWithAlpha(color: string, opacity: number) {
   return `#${alpha.toString(16).padStart(2, "0").toUpperCase()}${color.slice(3)}`;
 }
 
+function normalizedProgressValue(
+  id: string,
+  type: string,
+  prop: string,
+  value: unknown,
+  total: number,
+): number {
+  if (typeof value === "boolean") {
+    throw new Error(`${id}: ${type}.${prop} 必须是有限数值或完整数值百分比。`);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value < 0 || value > total) {
+      const range = total === 100 ? "0–100" : `0–${total}`;
+      throw new Error(`${id}: ${type}.${prop} 必须在 ${range} 之间。`);
+    }
+    return value;
+  }
+  if (typeof value === "string") {
+    const match = value.match(/^\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*([%％]?)\s*$/);
+    if (match) {
+      let numeric = Number(match[1]);
+      if (match[2]) numeric = Math.min(100, Math.max(0, numeric)) * total / 100;
+      if (Number.isFinite(numeric) && numeric >= 0 && numeric <= total) return numeric;
+    }
+  }
+  throw new Error(`${id}: ${type}.${prop} 必须是 0–100 有限数值或完整数值百分比。`);
+}
+
+function normalizedProgressBinding(
+  id: string,
+  type: string,
+  prop: string,
+  value: unknown,
+  total: number,
+  data?: ExpansionDataContext,
+): unknown {
+  if (record(value) && Object.keys(value).length === 1 && typeof value.path === "string") {
+    const initial = data?.get(value.path);
+    if (typeof initial !== "string" && typeof initial !== "number") return clone(value);
+    const numeric = normalizedProgressValue(id, type, prop, initial, total);
+    if (typeof initial !== "string") return clone(value);
+    const derivedPath = `/__display${value.path}/progressValue`;
+    data?.setDerived(derivedPath, numeric);
+    return { path: derivedPath };
+  }
+  return normalizedProgressValue(id, type, prop, value, total);
+}
+
+function progressCircleValues(
+  id: string,
+  value: unknown,
+  data?: ExpansionDataContext,
+): [unknown, unknown] {
+  if (record(value) && Object.keys(value).length === 1 && typeof value.path === "string") {
+    const initial = data?.get(value.path);
+    const progress = normalizedProgressBinding(
+      id,
+      "ProgressCircle",
+      "externalText",
+      value,
+      100,
+      data,
+    );
+    return typeof initial === "string"
+      ? [progress, clone(value)]
+      : [progress, `{{ \${${value.path}} + '%' }}`];
+  }
+  const numeric = normalizedProgressValue(id, "ProgressCircle", "externalText", value, 100);
+  return typeof value === "string" ? [numeric, value.trim()] : [numeric, `${numeric}%`];
+}
+
+function requireProgressCircleAccessibility(id: string, value: unknown) {
+  const allowed = ["description", "label"];
+  const valid = record(value)
+    && Object.keys(value).every(name => allowed.includes(name))
+    && typeof value.label === "string"
+    && value.label.trim().length > 0
+    && (value.description === undefined
+      || (typeof value.description === "string" && value.description.trim().length > 0));
+  if (!valid) {
+    throw new Error(`${id}: ProgressCircle.accessibility 必须包含非空 label。`);
+  }
+}
+
 function expandHighLevel(
   id: string,
   node: MiniNode,
   size: CardSize,
+  data?: ExpansionDataContext,
 ): Array<[string, MiniNode]> | null {
   const p = node.props;
   const type = node.type;
   if (!(HIGH_LEVEL_COMPONENT_TYPES as readonly string[]).includes(type)) return null;
   requireNoChildren(id, type, node.children);
 
-  if (type === "PillButton") {
-    if (size !== "2x2") throw new Error("PillButton 仅支持 2x2 卡片。");
-    const allowed = [
-      "label", "icon", "actionInk", "actionSurface", "fontSize", "fontWeight", "onClick",
-    ];
-    requireProps(id, type, p, ["label", "actionInk", "actionSurface", "onClick"], allowed);
-    if (typeof p.label !== "string" || !p.label.trim()) {
-      throw new Error(`${id}: PillButton.label 必须是非空文本。`);
-    }
-    requireOptionalIcon(id, type, p);
-    requireAction(id, type, p.onClick);
-    requireColor(id, type, p, "actionInk");
-    requireColor(id, type, p, "actionSurface");
-    if (p.fontSize !== undefined && p.fontSize !== 14) {
-      throw new Error(`${id}: PillButton.fontSize 只能是 14。`);
-    }
-    if (p.fontWeight !== undefined && ![400, 500].includes(Number(p.fontWeight))) {
-      throw new Error(`${id}: PillButton.fontWeight 只能是 400 或 500。`);
-    }
-    return [row(id, type, "root", size, { ...p, state: "capsule" })];
-  }
-
-  if (type === "CircleButton") {
-    if (size !== "2x2") throw new Error("CircleButton 仅支持 2x2 卡片。");
-    const allowed = ["icon", "accessibility", "actionInk", "actionSurface", "onClick"];
+  if (type === "DoubleLineTitle") {
+    const allowed = ["title", "secondaryInfo", "fontColor"];
     requireProps(id, type, p, allowed, allowed);
-    requireOptionalIcon(id, type, p);
-    requireAction(id, type, p.onClick);
-    requireColor(id, type, p, "actionInk");
-    requireColor(id, type, p, "actionSurface");
-    const accessibility = p.accessibility;
-    const validAccessibility = record(accessibility)
-      && Object.keys(accessibility).every(key => ["label", "description"].includes(key))
-      && typeof accessibility.label === "string"
-      && accessibility.label.trim().length > 0;
-    if (!validAccessibility) {
-      throw new Error(`${id}: CircleButton.accessibility 需要非空 label，只接受 label/description。`);
-    }
-    if (accessibility.description !== undefined
-      && (typeof accessibility.description !== "string" || !accessibility.description.trim())) {
-      throw new Error(`${id}: CircleButton.accessibility.description 必须是非空文本。`);
-    }
-    return [row(id, type, "root", size, { ...p, state: "icon-round" })];
+    requireDisplay(id, type, p, "title");
+    requireDisplay(id, type, p, "secondaryInfo");
+    requireColor(id, type, p, "fontColor");
+    const titleId = `${id}_title`;
+    const secondaryId = `${id}_secondary`;
+    return [
+      row(id, type, "root", size, {}, [titleId, secondaryId]),
+      row(titleId, type, "title", size, { content: p.title, fontColor: p.fontColor }),
+      row(secondaryId, type, "secondary", size, {
+        content: p.secondaryInfo,
+        fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+      }),
+    ];
   }
 
-  if (type === "EmphasizedData") {
-    requireProps(id, type, p, ["value", "fontColor"], ["value", "unit", "fontColor"]);
+  if (type === "Badge") {
+    const allowed = ["value", "fontColor", "backgroundColor"];
+    requireProps(id, type, p, allowed, allowed);
     requireDisplay(id, type, p, "value");
     requireColor(id, type, p, "fontColor");
-    if (p.unit !== undefined && (typeof p.unit !== "string" || !p.unit.trim())) {
-      throw new Error(`${id}: EmphasizedData.unit 必须是非空文本。`);
-    }
-    const valueId = `${id}_value`;
-    const children = [valueId];
-    const rows = [
-      row(id, type, "root", size, { itemMargin: p.unit ? 2 : 0 }, children),
-      row(valueId, type, "value", size, { content: p.value, fontColor: p.fontColor }),
+    requireColor(id, type, p, "backgroundColor");
+    return [row(id, type, "root", size, {
+      content: p.value,
+      fontColor: p.fontColor,
+      backgroundColor: p.backgroundColor,
+    })];
+  }
+
+  if (type === "EmphasisText") {
+    const allowed = ["mainText", "secondaryText", "fontColor"];
+    requireProps(id, type, p, ["mainText", "fontColor"], allowed);
+    requireDisplay(id, type, p, "mainText");
+    if (p.secondaryText !== undefined) requireDisplay(id, type, p, "secondaryText");
+    requireColor(id, type, p, "fontColor");
+    const mainId = `${id}_main`;
+    const children = [mainId];
+    const rows: Array<[string, MiniNode]> = [
+      row(mainId, type, "main", size, { content: p.mainText, fontColor: p.fontColor }),
     ];
-    if (p.unit) {
-      const unitId = `${id}_unit`;
-      children.push(unitId);
-      rows.push(row(
-        unitId,
-        type,
-        "unit",
-        size,
-        { content: p.unit, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
-      ));
+    if (p.secondaryText !== undefined) {
+      const secondaryId = `${id}_secondary`;
+      children.push(secondaryId);
+      rows.push(row(secondaryId, type, "secondary", size, {
+        content: p.secondaryText,
+        fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+      }));
     }
-    return rows;
+    return [row(id, type, "root", size, {}, children), ...rows];
   }
 
   if (type === "SecondaryBody") {
@@ -328,7 +401,7 @@ function expandHighLevel(
           rowChildren.push(separatorId);
           rows.push(row(separatorId, type, "separator", size, {
             content: separator,
-            fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+            fontColor: colorWithAlpha(p.fontColor as string, 0.6),
           }, [], variant));
         }
         const itemId = `${id}_item${itemIndex}`;
@@ -346,7 +419,7 @@ function expandHighLevel(
         itemChildren.push(valueId);
         rows.push(row(valueId, type, "text", size, {
           content: item.value,
-          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+          fontColor: colorWithAlpha(p.fontColor as string, 0.6),
         }, [], variant));
         rows.push(row(itemId, type, "item", size, { layoutWeight: 1 }, itemChildren, variant));
       });
@@ -355,10 +428,339 @@ function expandHighLevel(
     return [row(id, type, "root", size, {}, rootChildren, variant), ...rows];
   }
 
+  if (type === "H_BarChart") {
+    const allowed = ["items", "fontColor", "barColor", "trackColor"];
+    requireProps(id, type, p, allowed, allowed);
+    ["fontColor", "barColor", "trackColor"].forEach(name => requireColor(id, type, p, name));
+    if (!Array.isArray(p.items) || p.items.length < 2 || p.items.length > 3) {
+      throw new Error(`${id}: H_BarChart.items 需要 2–3 项。`);
+    }
+    const items = p.items.map((item, index) => {
+      const valid = record(item)
+        && Object.keys(item).sort().join(",") === "label,percent,valueUnit"
+        && typeof item.label === "string" && item.label.trim()
+        && isDisplayValue(item.valueUnit)
+        && typeof item.percent === "number" && Number.isFinite(item.percent)
+        && item.percent >= 0 && item.percent <= 100;
+      if (!valid) throw new Error(`${id}: H_BarChart.items[${index}] 无效。`);
+      return item;
+    });
+    const variant = items.length === 3 ? "threeItems" : undefined;
+    const children: string[] = [];
+    const rows: Array<[string, MiniNode]> = [];
+    items.forEach((item, index) => {
+      const itemId = `${id}_item${index}`;
+      const metaId = `${itemId}_meta`;
+      const labelId = `${itemId}_label`;
+      const valueId = `${itemId}_value`;
+      const barId = `${itemId}_bar`;
+      children.push(itemId);
+      rows.push(
+        row(itemId, type, "item", size, {}, [metaId, barId], variant),
+        row(metaId, type, "meta", size, {}, [labelId, valueId], variant),
+        row(labelId, type, "label", size, { content: item.label, fontColor: p.fontColor }, [], variant),
+        row(valueId, type, "value", size, { content: item.valueUnit, fontColor: p.fontColor }, [], variant),
+        row(barId, type, "bar", size, {
+          type: "linear", value: item.percent, total: 100,
+          color: p.barColor, backgroundColor: p.trackColor,
+        }, [], variant),
+      );
+    });
+    return [row(id, type, "root", size, {}, children, variant), ...rows];
+  }
+
+  if (type === "NumericRatioStack") {
+    const allowed = ["items", "direction", "fontColor", "fillColor"];
+    requireProps(id, type, p, ["items", "fontColor", "fillColor"], allowed);
+    requireColor(id, type, p, "fontColor");
+    requireColor(id, type, p, "fillColor");
+    const direction = p.direction ?? "column";
+    if (!(["row", "column"] as unknown[]).includes(direction)) {
+      throw new Error(`${id}: NumericRatioStack.direction 只接受 row 或 column。`);
+    }
+    if (!Array.isArray(p.items) || p.items.length !== 3) {
+      throw new Error(`${id}: NumericRatioStack.items 必须恰好 3 项。`);
+    }
+    const variant = direction === "row" ? "row" : undefined;
+    const children: string[] = [];
+    const rows: Array<[string, MiniNode]> = [];
+    p.items.forEach((item, index) => {
+      const valid = record(item) && typeof item.icon === "string" && item.icon.trim()
+        && isDisplayValue(item.value)
+        && Object.keys(item).every(key => ["icon", "value", "unit"].includes(key))
+        && (item.unit === undefined || (typeof item.unit === "string" && item.unit.trim()));
+      if (!valid) throw new Error(`${id}: NumericRatioStack.items[${index}] 无效。`);
+      const itemId = `${id}_item${index}`;
+      const iconSlotId = `${itemId}_icon_slot`;
+      const iconId = `${itemId}_icon`;
+      const valueGroupId = `${itemId}_value_group`;
+      const valueId = `${itemId}_value`;
+      const valueChildren = [valueId];
+      const itemChildren = [iconSlotId, valueGroupId];
+      children.push(itemId);
+      rows.push(
+        row(iconSlotId, type, "iconSlot", size, {}, [iconId], variant),
+        row(iconId, type, "icon", size, { src: item.icon, fillColor: p.fillColor }, [], variant),
+        row(valueId, type, "value", size, { content: item.value, fontColor: p.fontColor }, [], variant),
+      );
+      let unit = item.unit;
+      if (unit === undefined && typeof item.value === "number") unit = "%";
+      if (unit === undefined && record(item.value) && typeof item.value.path === "string") {
+        const initial = data?.get(item.value.path);
+        if (typeof initial === "number") unit = "%";
+      }
+      if (unit !== undefined) {
+        const unitId = `${itemId}_unit`;
+        valueChildren.push(unitId);
+        rows.push(row(unitId, type, "value", size, {
+          content: unit, fontColor: p.fontColor,
+        }, [], variant));
+      }
+      rows.push(row(valueGroupId, type, "valueGroup", size, {}, valueChildren, variant));
+      rows.push(row(itemId, type, "item", size, {}, itemChildren, variant));
+    });
+    return [row(id, type, "root", size, {}, children, variant), ...rows];
+  }
+
+  if (type === "ProgressCircle") {
+    const allowed = [
+      "externalText", "icon", "accessibility", "fontColor", "fillColor", "color",
+      "backgroundColor", "width", "height",
+    ];
+    const required = [
+      "externalText", "icon", "accessibility", "fontColor", "color", "backgroundColor",
+      "width", "height",
+    ];
+    requireProps(id, type, p, required, allowed);
+    requireOptionalIcon(id, type, p);
+    ["fontColor", "color", "backgroundColor"].forEach(name => requireColor(id, type, p, name));
+    requireProgressCircleAccessibility(id, p.accessibility);
+    const width = p.width;
+    const height = p.height;
+    if (typeof width !== "number" || !Number.isFinite(width) || width <= 0
+      || typeof height !== "number" || !Number.isFinite(height) || height <= 0) {
+      throw new Error(`${id}: ProgressCircle.width/height 必须是正数。`);
+    }
+    const metrics = recipe(type, size).metrics;
+    const textHeight = metrics?.externalTextHeight;
+    const itemMargin = metrics?.itemMargin;
+    const minimumDiameter = metrics?.minimumRingDiameter;
+    const strokeWidth = metrics?.strokeWidth;
+    if (![textHeight, itemMargin, minimumDiameter, strokeWidth].every(value =>
+      typeof value === "number" && Number.isFinite(value) && value > 0)) {
+      throw new Error("ProgressCircle 视觉 Recipe 几何无效。");
+    }
+    const ringDiameter = Math.min(width, height - Number(textHeight) - Number(itemMargin));
+    if (ringDiameter < Number(minimumDiameter)) {
+      throw new Error(`${id}: ProgressCircle.width/height 留给圆环的空间不足。`);
+    }
+    const [progressValue, externalText] = progressCircleValues(id, p.externalText, data);
+    const ringStackId = `${id}_ring_stack`;
+    const ringId = `${id}_ring`;
+    const iconId = `${id}_icon`;
+    const externalTextId = `${id}_external_text`;
+    return [
+      row(
+        id,
+        type,
+        "root",
+        size,
+        { width, height, accessibility: p.accessibility },
+        [ringStackId, externalTextId],
+      ),
+      row(
+        ringStackId,
+        type,
+        "ringStack",
+        size,
+        { width: ringDiameter, height: ringDiameter },
+        [ringId, iconId],
+      ),
+      row(ringId, type, "ring", size, {
+        width: ringDiameter,
+        height: ringDiameter,
+        value: progressValue,
+        total: 100,
+        strokeWidth,
+        color: p.color,
+        backgroundColor: p.backgroundColor,
+      }),
+      row(iconId, type, "icon", size, {
+        src: p.icon,
+        ...(p.fillColor ? { fillColor: p.fillColor } : {}),
+      }),
+      row(externalTextId, type, "externalText", size, {
+        content: externalText,
+        width,
+        fontColor: p.fontColor,
+      }),
+    ];
+  }
+
+  if (type === "PillButton") {
+    if (!["2x2", "2x4"].includes(size)) throw new Error("PillButton 仅支持 2x2 或 2x4 卡片。");
+    const allowed = [
+      "label", "icon", "actionInk", "actionSurface", "fontSize", "fontWeight", "onClick", "width",
+    ];
+    requireProps(id, type, p, ["label", "actionInk", "actionSurface", "onClick"], allowed);
+    if (typeof p.label !== "string" || !p.label.trim()) {
+      throw new Error(`${id}: PillButton.label 必须是非空文本。`);
+    }
+    requireOptionalIcon(id, type, p);
+    requireAction(id, type, p.onClick);
+    requireColor(id, type, p, "actionInk");
+    requireColor(id, type, p, "actionSurface");
+    if (p.fontSize !== undefined && p.fontSize !== 14) {
+      throw new Error(`${id}: PillButton.fontSize 只能是 14。`);
+    }
+    if (p.fontWeight !== undefined && ![400, 500].includes(Number(p.fontWeight))) {
+      throw new Error(`${id}: PillButton.fontWeight 只能是 400 或 500。`);
+    }
+    const allowedWidths = size === "2x2" ? ["matchParent", 126] : ["matchParent", 116, 132];
+    if (p.width !== undefined && !allowedWidths.includes(p.width as string | number)) {
+      throw new Error(`${id}: PillButton.width 不适用于 ${size}。`);
+    }
+    const visual = visualRecipePart(type, "root", size);
+    const base = {
+      ...visual.styles,
+      ...(p.width !== undefined ? { width: p.width } : {}),
+      backgroundColor: p.actionSurface,
+      onClick: p.onClick,
+    };
+    if (!p.icon) {
+      return [[id, {
+        type: "Button",
+        props: {
+          ...base,
+          label: p.label,
+          enabled: true,
+          fontColor: p.actionInk,
+          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
+          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
+          textAlign: "center",
+        },
+        children: [],
+      }]];
+    }
+    const iconId = `${id}_icon`;
+    const textId = `${id}_text`;
+    return [
+      [id, {
+        type: "Row",
+        props: { ...base, itemMargin: 8, justifyContent: "center", alignItems: "center" },
+        children: [iconId, textId],
+      }],
+      [iconId, {
+        type: "Image",
+        props: {
+          src: p.icon,
+          width: 20,
+          height: 20,
+          objectFit: "contain",
+          flexShrink: 0,
+          fillColor: p.actionInk,
+        },
+        children: [],
+      }],
+      [textId, {
+        type: "Text",
+        props: {
+          content: p.label,
+          maxWidth: 96,
+          height: p.height ?? visual.styles.height ?? 36,
+          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
+          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
+          fontColor: p.actionInk,
+          textAlign: "center",
+          maxLines: 1,
+          flexShrink: 0,
+        },
+        children: [],
+      }],
+    ];
+  }
+
+  if (type === "CircleButton") {
+    if (size !== "2x2") throw new Error("CircleButton 仅支持 2x2 卡片。");
+    const allowed = ["icon", "accessibility", "actionInk", "actionSurface", "onClick"];
+    requireProps(id, type, p, allowed, allowed);
+    requireOptionalIcon(id, type, p);
+    requireAction(id, type, p.onClick);
+    requireColor(id, type, p, "actionInk");
+    requireColor(id, type, p, "actionSurface");
+    const accessibility = p.accessibility;
+    const validAccessibility = record(accessibility)
+      && Object.keys(accessibility).every(key => ["label", "description"].includes(key))
+      && typeof accessibility.label === "string"
+      && accessibility.label.trim().length > 0;
+    if (!validAccessibility) {
+      throw new Error(`${id}: CircleButton.accessibility 需要非空 label，只接受 label/description。`);
+    }
+    if (accessibility.description !== undefined
+      && (typeof accessibility.description !== "string" || !accessibility.description.trim())) {
+      throw new Error(`${id}: CircleButton.accessibility.description 必须是非空文本。`);
+    }
+    const visual = visualRecipePart(type, "root", size);
+    const iconId = `${id}_icon`;
+    return [
+      [id, {
+        type: "Stack",
+        props: {
+          ...visual.styles,
+          backgroundColor: p.actionSurface,
+          alignContent: "center",
+          clip: true,
+          onClick: p.onClick,
+          accessibility: p.accessibility,
+        },
+        children: [iconId],
+      }],
+      [iconId, {
+        type: "Image",
+        props: {
+          src: p.icon,
+          width: 20,
+          height: 20,
+          objectFit: "contain",
+          flexShrink: 0,
+          fillColor: p.actionInk,
+        },
+        children: [],
+      }],
+    ];
+  }
+
+  if (type === "EmphasizedData") {
+    requireProps(id, type, p, ["value", "fontColor"], ["value", "unit", "fontColor"]);
+    requireDisplay(id, type, p, "value");
+    requireColor(id, type, p, "fontColor");
+    if (p.unit !== undefined && (typeof p.unit !== "string" || !p.unit.trim())) {
+      throw new Error(`${id}: EmphasizedData.unit 必须是非空文本。`);
+    }
+    const valueId = `${id}_value`;
+    const children = [valueId];
+    const rows = [
+      row(id, type, "root", size, { itemMargin: p.unit ? 2 : 0 }, children),
+      row(valueId, type, "value", size, { content: p.value, fontColor: p.fontColor }),
+    ];
+    if (p.unit) {
+      const unitId = `${id}_unit`;
+      children.push(unitId);
+      rows.push(row(
+        unitId,
+        type,
+        "unit",
+        size,
+        { content: p.unit, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
+      ));
+    }
+    return rows;
+  }
+
   if (type === "InfoBlock") {
     const allowed = [
       "variant", "primaryText", "secondaryText", "fontColor", "backgroundColor",
-      "icon", "fillColor", "onClick",
+      "unit", "visual", "icon", "fillColor", "onClick",
     ];
     requireProps(
       id,
@@ -371,31 +773,47 @@ function expandHighLevel(
     requireDisplay(id, type, p, "secondaryText");
     requireColor(id, type, p, "fontColor");
     requireColor(id, type, p, "backgroundColor");
-    requireOptionalIcon(id, type, p);
+    if (p.icon !== undefined && (typeof p.icon !== "string" || !p.icon.trim())) {
+      throw new Error(`${id}: InfoBlock.icon 必须是非空文本。`);
+    }
+    if (p.fillColor !== undefined) requireColor(id, type, p, "fillColor");
     if (p.onClick !== undefined) requireAction(id, type, p.onClick);
+    if (p.unit !== undefined && (typeof p.unit !== "string" || !p.unit.trim())) {
+      throw new Error(`${id}: InfoBlock.unit 必须是非空文本。`);
+    }
     if (size === "2x2" && p.variant !== undefined && p.variant !== "stacked") {
       throw new Error('2x2 InfoBlock.variant 只能省略或使用 "stacked"。');
     }
     if (size === "2x4" && !["slot", "aux", "small"].includes(String(p.variant))) {
       throw new Error('2x4 InfoBlock.variant 必须是 "slot"，也兼容 "aux"/"small"。');
     }
-    const copyLayout = p.icon ? { layoutWeight: 1 } : { width: "matchParent" };
+    if (p.visual !== undefined && p.icon !== undefined) {
+      throw new Error(`${id}: InfoBlock.visual 不能与 legacy icon 同时使用。`);
+    }
+    let visual: RecordValue | undefined;
+    if (record(p.visual)) visual = p.visual;
+    else if (p.visual !== undefined) throw new Error(`${id}: InfoBlock.visual 必须是对象。`);
+    else if (p.icon !== undefined) visual = { type: "icon", icon: p.icon };
+    if (visual) {
+      const visualKeys = Object.keys(visual);
+      if (visualKeys.some(key => !["type", "icon", "color"].includes(key))
+        || !["icon", "progressCircle"].includes(String(visual.type))
+        || typeof visual.icon !== "string" || !visual.icon.trim()
+        || (visual.color !== undefined && (visual.type !== "icon" || visual.color !== "native"))) {
+        throw new Error(`${id}: InfoBlock.visual 无效。`);
+      }
+    }
+    const copyLayout = visual ? { layoutWeight: 1 } : { width: "matchParent" };
     const textId = `${id}_text`;
     const primaryId = `${id}_primary`;
     const secondaryId = `${id}_secondary`;
     const children = [textId];
+    const textChildren = [primaryId, secondaryId];
     const rootProps: RecordValue = { backgroundColor: p.backgroundColor };
     if (p.onClick !== undefined) rootProps.onClick = p.onClick;
     const rows = [
-      row(id, type, p.icon ? "root" : "rootNoVisual", size, rootProps, children),
-      row(textId, type, "copy", size, copyLayout, [primaryId, secondaryId]),
-      row(
-        primaryId,
-        type,
-        "primary",
-        size,
-        { content: p.primaryText, fontColor: p.fontColor },
-      ),
+      row(id, type, visual ? "root" : "rootNoVisual", size, rootProps, children),
+      row(textId, type, "copy", size, copyLayout, textChildren),
       row(
         secondaryId,
         type,
@@ -407,16 +825,58 @@ function expandHighLevel(
         },
       ),
     ];
-    if (p.icon) {
-      const iconId = `${id}_icon`;
+    if (p.unit === undefined) {
+      rows.push(row(primaryId, type, "primary", size, {
+        content: p.primaryText, fontColor: p.fontColor,
+      }));
+    } else {
+      const primaryRowId = `${primaryId}_row`;
+      const primaryValueId = `${primaryId}_value`;
+      const unitId = `${primaryId}_unit`;
+      textChildren[0] = primaryRowId;
+      rows.push(
+        row(primaryRowId, type, "primaryRow", size, {}, [primaryValueId, unitId]),
+        row(primaryValueId, type, "primary", size, {
+          content: p.primaryText, fontColor: p.fontColor,
+        }),
+        row(unitId, type, "unit", size, {
+          content: p.unit,
+          fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+        }),
+      );
+    }
+    if (visual?.type === "icon") {
+      const iconId = `${id}_visual`;
       children.push(iconId);
       rows.push(row(
         iconId,
         type,
         "icon",
         size,
-        { src: p.icon, ...(p.fillColor ? { fillColor: p.fillColor } : {}) },
+        {
+          src: visual.icon,
+          ...(visual.color === "native" ? {} : { fillColor: p.fillColor ?? p.fontColor }),
+        },
       ));
+    } else if (visual?.type === "progressCircle") {
+      const visualId = `${id}_visual`;
+      const progressId = `${visualId}_progress`;
+      const iconId = `${visualId}_icon`;
+      children.push(visualId);
+      rows.push(
+        row(visualId, type, "progressStack", size, {}, [progressId, iconId]),
+        row(progressId, type, "progress", size, {
+          type: "ring",
+          value: normalizedProgressBinding(id, type, "primaryText", p.primaryText, 100, data),
+          total: 100,
+          color: p.fontColor,
+          backgroundColor: colorWithAlpha(p.fontColor as string, 0.2),
+        }),
+        row(iconId, type, "progressIcon", size, {
+          src: visual.icon,
+          fillColor: p.fillColor ?? colorWithAlpha(p.fontColor as string, 0.6),
+        }),
+      );
     }
     return rows;
   }
@@ -456,7 +916,14 @@ function expandHighLevel(
         size,
         {
           type: "linear",
-          value: p.value,
+          value: normalizedProgressBinding(
+            id,
+            type,
+            "value",
+            p.value,
+            p.total,
+            data,
+          ),
           total: p.total,
           color: p.color,
           backgroundColor: p.backgroundColor,
@@ -479,8 +946,8 @@ function expandHighLevel(
 
   if (type === "TableText" || type === "TextBlock") {
     const isTable = type === "TableText";
-    if (size !== (isTable ? "2x2" : "2x4")) {
-      throw new Error(`${type} 仅支持 ${isTable ? "2x2" : "2x4"} 卡片。`);
+    if (!isTable && size !== "2x4") {
+      throw new Error("TextBlock 仅支持 2x4 卡片。");
     }
     const required = isTable
       ? ["items", "fontColor"]
@@ -488,7 +955,8 @@ function expandHighLevel(
     requireProps(id, type, p, required, ["items", "fontColor", "backgroundColor"]);
     requireColor(id, type, p, "fontColor");
     if (!isTable) requireColor(id, type, p, "backgroundColor");
-    const items = labelValueItems(id, type, p.items, 2, isTable ? 3 : 2);
+    const items = labelValueItems(id, type, p.items, 2, isTable ? 3 : 4);
+    const variant = isTable && items.length === 3 ? "compact" : undefined;
     const children: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
     items.forEach((item, index) => {
@@ -503,6 +971,7 @@ function expandHighLevel(
         size,
         isTable ? {} : { backgroundColor: p.backgroundColor },
         [labelId, valueId],
+        variant,
       ));
       rows.push(row(
         labelId,
@@ -513,6 +982,8 @@ function expandHighLevel(
           content: item.label,
           fontColor: isTable ? colorWithAlpha(String(p.fontColor), 0.6) : p.fontColor,
         },
+        [],
+        variant,
       ));
       rows.push(row(
         valueId,
@@ -520,12 +991,17 @@ function expandHighLevel(
         "value",
         size,
         { content: item.value, fontColor: p.fontColor },
+        [],
+        variant,
       ));
     });
-    const gap = recipe(type, size).metrics?.[
+    const gap = recipe(type, size, variant).metrics?.[
       items.length === 2 ? "twoRowGap" : "threeRowGap"
     ];
-    return [row(id, type, "root", size, isTable ? { itemMargin: gap } : {}, children), ...rows];
+    return [
+      row(id, type, "root", size, isTable ? { itemMargin: gap } : {}, children, variant),
+      ...rows,
+    ];
   }
 
   if (type === "CardButton") {
@@ -607,7 +1083,14 @@ function expandHighLevel(
         size,
         {
           type: "ring",
-          value: p.value,
+          value: normalizedProgressBinding(
+            id,
+            type,
+            "value",
+            p.value,
+            p.total,
+            data,
+          ),
           total: p.total,
           color: p.color,
           backgroundColor: p.backgroundColor,
@@ -657,94 +1140,95 @@ function expandHighLevel(
   }
 
   if (type === "EventCard") {
-    if (size !== "2x2") throw new Error("EventCard 仅支持 2x2 卡片。");
-    const allowed = ["title", "time", "location", "fontColor"];
-    requireProps(id, type, p, ["title", "time", "fontColor"], allowed);
-    requireDisplay(id, type, p, "title");
-    requireDisplay(id, type, p, "time");
-    if (p.location !== undefined) requireDisplay(id, type, p, "location");
+    const allowed = ["items", "title", "time", "location", "density", "fontColor"];
+    requireProps(id, type, p, ["fontColor"], allowed);
     requireColor(id, type, p, "fontColor");
-    const secondaryColor = colorWithAlpha(String(p.fontColor), 0.6);
-    const variant = p.location === undefined ? "withoutLocation" : "withLocation";
-    const metrics = recipe(type, size, variant).metrics!;
-    const rail = `${id}_rail`;
-    const dot = `${rail}_dot`;
-    const line = `${rail}_line`;
-    const texts = `${id}_texts`;
-    const title = `${id}_title`;
-    const time = `${id}_time`;
-    const textChildren = [title, time];
-    const rows = [
-      row(
-        id,
-        type,
-        "root",
-        size,
-        { height: metrics.height, layoutWeight: 1 },
-        [rail, texts],
-        variant,
-      ),
-      row(
-        rail,
-        type,
-        "rail",
-        size,
-        { height: metrics.height, clip: true },
-        [dot, line],
-        variant,
-      ),
-      row(
-        dot,
-        type,
-        "dot",
-        size,
-        { borderColor: p.fontColor, backgroundColor: "#00FFFFFF", alignContent: "center" },
-        [],
-        variant,
-      ),
-      row(
-        line,
-        type,
-        "line",
-        size,
-        { height: metrics.lineHeight, color: secondaryColor },
-        [],
-        variant,
-      ),
-      row(texts, type, "copy", size, { height: metrics.height }, textChildren, variant),
-      row(
-        title,
-        type,
-        "title",
-        size,
-        { content: p.title, fontColor: p.fontColor },
-        [],
-        variant,
-      ),
-      row(
-        time,
-        type,
-        "meta",
-        size,
-        { content: p.time, fontColor: secondaryColor },
-        [],
-        variant,
-      ),
-    ];
-    if (p.location !== undefined) {
-      const location = `${id}_location`;
-      textChildren.push(location);
-      rows.push(row(
-        location,
-        type,
-        "meta",
-        size,
-        { content: p.location, fontColor: secondaryColor },
-        [],
-        variant,
-      ));
+    if (p.density !== undefined && p.density !== "compact") {
+      throw new Error(`${id}: EventCard.density 只接受 compact。`);
     }
-    return rows;
+    if (p.items !== undefined && (p.title !== undefined || p.time !== undefined)) {
+      throw new Error(`${id}: EventCard.items 不能与 title/time 同时使用。`);
+    }
+    let items: RecordValue[];
+    if (Array.isArray(p.items)) items = p.items as RecordValue[];
+    else if (p.title !== undefined && p.time !== undefined) {
+      items = [{ title: p.title, time: p.time, ...(p.location === undefined ? {} : { location: p.location }) }];
+    } else throw new Error(`${id}: EventCard 需要 items 或 title/time。`);
+    if (items.length < 1 || items.length > 2) {
+      throw new Error(`${id}: EventCard.items 需要 1–2 项。`);
+    }
+    items.forEach((item, index) => {
+      const valid = record(item) && isDisplayValue(item.title) && isDisplayValue(item.time)
+        && Object.keys(item).every(key => ["title", "time", "location"].includes(key))
+        && (item.location === undefined || isDisplayValue(item.location));
+      if (!valid) throw new Error(`${id}: EventCard.items[${index}] 无效。`);
+    });
+    const compact = p.density === "compact";
+    const secondaryColor = colorWithAlpha(String(p.fontColor), 0.6);
+    const itemIds: string[] = [];
+    const rows: Array<[string, MiniNode]> = [];
+    let totalHeight = 0;
+    items.forEach((item, index) => {
+      const itemId = items.length === 1 ? id : `${id}_item${index}`;
+      const variant = compact ? "compact" : (item.location === undefined ? "withoutLocation" : "withLocation");
+      const metrics = recipe(type, size, variant).metrics!;
+      const rail = `${itemId}_rail`;
+      const dot = `${rail}_dot`;
+      const line = `${rail}_line`;
+      const texts = `${itemId}_texts`;
+      const title = `${itemId}_title`;
+      const time = `${itemId}_time`;
+      const metaRow = `${itemId}_meta`;
+      const location = `${itemId}_location`;
+      const textChildren = compact ? [title, metaRow] : [title, time];
+      if (!compact && item.location !== undefined) textChildren.push(location);
+      itemIds.push(itemId);
+      totalHeight += Number(metrics.height);
+      rows.push(
+        row(itemId, type, items.length === 1 ? "root" : "item", size, {
+          height: metrics.height,
+        }, [rail, texts], variant),
+        row(rail, type, "rail", size, {
+          height: metrics.height, clip: true,
+        }, [dot, line], variant),
+        row(dot, type, "dot", size, {
+          borderColor: p.fontColor, backgroundColor: "#00FFFFFF", alignContent: "center",
+        }, [], variant),
+        row(line, type, "line", size, {
+          height: metrics.lineHeight, color: secondaryColor,
+        }, [], variant),
+        row(texts, type, "copy", size, { height: metrics.height }, textChildren, variant),
+        row(title, type, "title", size, {
+          content: item.title, fontColor: p.fontColor,
+        }, [], variant),
+        row(time, type, "meta", size, {
+          content: item.time, fontColor: secondaryColor,
+        }, [], variant),
+      );
+      if (compact) {
+        const metaChildren = [time];
+        if (item.location !== undefined) {
+          const separator = `${metaRow}_separator`;
+          metaChildren.push(separator, location);
+          rows.push(
+            row(separator, type, "separator", size, {
+              content: "｜", fontColor: secondaryColor,
+            }, [], variant),
+            row(location, type, "meta", size, {
+              content: item.location, fontColor: secondaryColor,
+            }, [], variant),
+          );
+        }
+        rows.push(row(metaRow, type, "metaRow", size, {}, metaChildren, variant));
+      } else if (item.location !== undefined) {
+        rows.push(row(location, type, "meta", size, {
+          content: item.location, fontColor: secondaryColor,
+        }, [], variant));
+      }
+    });
+    if (items.length === 1) return rows;
+    totalHeight += 8;
+    return [row(id, type, "multiRoot", size, { height: totalHeight }, itemIds), ...rows];
   }
 
   if (type === "DataDisplay") {
@@ -876,8 +1360,12 @@ function expandHighLevel(
   return null;
 }
 
-export function expandCompactComponents(input: Map<string, MiniNode>, size: CardSize) {
-  const nodes = new Map(input);
+export function expandCompactComponents(
+  input: Map<string, MiniNode>,
+  size: CardSize,
+  data?: ExpansionDataContext,
+) {
+  let nodes = new Map(input);
   const putExpansion = (
     originalId: string,
     type: string,
@@ -892,9 +1380,16 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
   };
 
   for (const [id, node] of input) {
-    const rows = expandHighLevel(id, node, size);
+    const parent = [...input.values()].find(item => item.children.includes(id));
+    const rows = expandHighLevel(id, node, size, data);
     if (rows) {
-      const parent = [...input.values()].find(item => item.children.includes(id));
+      if (node.type === "CircleButton") {
+        const centeredSlot = parent?.type === "Stack"
+          && parent.props.width === 40
+          && parent.props.height === 40
+          && parent.props.alignContent === "center";
+        if (!centeredSlot) throw new Error("CircleButton 需要居中的 40×40 Stack 槽位。");
+      }
       const props = rows[0][1].props;
       if (parent?.type === "Row" && props.width === "matchParent" && node.props.width === undefined) {
         props.layoutWeight = 1;
@@ -915,7 +1410,7 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
   const fusion = typeof rootDesign === "string" && Object.hasOwn(FUSION_PALETTES, rootDesign);
   for (const [id, node] of [...nodes]) {
     const p = node.props;
-    if (!["SingleLineTitle", "TimelineUnit", "ActionUnit"].includes(node.type)) continue;
+    if (!["SingleLineTitle", "TimelineUnit"].includes(node.type)) continue;
     requireNoChildren(id, node.type, node.children);
     if (node.type === "SingleLineTitle") {
       const allowed = ["title", "fontColor"];
@@ -925,27 +1420,20 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
       if (invalid) {
         throw new Error("SingleLineTitle 只接受 title/fontColor 和合法布局属性。");
       }
+      const rootVisual = visualRecipePart("SingleLineTitle", "root", size);
+      const titleVisual = visualRecipePart("SingleLineTitle", "title", size);
       const children = [`${id}_title`];
       add(children[0], "Text", {
+        ...titleVisual.styles,
         content: p.title,
-        fontSize: 12,
-        fontWeight: 400,
         fontColor: p.fontColor,
-        textAlign: "start",
-        maxLines: 1,
-        flexShrink: 0,
       });
       nodes.set(id, {
-        type: "Row",
+        type: rootVisual.component,
         props: {
-          width: "matchParent",
-          height: 20,
+          ...rootVisual.styles,
           ...([...input.values()].some(item => item.type === "Row" && item.children.includes(id))
             && p.width === undefined ? { layoutWeight: 1 } : {}),
-          itemMargin: 0,
-          flexShrink: 0,
-          justifyContent: "start",
-          alignItems: "center",
           ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
         },
         children,
@@ -988,79 +1476,10 @@ export function expandCompactComponents(input: Map<string, MiniNode>, size: Card
         color: p.lineColor,
         flexShrink: 0,
       });
-    } else {
-      if (!["capsule", "icon-round"].includes(String(p.state))) {
-        throw new Error("ActionUnit.state 只支持 capsule 或 icon-round。");
-      }
-      if (!Array.isArray(p.onClick) || p.onClick.length === 0) {
-        throw new Error("ActionUnit 需要 onClick 动作。");
-      }
-      if (p.state === "capsule" && p.label == null) throw new Error("capsule 需要 label。");
-      if (p.state === "icon-round" && (!p.icon || p.label !== undefined)) {
-        throw new Error("icon-round 需要 icon，且不接受 label。");
-      }
-      const surface = p.actionSurface ?? "#1A1F4799";
-      const ink = p.actionInk ?? "#FF1F4799";
-      const base = {
-        width: p.width ?? (p.state === "capsule" ? "matchParent" : 30),
-        height: p.height ?? (p.state === "capsule" ? 36 : 30),
-        borderRadius: p.borderRadius ?? (p.state === "capsule" ? 20 : 15),
-        padding: p.padding ?? 0,
-        flexShrink: p.flexShrink ?? 0,
-        ...Object.fromEntries(PLACEMENT_PROPS.filter(key => key in p).map(key => [key, p[key]])),
-        backgroundColor: surface,
-        onClick: p.onClick,
-        accessibility: p.accessibility,
-      };
-      if (p.state === "capsule" && !p.icon) {
-        nodes.set(id, {
-          type: "Button",
-          props: {
-            ...base,
-            label: p.label,
-            enabled: p.enabled ?? true,
-            fontColor: ink,
-            fontSize: p.fontSize ?? 14,
-            fontWeight: p.fontWeight ?? 400,
-          },
-          children: [],
-        });
-      } else {
-        const iconId = `${id}_icon`;
-        const children = [iconId];
-        add(iconId, "Image", {
-          src: p.icon,
-          width: 20,
-          height: 20,
-          objectFit: "contain",
-          flexShrink: 0,
-          fillColor: fusion ? "#99FFFFFF" : ink,
-        });
-        if (p.state === "capsule") {
-          children.push(`${id}_text`);
-          add(`${id}_text`, "Text", {
-            content: p.label,
-            fontSize: p.fontSize ?? 14,
-            fontWeight: p.fontWeight ?? 400,
-            fontColor: ink,
-            maxLines: 1,
-          });
-        }
-        nodes.set(id, {
-          type: "Row",
-          props: {
-            ...base,
-            enabled: p.enabled ?? true,
-            justifyContent: "center",
-            alignItems: "center",
-            itemMargin: 8,
-          },
-          children,
-        });
-      }
     }
   }
 
+  nodes = adaptCompactRegions(nodes, input, size);
   if (fusion) {
     if (size !== "2x2") throw new Error("融球背景仅支持 2x2 卡片。");
     const root = nodes.get("root")!;

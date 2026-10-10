@@ -1,4 +1,5 @@
 import visualRecipes from "../../../widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json";
+import { adaptCompactRegions } from "./compact-region-layout";
 
 /** Expansion contracts from the shared Fusion Compact component runtime. */
 export type MiniNode = { type: string; props: Record<string, unknown>; children: string[] };
@@ -1364,7 +1365,7 @@ export function expandCompactComponents(
   size: CardSize,
   data?: ExpansionDataContext,
 ) {
-  const nodes = new Map(input);
+  let nodes = new Map(input);
   const putExpansion = (
     originalId: string,
     type: string,
@@ -1478,6 +1479,7 @@ export function expandCompactComponents(
     }
   }
 
+  nodes = adaptCompactRegions(nodes, input, size);
   if (fusion) {
     if (size !== "2x2") throw new Error("融球背景仅支持 2x2 卡片。");
     const root = nodes.get("root")!;

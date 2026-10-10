@@ -22,7 +22,8 @@
             "fontWeight": 400,
             "textAlign": "start",
             "maxLines": 1,
-            "flexShrink": 0
+            "flexShrink": 0,
+            "width": "matchParent"
           }
         }
       }
@@ -98,7 +99,8 @@
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 0
-            }
+            },
+            "width": "matchParent"
           }
         },
         "main": {
@@ -108,7 +110,8 @@
             "fontSize": 18,
             "fontWeight": 700,
             "maxLines": 1,
-            "flexShrink": 1
+            "flexShrink": 1,
+            "width": "matchParent"
           }
         },
         "secondary": {
@@ -118,7 +121,8 @@
             "fontSize": 12,
             "fontWeight": 400,
             "maxLines": 1,
-            "flexShrink": 1
+            "flexShrink": 1,
+            "width": "matchParent"
           }
         }
       }
@@ -1093,12 +1097,12 @@
         "labels": {
           "component": "Column",
           "styles": {
-            "width": 132,
             "height": 44,
             "itemMargin": 0,
             "alignItems": "start",
             "justifyContent": "center",
-            "flexShrink": 1
+            "flexShrink": 1,
+            "layoutWeight": 1
           }
         },
         "label": {
@@ -1183,7 +1187,6 @@
             },
             "labels": {
               "styles": {
-                "width": 66,
                 "height": 52
               }
             }
@@ -1210,7 +1213,6 @@
             },
             "labels": {
               "styles": {
-                "width": 66,
                 "height": 52
               }
             },
@@ -1480,7 +1482,7 @@
         "item": {
           "component": "Column",
           "styles": {
-            "height": 68,
+            "height": "matchParent",
             "itemMargin": 0,
             "alignItems": "center",
             "justifyContent": "center",

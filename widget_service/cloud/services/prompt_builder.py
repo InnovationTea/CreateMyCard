@@ -1508,7 +1508,9 @@ class PromptBuilder:
                 DESIGN_COMPACT_PROFILE_ID, task_spec.size
             )
             reference = PromptBuilder._select_few_shot(examples, task_spec)
-            selected = select_plan_fewshots(examples, plan, reference_source=reference)
+            selected = select_plan_fewshots(
+                examples, plan, reference_source=reference, component_source=system_prompt,
+            )
             prompt = (
                 f"{prompt}\n\n{selected.content}\n\n"
                 f"本轮实现参考：{'、'.join(selected.identifiers)}。"
@@ -1559,8 +1561,9 @@ class PromptBuilder:
         return (
             "# 本轮已格式化百分比路径\n\n"
             + "、".join(paths)
-            + " 均为带单位字符串，只能直接绑定完整文字，不追加%，不能从样例提取数字写死 Progress。"
-            "若同对象同指标没有数值路径，就不生成对应进度图；其它对象的电量或百分比不能代替。"
+            + " 均为带单位字符串，展示时完整绑定，不重复追加%，不能从样例提取数字写死进度。"
+            "仅当字段具有真实比例语义且值为完整数值百分比时，才可按组件合同用 PathBinding"
+            "驱动进度，由转换器换算内部数值；不能用 Expression 驱动进度，也不能借用其它对象指标。"
         )
 
     def build_design_compact(
