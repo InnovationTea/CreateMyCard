@@ -28,6 +28,7 @@ from .display_unit_validator import DisplayUnitValidator
 from .effective_capability_validator import EffectiveCapabilityValidator
 from .expression_validator import ExpressionValidator
 from .protocol_validator import ProtocolValidator
+from .quality.spacing_validator import SpacingValidator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ STATIC_VALIDATORS = [
 
 QUALITY_VALIDATORS = [
     ContrastValidator(),
+    SpacingValidator(),
 ]
 
 EFFECTIVE_VALIDATORS = [
