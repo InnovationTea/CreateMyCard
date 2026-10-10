@@ -382,8 +382,8 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     assert not list((DEFAULT_SOURCE / "fewshots" / size).rglob("*.md"))
     fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
     expected = ["preamble"]
-    example_count = 33 if size == "2x2" else 49
-    expected.extend(f"example-v{index:02d}" for index in range(example_count))
+    indices = range(33) if size == "2x2" else (3, 6, 8, 9, 10, 16, 19, 23, 28)
+    expected.extend(f"example-v{index:02d}" for index in indices)
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
     modules = manifest.get("modules")
@@ -405,17 +405,19 @@ def test_merged_fewshot_checks_each_fragment(tmp_path: Path, size: str, mutation
     source = source_root / "fewshots" / f"{size}.md"
     original = source.read_text(encoding="utf-8")
     fragments = dict(FRAGMENT.findall(original))
-    body = fragments.get("example-v00")
+    example = "v00" if size == "2x2" else "v03"
+    identifier = f"{size}-V{example[1:]}"
+    body = fragments.get(f"example-{example}")
     assert isinstance(body, str)
     if mutation == "input":
         broken = body.replace("```json", "```text")
     elif mutation == "output":
         broken = body.replace("```genui", "```text")
     else:
-        broken = body.replace(f"{size}-V00", f"{size}-V99")
+        broken = body.replace(identifier, f"{size}-V99")
     assert broken != body
     source.write_text(original.replace(body, broken, 1), encoding="utf-8")
-    with pytest.raises(ValueError, match=f"案例缺少完整输入/输出：{size}-V00"):
+    with pytest.raises(ValueError, match=f"案例缺少完整输入/输出：{identifier}"):
         assemble_prompts(source_root)
 
 
