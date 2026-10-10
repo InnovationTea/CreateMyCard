@@ -7,6 +7,10 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.compact_composition_context import (
+    compact_composition_context,
+    compact_plan_capacity_context,
+)
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
@@ -1024,7 +1028,7 @@ class PromptBuilder:
             end = headings[position + 1] if position + 1 < len(headings) else len(lines)
             selected_lines.extend(lines[start:end])
         missing_ids = set(selected_ids) - matched_ids
-        if missing_ids:
+        if missing_ids and task_spec.size != "2x4":
             raise ValueError(f"Missing Compact few-shot examples: {sorted(missing_ids)}")
         return "\n".join(selected_lines).strip()
 
@@ -1483,21 +1487,30 @@ class PromptBuilder:
             layout_scope,
         )
         prompt = system_prompt
-        if include_examples and get_settings().enable_design_compact_few_shots:
+        settings = get_settings()
+        if include_examples and settings.enable_design_compact_few_shots:
             examples = A2UIProtocolRegistry.read_design_few_shot(
                 DESIGN_COMPACT_PROFILE_ID, task_spec.size
             )
-            reference = PromptBuilder._select_few_shot(examples, task_spec)
-            selected = select_plan_fewshots(
-                examples, plan, reference_source=reference, component_source=system_prompt,
-            )
-            prompt = (
-                f"{prompt}\n\n{selected.content}\n\n"
-                f"本轮实现参考：{'、'.join(selected.identifiers)}。"
-                "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
-                "两者都不冻结布局；"
-                "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
-            )
+            content = examples
+            identifiers = tuple(dict.fromkeys(re.findall(r"\b2x[24]-V\d+\b", examples)))
+            if settings.enable_design_compact_few_shot_selection:
+                reference = PromptBuilder._select_few_shot(examples, task_spec)
+                content = ""
+                if "## " in reference:
+                    selected = select_plan_fewshots(
+                        examples, plan, reference_source=reference, component_source=system_prompt,
+                    )
+                    content = selected.content
+                    identifiers = selected.identifiers
+            if content:
+                prompt = (
+                    f"{prompt}\n\n{content}\n\n"
+                    f"本轮实现参考：{'、'.join(identifiers)}。"
+                    "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
+                    "两者都不冻结布局；"
+                    "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
+                )
         layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))
         prompt = (
             f"{prompt}\n\n# 本轮组件与布局选择\n\n"
@@ -1632,7 +1645,8 @@ class PromptBuilder:
         tool = build_compact_plan_tool(task_spec_value)
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         effective_system_prompt = (
-            f"{system_prompt}\n\n# 可用工具合同\n\n{tool_payload}\n\n"
+            f"{system_prompt}\n\n{compact_plan_capacity_context(task_spec.size)}\n\n"
+            f"# 可用工具合同\n\n{tool_payload}\n\n"
             "只输出一个 JSON 工具调用包："
             '{"name":"submit_card_plan","arguments":{...}}。'
             "不要输出 Markdown、解释、Compact DSL 或其它字段。"
@@ -1671,6 +1685,8 @@ class PromptBuilder:
                 "planErrors": list(errors),
                 "instruction": (
                     "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
+                    "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                    "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
                     "不得生成 Compact DSL、Markdown 或解释。"
                 ),
             },
@@ -1709,6 +1725,10 @@ class PromptBuilder:
         )
         if compact_plan is not None:
             system_prompt = f"{system_prompt}\n\n{compact_plan_context(compact_plan)}"
+            worksheet = compact_composition_context(
+                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+            )
+            system_prompt = f"{system_prompt}\n\n{worksheet}"
         if fusion_ball_enabled(task_spec.appVersion):
             recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
             if recommendation:
@@ -1783,25 +1803,30 @@ class PromptBuilder:
         quality_errors: list[dict[str, Any]],
         *,
         dsl_format: str = "a2ui-form",
+        previous_failures: list[list[dict[str, Any]]] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
             raise ValueError("Repair prompt requires the initial system and user messages")
         system_prompt = initial_prompt[0]["content"] + "\n\n" + REPAIR_SYSTEM_PROMPT
+        history = copy.deepcopy(previous_failures) if previous_failures else []
+        payload: dict[str, Any] = {
+            "originalUserContent": initial_prompt[1]["content"],
+            "invalidSourceDsl": invalid_source_dsl,
+            "qualityErrors": quality_errors,
+            "dslFormat": dsl_format,
+            "instruction": (
+                "以 invalidSourceDsl 为直接修复对象；先从 originalUserContent 恢复"
+                " TaskSpec 的字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
+                "每次修改后复查受影响父容器、"
+                "相邻节点和全部首次生成门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
+                "只输出修复后的完整源格式 DSL，封装形式遵循原始系统提示词，禁止解释或补丁。"
+            ),
+        }
+        if previous_failures is not None:
+            payload["previousFailures"] = history
         user_content = json.dumps(
-            {
-                "originalUserContent": initial_prompt[1]["content"],
-                "invalidSourceDsl": invalid_source_dsl,
-                "qualityErrors": quality_errors,
-                "dslFormat": dsl_format,
-                "instruction": (
-                    "以 invalidSourceDsl 为直接修复对象；先从 originalUserContent 恢复"
-                    " TaskSpec 的字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
-                    "每次修改后复查受影响父容器、"
-                    "相邻节点和全部首次生成门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
-                    "只输出修复后的完整源格式 DSL，封装形式遵循原始系统提示词，禁止解释或补丁。"
-                ),
-            },
+            payload,
             ensure_ascii=False,
             separators=(",", ":"),
         )

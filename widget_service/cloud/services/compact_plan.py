@@ -5,15 +5,21 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.compact_composition_context import (
+    composition_group_minimum_height,
+    composition_region_capacity,
+)
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     ComponentRow,
     parse_compact_dsl_rows,
 )
+from services.compact_layout_runtime import load_layout_contract
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
@@ -179,6 +185,7 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
             "name": SUBMIT_CARD_PLAN,
             "description": (
                 "提交最终卡片必须可见的信息与操作；组件和布局只提供软候选。"
+                "同时提交可完整承载这些事实的分区、组件合组和容量计划。"
             ),
             "parameters": {
                 "type": "object",
@@ -205,12 +212,223 @@ def build_compact_plan_tool(task_spec: dict[str, Any]) -> dict[str, Any]:
                         "uniqueItems": True,
                         "description": "至多两个父布局软候选，不冻结最终骨架。",
                     },
+                    "composition": _composition_tool_schema(size),
                 },
-                "required": ["info_required"],
+                "required": ["info_required", "composition"],
                 "additionalProperties": False,
             },
         },
     }
+
+
+def _composition_tool_schema(size: Any) -> dict[str, Any]:
+    """实例级实现计划；事实仍由 info_required 独立确定。"""
+    integer = {"type": "integer", "minimum": 0, "maximum": 23}
+    extent = {"type": "number", "minimum": 0}
+    group = {
+        "type": "object",
+        "properties": {
+            "component": {"type": "string", "enum": list(_component_hints(size))},
+            "factIndexes": {"type": "array", "items": integer, "minItems": 1,
+                            "maxItems": 24, "uniqueItems": True},
+            "placements": {"type": "array", "items": {"type": "string"},
+                           "minItems": 1, "maxItems": 24,
+                           "description": "逐条对应 factIndexes 的可见 Prop，如 items[0].value。"},
+            "referenceHeight": {**extent, "description": "完整组件按实际条数/行数合计占高。"},
+            "variant": {"type": "string"},
+            "density": {"type": "string", "enum": ["compact"]},
+            "role": {"type": "string", "enum": ["body", "supporting", "metadata"]},
+            "columns": {"type": "integer", "enum": [1, 2]},
+            "lines": {"type": "array", "items": {"type": "integer", "enum": [1, 2]},
+                      "description": "依每个实际文本 item 顺序记录行数，不一律设两行。"},
+            "labelLines": {"type": "integer", "enum": [1, 2]},
+        },
+        "required": ["component", "factIndexes", "placements", "referenceHeight"],
+        "additionalProperties": False,
+    }
+    region = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "path": {"type": "array", "items": integer,
+                     "description": "选定布局内从 root 开始的子序号；全卡为[]。"},
+            "referenceWidth": {**extent, "description": "已扣此区域内边距的可用宽度。"},
+            "referenceHeight": {**extent, "description": "已扣此区域内边距的可用高度。"},
+            "gap": {**extent, "description": "合同允许的组间距，不改组件内部间距。"},
+            "groups": {"type": "array", "items": group, "minItems": 1, "maxItems": 24},
+        },
+        "required": ["id", "path", "referenceWidth", "referenceHeight", "gap", "groups"],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "layout": {"type": "string", "enum": list(_layout_hints(size))},
+            "variant": {"type": "integer", "minimum": 1},
+            "regions": {"type": "array", "items": region, "minItems": 1, "maxItems": 8},
+        },
+        "required": ["layout", "variant", "regions"],
+        "additionalProperties": False,
+        "description": (
+            "实例级分区合组计划：覆盖全部必要事实与动作，核算横向文字与纵向占高，"
+            "参考尺寸来自当前合同，不写成固定输出宽高；不能缩字或删信息。"
+        ),
+    }
+
+
+def _finite_extent(value: Any) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value) and value >= 0)
+
+
+def _normalize_composition(
+    value: Any, raw_facts: Any, facts: list[dict[str, Any]], size: Any,
+) -> tuple[dict[str, Any] | None, list[str]]:
+    """只清理实现方案，不让其错误删除硬事实或新增生成失败。"""
+    if value is None:
+        return None, []
+    warning = "composition ignored: regroup all facts with valid layout, placements and budgets."
+    schema = _composition_tool_schema(size)
+    if not isinstance(value, dict) or set(value) != {"layout", "variant", "regions"}:
+        return None, [warning]
+    variant = value.get("variant")
+    valid_variant = isinstance(variant, int) and not isinstance(variant, bool) and variant > 0
+    if value.get("layout") not in _layout_hints(size) or not valid_variant:
+        return None, [warning]
+    layout = load_layout_contract().get("layouts", {}).get(value.get("layout"), {})
+    if variant > len(layout.get("patterns", [])):
+        return None, [warning]
+    action_count = sum(1 for fact in facts if "actionId" in fact)
+    action_range = layout.get("actionCount", {})
+    if not action_range.get("min", 0) <= action_count <= action_range.get("max", action_count):
+        return None, ["composition layout cannot carry all required actions; "
+                      "choose a compatible layout without removing any action."]
+    regions = value.get("regions")
+    if not isinstance(regions, list) or not 1 <= len(regions) <= 8:
+        return None, [warning]
+    identities: list[tuple[str, str]] = []
+    for fact in facts:
+        for key in _TARGET_KEYS:
+            if key in fact:
+                identities.append((key, fact.get(key)))
+                break
+    index_map: dict[int, int] = {}
+    for index, fact in enumerate(raw_facts):
+        for key in _TARGET_KEYS:
+            target = fact.get(key)
+            if isinstance(target, str) and (key, target.strip()) in identities:
+                index_map[index] = identities.index((key, target.strip()))
+    region_schema = schema.get("properties", {}).get("regions", {}).get("items", {})
+    group_schema = region_schema.get("properties", {}).get("groups", {}).get("items", {})
+    covered: set[int] = set()
+    normalized: list[dict[str, Any]] = []
+    notes: list[str] = []
+    for region in regions:
+        if not _composition_region_shape(region, region_schema):
+            return None, [warning]
+        capacity = composition_region_capacity(
+            size, value.get("layout"), variant, region.get("path"),
+        )
+        region = dict(region)
+        if capacity is not None:
+            region.update(referenceWidth=capacity.get("width"),
+                          referenceHeight=capacity.get("height"))
+            if capacity.get("fixedGap") is not None:
+                region["gap"] = capacity.get("fixedGap")
+            region["capacitySource"] = "layout_contract"
+        else:
+            region["capacitySource"] = "model_estimate"
+            notes.append(f"region {region.get('id')} capacity must be checked against "
+                         "the complete layout contract before generating.")
+        groups: list[dict[str, Any]] = []
+        for group in region.get("groups"):
+            normalized_group = _composition_group(group, group_schema, index_map, facts, size)
+            if normalized_group is None:
+                return None, [warning]
+            covered.update(normalized_group.get("factIndexes"))
+            groups.append(normalized_group)
+        height = sum(group.get("referenceHeight") for group in groups)
+        height += region.get("gap") * (len(groups) - 1)
+        remaining = region.get("referenceHeight") - height
+        if remaining < 0:
+            notes.append(f"region {region.get('id')} overflows by {-remaining:g}vp; "
+                         "replace this complete grouping, do not shrink or omit facts.")
+        normalized.append({**region, "groups": groups, "requiredHeight": height,
+                           "remainingHeight": remaining})
+    if covered != set(range(len(facts))):
+        return None, ["composition incomplete: retain every info_required fact and action; "
+                      "rebuild complete region assignments before generating."]
+    return {"layout": value.get("layout"), "variant": variant, "regions": normalized}, notes
+
+
+def _composition_region_shape(value: Any, schema: dict[str, Any]) -> bool:
+    if not isinstance(value, dict) or set(value) != set(schema.get("required")):
+        return False
+    if not isinstance(value.get("id"), str) or not value.get("id").strip():
+        return False
+    path = value.get("path")
+    if not isinstance(path, list):
+        return False
+    for index in path:
+        if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+            return False
+    for key in ("referenceWidth", "referenceHeight", "gap"):
+        if not _finite_extent(value.get(key)):
+            return False
+    groups = value.get("groups")
+    return isinstance(groups, list) and 1 <= len(groups) <= 24
+
+
+def _composition_group(
+    value: Any, schema: dict[str, Any], index_map: dict[int, int],
+    facts: list[dict[str, Any]], size: Any,
+) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    if set(value) - set(schema.get("properties")) or not set(schema.get("required")) <= set(value):
+        return None
+    component = value.get("component")
+    if component not in _component_hints(size) or not _finite_extent(value.get("referenceHeight")):
+        return None
+    indexes, placements = value.get("factIndexes"), value.get("placements")
+    if not isinstance(indexes, list) or not isinstance(placements, list):
+        return None
+    if not indexes or len(indexes) != len(placements):
+        return None
+    remapped: list[int] = []
+    for index, placement in zip(indexes, placements, strict=True):
+        if not isinstance(index, int) or isinstance(index, bool) or index not in index_map:
+            return None
+        if not isinstance(placement, str) or not placement.strip():
+            return None
+        remapped.append(index_map[index])
+    actions = [index for index in remapped if "actionId" in facts[index]]
+    if actions and (len(remapped) != 1 or component not in _ACTION_FACT_COMPONENTS):
+        return None
+    if not actions and component in _ACTION_FACT_COMPONENTS:
+        return None
+    for key in ("columns", "labelLines"):
+        number = value.get(key)
+        if key in value and (type(number) is not int or number not in (1, 2)):
+            return None
+    lines = value.get("lines")
+    if lines is not None:
+        if not isinstance(lines, list) or not lines:
+            return None
+        for line in lines:
+            if type(line) is not int or line not in (1, 2):
+                return None
+    for key in ("variant", "density", "role"):
+        if key in value and not isinstance(value.get(key), str):
+            return None
+        allowed = schema.get("properties", {}).get(key, {}).get("enum")
+        if key in value and allowed is not None and value.get(key) not in allowed:
+            return None
+    height = composition_group_minimum_height(size, value)
+    planned_height = value.get("referenceHeight")
+    if height is not None:
+        planned_height = max(height, planned_height)
+    return {**value, "factIndexes": remapped, "referenceHeight": planned_height}
 
 
 def parse_compact_plan_call(
@@ -234,7 +452,7 @@ def parse_compact_plan_call(
         arguments = _parse_json_object(arguments)
     if not isinstance(arguments, dict):
         raise CompactPlanValidationError(["submit_card_plan.arguments must be an object."])
-    unknown_arguments = set(arguments) - {"info_required", "layoutHints"}
+    unknown_arguments = set(arguments) - {"info_required", "layoutHints", "composition"}
     if unknown_arguments:
         names = ", ".join(sorted(unknown_arguments))
         raise CompactPlanValidationError([f"Unsupported Plan arguments: {names}."])
@@ -251,6 +469,15 @@ def parse_compact_plan_call(
     warnings.extend(layout_warnings)
     if layout_hints:
         plan["layoutHints"] = layout_hints
+    composition, composition_warnings = _normalize_composition(
+        arguments.get("composition"), arguments.get("info_required"), facts,
+        task_spec.get("size"),
+    )
+    warnings.extend(composition_warnings)
+    if composition is not None:
+        plan["composition"] = composition
+    if composition_warnings:
+        plan["compositionNotes"] = composition_warnings
     return CompactPlanValidationResult(plan=plan, warnings=tuple(warnings))
 
 
@@ -264,9 +491,18 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
         "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
         "具体条件不成立才改选合法备选或组件组合。先按对象和信息关系合组，再映射可见 Prop。"
         "不能因为完整案例使用了其它组件就将匹配的信息组拆成逐字段的单文字组件。"
-        "每项事实必须由最终 Compact "
-        "DSL 中恰好一个可见 Prop 承载。不得为了布局或修复删除 Plan 事实；动作必须使用 "
+        "每项事实必须在最终 Compact DSL 中有完整可读的落点；"
+        "同组图形与对应读数允许共用绑定，禁止跨组无意义重复。"
+        "不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
+        "若有 composition，按它的 layout/variant、region.path 与顺序 groups 实现，"
+        "factIndexes 引用下面去重后的 info_required，placements 指明每条事实的可见 Prop。"
+        "不要重新逐字段实例化组件，或把单列合组改回窄双列；动作保持完整目标名称。"
+        "每区 sum(referenceHeight)+gap 必须小于可用高度，横排每列还须容纳完整文字。"
+        "这些数字仅用于容量核算，区域输出仍为 matchParent/layoutWeight；"
+        "正文必须承接扣除标题、动作、padding和间距后的剩余空间，不能向整父区撑高。"
+        "compositionNotes 是需要纠正的组合诊断，不允许通过裁切、缩字或删事实处理。"
+        "确有合同/容量冲突时整体重选可承载的分区合组并重新核算，不能盲从错误计划。\n"
         "一个语义分区可使用一个 SingleLineTitle；2x4 左右独立分区"
         "可分别使用 SingleLineTitle。被 Plan 指定给 SingleLineTitle 的标题事实必须出现在某个"
         "SingleLineTitle.title 中，不能改由正文组件承载。需要标题加次信息时使用 DoubleLineTitle。\n"
@@ -281,6 +517,9 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
         "耳机数据不能标为手机，左右读数必须区分；长说明不能挤掉数值。"
         "平均、最高、最低各有独立统计含义，不能拼成无标签区间；动作短名保留必要目标限定。"
         "第二行只放另一项必要事实，不重复主行标签；取消可选图标仍放不下时改用基础组合。"
+        "先按信息关系形成完整组件组合，再比较能容纳组合与全部动作的合法布局和内容槽；"
+        "不先锁定辅助槽再压入事实，不把宽卡默认堆成单列。横排先核对完整文本所需宽度，"
+        "纵排累加真实行数、固定行高和间距，使用当前组件合同而非照抄示例容量。"
         "动作先留足高度，环、状态、标题的总高度不能超出剩余正文；layoutWeight 不会让"
         "文字或环缩小。时间段、日期时间和带长单位的指标使用普通字号或分行，不套用大数字。\n\n"
         f"```json\n{payload}\n```"
@@ -307,6 +546,8 @@ def _component_intent_context(plan: dict[str, Any]) -> str:
     return (
         "\n\n# 本轮首选组件落点核对\n\n"
         "编号是 info_required 中从 1 开始的事实序号，不是组件数量。"
+        "此表按候选组件类型汇总，不是信息分组结果；"
+        "先按对象与信息关系确定实例，再逐事实核对覆盖。"
         "同对象、同事件或同级信息组才合并实例，不混合不同对象。"
         "生成和修复前核对首选是否落实，不适配时按具体语义、绑定、容量原因改选。"
         "此核对不输出解释、不添加协议字段、不删事实凑组件。"

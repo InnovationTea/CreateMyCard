@@ -26,6 +26,7 @@ from services.compact_layout_runtime import (
     match_compact_layout,
 )
 from services.compact_reference_canvas import reference_dimension
+from services.compact_region_layout import reference_region_boxes
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
@@ -1208,6 +1209,28 @@ def _has_nearby_metric_label(
             )
             if has_metric_label(text):
                 return True
+            if sibling and sibling.component_type == "SingleLineTitle":
+                if has_metric_label(sibling.props.get("title")):
+                    return True
+            is_semantic_label = sibling is not None and (
+                _uses_visual_recipe_part(sibling, "SingleLineTitle.root")
+                or _uses_visual_recipe_part(sibling, "SecondaryBody.root")
+            )
+            if not is_semantic_label:
+                continue
+            pending = list(sibling.children)
+            for _ in range(3):
+                next_level = []
+                for child_id in pending:
+                    child = components_by_id.get(child_id)
+                    if child is None:
+                        continue
+                    if child.component_type == "Text":
+                        if has_metric_label(child.props.get("content")):
+                            return True
+                    else:
+                        next_level.extend(child.children)
+                pending = next_level
         current = parent.component_id
     return False
 
@@ -1313,6 +1336,26 @@ def _collect_height_budget_errors(
 ) -> None:
     """Reject vertical layouts whose declared minimum height cannot fit."""
     components_by_id = {component.component_id: component for component in components}
+    size = card_spec.get("suggestSize") or task_spec.get("size")
+    boxes = {}
+    if isinstance(size, str):
+        nodes = [
+            {
+                "id": row.component_id,
+                "component": row.component_type,
+                "styles": (
+                    {**row.props, "height": 20}
+                    if row.component_type == "SingleLineTitle" else row.props
+                ),
+                "children": list(row.children),
+            }
+            for row in components
+        ]
+        try:
+            boxes = reference_region_boxes(nodes, size=size, profile=protocol_profile)
+        except ValueError as exc:
+            errors.append(str(exc))
+            return
     for component in components:
         if component.component_type != "Column":
             continue
@@ -1322,21 +1365,50 @@ def _collect_height_budget_errors(
             card_spec,
             protocol_profile,
         )
+        box = boxes.get(component.component_id)
+        if box is not None and box.height is not None:
+            available_height = max(0.0, box.height - _vertical_padding(component.props))
         if available_height is None:
             continue
         required_height = _column_children_minimum_height(
             component,
             components_by_id,
         )
-        if required_height <= available_height:
+        if required_height <= available_height + 1e-7:
             continue
         overflow = required_height - available_height
+        breakdown = _column_height_breakdown(component, components_by_id)
         errors.append(
             f"component {component.component_id}: vertical layout requires at least "
             f"{_format_vp(required_height)}vp within {_format_vp(available_height)}vp; "
-            f"it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, "
-            "or gaps instead of relying on clipping, flex shrink, or distributed alignment."
+            f"it overflows by {_format_vp(overflow)}vp. Regroup facts or choose a layout "
+            "with enough body space; preserve required text, actions, font sizes and fixed "
+            "design heights. Weight, clipping, flex shrink and distributed alignment "
+            f"cannot eliminate content height. Occupancy: {breakdown}."
         )
+
+
+def _column_height_breakdown(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> str:
+    """反馈真实子树占用，不给模型推测或改变组件的设计量。"""
+    parts: list[str] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        height = _minimum_outer_height(
+            child, components_by_id, set(),
+            height_weighted=bool(_non_negative_number(child.props.get("layoutWeight"))),
+        )
+        margin = _vertical_margin(child.props)
+        parts.append(
+            f"{child_id}={_format_vp(height)}vp+margin({_format_vp(margin)}vp)"
+        )
+    gap = _vertical_gap(component, len(parts))
+    parts.append(f"gaps={_format_vp(gap)}vp")
+    return ", ".join(parts)
 
 
 def _component_available_height(
@@ -1378,7 +1450,10 @@ def _column_children_minimum_height(
         child = components_by_id.get(child_id)
         if child is None:
             continue
-        child_height = _minimum_outer_height(child, components_by_id, set())
+        child_height = _minimum_outer_height(
+            child, components_by_id, set(),
+            height_weighted=bool(_non_negative_number(child.props.get("layoutWeight"))),
+        )
         child_heights.append(child_height + _vertical_margin(child.props))
 
     gap = _vertical_gap(component, len(child_heights))
@@ -1389,20 +1464,20 @@ def _minimum_outer_height(
     component: ComponentRow,
     components_by_id: dict[str, ComponentRow],
     visiting: set[str],
+    *,
+    height_weighted: bool = False,
 ) -> float:
     if component.component_type == "SingleLineTitle":
         return 20.0
-    shrink = _non_negative_number(component.props.get("flexShrink"))
-    weight = _non_negative_number(component.props.get("layoutWeight"))
-    if (shrink is not None and shrink > 0) or (weight is not None and weight > 0):
-        constraints = component.props.get("constraintSize")
-        minimum = constraints.get("minHeight") if isinstance(constraints, dict) else None
-        return _non_negative_number(minimum) or 0.0
+    constraints = component.props.get("constraintSize")
+    minimum = constraints.get("minHeight") if isinstance(constraints, dict) else None
+    minimum_height = _non_negative_number(minimum) or 0.0
     explicit_height = _non_negative_number(component.props.get("height"))
-    if explicit_height is not None:
-        return explicit_height
+    is_container = component.component_type in _NON_EMPTY_CONTAINER_TYPES
+    if explicit_height is not None and not (height_weighted and is_container):
+        return max(minimum_height, explicit_height)
     if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
-        return 0.0
+        return minimum_height
     if component.component_id in visiting:
         return 0.0
 
@@ -1412,7 +1487,13 @@ def _minimum_outer_height(
         child = components_by_id.get(child_id)
         if child is None:
             continue
-        child_height = _minimum_outer_height(child, components_by_id, visiting)
+        child_height = _minimum_outer_height(
+            child, components_by_id, visiting,
+            height_weighted=(
+                component.component_type == "Column"
+                and bool(_non_negative_number(child.props.get("layoutWeight")))
+            ),
+        )
         child_heights.append(child_height + _vertical_margin(child.props))
     visiting.remove(component.component_id)
 
@@ -1421,7 +1502,7 @@ def _minimum_outer_height(
         content_height += _vertical_gap(component, len(child_heights))
     else:
         content_height = max(child_heights, default=0.0)
-    return _vertical_padding(component.props) + content_height
+    return max(minimum_height, _vertical_padding(component.props) + content_height)
 
 
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:

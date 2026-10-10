@@ -8,6 +8,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from functools import partial
+from typing import Any
 
 from anyio import to_thread
 
@@ -718,6 +719,7 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
+        quality_repair_failure_history: list[list[dict[str, Any]]] = []
         repair_records: list[RepairArtifactRecord] = []
         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
@@ -1053,7 +1055,13 @@ class WidgetGenerationService:
                     invalid_source_dsl,
                     quality_error_payloads,
                     dsl_format=policy.source_format,
+                    previous_failures=(
+                        quality_repair_failure_history
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
+                    ),
                 )
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                    quality_repair_failure_history.append(quality_error_payloads)
                 trace_step(
                     "repair.prompt.built",
                     stage="repair.promptBuild",

@@ -188,28 +188,16 @@ class DesignCompactProcessor:
             context.compact_plan,
             context.task_spec,
         )
-        if plan_errors:
-            trace_step(
-                "dsl.plan_coverage_validation.completed",
-                stage="dsl.planCoverageValidation",
-                status="failed",
-                duration_ms=_elapsed_ms(plan_coverage_started_at),
-                json_artifacts={"plan_coverage_errors": list(plan_errors)},
-                text_artifacts={"coverage_validation_input": source_dsl},
-                artifact_roles={"coverage_validation_input": "input"},
-            )
-            return self._validation_failure(
-                source_dsl,
-                plan_errors,
-                code="COMPACT_PLAN_COVERAGE_FAILED",
-            )
+        plan_issues = self._validation_failure(
+            source_dsl, plan_errors, code="COMPACT_PLAN_COVERAGE_FAILED",
+        ).issues
         trace_step(
             "dsl.plan_coverage_validation.completed",
             stage="dsl.planCoverageValidation",
-            status="success",
+            status="failed" if plan_errors else "success",
             duration_ms=_elapsed_ms(plan_coverage_started_at),
             text_artifacts={"coverage_validation_input": source_dsl},
-            json_artifacts={"plan_coverage_result": {"errors": []}},
+            json_artifacts={"plan_coverage_result": {"errors": list(plan_errors)}},
             artifact_roles={
                 "coverage_validation_input": "input",
                 "plan_coverage_result": "diagnostic",
@@ -239,7 +227,10 @@ class DesignCompactProcessor:
                     text_artifacts={"compact_validation_input": source_dsl},
                     artifact_roles={"compact_validation_input": "input"},
                 )
-                return self._validation_failure(source_dsl, exc.errors)
+                compact_issues = self._validation_failure(source_dsl, exc.errors).issues
+                return DslProcessingResult(
+                    source_dsl=source_dsl, issues=(*plan_issues, *compact_issues),
+                )
             trace_step(
                 "dsl.compact_validation.completed",
                 stage="dsl.compactValidation",
@@ -269,6 +260,9 @@ class DesignCompactProcessor:
                 status="skipped",
                 details={"reason": "template_source"},
             )
+
+        if plan_issues:
+            return DslProcessingResult(source_dsl=source_dsl, issues=plan_issues)
 
         try:
             design_protocol["appVersion"] = context.task_spec["appVersion"]

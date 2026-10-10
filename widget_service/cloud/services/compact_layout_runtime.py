@@ -120,6 +120,8 @@ def match_compact_layout(
         raise CompactLayoutRuntimeError("Compact layout contract has no layouts.")
 
     closest: tuple[int, str, list[str]] | None = None
+    closest_rank: tuple[int, int, int] | None = None
+    alternatives: list[str] = []
     for layout_id in allowed_layout_ids(size, layout_scope):
         layout = layouts.get(layout_id)
         if not isinstance(layout, dict):
@@ -127,26 +129,41 @@ def match_compact_layout(
         patterns = layout.get("patterns")
         if not isinstance(patterns, list):
             continue
-        for pattern in patterns:
+        best_variant: tuple[tuple[int, int, int], int, list[str]] | None = None
+        action_errors = _action_count_mismatches(layout, components)
+        for pattern_index, pattern in enumerate(patterns):
             mismatches = _pattern_mismatches(
                 pattern,
                 root,
                 components_by_id,
                 size=size,
             )
-            mismatches.extend(_action_count_mismatches(layout, components))
+            mismatches.extend(action_errors)
             if not mismatches:
                 return CompactLayoutMatch(layout_id=layout_id)
+            root_errors: list[str] = []
+            for rule in pattern.get("rules", []):
+                if rule.get("path") == []:
+                    root_errors.extend(_rule_mismatches(rule, root, components_by_id, size=size))
+            rank = (len(action_errors), len(root_errors), len(mismatches))
+            if best_variant is None or rank < best_variant[0]:
+                best_variant = (rank, pattern_index + 1, mismatches)
             candidate = (len(mismatches), layout_id, mismatches)
-            if closest is None or candidate[0] < closest[0]:
+            if closest_rank is None or rank < closest_rank:
                 closest = candidate
+                closest_rank = rank
+        if best_variant is not None:
+            alternatives.append(
+                f"{layout_id} variant {best_variant[1]}: {'; '.join(best_variant[2])}"
+            )
 
     allowed = ", ".join(allowed_layout_ids(size, layout_scope))
     detail = "layout structure does not match any registered pattern"
     if closest is not None:
-        detail = "; ".join(closest[2][:3])
+        detail = f"closest {closest[1]}: {'; '.join(closest[2])}"
     raise CompactLayoutRuntimeError(
-        f"Compact layout does not match scope {layout_scope} ({allowed}): {detail}."
+        f"Compact layout does not match scope {layout_scope} ({allowed}): {detail}. "
+        f"Alternatives (choose one complete variant): {' | '.join(alternatives)}."
     )
 
 
