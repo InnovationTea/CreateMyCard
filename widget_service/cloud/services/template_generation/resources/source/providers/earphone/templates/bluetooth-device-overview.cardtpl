@@ -1372,7 +1372,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarphoneCaseHero@1(props: { caseIcon?: asset })
+#Template BluetoothDeviceOverviewEarphoneCaseHero@1(props: { deviceIcon: asset })
 data = {
     battery: $path("/batteryLevel"),
     charging: $path("/chargingStatusDesc")
@@ -1403,15 +1403,13 @@ Column(
               "height": 52,
               "strokeWidth": 6}
           ),
-      #if props.caseIcon
-        Image(
-            props.caseIcon,
-            {"width": 20,
-            "height": 20,
-            "objectFit": "contain",
-            "fillColor": $theme('supportContentColor')}
+      Image(
+          props.deviceIcon,
+          {"width": 20,
+          "height": 20,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')}
         )
-      #endif
     ),
   Text(
       `耳机仓${data.charging}`,
@@ -1469,7 +1467,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarphoneHero@1(props: { earphoneIcon?: asset })
+#Template BluetoothDeviceOverviewEarphoneHero@1(props: { deviceIcon: asset })
 data = {
     battery: $path("/batteryLevel"),
     name: $path("/earphoneName")
@@ -1500,15 +1498,13 @@ Column(
               "height": 52,
               "strokeWidth": 6}
           ),
-      #if props.earphoneIcon
-        Image(
-            props.earphoneIcon,
-            {"width": 20,
-            "height": 20,
-            "objectFit": "contain",
-            "fillColor": $theme('supportContentColor')}
+      Image(
+          props.deviceIcon,
+          {"width": 20,
+          "height": 20,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')}
         )
-      #endif
     ),
   Text(
       data.name,
@@ -1637,7 +1633,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
 )
 #End
 
-#Template BluetoothDeviceOverviewMusicFull@1(props: { caseIcon?: asset })
+#Template BluetoothDeviceOverviewMusicFull@1(props: { deviceIcon: asset })
 data = {
   name: $path("/earphoneName"),
   connected: $path("/isConnected"),
@@ -1653,10 +1649,8 @@ Column({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent",
         Progress({"value": data.battery, "total": 100, "type": "ring", "width": 44, "height": 44,
           "strokeWidth": 6, "color": $theme('progressColor'),
           "backgroundColor": $theme('progressBackgroundColor')}),
-        #if props.caseIcon
-          Image(props.caseIcon, {"width": 20, "height": 20, "objectFit": "contain",
-            "fillColor": $theme('supportContentColor')})
-        #endif
+        Image(props.deviceIcon, {"width": 20, "height": 20, "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')})
       ),
       Column({"layoutWeight": 1, "height": 35, "itemMargin": 2},
         Text(Expr(data.battery + '%'), {"height": 19, "fontSize": 14, "fontWeight": 700,

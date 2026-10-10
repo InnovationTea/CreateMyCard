@@ -135,7 +135,7 @@ Action 且 `allowCalendarViewFallback=true` 的请求应用默认查看策略：
 电量策略独立应用于 `2x2`、唯一 `GetPhoneBatteryInfo / BatteryOverview` 业务、无已选 Action 且
 `allowBatterySettingsFallback=true` 的请求：
 
-1. 已有可用 Full 时保持原结果；没有 Full 且有通过 Search 的 Hero 时才检查设置入口。
+1. 有通过 Search 的 Hero 时检查设置入口，不因存在 Full 就提前排除 Hero。
 2. 已批准候选中必须恰有一个 `event.open.settings.battery`，调用为 `clickToDeeplink`，参数精确为
    `intentName=Settings`、`bundleName=com.huawei.hmos.settings`、
    `abilityName=com.huawei.hmos.settings.MainAbility`、`uri=battery`，才补选该事件。
@@ -147,7 +147,8 @@ Action 且 `allowCalendarViewFallback=true` 的请求应用默认查看策略：
 
 显式动作和画廊指定动作保持原集合，Full 不会删除它们。禁止按钮、其他业务、混合业务、宽卡和旧 LLM
 选择路线不受此策略影响。原始 TaskSpec、候选数据和显式字段不变，仍由 Planner 校验完整字段覆盖及
-动作消费；该策略只增加此前无 Full 的合法 Hero 入口，不放宽 Search 或全局动作规则。
+动作消费；有合法候选设置入口时 Full 与 Hero 平等参与后述字段比较，无合法候选入口时只尝试 Full。
+不放宽显式字段、禁止项、主焦点或全局动作约束。
 
 `BatteryOverviewPercentLevelHero@1` 是 Search 专用的电量补充分支：仅单电量 `2x2`，且用户显式字段
 恰好为 `/batterySOCText` 和 `/batteryCapacityLevelDesc`，才检查该模板。在类型、必需输入和完整覆盖
@@ -163,6 +164,15 @@ Planner 是确定性服务模块，输入第一层意图、Search 结果、卡�
 - Theme；
 - 每个 Action 的消费者：根 Action Template 或某个支持 `actionId` 的垂域业务 Template；
 - 显式字段覆盖与主焦点匹配信号。
+
+单手机电量 `2x2` 的提示词要求：非必选、且未被用户明确禁止的字段才作为候选。
+不新增禁止字段集合、协议字段或场景专用拒绝分支。该要求属于模型提示词语义约束，
+当前确定性排序仍读取原始输入候选，不能据此声称服务端已经硬性过滤所有否定要求。
+Search 使用模板蓝图和本轮类型兼容的输入，复用生产编译器的条件分支语义计算实际正文绑定；
+条件守卫、事件参数、未使用的元数据及未渲染分支不代表展示。无法实际显示全部显式字段的模板淘汰。
+电量排序先按下述规则保证显式唯一主焦点，再比较实际显示的候选字段去重数。
+没有主焦点时直接比较实际候选覆盖数，同分沿用原得分。无合法候选动作时只构建 Full；
+存在允许的候选设置动作时 Full/Hero 平等参与比较，显式动作仍必须消费。其它业务排序保持原样。
 
 硬约束是每个 Plan 必须覆盖用户全部显式字段并消费每个已选 Action 恰好一次。`2x2` 单业务有显式主焦点
 时，优先只保留该字段命中模板 `primaryData` 的 Plan。排序依次比较显式主焦点命中数、显式字段的主数据

@@ -207,9 +207,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 合并横版模板与仅支持 2x2 的 Support 可行 0/1/2 动作场景。
-    # 两个耳机 Support 只用于 2x4 组合，不再贡献原有的 2x2 Compact 单模板用例。
-    assert len(all_cases) == 187
+    # 包含各业务场景；两个仅支持 2x4 的耳机 Support 不生成 2x2 单模板用例。
+    assert len(all_cases) == 201
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -300,7 +299,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 186
+    assert len(targeted_cases) == 200
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -310,6 +309,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewTemperatureFull@1",
+        "BatteryOverviewPercentTextFull@1",
+        "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewChargingDiagnosticsFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewPercentLevelFull@1",
     }
     battery_charging = _find_case(
         manifest,
@@ -650,10 +655,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 187
+    assert summary.total == 201
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 181
+    assert summary.not_generated == 195
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
