@@ -126,6 +126,11 @@ class TemplateSearchResult(BaseModel):
         alias="businessCandidates",
         min_length=1,
     )
+    # 检索阶段判定零覆盖而丢弃的能力（如尚无任何模板承载的 GetCurrentTime）。
+    dropped_capabilities: tuple[str, ...] = Field(
+        default=(),
+        alias="droppedCapabilities",
+    )
 
 
 class TemplateRetrievalQuery(BaseModel):
@@ -498,6 +503,7 @@ def search_template_variants(
     battery_only = task_spec.size == "2x2" and requested_ids == {"GetPhoneBatteryInfo"}
 
     result_groups: list[TemplateBusinessCandidates] = []
+    uncovered_capabilities: list[str] = []
     matched_preferred_ids: set[str] = set()
     preferred_ids = set(preferred_template_ids)
     for capability_id, requested_paths in intent.required_output_fields_by_capability.items():
@@ -578,14 +584,38 @@ def search_template_variants(
             group.capability_id == capability_id for group in result_groups
         )
         if not has_capability_result:
+            if not any(
+                template.capability_id == capability_id
+                for template in registry.templates.values()
+            ):
+                # 能力在注册表中无任何模板承载（如 GetCurrentTime）且其余能力
+                # 可完整覆盖时才允许丢弃；模板存在但被禁用/字段不覆盖仍须拒绝，
+                # 禁止把用户显式请求的业务静默降级成单业务。
+                uncovered_capabilities.append(capability_id)
+            else:
+                raise TemplateRetrievalMiss(
+                    f"no provider template covers capability {capability_id} "
+                    "and its requested fields"
+                )
+    if uncovered_capabilities:
+        if not result_groups:
+            # 沿用原有失败文案（首个未覆盖能力），全部能力都无模板覆盖时仍然拒绝。
             raise TemplateRetrievalMiss(
-                f"no provider template covers capability {capability_id} and its requested fields"
+                f"no provider template covers capability {uncovered_capabilities[0]} "
+                "and its requested fields"
             )
+        # 单能力零覆盖、且其余能力可完整覆盖时丢弃该能力（如 GetCurrentTime
+        # 尚无任何模板承载），让其余业务走单业务路由，而不是整卡拒绝。
+        logger.info(
+            "[Template Retrieval] uncovered_capability_dropped "
+            f"diagnostics={json_for_log({'capabilities': uncovered_capabilities})}"
+        )
     if preferred_ids and matched_preferred_ids != preferred_ids:
         raise TemplateRetrievalMiss("trusted template candidate is outside Search results")
     return TemplateSearchResult(
         cardSize=task_spec.size,
         businessCandidates=tuple(result_groups),
+        droppedCapabilities=tuple(uncovered_capabilities),
     )
 
 

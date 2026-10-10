@@ -63,6 +63,7 @@
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
   - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
+  - `WeatherOverviewNextDayHealthFull@1`：当日（daily[0]）健康指数 Full，与 DailyHealthFull 同构，突出紫外线等级，并展示空气质量、感冒指数，可选补充天气现象与气温范围。
   - `WeatherOverviewTargetDayHealthFull@1`：当日健康指数 Full（daily[4]），上组突出 20vp 紫外线等级，
     下组以 12vp 展示空气质量和感冒指数；城市区县可选，缺失时显示「当前城市」；可选紫外线图标。
   - `WeatherOverviewAlertInfoFull@1`：完整温度天气摘要，空气质量行下追加预警信息行；无预警时显示“无预警信息”。可选 `conditionIcon`。
