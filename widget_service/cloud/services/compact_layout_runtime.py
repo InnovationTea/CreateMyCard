@@ -361,7 +361,8 @@ def _component_root_styles(
     if not isinstance(parts, dict):
         return None
     part_name = "root"
-    if component.component_type == "InfoBlock" and not component.props.get("icon"):
+    has_visual = component.props.get("icon") or component.props.get("visual")
+    if component.component_type == "InfoBlock" and not has_visual:
         part_name = "rootNoVisual"
     part = parts.get(part_name)
     if not isinstance(part, dict):
