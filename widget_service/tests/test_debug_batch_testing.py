@@ -330,6 +330,15 @@ def test_trace_root_configuration_prefers_cli_then_environment(
     assert explicit_root.parent.name == "widget_service"
 
 
+def test_default_paths_use_sibling_debug_tools_and_widget_service_cloud() -> None:
+    datasets_root, output_root, _trace_root, cloud_root = _default_paths()
+    repository_root = Path(__file__).resolve().parents[2]
+
+    assert datasets_root == repository_root / "debug_tools" / "Datasets"
+    assert output_root == repository_root / "debug_tools" / "batch_output"
+    assert cloud_root == repository_root / "widget_service" / "cloud"
+
+
 def test_sample_detail_recovers_trace_created_after_batch_import(tmp_path):
     output_root = tmp_path / "output"
     trace_root = tmp_path / "traces"

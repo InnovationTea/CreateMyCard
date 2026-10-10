@@ -17,6 +17,7 @@ from custom.model_transport import ModelTransportError
 from custom.unified_model_client import UnifiedModelClient
 from services import artifact_store
 from services.artifact_store import ArtifactStore, ArtifactUploadError
+from services.compact_dsl_a2ui_converter import _strip_optional_genui_fence
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.generation_pipeline import (
     DslProcessingResult,
@@ -134,6 +135,30 @@ def test_trace_v2_span_hierarchy_and_monotonic_offsets(tmp_path: Path) -> None:
     assert inner["parentSpanId"] == outer["spanId"]
     assert by_event["leaf"]["spanId"] == inner["spanId"]
     assert all(record["startOffsetMs"] >= 0 for record in records)
+
+
+def test_compact_jsonl_repair_records_trace(tmp_path: Path) -> None:
+    recorder = GenerationTraceRecorder()
+    recorder.bind_request(_UID, enabled=True, trace_root=tmp_path)
+    token = recorder.activate()
+    try:
+        repaired = _strip_optional_genui_fence(
+            '["root","Column",{"width":"matchParent" "height":"matchParent"},[]]'
+        )
+    finally:
+        recorder.deactivate(token)
+
+    record = next(
+        item for item in _read_records(tmp_path) if item["event"] == "compact_dsl.jsonl_repair"
+    )
+    assert json.loads(repaired)[2] == {"width": "matchParent", "height": "matchParent"}
+    assert record["recordType"] == "span"
+    assert record["category"] == "repair"
+    assert record["details"]["blockCount"] == 1
+    assert record["details"]["repairedBlockCount"] == 1
+    assert record["details"]["repairApplied"] is True
+    assert record["artifacts"]["compact_dsl_extracted"]["role"] == "input"
+    assert record["artifacts"]["compact_dsl_jsonl_repaired"]["role"] == "output"
 
 
 def test_same_request_binding_is_idempotent_and_new_request_isolated(
