@@ -1026,7 +1026,9 @@ class WidgetGenerationService:
         ) -> str:
             from services.prompt_builder import PromptBuilder
 
-            nonlocal model_call_phase, quality_repair_attempt_count
+            nonlocal model_call_phase, quality_repair_attempt_count, source_generated_by_template
+            # 修复输出来自模型，不能继承服务端模板编译产物的内部组件权限。
+            source_generated_by_template = False
             quality_repair_attempt_count += 1
             trace_phase("repair")
             trace_increment_attempt("qualityRepairAttempts")

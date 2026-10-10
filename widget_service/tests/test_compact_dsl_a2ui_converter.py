@@ -1518,7 +1518,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(small_components["circle"]["styles"]["height"], 52)
         self.assertEqual(small_components["circle_ring_stack"]["styles"]["width"], 52)
         self.assertEqual(small_components["circle_ring"]["styles"]["width"], 52)
-        self.assertEqual(small_components["circle_labels"]["styles"]["width"], 66)
+        self.assertEqual(small_components["circle_labels"]["styles"].get("layoutWeight"), 1)
         self.assertEqual(small_components["circle_display"]["styles"]["fontSize"], 10)
         self.assertEqual(small_components["circle_secondary"]["styles"]["height"], 16)
 

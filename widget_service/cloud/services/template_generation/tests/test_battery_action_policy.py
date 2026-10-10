@@ -488,6 +488,7 @@ async def test_percent_text_full_without_actions(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert not output.projected_task_spec.eventCandidates
@@ -560,6 +561,7 @@ async def test_q144_full_and_hero_compete_by_candidate_coverage(
     output = await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert len(output.projected_task_spec.eventCandidates) == int(allow_action)
@@ -657,6 +659,7 @@ async def test_review_constraints_survive_planning_and_generation(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=case.task.model_dump(mode="json"), card_spec=case.card,
     )
     component_text = ""

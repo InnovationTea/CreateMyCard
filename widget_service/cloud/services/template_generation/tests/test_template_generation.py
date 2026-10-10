@@ -8282,6 +8282,7 @@ async def test_template_exception_obeys_route_failure_policy(
     callback_sizes: list[str] = []
 
     class ModelClient:
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -8381,6 +8382,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     policy_factory,
 ):
     processed_sources: list[str] = []
+    template_validation_bypasses: list[bool] = []
     processor_kinds: list[DslProcessorKind] = []
     template_call_count = 0
     model_generate_calls = 0
@@ -8388,6 +8390,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     saved_design_tokens: list[str | None] = []
 
     class ModelClient:
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -8407,6 +8410,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             processed_sources.append(source_dsl)
+            template_validation_bypasses.append(_context.skip_compact_dsl_validation)
             if source_dsl == "template-invalid-source":
                 return DslProcessingResult(
                     source_dsl=source_dsl,
@@ -8483,6 +8487,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     assert template_call_count == 1
     assert model_generate_calls == 0
     assert model_repair_calls == 1
+    assert template_validation_bypasses == [True, False]
     assert processed_sources == [
         "template-invalid-source",
         "generic-repaired-source",

@@ -45,7 +45,9 @@ def _fusion_source() -> str:
             },
             ["title"],
         ],
-        ["title", "Text", {"content": "今日安排", "fontColor": "#FFFFFFFF"}],
+        ["title", "SecondaryBody", {
+            "role": "body", "items": [{"value": "今日安排"}], "fontColor": "#FFFFFFFF",
+        }],
     ]
     return "\n".join(
         json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows

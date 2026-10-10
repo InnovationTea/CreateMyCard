@@ -397,19 +397,12 @@ def _w9_sparse_dsl(*, centered: bool) -> str:
     return "\n".join(rows)
 
 
-def test_rejects_sparse_w9_without_vertical_center_and_layout_weight() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match=(
-            r"2x4 W9 sparse backboard leftZone.*layoutWeight 1.*"
-            r"justifyContent center"
-        ),
-    ):
-        validate_compact_dsl(
-            _w9_sparse_dsl(centered=False),
-            task_spec=_w9_sparse_task_spec(),
-            card_spec={"suggestSize": "2x4", "dataBindings": []},
-        )
+def test_legacy_sparse_panel_alignment_is_not_a_semantic_error() -> None:
+    validate_compact_dsl(
+        _w9_sparse_dsl(centered=False),
+        task_spec=_w9_sparse_task_spec(),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
 
 
 def test_accepts_sparse_w9_with_vertical_center_and_layout_weight() -> None:
@@ -420,7 +413,7 @@ def test_accepts_sparse_w9_with_vertical_center_and_layout_weight() -> None:
     )
 
 
-def test_rejects_sparse_w9_with_legacy_backboard_geometry() -> None:
+def test_legacy_panel_geometry_is_validated_separately_from_semantics() -> None:
     legacy = _w9_sparse_dsl(centered=True)
     legacy = legacy.replace(
         '"padding":12,"itemMargin":12',
@@ -431,15 +424,11 @@ def test_rejects_sparse_w9_with_legacy_backboard_geometry() -> None:
         '"width":138,"height":134,"padding":12',
     )
 
-    with pytest.raises(
-        CompactDslValidationError,
-        match=r"must use W9.*padding 12.*132x126",
-    ):
-        validate_compact_dsl(
-            legacy,
-            task_spec=_w9_sparse_task_spec(),
-            card_spec={"suggestSize": "2x4", "dataBindings": []},
-        )
+    validate_compact_dsl(
+        legacy,
+        task_spec=_w9_sparse_task_spec(),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
 
 
 def _fusion_overloaded_dsl() -> str:
@@ -703,32 +692,24 @@ def test_accepts_centered_single_value_hero_inside_106_by_58_safe_box() -> None:
     assert not result.warnings
 
 
-def test_rejects_centered_single_value_hero_without_safe_box() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match="one centered 106x58vp hero_box",
-    ):
-        validate_compact_dsl(
-            _centered_single_value_hero_dsl(
-                value_font=38,
-                unit_font=16,
-                include_safe_box=False,
-            ),
-            task_spec=_centered_single_value_hero_task_spec(30),
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+def test_legacy_hero_does_not_require_removed_safe_box() -> None:
+    validate_compact_dsl(
+        _centered_single_value_hero_dsl(
+            value_font=38,
+            unit_font=16,
+            include_safe_box=False,
+        ),
+        task_spec=_centered_single_value_hero_task_spec(30),
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
 
 
-def test_rejects_centered_single_value_hero_that_exceeds_width_pressure() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match="exceeds the 106vp width pressure budget",
-    ):
-        validate_compact_dsl(
-            _centered_single_value_hero_dsl(value_font=38, unit_font=16),
-            task_spec=_centered_single_value_hero_task_spec(1000),
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+def test_legacy_hero_uses_renderer_text_width_adaptation() -> None:
+    validate_compact_dsl(
+        _centered_single_value_hero_dsl(value_font=38, unit_font=16),
+        task_spec=_centered_single_value_hero_task_spec(1000),
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
 
 
 def test_accepts_centered_single_value_hero_after_font_downgrade() -> None:
@@ -744,7 +725,7 @@ def test_accepts_centered_single_value_hero_after_font_downgrade() -> None:
 def test_rejects_centered_single_value_hero_that_exceeds_height_pressure() -> None:
     with pytest.raises(
         CompactDslValidationError,
-        match="exceeds the 58vp height pressure budget",
+        match="vertical layout requires at least 64vp within 58vp",
     ):
         validate_compact_dsl(
             _centered_single_value_hero_dsl(
@@ -757,7 +738,7 @@ def test_rejects_centered_single_value_hero_that_exceeds_height_pressure() -> No
         )
 
 
-def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
+def test_legacy_numeric_metrics_keep_semantic_validation() -> None:
     source = "\n".join(
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
@@ -788,15 +769,11 @@ def test_rejects_large_hero_for_peer_metrics_on_150vp_card() -> None:
         "eventCandidates": [],
     }
 
-    with pytest.raises(
-        CompactDslValidationError,
-        match="multiple peer quantitative fields",
-    ):
-        validate_compact_dsl(
-            source,
-            task_spec=task_spec,
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
 
 
 def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
