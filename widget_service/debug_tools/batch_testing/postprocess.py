@@ -117,6 +117,10 @@ class PostprocessManager:
         *,
         rerun: bool = False,
     ) -> dict[str, Any]:
+        if "quality-score" in plugin_ids:
+            summary = self._read_json(self._run_dir(run_id) / "summary.json")
+            if summary.get("status") != "completed":
+                raise ValueError("质量评分仅支持已完成批次")
         run_dir = self._ensure_run_dir(run_id)
         summary_path = run_dir / "summary.json"
         run_completed = summary_path.is_file() and (
@@ -144,6 +148,9 @@ class PostprocessManager:
             errors = list(Draft202012Validator(schema).iter_errors(config))
             if errors:
                 raise ValueError(f"插件配置无效: {plugin_id}: {errors[0].message}")
+            if plugin_id == "quality-score":
+                selected_samples = self._quality_samples(self._read_json(summary_path), config)
+                config = {"sampleIds": [sample.get("id") for sample in selected_samples]}
             selected.append(
                 {
                     "id": plugin_id,
@@ -407,6 +414,7 @@ class PostprocessManager:
                         "artifacts": [],
                     },
                 }
+            normalized["config"] = dict(selection.get("config") or {})
             summary = self._persist_stage(
                 run_id,
                 execution_id,
@@ -463,7 +471,10 @@ class PostprocessManager:
             f"{quote(execution_id, safe='')}/assets/{quote(plugin_id, safe='')}"
         )
         sample_results: list[dict[str, Any]] = []
-        for sample in list(summary.get("samples") or []):
+        samples = list(summary.get("samples") or [])
+        if plugin_id == "quality-score":
+            samples = self._quality_samples(summary, config)
+        for sample in samples:
             if not isinstance(sample, dict):
                 continue
             sample_id = str(sample.get("id") or "")
@@ -555,6 +566,44 @@ class PostprocessManager:
             "sampleResults": sample_results,
             "datasetResult": dataset_result,
         }
+
+    @staticmethod
+    def _quality_samples(summary: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
+        """在调度前校验选择，按来源顺序固化；不要在汇总阶段才假装筛选。"""
+        samples = summary.get("samples")
+        if not isinstance(samples, list) or not samples:
+            raise ValueError("批次没有可选择的样本")
+        by_id: dict[str, dict[str, Any]] = {}
+        for sample in samples:
+            if not isinstance(sample, dict):
+                raise ValueError("批次样本格式无效")
+            sample_id = sample.get("id")
+            if not isinstance(sample_id, str) or not _SAFE_ID.fullmatch(sample_id):
+                raise ValueError("批次样本 ID 无效")
+            if sample_id in by_id:
+                raise ValueError("批次样本 ID 重复，无法唯一选择")
+            by_id[sample_id] = sample
+        ids = config.get("sampleIds")
+        count = config.get("count")
+        if ids is not None and count is not None:
+            raise ValueError("sampleIds 与 count 不能同时指定")
+        if count is not None:
+            if type(count) is not int or not 1 <= count <= len(samples):
+                raise ValueError("count 必须为正整数且不超过样本总数")
+            return samples[:count]
+        if ids is None:
+            return samples
+        if not isinstance(ids, list) or not ids:
+            raise ValueError("所选 sampleIds 不能为空")
+        if any(not isinstance(item, str) for item in ids):
+            raise ValueError("sampleIds 必须为字符串数组")
+        if len(ids) != len(set(ids)):
+            raise ValueError("所选 sampleIds 重复")
+        unknown = set(ids) - by_id.keys()
+        if unknown:
+            raise ValueError(f"未知样本 ID: {', '.join(sorted(unknown))}")
+        selected = set(ids)
+        return [sample for sample in samples if sample.get("id") in selected]
 
     async def _invoke_subprocess(
         self,
@@ -1006,6 +1055,7 @@ class PostprocessManager:
             "version": str(manifest.get("version") or ""),
             "apiVersion": str(manifest.get("apiVersion") or ""),
             "status": str(stage.get("status") or "failed"),
+            "config": dict(stage.get("config") or {}),
             "sampleCount": len(sample_results),
             "counts": counts,
             "datasetResult": self._result_summary(dataset_result),
@@ -1045,6 +1095,8 @@ class PostprocessManager:
                 {
                     "sampleId": sample_id,
                     "title": str(meta.get("title") or sample_id),
+                    "query": meta.get("query"),
+                    "size": meta.get("size"),
                     "sequence": int(meta.get("sequence") or len(samples) + 1),
                     "status": str(item.get("status") or "failed"),
                     "summary": str(item.get("summary") or ""),
@@ -1067,7 +1119,9 @@ class PostprocessManager:
             "outputs": list(manifest.get("outputs") or []),
             "datasetResult": dict(stage.get("datasetResult") or {}),
             "counts": counts,
-            "totalSamples": int(run.get("total") or len(samples)),
+            "totalSamples": len(samples),
+            "sourceTotalSamples": int(run.get("total") or len(run.get("samples") or [])),
+            "selection": dict(stage.get("config") or {}),
             "samples": samples,
         }
 
@@ -1168,7 +1222,7 @@ class PostprocessManager:
         fact = value.get(key) if isinstance(value, dict) else None
         if isinstance(fact, bool):
             return 0, 1.0 if fact else 0.0
-        if isinstance(fact, (int, float)):
+        if isinstance(fact, int | float):
             return 0, float(fact)
         return 1, str(fact or "")
 

@@ -142,4 +142,18 @@ describe('PostprocessPanel', () => {
       pluginIds: ['browser-gallery'], rerun: true,
     });
   });
+
+  it('routes quality scoring through sample selection without submitting it as a generic plugin', async () => {
+    vi.mocked(fetch).mockResolvedValue(response({ items: [{
+      apiVersion: 'batch-postprocess-v2', id: 'quality-score', name: '质量评分', version: '1',
+      configSchema: { type: 'object' }, dependence: ['browser-gallery'],
+    }] }));
+    render(<MemoryRouter><PostprocessPanel runId="run_1" runStatus="completed"
+      selectedSampleId="Q001" executions={[]} onStarted={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: '后处理插件' }));
+    expect(await screen.findByRole('link', { name: /质量评分/ })).toHaveAttribute('href', '/quality?runId=run_1');
+    expect(screen.queryByRole('checkbox', { name: '质量评分' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '开始后处理' })).toBeDisabled();
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  });
 });

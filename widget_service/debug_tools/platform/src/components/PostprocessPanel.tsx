@@ -65,7 +65,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
     });
     return histories;
   }, [executions]);
-  const newSelected = selected.filter((pluginId) => !historyByPlugin.has(pluginId));
+  const newSelected = selected.filter((pluginId) => pluginId !== 'quality-score' && !historyByPlugin.has(pluginId));
 
   useEffect(() => {
     if (!waitingExecution) return;
@@ -154,6 +154,10 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
         <div className="postprocess-unified-view">
           <section className="postprocess-plugin-grid" aria-label="可选后处理插件">
             {plugins.map((plugin) => {
+              if (plugin.id === 'quality-score') return <Link key={plugin.id} className="postprocess-plugin-card"
+                to={`/quality?runId=${encodeURIComponent(runId)}`}>
+                <span><b>{plugin.name}</b><small>选择已完成批次和样本，确认后手动运行评分 ›</small></span>
+              </Link>;
               const checked = selected.includes(plugin.id);
               const dependencies = plugin.dependence ?? [];
               return <label key={plugin.id} className={checked ? 'postprocess-plugin-card is-selected' : 'postprocess-plugin-card'}>
@@ -179,7 +183,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
               return <article key={pluginId}><div><strong>{plugin?.name ?? pluginId}</strong>
                 {!latest && <small>尚未执行</small>}
                 {latest && <small>{latest.result.datasetResult?.summary ?? `${latest.result.sampleCount ?? 0} 个样本`} · {latest.execution.createdAt}</small>}
-              </div>{latest && <><span className={`batch-status ${latest.result.status ?? latest.execution.status}`}>{executionStatusLabel(latest.result.status ?? latest.execution.status)}</span><div className="postprocess-result-actions"><button type="button" disabled={active || Boolean(rerunningPluginId)} onClick={() => rerun(pluginId)}>{rerunningPluginId === pluginId ? '提交中…' : '再次运行'}</button><Link
+              </div>{latest && <><span className={`batch-status ${latest.result.status ?? latest.execution.status}`}>{executionStatusLabel(latest.result.status ?? latest.execution.status)}</span><div className="postprocess-result-actions">{pluginId !== 'quality-score' && <button type="button" disabled={active || Boolean(rerunningPluginId)} onClick={() => rerun(pluginId)}>{rerunningPluginId === pluginId ? '提交中…' : '再次运行'}</button>}<Link
                 to={`/batch/runs/${encodeURIComponent(runId)}/postprocess/${encodeURIComponent(latest.execution.executionId)}/plugins/${encodeURIComponent(pluginId)}`}
                 target="_blank"
                 rel="noopener noreferrer"

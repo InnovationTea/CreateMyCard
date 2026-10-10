@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PostprocessDashboardRoute } from './PostprocessDashboardRoute';
@@ -8,7 +8,7 @@ function response(value: unknown): Response {
 }
 
 describe('PostprocessDashboardRoute', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
   it('loads overview, filters samples and opens the sample inspector', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: string) => {
@@ -67,5 +67,65 @@ describe('PostprocessDashboardRoute', () => {
     unmount();
     expect(document.documentElement).not.toHaveClass('postprocess-dashboard-active');
     expect(document.body).not.toHaveClass('postprocess-dashboard-active');
+  });
+
+  it('reruns only the quality dashboard subset and opens the new dashboard after completion', async () => {
+    let finish!: (value: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return response({ executionId: 'new_score', status: 'queued' });
+      if (input.endsWith('/postprocess/new_score')) return new Promise<Response>((resolve) => { finish = resolve; });
+      if (input === '/debug/batch/runs/run_1') return response({ runId: 'run_1', status: 'completed', total: 88,
+        postprocessExecutions: [{ executionId: 'old_score', plugins: [{ id: 'quality-score' }], status: 'partial' }],
+      });
+      if (input.endsWith('/dashboard')) return response({
+        runId: 'run_1', executionId: 'old_score', status: 'partial', plugin: { id: 'quality-score', name: '质量评分' },
+        presentation: { defaultView: 'table', sampleFields: [] }, samples: [], totalSamples: 2, sourceTotalSamples: 88,
+        selection: { sampleIds: ['Q2', 'Q5'], count: 2 },
+        datasetResult: { status: 'partial', artifacts: [{ key: 'policy', dataType: 'json', data: { version: 'historical-v1' } }] },
+      });
+      if (input.includes('/samples?')) return response({ items: [], total: 0 });
+      throw new Error(`unexpected request: ${input}`);
+    }));
+    render(<MemoryRouter initialEntries={['/batch/runs/run_1/postprocess/old_score/plugins/quality-score']}><Routes>
+      <Route path="/batch/runs/run_1/postprocess/new_score/plugins/quality-score" element={<h1>新评分结果</h1>} />
+      <Route path="/batch/runs/:runId/postprocess/:executionId/plugins/:pluginId" element={<PostprocessDashboardRoute />} />
+    </Routes></MemoryRouter>);
+    await screen.findByRole('heading', { name: '质量评分' });
+    expect(screen.getByText(/本次 2 \/ 来源 88/)).toBeInTheDocument();
+    expect(screen.getByText(/historical-v1/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '选择批次' })).toHaveAttribute('href', '/quality?runId=run_1');
+    expect(screen.getByRole('link', { name: '评估方案（当前版本）' })).toHaveAttribute('href', '/quality/evaluation');
+    expect(screen.getByRole('link', { name: '批次对比' })).toHaveAttribute('href', '/quality/compare?leftRunId=run_1&leftExecutionId=old_score');
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '↻ 再次运行' }));
+    await waitFor(() => expect(finish).toBeDefined());
+    const post = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'POST');
+    expect(JSON.parse(String(post?.[1]?.body))).toEqual({ pluginIds: ['quality-score'], configs: { 'quality-score': { sampleIds: ['Q2', 'Q5'] } }, rerun: true });
+    expect(screen.queryByText('新评分结果')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('历史执行')).toBeDisabled();
+    finish(response({ status: 'partial', plugins: [{ id: 'quality-score', status: 'partial' }] }));
+    expect(await screen.findByText('新评分结果')).toBeInTheDocument();
+  });
+
+  it('keeps generic plugin rerun behavior and does not attach quality links', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return response({ executionId: 'new_generic' });
+      if (input === '/debug/batch/runs/run_1') return response({ runId: 'run_1', status: 'completed', postprocessExecutions: [] });
+      if (input.endsWith('/dashboard')) return response({
+        plugin: { id: 'component-recall', name: '组件召回分析' }, presentation: {}, samples: [], datasetResult: {}, totalSamples: 1,
+      });
+      if (input.includes('/samples?')) return response({ items: [], total: 0 });
+      throw new Error(`unexpected request: ${input}`);
+    }));
+    render(<MemoryRouter initialEntries={['/batch/runs/run_1/postprocess/old/plugins/component-recall']}><Routes>
+      <Route path="/batch/runs/run_1/postprocess/new_generic/plugins/component-recall" element={<h1>通用看板</h1>} />
+      <Route path="/batch/runs/:runId/postprocess/:executionId/plugins/:pluginId" element={<PostprocessDashboardRoute />} />
+    </Routes></MemoryRouter>);
+    await screen.findByRole('heading', { name: '组件召回分析' });
+    expect(screen.queryByRole('link', { name: '选择批次' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '↻ 再次运行' }));
+    expect(await screen.findByText('通用看板')).toBeInTheDocument();
+    const post = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'POST');
+    expect(JSON.parse(String(post?.[1]?.body))).toEqual({ pluginIds: ['component-recall'], configs: {}, rerun: true });
   });
 });
