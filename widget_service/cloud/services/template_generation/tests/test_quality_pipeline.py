@@ -9,6 +9,7 @@ from services.card_validation import validate_card
 from services.card_validation.context import ValidationContext
 from services.card_validation.diagnostics import Diagnostic, Reporter
 from services.card_validation.quality.density_validator import DensityValidator
+from services.card_validator import CardValidationReport
 from services.validator import ArtifactValidator
 
 
@@ -159,6 +160,130 @@ def test_density_counts_an_extra_hero_outside_parallel_focus_group() -> None:
     DensityValidator().validate(_density_context(extra_hero=True), None, reporter)
 
     assert reporter.has_code("DENSITY.NUMBERS")
+
+
+def _labeled_density_context(
+    *,
+    extra_hero: bool = False,
+    extra_row_hero: bool = False,
+) -> ValidationContext:
+    components: list[dict[str, Any]] = [
+        {"id": "root", "component": "Column", "children": ["focus_row"]},
+        {
+            "id": "focus_row",
+            "component": "Row",
+            "children": ["left_column", "right_column"],
+            "itemMargin": 8,
+            "styles": {"width": 136},
+        },
+    ]
+    for column_id, value_id, label_id, value in (
+        ("left_column", "left_value", "left_label", "12"),
+        ("right_column", "right_value", "right_label", "34"),
+    ):
+        components.extend(
+            [
+                {
+                    "id": column_id,
+                    "component": "Column",
+                    "children": [value_id, label_id],
+                    "styles": {"width": 64},
+                },
+                {
+                    "id": value_id,
+                    "component": "Text",
+                    "content": value,
+                    "styles": {
+                        "fontSize": 30,
+                        "fontWeight": 700,
+                        "textAlign": "center",
+                    },
+                },
+                {
+                    "id": label_id,
+                    "component": "Text",
+                    "content": "指标",
+                    "styles": {"fontSize": 12},
+                },
+            ]
+        )
+    if extra_row_hero:
+        components[1]["children"].append("row_hero")
+        components.append(
+            {
+                "id": "row_hero",
+                "component": "Text",
+                "content": "56",
+                "styles": {"fontSize": 30, "fontWeight": 700},
+            }
+        )
+    if extra_hero:
+        components[0]["children"].append("hero")
+        components.append(
+            {
+                "id": "hero",
+                "component": "Text",
+                "content": "56",
+                "styles": {"fontSize": 30, "fontWeight": 700},
+            }
+        )
+    by_id = {component["id"]: component for component in components}
+    return ValidationContext(
+        cardspec={"suggestSize": "2x2"},
+        components=components,
+        components_by_id=by_id,
+        root_id="root",
+        root_component=by_id["root"],
+    )
+
+
+def test_labeled_parallel_focus_group_counts_as_one_focus() -> None:
+    reporter = Reporter()
+
+    DensityValidator().validate(_labeled_density_context(), None, reporter)
+
+    assert not reporter.has_code("DENSITY.NUMBERS")
+
+
+def test_labeled_parallel_focus_group_still_rejects_extra_hero() -> None:
+    reporter = Reporter()
+
+    DensityValidator().validate(_labeled_density_context(extra_hero=True), None, reporter)
+
+    assert reporter.has_code("DENSITY.NUMBERS")
+
+
+def test_labeled_parallel_focus_group_rejects_extra_row_hero() -> None:
+    reporter = Reporter()
+
+    DensityValidator().validate(
+        _labeled_density_context(extra_row_hero=True),
+        None,
+        reporter,
+    )
+
+    assert reporter.has_code("DENSITY.NUMBERS")
+
+
+def test_quality_warning_does_not_become_strict_blocking_error() -> None:
+    report = CardValidationReport(
+        errors=[],
+        warnings=["ICON.DUPLICATE_SRC: duplicate icon"],
+        blocking_warnings=[],
+    )
+
+    assert report.passed()
+    assert report.passed(strict=True)
+
+
+def test_non_quality_warning_remains_strict_blocking() -> None:
+    report = CardValidationReport(
+        errors=[],
+        warnings=["PROTOCOL.WARNING: protocol warning"],
+        blocking_warnings=["PROTOCOL.WARNING: protocol warning"],
+    )
+
+    assert not report.passed(strict=True)
 
 
 def test_quality_errors_are_observations_at_artifact_boundary() -> None:

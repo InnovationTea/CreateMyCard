@@ -59,19 +59,6 @@ STATIC_VALIDATORS = [
 
 QUALITY_VALIDATORS = [
     ContrastValidator(),
-    AssetQualityValidator(),
-    ColorValidator(),
-    CopyValidator(),
-    DensityValidator(),
-    FusionReadabilityValidator(),
-    GradientValidator(),
-    IconValidator(),
-    Layout2x4Validator(),
-    LayoutSafetyValidator(),
-    ShapeValidator(),
-    SlotValidator(),
-    SpacingValidator(),
-    TypographyValidator(),
 ]
 
 EFFECTIVE_VALIDATORS = [

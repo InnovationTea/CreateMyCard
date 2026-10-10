@@ -113,7 +113,12 @@ class DensityValidator(BaseValidator):
         component_id = component.get("id")
         if not isinstance(component_id, str):
             return set()
-        for parent_id in parents.get(component_id, set()):
+        candidate_parent_ids = set(parents.get(component_id, set()))
+        for parent_id in list(candidate_parent_ids):
+            parent = components_by_id.get(parent_id)
+            if isinstance(parent, dict) and parent.get("component") == "Column":
+                candidate_parent_ids.update(parents.get(parent_id, set()))
+        for parent_id in candidate_parent_ids:
             parent = components_by_id.get(parent_id)
             if not isinstance(parent, dict) or parent.get("component") != "Row":
                 continue
@@ -125,12 +130,69 @@ class DensityValidator(BaseValidator):
                 for child_id in children
                 if isinstance(child_id, str) and child_id in number_ids
             }
-            if len(sibling_ids) < 2:
+            members = cls._row_focus_members(parent, number_ids, components_by_id)
+            if len(members) < 2:
                 continue
-            siblings = [components_by_id[sibling_id] for sibling_id in sibling_ids]
-            if cls._same_focus_style(siblings) and cls._fits_row(parent, siblings):
-                return sibling_ids
+            number_components = [number for number, _ in members]
+            member_ids = {number.get("id") for number, _ in members}
+            if not sibling_ids.issubset(member_ids):
+                continue
+            if cls._same_focus_style(number_components) and cls._fits_row(
+                parent,
+                [layout for _, layout in members],
+            ):
+                return {
+                    number.get("id")
+                    for number, _ in members
+                    if isinstance(number.get("id"), str)
+                }
         return set()
+
+    @staticmethod
+    def _row_focus_members(
+        parent: dict[str, Any],
+        number_ids: set[str],
+        components_by_id: dict[str, dict[str, Any]],
+    ) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+        children = parent.get("children")
+        if not isinstance(children, list):
+            return []
+        direct_members: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        labeled_members: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        for child_id in children:
+            if not isinstance(child_id, str):
+                continue
+            child = components_by_id.get(child_id)
+            if not isinstance(child, dict):
+                continue
+            if child_id in number_ids:
+                direct_members.append((child, child))
+                continue
+            if child.get("component") != "Column":
+                continue
+            column_children = child.get("children")
+            if not isinstance(column_children, list):
+                continue
+            value_ids = [
+                item
+                for item in column_children
+                if isinstance(item, str) and item in number_ids
+            ]
+            label_ids = [
+                item
+                for item in column_children
+                if isinstance(item, str)
+                and item not in number_ids
+                and components_by_id.get(item, {}).get("component") == "Text"
+            ]
+            if len(value_ids) != 1 or not label_ids:
+                continue
+            value = components_by_id.get(value_ids[0])
+            if isinstance(value, dict):
+                labeled_members.append((value, child))
+        if labeled_members:
+            return labeled_members if not direct_members else []
+        return direct_members
 
     @staticmethod
     def _same_focus_style(siblings: list[dict[str, Any]]) -> bool:
