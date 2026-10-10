@@ -34,6 +34,10 @@
         "description": "返回结果",
         "required": [],
         "properties": {
+          "errorMessage": {
+            "type": "String",
+            "description": "工具调用错误说明；"
+          },
           "nonAuthStatus": {
             "type": "Array",
             "description": "需要用户手动授权的项目；非空时应停止生成并引导用户按指定路径授权",
