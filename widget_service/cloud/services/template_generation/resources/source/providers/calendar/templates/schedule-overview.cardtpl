@@ -4100,6 +4100,7 @@ Stack(
     ),
     Row(
         {
+            "margin": {"top": 4},
             "width": "matchParent",
             "height": 58,
             "justifyContent": "center",

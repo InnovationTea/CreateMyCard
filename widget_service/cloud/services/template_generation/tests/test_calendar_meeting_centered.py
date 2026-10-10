@@ -100,6 +100,7 @@ def test_stacked_meeting_preserves_optional_time_and_final_a2ui(
     assert time_row.component_type == "Row"
     assert _options(time_row).get("width") == "matchParent"
     assert _options(time_row).get("height") == 58
+    assert _options(time_row).get("margin") == {"top": 4}
     assert "flexShrink" not in _options(time_row)
     assert _options(time_row).get("justifyContent") == "center"
     assert _options(time_row).get("alignItems") == "center"
@@ -156,6 +157,7 @@ def test_stacked_meeting_preserves_optional_time_and_final_a2ui(
     time_row_styles = rows[0].get("styles")
     assert isinstance(time_row_styles, dict)
     assert time_row_styles.get("height") == 58
+    assert time_row_styles.get("margin") == {"top": 4}
     assert "flexShrink" not in time_row_styles
     assert time_row_styles.get("justifyContent") == "center"
     assert time_row_styles.get("alignItems") == "center"
