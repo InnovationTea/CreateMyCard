@@ -1866,6 +1866,7 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
         raise CompactDslConversionError("CardButton requires a 2x4 card.")
     allowed = {
         "label",
+        "labelLines",
         "onClick",
         "fontColor",
         "backgroundColor",
@@ -1882,6 +1883,14 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
     _require_color(component, "backgroundColor")
     _validate_optional_icon(component)
     _validate_high_level_on_click(component)
+
+    label_lines = component.props.get("labelLines", 1)
+    valid_lines = isinstance(label_lines, int) and not isinstance(label_lines, bool)
+    if not valid_lines or label_lines not in (1, 2):
+        raise CompactDslConversionError(
+            f"{component.component_id}: CardButton.labelLines must be 1 or 2."
+        )
+    variant = "multilineLabel" if label_lines == 2 else None
 
     label_id = f"{component.component_id}_label"
     visual_id = f"{component.component_id}_visual"
@@ -1905,6 +1914,7 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
             "CardButton",
             "label",
             size=size,
+            variant=variant,
             props={
                 "content": copy.deepcopy(component.props["label"]),
                 "fontColor": component.props["fontColor"],
@@ -2308,6 +2318,18 @@ def _event_card_item_rows(
                 children=tuple(meta_children),
             )
         )
+        if has_location:
+            # 同行不能让时间与地点各占满父宽；只修 compact 的横向分配。
+            for index, row in enumerate(rows):
+                if row.component_id not in {time_id, location_id}:
+                    continue
+                props = copy.deepcopy(row.props)
+                props.pop("width", None)
+                if row.component_id == location_id:
+                    props["layoutWeight"] = 1
+                rows[index] = ComponentRow(
+                    row.component_id, row.component_type, props, row.children
+                )
     elif has_location:
         rows.append(
             _visual_row(

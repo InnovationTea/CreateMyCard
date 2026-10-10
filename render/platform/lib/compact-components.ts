@@ -1020,7 +1020,7 @@ function expandHighLevel(
   if (type === "CardButton") {
     if (size !== "2x4") throw new Error("CardButton 仅支持 2x4 卡片。");
     const allowed = [
-      "label", "onClick", "fontColor", "backgroundColor", "icon", "fillColor",
+      "label", "labelLines", "onClick", "fontColor", "backgroundColor", "icon", "fillColor",
     ];
     requireProps(id, type, p, ["label", "onClick", "fontColor", "backgroundColor"], allowed);
     requireDisplay(id, type, p, "label");
@@ -1028,6 +1028,11 @@ function expandHighLevel(
     requireColor(id, type, p, "backgroundColor");
     requireOptionalIcon(id, type, p);
     requireAction(id, type, p.onClick);
+    const labelLines = p.labelLines === undefined ? 1 : p.labelLines;
+    if (!Number.isInteger(labelLines) || ![1, 2].includes(labelLines as number)) {
+      throw new Error(`${id}: CardButton.labelLines 只接受 1 或 2。`);
+    }
+    const variant = labelLines === 2 ? "multilineLabel" : undefined;
     const label = `${id}_label`;
     const visual = `${id}_visual`;
     const visualProps = p.icon
@@ -1042,7 +1047,7 @@ function expandHighLevel(
         { backgroundColor: p.backgroundColor, onClick: p.onClick },
         [label, visual],
       ),
-      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }),
+      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }, [], variant),
       row(visual, type, p.icon ? "icon" : "placeholder", size, visualProps),
     ];
   }
@@ -1235,6 +1240,13 @@ function expandHighLevel(
           );
         }
         rows.push(row(metaRow, type, "metaRow", size, {}, metaChildren, variant));
+        if (item.location !== undefined) {
+          for (const [nodeId, node] of rows) {
+            if (nodeId !== time && nodeId !== location) continue;
+            delete node.props.width;
+            if (nodeId === location) node.props.layoutWeight = 1;
+          }
+        }
       } else if (item.location !== undefined) {
         rows.push(row(location, type, "meta", size, {
           content: item.location, fontColor: secondaryColor,

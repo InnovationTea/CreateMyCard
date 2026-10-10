@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 from typing import Any
 
 from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
@@ -47,6 +48,7 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
             if isinstance(candidate, dict) and candidate.get("id") in actions:
                 handlers.append(copy.deepcopy(candidate))
 
+    layouts = _layout_geometry(size, len(actions))
     payload = {
         "referenceCanvasOnly": {
             "width": reference_dimension(size, "width"),
@@ -55,8 +57,10 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "requiredActionCount": len(actions),
         "requiredActions": handlers,
         "requiredSingleLineTitleBindings": titles,
-        "legalLayoutAlternatives": _layout_geometry(size, len(actions)),
+        "legalLayoutAlternatives": layouts,
         "candidateRecipeParts": _recipe_geometry(size, names),
+        "ordinaryFactPacking": _fact_packing(size, facts, task),
+        "referenceContentBudgets": _content_budgets(size, layouts, len(actions)),
     }
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
@@ -76,6 +80,14 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "数值字段和真实单位优先分别传 value 与 unit；已有格式化字符串保持完整，不拆单位。"
         "若某个横排子区装不下完整读数，不得裁切尾部；改合法分区比例或组件组合后重算宽高。"
         "无法容纳时先改合法组合或布局，不缩字、删事实、删操作或只调权重。"
+        "ordinaryFactPacking 给出完整事实的普通信息组合高度，不强迫把核心主值降为正文；"
+        "普通时间、状态等没有真实强调要求时，不因 componentHints 首项就各做一个强调块。"
+        "referenceContentBudgets 已扣除区域内边距，localReservations 才是扣标题与本地动作后的余额；"
+        "动作若已落在独立动作槽，不在正文区域重复扣除或复制。"
+        "先比较普通单列、双列、表格的确切高度与文字宽度，再决定是否保留额外装饰标题。"
+        "不要把两个较长 label+value 放在同一短行；长日期和地点用单列并声明允许的两行。"
+        "CardButton 完整标签一行放不下时可用 labelLines:2，原字号不变，"
+        "两行标签加上下 padding 必须仍在槽位内；不删动作目标文字。"
         "本表只摘要已有合同，不授权新 Props；不要输出本表或任何额外协议字段。\n\n"
         f"```json\n{encoded}\n```"
     )
@@ -100,6 +112,7 @@ def _layout_geometry(size: str, action_count: int) -> dict[str, Any]:
                 for axis in ("width", "height"):
                     if axis in props:
                         box[axis] = props.pop(axis)
+                box.update(copy.deepcopy(rule.get("slotSize", {})))
                 if box:
                     item["referenceBox"] = box
                 if props:
@@ -107,6 +120,135 @@ def _layout_geometry(size: str, action_count: int) -> dict[str, Any]:
                 rules.append(item)
             patterns.append(rules)
         output[name] = patterns
+    return output
+
+
+def _schema_field(schema: Any, path: str) -> dict[str, Any]:
+    value = schema
+    for part in path.removeprefix("/").split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        if isinstance(value, list) and part.isdigit():
+            index = int(part)
+            value = value[index] if index < len(value) else None
+        elif isinstance(value, dict):
+            if part.isdigit() and "items" in value:
+                value = value.get("items")
+            else:
+                value = value.get(part)
+        else:
+            return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _fact_packing(
+    size: str, facts: list[Any], task: dict[str, Any]
+) -> dict[str, Any]:
+    """计算普通文本候选，不强制语义降级，也不把 sampleValue 写入输出。"""
+    required: list[dict[str, Any]] = []
+    for fact in facts:
+        if not isinstance(fact, dict) or fact.get("actionId"):
+            continue
+        item = {key: copy.deepcopy(fact[key]) for key in ("requirement", "dataId", "text")
+                if key in fact}
+        path = fact.get("dataId")
+        if isinstance(path, str):
+            field = _schema_field(task.get("dataModelSchema"), path)
+            item["fieldType"] = field.get("type")
+            item["pressureSampleOnly"] = copy.deepcopy(field.get("sampleValue"))
+            item["meaning"] = field.get("description")
+        required.append(item)
+    options: list[dict[str, Any]] = []
+    count = len(required)
+    if 1 <= count <= 4:
+        variant = "multiline" if count > 2 else None
+        recipe = component_visual_recipe("SecondaryBody", size=size, variant=variant)
+        text = recipe.get("parts", {}).get("text", {}).get("styles", {})
+        root = recipe.get("parts", {}).get("root", {}).get("styles", {})
+        height = text.get("height", 0) / text.get("maxLines", 1)
+        gap = root.get("itemMargin", 0)
+        for columns in (1, 2):
+            rows = math.ceil(count / columns)
+            for lines in (1, 2):
+                options.append({
+                    "component": "SecondaryBody", "role": "supporting",
+                    "items": count, "columns": columns, "maxLinesPerValue": lines,
+                    "rows": rows, "requiredHeight": rows * height * lines + (rows - 1) * gap,
+                    "fontSizeUnchanged": text.get("fontSize"),
+                    "widthCondition": "Each label plus complete value must fit its own column; "
+                                      "two columns subtract the separator before equal allocation",
+                })
+    if 2 <= count <= 3:
+        variant = "compact" if count == 3 else None
+        recipe = component_visual_recipe("TableText", size=size, variant=variant)
+        parts = recipe.get("parts", {})
+        height = parts.get("row", {}).get("styles", {}).get("height", 0)
+        gap_key = "threeRowGap" if count == 3 else "twoRowGap"
+        gap = recipe.get("metrics", {}).get(gap_key, 0)
+        options.append({"component": "TableText", "items": count,
+                        "requiredHeight": height * count + gap * (count - 1),
+                        "widthCondition": (
+                            "Natural label plus gap plus complete value fits one row; "
+                            "use only semantically related attributes"
+                        )})
+    return {"requiredFacts": required, "options": options,
+            "warning": "Do not shrink existing focal fonts or discard facts to select an option. "
+                       "Pressure samples are not real device measurements or static bindings. "
+                       "For more than four facts split legal semantic groups and sum all heights."}
+
+
+def _padding_pair(value: Any, axis: str) -> float:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value) * 2
+    if isinstance(value, dict):
+        sides = ("left", "right") if axis == "width" else ("top", "bottom")
+        return sum(float(value.get(side, 0)) for side in sides)
+    return 0.0
+
+
+def _content_budgets(
+    size: str, layouts: dict[str, Any], action_count: int
+) -> list[dict[str, Any]]:
+    """列出合同参考区域的容量算式，不创建几何或锁定业务骨架。"""
+    title = component_visual_recipe("SingleLineTitle", size=size)
+    button = component_visual_recipe("PillButton", size=size)
+    body = component_visual_recipe("SecondaryBody", size=size)
+    title_height = title.get("parts", {}).get("root", {}).get("styles", {}).get("height", 0)
+    button_height = button.get("parts", {}).get("root", {}).get("styles", {}).get("height", 0)
+    group_gap = body.get("parts", {}).get("root", {}).get("styles", {}).get("itemMargin", 0)
+    output: list[dict[str, Any]] = []
+    for name, patterns in layouts.items():
+        for index, rules in enumerate(patterns, start=1):
+            for rule in rules:
+                if rule.get("eventPolicy") == "require":
+                    continue
+                box = rule.get("referenceBox", {})
+                if not rule.get("path") and len(rules) == 1:
+                    box = {"width": reference_dimension(size, "width"),
+                           "height": reference_dimension(size, "height")}
+                width, height = box.get("width"), box.get("height")
+                if not isinstance(width, (int, float)) or not isinstance(height, (int, float)):
+                    continue
+                props = rule.get("fixedProps", {})
+                padding = props.get("padding", 0)
+                inner_width = width - _padding_pair(padding, "width")
+                inner_height = height - _padding_pair(padding, "height")
+                gap = props.get("itemMargin", group_gap)
+                reservations: list[dict[str, Any]] = []
+                for titles in (0, 1):
+                    for actions in range(min(action_count, 2) + 1):
+                        reserved = titles * title_height + actions * button_height
+                        remaining = inner_height - reserved - gap * (titles + actions)
+                        reservations.append({"localTitles": titles, "localPillActions": actions,
+                                             "bodyHeightAfterReservations": remaining})
+                output.append({"layout": name, "variant": index, "path": rule.get("path"),
+                               "innerWidth": inner_width, "innerHeight": inner_height,
+                               "groupGapForArithmeticOnly": gap,
+                               "localReservations": reservations,
+                               "condition": (
+                                   "Respect the complete variant child roles/counts. "
+                                   "Do not reserve a title/action again inside a dedicated "
+                                   "body or beside an already separate action slot."
+                               )})
     return output
 
 

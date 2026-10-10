@@ -1007,6 +1007,18 @@
     },
     "CardButton": {
       "alignment": "aligned",
+      "variants": {
+        "multilineLabel": {
+          "parts": {
+            "label": {
+              "styles": {
+                "height": 40,
+                "maxLines": 2
+              }
+            }
+          }
+        }
+      },
       "parts": {
         "root": {
           "component": "Row",
