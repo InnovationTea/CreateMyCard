@@ -104,6 +104,9 @@ export default defineConfig({
       '/debug/artifact': {
         target: 'http://127.0.0.1:8888',
       },
+      '/debug/renderer/convert': {
+        target: 'http://127.0.0.1:8888',
+      },
       '/debug/batch': {
         target: 'http://127.0.0.1:8888',
       },

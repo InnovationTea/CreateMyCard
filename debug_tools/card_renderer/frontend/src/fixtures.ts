@@ -10,18 +10,18 @@ export const SAMPLE_A2UI = [
 ].join('');
 
 export const SAMPLE_COMPACT = [
-  '["root","Column",{"width":"matchParent","height":150,"padding":12,"borderRadius":18,"clip":true,"space":6,"linearGradient":{"direction":"RightBottom","colors":[["#86C5E3",0],["#F5DC62",1]]},"constraintSize":{"minWidth":140,"maxWidth":140,"minHeight":140,"maxHeight":140}},["title","main","action"]]',
+  '["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"itemMargin":6,"linearGradient":{"direction":"RightBottom","colors":[["#FF86C5E3",0],["#FFF5DC62",1]]}},["title","main","action"]]',
   '["title","Text",{"width":116,"height":20,"content":"青浦天气","fontSize":16,"fontWeight":700,"fontColor":"#E5000000"}]',
   '["main","Text",{"width":116,"height":48,"content":{"path":"/data/weather/current/temperatureText"},"fontSize":32,"fontWeight":700,"fontColor":"#E5000000"}]',
   '["/data/weather/current/temperatureText","29°C"]',
-  '["action","Button",{"width":116,"height":30,"label":"天气","fontSize":12,"fontWeight":600,"fontColor":"#FFFFFFFF","backgroundColor":"#FF0A59F7","borderRadius":15}]',
+  '["action","PillButton",{"label":"看天气","actionInk":"#FF1F4799","actionSurface":"#331F4799","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
 ].join('\n');
 
 export const SAMPLE_DESIGN = [
-  '["root","Column",{"width":"matchParent","height":150,"padding":12,"borderRadius":18,"clip":true,"space":6,"linearGradient":{"direction":"RightBottom","colors":[["multi_color_aux_02",0],["multi_color_aux_11",1]]},"constraintSize":{"minWidth":140,"maxWidth":140,"minHeight":140,"maxHeight":140}},["title","main","action"]]',
-  '["title","Text",{"design":"subtitle-s","width":116,"height":20,"content":"青浦天气","fontColor":"font_primary","maxLines":1}]',
-  '["main","Text",{"design":"display-s","width":116,"height":44,"content":{"path":"/data/weather/current/temperatureText"},"fontColor":"font_primary"}]',
+  '["root","Column",{"design":"fusion-ball-battery-teal","width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"itemMargin":6},["title","main","action"]]',
+  '["title","Text",{"width":126,"height":20,"content":"青浦天气","fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]',
+  '["main","Text",{"width":126,"height":44,"content":{"path":"/data/weather/current/temperatureText"},"fontSize":32,"fontColor":"#FFFFFFFF"}]',
   '["/data/weather/current/temperatureText","28°C"]',
-  '["action","Button",{"design":"capsule","label":"看天气","backgroundColor":"background_emphasize","fontColor":"font_on_primary"}]',
+  '["action","PillButton",{"label":"看天气","actionInk":"#FFFFFFFF","actionSurface":"#33FFFFFF","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
 ].join('\n');
 

@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import {
   CardPreview,
   parseInput,
+  resolveAppVersion,
   resolveCardSize,
   type RendererDocument,
 } from '@widget-debug/card-renderer';
@@ -34,10 +35,10 @@ async function loadCaptureItems(
     failure,
     validation,
   }))).slice(offset, offset + limit);
-  return validations.map(({ failure, validation }) => {
+  return Promise.all(validations.map(async ({ failure, validation }) => {
     try {
       const cardSize = resolveCardSize(null, failure.query, failure.size);
-      const document = parseInput(validation.dsl, { cardSize });
+      const document = await parseInput(validation.dsl, { cardSize, appVersion: resolveAppVersion(validation) });
       return {
         id: validation.captureId,
         document,
@@ -52,7 +53,7 @@ async function loadCaptureItems(
         error: reason instanceof Error ? reason.message : String(reason),
       };
     }
-  });
+  }));
 }
 
 async function waitForAssets(): Promise<void> {

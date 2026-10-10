@@ -52,6 +52,9 @@ function harmonyFontAssets(): Plugin {
 export default defineConfig({
   plugins: [react(), harmonyFontAssets()],
   base: '/debug/',
+  server: {
+    proxy: { '/debug/renderer/convert': { target: 'http://127.0.0.1:8888' } },
+  },
   build: {
     outDir: '../static',
     emptyOutDir: true,

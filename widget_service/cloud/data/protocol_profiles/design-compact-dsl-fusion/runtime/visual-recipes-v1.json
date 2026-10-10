@@ -471,6 +471,27 @@
             "flexShrink": 0,
             "width": "matchParent"
           }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "maxWidth": 96,
+            "height": 17,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
         }
       },
       "sizes": {
@@ -516,7 +537,7 @@
           "styles": {
             "itemMargin": 2,
             "justifyContent": "start",
-            "alignItems": "top",
+            "alignItems": "baseline",
             "flexShrink": 0,
             "width": "matchParent"
           }
@@ -524,9 +545,10 @@
         "value": {
           "component": "Text",
           "styles": {
-            "height": 32,
+            "height": 30,
             "fontSize": 30,
             "fontWeight": 700,
+            "lineHeight": 1,
             "maxLines": 1,
             "flexShrink": 0
           }
@@ -534,14 +556,12 @@
         "unit": {
           "component": "Text",
           "styles": {
-            "height": 18,
+            "height": 12,
             "fontSize": 12,
             "fontWeight": 500,
+            "lineHeight": 1,
             "maxLines": 1,
-            "flexShrink": 0,
-            "margin": {
-              "top": 17
-            }
+            "flexShrink": 0
           }
         }
       },
@@ -728,6 +748,11 @@
                 "width": "matchParent",
                 "height": 57
               }
+            },
+            "primary": {
+              "styles": {
+                "fontSize": 14
+              }
             }
           }
         }
@@ -799,7 +824,7 @@
             "padding": {
               "bottom": 4
             },
-            "itemMargin": 6,
+            "itemMargin": 4,
             "justifyContent": "start",
             "alignItems": "start",
             "flexShrink": 0
@@ -809,18 +834,19 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 32,
+            "height": 30,
             "itemMargin": 2,
-            "alignItems": "top",
+            "alignItems": "baseline",
             "flexShrink": 0
           }
         },
         "value": {
           "component": "Text",
           "styles": {
-            "height": 32,
+            "height": 30,
             "fontSize": 30,
             "fontWeight": 700,
+            "lineHeight": 1,
             "maxLines": 1,
             "flexShrink": 0
           }
@@ -828,14 +854,12 @@
         "unit": {
           "component": "Text",
           "styles": {
-            "height": 18,
+            "height": 12,
             "fontSize": 12,
             "fontWeight": 500,
+            "lineHeight": 1,
             "maxLines": 1,
-            "flexShrink": 0,
-            "margin": {
-              "top": 14
-            }
+            "flexShrink": 0
           }
         },
         "bar": {
@@ -941,14 +965,14 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
+            "height": "matchParent",
             "itemMargin": 8,
             "alignItems": "stretch",
             "justifyContent": "start",
             "layoutWeight": 1,
             "flexShrink": 1,
             "constraintSize": {
-              "minHeight": 48,
-              "maxHeight": 64
+              "minHeight": 48
             }
           }
         },
@@ -972,26 +996,46 @@
             }
           }
         },
+        "labelSlot": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
         "label": {
           "component": "Text",
           "styles": {
             "width": "matchParent",
-            "height": 18,
             "fontSize": 12,
             "fontWeight": 700,
+            "textAlign": "start",
             "maxLines": 1,
-            "textOverflow": "clip"
+            "textOverflow": "ellipsis"
+          }
+        },
+        "valueSlot": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 16,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
           }
         },
         "value": {
           "component": "Text",
           "styles": {
             "width": "matchParent",
-            "height": 16,
             "fontSize": 10,
             "fontWeight": 500,
+            "textAlign": "start",
             "maxLines": 1,
-            "textOverflow": "clip"
+            "textOverflow": "ellipsis"
           }
         }
       }
@@ -1014,6 +1058,7 @@
             "itemMargin": 8,
             "alignItems": "center",
             "justifyContent": "spaceBetween",
+            "flexShrink": 0,
             "constraintSize": {
               "minWidth": 0,
               "minHeight": 48,

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import {
   CardPreview,
   parseInput,
+  resolveAppVersion,
   resolveCardSize,
   type RendererDocument,
 } from '@widget-debug/card-renderer';
@@ -49,9 +50,10 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
       const detail = await getBatchSample(run.runId, sample.id);
       const attempt = finalAttempt(detail);
       const source = attempt?.genui;
+      const appVersion = resolveAppVersion(attempt?.blocks, attempt?.request);
       qualityInput = JSON.stringify({
         genui: source ?? '',
-        renderContext: { query: sample.query ?? null, size: sample.size ?? null, blocks: attempt?.blocks ?? null },
+        renderContext: { query: sample.query ?? null, size: sample.size ?? null, blocks: attempt?.blocks ?? null, appVersion: appVersion ?? null },
       });
       if (!source) {
         const sampleSize = resolveCardSize(null, sample.query, sample.size);
@@ -65,7 +67,7 @@ async function loadCaptureItems(run: BatchRun): Promise<CaptureItem[]> {
         continue;
       }
       const cardSize = resolveCardSize(attempt.blocks, sample.query, sample.size);
-      const document = parseInput(source, { cardSize });
+      const document = await parseInput(source, { cardSize, appVersion });
       items.push({
         id: sample.id,
         document,

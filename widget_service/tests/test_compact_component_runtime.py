@@ -60,6 +60,21 @@ def test_visual_recipe_resolves_size_overrides_without_mutating_cache() -> None:
     assert second["parts"]["root"]["styles"]["width"] == "matchParent"
 
 
+def test_two_by_four_fixed_slot_recipes_share_height_and_shrink_policy() -> None:
+    info_recipe = component_visual_recipe("InfoBlock", size="2x4")
+    action_recipe = component_visual_recipe("CardButton", size="2x4")
+    info = info_recipe["parts"]["root"]["styles"]
+    action = action_recipe["parts"]["root"]["styles"]
+
+    assert info["height"] == action["height"] == 57
+    assert info["flexShrink"] == action["flexShrink"] == 0
+    assert info_recipe["parts"]["primary"]["styles"]["fontSize"] == 14
+    assert action_recipe["parts"]["label"]["styles"]["fontSize"] == 14
+    assert component_visual_recipe("InfoBlock", size="2x2")["parts"]["primary"][
+        "styles"
+    ]["fontSize"] == 16
+
+
 def test_single_line_title_visual_recipe_is_text_only() -> None:
     recipe = component_visual_recipe("SingleLineTitle", size="2x2")
 
@@ -68,14 +83,42 @@ def test_single_line_title_visual_recipe_is_text_only() -> None:
     assert "variants" not in recipe
 
 
-def test_emphasized_data_visual_recipe_aligns_content_to_start_and_baseline() -> None:
+def test_emphasized_data_visual_recipe_aligns_value_and_unit_baselines() -> None:
     recipe = component_visual_recipe("EmphasizedData", size="2x2")
 
     root = recipe["parts"]["root"]["styles"]
     assert root["width"] == "matchParent"
     assert root["justifyContent"] == "start"
-    assert root["alignItems"] == "top"
-    assert recipe["parts"]["unit"]["styles"]["margin"] == {"top": 17}
+    assert root["alignItems"] == "baseline"
+    value = recipe["parts"]["value"]["styles"]
+    unit = recipe["parts"]["unit"]["styles"]
+    assert value["height"] == value["fontSize"] == 30
+    assert value["lineHeight"] == 1
+    assert unit["height"] == unit["fontSize"] == 12
+    assert unit["lineHeight"] == 1
+    assert "padding" not in root
+    assert "margin" not in unit
+
+
+def test_pill_button_visual_recipe_compensates_label_line_box() -> None:
+    recipe = component_visual_recipe("PillButton", size="2x2")
+
+    assert recipe["parts"]["root"]["styles"]["height"] == 36
+    assert recipe["parts"]["icon"]["styles"]["height"] == 20
+    assert recipe["parts"]["label"]["styles"]["height"] == 17
+
+
+def test_progress_line_two_visual_recipe_aligns_value_and_unit_baselines() -> None:
+    recipe = component_visual_recipe("ProgressLine2", size="2x4")
+
+    assert recipe["parts"]["root"]["styles"]["itemMargin"] == 4
+    assert recipe["parts"]["readout"]["styles"]["height"] == 30
+    assert recipe["parts"]["readout"]["styles"]["alignItems"] == "baseline"
+    assert recipe["parts"]["value"]["styles"]["height"] == 30
+    assert recipe["parts"]["value"]["styles"]["lineHeight"] == 1
+    assert recipe["parts"]["unit"]["styles"]["height"] == 12
+    assert recipe["parts"]["unit"]["styles"]["lineHeight"] == 1
+    assert "margin" not in recipe["parts"]["unit"]["styles"]
 
 
 def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
@@ -86,14 +129,44 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
         "maximumItems": 4,
     }
     root = recipe["parts"]["root"]["styles"]
-    assert "height" not in root
+    assert root["height"] == "matchParent"
     assert root["itemMargin"] == 8
     assert root["justifyContent"] == "start"
     assert root["layoutWeight"] == 1
-    assert root["constraintSize"] == {"minHeight": 48, "maxHeight": 64}
+    assert root["constraintSize"] == {"minHeight": 48}
     assert recipe["parts"]["item"]["styles"]["height"] == "matchParent"
     assert recipe["parts"]["item"]["styles"]["layoutWeight"] == 1
     assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 64
+    assert recipe["parts"]["labelSlot"]["styles"] == {
+        "width": "matchParent",
+        "height": 18,
+        "alignItems": "center",
+        "justifyContent": "start",
+        "flexShrink": 0,
+    }
+    assert recipe["parts"]["label"]["styles"] == {
+        "width": "matchParent",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "textAlign": "start",
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+    }
+    assert recipe["parts"]["valueSlot"]["styles"] == {
+        "width": "matchParent",
+        "height": 16,
+        "alignItems": "center",
+        "justifyContent": "start",
+        "flexShrink": 0,
+    }
+    assert recipe["parts"]["value"]["styles"] == {
+        "width": "matchParent",
+        "fontSize": 10,
+        "fontWeight": 500,
+        "textAlign": "start",
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+    }
 
 
 def test_secondary_body_visual_recipe_has_controlled_text_roles() -> None:
@@ -136,7 +209,15 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["height"] == 24
     assert components["CircleButton"]["parts"]["root"]["styles"]["width"] == 40
     assert components["CircleButton"]["parts"]["root"]["styles"]["height"] == 40
-    assert "ellipsis" not in json.dumps(contract)
+    text_block_parts = components["TextBlock"]["parts"]
+    assert text_block_parts["label"]["styles"]["textOverflow"] == "ellipsis"
+    assert text_block_parts["value"]["styles"]["textOverflow"] == "ellipsis"
+    other_components = {
+        name: recipe
+        for name, recipe in components.items()
+        if name != "TextBlock"
+    }
+    assert "ellipsis" not in json.dumps(other_components)
 
 
 def test_visual_recipe_part_marks_only_internal_expansion_rows() -> None:

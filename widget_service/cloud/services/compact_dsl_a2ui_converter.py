@@ -139,6 +139,7 @@ _COMPONENT_STYLE_PROPERTIES = {
             "fontColor",
             "fontSize",
             "fontWeight",
+            "lineHeight",
             "maxFontSize",
             "maxLines",
             "minFontSize",

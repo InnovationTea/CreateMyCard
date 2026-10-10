@@ -87,11 +87,11 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal((emphasized.getNode("metric_value")?.props.styles as Record<string, unknown>).fontSize, 30);
   assert.equal(
     (emphasized.getNode("metric")?.props.styles as Record<string, unknown>).alignItems,
-    "top",
+    "baseline",
   );
-  assert.deepEqual(
+  assert.equal(
     (emphasized.getNode("metric_unit")?.props.styles as Record<string, unknown>).margin,
-    { top: 17 },
+    undefined,
   );
 
   const progressCircle = compileMiniDsl(fixtures.examples[5].source, { size: "2x2" }).graph;
@@ -111,8 +111,24 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
 
   const progress = compileMiniDsl(fixtures.examples[6].source, { size: "2x4" }).graph;
   assert.equal((progress.getNode("progress")?.props.styles as Record<string, unknown>).height, 50);
+  assert.equal((progress.getNode("progress")?.props.styles as Record<string, unknown>).itemMargin, 4);
   assert.equal((progress.getNode("progress_bar")?.props.styles as Record<string, unknown>).height, 8);
-  assert.equal((progress.getNode("progress_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
+  assert.equal(
+    (progress.getNode("progress_readout")?.props.styles as Record<string, unknown>).height,
+    30,
+  );
+  assert.equal(
+    (progress.getNode("progress_readout")?.props.styles as Record<string, unknown>).alignItems,
+    "baseline",
+  );
+  const progressValue = progress.getNode("progress_value")?.props.styles as Record<string, unknown>;
+  const progressUnit = progress.getNode("progress_unit")?.props.styles as Record<string, unknown>;
+  assert.equal(progressValue.height, 30);
+  assert.equal(progressValue.lineHeight, 1);
+  assert.equal(progressUnit.fontSize, 12);
+  assert.equal(progressUnit.height, 12);
+  assert.equal(progressUnit.lineHeight, 1);
+  assert.equal(progressUnit.margin, undefined);
   const detailStyles = progress.getNode("details_item0")?.props.styles as Record<string, unknown>;
   const detailConstraint = detailStyles.constraintSize as Record<string, unknown>;
   assert.equal(detailStyles.height, "matchParent");
@@ -146,13 +162,62 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
 });
 
-test("EmphasizedData 在满宽根节点内左对齐并补偿字形基线", () => {
+test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基线", () => {
   const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
   const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
   assert.equal(root.width, "matchParent");
   assert.equal(root.justifyContent, "start");
-  assert.equal(root.alignItems, "top");
-  assert.deepEqual(unit.margin, { top: 17 });
+  assert.equal(root.alignItems, "baseline");
+  const value = visualRecipePart("EmphasizedData", "value", "2x2").styles;
+  assert.equal(value.height, 30);
+  assert.equal(value.lineHeight, 1);
+  assert.equal(unit.height, 12);
+  assert.equal(unit.lineHeight, 1);
+  assert.equal(root.padding, undefined);
+  assert.equal(unit.margin, undefined);
+});
+
+test("带图标 PillButton 补偿文字行盒以实现视觉垂直居中", () => {
+  const source = JSON.stringify([
+    "action",
+    "PillButton",
+    {
+      label: "每日歌单",
+      icon: "resources/base/media/music_fill.svg",
+      actionSurface: "#33563D99",
+      actionInk: "#FF563D99",
+      onClick: [{ call: "clickToDeeplink", args: { uri: "hwmusic://playlist" } }],
+    },
+  ]);
+  const { graph } = compileMiniDsl(source, { size: "2x2" });
+  const root = graph.getNode("action")?.props.styles as Record<string, unknown>;
+  const icon = graph.getNode("action_icon")?.props.styles as Record<string, unknown>;
+  const label = graph.getNode("action_text")?.props.styles as Record<string, unknown>;
+
+  assert.equal(root.height, 36);
+  assert.equal(root.alignItems, "center");
+  assert.equal(icon.height, 20);
+  assert.equal(label.height, 17);
+});
+
+test("2x4 纵向固定槽中的 InfoBlock 与 CardButton 保持等高", () => {
+  const source = [
+    '["root","Column",{"width":132,"height":126,"itemMargin":12},["status","settings"]]',
+    '["status","InfoBlock",{"variant":"slot","primaryText":"连接状态","secondaryText":"连接正常","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","width":"matchParent","layoutWeight":1}]',
+    '["settings","CardButton",{"label":"设备设置","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","onClick":[{"call":"openSettings","args":{}}],"width":"matchParent","layoutWeight":1}]',
+  ].join("\n");
+  const { graph } = compileMiniDsl(source, { size: "2x4" });
+
+  for (const identifier of ["status", "settings"]) {
+    const styles = graph.getNode(identifier)?.props.styles as Record<string, unknown>;
+    assert.equal(styles.height, 57);
+    assert.equal(styles.flexShrink, 0);
+    assert.equal(styles.layoutWeight, undefined);
+  }
+  const primary = graph.getNode("status_primary")?.props.styles as Record<string, unknown>;
+  const label = graph.getNode("settings_label")?.props.styles as Record<string, unknown>;
+  assert.equal(primary.fontSize, 14);
+  assert.equal(label.fontSize, 14);
 });
 
 test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲突", () => {
@@ -185,11 +250,12 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
   );
 });
 
-test("SecondaryBody 继承显示值绑定并按角色限制行数", () => {
+test("SecondaryBody 继承显示值绑定、按角色限制行数并保留完整标签", () => {
   const source = [
-    '["root","Column",{},["body","metadata"]]',
+    '["root","Column",{},["body","metadata","supporting"]]',
     '["body","SecondaryBody",{"role":"body","items":[{"value":{"path":"/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]',
     '["metadata","SecondaryBody",{"role":"metadata","items":[{"value":"{{ \'更新 \' + ${/updatedAt} }}"}],"fontColor":"#FF1F4799"}]',
+    '["supporting","SecondaryBody",{"role":"supporting","items":[{"label":"电流","value":"-151mA"},{"label":"电压","value":"4V"},{"label":"更新","value":"09:00"}],"fontColor":"#FF1F4799","width":132}]',
     '["/description","今天适宜户外活动，紫外线较弱"]',
     '["/updatedAt","10:30"]',
   ].join("\n");
@@ -202,6 +268,10 @@ test("SecondaryBody 继承显示值绑定并按角色限制行数", () => {
   assert.equal(body.maxLines, 2);
   assert.equal(metadata.fontSize, 12);
   assert.equal(metadata.height, 18);
+  const supportingLabel = graph.getNode("supporting_item0_label")?.props.styles as Record<string, unknown>;
+  const supportingValue = graph.getNode("supporting_item0_value")?.props.styles as Record<string, unknown>;
+  assert.equal(supportingLabel.flexShrink, 0);
+  assert.equal(supportingValue.flexShrink, 1);
 
   assert.throws(
     () => compileMiniDsl(
@@ -232,16 +302,52 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     const { graph } = compileMiniDsl(source, { size: "2x4" });
     const rootStyles = graph.getNode("root")?.props.styles as Record<string, unknown>;
     const itemStyles = graph.getNode(`root_item${count - 1}`)?.props.styles as Record<string, unknown>;
+    const labelSlotStyles = graph.getNode("root_item0_label_slot")?.props.styles as Record<string, unknown>;
+    const labelStyles = graph.getNode("root_item0_label")?.props.styles as Record<string, unknown>;
+    const valueSlotStyles = graph.getNode("root_item0_value_slot")?.props.styles as Record<string, unknown>;
+    const valueStyles = graph.getNode("root_item0_value")?.props.styles as Record<string, unknown>;
     assert.equal(graph.getNode("root")?.children.length, count);
     assert.equal(rootStyles.itemMargin, 8);
+    assert.equal(rootStyles.height, "matchParent");
     assert.equal(rootStyles.justifyContent, "start");
     assert.equal(rootStyles.layoutWeight, 1);
     assert.deepEqual(rootStyles.constraintSize, {
       minHeight: 48,
-      maxHeight: 64,
     });
     assert.ok(graph.getNode(`root_item${count - 1}`));
     assert.equal(itemStyles.layoutWeight, 1);
+    assert.deepEqual(graph.getNode("root_item0")?.children, [
+      "root_item0_label_slot",
+      "root_item0_value_slot",
+    ]);
+    assert.deepEqual(
+      { height: labelSlotStyles.height, alignItems: labelSlotStyles.alignItems },
+      { height: 18, alignItems: "center" },
+    );
+    assert.equal(labelStyles.height, undefined);
+    assert.deepEqual(
+      {
+        fontSize: labelStyles.fontSize,
+        fontWeight: labelStyles.fontWeight,
+        textAlign: labelStyles.textAlign,
+        textOverflow: labelStyles.textOverflow,
+      },
+      { fontSize: 12, fontWeight: 700, textAlign: "start", textOverflow: "ellipsis" },
+    );
+    assert.deepEqual(
+      { height: valueSlotStyles.height, alignItems: valueSlotStyles.alignItems },
+      { height: 16, alignItems: "center" },
+    );
+    assert.equal(valueStyles.height, undefined);
+    assert.deepEqual(
+      {
+        fontSize: valueStyles.fontSize,
+        fontWeight: valueStyles.fontWeight,
+        textAlign: valueStyles.textAlign,
+        textOverflow: valueStyles.textOverflow,
+      },
+      { fontSize: 10, fontWeight: 500, textAlign: "start", textOverflow: "ellipsis" },
+    );
   }
   assert.throws(
     () => compileMiniDsl(JSON.stringify([
