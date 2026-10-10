@@ -243,7 +243,12 @@ class _SequenceRuntime:
 
 @pytest.mark.asyncio
 async def test_unified_model_client_master_success_does_not_call_fallback():
-    settings = Settings(_env_file=None, enable_model_failure_retry=True)
+    settings = Settings(
+        _env_file=None,
+        openai_master_client="deepseek_platform",
+        openai_fallback_client="llmclient",
+        enable_model_failure_retry=True,
+    )
     runtime = _SequenceRuntime({"deepseek_platform": ["master-result"]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
 
@@ -282,7 +287,12 @@ async def test_unified_model_client_can_select_official_http_master():
 
 @pytest.mark.asyncio
 async def test_unified_model_client_does_not_treat_quality_candidate_as_fallback_error():
-    settings = Settings(_env_file=None, enable_model_failure_retry=True)
+    settings = Settings(
+        _env_file=None,
+        openai_master_client="deepseek_platform",
+        openai_fallback_client="llmclient",
+        enable_model_failure_retry=True,
+    )
     runtime = _SequenceRuntime({"deepseek_platform": ["invalid-design-token"]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
 
@@ -301,7 +311,12 @@ async def test_unified_model_client_does_not_treat_quality_candidate_as_fallback
 
 @pytest.mark.asyncio
 async def test_unified_model_client_retry_disabled_never_calls_fallback():
-    settings = Settings(_env_file=None, enable_model_failure_retry=False)
+    settings = Settings(
+        _env_file=None,
+        openai_master_client="deepseek_platform",
+        openai_fallback_client="llmclient",
+        enable_model_failure_retry=False,
+    )
     error = ModelTransportError("master unavailable", code="MODEL_UNAVAILABLE")
     runtime = _SequenceRuntime({"deepseek_platform": [error]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
@@ -322,6 +337,8 @@ async def test_unified_model_client_retry_disabled_never_calls_fallback():
 async def test_unified_model_client_fallback_disabled_retries_only_master():
     settings = Settings(
         _env_file=None,
+        openai_master_client="deepseek_platform",
+        openai_fallback_client="llmclient",
         enable_model_failure_retry=True,
         enable_openai_fallback=False,
         model_failure_max_retry_attempts=1,
@@ -356,6 +373,8 @@ async def test_unified_model_client_fallback_disabled_retries_only_master():
 async def test_unified_model_client_exhausts_master_then_uses_fallback_retries():
     settings = Settings(
         _env_file=None,
+        openai_master_client="deepseek_platform",
+        openai_fallback_client="llmclient",
         enable_model_failure_retry=True,
         model_failure_max_retry_attempts=2,
         fallback_model_failure_max_retry_attempts=1,
