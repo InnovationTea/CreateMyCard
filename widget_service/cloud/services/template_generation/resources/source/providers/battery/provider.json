@@ -158,8 +158,12 @@
       "description": "百分比文本与电量等级 Hero；仅单电量2x2明确要求这两项且原有模板均不能完整覆盖时作为兜底，不依赖数值电量或展示进度环。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "primaryData": ["/batterySOCText"],
-      "secondaryData": ["/batteryCapacityLevelDesc"]
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ]
     },
     {
       "templateId": "BatteryOverviewSupportHero@1",
@@ -368,6 +372,31 @@
       }
     },
     {
+      "templateId": "BatteryOverviewPluggedTypeSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量与充电类型 Support：主行展示带单位电量文本，辅行展示充电状态和充电器类型；三个字段必需，不依赖数值电量。右侧电池或充电图标可选，根节点可绑定电池业务事件。",
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "batteryOrChangeIcon": [
+          "battery"
+        ]
+      },
+      "supportedEventIds": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+      ]
+    },
+    {
       "templateId": "BatteryOverviewTemperatureRingHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
@@ -543,7 +572,9 @@
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量百分比 Full，无按钮，顶部手机电量、中部百分比大字、底部电量状态；仅需 batterySOCText；可选 chargingStatusDesc 替换底部电量状态文案。",
-      "optionalData": ["/chargingStatusDesc"],
+      "optionalData": [
+        "/chargingStatusDesc"
+      ],
       "entry": "templates/battery-percent-text-full.cardtpl",
       "primaryData": [
         "/batterySOCText"

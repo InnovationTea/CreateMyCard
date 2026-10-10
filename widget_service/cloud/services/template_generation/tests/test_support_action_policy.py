@@ -56,6 +56,13 @@ _EVENT_PATH = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/event
 _EVENTS = json.loads(_EVENT_PATH.read_text(encoding="utf-8"))
 _EVENT_IDS = tuple(event.get("id") for event in _EVENTS)
 _APPROVED = {
+    "BatteryOverviewPluggedTypeSupport@1": [
+        "event.open.settings.battery", "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode",
+    ],
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": ["event.open.settings.bluetooth"],
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": ["event.open.settings.bluetooth"],
+    "WeatherOverviewConditionSupport@1": ["event.open.weather"],
     "WeatherOverviewFeelsLikeWindSupport@1": [],
     "WeatherOverviewTemperatureSupport@1": [
         "event.open.weather"

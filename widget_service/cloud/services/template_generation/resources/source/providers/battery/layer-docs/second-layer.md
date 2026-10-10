@@ -1,5 +1,8 @@
 # 第二层业务模板使用规则
 
+- `BatteryOverviewPluggedTypeSupport@1`：用于双业务布局，必需电量文本、充电状态和充电器类型，
+  不要求数值电量。`batteryOrChangeIcon` 为可选电池或充电图标，`actionId` 只消费已分配的电池业务事件。
+
 - Provider：`com.huawei.battery.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 2×2 画廊中的 Full、Hero、Compact 模板若声明 `batteryIcon`，该参数统一必填。

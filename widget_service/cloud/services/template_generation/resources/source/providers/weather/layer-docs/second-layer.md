@@ -1,5 +1,9 @@
 # 第二层业务模板使用规则
 
+- `WeatherOverviewConditionSupport@1`：双业务天气现象信息块，仅必需 `/current/condition`，
+  不依赖温度和城市。`conditionIcon` 可选且仅接受与实际天气匹配的状态图标；没有匹配素材时省略，
+  不用温度计替代。可选 `actionId` 只消费已分配的天气详情事件。
+
 - Provider：`com.huawei.weather.cli`；业务领域为 `WeatherOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
