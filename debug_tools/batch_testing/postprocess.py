@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import asyncio
+import inspect
 import json
+import os
 import re
 import sys
 import uuid
@@ -47,6 +50,7 @@ _RENDERERS_BY_DATA_TYPE = {
 }
 _FACT_TYPES = (str, int, float, bool)
 BuiltinRunner = Callable[[str, Path, dict[str, Any]], Awaitable[dict[str, Any]]]
+Checkpoint = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 class PostprocessManager:
@@ -288,13 +292,18 @@ class PostprocessManager:
             filtered.append(item)
         reverse = order == "desc"
         if sort == "status":
+            filtered.sort(key=lambda item: int(item.get("sequence") or 0))
             filtered.sort(key=lambda item: str(item.get("status") or ""), reverse=reverse)
         elif sort.startswith("fact:"):
             key = sort.removeprefix("fact:")
-            filtered.sort(
+            present = [item for item in filtered if self._fact_present(item.get("facts"), key)]
+            missing = [item for item in filtered if not self._fact_present(item.get("facts"), key)]
+            present.sort(key=lambda item: int(item.get("sequence") or 0))
+            present.sort(
                 key=lambda item: self._sortable_fact(item.get("facts"), key),
                 reverse=reverse,
             )
+            filtered = present + missing
         else:
             filtered.sort(key=lambda item: int(item.get("sequence") or 0), reverse=reverse)
         safe_offset = max(0, offset)
@@ -373,26 +382,71 @@ class PostprocessManager:
             manifest = manifests.get(plugin_id)
             if manifest is None:
                 raise ValueError(f"后处理插件不存在: {plugin_id}")
-            dependencies = list(manifest.get("dependence") or [])
-            upstream: list[dict[str, Any]] = []
-            for dependency_id in dependencies:
-                dependency_task = tasks.get(dependency_id)
-                if dependency_task is not None:
-                    dependency_result = await dependency_task
-                else:
-                    dependency_result = completed_results.get(dependency_id)
-                    if dependency_result is None:
-                        raise ValueError(f"后处理插件依赖尚未执行: {dependency_id}")
-                upstream.append(dependency_result)
             plugin_dir = execution_dir / "plugins" / plugin_id
             plugin_dir.mkdir(parents=True, exist_ok=True)
+
+            async def save_checkpoint(
+                stage: dict[str, Any],
+                *,
+                normalize_builtin: bool = False,
+            ) -> None:
+                persisted_stage = stage
+                if normalize_builtin:
+                    persisted_stage = self._normalize_stage(plugin_id, stage, manifest)
+                    persisted_stage["status"] = "running"
+                    persisted_stage["progress"] = dict(stage.get("progress") or {})
+                summary = self._persist_stage(
+                    run_id,
+                    execution_id,
+                    plugin_dir,
+                    manifest,
+                    persisted_stage,
+                )
+                async with state_lock:
+                    for index, plugin_state in enumerate(state["plugins"]):
+                        if plugin_state.get("id") == plugin_id:
+                            state["plugins"][index] = {**selection, **summary}
+                            break
+                    state["updatedAt"] = utc_now()
+                    atomic_write_json(state_path, state)
+
+            await save_checkpoint(
+                self._live_stage(
+                    plugin_id,
+                    [],
+                    self._pending_dataset_result(),
+                    phase="dependencies",
+                    completed=0,
+                    total=1,
+                    message="正在等待依赖并准备执行",
+                )
+            )
             try:
+                dependencies = list(manifest.get("dependence") or [])
+                upstream: list[dict[str, Any]] = []
+                for dependency_id in dependencies:
+                    dependency_task = tasks.get(dependency_id)
+                    if dependency_task is not None:
+                        dependency_result = await dependency_task
+                    else:
+                        dependency_result = completed_results.get(dependency_id)
+                        if dependency_result is None:
+                            raise ValueError(f"后处理插件依赖尚未执行: {dependency_id}")
+                    if dependency_result.get("status") == "failed":
+                        raise ValueError(f"后处理插件依赖执行失败: {dependency_id}")
+                    upstream.append(dependency_result)
                 if plugin_id in self.builtin_runners:
-                    result = await self.builtin_runners[plugin_id](
-                        run_id,
-                        plugin_dir,
-                        dict(selection.get("config") or {}),
+                    runner = self.builtin_runners[plugin_id]
+
+                    async def builtin_checkpoint(stage: dict[str, Any]) -> None:
+                        await save_checkpoint(stage, normalize_builtin=True)
+
+                    arguments: tuple[Any, ...] = (
+                        run_id, plugin_dir, dict(selection.get("config") or {})
                     )
+                    if len(inspect.signature(runner).parameters) >= 4:
+                        arguments = (*arguments, builtin_checkpoint)
+                    result = await runner(*arguments)
                 else:
                     result = await self._run_script_plugin(
                         run_id,
@@ -400,6 +454,7 @@ class PostprocessManager:
                         plugin_dir,
                         dict(selection.get("config") or {}),
                         upstream,
+                        save_checkpoint,
                     )
                 normalized = self._normalize_stage(plugin_id, result, manifest)
             except Exception as exc:
@@ -414,6 +469,8 @@ class PostprocessManager:
                         "artifacts": [],
                     },
                 }
+                error_value = normalized["datasetResult"].get("summary")
+                normalized["error"] = str(error_value or "插件执行失败")
             normalized["config"] = dict(selection.get("config") or {})
             summary = self._persist_stage(
                 run_id,
@@ -442,7 +499,12 @@ class PostprocessManager:
                 plugin for plugin in state["plugins"] if isinstance(plugin, dict)
             ]
             statuses = {item.get("status") for item in plugin_states}
-            state["status"] = "completed" if statuses <= {"success", "skipped"} else "partial"
+            if statuses and statuses <= {"failed"}:
+                state["status"] = "failed"
+            elif statuses <= {"success", "skipped"}:
+                state["status"] = "completed"
+            else:
+                state["status"] = "partial"
         except asyncio.CancelledError:
             state["status"] = "interrupted"
             state["error"] = "调试后端关闭导致后处理中断"
@@ -461,6 +523,7 @@ class PostprocessManager:
         plugin_dir: Path,
         config: dict[str, Any],
         upstream: list[dict[str, Any]],
+        checkpoint: Checkpoint,
     ) -> dict[str, Any]:
         run_dir = self._run_dir(run_id)
         summary = self._read_json(run_dir / "summary.json")
@@ -471,10 +534,25 @@ class PostprocessManager:
             f"{quote(execution_id, safe='')}/assets/{quote(plugin_id, safe='')}"
         )
         sample_results: list[dict[str, Any]] = []
-        samples = list(summary.get("samples") or [])
+        samples = [
+            sample
+            for sample in list(summary.get("samples") or [])
+            if isinstance(sample, dict)
+        ]
         if plugin_id == "quality-score":
             samples = self._quality_samples(summary, config)
-        for sample in samples:
+        await checkpoint(
+            self._live_stage(
+                plugin_id,
+                sample_results,
+                self._pending_dataset_result(),
+                phase="samples",
+                completed=0,
+                total=len(samples),
+                message="正在处理样本",
+            )
+        )
+        for sample_index, sample in enumerate(samples, start=1):
             if not isinstance(sample, dict):
                 continue
             sample_id = str(sample.get("id") or "")
@@ -513,6 +591,7 @@ class PostprocessManager:
                     asset_base_url=(
                         f"{asset_base_url}/samples/{quote(sample_id, safe='')}"
                     ),
+                    allow_deferred=True,
                 )
             except Exception as exc:
                 normalized = {
@@ -522,8 +601,30 @@ class PostprocessManager:
                     "artifacts": [],
                 }
             sample_results.append({"sampleId": sample_id, **normalized})
+            await checkpoint(
+                self._live_stage(
+                    plugin_id,
+                    sample_results,
+                    self._pending_dataset_result(),
+                    phase="samples",
+                    completed=sample_index,
+                    total=len(samples),
+                    message=f"已处理 {sample_index}/{len(samples)} 个样本",
+                )
+            )
         dataset_dir = plugin_dir / "dataset"
         dataset_dir.mkdir(parents=True, exist_ok=True)
+        await checkpoint(
+            self._live_stage(
+                plugin_id,
+                sample_results,
+                self._pending_dataset_result(),
+                phase="dataset",
+                completed=0,
+                total=1,
+                message="正在汇总数据集结果",
+            )
+        )
         dataset_context = {
             "apiVersion": str(manifest.get("apiVersion") or ""),
             "scope": "dataset",
@@ -548,6 +649,7 @@ class PostprocessManager:
                 scope="dataset",
                 asset_root=dataset_dir,
                 asset_base_url=f"{asset_base_url}/dataset",
+                allow_deferred=True,
             )
         except Exception as exc:
             dataset_result = {
@@ -556,15 +658,107 @@ class PostprocessManager:
                 "facts": {},
                 "artifacts": [],
             }
-        statuses = {item.get("status") for item in sample_results}
-        statuses.add(dataset_result.get("status"))
-        stage_status = "success"
-        if "failed" in statuses:
+        await checkpoint(
+            self._live_stage(
+                plugin_id,
+                sample_results,
+                dataset_result,
+                phase="dataset",
+                completed=1,
+                total=1,
+                message="数据集汇总已完成",
+            )
+        )
+
+        finalize_error = ""
+        if manifest.get("hasFinalize") is True:
+            await checkpoint(
+                self._live_stage(
+                    plugin_id,
+                    sample_results,
+                    dataset_result,
+                    phase="finalize",
+                    completed=0,
+                    total=1,
+                    message="正在执行收尾任务",
+                )
+            )
+            finalize_context = {
+                "apiVersion": str(manifest.get("apiVersion") or ""),
+                "scope": "finalize",
+                "runId": run_id,
+                "run": summary,
+                "runDir": str(run_dir),
+                "outputDir": str(plugin_dir),
+                "pluginOutputDir": str(plugin_dir),
+                "sampleOutputDirs": {
+                    str(item.get("sampleId") or ""): str(
+                        plugin_dir / "samples" / str(item.get("sampleId") or "")
+                    )
+                    for item in sample_results
+                },
+                "datasetOutputDir": str(dataset_dir),
+                "config": config,
+                "sampleResults": sample_results,
+                "datasetResult": dataset_result,
+                "upstreamResults": upstream,
+            }
+            try:
+                finalize_value = await self._invoke_subprocess(
+                    manifest,
+                    "finalize",
+                    finalize_context,
+                    plugin_dir,
+                )
+                sample_results, dataset_result = self._merge_finalize_result(
+                    finalize_value,
+                    sample_results,
+                    dataset_result,
+                    manifest=manifest,
+                    plugin_dir=plugin_dir,
+                    asset_base_url=asset_base_url,
+                )
+                if finalize_value.get("status") == "failed":
+                    finalize_error = str(finalize_value.get("summary") or "收尾任务失败")
+            except Exception as exc:
+                finalize_error = f"{type(exc).__name__}: {exc}"
+
+        try:
+            for item in sample_results:
+                self._validate_final_required(item, manifest=manifest, scope="sample")
+            self._validate_final_required(dataset_result, manifest=manifest, scope="dataset")
+        except ValueError as exc:
+            finalize_error = str(exc)
+
+        statuses = {str(item.get("status") or "failed") for item in sample_results}
+        statuses.add(str(dataset_result.get("status") or "failed"))
+        if finalize_error:
+            stage_status = "failed"
+        elif statuses & {"failed", "partial"}:
             stage_status = "partial"
+        else:
+            stage_status = "success"
+        result = self._live_stage(
+            plugin_id,
+            sample_results,
+            dataset_result,
+            phase="done",
+            completed=1,
+            total=1,
+            message=finalize_error or "后处理插件已完成",
+            status=stage_status,
+        )
+        if finalize_error:
+            result["error"] = finalize_error
+        return result
+
+    @staticmethod
+    def _pending_dataset_result() -> dict[str, Any]:
         return {
-            "status": stage_status,
-            "sampleResults": sample_results,
-            "datasetResult": dataset_result,
+            "status": "pending",
+            "summary": "数据集汇总尚未执行",
+            "facts": {},
+            "artifacts": [],
         }
 
     @staticmethod
@@ -605,6 +799,81 @@ class PostprocessManager:
         selected = set(ids)
         return [sample for sample in samples if sample.get("id") in selected]
 
+    @staticmethod
+    def _live_stage(
+        plugin_id: str,
+        sample_results: list[dict[str, Any]],
+        dataset_result: dict[str, Any],
+        *,
+        phase: str,
+        completed: int,
+        total: int,
+        message: str,
+        status: str = "running",
+    ) -> dict[str, Any]:
+        return {
+            "id": plugin_id,
+            "status": status,
+            "sampleResults": list(sample_results),
+            "datasetResult": dict(dataset_result),
+            "progress": {
+                "phase": phase,
+                "completed": completed,
+                "total": total,
+                "message": message,
+            },
+        }
+
+    def _merge_finalize_result(
+        self,
+        value: dict[str, Any],
+        sample_results: list[dict[str, Any]],
+        dataset_result: dict[str, Any],
+        *,
+        manifest: dict[str, Any],
+        plugin_dir: Path,
+        asset_base_url: str,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        status = value.get("status", "success")
+        if status not in _RESULT_STATUSES:
+            raise ValueError("插件 finalize 返回了无效状态")
+        indexed = {str(item.get("sampleId") or ""): item for item in sample_results}
+        updates = value.get("sampleResults", [])
+        if not isinstance(updates, list):
+            raise ValueError("插件 finalize sampleResults 必须是数组")
+        seen: set[str] = set()
+        for update in updates:
+            if not isinstance(update, dict):
+                raise ValueError("插件 finalize 样本结果无效")
+            sample_id = str(update.get("sampleId") or "")
+            if sample_id not in indexed or sample_id in seen:
+                raise ValueError(f"插件 finalize 样本标识无效或重复: {sample_id}")
+            seen.add(sample_id)
+            normalized = self._normalize_result(
+                update,
+                manifest=manifest,
+                scope="sample",
+                asset_root=plugin_dir / "samples" / sample_id,
+                asset_base_url=(
+                    f"{asset_base_url}/samples/{quote(sample_id, safe='')}"
+                ),
+            )
+            indexed[sample_id] = {"sampleId": sample_id, **normalized}
+        merged_samples = [indexed[str(item.get("sampleId") or "")] for item in sample_results]
+        merged_dataset = dataset_result
+        if "datasetResult" in value:
+            dataset_update = value.get("datasetResult")
+            if not isinstance(dataset_update, dict):
+                raise ValueError("插件 finalize datasetResult 必须是对象")
+            merged_dataset = self._normalize_result(
+                dataset_update,
+                manifest=manifest,
+                scope="dataset",
+                asset_root=plugin_dir / "dataset",
+                asset_base_url=f"{asset_base_url}/dataset",
+            )
+        return merged_samples, merged_dataset
+
     async def _invoke_subprocess(
         self,
         manifest: dict[str, Any],
@@ -628,6 +897,7 @@ class PostprocessManager:
             "--result",
             str(result_path),
             cwd=output_dir,
+            env={**os.environ, "PYTHONUTF8": "1"},
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -672,6 +942,11 @@ class PostprocessManager:
             raise ValueError("插件入口无效")
         result = dict(value)
         result["entrypointPath"] = entrypoint_path
+        result["hasFinalize"] = (
+            PostprocessManager._entrypoint_has_hook(entrypoint_path, "finalize")
+            if entrypoint_path is not None
+            else False
+        )
         dependence = result.setdefault("dependence", [])
         if not isinstance(dependence, list):
             raise ValueError("插件 dependence 必须是数组")
@@ -686,7 +961,24 @@ class PostprocessManager:
         if api_version == "batch-postprocess-v2":
             PostprocessManager._validate_outputs(result.get("outputs"))
             PostprocessManager._validate_presentation(result.get("presentation"))
+            has_deferred = any(
+                isinstance(output, dict) and output.get("deferred") is True
+                for output in list(result.get("outputs") or [])
+            )
+            if has_deferred and not result["hasFinalize"] and entrypoint != "builtin":
+                raise ValueError("插件声明 deferred 产物时必须实现 finalize")
         return result
+
+    @staticmethod
+    def _entrypoint_has_hook(path: Path, hook: str) -> bool:
+        try:
+            module = ast.parse(path.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError, UnicodeError) as exc:
+            raise ValueError("插件入口无法解析") from exc
+        return any(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == hook
+            for node in module.body
+        )
 
     @staticmethod
     def _expand_dependencies(
@@ -783,7 +1075,15 @@ class PostprocessManager:
         for output in value:
             if not isinstance(output, dict):
                 raise ValueError("插件 outputs 项必须是对象")
-            allowed_keys = {"key", "scope", "title", "dataType", "renderer", "required"}
+            allowed_keys = {
+                "key",
+                "scope",
+                "title",
+                "dataType",
+                "renderer",
+                "required",
+                "deferred",
+            }
             if set(output) - allowed_keys:
                 raise ValueError("插件 outputs 包含不支持的字段")
             key = output.get("key")
@@ -804,6 +1104,10 @@ class PostprocessManager:
                 raise ValueError(f"插件 output renderer 无效: {key}")
             if "required" in output and not isinstance(output.get("required"), bool):
                 raise ValueError(f"插件 output required 无效: {key}")
+            if "deferred" in output and not isinstance(output.get("deferred"), bool):
+                raise ValueError(f"插件 output deferred 无效: {key}")
+            if output.get("deferred") is True and output.get("required") is not True:
+                raise ValueError(f"插件 output deferred 只允许用于必选产物: {key}")
             identity = (scope, key)
             if identity in seen:
                 raise ValueError(f"插件 output 重复: {scope}/{key}")
@@ -844,7 +1148,11 @@ class PostprocessManager:
 
     @staticmethod
     def _public_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
-        return {key: value for key, value in manifest.items() if key != "entrypointPath"}
+        return {
+            key: value
+            for key, value in manifest.items()
+            if key not in {"entrypointPath", "hasFinalize"}
+        }
 
     @classmethod
     def _normalize_stage(
@@ -881,12 +1189,19 @@ class PostprocessManager:
             )
         else:
             dataset_result = dataset_value
-        return {
+        normalized_stage = {
             "id": plugin_id,
             "status": status,
             "sampleResults": sample_results,
             "datasetResult": dataset_result,
         }
+        progress = value.get("progress")
+        if isinstance(progress, dict):
+            normalized_stage["progress"] = dict(progress)
+        error = value.get("error")
+        if isinstance(error, str) and error:
+            normalized_stage["error"] = error
+        return normalized_stage
 
     @classmethod
     def _normalize_result(
@@ -897,6 +1212,7 @@ class PostprocessManager:
         scope: str,
         asset_root: Path | None = None,
         asset_base_url: str = "",
+        allow_deferred: bool = False,
     ) -> dict[str, Any]:
         status = value.get("status", "success")
         if status not in _RESULT_STATUSES:
@@ -943,7 +1259,8 @@ class PostprocessManager:
             normalized_artifacts.append(normalized)
         if status in {"success", "partial"}:
             for key, output in output_map.items():
-                if output.get("required") is True and key not in seen:
+                deferred = allow_deferred and output.get("deferred") is True
+                if output.get("required") is True and key not in seen and not deferred:
                     raise ValueError(f"插件缺少必选 artifact: {scope}/{key}")
         return {
             "status": status,
@@ -951,6 +1268,25 @@ class PostprocessManager:
             "facts": facts,
             "artifacts": normalized_artifacts,
         }
+
+    @classmethod
+    def _validate_final_required(
+        cls,
+        result: dict[str, Any],
+        *,
+        manifest: dict[str, Any],
+        scope: str,
+    ) -> None:
+        if result.get("status") not in {"success", "partial"}:
+            return
+        present = {
+            str(artifact.get("key") or "")
+            for artifact in list(result.get("artifacts") or [])
+            if isinstance(artifact, dict)
+        }
+        for key, output in cls._output_map(manifest, scope).items():
+            if output.get("required") is True and key not in present:
+                raise ValueError(f"插件缺少必选 artifact: {scope}/{key}")
 
     @staticmethod
     def _normalize_v1_result(
@@ -1060,6 +1396,12 @@ class PostprocessManager:
             "counts": counts,
             "datasetResult": self._result_summary(dataset_result),
         }
+        progress = stage.get("progress")
+        if isinstance(progress, dict):
+            summary["progress"] = dict(progress)
+        error = stage.get("error")
+        if isinstance(error, str) and error:
+            summary["error"] = error
         atomic_write_json(plugin_dir / "result.json", summary)
         dashboard = self._build_dashboard(
             run_id,
@@ -1104,7 +1446,7 @@ class PostprocessManager:
                     "artifacts": self._artifact_summaries(item),
                 }
             )
-        return {
+        dashboard = {
             "schemaVersion": "batch-postprocess-dashboard-v2",
             "runId": run_id,
             "executionId": execution_id,
@@ -1124,6 +1466,13 @@ class PostprocessManager:
             "selection": dict(stage.get("config") or {}),
             "samples": samples,
         }
+        progress = stage.get("progress")
+        if isinstance(progress, dict):
+            dashboard["progress"] = dict(progress)
+        error = stage.get("error")
+        if isinstance(error, str) and error:
+            dashboard["error"] = error
+        return dashboard
 
     @staticmethod
     def _artifact_summaries(result: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1225,6 +1574,13 @@ class PostprocessManager:
         if isinstance(fact, int | float):
             return 0, float(fact)
         return 1, str(fact or "")
+
+    @staticmethod
+    def _fact_present(value: object, key: str) -> bool:
+        if not isinstance(value, dict):
+            return False
+        fact = value.get(key)
+        return fact is not None and fact != ""
 
     @staticmethod
     def _sample_upstream(stage: dict[str, Any], sample_id: str) -> dict[str, Any]:

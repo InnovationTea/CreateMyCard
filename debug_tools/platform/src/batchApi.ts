@@ -139,6 +139,15 @@ export type PostprocessPluginResult = {
   sampleCount?: number;
   counts?: Record<string, number>;
   datasetResult?: PostprocessResult;
+  progress?: PostprocessProgress;
+  error?: string;
+};
+
+export type PostprocessProgress = {
+  phase: 'dependencies' | 'samples' | 'dataset' | 'finalize' | 'done' | string;
+  completed: number;
+  total: number;
+  message: string;
 };
 
 export type PostprocessExecution = {
@@ -172,6 +181,7 @@ export type PostprocessOutputDefinition = {
   dataType: string;
   renderer?: string;
   required?: boolean;
+  deferred?: boolean;
 };
 
 export type PostprocessSampleField = {
@@ -213,6 +223,8 @@ export type PostprocessDashboard = {
   sourceTotalSamples?: number;
   selection?: { sampleIds: string[]; count?: number };
   samples: PostprocessDashboardSample[];
+  progress?: PostprocessProgress;
+  error?: string;
 };
 
 export type QualityEvaluation = {

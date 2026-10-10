@@ -504,6 +504,241 @@ async def test_v2_persists_dashboard_and_supports_paged_fact_filtering(
     assert result_path.is_file()
 
 
+@pytest.mark.asyncio
+async def test_running_plugin_persists_incremental_dashboard(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    plugins_root = tmp_path / "plugins"
+    run_id = "batch_20261010_incremental_1234abcd"
+    _write_run(output_root, run_id)
+    _write_builtin_plugin(plugins_root, "live")
+    checkpoint_saved = asyncio.Event()
+    release = asyncio.Event()
+
+    async def live(
+        _run_id: str,
+        _output_dir: Path,
+        _config: dict,
+        checkpoint,
+    ) -> dict:
+        stage = {
+            "status": "success",
+            "sampleResults": [
+                {
+                    "sampleId": "Q001",
+                    "status": "success",
+                    "summary": "基础结果已可查看",
+                    "facts": {},
+                    "artifacts": [],
+                }
+            ],
+            "datasetResult": {
+                "status": "success",
+                "summary": "等待汇总",
+                "facts": {},
+                "artifacts": [],
+            },
+            "progress": {
+                "phase": "finalize",
+                "completed": 0,
+                "total": 1,
+                "message": "正在补齐截图",
+            },
+        }
+        await checkpoint(stage)
+        checkpoint_saved.set()
+        await release.wait()
+        return {
+            **stage,
+            "status": "success",
+            "datasetResult": {
+                "status": "success",
+                "summary": "完成",
+                "facts": {},
+                "artifacts": [],
+            },
+            "progress": {
+                "phase": "done",
+                "completed": 1,
+                "total": 1,
+                "message": "后处理插件已完成",
+            },
+        }
+
+    manager = PostprocessManager(
+        output_root,
+        plugins_root,
+        builtin_runners={"live": live},
+    )
+    await manager.start()
+    queued = manager.enqueue(run_id, ["live"])
+    await asyncio.wait_for(checkpoint_saved.wait(), timeout=2.0)
+    execution_id = str(queued.get("executionId"))
+    dashboard = manager.dashboard(run_id, execution_id, "live")
+    execution = manager.get_execution(run_id, execution_id)
+
+    assert dashboard.get("status") == "running"
+    assert dashboard.get("samples", [])[0].get("sampleId") == "Q001"
+    assert dashboard.get("progress", {}).get("message") == "正在补齐截图"
+    assert execution.get("plugins", [])[0].get("status") == "running"
+
+    release.set()
+    await manager.queue.join()
+    await manager.close()
+
+
+@pytest.mark.asyncio
+async def test_finalize_backfills_deferred_sample_artifact(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    plugins_root = tmp_path / "plugins"
+    run_id = "batch_20261010_finalize_1234abcd"
+    _write_run(output_root, run_id)
+    plugin_root = plugins_root / "finalizer"
+    _write_json(
+        plugin_root / "plugin.json",
+        {
+            "apiVersion": "batch-postprocess-v2",
+            "id": "finalizer",
+            "name": "finalizer",
+            "version": "2.0.0",
+            "entrypoint": "plugin.py",
+            "outputs": [
+                {
+                    "key": "detail",
+                    "scope": "sample",
+                    "title": "明细",
+                    "dataType": "records",
+                    "required": True,
+                },
+                {
+                    "key": "preview",
+                    "scope": "sample",
+                    "title": "预览",
+                    "dataType": "image",
+                    "renderer": "gallery",
+                    "required": True,
+                    "deferred": True,
+                },
+                {
+                    "key": "summary",
+                    "scope": "dataset",
+                    "title": "汇总",
+                    "dataType": "metrics",
+                    "required": True,
+                },
+            ],
+            "configSchema": {"type": "object", "additionalProperties": False},
+        },
+    )
+    (plugin_root / "plugin.py").write_text(
+        "from pathlib import Path\n"
+        "def process_sample(context):\n"
+        "    return {'status': 'success', 'summary': '基础结果', 'facts': {}, "
+        "'artifacts': [{'key': 'detail', 'data': [{'name': 'base'}]}]}\n"
+        "def process_dataset(context):\n"
+        "    return {'status': 'success', 'summary': '汇总完成', 'facts': {}, "
+        "'artifacts': [{'key': 'summary', 'data': [{'label': '样本', 'value': 1}]}]}\n"
+        "def finalize(context):\n"
+        "    sample = context['sampleResults'][0]\n"
+        "    output = Path(context['sampleOutputDirs'][sample['sampleId']])\n"
+        "    (output / 'late.svg').write_text('<svg/>', encoding='utf-8')\n"
+        "    return {'status': 'success', 'summary': '截图已补齐', "
+        "'sampleResults': [{'sampleId': sample['sampleId'], 'status': 'success', "
+        "'summary': sample['summary'], 'facts': sample['facts'], 'artifacts': "
+        "sample['artifacts'] + [{'key': 'preview', 'path': 'late.svg'}]}]}\n",
+        encoding="utf-8",
+    )
+    manager = PostprocessManager(output_root, plugins_root)
+    await manager.start()
+    queued = manager.enqueue(run_id, ["finalizer"])
+    await manager.queue.join()
+    execution_id = str(queued.get("executionId"))
+    dashboard = manager.dashboard(run_id, execution_id, "finalizer")
+    sample = manager.sample_result(run_id, execution_id, "finalizer", "Q001")
+    await manager.close()
+
+    assert dashboard.get("status") == "success"
+    assert dashboard.get("progress", {}).get("phase") == "done"
+    preview = next(
+        artifact for artifact in sample.get("artifacts", [])
+        if artifact.get("key") == "preview"
+    )
+    assert preview.get("url", "").endswith("/samples/Q001/late.svg")
+
+
+@pytest.mark.asyncio
+async def test_finalize_failure_preserves_base_gallery(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    plugins_root = tmp_path / "plugins"
+    run_id = "batch_20261010_finalize_failed_1234abcd"
+    _write_run(output_root, run_id)
+    _write_v2_plugin(
+        plugins_root,
+        "quality",
+        "def process_sample(context):\n"
+        "    return {'status': 'success', 'summary': '基础结果', 'facts': {'score': 80}, "
+        "'artifacts': [{'key': 'detail', 'data': [{'name': 'layout'}]}]}\n"
+        "def process_dataset(context):\n"
+        "    return {'status': 'success', 'summary': '汇总完成', 'facts': {}, "
+        "'artifacts': [{'key': 'summary', 'data': [{'label': '平均', 'value': 80}]}]}\n"
+        "def finalize(context):\n"
+        "    raise RuntimeError('截图服务不可用')\n",
+    )
+    manager = PostprocessManager(output_root, plugins_root)
+    await manager.start()
+    queued = manager.enqueue(run_id, ["quality"])
+    await manager.queue.join()
+    execution_id = str(queued.get("executionId"))
+    execution = manager.get_execution(run_id, execution_id)
+    dashboard = manager.dashboard(run_id, execution_id, "quality")
+    sample = manager.sample_result(run_id, execution_id, "quality", "Q001")
+    await manager.close()
+
+    assert execution.get("status") == "failed"
+    assert dashboard.get("status") == "failed"
+    assert "截图服务不可用" in str(dashboard.get("error"))
+    assert dashboard.get("samples", [])[0].get("summary") == "基础结果"
+    assert sample.get("artifacts", [])[0].get("key") == "detail"
+
+
+def test_sample_fact_sort_keeps_missing_values_last(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    plugins_root = tmp_path / "plugins"
+    run_id = "batch_20261010_sort_1234abcd"
+    _write_run(output_root, run_id)
+    manager = PostprocessManager(output_root, plugins_root)
+    plugin_dir = output_root / run_id / "postprocess" / "exec_sort" / "plugins" / "quality"
+    _write_json(
+        plugin_dir / "dashboard.json",
+        {
+            "samples": [
+                {"sampleId": "missing", "sequence": 1, "facts": {}},
+                {"sampleId": "high", "sequence": 2, "facts": {"score": 90}},
+                {"sampleId": "low", "sequence": 3, "facts": {"score": 20}},
+            ]
+        },
+    )
+
+    ascending = manager.samples(run_id, "exec_sort", "quality", sort="fact:score")
+    descending = manager.samples(
+        run_id,
+        "exec_sort",
+        "quality",
+        sort="fact:score",
+        order="desc",
+    )
+
+    assert [item.get("sampleId") for item in ascending.get("items", [])] == [
+        "low",
+        "high",
+        "missing",
+    ]
+    assert [item.get("sampleId") for item in descending.get("items", [])] == [
+        "high",
+        "low",
+        "missing",
+    ]
+
+
 @pytest.mark.parametrize(
     ("manifest_update", "message"),
     [
@@ -530,6 +765,21 @@ async def test_v2_persists_dashboard_and_supports_paged_fact_filtering(
             "renderer",
         ),
         ({"presentation": {"defaultView": "custom", "sampleFields": []}}, "defaultView"),
+        (
+            {
+                "outputs": [
+                    {
+                        "key": "late",
+                        "scope": "sample",
+                        "title": "延迟产物",
+                        "dataType": "image",
+                        "required": True,
+                        "deferred": True,
+                    }
+                ]
+            },
+            "必须实现 finalize",
+        ),
     ],
 )
 def test_v2_manifest_rejects_unknown_types_and_hints(

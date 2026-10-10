@@ -74,6 +74,9 @@ export function PostprocessDashboardRoute() {
   )).sort(), [dashboard]);
 
   const sampleFields = dashboard?.presentation.sampleFields ?? [];
+  const currentExecution = run?.postprocessExecutions?.find(
+    (item) => item.executionId === executionId,
+  );
   const selectedIndex = samples.findIndex((item) => item.sampleId === selectedId);
   const backPath = run?.taskId ? `/batch/tasks/${encodeURIComponent(run.taskId)}`
     : `/batch/legacy/${encodeURIComponent(runId)}`;
@@ -93,6 +96,16 @@ export function PostprocessDashboardRoute() {
   useEffect(() => {
     loadDashboard().catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)));
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (!currentExecution || !['queued', 'running'].includes(currentExecution.status)) return;
+    const timer = window.setInterval(() => {
+      loadDashboard().catch((reason) => setError(
+        reason instanceof Error ? reason.message : String(reason),
+      ));
+    }, 750);
+    return () => window.clearInterval(timer);
+  }, [currentExecution?.status, loadDashboard]);
 
   useEffect(() => {
     if (!dashboard) return;
@@ -136,6 +149,20 @@ export function PostprocessDashboardRoute() {
     }
   };
 
+  const changeSort = (nextSort: string) => {
+    if (sort === nextSort) {
+      setOrder((value) => value === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSort(nextSort);
+      setOrder('asc');
+    }
+    setOffset(0);
+  };
+
+  const sortDirection = (key: string): 'ascending' | 'descending' | 'none' => (
+    sort === key ? (order === 'asc' ? 'ascending' : 'descending') : 'none'
+  );
+
   if (!dashboard) return <main className="postprocess-dashboard-page"><div className="batch-empty">
     {error || '正在加载后处理看板…'}
   </div></main>;
@@ -174,6 +201,17 @@ export function PostprocessDashboardRoute() {
       {!qualitySelection?.length && <p>该历史结果没有完整样本选择，请先重新选择批次与样本。</p>}
       {qualityRun.busy && <p role="status">{qualityRun.status} 完成后打开新结果。</p>}
     </div>}
+    {dashboard.progress && dashboard.status === 'running' && <section className="postprocess-progress-card">
+      <div><strong>{dashboard.progress.message}</strong><span>
+        {dashboard.progress.phase === 'samples' ? '样本处理'
+          : dashboard.progress.phase === 'dataset' ? '数据集汇总'
+            : dashboard.progress.phase === 'finalize' ? '收尾任务' : '准备执行'}
+      </span></div>
+      <div className="postprocess-progress-track"><i style={{ width: `${dashboard.progress.total
+        ? Math.round(dashboard.progress.completed * 100 / dashboard.progress.total) : 0}%` }} /></div>
+      <b>{dashboard.progress.completed}/{dashboard.progress.total}</b>
+    </section>}
+    {dashboard.error && <div className="batch-error" role="alert">插件执行失败：{dashboard.error}</div>}
     <section className="postprocess-overview">
       {datasetArtifacts.map((artifact) => <PostprocessArtifactView key={artifact.key} artifact={artifact} />)}
       {!datasetArtifacts.length && <div className="postprocess-empty">该插件没有数据集层产物</div>}
@@ -193,18 +231,24 @@ export function PostprocessDashboardRoute() {
           {missingComponents.length > 0 && <select aria-label="期望组件" value={factValue} onChange={(event) => { setFactValue(event.target.value); setOffset(0); }}>
             <option value="">期望组件</option>{missingComponents.map((value) => <option key={value}>{value}</option>)}
           </select>}
-          <select aria-label="排序字段" value={sort} onChange={(event) => { setSort(event.target.value); setOffset(0); }}>
-            <option value="sequence">样本顺序</option>
-            {sampleFields.filter((field) => field.sortable).map((field) => (
-              <option key={field.key} value={`fact:${field.key}`}>{field.label}</option>
-            ))}
-          </select>
-          <button type="button" className="postprocess-order" onClick={() => setOrder((value) => value === 'asc' ? 'desc' : 'asc')}>
-            {order === 'asc' ? '↑ 升序' : '↓ 降序'}
-          </button>
         </div>
         <div className="postprocess-sample-table-scroll"><table className="postprocess-sample-table">
-          <thead><tr><th>样本</th>{sampleFields.map((field) => <th key={field.key}>{field.label}</th>)}<th /></tr></thead>
+          <thead><tr><th aria-sort={sortDirection('sequence')}><button
+            type="button"
+            className="postprocess-sort-header"
+            onClick={() => changeSort('sequence')}
+          >样本 <span>{sort === 'sequence' ? order === 'asc' ? '↑' : '↓' : '↕'}</span></button></th>
+          {sampleFields.map((field) => {
+            const fieldSort = `fact:${field.key}`;
+            return <th key={field.key} aria-sort={field.sortable ? sortDirection(fieldSort) : undefined}>
+              {field.sortable ? <button
+                type="button"
+                className="postprocess-sort-header"
+                onClick={() => changeSort(fieldSort)}
+              >{field.label} <span>{sort === fieldSort ? order === 'asc' ? '↑' : '↓' : '↕'}</span></button>
+                : field.label}
+            </th>;
+          })}<th /></tr></thead>
           <tbody>{samples.map((item) => <tr key={item.sampleId} className={selectedId === item.sampleId ? 'is-selected' : ''} onClick={() => setSelectedId(item.sampleId)}>
             <td><b>{item.sampleId}</b><span>{item.title}</span></td>
             {sampleFields.map((field) => <td key={field.key} className={sampleFieldTone(item, field.key)}>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { CardPreview, parseInput, resolveCardSize } from '@widget-debug/card-renderer';
 import type { PostprocessArtifact } from '../batchApi';
+import { DEFAULT_ASSET_BASE_URL } from '../config';
 
 type RecordRow = Record<string, unknown>;
 
@@ -118,13 +120,65 @@ function RemoteText({ url }: { url: string }) {
   return <pre>{text}</pre>;
 }
 
+function DslGalleryPreview({ item }: { item: RecordRow }) {
+  const result = useMemo(() => {
+    const dsl = typeof item.dsl === 'string' ? item.dsl : '';
+    if (!dsl) return { document: null, error: '' };
+    try {
+      const size = typeof item.size === 'string' ? item.size : '2x2';
+      const cardSize = resolveCardSize(null, '', size);
+      return { document: parseInput(dsl, { cardSize }), error: '' };
+    } catch (reason) {
+      return {
+        document: null,
+        error: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  }, [item.dsl, item.size]);
+  if (!result.document) {
+    return <div className="postprocess-image-error">{result.error || 'DSL 无法解析'}</div>;
+  }
+  return <div className={`postprocess-dsl-preview ${item.size === '2x4' ? 'wide' : ''}`}>
+    <CardPreview document={result.document} assetBaseUrl={DEFAULT_ASSET_BASE_URL} />
+  </div>;
+}
+
 function ImageGallery({ items }: { items: RecordRow[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [showThumbnails, setShowThumbnails] = useState(false);
+  useEffect(() => {
+    setActiveIndex((current) => Math.min(current, Math.max(0, items.length - 1)));
+  }, [items.length]);
   if (!items.length) return <div className="postprocess-empty">暂无校验截图</div>;
-  return <div className="postprocess-image-gallery">{items.map((item, index) => {
-    const url = typeof item.url === 'string' ? item.url : '';
-    const status = String(item.status ?? '');
-    const errorTypes = Array.isArray(item.errorTypes) ? item.errorTypes.map(String) : [];
-    return <figure key={`${String(item.label ?? '')}-${index}`}>
+  const item = items[activeIndex] ?? items[0];
+  const url = typeof item.url === 'string' ? item.url : '';
+  const dsl = typeof item.dsl === 'string' ? item.dsl : '';
+  const status = String(item.status ?? '');
+  const errorTypes = Array.isArray(item.errorTypes) ? item.errorTypes.map(String) : [];
+  const selectRelative = (offset: number) => {
+    setActiveIndex((current) => (current + offset + items.length) % items.length);
+  };
+  return <div
+    className="postprocess-image-gallery"
+    tabIndex={0}
+    onKeyDown={(event) => {
+      if (event.key === 'ArrowLeft') selectRelative(-1);
+      if (event.key === 'ArrowRight') selectRelative(1);
+    }}
+  >
+    <div className="postprocess-image-toolbar">
+      <span>{activeIndex + 1} / {items.length}</span>
+      {items.length > 1 && <div>
+        <button type="button" aria-label="上一张图片" onClick={() => selectRelative(-1)}>‹</button>
+        <button type="button" aria-label="下一张图片" onClick={() => selectRelative(1)}>›</button>
+        <button
+          type="button"
+          aria-pressed={showThumbnails}
+          onClick={() => setShowThumbnails((value) => !value)}
+        >{showThumbnails ? '隐藏缩略图' : '显示缩略图'}</button>
+      </div>}
+    </div>
+    <figure key={`${String(item.label ?? '')}-${activeIndex}`}>
       <figcaption><span>{displayValue(item.label)}</span>
         <b className={status === '校验通过' ? 'success' : 'danger'}>{status}</b>
       </figcaption>
@@ -134,9 +188,28 @@ function ImageGallery({ items }: { items: RecordRow[] }) {
             src={url}
             alt={String(item.alt ?? item.label ?? '校验 DSL 渲染结果')}
           /></a>
-        : <div className="postprocess-image-error">{displayValue(item.error)}</div>}
-    </figure>;
-  })}</div>;
+        : dsl
+          ? <DslGalleryPreview item={item} />
+          : <div className="postprocess-image-error">{displayValue(item.error)}</div>}
+    </figure>
+    {showThumbnails && items.length > 1 && <div className="postprocess-image-thumbnails">
+      {items.map((candidate, index) => {
+        const thumbnailUrl = typeof candidate.url === 'string' ? candidate.url : '';
+        return <button
+          type="button"
+          className={index === activeIndex ? 'is-active' : ''}
+          aria-label={`查看第 ${index + 1} 张图片`}
+          key={`${String(candidate.label ?? '')}-${index}`}
+          onClick={() => setActiveIndex(index)}
+        >
+          {thumbnailUrl
+            ? <img src={thumbnailUrl} alt="" />
+            : <span>{typeof candidate.dsl === 'string' ? 'DSL' : '错误'}</span>}
+          <b>{index + 1}</b>
+        </button>;
+      })}
+    </div>}
+  </div>;
 }
 
 export function PostprocessArtifactView({ artifact }: { artifact: PostprocessArtifact }) {

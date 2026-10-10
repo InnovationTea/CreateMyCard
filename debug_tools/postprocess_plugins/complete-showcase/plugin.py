@@ -33,9 +33,6 @@ def _sample_identity(sample: dict[str, Any]) -> tuple[str, str]:
 def _write_sample_assets(
     output_dir: Path,
     sample_id: str,
-    title: str,
-    score: float,
-    category: str,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "example.py").write_text(
@@ -54,6 +51,14 @@ def _write_sample_assets(
         "该文件用于演示受控链接组件。\n",
         encoding="utf-8",
     )
+
+
+def _write_score_overview(
+    output_dir: Path,
+    title: str,
+    score: float,
+    category: str,
+) -> None:
     safe_title = escape(title)
     safe_category = escape(category)
     bar_width = max(0.0, min(score, 100.0)) * 4.8
@@ -87,7 +92,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     category_value = config.get("category", "演示")
     category = category_value if isinstance(category_value, str) else "演示"
     include_notice = config.get("includeNotice", True) is True
-    _write_sample_assets(output_dir, sample_id, title, score, category)
+    _write_sample_assets(output_dir, sample_id)
 
     issues: list[dict[str, Any]] = []
     if include_notice:
@@ -119,11 +124,6 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
             {"key": "sample-text", "data": "纯文本内容不会按 HTML 执行。"},
             {"key": "sample-code", "path": "example.py", "language": "python"},
             {"key": "sample-diff", "path": "change.diff"},
-            {
-                "key": "sample-image",
-                "path": "score-overview.svg",
-                "alt": f"{title} 得分 {score:.1f}",
-            },
             {"key": "sample-file", "path": "report.txt", "label": "下载示例报告"},
             {"key": "sample-link", "path": "link-target.txt", "label": "打开受控链接"},
         ],
@@ -173,4 +173,59 @@ def process_dataset(context: dict[str, Any]) -> dict[str, Any]:
                 {"级别": "info", "说明": "用于演示 issues 的 table 渲染方式"},
             ]},
         ],
+    }
+
+
+def finalize(context: dict[str, Any]) -> dict[str, Any]:
+    """演示在基础结果可见后统一生成图片并回填样本结果。"""
+    run = _required_mapping(context, "run")
+    output_dirs = _required_mapping(context, "sampleOutputDirs")
+    sample_results_value = context.get("sampleResults")
+    sample_results = sample_results_value if isinstance(sample_results_value, list) else []
+    titles: dict[str, str] = {}
+    for sample in list(run.get("samples") or []):
+        if not isinstance(sample, dict):
+            continue
+        sample_id, title = _sample_identity(sample)
+        titles[sample_id] = title
+
+    updates: list[dict[str, Any]] = []
+    for result in sample_results:
+        if not isinstance(result, dict):
+            continue
+        sample_id_value = result.get("sampleId")
+        if not isinstance(sample_id_value, str) or not sample_id_value:
+            raise ValueError("收尾结果缺少 sampleId")
+        output_dir_value = output_dirs.get(sample_id_value)
+        if not isinstance(output_dir_value, str) or not output_dir_value:
+            raise ValueError(f"收尾上下文缺少样本目录: {sample_id_value}")
+        facts = _required_mapping(result, "facts")
+        score_value = facts.get("score")
+        score = float(score_value) if isinstance(score_value, (int, float)) else 0.0
+        category_value = facts.get("category")
+        category = category_value if isinstance(category_value, str) else "演示"
+        title = titles.get(sample_id_value, sample_id_value)
+        _write_score_overview(Path(output_dir_value), title, score, category)
+        artifacts_value = result.get("artifacts")
+        artifacts = list(artifacts_value) if isinstance(artifacts_value, list) else []
+        artifacts.append(
+            {
+                "key": "sample-image",
+                "path": "score-overview.svg",
+                "alt": f"{title} 得分 {score:.1f}",
+            }
+        )
+        updates.append(
+            {
+                "sampleId": sample_id_value,
+                "status": result.get("status", "success"),
+                "summary": result.get("summary", ""),
+                "facts": facts,
+                "artifacts": artifacts,
+            }
+        )
+    return {
+        "status": "success",
+        "summary": f"已回填 {len(updates)} 个样本的图片产物",
+        "sampleResults": updates,
     }

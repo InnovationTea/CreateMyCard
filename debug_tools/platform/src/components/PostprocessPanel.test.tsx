@@ -155,5 +155,38 @@ describe('PostprocessPanel', () => {
     expect(screen.queryByRole('checkbox', { name: '质量评分' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始后处理' })).toBeDisabled();
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  it('shows running progress and exposes the partial dashboard without selecting plugins', async () => {
+    render(<MemoryRouter><PostprocessPanel
+      runId="run_1"
+      runStatus="completed"
+      selectedSampleId="Q001"
+      executions={[{
+        schemaVersion: 'batch-postprocess-execution-v2',
+        executionId: 'exec_running',
+        runId: 'run_1',
+        status: 'running',
+        createdAt: '2026-10-10T00:00:00Z',
+        plugins: [{
+          id: 'browser-gallery',
+          name: '浏览器渲染画廊',
+          status: 'running',
+          sampleCount: 8,
+          progress: {
+            phase: 'finalize', completed: 3, total: 8, message: '正在补齐截图 3/8',
+          },
+          datasetResult: { status: 'success', summary: '基础结果可查看' },
+        }],
+      }]}
+      onStarted={vi.fn(async () => undefined)}
+    /></MemoryRouter>);
+
+    expect(screen.getByRole('button', { name: '后处理插件 · 1 个执行中' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '后处理插件 · 1 个执行中' }));
+    expect(await screen.findByText(/正在补齐截图 3\/8/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '打开看板 ›' })).toHaveAttribute(
+      'href',
+      '/batch/runs/run_1/postprocess/exec_running/plugins/browser-gallery',
+    );
+    expect(screen.queryByRole('button', { name: '再次运行' })).not.toBeInTheDocument();
   });
 });

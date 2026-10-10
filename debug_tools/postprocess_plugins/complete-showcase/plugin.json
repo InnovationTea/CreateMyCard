@@ -15,7 +15,7 @@
     {"key": "sample-text", "scope": "sample", "title": "文本说明", "dataType": "text", "required": true},
     {"key": "sample-code", "scope": "sample", "title": "代码片段", "dataType": "code", "renderer": "code", "required": true},
     {"key": "sample-diff", "scope": "sample", "title": "差异片段", "dataType": "diff", "renderer": "diff", "required": true},
-    {"key": "sample-image", "scope": "sample", "title": "图片产物", "dataType": "image", "renderer": "gallery", "required": true},
+    {"key": "sample-image", "scope": "sample", "title": "图片产物", "dataType": "image", "renderer": "gallery", "required": true, "deferred": true},
     {"key": "sample-file", "scope": "sample", "title": "可下载文件", "dataType": "file", "renderer": "download", "required": true},
     {"key": "sample-link", "scope": "sample", "title": "受控链接", "dataType": "link", "renderer": "link", "required": true},
     {"key": "dataset-kpis", "scope": "dataset", "title": "数据集指标", "dataType": "metrics", "renderer": "table", "required": true},

@@ -252,12 +252,17 @@ async def test_validation_failure_gallery_extracts_trace_and_renders_only_target
         "http://127.0.0.1:8888/debug",
         capture=capture,
     )
+    checkpoints: list[dict] = []
+
+    async def checkpoint(stage: dict) -> None:
+        checkpoints.append(stage)
+
     items = manager.items(run_id)
     plugin_dir = tmp_path / run_id / "postprocess" / "exec_1" / "plugins" / (
         "validation-failure-gallery"
     )
     plugin_dir.mkdir(parents=True)
-    result = await manager.run(run_id, plugin_dir)
+    result = await manager.run(run_id, plugin_dir, checkpoint)
 
     assert [item.get("id") for item in items] == ["Q001", "Q002"]
     assert items[0].get("finalStatus") == "success"
@@ -310,6 +315,16 @@ async def test_validation_failure_gallery_extracts_trace_and_renders_only_target
     ]
     image_path = plugin_dir / "samples" / "Q001" / "Q001-e1-i1-v1.png"
     assert image_path.read_bytes() == b"image-1"
+    assert len(checkpoints) == 2
+    assert checkpoints[0].get("progress", {}).get("completed") == 0
+    initial_sample = checkpoints[0].get("sampleResults", [])[0]
+    initial_images = next(
+        item for item in initial_sample.get("artifacts", [])
+        if item.get("key") == "validation-renders"
+    )
+    assert initial_images.get("data", [])[0].get("dsl")
+    assert "url" not in initial_images.get("data", [])[0]
+    assert checkpoints[1].get("progress", {}).get("completed") == 4
 
 
 def test_validation_failure_gallery_rejects_tampered_trace_blob(tmp_path: Path) -> None:

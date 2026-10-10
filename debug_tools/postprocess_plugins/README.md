@@ -23,7 +23,8 @@
       "title": "质量明细",
       "dataType": "records",
       "renderer": "table",
-      "required": true
+      "required": true,
+      "deferred": false
     }
   ],
   "presentation": {
@@ -40,6 +41,9 @@
 `matrix` 的显示方式，不能携带表达式、模板或前端代码。`presentation.defaultView` 仅支持 `table/gallery`；
 `sampleFields` 声明样本索引读取的 `facts` 字段。
 
+`required: true, deferred: true` 表示产物可在样本或数据集基础阶段暂缺，但必须由 `finalize` 在最终校验前补齐。
+清单存在 deferred 产物时入口必须实现 `finalize`。
+
 `id` 只能包含字母、数字、点、下划线和短横线，最长 80 个字符。`dependence` 是按声明顺序排列的插件
 名称列表；宿主会自动补齐依赖、拒绝不存在或形成循环的依赖，并行运行彼此没有依赖关系的插件。插件的
 `upstreamResults` 只包含其直接依赖结果，不包含用户同次勾选的其它独立插件。`configSchema` 使用 JSON Schema
@@ -50,17 +54,22 @@
 
 ## 函数与上下文
 
-入口必须实现样本函数，可选实现数据集函数；可使用同步函数或 `async def`：
+入口必须实现样本函数，可选实现数据集函数和收尾函数；可使用同步函数或 `async def`：
 
 ```python
 def process_sample(context: dict[str, object]) -> dict[str, object]: ...
 
 def process_dataset(context: dict[str, object]) -> dict[str, object]: ...
+
+def finalize(context: dict[str, object]) -> dict[str, object]: ...
 ```
 
 样本上下文包含 `apiVersion`、`scope`、`runId`、`sample`、只读的 `runDir/sampleDir/finalAttemptDir`、唯一
 可写的 `outputDir`、已校验 `config` 和 `upstreamResults`。数据集上下文另含 `run` 与本插件的
-`sampleResults`。宿主按批跑样本顺序执行样本函数，再执行一次数据集函数。
+`sampleResults`。收尾上下文另含规范化的 `sampleResults`、`datasetResult`、`pluginOutputDir`、
+`sampleOutputDirs` 和 `datasetOutputDir`。宿主按批跑样本顺序执行样本函数，再执行一次数据集函数，最后执行
+一次收尾函数；每一步完成后都会增量更新看板。收尾函数返回 `sampleResults` 和可选 `datasetResult`，提供的
+样本按 `sampleId` 替换，未提供的基础结果保持不变。
 
 ## v2 返回结果
 
@@ -84,6 +93,8 @@ def process_dataset(context: dict[str, object]) -> dict[str, object]: ...
 - `artifacts[].key` 必须存在于清单，作用域必须匹配；可内联 JSON，或以 `path` 引用当前
   `outputDir` 内真实存在的安全相对文件。必需产物在成功结果中不可缺失。
 - 合法但暂无专用渲染器的数据会降级为只读 JSON；任何内容都不会作为 HTML 或脚本执行。
+- `image/gallery` 的数据项可使用 `url` 展示图片，或使用 `dsl` 与可选 `size` 交由内置 CardRenderer 渲染；
+  同时存在时优先展示图片并保留 DSL 作为回退。
 
 宿主统一校验 Schema、序列化和路径边界。样本异常、超时或无效结果会转为该样本的 `failed`，不会终止
 其它样本或依赖图中的其它插件。新执行将摘要、数据集结果、逐样本结果与 `dashboard.json` 分开保存，避免详情接口

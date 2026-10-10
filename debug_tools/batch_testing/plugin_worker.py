@@ -24,8 +24,14 @@ async def _invoke(entrypoint: Path, hook: str, context: dict[str, Any]) -> dict[
     module = _load_module(entrypoint)
     function = getattr(module, hook, None)
     if function is None:
-        if hook == "process_dataset":
+        if hook in {"process_dataset", "finalize"}:
             if context.get("apiVersion") == "batch-postprocess-v2":
+                if hook == "finalize":
+                    return {
+                        "status": "skipped",
+                        "summary": "插件未实现收尾任务",
+                        "sampleResults": [],
+                    }
                 return {
                     "status": "skipped",
                     "summary": "插件未实现数据集汇总",
@@ -46,7 +52,11 @@ async def _invoke(entrypoint: Path, hook: str, context: dict[str, Any]) -> dict[
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--entrypoint", required=True)
-    parser.add_argument("--hook", choices=("process_sample", "process_dataset"), required=True)
+    parser.add_argument(
+        "--hook",
+        choices=("process_sample", "process_dataset", "finalize"),
+        required=True,
+    )
     parser.add_argument("--context", required=True)
     parser.add_argument("--result", required=True)
     arguments = parser.parse_args()

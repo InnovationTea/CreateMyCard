@@ -64,6 +64,14 @@ describe('PostprocessDashboardRoute', () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => (
       String(url).includes('status=failed')
     ))).toBe(true));
+    fireEvent.click(screen.getByRole('button', { name: /召回率/ }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => (
+      String(url).includes('sort=fact%3ArecallRate') && String(url).includes('order=asc')
+    ))).toBe(true));
+    fireEvent.click(screen.getByRole('button', { name: /召回率/ }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => (
+      String(url).includes('sort=fact%3ArecallRate') && String(url).includes('order=desc')
+    ))).toBe(true));
     unmount();
     expect(document.documentElement).not.toHaveClass('postprocess-dashboard-active');
     expect(document.body).not.toHaveClass('postprocess-dashboard-active');

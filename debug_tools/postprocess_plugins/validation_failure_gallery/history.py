@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import quote
 
 GalleryCapture = Callable[[str, Path], Awaitable[dict[str, Any]]]
+StageCheckpoint = Callable[[dict[str, Any]], Awaitable[None]]
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 _ATTEMPT_DIR = re.compile(r"^attempt_(\d+)$")
 _CAPTURE_BATCH_SIZE = 20
@@ -416,6 +417,7 @@ class ValidationFailureGalleryManager:
         self,
         run_id: str,
         plugin_dir: Path,
+        checkpoint: StageCheckpoint | None = None,
     ) -> dict[str, Any]:
         analyses = self._analyze_run(run_id)
         gallery_samples = [item for item in analyses if item.validation_failure_count > 0]
@@ -428,6 +430,21 @@ class ValidationFailureGalleryManager:
             for validation in sample.validations:
                 owners[validation.capture_id] = sample.sample_id
         captures: dict[str, dict[str, str]] = {}
+        if checkpoint is not None:
+            initial = self._plugin_result(
+                run_id,
+                plugin_dir,
+                analyses,
+                gallery_samples,
+                captures,
+            )
+            initial["progress"] = {
+                "phase": "finalize",
+                "completed": 0,
+                "total": len(owners),
+                "message": "分析结果已可查看，正在生成校验截图",
+            }
+            await checkpoint(initial)
         with tempfile.TemporaryDirectory(prefix="validation-gallery-", dir=plugin_dir) as name:
             temporary_dir = Path(name)
             for offset in range(0, len(owners), _CAPTURE_BATCH_SIZE):
@@ -445,7 +462,32 @@ class ValidationFailureGalleryManager:
                         owners,
                     )
                 )
-        return self._plugin_result(run_id, plugin_dir, analyses, gallery_samples, captures)
+                if checkpoint is not None:
+                    current = self._plugin_result(
+                        run_id,
+                        plugin_dir,
+                        analyses,
+                        gallery_samples,
+                        captures,
+                    )
+                    current["progress"] = {
+                        "phase": "finalize",
+                        "completed": min(offset + _CAPTURE_BATCH_SIZE, len(owners)),
+                        "total": len(owners),
+                        "message": (
+                            f"已生成 {min(offset + _CAPTURE_BATCH_SIZE, len(owners))}/"
+                            f"{len(owners)} 次校验截图"
+                        ),
+                    }
+                    await checkpoint(current)
+        result = self._plugin_result(run_id, plugin_dir, analyses, gallery_samples, captures)
+        result["progress"] = {
+            "phase": "done",
+            "completed": len(owners),
+            "total": len(owners),
+            "message": "校验失败分析画廊已完成",
+        }
+        return result
 
     @staticmethod
     def _persist_captures(
@@ -516,6 +558,8 @@ class ValidationFailureGalleryManager:
                     "label": label,
                     "status": "校验通过" if validation.status == "success" else "校验失败",
                     "errorTypes": error_types,
+                    "dsl": validation.dsl,
+                    "size": item.size,
                 }
                 if capture.get("status") == "success":
                     sample_rendered += 1
@@ -659,7 +703,8 @@ async def run_builtin(
     run_id: str,
     output_dir: Path,
     _config: dict[str, Any],
+    checkpoint: StageCheckpoint | None = None,
 ) -> dict[str, Any]:
     """执行校验失败分析与逐次校验截图。"""
 
-    return await manager.run(run_id, output_dir)
+    return await manager.run(run_id, output_dir, checkpoint)

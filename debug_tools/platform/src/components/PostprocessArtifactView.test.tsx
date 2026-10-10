@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { PostprocessArtifact } from '../batchApi';
 import { PostprocessArtifactView } from './PostprocessArtifactView';
@@ -50,7 +50,7 @@ describe('PostprocessArtifactView', () => {
     expect(screen.getByRole('link', { name: /下载文件/ })).toHaveAttribute('href', '/artifact.txt');
   });
 
-  it('renders every validation image and keeps failed captures visible', () => {
+  it('navigates validation images and keeps failed captures visible', () => {
     render(<PostprocessArtifactView artifact={{
       key: 'validation-renders',
       title: '逐次校验 DSL 浏览器渲染结果',
@@ -77,7 +77,33 @@ describe('PostprocessArtifactView', () => {
       'src',
       '/validation-1.png',
     );
+    expect(screen.queryByText('DSL 无法解析')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '下一张图片' }));
     expect(screen.getByText('DSL 无法解析')).toBeInTheDocument();
-    expect(screen.getAllByText(/校验评估 1/)).toHaveLength(2);
+    expect(screen.getByText(/接口调用 2 · 校验评估 1/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '显示缩略图' }));
+    expect(screen.getByRole('button', { name: '查看第 1 张图片' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看第 1 张图片' }));
+    expect(screen.getByRole('img', { name: '第一次校验' })).toBeInTheDocument();
+  });
+
+  it('renders DSL items when a finalized image is not available yet', () => {
+    render(<PostprocessArtifactView artifact={{
+      key: 'validation-renders',
+      title: '收尾中的 DSL',
+      dataType: 'image',
+      renderer: 'gallery',
+      data: [{
+        label: '校验评估 1',
+        status: '校验失败',
+        size: '2x2',
+        dsl: [
+          '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+          '{"version":"v0.9","updateComponents":{"surfaceId":"preview","root":"root","components":[{"id":"root","component":"Text","content":"DSL 预览"}]}}',
+        ].join('\n'),
+      }],
+    }} />);
+
+    expect(screen.getByText('DSL 预览')).toBeInTheDocument();
   });
 });

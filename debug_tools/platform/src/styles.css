@@ -693,6 +693,9 @@ button.plugin-chip.is-selected { border-color: #7998ed; color: #244ec8; backgrou
 .postprocess-inline-results > article:last-child { border-bottom: 0; }
 .postprocess-inline-results article > div { display: grid; min-width: 0; gap: 3px; }
 .postprocess-inline-results article small { overflow: hidden; color: #78869a; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.postprocess-inline-progress { width: 100%; height: 5px; overflow: hidden; border-radius: 999px; background: #e7edf6; }
+.postprocess-inline-progress i { display: block; height: 100%; border-radius: inherit; background: #0a59f7; transition: width .25s ease; }
+.postprocess-result-error { overflow: hidden; color: #b83b47; font-size: 10px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .postprocess-inline-results a { color: #0a59f7; font-size: 12px; font-weight: 700; text-decoration: none; }
 .postprocess-result-actions { display: flex !important; grid-auto-flow: column; align-items: center; gap: 9px !important; }
 .postprocess-result-actions button { padding: 5px 9px; border: 1px solid #b8c7dc; border-radius: 7px; color: #39506d; background: #fff; font-size: 11px; font-weight: 700; }
@@ -737,6 +740,13 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
 .postprocess-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 1600px; margin: 0 auto 14px; }
 .postprocess-overview > .postprocess-artifact:first-child { grid-column: 1 / -1; }
 .postprocess-overview > .postprocess-artifact:nth-child(2):last-child { grid-column: 1 / -1; }
+.postprocess-progress-card { display: grid; grid-template-columns: minmax(180px, auto) 1fr auto; align-items: center; gap: 14px; max-width: 1600px; margin: 0 auto 14px; padding: 12px 14px; border: 1px solid #bcd2f7; border-radius: 9px; background: #f1f6ff; }
+.postprocess-progress-card > div:first-child { display: flex; flex-direction: column; gap: 3px; }
+.postprocess-progress-card strong { color: #214c8f; font-size: 12px; }
+.postprocess-progress-card span { color: #6f82a0; font-size: 10px; }
+.postprocess-progress-card > b { color: #0a59f7; font-size: 11px; }
+.postprocess-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: #dce8fa; }
+.postprocess-progress-track i { display: block; height: 100%; border-radius: inherit; background: #0a59f7; transition: width .25s ease; }
 .postprocess-dashboard-workspace { display: grid; grid-template-columns: minmax(620px, 1.18fr) minmax(390px, .82fr); gap: 14px; max-width: 1600px; min-height: 600px; margin: 0 auto; }
 .postprocess-sample-browser, .postprocess-sample-inspector { overflow: clip; border: 1px solid #dbe3ee; border-radius: 10px; background: #fff; box-shadow: 0 4px 16px rgb(38 60 91 / 5%); }
 .postprocess-toolbar { display: flex; align-items: center; gap: 7px; min-height: 55px; padding: 9px 11px; border-bottom: 1px solid #e4eaf2; }
@@ -749,6 +759,10 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
 .postprocess-sample-table-scroll { min-height: 470px; overflow: auto; }
 .postprocess-sample-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 11px; }
 .postprocess-sample-table th { position: sticky; z-index: 1; top: 0; height: 38px; padding: 0 11px; border-bottom: 1px solid #dfe6ef; color: #627187; background: #f8fafc; text-align: left; font-size: 10px; }
+.postprocess-sort-header { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.postprocess-sort-header span { color: #8a98ab; font-size: 9px; }
+.postprocess-sample-table th[aria-sort="ascending"] .postprocess-sort-header,
+.postprocess-sample-table th[aria-sort="descending"] .postprocess-sort-header { color: #0a59f7; }
 .postprocess-sample-table td { height: 50px; padding: 7px 11px; border-bottom: 1px solid #e9eef4; color: #41536c; }
 .postprocess-sample-table tbody tr { cursor: pointer; transition: background .12s ease; }
 .postprocess-sample-table tbody tr:hover { background: #f7faff; }
@@ -782,15 +796,28 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
 .postprocess-artifact figure { margin: 0; }
 .postprocess-artifact img { display: block; width: 100%; max-width: 640px; max-height: 420px; margin: 0 auto; object-fit: contain; }
 .postprocess-artifact figure a, .postprocess-file-link { display: inline-block; margin-top: 9px; color: #0a59f7; font-size: 11px; font-weight: 700; text-decoration: none; }
-.postprocess-image-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.postprocess-image-gallery { display: grid; gap: 9px; outline: none; }
+.postprocess-image-gallery:focus-visible { border-radius: 8px; box-shadow: 0 0 0 2px #8ab4ff; }
+.postprocess-image-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #6f7e92; font-size: 10px; }
+.postprocess-image-toolbar > div { display: flex; gap: 5px; }
+.postprocess-image-toolbar button { min-width: 28px; height: 28px; padding: 0 9px; border: 1px solid #d7e0eb; border-radius: 6px; color: #40536c; background: #fff; font-size: 10px; }
+.postprocess-image-toolbar button:hover { border-color: #7da9f8; color: #0a59f7; }
 .postprocess-image-gallery figure { overflow: hidden; border: 1px solid #dfe6ef; border-radius: 8px; background: #f8fafc; }
 .postprocess-image-gallery figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px 0; color: #40536c; font-size: 10px; font-weight: 700; }
 .postprocess-image-gallery figcaption b { flex: none; font-size: 9px; }
 .postprocess-image-gallery figcaption b.success { color: #168854; }
 .postprocess-image-gallery figcaption b.danger { color: #d33d4b; }
 .postprocess-image-gallery figure > p { min-height: 16px; padding: 4px 10px 0; color: #c34550; font-size: 9px; }
-.postprocess-image-gallery figure > a { display: block; margin: 8px; }
-.postprocess-image-gallery img { width: 100%; max-height: 300px; border-radius: 6px; background: #fff; }
+.postprocess-image-gallery figure > a { display: grid; min-height: 330px; margin: 8px; place-items: center; }
+.postprocess-image-gallery figure > a img { width: 100%; max-height: 420px; border-radius: 6px; background: #fff; object-fit: contain; }
+.postprocess-dsl-preview { display: grid; min-height: 330px; place-items: center; padding: 18px; overflow: auto; background: #eef2f7; }
+.postprocess-dsl-preview > * { flex: none; }
+.postprocess-image-thumbnails { display: flex; gap: 7px; overflow-x: auto; padding: 2px 1px 5px; }
+.postprocess-image-thumbnails button { position: relative; display: grid; width: 72px; min-width: 72px; height: 58px; place-items: center; overflow: hidden; padding: 3px; border: 1px solid #dce4ee; border-radius: 7px; color: #66758a; background: #f7f9fc; }
+.postprocess-image-thumbnails button.is-active { border-color: #0a59f7; box-shadow: 0 0 0 1px #0a59f7; }
+.postprocess-image-thumbnails img { width: 100%; height: 100%; object-fit: cover; }
+.postprocess-image-thumbnails span { font-size: 10px; font-weight: 700; }
+.postprocess-image-thumbnails b { position: absolute; right: 3px; bottom: 3px; min-width: 16px; padding: 1px 3px; border-radius: 4px; color: #fff; background: rgb(18 34 56 / 72%); font-size: 8px; }
 .postprocess-image-error { display: grid; min-height: 120px; margin: 8px; place-items: center; padding: 14px; border-radius: 6px; color: #a7464e; background: #fff0f1; text-align: center; font-size: 10px; }
 .postprocess-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 1px; overflow: hidden; border: 1px solid #e0e7f0; border-radius: 7px; background: #e0e7f0; }
 .postprocess-kpis > div { display: flex; min-height: 76px; flex-direction: column; justify-content: center; padding: 10px 12px; background: #fff; }
@@ -874,5 +901,8 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
   .postprocess-toolbar { align-items: stretch; flex-wrap: wrap; }
   .postprocess-search { flex-basis: 100%; }
   .postprocess-toolbar select { flex: 1; }
+  .postprocess-progress-card { grid-template-columns: 1fr auto; }
+  .postprocess-progress-track { grid-column: 1 / -1; grid-row: 2; }
+  .postprocess-sample-table-scroll { max-width: calc(100vw - 20px); }
   .postprocess-sample-inspector > header { flex-direction: column; }
 }
