@@ -382,7 +382,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     assert not list((DEFAULT_SOURCE / "fewshots" / size).rglob("*.md"))
     fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
     expected = ["preamble"]
-    example_count = 33 if size == "2x2" else 27
+    example_count = 33 if size == "2x2" else 49
     expected.extend(f"example-v{index:02d}" for index in range(example_count))
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))

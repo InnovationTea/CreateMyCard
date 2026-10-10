@@ -156,7 +156,7 @@ def test_few_shot_validates_and_converts(
 
 def test_example_ids_are_contiguous_and_unique() -> None:
     expected = [f"2x2-V{index:02d}" for index in range(33)]
-    expected.extend(f"2x4-V{index:02d}" for index in range(27))
+    expected.extend(f"2x4-V{index:02d}" for index in range(49))
     assert [item[0] for item in EXAMPLES] == expected
 
 
