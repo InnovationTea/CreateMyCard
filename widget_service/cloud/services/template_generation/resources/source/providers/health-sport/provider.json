@@ -197,9 +197,11 @@
       "templateId": "WorkoutOverviewFull@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近一次单次运动训练摘要，展示该次时长，可补充热量、起止时间与运动类型。 组件形态：latest。",
+      "description": "最近一次单次运动训练摘要，展示该次时长，可补充热量、起止时间、运动类型与当日步数和当日热量。 组件形态：latest。",
       "optionalData": [
         "/exerciseCalorieText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
         "/exerciseEndTimeText",
         "/exerciseStartTimeText",
         "/exerciseTypeName"

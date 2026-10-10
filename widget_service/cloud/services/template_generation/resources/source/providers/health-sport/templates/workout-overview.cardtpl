@@ -1,8 +1,10 @@
-#Template WorkoutOverviewFull@1(props: { sourceIcon?: asset })
+#Template WorkoutOverviewFull@1(props: {})
 data = {
     workoutType: $optionalPath("/exerciseTypeName"),
     workoutCalories: $optionalPath("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText"),
+    dailySteps: $optionalPath("/dailySteps"),
+    dailyCalories: $optionalPath("/dailyTotalCaloriesText"),
     startTime: $optionalPath("/exerciseStartTimeText"),
     endTime: $optionalPath("/exerciseEndTimeText")
 }
@@ -17,89 +19,62 @@ Column(
         "alignItems": "start",
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Column(
+    Row(
         {
-            "itemMargin": 4,
-            "justifyContent": "start",
             "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "center",
+            "alignItems": "center",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Row(
-            {
-                "width": "matchParent",
-                "itemMargin": 4,
-                "justifyContent": "start",
-                "alignItems": "start",
-                "constraintSize": {"minWidth": 0, "minHeight": 0}
-            },
-            #if props.sourceIcon
-                Image(
-                    props.sourceIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                ),
-            #endif
-            #if data.workoutType
-                Text(
-                    data.workoutType,
-                    {
-                        "width": "matchParent",
-                        "fontSize": 12,
-                        "fontWeight": 500,
-                        "fontColor": $theme('supportContentColor'),
-                        "maxLines": 1,
-                        "textOverflow": "ellipsis",
-                        "constraintSize": {"minWidth": 0, "minHeight": 0}
-                    }
-                ),
-            #else
-                Text(
-                    "运动记录",
-                    {
-                        "width": "matchParent",
-                        "fontSize": 12,
-                        "fontWeight": 500,
-                        "fontColor": $theme('supportContentColor'),
-                        "maxLines": 1,
-                        "textOverflow": "ellipsis",
-                        "constraintSize": {"minWidth": 0, "minHeight": 0}
-                    }
-                )
-            #endif
-        )
-    ),
-    Column(
-        {
-            "itemMargin": 4,
-            "justifyContent": "start",
-            "width": "matchParent",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
-        },
-        #if data.workoutCalories
-        Text(
-            data.workoutCalories,
-            { "height": 24,
-                "fontSize": 18,
-                "fontWeight": 800,
-                "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "constraintSize": {"minWidth": 0, "minHeight": 0}
-            }
-        ),
+        #if data.workoutType
+            Text(
+                data.workoutType,
+                {
+                    "width": "matchParent",
+                    "fontSize": 16,
+                    "minFontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "textAlign": "center",
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            ),
         #else
-        Text(
-            data.duration,
-            { "width": "matchParent", "height": 34, "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-        ),
+            Text(
+                "运动记录",
+                {
+                    "width": "matchParent",
+                    "fontSize": 16,
+                    "minFontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "textAlign": "center",
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            )
         #endif
+    ),
+    #if data.workoutCalories
+    Text(
+        data.workoutCalories,
+        { "width": "matchParent", "height": 24, "fontSize": 18, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+    ),
+    #else
+    Text(
+        data.duration,
+        { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+    ),
+    #endif
+    Column(
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0} },
+        #if data.workoutCalories
         Row(
-            {
-              "width": "matchParent",
-              "itemMargin": 4,
-              "justifyContent": "start",
-              "alignItems": "center",
-              "constraintSize": {"minWidth": 0, "minHeight": 0}
-            },
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0} },
             #if data.endTime
             Text(
                 `${data.duration} | ${data.endTime}`,
@@ -126,18 +101,53 @@ Column(
             )
             #endif
         ),
+        #else
         #if data.startTime
         Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0} },
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0} },
             Text(
                 "运动时间",
                 { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             ),
+            #if data.endTime
+            Text(
+                `${data.startTime}-${data.endTime}`,
+                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            ),
+            #else
             Text(
                 data.startTime,
                 { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
+            #endif
+        ),
+        #else
+        #if data.dailySteps
+        #if data.dailyCalories
+        Text(
+            Expr(`'' + ${data.dailySteps} + ' 步 · ' + ${data.dailyCalories}`),
+            { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        ),
+        #else
+        Text(
+            Expr(`'' + ${data.dailySteps} + ' 步'`),
+            { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        ),
+        #endif
+        #else
+        #if data.dailyCalories
+        Text(
+            data.dailyCalories,
+            { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        ),
+        #else
+        Text(
+            "最近一次运动训练",
+            { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
         )
+        #endif
+        #endif
+        #endif
         #endif
     )
 )
