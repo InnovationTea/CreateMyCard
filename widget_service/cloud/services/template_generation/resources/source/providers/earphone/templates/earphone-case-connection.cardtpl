@@ -22,7 +22,7 @@ Column({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent",
 )
 #End
 
-#Template BluetoothDeviceOverviewCaseConnectionCompact@1(props: { caseIcon?: asset })
+#Template BluetoothDeviceOverviewConnectionBatterySupport@1(props: { caseIcon?: asset })
 data = { battery: $path("/batteryLevel"), connected: $path("/isConnected") }
 Column(
     {

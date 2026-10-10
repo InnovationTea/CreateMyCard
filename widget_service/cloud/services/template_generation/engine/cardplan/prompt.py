@@ -1079,14 +1079,14 @@ def _provider_variant_matches_trusted_state(
             return variant_name == f"{facts.state}Phone"
         return True
     if wire_id == "BluetoothDeviceOverview@1":
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：无数据前提，也不要求耳机事实存在。
             return True
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if facts is None:
             return False
-        if variant_name == "caseConnectionCompact":
-            # 仓连接 Compact：只依赖连接状态与耳机仓电量两个事实。
+        if variant_name == "connectionBatterySupport":
+            # 仓连接与电量 Support：只依赖连接状态与耳机仓电量两个事实。
             return facts.is_connected is not None and facts.case_battery_level is not None
         if variant_name in {
             "caseStatus",

@@ -61,6 +61,9 @@ _WIDE_LAYOUTS = (
     WideLayoutOption("WideTwoHalfLayout", ("WideHalf", "WideHalf")),
     WideLayoutOption("WideHeroCompactLayout", ("Hero", "Compact")),
     WideLayoutOption(
+        "WideFullTwoCompactLayout", ("Full", "Support", "Support"), allows_embedded_action=True
+    ),
+    WideLayoutOption(
         "WideFullTwoCompactLayout", ("Full", "Compact", "Compact"), allows_embedded_action=True
     ),
     WideLayoutOption("WideHalfTwoCompactLayout", ("WideHalf", "Compact", "Compact")),
@@ -173,7 +176,7 @@ def _companion_action_slots(
     registry: CardPlanRegistry,
     task: TaskSpec,
 ) -> tuple[TemplatePlanBusinessSlot, ...]:
-    """为已选业务枚举可承载单动作的伴生 Compact 槽位。
+    """为已选业务枚举可承载单动作的伴生 Compact 或 Support 槽位。
 
     伴生模板虽然不承载显式字段、不进入 Search 显式字段候选，仍必须先通过
     与普通候选等价的准入检查（尺寸、必需数据、必需素材、事件），
@@ -188,7 +191,8 @@ def _companion_action_slots(
             for template_id in registry.enabled_template_ids(component.local_template_ids):
                 if (business_id, template_id) in seen:
                     continue
-                if provider_template_layout_kind(template_id) != "Compact":
+                layout_role = provider_template_layout_kind(template_id)
+                if layout_role not in {"Compact", "Support"}:
                     continue
                 definition = registry.require_template(template_id)
                 if not template_required_assets_are_available(definition, task):
@@ -204,7 +208,7 @@ def _companion_action_slots(
                         businessId=business_id,
                         capabilityId=capability_by_business[business_id],
                         templateId=template_id,
-                        layoutRole="Compact",
+                        layoutRole=layout_role,
                         coveredExplicitFields=(),
                         primaryMatchedFields=(),
                     )

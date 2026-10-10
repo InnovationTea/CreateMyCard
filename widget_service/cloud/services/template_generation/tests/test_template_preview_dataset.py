@@ -21,15 +21,15 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 22,
-        "Compact": 24,
+        "Support": 24,
+        "Compact": 22,
         "Hero": 48,
         "Full": 54,
         "WideHero": 5,
         "WideFull": 18,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 150, "2x4": 26}
+    assert manifest.get("countsBySize") == {"2x2": 148, "2x4": 28}
     assert len(cases) == 176
     template_ids: set[str] = set()
     for case in cases:
@@ -178,7 +178,7 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/location/prefectureName", "/location/districtName",
                 "/location/cityCode",
             )
-        elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
+        elif case.template_id == "BluetoothDeviceOverviewMusicSupport@1":
             # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
             assert case.primary_data == ()
             assert case.secondary_data == ()

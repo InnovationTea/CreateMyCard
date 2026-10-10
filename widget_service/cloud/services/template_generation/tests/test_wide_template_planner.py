@@ -563,7 +563,7 @@ def _weather_earphone_case():
     return task, bindings, card, intent
 
 
-def test_case_connection_compact_forms_the_reviewed_wide_plan():
+def test_connection_battery_support_forms_the_reviewed_wide_plan():
     task, bindings, card, intent = _weather_earphone_case()
     registry = get_cardplan_registry()
     found = search_template_variants(intent, task, registry, bindings, card)
@@ -571,16 +571,21 @@ def test_case_connection_compact_forms_the_reviewed_wide_plan():
     for group in found.business_candidates:
         if group.capability_id == "GetEarphoneInfo":
             earphone_candidates.update(candidate.template_id for candidate in group.candidates)
-    assert "BluetoothDeviceOverviewCaseConnectionCompact@1" in earphone_candidates
+    assert "BluetoothDeviceOverviewConnectionBatterySupport@1" in earphone_candidates
     plans = plan_template_candidates(intent, found, task, registry)
     first = plans[0]
     assert first.layout_template_id == "WideFullTwoCompactLayout@1"
-    # Q083 评审组合：左侧降水概率 Full，右侧连接 Compact 加歌单入口 Compact，
-    # 音乐动作内嵌进歌单入口 Compact 的根节点底板。
+    # Q083 评审组合：左侧降水概率 Full，右侧连接 Support 加歌单入口 Support，
+    # 音乐动作内嵌进歌单入口 Support 的根节点底板。
     assert [slot.template_id for slot in first.business_slots] == [
         "WeatherOverviewRainWindFull@1",
-        "BluetoothDeviceOverviewCaseConnectionCompact@1",
-        "BluetoothDeviceOverviewMusicCompact@1",
+        "BluetoothDeviceOverviewConnectionBatterySupport@1",
+        "BluetoothDeviceOverviewMusicSupport@1",
+    ]
+    assert [slot.layout_role for slot in first.business_slots] == [
+        "Full",
+        "Support",
+        "Support",
     ]
     assignment = first.action_assignments[0]
     assert assignment.action_id == "event.open.music.favorite"
@@ -606,11 +611,11 @@ async def test_right_two_slot_plan_compiles_end_to_end():
 
 
 @pytest.mark.asyncio
-async def test_companion_music_compact_without_music_icon_never_reaches_second_layer():
+async def test_companion_music_support_without_music_icon_never_reaches_second_layer():
     """伴生模板缺少必需素材时不得进入计划：公开入口要么换合法组合，要么明确未命中。
 
     历史缺陷：移除歌单图标后 Planner 仍把要求 `musicIcon` 的
-    `BluetoothDeviceOverviewMusicCompact@1` 放进计划，第二层提示词构建阶段
+    `BluetoothDeviceOverviewMusicSupport@1` 放进计划，第二层提示词构建阶段
     才以 "no complete signature" 整条链路失败。伴生槽位现执行与普通候选
     等价的必需素材/必需数据准入，缺素材时继续寻找合法组合或返回未命中。
     """
@@ -629,8 +634,8 @@ async def test_companion_music_compact_without_music_icon_never_reaches_second_l
 
     output = await generate_template_a2ui(task, card, bindings, model)
     assert model.calls == 1
-    # 依赖音乐图标的 MusicCompact 不得再进入计划，动作改由根 Action 槽位承载，
+    # 依赖音乐图标的 MusicSupport 不得再进入计划，动作改由根 Action 槽位承载，
     # 输出不得引用已被移除的歌单图标，也不得在第二层提示词构建阶段整条失败。
-    assert "MusicCompact" not in output.a2ui
+    assert "MusicSupport" not in output.a2ui
     assert "heart_fill.svg" not in output.a2ui
     assert output.a2ui.count('"call":"clickToDeeplink"') == 1
