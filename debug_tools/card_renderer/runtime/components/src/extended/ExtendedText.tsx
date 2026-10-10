@@ -55,7 +55,11 @@ function textSchema(styles?: Record<string, unknown>): CSSProperties {
   // marquee: handled in component wrapper
 
   const ml = styles.maxLines;
-  if (typeof ml === "number" && ml > 0) {
+  if (ml === 1) {
+    // 固定高度可能高于单行行高；禁止换行，避免多行截断露出第二行字形。
+    o.overflow = "hidden";
+    o.whiteSpace = "nowrap";
+  } else if (typeof ml === "number" && ml > 0) {
     o.display = "-webkit-box";
     o.WebkitBoxOrient = "vertical";
     o.WebkitLineClamp = ml;
