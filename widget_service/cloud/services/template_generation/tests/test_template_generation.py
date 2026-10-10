@@ -2344,16 +2344,20 @@ def test_workout_template_full_tiers_and_latest_session_facts():
     definition = registry.require_template("WorkoutOverviewFull@1")
 
     # 时长为唯一必选主字段：仅查“运动了多久”的请求也能落地 Full 形态；
-    # 热量、起止时间与运动类型全部可选，缺失时按条件分支省略。
+    # 热量、起止时间、运动类型与当日步数/热量全部可选，缺失时按条件分支省略。
+    # Full 形态不带图标：标题/主数据/详情三行纯文本居中（sourceIcon 仅保留在
+    # Hero/Compact/Support 变体上）。
     assert definition.primary_data == ("/exerciseDurationText",)
     assert definition.secondary_data == ()
     assert definition.optional_data == (
         "/exerciseCalorieText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
         "/exerciseEndTimeText",
         "/exerciseStartTimeText",
         "/exerciseTypeName",
     )
-    assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
+    assert set(definition.variants[0].parameters_schema["properties"]) == set()
 
     hero = registry.require_template("WorkoutOverviewHero@1")
     assert hero.primary_data == ("/exerciseDurationText",)
@@ -3099,7 +3103,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("HeartRateOverviewIconHero@1", "sourceIcon"),
         ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
         ("HeartRateOverviewSupport@1", "heartIcon"),
-        ("SleepOverviewFull@1", "sourceIcon"),
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
         ("SleepOverviewScoreCompact@1", "sourceIcon"),
@@ -3127,7 +3130,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
     }
     expected_inherited_assets = {
-        ("WorkoutOverviewFull@1", "sourceIcon"),
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
         ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
