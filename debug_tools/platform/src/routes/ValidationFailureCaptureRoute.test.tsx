@@ -18,6 +18,7 @@ describe('ValidationFailureCaptureRoute', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, options) => {
       if (String(input) === '/debug/renderer/convert') {
         const body = JSON.parse(String(options?.body));
+        expect(body.appVersion).toBe('12.0.0.1');
         if (body.source.endsWith('{')) return response({ detail: 'DSL 括号未闭合' }, 422);
         return response({ size: '2x2', genui: [
           '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
@@ -45,6 +46,7 @@ describe('ValidationFailureCaptureRoute', () => {
               status: 'failed',
               errorTypes: ['COMPACT_DSL_VALIDATION_FAILED'],
               dsl: '["root","Text",{"content":"会议"}]',
+              appVersion: '12.0.0.1',
             },
             {
               captureId: 'Q001-e1-i2-v1',
@@ -54,6 +56,7 @@ describe('ValidationFailureCaptureRoute', () => {
               status: 'success',
               errorTypes: [],
               dsl: '["root","Text",{',
+              appVersion: '12.0.0.1',
             },
           ],
         },

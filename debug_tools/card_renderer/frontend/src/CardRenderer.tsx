@@ -13,6 +13,8 @@ export interface CardRendererProps {
   conversionUrl?: string;
   /** Host-resolved card size, usually from the final CardSpec or request query. */
   cardSize?: CardSize;
+  /** Original client version used by the Python converter's version gate. */
+  appVersion?: string;
   /** Called after a successful parse, allowing the platform to publish the artifact. */
   onArtifact?: (document: RendererDocument) => void;
   /** Receives resolved local actions; the renderer never performs external navigation. */
@@ -32,9 +34,10 @@ function sourceValue(value: string | undefined): string {
   return typeof value === 'string' ? value : DEFAULT_SOURCE;
 }
 
-export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conversionUrl = '/debug/renderer/convert', cardSize: hostCardSize = 'auto', onArtifact, onAction, previewOnly = false, zoom: controlledZoom, onZoomChange, className = '' }: CardRendererProps) {
+export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conversionUrl = '/debug/renderer/convert', cardSize: hostCardSize = 'auto', appVersion: hostAppVersion, onArtifact, onAction, previewOnly = false, zoom: controlledZoom, onZoomChange, className = '' }: CardRendererProps) {
   const [source, setSource] = useState(() => sourceValue(initialValue));
   const [cardSize, setCardSize] = useState<CardSize>(hostCardSize);
+  const [appVersion, setAppVersion] = useState(hostAppVersion ?? '');
   const [internalZoom, setInternalZoom] = useState(220);
   const [autoRender, setAutoRender] = useState(true);
   const [document, setDocument] = useState<RendererDocument | null>(null);
@@ -77,6 +80,12 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
     setCardSize(hostCardSize);
   }, [hostCardSize]);
 
+  useEffect(() => {
+    cancelConversion();
+    setAppVersion(hostAppVersion ?? '');
+    setDocument(null);
+  }, [hostAppVersion]);
+
   const render = async (nextSource = source, replaceSource = false) => {
     window.clearTimeout(renderTimer.current);
     cancelConversion();
@@ -92,7 +101,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
     setDocument(null);
     setError('');
     try {
-      const parsed = await parseInput(text, { cardSize, conversionUrl, signal: controller.signal });
+      const parsed = await parseInput(text, { cardSize, appVersion: appVersion || undefined, conversionUrl, signal: controller.signal });
       if (conversionRequest.current !== controller) return;
       if (replaceSource) {
         setSource(parsed.jsonl);
@@ -124,7 +133,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
       conversionRequest.current?.abort();
       conversionRequest.current = null;
     };
-  }, [source, cardSize, autoRender, conversionUrl]);
+  }, [source, cardSize, appVersion, autoRender, conversionUrl]);
 
   const status = useMemo(() => {
     if (converting) return '正在转换为 A2UI…';
@@ -149,6 +158,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
         <button type="button" onClick={() => { setSource(''); void render(''); }}>清空</button>
         <label className="card-renderer__control">画布<select value={cardSize} onChange={(event) => { cancelConversion(); setCardSize(event.target.value as CardSize); }}><option value="auto">自动</option><option value="2x2">2×2 · 150×150</option><option value="2x4">2×4 · 300×150</option></select></label>
         <label className="card-renderer__check"><input type="checkbox" checked={autoRender} onChange={(event) => { cancelConversion(); setAutoRender(event.target.checked); }} />自动渲染</label>
+        <label className="card-renderer__control">客户端版本<input type="text" value={appVersion} placeholder="原请求版本" onChange={(event) => { cancelConversion(); setDocument(null); setAppVersion(event.target.value); }} /></label>
       </div>
       <textarea value={source} onChange={(event) => { cancelConversion(); setSource(event.target.value); }} spellCheck={false} aria-label="DSL 输入" />
       <div className={`card-renderer__status${error ? ' is-error' : ''}`} role={error ? 'alert' : 'status'}>{status}</div>

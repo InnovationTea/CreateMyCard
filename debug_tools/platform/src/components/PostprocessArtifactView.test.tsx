@@ -118,11 +118,11 @@ describe('PostprocessArtifactView', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<PostprocessArtifactView artifact={{
       key: 'gallery', title: '画廊', dataType: 'image', renderer: 'gallery',
-      data: [{ label: 'Compact', dsl: source, size: '2x4' }],
+      data: [{ label: 'Compact', dsl: source, size: '2x4', appVersion: '12.0.0.1' }],
     }} />);
     expect(await screen.findByText('Python 画廊')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0][0]).toBe('/debug/renderer/convert');
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: '2x4' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: '2x4', appVersion: '12.0.0.1' });
   });
 });

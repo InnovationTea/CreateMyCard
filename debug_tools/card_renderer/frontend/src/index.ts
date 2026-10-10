@@ -11,6 +11,7 @@ export {
   normalizeType,
   numberOr,
   parseInput,
+  resolveAppVersion,
   resolveCardSize,
   resolveProps,
   resolveTemplate,

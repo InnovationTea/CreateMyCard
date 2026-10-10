@@ -14,6 +14,7 @@ class ConvertRequest(BaseModel):
 
     source: str = Field(min_length=1, max_length=1_000_000)
     size: Literal["auto", "2x2", "2x4"] = "auto"
+    appVersion: str | None = None
 
 
 class ConvertResponse(BaseModel):
@@ -47,7 +48,11 @@ def register_renderer_conversion_routes(app: FastAPI) -> None:
                         break
             else:
                 size = request.size
-            genui = convert_compact_dsl_to_a2ui(request.source, size=size)
+            genui = convert_compact_dsl_to_a2ui(
+                request.source,
+                size=size,
+                protocol_profile={"version": "v0.9", "appVersion": request.appVersion},
+            )
         except CompactDslConversionError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return ConvertResponse(genui=genui, size=size)

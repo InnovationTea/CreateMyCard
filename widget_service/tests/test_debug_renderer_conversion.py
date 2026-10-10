@@ -9,6 +9,7 @@ from debug_tools.end_to_end_debug.backend.server import create_app
 from debug_tools.static_site import create_frontend_app
 from fastapi.testclient import TestClient
 
+from services import fusion_ball_expander
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 
 SOURCE = '\n'.join(
@@ -67,3 +68,26 @@ def test_invalid_conversion_is_rejected(client, payload):
     response = client.post("/debug/renderer/convert", json=payload)
     assert response.status_code == 422
     assert response.json().get("detail")
+
+
+@pytest.mark.parametrize("version", [None, "11.0.0.0", "invalid", "", "12.0.0.1"])
+def test_client_version_preserves_fusion_gate(client, monkeypatch, version):
+    monkeypatch.setattr(
+        fusion_ball_expander,
+        "get_settings",
+        lambda: SimpleNamespace(CONFIG={"fusion_ball_min_prd_version": "11.7.5.206"}),
+    )
+    source = '["root","Column",{"design":"fusion-ball-schedule-warm"},["title"]]\n'
+    source += '["title","Text",{"content":"日程"}]'
+    response = client.post(
+        "/debug/renderer/convert",
+        json={"source": source, "size": "2x2", "appVersion": version},
+    )
+    assert response.status_code == 200
+    genui = response.json().get("genui")
+    assert isinstance(genui, str)
+    expected = convert_compact_dsl_to_a2ui(
+        source, size="2x2", protocol_profile={"version": "v0.9", "appVersion": version}
+    )
+    assert genui == expected
+    assert ("fusionBall" in genui) == (version == "12.0.0.1")

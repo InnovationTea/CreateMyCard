@@ -23,7 +23,7 @@ describe('BatchGalleryCaptureRoute', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, options) => {
       const url = String(input);
       if (url === '/debug/renderer/convert') {
-        expect(JSON.parse(String(options?.body))).toEqual({ source, size: '2x4' });
+        expect(JSON.parse(String(options?.body))).toEqual({ source, size: '2x4', appVersion: '12.0.0.1' });
         return response({ genui, size: '2x4' });
       }
       if (url === '/debug/batch/runs/run_001') return response({
@@ -36,7 +36,8 @@ describe('BatchGalleryCaptureRoute', () => {
         attempts: [{
           name: 'attempt_000',
           genui: source,
-          blocks: { cardspec: { suggestSize: '2x4' } },
+          blocks: { cardspec: { suggestSize: '2x4' }, taskspec: { appVersion: '12.0.0.1' } },
+          request: { deviceInfo: { prdVer: '11.0.0.0' } },
         }],
       });
       throw new Error(`unexpected fetch: ${url}`);

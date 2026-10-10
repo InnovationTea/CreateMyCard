@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseInput } from '../src/parser';
+import { parseInput, resolveAppVersion } from '../src/parser';
 
 const genui = [
   { version: 'v0.9', createSurface: { surfaceId: 'python' } },
@@ -43,8 +43,10 @@ describe('Python 是 Compact 预览的唯一转换器', () => {
       ok: true, json: async () => ({ genui, size: '2x2' }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    const document = await parseInput(JSON.stringify({ artifact: { genui: source } }), { cardSize: '2x2' });
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: '2x2' });
+    const document = await parseInput(JSON.stringify({ artifact: {
+      genui: source, taskSpec: { appVersion: '12.0.0.1' },
+    } }), { cardSize: '2x2', appVersion: '11.0.0.0' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: '2x2', appVersion: '12.0.0.1' });
     expect(document.mode).toBe('Design Compact DSL');
   });
 
@@ -85,5 +87,25 @@ describe('Python 是 Compact 预览的唯一转换器', () => {
     controller.abort();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ genui, size: '2x2' }) }));
     await expect(parseInput('["root","Text",{}]', { signal: controller.signal })).rejects.toThrow();
+  });
+});
+
+describe('原始客户端版本', () => {
+  it.each([
+    [{ taskspec: '{"appVersion":"12.0.0.1"}' }, '12.0.0.1'],
+    [{ request: { deviceInfo: { prdVer: '11.9.0.1' } } }, '11.9.0.1'],
+    [{ taskSpec: { appVersion: 'invalid' }, request: { deviceInfo: { prdVer: '12.0.0.1' } } }, 'invalid'],
+    [{ taskSpec: { appVersion: '' }, appVersion: '12.0.0.1' }, ''],
+    [{ version: 'v0.9' }, undefined],
+    [{ deviceInfo: { prdVer: '12.0.0.1' }, artifact: { taskSpec: { appVersion: '11.0.0.0' } } }, '11.0.0.0'],
+  ])('从 %j 取版本，不伪造或升级原版本', (source, version) => {
+    expect(resolveAppVersion(source)).toBe(version);
+  });
+  it('裸 DSL 传递显式版本', async () => {
+    const source = '["root","Text",{"content":"会议"}]';
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ genui, size: '2x2' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await parseInput(source, { appVersion: '12.0.0.1' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source, size: 'auto', appVersion: '12.0.0.1' });
   });
 });

@@ -304,6 +304,7 @@ export type ValidationFailureItem = {
     status: string;
     errorTypes: string[];
     dsl: string;
+    appVersion?: string | null;
   }>;
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { CardPreview, parseInput, resolveCardSize, type RendererDocument } from '@widget-debug/card-renderer';
+import { CardPreview, parseInput, resolveAppVersion, resolveCardSize, type RendererDocument } from '@widget-debug/card-renderer';
 import type { PostprocessArtifact } from '../batchApi';
 import { DEFAULT_ASSET_BASE_URL } from '../config';
 
@@ -130,7 +130,7 @@ function DslGalleryPreview({ item }: { item: RecordRow }) {
     const dsl = typeof item.dsl === 'string' ? item.dsl : '';
     if (dsl) {
       const cardSize = resolveCardSize(null, '', typeof item.size === 'string' ? item.size : '2x2');
-      parseInput(dsl, { cardSize, signal: controller.signal })
+      parseInput(dsl, { cardSize, appVersion: resolveAppVersion(item), signal: controller.signal })
         .then((document) => {
           if (!controller.signal.aborted) setResult({ document, error: '' });
         })
@@ -141,7 +141,7 @@ function DslGalleryPreview({ item }: { item: RecordRow }) {
         });
     }
     return () => controller.abort();
-  }, [item.dsl, item.size]);
+  }, [item.dsl, item.size, item.appVersion]);
   if (!result.document) {
     return <div className="postprocess-image-error">{result.error || '正在渲染…'}</div>;
   }

@@ -53,6 +53,7 @@ export interface RendererDocument {
 
 export interface ParseOptions {
   cardSize?: CardSize;
+  appVersion?: string;
   conversionUrl?: string;
   signal?: AbortSignal;
 }
@@ -336,7 +337,7 @@ export async function parseInput(text: string, options: ParseOptions = {}): Prom
       unwrapRenderableSource(text),
       compactRows,
       rows,
-      options,
+      { ...options, appVersion: resolveAppVersion(text) ?? options.appVersion },
     );
   }
   const a2uiRows = rows.filter(isA2uiRow);
@@ -355,7 +356,7 @@ async function compileCompactDocument(
   const response = await fetch(options.conversionUrl ?? '/debug/renderer/convert', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source, size: options.cardSize ?? 'auto' }),
+    body: JSON.stringify({ source, size: options.cardSize ?? 'auto', appVersion: options.appVersion }),
     signal: options.signal,
   });
   const result: unknown = await response.json();
@@ -380,6 +381,35 @@ async function compileCompactDocument(
     ? 'Design Compact DSL'
     : 'Compact DSL';
   return { ...document, mode, rows: allRows, jsonl: result.genui };
+}
+
+/** Read the original client version without inferring it from the A2UI protocol version. */
+export function resolveAppVersion(...sources: unknown[]): string | undefined {
+  const visit = (source: unknown, depth: number, taskOnly: boolean): string | undefined => {
+    if (depth > 12) return undefined;
+    const value = typeof source === 'string' ? safeJsonParse(source) : source;
+    if (!isRecord(value)) return undefined;
+    for (const key of ['taskSpec', 'taskspec']) {
+      const version = visit(value[key], depth + 1, false);
+      if (version !== undefined) return version;
+    }
+    // Keep even an invalid/empty version so a fallback cannot bypass the Python gate.
+    if (!taskOnly && typeof value.appVersion === 'string') return value.appVersion;
+    const device = isRecord(value.deviceInfo) ? value.deviceInfo : undefined;
+    if (!taskOnly && device && typeof device.prdVer === 'string') return device.prdVer;
+    for (const key of ['artifact', 'blocks', 'raw', 'data', 'response', 'request', 'payload', 'params']) {
+      const version = visit(value[key], depth + 1, taskOnly);
+      if (version !== undefined) return version;
+    }
+    return undefined;
+  };
+  for (const taskOnly of [true, false]) {
+    for (const source of sources) {
+      const version = visit(source, 0, taskOnly);
+      if (version !== undefined) return version;
+    }
+  }
+  return undefined;
 }
 
 function compileGraphDocument(

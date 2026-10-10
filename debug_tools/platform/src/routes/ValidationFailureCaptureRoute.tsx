@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import {
   CardPreview,
   parseInput,
+  resolveAppVersion,
   resolveCardSize,
   type RendererDocument,
 } from '@widget-debug/card-renderer';
@@ -37,7 +38,7 @@ async function loadCaptureItems(
   return Promise.all(validations.map(async ({ failure, validation }) => {
     try {
       const cardSize = resolveCardSize(null, failure.query, failure.size);
-      const document = await parseInput(validation.dsl, { cardSize });
+      const document = await parseInput(validation.dsl, { cardSize, appVersion: resolveAppVersion(validation) });
       return {
         id: validation.captureId,
         document,

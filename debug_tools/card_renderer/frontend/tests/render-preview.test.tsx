@@ -31,6 +31,22 @@ function textA2ui(content: string) {
 }
 
 describe('Render 内核预览', () => {
+  it('修改客户端版本取消旧请求，再按新版本转换', async () => {
+    let resolveResponse!: (value: unknown) => void;
+    const fetchMock = vi.fn().mockImplementationOnce(() => new Promise(resolve => {
+      resolveResponse = resolve;
+    })).mockResolvedValue({ ok: true, json: async () => ({ genui: textA2ui('新版本'), size: '2x2' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<CardRenderer initialValue='["root","Text",{}]' appVersion="11.0.0.0" />);
+    fireEvent.click(screen.getByRole('button', { name: '渲染' }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).appVersion).toBe('11.0.0.0');
+    fireEvent.change(screen.getByRole('textbox', { name: '客户端版本' }), { target: { value: '12.0.0.1' } });
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    resolveResponse({ ok: true, json: async () => ({ genui: textA2ui('旧版本'), size: '2x2' }) });
+    await waitFor(() => expect(screen.getByText('新版本')).toBeInTheDocument());
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).appVersion).toBe('12.0.0.1');
+    expect(screen.queryByText('旧版本')).not.toBeInTheDocument();
+  });
   it('调用 Python 转换并用返回尺寸渲染 A2UI，更新编辑器', async () => {
     const source = '["root","Text",{"content":"原始 DSL"}]';
     const fetchMock = vi.fn().mockResolvedValue({
