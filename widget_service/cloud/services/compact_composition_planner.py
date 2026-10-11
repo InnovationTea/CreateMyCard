@@ -1,0 +1,822 @@
+"""生成前的有限组合搜索；只产生实现建议，不改写产物或放宽发布校验。"""
+
+from __future__ import annotations
+
+import copy
+import itertools
+import json
+import math
+import re
+from dataclasses import dataclass, field
+from typing import Any
+
+from services.compact_component_runtime import component_visual_recipe
+from services.compact_layout_runtime import load_layout_contract
+from services.compact_reference_canvas import reference_dimension
+
+_CONTAINERS = {"Column", "Row", "Stack"}
+_SEARCH_LIMIT = 4096
+_RESULT_LIMIT = 3
+
+
+@dataclass
+class Region:
+    path: tuple[int, ...]
+    kind: str
+    props: dict[str, Any]
+    rule: dict[str, Any]
+    children: list[Region] = field(default_factory=list)
+    width: float = 0.0
+    height: float = 0.0
+
+
+def feasible_composition_candidates(
+    size: str,
+    plan: dict[str, Any],
+    task: dict[str, Any],
+) -> dict[str, Any]:
+    """列出完整参考解；搜索未命中不是新失败，也不能视为合同无解。"""
+    facts = plan.get("info_required", [])
+    unresolved: list[str] = []
+    choices = _group_choices(size, facts, plan, task, unresolved)
+    if unresolved:
+        return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
+    actions = _action_groups(size, facts, task, unresolved)
+    if unresolved:
+        return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
+    layouts = load_layout_contract().get("layouts", {})
+    preferred = plan.get("layoutHints", [])
+    ordered = sorted(layouts, key=lambda name: name not in preferred)
+    candidates: list[dict[str, Any]] = []
+    examined = 0
+    diagnostics: list[dict[str, Any]] = []
+    for name in ordered:
+        layout = layouts.get(name, {})
+        if layout.get("size") != size:
+            continue
+        count = layout.get("actionCount", {})
+        if not count.get("min", 0) <= len(actions) <= count.get("max", 0):
+            continue
+        for variant, pattern in enumerate(layout.get("patterns", []), start=1):
+            previous_count = len(candidates)
+            tree = _region_tree(size, pattern.get("rules", []))
+            if tree is None:
+                continue
+            zones = _leaves(tree)
+            for combination in itertools.product(*choices):
+                examined += 1
+                if examined >= _SEARCH_LIMIT:
+                    break
+                groups: list[dict[str, Any]] = []
+                for bundle in combination:
+                    groups.extend(copy.deepcopy(bundle))
+                for allocation in _allocations(zones, groups, actions, size):
+                    examined += 1
+                    if examined >= _SEARCH_LIMIT:
+                        break
+                    if allocation is None:
+                        continue
+                    regions = _close_regions(zones, allocation, size)
+                    if regions is None:
+                        continue
+                    candidate = {"layout": name, "variant": variant, "regions": regions}
+                    if _all_facts_covered(candidate, len(facts)):
+                        candidates.append(candidate)
+                        break
+                if len(candidates) > previous_count:
+                    break
+                if examined >= _SEARCH_LIMIT:
+                    break
+            if len(candidates) == previous_count:
+                diagnostics.append(
+                    {
+                        "layout": name,
+                        "variant": variant,
+                        "reason": "no complete allocation in supported search",
+                    }
+                )
+            if len(candidates) >= _RESULT_LIMIT or examined >= _SEARCH_LIMIT:
+                break
+        if len(candidates) >= _RESULT_LIMIT or examined >= _SEARCH_LIMIT:
+            break
+    return {
+        "status": "reference_candidates" if candidates else "no_candidate_found",
+        "candidates": candidates,
+        "examinedAllocations": examined,
+        "searchLimited": examined >= _SEARCH_LIMIT,
+        "diagnostics": diagnostics,
+        "applicationPolicy": "Preserve a valid, closed existing composition; use a complete "
+        "alternative only when its actual implementation conflicts.",
+        "widthEvidence": "Recipe fonts plus complete pressure samples; not device measurement. "
+        "Labels/units must remain within the recorded allowance. "
+        "Unknown dynamic lengths still require generation-time review.",
+    }
+
+
+def _part(size: str, name: str, part: str, variant: str | None = None) -> dict[str, Any]:
+    recipe = component_visual_recipe(name, size=size, variant=variant)
+    return recipe.get("parts", {}).get(part, {}).get("styles", {})
+
+
+def _extent(value: Any, axis: str) -> float:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value) * 2
+    if isinstance(value, dict):
+        sides = ("left", "right") if axis == "width" else ("top", "bottom")
+        return sum(float(value.get(side, 0)) for side in sides)
+    return 0.0
+
+
+def _schema_value(task: dict[str, Any], path: str) -> dict[str, Any]:
+    node = task.get("dataModelSchema", {})
+    for token in path.removeprefix("/").split("/"):
+        token = token.replace("~1", "/").replace("~0", "~")
+        if isinstance(node, list) and token.isdigit():
+            index = int(token)
+            node = node[index] if index < len(node) else None
+        elif isinstance(node, dict):
+            node = node.get("items") if token.isdigit() and "items" in node else node.get(token)
+        else:
+            return {}
+    return node if isinstance(node, dict) else {}
+
+
+def _pressure(fact: dict[str, Any], task: dict[str, Any]) -> str | None:
+    path = fact.get("dataId")
+    value = _schema_value(task, path).get("sampleValue") if path else fact.get("text")
+    if isinstance(value, bool):
+        return None  # 枚举/布尔展示映射未知，不能用 True 的宽度证明实际中文状态放得下。
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return None
+
+
+def _text_width(value: str, font_size: float) -> float:
+    # 保守压力估算，换行按实际字符累计，不把总宽直接除以行数冒充可换行。
+    widths = []
+    for line in value.splitlines():
+        widths.append(sum(font_size * (0.6 if ch.isascii() else 1) for ch in line) * 1.2)
+    return math.ceil(max(widths, default=0))
+
+
+def _declared_unit(item: dict[str, Any]) -> str | None:
+    contract = item.get("fieldContract", {})
+    if contract.get("type") not in {"number", "integer"}:
+        return None
+    description = contract.get("description", "")
+    suffix = re.search(r"必须在数值后追加[“\"]([^”\"]+)[”\"]", description)
+    return suffix.group(1) if suffix is not None else None
+
+
+def _group_choices(
+    size: str,
+    facts: list[dict[str, Any]],
+    plan: dict[str, Any],
+    task: dict[str, Any],
+    unresolved: list[str],
+) -> list[list[list[dict[str, Any]]]]:
+    declared: dict[int, dict[str, Any]] = {}
+    for region in plan.get("composition", {}).get("regions", []):
+        for group in region.get("groups", []):
+            for index in group.get("factIndexes", []):
+                declared.setdefault(index, group)
+    objects: dict[str, list[dict[str, Any]]] = {}
+    for index, fact in enumerate(facts):
+        if fact.get("actionId"):
+            continue
+        sample = _pressure(fact, task)
+        if sample is None:
+            unresolved.append(f"fact {index}: no trustworthy display pressure sample")
+            continue
+        hints = fact.get("componentHints", [])
+        first = hints[0] if hints else "SecondaryBody"
+        if "SingleLineTitle" in hints:
+            first = "SingleLineTitle"
+        declared_group = declared.get(index, {})
+        if declared_group.get("component") == "ProgressLine2":
+            first = "ProgressLine2"
+        supported = {
+            "SingleLineTitle",
+            "EmphasizedData",
+            "EmphasisText",
+            "SecondaryBody",
+            "TextBlock",
+            "ProgressLine2",
+            "EventCard",
+            "TableText",
+        }
+        if first not in supported:
+            if "EmphasizedData" in hints:
+                first = "EmphasizedData"
+            else:
+                unresolved.append(f"fact {index}: unsupported exact recipe occupancy {first}")
+                continue
+        if first in {"EventCard", "TableText"}:
+            # 未提供真正事件标题时不可伪造 EventCard。普通属性使用原候选中的正文回退。
+            if "SecondaryBody" not in hints:
+                unresolved.append(f"fact {index}: structured props cannot be reconstructed")
+                continue
+            first = "SecondaryBody"
+        path = fact.get("dataId", "")
+        identity = path.rsplit("/", 1)[0] if path else f"static:{index}"
+        item = {
+            "index": index,
+            "component": first,
+            "sample": sample,
+            "declared": declared_group,
+            "source": path or fact.get("text"),
+            "object": identity,
+            "meaning": fact.get("requirement"),
+            "fieldContract": _schema_value(task, path) if path else {},
+        }
+        objects.setdefault(identity, []).append(item)
+    output: list[list[list[dict[str, Any]]]] = []
+    for items in objects.values():
+        singles = [_single_group(size, item) for item in items]
+        alternatives = [singles]
+        ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
+        if len(ordinary) >= 2:
+            # 两项合组不触发 supporting 三/四项的较小字体，保留原字号。
+            for pair in itertools.combinations(ordinary, 2):
+                for columns in (1, 2):
+                    packed = _ordinary_pair(size, pair, columns)
+                    rest = []
+                    pair_indexes = {item.get("index") for item in pair}
+                    for item in items:
+                        if item.get("index") not in pair_indexes:
+                            rest.append(_single_group(size, item))
+                    alternatives.append([packed, *rest])
+        blocks = [item for item in items if item.get("component") == "TextBlock"]
+        if 2 <= len(blocks) <= 4:
+            rest = [_single_group(size, item) for item in items if item not in blocks]
+            alternatives.insert(0, [_text_block(size, blocks), *rest])
+        output.append(alternatives)
+    return output
+
+
+def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
+    name = item.get("component")
+    if name == "TextBlock":
+        name = "SecondaryBody"  # 单项 TextBlock 不满足条数合同，原字号不能低报。
+    part = {
+        "SingleLineTitle": "title",
+        "EmphasizedData": "value",
+        "EmphasisText": "main",
+        "SecondaryBody": "text",
+        "ProgressLine2": "value",
+    }.get(name)
+    styles = _part(size, name, part)
+    role = item.get("declared", {}).get("role", "supporting")
+    if name == "SecondaryBody" and role == "metadata":
+        styles = _part(size, name, "text", "metadata")
+    unit = _declared_unit(item)
+    sample = item.get("sample")
+    if unit is not None and name not in {"EmphasizedData", "ProgressLine2"}:
+        sample += unit
+    width = _text_width(sample, styles.get("fontSize"))
+    placement = {
+        "SingleLineTitle": "title",
+        "EmphasizedData": "value",
+        "EmphasisText": "mainText",
+        "SecondaryBody": "items[0].value",
+        "ProgressLine2": "displayValue",
+    }.get(name)
+    root = _part(size, name, "root")
+    height = root.get("height")
+    if not isinstance(height, (int, float)):
+        height = styles.get("height")
+    output = {
+        "component": name,
+        "factIndexes": [item.get("index")],
+        "placements": [placement],
+        "requiredHeight": height,
+        "minimumWidth": width,
+        "fontSize": styles.get("fontSize"),
+        "pressureOnly": sample,
+        "object": item.get("object"),
+        "meaning": item.get("meaning"),
+    }
+    if name == "SecondaryBody":
+        output.update({"role": role, "columns": 1, "lines": [1], "labelAllowance": 0})
+    if unit is not None:
+        output["unitFromFieldContract"] = unit
+        if name in {"EmphasizedData", "ProgressLine2"}:
+            unit_width = _text_width(unit, _part(size, name, "unit").get("fontSize"))
+            part = "readout" if name == "ProgressLine2" else "root"
+            output["minimumWidth"] += unit_width + _part(size, name, part).get("itemMargin", 0)
+        else:
+            output["bindingInstruction"] = (
+                "Keep the original binding and append the declared "
+                "unit as a legal display expression, never a sample."
+            )
+    elif item.get("fieldContract", {}).get("type") in {"number", "integer"}:
+        output["labelOrUnitRequiresReview"] = True
+    if name == "ProgressLine2":
+        output["variant"] = item.get("declared", {}).get("variant")
+        output["ratioContractMustBeRetained"] = True
+    return output
+
+
+def _ordinary_pair(size: str, pair: tuple[dict[str, Any], ...], columns: int) -> dict[str, Any]:
+    styles = _part(size, "SecondaryBody", "text")
+    height = styles.get("height")
+    gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
+    samples = []
+    for item in pair:
+        samples.append(item.get("sample") + (_declared_unit(item) or ""))
+    widths = [_text_width(sample, styles.get("fontSize")) for sample in samples]
+    separator = _text_width(" ｜ ", styles.get("fontSize")) if columns == 2 else 0
+    return {
+        "component": "SecondaryBody",
+        "role": "supporting",
+        "columns": columns,
+        "factIndexes": [item.get("index") for item in pair],
+        "placements": ["items[0].value", "items[1].value"],
+        "lines": [1, 1],
+        "requiredHeight": height if columns == 2 else height * 2 + gap,
+        "minimumWidth": max(widths) * columns + separator,
+        "fontSize": styles.get("fontSize"),
+        "labelAllowance": 0,
+        "pressureOnly": samples,
+        "unitSuffixesFromFieldContract": [_declared_unit(item) for item in pair],
+        "object": pair[0].get("object"),
+    }
+
+
+def _text_block(size: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+    root = _part(size, "TextBlock", "root")
+    item_styles = _part(size, "TextBlock", "item")
+    value = _part(size, "TextBlock", "value")
+    item_widths = []
+    for item in items:
+        sample = item.get("sample") + (_declared_unit(item) or "")
+        item_widths.append(
+            max(
+                item_styles.get("constraintSize", {}).get("minWidth", 0),
+                _text_width(sample, value.get("fontSize"))
+                + _extent(item_styles.get("padding"), "width"),
+            )
+        )
+    width = max(item_widths) * len(items)
+    width += root.get("itemMargin", 0) * (len(items) - 1)
+    return {
+        "component": "TextBlock",
+        "factIndexes": [item.get("index") for item in items],
+        "placements": [f"items[{i}].value" for i in range(len(items))],
+        "requiredHeight": root.get("constraintSize", {}).get("minHeight"),
+        "minimumWidth": width,
+        "labelsRequireWidthReview": True,
+        "object": items[0].get("object"),
+        "unitSuffixesFromFieldContract": [_declared_unit(item) for item in items],
+    }
+
+
+def _action_groups(
+    size: str,
+    facts: list[dict[str, Any]],
+    task: dict[str, Any],
+    unresolved: list[str],
+) -> list[dict[str, Any]]:
+    candidates = {item.get("id"): item for item in task.get("eventCandidates", [])}
+    output: list[dict[str, Any]] = []
+    for index, fact in enumerate(facts):
+        identifier = fact.get("actionId")
+        if not identifier:
+            continue
+        event = candidates.get(identifier)
+        if event is None:
+            unresolved.append(f"action fact {index}: missing complete event candidate")
+            continue
+        output.append(
+            {
+                "factIndexes": [index],
+                "placements": ["onClick"],
+                "actionId": identifier,
+                "eventCandidate": copy.deepcopy(event),
+                "labelMeaning": fact.get("requirement"),
+                "labelRequiresWidthReview": True,
+                "ownerRoots": _action_owners(event),
+            }
+        )
+    return output
+
+
+def _action_owners(event: dict[str, Any]) -> list[str]:
+    roots: list[str] = []
+    encoded = json.dumps(event.get("args", {}), ensure_ascii=False)
+    for match in re.finditer(r"/data/([^/\s}'\"]+)", encoded):
+        root = f"/data/{match.group(1)}/"
+        if root not in roots:
+            roots.append(root)
+    return roots
+
+
+def _region_tree(size: str, rules: list[dict[str, Any]]) -> Region | None:
+    nodes: dict[tuple[int, ...], Region] = {}
+    for rule in rules:
+        path = tuple(rule.get("path", []))
+        for depth in range(len(path) + 1):
+            prefix = path[:depth]
+            if prefix not in nodes:
+                nodes[prefix] = Region(prefix, "Column", {}, {})
+        region = nodes.get(path)
+        if region is None:
+            return None
+        types = rule.get("types", ["Column"])
+        containers = [name for name in types if name in _CONTAINERS]
+        region.kind = containers[0] if containers else types[0]
+        region.props = {**rule.get("props", {}), **rule.get("slotSize", {})}
+        region.rule = rule
+    for path in sorted(nodes):
+        if path:
+            parent = nodes.get(path[:-1])
+            if parent is None:
+                return None
+            parent.children.append(nodes.get(path))
+    root = nodes.get(())
+    if root is None:
+        return None
+    if not _assign_boxes(
+        root, reference_dimension(size, "width"), reference_dimension(size, "height"), size
+    ):
+        return None
+    return root
+
+
+def _assign_boxes(region: Region, width: float, height: float, size: str) -> bool:
+    region.width = width - _extent(region.props.get("padding"), "width")
+    region.height = height - _extent(region.props.get("padding"), "height")
+    if region.width <= 0 or region.height <= 0:
+        return False
+    axis = "width" if region.kind == "Row" else "height"
+    available = region.width if axis == "width" else region.height
+    gap = region.props.get("itemMargin", 0)
+    fixed = 0.0
+    flexible = 0
+    extents: list[float | None] = []
+    for child in region.children:
+        extent = child.props.get(axis)
+        if axis == "height" and child.kind not in _CONTAINERS:
+            extent = _part(size, child.kind, "root").get("height")
+        if not isinstance(extent, (int, float)):
+            extent = None
+            flexible += 1
+        else:
+            fixed += extent
+        extents.append(extent)
+    remaining = available - fixed - gap * max(0, len(extents) - 1)
+    if region.kind != "Stack" and remaining < 0:
+        return False
+    for child, extent in zip(region.children, extents, strict=True):
+        child_width = child.props.get("width")
+        child_height = child.props.get("height")
+        if not isinstance(child_width, (int, float)):
+            child_width = region.width
+        if not isinstance(child_height, (int, float)):
+            child_height = region.height
+        if region.kind != "Stack":
+            allocated = extent if extent is not None else remaining / flexible
+            if axis == "width":
+                child_width = allocated
+            else:
+                child_height = allocated
+        if child_width > region.width or child_height > region.height:
+            return False
+        if not _assign_boxes(child, child_width, child_height, size):
+            return False
+    return True
+
+
+def _leaves(region: Region) -> list[Region]:
+    if not region.children:
+        return [region]
+    output: list[Region] = []
+    for child in region.children:
+        output.extend(_leaves(child))
+    return output
+
+
+def _allocations(
+    zones: list[Region],
+    groups: list[dict[str, Any]],
+    actions: list[dict[str, Any]],
+    size: str,
+):
+    allocation: list[list[dict[str, Any]]] = [[] for _ in zones]
+    remaining = list(groups)
+    unused_actions = copy.deepcopy(actions)
+    body_zones: list[int] = []
+    for i, zone in enumerate(zones):
+        policy = zone.rule.get("eventPolicy")
+        if policy == "require":
+            if not unused_actions:
+                return
+            name = "CardButton" if "CardButton" in zone.rule.get("types", []) else "PillButton"
+            action = unused_actions.pop(0)
+            action.update(
+                {
+                    "component": name,
+                    "requiredHeight": _part(size, name, "root").get("height"),
+                    "minimumWidth": 0,
+                }
+            )
+            allocation[i].append(action)
+        elif zone.kind == "SingleLineTitle":
+            title = next(
+                (group for group in remaining if group.get("component") == "SingleLineTitle"), None
+            )
+            if title is not None:
+                remaining.remove(title)
+                allocation[i].append(title)
+            else:
+                allocation[i].append(
+                    {
+                        "component": "SingleLineTitle",
+                        "factIndexes": [],
+                        "placements": [],
+                        "minimumWidth": 0,
+                        "requiredHeight": _part(size, "SingleLineTitle", "root").get("height"),
+                        "optionalDecoration": True,
+                    }
+                )
+        elif zone.kind in _CONTAINERS:
+            body_zones.append(i)
+        else:
+            return
+    if not body_zones:
+        return
+    # 动作进入独立槽，或所在分区底部；禁止在 forbid-subtree 的信息槽塞按钮。
+    pools = []
+    for _group in remaining:
+        pools.append(body_zones)
+    for _action in unused_actions:
+        pools.append(
+            [i for i in body_zones if zones[i].rule.get("eventPolicy") != "forbid-subtree"]
+        )
+    if any(not pool for pool in pools):
+        return
+    for destinations in itertools.islice(itertools.product(*pools), _SEARCH_LIMIT):
+        belonging: dict[str, int] = {}
+        split = False
+        for group, destination in zip(remaining, destinations, strict=False):
+            identity = group.get("object")
+            if identity is None:
+                continue
+            previous = belonging.setdefault(identity, destination)
+            if previous != destination:
+                split = True
+                break
+        if split:
+            yield None
+            continue
+        action_destinations = destinations[len(remaining) :]
+        for action, destination in zip(unused_actions, action_destinations, strict=True):
+            owners = action.get("ownerRoots", [])
+            matching_destinations = set()
+            for identity, body_destination in belonging.items():
+                if any(f"{identity}/".startswith(owner) for owner in owners):
+                    matching_destinations.add(body_destination)
+            if matching_destinations and destination not in matching_destinations:
+                split = True
+                break
+        if split:
+            yield None
+            continue
+        value = copy.deepcopy(allocation)
+        for group, destination in zip(remaining + unused_actions, destinations, strict=True):
+            value[destination].append(copy.deepcopy(group))
+        yield value
+
+
+def _close_regions(
+    zones: list[Region],
+    allocation: list[list[dict[str, Any]]],
+    size: str,
+) -> list[dict[str, Any]] | None:
+    result = []
+    for zone, groups in zip(zones, allocation, strict=True):
+        if not groups:
+            return None
+        only_actions = all(group.get("actionId") for group in groups)
+        if only_actions and zone.rule.get("eventPolicy") != "require":
+            if len(zones) > 1:
+                return None
+        if zone.kind in {"Row", "Stack"}:
+            return None  # 当前搜索只在合法 Column 内容槽里构造内部横排，避免改写固定父方向。
+        for group in groups:
+            if group.get("actionId") and not group.get("component"):
+                group["component"] = "PillButton"
+                group["requiredHeight"] = _part(size, "PillButton", "root").get("height")
+                group["minimumWidth"] = 0
+            if group.get("actionId"):
+                name = group.get("component")
+                root = _part(size, name, "root")
+                label_width = zone.width - _extent(root.get("padding"), "width")
+                if name == "CardButton":
+                    label_width -= _part(size, name, "placeholder").get("width", 0)
+                    label_width -= root.get("itemMargin", 0)
+                else:
+                    label_width = min(label_width, _part(size, name, "label").get("maxWidth"))
+                group["labelWidthBudget"] = label_width
+                group["labelFontSize"] = _part(size, name, "label").get("fontSize")
+                if label_width <= 0:
+                    return None
+        gap = zone.props.get(
+            "itemMargin", _part(size, "SecondaryBody", "root").get("itemMargin", 0)
+        )
+        packed = _pack(groups, zone.width, gap)
+        if packed is None:
+            return None
+        rows, height = packed
+        if height > zone.height:
+            return None
+        direct_children = _direct_children(zone, groups, rows)
+        if direct_children is None:
+            return None
+        _record_text_allowances(groups, rows, zone.width, size)
+        result.append(
+            {
+                "path": list(zone.path),
+                "referenceWidth": zone.width,
+                "referenceHeight": zone.height,
+                "gap": gap,
+                "rows": rows,
+                "requiredHeight": height,
+                "remainingHeight": zone.height - height,
+                "wrapper": "Column" if zone.kind in _CONTAINERS else None,
+                "directChildContract": {
+                    key: zone.rule.get(key)
+                    for key in ("childCount", "childCountMin", "childCountMax")
+                    if key in zone.rule
+                },
+                "groups": groups,
+            }
+        )
+        result[-1]["directChildren"] = direct_children
+    return result
+
+
+def _record_text_allowances(
+    groups: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    width: float,
+    size: str,
+) -> None:
+    for row in rows:
+        indexes = row.get("groupIndexes", [])
+        widths = row.get("referenceChildWidths", [width])
+        for index, available in zip(indexes, widths, strict=True):
+            group = groups[index]
+            group["referenceWidthBudget"] = available
+            group["additionalTextWidthBudget"] = max(0, available - group.get("minimumWidth", 0))
+            if group.get("component") == "TextBlock":
+                count = len(group.get("factIndexes", []))
+                gap = _part(size, "TextBlock", "root").get("itemMargin", 0)
+                padding = _extent(_part(size, "TextBlock", "item").get("padding"), "width")
+                group["perItemLabelWidthBudget"] = (available - gap * (count - 1)) / count - padding
+
+
+def _pack(groups: list[dict[str, Any]], width: float, gap: float):
+    """保持组顺序，比较单列与相邻组横排；操作始终留在底部独立行。"""
+    best: dict[int, tuple[list[dict[str, Any]], float]] = {len(groups): ([], 0.0)}
+    for i in range(len(groups) - 1, -1, -1):
+        group = groups[i]
+        minimum = group.get("minimumWidth")
+        height = group.get("requiredHeight")
+        if not isinstance(minimum, (int, float)) or not isinstance(height, (int, float)):
+            continue
+        if minimum > width:
+            if group.get("component") != "SecondaryBody" or group.get("columns") != 1:
+                continue
+            sample = group.get("pressureOnly")
+            if not isinstance(sample, str):
+                continue
+            if _wrapped_lines(sample, group.get("fontSize"), width) != 2:
+                continue
+            height *= 2
+            group["requiredHeight"] = height
+            group["lines"] = [2]
+            minimum = width
+            group["minimumWidth"] = minimum
+        suffix = best.get(i + 1)
+        if suffix is not None:
+            rows, tail = suffix
+            best[i] = (
+                [
+                    {
+                        "direction": "column",
+                        "groupIndexes": [i],
+                        "height": height,
+                        "availableWidth": width,
+                    },
+                    *rows,
+                ],
+                height + tail + (gap if rows else 0),
+            )
+        if i + 1 >= len(groups):
+            continue
+        other = groups[i + 1]
+        if group.get("actionId") or other.get("actionId"):
+            continue
+        other_width = other.get("minimumWidth")
+        other_height = other.get("requiredHeight")
+        if not isinstance(other_width, (int, float)):
+            continue
+        if not isinstance(other_height, (int, float)) or minimum + other_width + gap > width:
+            continue
+        suffix = best.get(i + 2)
+        if suffix is None:
+            continue
+        rows, tail = suffix
+        row_height = max(height, other_height)
+        occupied = row_height + tail + (gap if rows else 0)
+        previous = best.get(i)
+        if previous is None or occupied < previous[1]:
+            spare = (width - gap - minimum - other_width) / 2
+            best[i] = (
+                [
+                    {
+                        "direction": "row",
+                        "groupIndexes": [i, i + 1],
+                        "height": row_height,
+                        "referenceChildWidths": [minimum + spare, other_width + spare],
+                    },
+                    *rows,
+                ],
+                occupied,
+            )
+    return best.get(0)
+
+
+def _wrapped_lines(text: str, font_size: float, width: float) -> int:
+    lines = 1
+    used = 0.0
+    for character in text:
+        if character == "\n":
+            lines += 1
+            used = 0.0
+            continue
+        advance = font_size * (0.6 if character.isascii() else 1) * 1.2
+        if advance > width:
+            return 3
+        if used + advance > width:
+            lines += 1
+            used = 0.0
+        used += advance
+    return lines
+
+
+def _direct_children(
+    zone: Region,
+    groups: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    """明确包装层和直属动作，满足原变体子数，不能把多组直接塞进单子槽。"""
+    if zone.kind not in _CONTAINERS:
+        return [{"groupIndexes": [0]}] if len(groups) == 1 else None
+    actions = [i for i, group in enumerate(groups) if group.get("actionId")]
+    body = [i for i, group in enumerate(groups) if not group.get("actionId")]
+    children: list[dict[str, Any]] = []
+    if body:
+        children.append(
+            {
+                "component": "Column",
+                "groupIndexes": body,
+                "placement": "remaining_body",
+                "rows": rows[: len(rows) - len(actions)],
+            }
+        )
+    for index in actions:
+        children.append(
+            {
+                "component": groups[index].get("component"),
+                "groupIndexes": [index],
+                "placement": "bottom_action",
+            }
+        )
+    exact = zone.rule.get("childCount")
+    lower = exact if exact is not None else zone.rule.get("childCountMin", 1)
+    upper = exact if exact is not None else zone.rule.get("childCountMax", len(children))
+    if lower <= len(children) <= upper:
+        return children
+    if exact == 1:
+        return [
+            {"component": "Column", "children": children, "placement": "single_foreground_wrapper"}
+        ]
+    if not actions and lower <= len(rows) <= upper:
+        return [
+            {
+                "component": "Row" if row.get("direction") == "row" else "Column",
+                "groupIndexes": row.get("groupIndexes"),
+            }
+            for row in rows
+        ]
+    return None
+
+
+def _all_facts_covered(candidate: dict[str, Any], count: int) -> bool:
+    seen: list[int] = []
+    for region in candidate.get("regions", []):
+        for group in region.get("groups", []):
+            seen.extend(group.get("factIndexes", []))
+    return sorted(seen) == list(range(count))

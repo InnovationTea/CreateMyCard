@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
+from services.compact_composition_planner import feasible_composition_candidates
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
 
@@ -62,6 +63,7 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "candidateRecipeParts": _recipe_geometry(size, names),
         "ordinaryFactPacking": _fact_packing(size, facts, task),
         "referenceContentBudgets": _content_budgets(size, layouts, len(actions)),
+        "constructiveCompositions": feasible_composition_candidates(size, plan, task),
     }
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
@@ -81,6 +83,16 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "数值字段和真实单位优先分别传 value 与 unit；已有格式化字符串保持完整，不拆单位。"
         "若某个横排子区装不下完整读数，不得裁切尾部；改合法分区比例或组件组合后重算宽高。"
         "无法容纳时先改合法组合或布局，不缩字、删事实、删操作或只调权重。"
+        "constructiveCompositions 是程序对完整事实/动作计算的替代组合："
+        "已有合法且预算闭合的 composition 优先保留，不为采用参考候选改写正常组合；"
+        "优先核对它的 layout/variant、各区 path、groups 的事实索引/可见属性和 rows 的横纵关系，"
+        "整区采用一个完整候选，不再逐字段补到旧的超预算树上。"
+        "参考行宽高只用于算式，输出区域用 matchParent/layoutWeight；"
+        "动作在所属区底部独立行或明确动作槽，不能与正文混成点击对象。"
+        "候选中标签、单位和进度范围的待核事项必须补齐核算，"
+        "不能把 minimumWidth 当作带未知标签/单位的完整宽度。"
+        "unresolved/no_candidate_found 只表示有限搜索未给出完整参考解，"
+        "保留全部事实，依完整合同继续重组，不作为删除信息或提前失败的理由。"
         "ordinaryFactPacking 给出完整事实的普通信息组合高度，不强迫把核心主值降为正文；"
         "普通时间、状态等没有真实强调要求时，不因 componentHints 首项就各做一个强调块。"
         "referenceContentBudgets 已扣除区域内边距，localReservations 才是扣标题与本地动作后的余额；"
