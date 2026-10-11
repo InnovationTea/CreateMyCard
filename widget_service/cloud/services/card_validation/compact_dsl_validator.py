@@ -1491,7 +1491,7 @@ def _collect_text_width_budget_errors(
             available = min(available, maximum)
         # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
         required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
-        if available > 0 and required > available * 1.1:
+        if available > 0 and required > available + 1e-7:
             errors.append(
                 f"component {row.component_id}: text width overflow; complete text {text!r} "
                 f"at original font {font:g} needs about {required:g}vp in one line, "
