@@ -328,6 +328,12 @@ def _group_choices(
             item["hasObjectTitle"] = has_object_title
         singles = [_single_group(size, item) for item in items]
         alternatives = [singles]
+        if len(singles) >= 2:
+            gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
+            alternatives.append([_nested_group("Column", singles, gap)])
+            wrapped = [_two_line_group(group) for group in singles]
+            if wrapped != singles:
+                alternatives.append([_nested_group("Column", wrapped, gap)])
         ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
         if len(ordinary) >= 2:
             # 两项合组不触发 supporting 三/四项的较小字体，保留原字号。
@@ -380,6 +386,69 @@ def _nested_group(
         "requiredHeight": max(heights) if horizontal else sum(heights) + gap * (len(groups) - 1),
         "object": groups[0].get("object"),
     }
+
+
+def _two_line_group(group: dict[str, Any]) -> dict[str, Any]:
+    """原字号正文的两行列宽，逐字符验证而非总宽直接折半。"""
+    result = copy.deepcopy(group)
+    if group.get("component") != "SecondaryBody" or group.get("columns") != 1:
+        return result
+    if group.get("role") == "metadata":
+        return result  # 弱信息合同只允许单行，不构造非法两行变体。
+    sample = group.get("pressureOnly")
+    font = group.get("fontSize")
+    if not isinstance(sample, str) or not isinstance(font, (int, float)):
+        return result
+    minimum = group.get("minimumWidth")
+    if not isinstance(minimum, (int, float)) or minimum <= 0:
+        return result
+    for width in range(max(1, math.ceil(minimum / 2)), math.ceil(minimum) + 1):
+        if _wrapped_lines(sample, font, width) <= 2:
+            result.update({
+                "minimumWidth": width, "lines": [2],
+                "requiredHeight": group.get("requiredHeight") * 2,
+            })
+            break
+    return result
+
+
+def _group_text_fits(group: dict[str, Any], width: float) -> bool:
+    """复核实际分配后的嵌套正文行数，不以合组高度闭合冒充文字完整。"""
+    nested = group.get("nestedGroups")
+    if nested:
+        widths = _nested_widths(group, width)
+        for child, available in zip(nested, widths, strict=True):
+            if not _group_text_fits(child, available):
+                return False
+        return True
+    if group.get("component") != "SecondaryBody":
+        return group.get("minimumWidth", 0) <= width
+    samples = group.get("pressureOnly")
+    samples = [samples] if isinstance(samples, str) else samples
+    if not isinstance(samples, list):
+        # 未携带文字压力时仅沿用已有最小宽度，不声称逐字验证或新增失败门禁。
+        return group.get("minimumWidth", 0) <= width
+    columns = group.get("columns", 1)
+    font = group.get("fontSize")
+    separator = _text_width(" ｜ ", font) if columns == 2 else 0
+    available = (width - separator) / columns
+    lines = group.get("lines", [])
+    for sample, limit in zip(samples, lines, strict=True):
+        if _wrapped_lines(sample, font, available) > limit:
+            return False
+    return True
+
+
+def _nested_widths(group: dict[str, Any], width: float) -> list[float]:
+    nested = group.get("nestedGroups", [])
+    if group.get("component") != "Row":
+        return [width] * len(nested)
+    minimums = [child.get("minimumWidth", 0) for child in nested]
+    total = sum(minimums)
+    available = width - group.get("gap", 0) * max(0, len(nested) - 1)
+    if total <= 0:
+        return [available / len(nested)] * len(nested)
+    return [available * minimum / total for minimum in minimums]
 
 
 def _declared_event_group(
@@ -963,6 +1032,11 @@ def _close_regions(
             direct_children = _direct_children(zone, groups, rows)
             if direct_children is None:
                 return None
+        for row in rows:
+            widths = row.get("referenceChildWidths", [zone.width])
+            for index, available in zip(row.get("groupIndexes", []), widths, strict=True):
+                if not _group_text_fits(groups[index], available):
+                    return None
         _record_text_allowances(groups, rows, zone.width, size)
         result.append(
             {
@@ -996,14 +1070,21 @@ def _record_text_allowances(
         indexes = row.get("groupIndexes", [])
         widths = row.get("referenceChildWidths", [width])
         for index, available in zip(indexes, widths, strict=True):
-            group = groups[index]
-            group["referenceWidthBudget"] = available
-            group["additionalTextWidthBudget"] = max(0, available - group.get("minimumWidth", 0))
-            if group.get("component") == "TextBlock":
-                count = len(group.get("factIndexes", []))
-                gap = _part(size, "TextBlock", "root").get("itemMargin", 0)
-                padding = _extent(_part(size, "TextBlock", "item").get("padding"), "width")
-                group["perItemLabelWidthBudget"] = (available - gap * (count - 1)) / count - padding
+            _record_group_allowance(groups[index], available, size)
+
+
+def _record_group_allowance(group: dict[str, Any], available: float, size: str) -> None:
+    group["referenceWidthBudget"] = available
+    group["additionalTextWidthBudget"] = max(0, available - group.get("minimumWidth", 0))
+    nested = group.get("nestedGroups")
+    if nested:
+        for child, width in zip(nested, _nested_widths(group, available), strict=True):
+            _record_group_allowance(child, width, size)
+    if group.get("component") == "TextBlock":
+        count = len(group.get("factIndexes", []))
+        gap = _part(size, "TextBlock", "root").get("itemMargin", 0)
+        padding = _extent(_part(size, "TextBlock", "item").get("padding"), "width")
+        group["perItemLabelWidthBudget"] = (available - gap * (count - 1)) / count - padding
 
 
 def _pack(
