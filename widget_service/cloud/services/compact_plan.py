@@ -15,6 +15,7 @@ from services.compact_composition_context import (
     composition_implementation_conflicts,
     composition_region_capacity,
 )
+from services.compact_composition_planner import compound_duration_bindings
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     ComponentRow,
@@ -503,6 +504,38 @@ def parse_compact_plan_call(
         task_spec.get("size"),
     )
     warnings.extend(composition_warnings)
+    duration_paths = set(compound_duration_bindings(plan, task_spec))
+    for fact in facts:
+        if fact.get("dataId") not in duration_paths:
+            continue
+        hints = fact.get("componentHints", [])
+        if "EmphasizedData" not in hints:
+            continue
+        corrected: list[str] = []
+        for hint in hints:
+            candidate = "EmphasisText" if hint == "EmphasizedData" else hint
+            if candidate not in corrected:
+                corrected.append(candidate)
+        fact["componentHints"] = corrected
+        warnings.append("Compound duration text uses EmphasisText, not a numeric hero; "
+                        "retain the complete binding and all units.")
+    if composition is not None:
+        incompatible = False
+        for region in composition.get("regions", []):
+            for group in region.get("groups", []):
+                if group.get("component") != "EmphasizedData":
+                    continue
+                for index in group.get("factIndexes", []):
+                    if not isinstance(index, int) or not 0 <= index < len(facts):
+                        continue
+                    if facts[index].get("dataId") in duration_paths:
+                        incompatible = True
+        if incompatible:
+            composition = None
+            note = ("composition uses a numeric hero for compound duration text; regroup "
+                    "with EmphasisText and retain every fact, binding and unit.")
+            composition_warnings.append(note)
+            warnings.append(note)
     if composition is not None:
         plan["composition"] = composition
     if composition_warnings:

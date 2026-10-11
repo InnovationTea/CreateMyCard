@@ -17,6 +17,8 @@ from services.compact_reference_canvas import reference_dimension
 _CONTAINERS = {"Column", "Row", "Stack"}
 _SEARCH_LIMIT = 4096
 _RESULT_LIMIT = 3
+_DURATION_PART = r"\d+(?:\.\d+)?\s*(?:小时|分钟|毫秒|天|时|分|秒)"
+_COMPOUND_DURATION = re.compile(rf"\s*(?:{_DURATION_PART}\s*){{2,}}")
 
 
 @dataclass
@@ -156,6 +158,26 @@ def _schema_value(task: dict[str, Any], path: str) -> dict[str, Any]:
         else:
             return {}
     return node if isinstance(node, dict) else {}
+
+
+def is_compound_duration_text(value: Any) -> bool:
+    """只识别完整多段时长样值，不推测字段名、不拆单位或执行表达式。"""
+    return isinstance(value, str) and _COMPOUND_DURATION.fullmatch(value) is not None
+
+
+def compound_duration_bindings(plan: dict[str, Any], task: dict[str, Any]) -> list[str]:
+    """列出事实中具有明确完整多段时长样值的字符串绑定。"""
+    paths: list[str] = []
+    for fact in plan.get("info_required", []):
+        path = fact.get("dataId")
+        if not isinstance(path, str):
+            continue
+        field = _schema_value(task, path)
+        if field.get("type") != "string":
+            continue
+        if is_compound_duration_text(field.get("sampleValue")) and path not in paths:
+            paths.append(path)
+    return paths
 
 
 def _pressure(
@@ -308,6 +330,12 @@ def _group_choices(
                 unresolved.append(f"fact {index}: structured props cannot be reconstructed")
                 continue
             first = "SecondaryBody"
+        field = _schema_value(task, fact.get("dataId")) if fact.get("dataId") else {}
+        value = field.get("sampleValue") if field else fact.get("text")
+        if first == "EmphasizedData" and is_compound_duration_text(value):
+            # 修正错误数值选型，不把普通数值缩小，也不将完整文本拆成样例数字。
+            first = "EmphasisText"
+            declared_group = {}
         path = fact.get("dataId", "")
         identity = path.rsplit("/", 1)[0] if path else f"static:{index}"
         item = {

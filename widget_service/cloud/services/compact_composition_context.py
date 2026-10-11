@@ -13,6 +13,7 @@ from services.compact_composition_planner import (
     _text_width,
     composition_structure_blueprint,
     composition_text_width_conflicts,
+    compound_duration_bindings,
     quantitative_main_bindings,
 )
 from services.compact_layout_runtime import load_layout_contract
@@ -66,6 +67,16 @@ def compact_composition_context(
             "EmphasizedData", size=size,
         ).get("parts", {}).get("value", {}).get("styles", {}).get("fontSize"),
     }
+    duration_paths = compound_duration_bindings(plan, task)
+    duration_instruction = ""
+    if duration_paths:
+        payload["compoundDurationBindings"] = duration_paths
+        duration_instruction = (
+            "compoundDurationBindings已包含多段数量与时间单位，属于完整文本读数；"
+            "作为主信息用EmphasisText.mainText的固定18fp规格，不用30fp EmphasizedData。"
+            "作为辅助信息沿用原正文规格；标签加完整时长单行放不下时用合法两行并预留行高，"
+            "或在所属区域重排。保留整个原绑定与所有单位，不截样值、不伪造分段字段。\n\n"
+        )
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
         "# 本轮执行约束\n\n"
@@ -89,7 +100,7 @@ def compact_composition_context(
         "或重选更宽分区，不能把统计范围挪成小字。quantitativeMainBindings明确的数值主值"
         "按quantitativeMainFontSize显示，不能改为普通正文或较小强调文字；"
         "对象名称独立可读，长统计读数可保持主值规格拆为两行。\n\n"
-        f"```json\n{encoded}\n```"
+        f"{duration_instruction}```json\n{encoded}\n```"
     )
 
 
