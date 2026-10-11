@@ -256,6 +256,7 @@ def validate_compact_dsl(
     _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
+    _collect_text_width_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -1417,6 +1418,73 @@ def _collect_height_budget_errors(
             "design heights. Weight, clipping, flex shrink and distributed alignment "
             f"cannot eliminate content height. Occupancy: {breakdown}."
         )
+
+
+def _collect_text_width_budget_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+    errors: list[str],
+    protocol_profile: dict[str, Any] | None,
+) -> None:
+    """兜底明确的单行超宽；未知表达式/自然尺寸不猜，反馈原字号重组方向。"""
+    from services.compact_composition_context import _literal_display_sample
+
+    size = card_spec.get("suggestSize") or task_spec.get("size")
+    if size not in {"2x2", "2x4"}:
+        return
+    nodes = []
+    for row in components:
+        nodes.append({
+            "id": row.component_id, "component": row.component_type,
+            "styles": row.props, "children": list(row.children),
+        })
+    try:
+        boxes = reference_region_boxes(nodes, size=size, profile=protocol_profile)
+    except ValueError as exc:
+        message = str(exc)
+        if message not in errors:
+            errors.append(message)
+        return
+    for row in components:
+        if row.component_type not in {"Text", "Button"}:
+            continue
+        props = row.props
+        if props.get("maxLines", 1) != 1:
+            continue
+        font = _non_negative_number(props.get("fontSize"))
+        box = boxes.get(row.component_id)
+        if font is None or box is None or box.width is None:
+            continue
+        content = props.get("content") if row.component_type == "Text" else props.get("label")
+        displayed = _literal_display_sample(content, task_spec)
+        text = displayed[1] if displayed is not None else None
+        if text is None and isinstance(content, str) and "{{" not in content:
+            text = content
+        if not isinstance(text, str) or not text or "\n" in text:
+            continue
+        available = box.width - _horizontal_padding(props)
+        maximum = _non_negative_number(props.get("maxWidth"))
+        if maximum is not None:
+            available = min(available, maximum)
+        # 只反馈明显冲突，不把生成侧1.2保守压力估计作为精确字体测量门禁。
+        required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
+        if available > 0 and required > available * 1.1:
+            errors.append(
+                f"component {row.component_id}: text width overflow; complete text {text!r} "
+                f"at original font {font:g} needs about {required:g}vp in one line, "
+                f"but its allocated text area is {available:g}vp. Keep every label, prefix, "
+                "value and action; use legal lines at the same font or regroup into a wider "
+                "region. A fixed single-line component needs same-font separate lines or a "
+                "different legal composition, not clipping, smaller secondary text or weight."
+            )
+
+
+def _horizontal_padding(props: dict[str, Any]) -> float:
+    value = props.get("padding", 0)
+    if isinstance(value, dict):
+        return sum(_non_negative_number(value.get(side)) or 0 for side in ("left", "right"))
+    return (_non_negative_number(value) or 0) * 2
 
 
 def _column_height_breakdown(

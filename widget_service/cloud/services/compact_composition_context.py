@@ -75,6 +75,13 @@ def compact_composition_context(
         "固定单行主文字放不下必要前缀时，在合法承载区拆为原字号的独立行，"
         "不塞入更小字号的次文字。窄列中 label 与 value 共用文字宽度；"
         "完整文案放不下时改合法分行或分区，不靠 clip、maxLines:1 隐藏尾字。\n\n"
+        "量化主值与普通状态是不同职责：主读数不得合并进 InfoBlock.secondaryText、"
+        "EmphasisText.secondaryText 或 metadata。真实数字比例指标需要主值规格时，"
+        "使用能容纳完整对象标签及读数的 EmphasizedData；单位依据字段合同，"
+        "不把数值改成状态的小字补充，也不以圆环代替可读读数。"
+        "长静态正文优先在原字号正文组件内用单列、合法两行；固定单行组件不能"
+        "靠新增空白高度获得第二行。长强调说明可拆成同字号完整上下文行和读数行，"
+        "或重选更宽分区，不能把统计范围挪成小字。\n\n"
         f"```json\n{encoded}\n```"
     )
 
@@ -173,7 +180,7 @@ def composition_recovery_context(
             "groupParameters 是组合说明而非可照抄的全部 Props，"
             "事实索引需转换成真实绑定，字段合同单位需解析成合法 unit；"
             "不得把索引、预算、样值等参考字段输出到 DSL。"
-            "横排各子节点落实 suggestedLayoutProps 中的 matchParent/归一化权重，"
+            "横排各子节点落实 suggestedLayoutProps 中的 matchParent/比例权重，"
             "不能让自然宽度的表达式挤占相邻事实。displayBudget 核算的是原值；"
             "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
             "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
@@ -289,6 +296,74 @@ def repair_display_samples(source: str, task: dict[str, Any]) -> dict[str, str]:
             if previous is None or _text_width(text, 1) > _text_width(previous, 1):
                 samples[path] = text
     return samples
+
+
+def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
+    """保留失败源的主文字规格，不能因容量恢复把18fp主文变成14fp正文。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return {}
+    roles: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        if row.component_type not in {"EmphasisText", "EmphasizedData", "SecondaryBody"}:
+            continue
+        if row.component_type == "SecondaryBody":
+            items = row.props.get("items", [])
+            if not isinstance(items, list):
+                continue
+            values = [item.get("value") for item in items if isinstance(item, dict)]
+        else:
+            key = "mainText" if row.component_type == "EmphasisText" else "value"
+            values = [row.props.get(key)]
+        for value in values:
+            encoded = json.dumps(value, ensure_ascii=False)
+            paths = re.findall(r"\$\{(/[^{}]+)\}", encoded)
+            if isinstance(value, dict) and isinstance(value.get("path"), str):
+                paths = [value.get("path")]
+            if len(paths) == 1:
+                priority = {"EmphasizedData": 3, "EmphasisText": 2, "SecondaryBody": 1}
+                previous = roles.get(paths[0], {})
+                if priority.get(previous.get("component"), 0) > priority.get(row.component_type, 0):
+                    continue
+                roles[paths[0]] = {
+                    "component": row.component_type,
+                    "role": row.props.get("role", "supporting"),
+                }
+    return roles
+
+
+def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:
+    """按完整事件匹配失败源按钮原文，不从业务名推断或缩短标签。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return {}
+    labels: dict[str, str] = {}
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        label = row.props.get("label")
+        handlers = row.props.get("onClick", [])
+        if not isinstance(label, str) or "{{" in label:
+            continue
+        if not isinstance(handlers, list):
+            continue
+        for event in task.get("eventCandidates", []):
+            if not isinstance(event, dict):
+                continue
+            handler = {key: event.get(key) for key in ("call", "args")}
+            if handler in handlers and isinstance(event.get("id"), str):
+                labels[event.get("id")] = label
+    return labels
 
 
 def _literal_display_sample(value: Any, task: dict[str, Any]) -> tuple[str, str] | None:

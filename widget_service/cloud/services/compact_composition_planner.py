@@ -35,14 +35,19 @@ def feasible_composition_candidates(
     plan: dict[str, Any],
     task: dict[str, Any],
     *, display_samples: dict[str, str] | None = None,
+    display_roles: dict[str, dict[str, Any]] | None = None,
+    action_labels: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """列出完整参考解；搜索未命中不是新失败，也不能视为合同无解。"""
     facts = plan.get("info_required", [])
     unresolved: list[str] = []
-    choices = _group_choices(size, facts, plan, task, unresolved, display_samples=display_samples)
+    choices = _group_choices(
+        size, facts, plan, task, unresolved, display_samples=display_samples,
+        display_roles=display_roles,
+    )
     if unresolved:
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
-    actions = _action_groups(size, facts, task, unresolved)
+    actions = _action_groups(size, facts, task, unresolved, action_labels=action_labels)
     if unresolved:
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
     layouts = load_layout_contract().get("layouts", {})
@@ -185,6 +190,7 @@ def _group_choices(
     task: dict[str, Any],
     unresolved: list[str],
     *, display_samples: dict[str, str] | None = None,
+    display_roles: dict[str, dict[str, Any]] | None = None,
 ) -> list[list[list[dict[str, Any]]]]:
     declared: dict[int, dict[str, Any]] = {}
     event_groups: list[dict[str, Any]] = []
@@ -218,6 +224,10 @@ def _group_choices(
         scalar_names = {"EmphasizedData", "EmphasisText", "SecondaryBody", "ProgressLine2"}
         if declared_name in scalar_names and "SingleLineTitle" not in hints:
             first = declared_name
+        source_role = (display_roles or {}).get(fact.get("dataId"), {})
+        if source_role and "SingleLineTitle" not in hints:
+            first = source_role.get("component", first)
+            declared_group = {**declared_group, **source_role}
         supported = {
             "SingleLineTitle",
             "EmphasizedData",
@@ -231,6 +241,15 @@ def _group_choices(
         if first not in supported:
             if "EmphasizedData" in hints:
                 first = "EmphasizedData"
+            elif first == "InfoBlock" and "ProgressCircleSingle" in hints:
+                field = _schema_value(task, fact.get("dataId", ""))
+                if field.get("type") not in {"number", "integer"}:
+                    unresolved.append(f"fact {index}: quantitative main needs numeric contract")
+                    continue
+                # 数字比例主值不与状态合成小字辅文；完整数值与真实单位沿用主值规格。
+                first = "EmphasizedData"
+            elif first == "InfoBlock" and "EmphasisText" in hints:
+                first = "EmphasisText"
             elif first == "InfoBlock" and "SecondaryBody" in hints:
                 # 普通 InfoBlock 主文14fp，正文回退沿用14fp；数值+单位16fp不可降级。
                 placements = declared_group.get("placements", [])
@@ -493,6 +512,7 @@ def _action_groups(
     facts: list[dict[str, Any]],
     task: dict[str, Any],
     unresolved: list[str],
+    *, action_labels: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     candidates = {item.get("id"): item for item in task.get("eventCandidates", [])}
     output: list[dict[str, Any]] = []
@@ -513,6 +533,7 @@ def _action_groups(
                 "labelMeaning": fact.get("requirement"),
                 "labelRequiresWidthReview": True,
                 "ownerRoots": _action_owners(event),
+                "pressureLabelOnly": (action_labels or {}).get(identifier),
             }
         )
     return output
@@ -761,6 +782,18 @@ def _close_regions(
                 group["labelFontSize"] = _part(size, name, "label").get("fontSize")
                 if label_width <= 0:
                     return None
+                label = group.get("pressureLabelOnly")
+                if isinstance(label, str):
+                    font = group.get("labelFontSize")
+                    if _text_width(label, font) > label_width:
+                        if name != "CardButton" or _wrapped_lines(label, font, label_width) != 2:
+                            return None
+                        label_part = _part(size, name, "label", "multilineLabel")
+                        if label_part.get("height", 0) + _extent(
+                            root.get("padding"), "height",
+                        ) > group.get("requiredHeight", 0):
+                            return None
+                        group["labelLines"] = 2
         gap = zone.props.get(
             "itemMargin", _part(size, "SecondaryBody", "root").get("itemMargin", 0)
         )
@@ -1051,7 +1084,10 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         identifier: str, group: dict[str, Any], *, weight: float | None = None,
     ) -> str:
         props = {}
-        for key in ("role", "columns", "lines", "variant", "density", "unitFromFieldContract"):
+        for key in (
+            "role", "columns", "lines", "variant", "density", "labelLines",
+            "unitFromFieldContract",
+        ):
             if key in group:
                 props[key] = group.get(key)
         # PillButton 的宽度由动作槽和 Recipe 决定，公开合同不接受 width。
@@ -1097,7 +1133,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
             widths = piece.get("referenceChildWidths")
             total = sum(widths) if isinstance(widths, list) and widths else None
             for position, index in enumerate(indexes):
-                weight = widths[position] / total if total is not None and total > 0 else None
+                weight = widths[position] if total is not None and total > 0 else None
                 children.append(add_group(f"{identifier}_{position}", groups[index], weight=weight))
         node = {"id": identifier, "component": component or "Column",
                 "children": children, "fixedLayoutProps": {"itemMargin": gap}}

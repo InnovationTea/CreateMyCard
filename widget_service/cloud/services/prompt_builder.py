@@ -12,6 +12,8 @@ from services.compact_composition_context import (
     compact_plan_capacity_context,
     composition_implementation_conflicts,
     composition_recovery_context,
+    repair_action_labels,
+    repair_display_roles,
     repair_display_samples,
 )
 from services.compact_composition_planner import (
@@ -1880,13 +1882,16 @@ class PromptBuilder:
             capacity_errors = []
             for error in quality_errors:
                 message = error.get("message", "")
-                if re.search(r"vertical layout requires|overflow|layout.*match", message):
+                capacity_pattern = r"vertical layout requires|overflow|layout.*match|text width"
+                if re.search(capacity_pattern, message):
                     capacity_errors.append(message)
             if capacity_errors and task_spec is not None and compact_plan is not None:
                 task_value = task_spec.model_dump(mode="json")
                 samples = repair_display_samples(invalid_source_dsl, task_value)
                 constructive = feasible_composition_candidates(
                     task_spec.size, compact_plan, task_value, display_samples=samples,
+                    display_roles=repair_display_roles(invalid_source_dsl),
+                    action_labels=repair_action_labels(invalid_source_dsl, task_value),
                 )
                 updated = composition_recovery_context(
                     task_spec.size, compact_plan, constructive, task=task_value,
