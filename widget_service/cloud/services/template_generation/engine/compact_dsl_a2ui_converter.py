@@ -476,7 +476,7 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
-def is_template_compact_dsl(compact_dsl: str) -> bool:
+def is_template_compact_dsl(compact_dsl: str, *, size: str | None = None) -> bool:
     """仅为结构完整且根直接包含模板内容层的标准组件 DSL 启用模板转换。"""
     if "template_root" not in compact_dsl:
         return False
@@ -488,6 +488,16 @@ def is_template_compact_dsl(compact_dsl: str) -> bool:
     root = components[0]
     if root.component_id != "root" or "template_root" not in root.children:
         return False
+    if size is not None:
+        expected = _COMPACT_ROOT_DIMENSIONS.get(size)
+        if expected is None:
+            return False
+        dimensions_match = (
+            root.props.get("width") == expected.get("width")
+            and root.props.get("height") == expected.get("height")
+        )
+        if not dimensions_match:
+            return False
     return any(component.component_id == "template_root" for component in components)
 
 

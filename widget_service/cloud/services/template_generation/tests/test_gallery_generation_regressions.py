@@ -263,3 +263,28 @@ def test_invalid_template_marker_does_not_enable_template_converter(marker):
         content[2] = {"unsupportedProperty": True}
     compact = "\n".join(json.dumps(row) for row in rows)
     assert not is_template_compact_dsl(compact)
+
+
+@pytest.mark.parametrize("size,width,height,expected", [
+    ("2x2", None, None, False),
+    ("2x4", None, None, False),
+    ("2x2", 150, 150, False),
+    ("2x2", 160, 160, True),
+    ("2x4", 300, 150, True),
+    ("2x4", 320, 160, False),
+    ("2x2", "matchParent", "matchParent", False),
+])
+def test_template_conversion_route_preserves_legacy_root_dimensions(size, width, height, expected):
+    props = {}
+    if width is not None:
+        props["width"] = width
+    if height is not None:
+        props["height"] = height
+    rows = [
+        ["root", "Column", props, ["template_root"]],
+        ["template_root", "Column", {}, ["text"]],
+        ["text", "Text", {"content": "模板"}],
+    ]
+    compact = "\n".join(json.dumps(row) for row in rows)
+    assert is_template_compact_dsl(compact)
+    assert is_template_compact_dsl(compact, size=size) is expected

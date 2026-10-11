@@ -614,7 +614,7 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
-def _is_template_compact_source(compact_dsl: str) -> bool:
+def _is_template_compact_source(compact_dsl: str, *, size: str | None = None) -> bool:
     if "template_root" not in compact_dsl:
         return False
     # 延迟导入避免模板公共入口与生成处理器之间的模块初始化循环。
@@ -622,7 +622,7 @@ def _is_template_compact_source(compact_dsl: str) -> bool:
         is_template_compact_dsl,
     )
 
-    return is_template_compact_dsl(compact_dsl)
+    return is_template_compact_dsl(compact_dsl, size=size)
 
 
 def repair_compact_dsl_binding_paths(
@@ -745,7 +745,7 @@ def convert_compact_dsl_to_a2ui(
     surface_id: str = "surface_card",
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
-    if _is_template_compact_source(compact_dsl):
+    if _is_template_compact_source(compact_dsl, size=size):
         from services.template_generation.engine import (
             compact_dsl_a2ui_converter as template_converter,
         )
