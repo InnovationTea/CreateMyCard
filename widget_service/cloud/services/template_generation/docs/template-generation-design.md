@@ -7,13 +7,13 @@
 
 ## 2026-10 双业务 Support 补充
 
-- `BatteryOverviewPluggedTypeSupport@1` 必需电量文本、充电状态、充电器类型，不依赖数值电量。
+- `BatteryOverviewPluggedTypeSupport@1` 必需电量文本、充电状态、充电器类型，不依赖数值电量，不声明图标槽位。
 - `BluetoothDeviceOverviewNameAndConnectionSupport@1` 必需耳机名称和连接状态；布尔值 false 显示
   “未连接”，保留运行时刷新。`BluetoothDeviceOverviewNameAndChargeSupport@1` 必需名称和充电状态，
-  盒电量可选，数值 0 合法。
-- `WeatherOverviewConditionSupport@1` 仅要求当前天气现象，图标按天气状态匹配且可省略。
+  盒电量可选，数值 0 合法；仅缺少盒电量时显示可选设备图标。
+- `WeatherOverviewConditionSupport@1` 仅要求当前天气现象字段，但必须提供匹配天气状态的图标；无匹配素材时不选择该模板。
 - 左右耳电量 Support 的设备图标和左右耳标识均可选。左右标识齐全时展示成对图标，否则回退 L/R
-  文本。每个图标槽位单独限制素材语义，左右不能互换。
+  文本；右耳标识保留 4vp 左边距。每个图标槽位单独限制素材语义，左右不能互换。
 - 上述模板复用字段覆盖检索、双业务布局和业务内事件归属规则；同步登记数据层级、素材、事件、
   提示词规则和画廊输入，不增加用例专用路由。
 

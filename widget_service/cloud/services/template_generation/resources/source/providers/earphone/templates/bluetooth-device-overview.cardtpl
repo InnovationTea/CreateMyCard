@@ -880,6 +880,7 @@ Row(
             ),
             Image(props.rightIcon,
                 {
+                    "margin": {"left": 4},
                     "height": 16,
                     "width": 16,
                     "flexShrink": 0,
@@ -1167,6 +1168,7 @@ Row(
             ),
             #endif
         ),
+        #if !data.percent
         #if props.bluetoothIconOrDeviceIcon
         Image(props.bluetoothIconOrDeviceIcon,
             {
@@ -1176,6 +1178,7 @@ Row(
                 "fillColor": $theme('supportContentColor')
             }
         )
+        #endif
         #endif
     )
 )

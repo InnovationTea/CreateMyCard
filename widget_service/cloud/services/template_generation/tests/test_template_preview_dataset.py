@@ -102,7 +102,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
     assert names == {
         "battery_leaf_fill.svg",
         "bell_fill.svg",
-        "bolt_fill.svg",
         "calendar_fill.svg",
         "clock_fill.svg",
         "earphone_case_16644.svg",

@@ -166,7 +166,7 @@
       "templateId": "BluetoothDeviceOverviewNameAndChargeSupport@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机名称与充电状态 Support：名称和充电状态必需，盒电量可选；电量存在时与充电状态同行显示，0% 合法。蓝牙或耳机本体图标可选，根节点可绑定蓝牙设置事件。",
+      "description": "耳机名称与充电状态 Support：名称和充电状态必需，盒电量可选；电量存在时与充电状态同行显示，0% 合法；仅缺少盒电量时展示可选蓝牙或耳机本体图标，根节点可绑定蓝牙设置事件。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/earphoneName"

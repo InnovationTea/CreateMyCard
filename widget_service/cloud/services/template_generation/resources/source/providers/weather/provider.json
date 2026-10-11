@@ -58,7 +58,7 @@
       "templateId": "WeatherOverviewConditionSupport@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当前天气现象 Support：主行展示天气现象，辅行显示当前天气状态；仅依赖当前天气现象，不需要城市或温度。天气状态图标可选，根节点可绑定天气详情事件。",
+      "description": "当前天气现象 Support：主行展示天气现象，辅行显示当前天气状态；仅依赖当前天气现象，不需要城市或温度。天气状态图标必选且须匹配当前天气；无匹配素材时不选用，根节点可绑定天气详情事件。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/condition"

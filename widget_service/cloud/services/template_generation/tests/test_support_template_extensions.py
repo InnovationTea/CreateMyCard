@@ -15,7 +15,10 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.preview_dataset import _sample_value, _set_path
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
-from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.engine.pipeline import (
+    TemplateRouteNotApplicable,
+    generate_template_a2ui,
+)
 from services.template_generation.engine.tersel_converter import TerselConversionError
 
 _BATTERY = "BatteryOverviewPluggedTypeSupport@1"
@@ -92,13 +95,23 @@ async def test_support_minimal_fields_through_search_and_compilation(
             candidateOutputFields=paths,
         ))
         fields_by_capability[definition.capability_id] = paths
+    weather_icon = "resources/base/media/sun_max.svg"
+    earphone_icon = "resources/base/media/icon_earphone.svg"
     task = TaskSpec(
-        userQuery="显示两项业务的已有信息，不需要按钮和图标", size="2x2",
-        dataModelSchema=schema, eventCandidates=[], assetCandidates=[],
+        userQuery="显示两项业务的已有信息，不需要按钮", size="2x2",
+        dataModelSchema=schema, eventCandidates=[], assetCandidates=[
+            {"src": weather_icon, "description": "晴天天气图标", "sceneTags": ["weather", "sunny"]},
+            {"src": earphone_icon, "description": "耳机图标", "sceneTags": ["bluetooth-device"]},
+        ],
     )
+    parameters = {_WEATHER: {"conditionIcon": weather_icon}}
+    parameters[_CHARGE] = {"bluetoothIconOrDeviceIcon": earphone_icon}
+    current_parameters = json.dumps(parameters.get(template_id, {}))
+    partner_parameters = json.dumps(parameters.get(partner, {}))
     body = (
         'Template("TwoSupportLayout@1",{},'
-        f'Template("{template_id}",{{}}),Template("{partner}",{{}}));'
+        f'Template("{template_id}",{current_parameters}),'
+        f'Template("{partner}",{partner_parameters}));'
     )
     model = _PlanModel({
         "requiredOutputFieldsByCapability": fields_by_capability,
@@ -118,6 +131,7 @@ async def test_support_minimal_fields_through_search_and_compilation(
         assert "${/data/earphone/isConnected} ? '已连接' : '未连接'" in output.a2ui
     if template_id == _CHARGE:
         assert ("${/data/earphone/batteryLevel}" in output.a2ui) is edge_value
+        assert (earphone_icon in output.a2ui) is not edge_value
     if template_id == _BATTERY:
         assert "${/data/phoneBattery/batterySOC}" not in output.a2ui
 
@@ -165,17 +179,60 @@ def test_earbuds_support_optional_icons_preserve_pair_and_fallback(
     serialized = _serialize_node(root)
     assert ("l_circle_fill.svg" in serialized) is (left and right)
     assert ("r_circle_fill.svg" in serialized) is (left and right)
+    if left and right:
+        assert '"margin":{"left":4}' in serialized
     assert ("icon_earphone.svg" in serialized) is device
     assert ("'L '" in serialized) is not (left and right)
     assert "/data/earphone/leftBatteryLevel" in serialized
     assert "/data/earphone/rightBatteryLevel" in serialized
 
 
-def test_new_support_preview_does_not_require_weather_icon() -> None:
+def test_new_support_preview_requires_matching_weather_icon() -> None:
     from services.template_generation.engine.cardplan.preview_dataset import (
         build_template_preview_cases,
     )
 
     cases = build_template_preview_cases()
     weather = next(case for case in cases if case.template_id == _WEATHER)
-    assert "Image" not in json.dumps(weather.messages)
+    assert "resources/base/media/sun_max.svg" in json.dumps(weather.messages)
+    assert "晴" in json.dumps(weather.messages, ensure_ascii=False)
+
+
+@pytest.mark.asyncio
+async def test_weather_support_is_unavailable_without_matching_icon(
+    registry: CardPlanRegistry,
+) -> None:
+    schema = _schema(registry, (_WEATHER, _BATTERY))
+    task = TaskSpec(userQuery="显示天气现象和手机充电状态", size="2x2", dataModelSchema=schema)
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather", writeResultTo="/data/weather",
+            candidateOutputFields=["/current/condition"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo", writeResultTo="/data/phoneBattery",
+            candidateOutputFields=["/batterySOCText", "/chargingStatusDesc", "/pluggedTypeDesc"],
+        ),
+    )
+    model = _PlanModel({
+        "requiredOutputFieldsByCapability": {
+            "ViewWeather": ["/current/condition"],
+            "GetPhoneBatteryInfo": ["/batterySOCText", "/chargingStatusDesc", "/pluggedTypeDesc"],
+        },
+        "primaryOutputFieldByCapability": {}, "action": [],
+    }, 'Template("TwoSupportLayout@1",{},'
+       'Template("WeatherOverviewConditionSupport@1",{}),'
+       'Template("BatteryOverviewPluggedTypeSupport@1",{}));')
+    with pytest.raises(TemplateRouteNotApplicable):
+        await generate_template_a2ui(
+            task, {"suggestSize": "2x2"}, bindings, model,
+            trusted_template_candidate_ids=(_WEATHER, _BATTERY),
+        )
+
+
+def test_battery_text_support_has_no_asset_parameter(registry: CardPlanRegistry) -> None:
+    definition = registry.require_template(_BATTERY)
+    assert definition.asset_parameter_semantic_tags == {}
+    properties = definition.variants[0].parameters_schema.get("properties")
+    assert isinstance(properties, dict)
+    assert "batteryOrChangeIcon" not in properties

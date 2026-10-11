@@ -203,7 +203,7 @@ Row(
 )
 #End
 
-#Template BatteryOverviewPluggedTypeSupport@1(props: { batteryOrChangeIcon?: asset, actionId?: string })
+#Template BatteryOverviewPluggedTypeSupport@1(props: { actionId?: string })
 data = {
     percentText: $path("/batterySOCText"),
     charging: $path("/chargingStatusDesc"),
@@ -259,18 +259,7 @@ Row(
                     "constraintSize": {"minWidth": 0, "minHeight": 0}
                 }
             )
-        ),
-        #if props.batteryOrChangeIcon
-        Image(props.batteryOrChangeIcon,
-            {
-                "width": 24,
-                "height": 24,
-                "objectFit": "contain",
-                "flexShrink": 0,
-                "fillColor": $theme('supportContentColor')
-            }
         )
-        #endif
     )
 )
 #End
