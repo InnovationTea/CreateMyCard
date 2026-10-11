@@ -22,7 +22,7 @@ enable_ids_mock: true
 ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
-enable_validation_failure_retry: false
+enable_validation_failure_retry: true
 enable_widget_edit: false
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false
@@ -35,6 +35,8 @@ enable_compact_dsl_interface_retry: false
 enable_design_compact_few_shots: true
 # 关闭筛选时提供当前尺寸全部完整案例；开启则恢复业务与 Plan 筛选、局部用法补充。
 enable_design_compact_few_shot_selection: false
+# 是否向 Plan 与 DSL 模型提示词追加由布局合同和视觉 Recipe 生成的运行时容量摘要。
+enable_design_compact_runtime_prompt_context: false
 # 首次生成之外的额外重试次数；0 不重试，1 表示最多执行两次生成。必须为非负整数。
 compact_dsl_interface_retry_count: 1
 enable_openai_fallback: true
@@ -55,7 +57,7 @@ repair.system.prompt: "@prompt:../data/protocol_profiles/design-compact-dsl-fusi
 
 a2ui_form_model_backend: mep
 design_compact_model_backend: openai
-validation_failure_max_repair_attempts: 1
+validation_failure_max_repair_attempts: 5
 model_max_concurrency: 20
 model_queue_timeout_seconds: 120
 model_request_timeout_seconds: 120

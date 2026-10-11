@@ -1567,7 +1567,8 @@ class PromptBuilder:
             + "、".join(paths)
             + " 均为带单位字符串，展示时完整绑定，不重复追加%，不能从样例提取数字写死进度。"
             "仅当字段具有真实比例语义且值为完整数值百分比时，才可按组件合同用 PathBinding"
-            "驱动进度，由转换器换算内部数值；不能用 Expression 驱动进度，也不能借用其它对象指标。"
+            "驱动进度，由转换器换算内部数值；ProgressCircle.externalText 也可使用以数值表达式"
+            "或数值表达式加百分号结尾的完整 Expression，不能借用其它对象指标。"
         )
 
     def build_design_compact(
@@ -1597,7 +1598,12 @@ class PromptBuilder:
         """首次生成使用 PROMPT，编辑时叠加文件化多轮规则。"""
         constructive_result = None
         recovery = None
-        if source_format == DESIGN_COMPACT_PROFILE_ID and compact_plan is not None:
+        runtime_prompt_context_enabled = (
+            source_format == DESIGN_COMPACT_PROFILE_ID
+            and compact_plan is not None
+            and get_settings().enable_design_compact_runtime_prompt_context
+        )
+        if runtime_prompt_context_enabled:
             task_value = task_spec.model_dump(mode="json")
             conflicts = composition_implementation_conflicts(compact_plan)
             conflicts.extend(composition_text_width_conflicts(
@@ -1676,8 +1682,11 @@ class PromptBuilder:
         )
         tool = build_compact_plan_tool(task_spec_value)
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
+        capacity_context = ""
+        if get_settings().enable_design_compact_runtime_prompt_context:
+            capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         effective_system_prompt = (
-            f"{system_prompt}\n\n{compact_plan_capacity_context(task_spec.size)}\n\n"
+            f"{system_prompt}{capacity_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
             "只输出一个 JSON 工具调用包："
             '{"name":"submit_card_plan","arguments":{...}}。'
@@ -1758,20 +1767,25 @@ class PromptBuilder:
             system_prompt, task_spec, compact_plan, include_examples=include_examples,
         )
         if compact_plan is not None:
+            runtime_prompt_context_enabled = (
+                get_settings().enable_design_compact_runtime_prompt_context
+            )
             conflicts = composition_implementation_conflicts(compact_plan)
-            conflicts.extend(composition_text_width_conflicts(
-                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-            ))
+            if runtime_prompt_context_enabled:
+                conflicts.extend(composition_text_width_conflicts(
+                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                ))
             plan_context = compact_plan_context(
                 compact_plan, implementation_conflicts=conflicts,
                 execution_selected=execution_selected,
             )
             system_prompt = f"{system_prompt}\n\n{plan_context}"
-            worksheet = compact_composition_context(
-                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-                constructive_result=constructive_result,
-            )
-            system_prompt = f"{system_prompt}\n\n{worksheet}"
+            if runtime_prompt_context_enabled:
+                worksheet = compact_composition_context(
+                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                    constructive_result=constructive_result,
+                )
+                system_prompt = f"{system_prompt}\n\n{worksheet}"
         if fusion_ball_enabled(task_spec.appVersion):
             recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
             if recommendation:
@@ -1877,7 +1891,10 @@ class PromptBuilder:
                 # 兼容旧调用的纯文字输入；可选交接解析不能新增修复失败。
                 original_payload = None
             recovery = None
-            if isinstance(original_payload, dict):
+            runtime_prompt_context_enabled = (
+                get_settings().enable_design_compact_runtime_prompt_context
+            )
+            if runtime_prompt_context_enabled and isinstance(original_payload, dict):
                 recovery = original_payload.get("compositionRecovery")
             capacity_errors = []
             for error in quality_errors:
@@ -1885,7 +1902,12 @@ class PromptBuilder:
                 capacity_pattern = r"vertical layout requires|overflow|layout.*match|text width"
                 if re.search(capacity_pattern, message):
                     capacity_errors.append(message)
-            if capacity_errors and task_spec is not None and compact_plan is not None:
+            can_recompute = (
+                runtime_prompt_context_enabled
+                and task_spec is not None
+                and compact_plan is not None
+            )
+            if capacity_errors and can_recompute:
                 task_value = task_spec.model_dump(mode="json")
                 samples = repair_display_samples(invalid_source_dsl, task_value)
                 constructive = feasible_composition_candidates(

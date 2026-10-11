@@ -368,6 +368,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         size="2x2",
                         protocol_profile=self.profile,
                     )
+
     def test_removes_empty_children_from_leaf_component(self) -> None:
         compact_dsl = _serialize(
             [
@@ -385,7 +386,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         title = json.loads(normalized.splitlines()[1])
 
         self.assertEqual(len(title), 3)
-
 
     def test_expands_latest_text_design(self) -> None:
         compact_dsl = _serialize(
@@ -479,10 +479,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             protocol_profile=self.profile,
         )
         messages = [json.loads(line) for line in result.splitlines()]
-        components = {
-            item["id"]: item
-            for item in messages[1]["updateComponents"]["components"]
-        }
+        components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
         data_model = messages[2]["updateDataModel"]["value"]
 
         self.assertEqual(
@@ -494,10 +491,87 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ ${/data/weather/rainProbability} }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["weather"]["rainProbability"][
-                "progressValue"
-            ],
+            data_model["__display"]["data"]["weather"]["rainProbability"]["progressValue"],
             20,
+        )
+
+    def test_progress_circle_splits_formatted_percentage_expression(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["circle"]],
+                [
+                    "circle",
+                    "ProgressCircle",
+                    {
+                        "externalText": "{{ ${/data/battery/percent} + '%' }}",
+                        "icon": "resources/base/media/battery.svg",
+                        "accessibility": {"label": "手机电量百分比"},
+                        "width": 72,
+                        "height": 76,
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                ["/data/battery/percent", 68],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        messages = [json.loads(line) for line in result.splitlines()]
+        components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
+
+        self.assertEqual(
+            components["circle_ring"]["value"],
+            "{{ ${/data/battery/percent} }}",
+        )
+        self.assertEqual(
+            components["circle_external_text"]["content"],
+            "{{ ${/data/battery/percent} + '%' }}",
+        )
+
+    def test_progress_circle_adds_visible_unit_to_numeric_expression(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["circle"]],
+                [
+                    "circle",
+                    "ProgressCircle",
+                    {
+                        "externalText": "{{ ${/data/current} / ${/data/total} * 100 }}",
+                        "icon": "resources/base/media/battery.svg",
+                        "accessibility": {"label": "完成进度百分比"},
+                        "width": 72,
+                        "height": 76,
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+                ["/data/current", 34],
+                ["/data/total", 50],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        messages = [json.loads(line) for line in result.splitlines()]
+        components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
+
+        self.assertEqual(
+            components["circle_ring"]["value"],
+            "{{ ${/data/current} / ${/data/total} * 100 }}",
+        )
+        self.assertEqual(
+            components["circle_external_text"]["content"],
+            "{{ (${/data/current} / ${/data/total} * 100) + '%' }}",
         )
 
     def test_progress_components_normalize_percentage_text_against_total(self) -> None:
@@ -541,10 +615,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             protocol_profile=self.profile,
         )
         messages = [json.loads(line) for line in result.splitlines()]
-        components = {
-            item["id"]: item
-            for item in messages[1]["updateComponents"]["components"]
-        }
+        components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
         data_model = messages[2]["updateDataModel"]["value"]
 
         self.assertEqual(
@@ -552,9 +623,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ ${/__display/data/task/completionText/progressValue} }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["task"]["completionText"][
-                "progressValue"
-            ],
+            data_model["__display"]["data"]["task"]["completionText"]["progressValue"],
             6,
         )
         self.assertEqual(
@@ -562,9 +631,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ ${/__display/data/device/batteryText/progressValue} }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["device"]["batteryText"][
-                "progressValue"
-            ],
+            data_model["__display"]["data"]["device"]["batteryText"]["progressValue"],
             68,
         )
 
@@ -974,9 +1041,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "SecondaryBody",
                     {
                         "role": "metadata",
-                        "items": [
-                            {"value": "{{ '更新 ' + ${/data/updatedAt} }}"}
-                        ],
+                        "items": [{"value": "{{ '更新 ' + ${/data/updatedAt} }}"}],
                         "fontColor": "#FF1F4799",
                     },
                 ],
@@ -1047,6 +1112,102 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 with self.assertRaises(CompactDslConversionError):
                     convert_compact_dsl_to_a2ui(
                         compact_dsl,
+                        size="2x2",
+                        protocol_profile=self.profile,
+                    )
+
+    def test_text_components_accept_only_recipe_font_size_declarations(self) -> None:
+        cases = [
+            (
+                "SingleLineTitle",
+                {"title": "天气", "fontSize": 12},
+            ),
+            (
+                "DoubleLineTitle",
+                {"title": "传感器", "secondaryInfo": "在线", "fontSize": 12},
+            ),
+            (
+                "EmphasizedData",
+                {"value": 82, "unit": "分", "fontSize": 30},
+            ),
+            (
+                "EmphasisText",
+                {"mainText": "已连接", "secondaryText": "耳机", "fontSize": 18},
+            ),
+            (
+                "SecondaryBody",
+                {"role": "body", "items": [{"value": "正文"}], "fontSize": 14},
+            ),
+            (
+                "SecondaryBody",
+                {"role": "metadata", "items": [{"value": "10:30"}], "fontSize": 12},
+            ),
+            (
+                "DataDisplay",
+                {"label": "倒计时", "value": 3, "supportingText": "天", "fontSize": 56},
+            ),
+            (
+                "TableText",
+                {
+                    "items": [
+                        {"label": "湿度", "value": "48%"},
+                        {"label": "风力", "value": "2级"},
+                    ],
+                    "fontSize": 12,
+                },
+            ),
+            (
+                "TableText",
+                {
+                    "items": [
+                        {"label": "湿度", "value": "48%"},
+                        {"label": "风力", "value": "2级"},
+                        {"label": "气压", "value": "1012hPa"},
+                    ],
+                    "fontSize": 10,
+                },
+            ),
+        ]
+        for component_type, props in cases:
+            with self.subTest(component_type=component_type, props=props):
+                compact_dsl = _serialize(
+                    [
+                        ["root", "Column", {}, ["content"]],
+                        ["content", component_type, props],
+                    ]
+                )
+                result = convert_compact_dsl_to_a2ui(
+                    compact_dsl,
+                    size="2x2",
+                    protocol_profile=self.profile,
+                )
+                legacy_props = {name: value for name, value in props.items() if name != "fontSize"}
+                legacy_dsl = _serialize(
+                    [
+                        ["root", "Column", {}, ["content"]],
+                        ["content", component_type, legacy_props],
+                    ]
+                )
+                legacy_result = convert_compact_dsl_to_a2ui(
+                    legacy_dsl,
+                    size="2x2",
+                    protocol_profile=self.profile,
+                )
+                self.assertEqual(result, legacy_result)
+
+                invalid_props = {**props, "fontSize": props["fontSize"] + 1}
+                invalid_dsl = _serialize(
+                    [
+                        ["root", "Column", {}, ["content"]],
+                        ["content", component_type, invalid_props],
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    CompactDslConversionError,
+                    "fontSize must be the fixed Recipe value",
+                ):
+                    convert_compact_dsl_to_a2ui(
+                        invalid_dsl,
                         size="2x2",
                         protocol_profile=self.profile,
                     )
@@ -2444,16 +2605,11 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(len(result.splitlines()), 3)
 
     def test_repairs_invalid_jsonl_block_without_changing_valid_blocks(self) -> None:
-        valid_root = (
-            '["root","Column",{"width":"matchParent","height":"matchParent"},'
-            '["title"]]'
-        )
+        valid_root = '["root","Column",{"width":"matchParent","height":"matchParent"},["title"]]'
         invalid_title = '["title","Text",{"content":"天气" "fontSize":12}]'
         invalid_data = '["/data/title" "天气"]'
 
-        repaired = _strip_optional_genui_fence(
-            "\n".join([valid_root, invalid_title, invalid_data])
-        )
+        repaired = _strip_optional_genui_fence("\n".join([valid_root, invalid_title, invalid_data]))
         repaired_lines = repaired.splitlines()
 
         self.assertEqual(repaired_lines[0], valid_root)

@@ -144,7 +144,7 @@ def test_rejects_direct_boolean_path_but_allows_boolean_expression() -> None:
     assert expression_errors == []
 
 
-def test_progress_driver_accepts_path_but_rejects_expression() -> None:
+def test_progress_circle_driver_accepts_path_and_expression() -> None:
     path_errors = collect_compact_component_binding_errors(
         "progress",
         "ProgressCircle",
@@ -155,9 +155,15 @@ def test_progress_driver_accepts_path_but_rejects_expression() -> None:
         "ProgressCircle",
         {"externalText": "{{ ${/data/current} / ${/data/total} * 100 }}"},
     )
+    line_errors = collect_compact_component_binding_errors(
+        "line",
+        "ProgressLine2",
+        {"value": "{{ ${/data/current} / ${/data/total} * 100 }}"},
+    )
 
     assert path_errors == []
-    assert "does not accept expression bindings" in expression_errors[0]
+    assert expression_errors == []
+    assert "does not accept expression bindings" in line_errors[0]
 
 
 def test_validator_checks_semantic_prop_binding_before_expansion() -> None:

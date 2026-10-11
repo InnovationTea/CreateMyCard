@@ -61,6 +61,10 @@ Plan 接受后，DSL 阶段在 `WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS=t
 组件候选补充最多两种局部用法。局部组件行来自同尺寸完整案例，不带另一套根布局或数据行。
 该开关默认为 `true`；设为 `false` 时不向模型追加完整案例或组件局部用法，但保留主提示词、Plan、
 布局约束与 repair，并继续维护和离线校验 Few-shot 源文档。
+运行时容量摘要由独立开关
+`WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_RUNTIME_PROMPT_CONTEXT` 控制，默认关闭。关闭时 Plan 不追加
+“Plan 分区与合组容量合同”，DSL 不追加“本轮组合容量工作表”，也不生成同链路的
+`compositionRecovery`；布局合同和视觉 Recipe 仍继续用于 Compact 转换、校验和渲染。
 示例字段数量不是实际容量；局部用法不替代整卡参考，更不能覆盖 Plan 必要事实。
 生成、编辑、repair 与源 Token 校验共用 S-plan-guided / W-plan-guided 范围，包含同尺寸全部登记布局；
 不再由业务关键词或候选字段数预先锁定骨架。每个布局自身的结构、几何与动作约束不变。

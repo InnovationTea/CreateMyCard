@@ -47,9 +47,17 @@ def _progress_contract() -> CompactPropBindingContract:
     )
 
 
+def _progress_circle_contract() -> CompactPropBindingContract:
+    return CompactPropBindingContract(
+        modes=frozenset({_PATH, _EXPRESSION}),
+        path_types=_PROGRESS_TYPES,
+    )
+
+
 DISPLAY_BINDING = _display_contract()
 STRING_BINDING = _string_contract()
 PROGRESS_BINDING = _progress_contract()
+PROGRESS_CIRCLE_BINDING = _progress_circle_contract()
 
 # This registry is the executable source of truth for semantic Compact Props.
 # It intentionally does not include Row/Column/Stack, converter-internal Text,
@@ -83,7 +91,7 @@ COMPACT_COMPONENT_BINDING_CONTRACTS: dict[
         "items[].value": DISPLAY_BINDING,
     },
     "SummaryList": {"items[]": DISPLAY_BINDING},
-    "ProgressCircle": {"externalText": PROGRESS_BINDING},
+    "ProgressCircle": {"externalText": PROGRESS_CIRCLE_BINDING},
     "ProgressLine2": {
         "value": PROGRESS_BINDING,
         "displayValue": DISPLAY_BINDING,
