@@ -74,7 +74,9 @@ def test_all_business_previews_keep_font12_heights_after_public_conversion() -> 
             for component in message.get("updateComponents", {}).get("components", []):
                 original_styles[component.get("id")] = component.get("styles", {})
         compact = convert_a2ui_to_compact_dsl(a2ui, size=case.size)
-        converted = convert_compact_dsl_to_a2ui(compact, size=case.size)
+        converted = convert_compact_dsl_to_a2ui(
+            compact, size=case.size, allow_internal_components=True,
+        )
         for line in converted.splitlines():
             update = json.loads(line).get("updateComponents", {})
             for component in update.get("components", []):
