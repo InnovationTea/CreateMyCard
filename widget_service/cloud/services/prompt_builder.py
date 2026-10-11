@@ -45,8 +45,9 @@ _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优�
 拆成两个业务对象。两者在本场景中共同描述同一个倒计时目标。
 
 - 没有可见按钮、也没有额外展示数据时使用 `S-title-content`。
-- 固定视觉顺序：顶部使用左对齐的 SingleLineTitle 显示目标名称；下方 `content` 固定
-  `126×100vp`，使用 `justifyContent:"end"` 与 `alignItems:"start"`，让唯一主值组贴底。
+- 固定视觉顺序：顶部使用左对齐的 SingleLineTitle 显示目标名称；下方 `content` 使用
+  `width:"matchParent"`、`layoutWeight:1`，扣除当前标题 Recipe 与标题间距后承接剩余空间，
+  使用 `justifyContent:"end"` 与 `alignItems:"start"`，让唯一主值组贴底。
 - 主值使用左对齐的 `value_row`，横向放置 38fp 倒计时数字和紧邻的 12fp 单位“天”。
 - 顶部标题只能是活动、事件等倒计时目标名称；禁止使用日期或时间作为标题，
   无法提取目标名称时固定使用“倒计时”。
@@ -62,8 +63,9 @@ FEWSHOT_2x2 的 V25，使用标题主次内容单按钮结构，
 不得重新套用普通 S1/S2/S3/S4，也不得按 `/data/countdown`
 与 `/data/calendar` 拆成两个业务对象。两者共同描述同一个倒计时目标。
 
-- root 依次包含 `SingleLineTitle` 和 `126×100vp` body；body 内是 `126×56vp` content、
-  `8vp` 间距和沉底的 `126×36vp` action_area。
+- root 依次包含 `SingleLineTitle` 和自适应 body；body 与 content 使用
+  `width:"matchParent"`、`layoutWeight:1`，标题占用读取当前 Recipe，body 内扣除
+  `8vp` 间距和沉底的 `36vp` 高 action_area，剩余空间全部交给 content。
 - content 第一行必须是左对齐的 `value_row`，横向放置 30fp 倒计时数字和紧邻的
   12fp 单位“天”；第二行仅在用户确实要求时显示一条 12fp/400 补充事实。
   禁止把“天”和辅助时间拆成数字下方的两行，禁止生成第三行。
@@ -1126,9 +1128,9 @@ class PromptBuilder:
                 "本轮只有一个业务对象，只能在已保留的单业务语义布局中按字段关系选择；"
                 "不得生成 S-dual-info 或 S-quad-content。root 使用单业务安全区，全部内容围绕"
                 "userQuery 指定的第一焦点组织，动作与信息区域遵守所选骨架的容量。"
-                "带标题单动作有两套成组预算：标题间距6/body100/正文56，或"
-                "标题间距4/body102/正文58；三行18与两段2需要58，必须选后一套，"
-                "不能只增加正文却保留100高的body。两套都保留标题20、动作间距8、按钮36。"
+                "带标题单动作先扣除 SingleLineTitle 的12高和标题间距，再把剩余空间交给body；"
+                "body内继续扣除动作间距8和按钮36，剩余空间全部交给正文。标题间距默认6，"
+                "密集正文可用4；正文按真实行高闭合，不得继续使用旧的100/102高body预算。"
             )
 
         lock = _TWO_BY_FOUR_ROUTE_LOCKS.get(layout_scope)

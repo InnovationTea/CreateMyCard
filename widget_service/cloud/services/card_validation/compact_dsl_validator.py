@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from services.compact_component_bindings import collect_compact_component_binding_errors
-from services.compact_component_runtime import VISUAL_RECIPE_VERSION
+from services.compact_component_runtime import VISUAL_RECIPE_VERSION, visual_recipe_part
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     CompactDslConversionError,
@@ -1344,7 +1344,7 @@ def _collect_height_budget_errors(
                 "id": row.component_id,
                 "component": row.component_type,
                 "styles": (
-                    {**row.props, "height": 20}
+                    {**row.props, "height": _single_line_title_height(size=size)}
                     if row.component_type == "SingleLineTitle" else row.props
                 ),
                 "children": list(row.children),
@@ -1460,6 +1460,15 @@ def _column_children_minimum_height(
     return sum(child_heights) + gap
 
 
+def _single_line_title_height(*, size: str | None = None) -> float:
+    """标题预占与实际展开共用视觉合同，不维护另一份固定高度。"""
+    _, styles = visual_recipe_part("SingleLineTitle", "root", size=size)
+    height = _non_negative_number(styles.get("height"))
+    if height is None:
+        raise CompactDslValidationError(["SingleLineTitle Recipe must declare a fixed height."])
+    return height
+
+
 def _minimum_outer_height(
     component: ComponentRow,
     components_by_id: dict[str, ComponentRow],
@@ -1468,7 +1477,7 @@ def _minimum_outer_height(
     height_weighted: bool = False,
 ) -> float:
     if component.component_type == "SingleLineTitle":
-        return 20.0
+        return _single_line_title_height()
     constraints = component.props.get("constraintSize")
     minimum = constraints.get("minHeight") if isinstance(constraints, dict) else None
     minimum_height = _non_negative_number(minimum) or 0.0

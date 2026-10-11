@@ -16,8 +16,34 @@ type Recipe = {
   sizes?: Record<string, Partial<Recipe>>;
   variants?: Record<string, Partial<Recipe>>;
 };
+type PaletteContract = {
+  backgrounds: string[];
+  gradients: string[][];
+  roles: Record<string, string>;
+};
 
 const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margin"];
+const SYSTEM_FONT_ROLE_BY_COMPONENT: Record<string, string> = {
+  SingleLineTitle: "secondary",
+  DoubleLineTitle: "primary",
+  Badge: "primary",
+  EmphasizedData: "primary",
+  EmphasisText: "primary",
+  SecondaryBody: "primary",
+  DataDisplay: "primary",
+  InfoBlock: "primary",
+  TableText: "primary",
+  SummaryList: "primary",
+  ProgressCircle: "primary",
+  ProgressLine2: "primary",
+  ProgressCircleSingle: "primary",
+  H_BarChart: "secondary",
+  NumericRatioStack: "secondary",
+  EventCard: "primary",
+  TopTextBottomValue: "primary",
+  TextBlock: "primary",
+  CardButton: "primary",
+};
 
 export const VISUAL_RECIPE_VERSION = "visual-recipes-v1";
 export const HIGH_LEVEL_COMPONENT_TYPES = [
@@ -39,6 +65,82 @@ export const FUSION_PALETTES: Record<string, readonly string[]> = {
 const record = (value: unknown): value is RecordValue =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+function systemPalette(rootProps: RecordValue): Record<string, string> {
+  const palettes = visualRecipes.palettes as unknown as Record<string, PaletteContract>;
+  const design = rootProps.design;
+  if (typeof design === "string" && Object.hasOwn(FUSION_PALETTES, design)) {
+    return clone(palettes.fusionDark.roles);
+  }
+  const gradient = record(rootProps.linearGradient) ? rootProps.linearGradient.colors : undefined;
+  const gradientColors = Array.isArray(gradient)
+    ? gradient.flatMap(stop => Array.isArray(stop) && isArgbColor(stop[0])
+      ? [String(stop[0]).toUpperCase()]
+      : [])
+    : [];
+  const background = isArgbColor(rootProps.backgroundColor)
+    ? String(rootProps.backgroundColor).toUpperCase()
+    : undefined;
+  const surfaceColors = gradientColors.length ? gradientColors : (background ? [background] : []);
+  for (const name of ["blue", "purple", "warm"]) {
+    const palette = palettes[name];
+    const matchesBackground = surfaceColors.length === 1
+      && palette.backgrounds.map(color => color.toUpperCase()).includes(surfaceColors[0]);
+    const matchesGradient = gradientColors.length > 0
+      && palette.gradients.some(colors => colors.length === gradientColors.length
+        && colors.every((color, index) => color.toUpperCase() === gradientColors[index]));
+    if (matchesBackground || matchesGradient) return clone(palette.roles);
+  }
+  if (!surfaceColors.length) return clone(palettes.blue.roles);
+  const dark = [26, 26, 26] as const;
+  const light = [255, 255, 255] as const;
+  const backgrounds = surfaceColors.map(color => compositedRgb(color));
+  const darkContrast = Math.min(...backgrounds.map(color => contrastRatio(dark, color)));
+  const lightContrast = Math.min(...backgrounds.map(color => contrastRatio(light, color)));
+  return clone((lightContrast > darkContrast ? palettes.neutralDark : palettes.neutralLight).roles);
+}
+
+function applySystemComponentColors(input: Map<string, MiniNode>): Map<string, MiniNode> {
+  const palette = systemPalette(input.get("root")?.props ?? {});
+  return new Map([...input].map(([id, node]) => {
+    const role = SYSTEM_FONT_ROLE_BY_COMPONENT[node.type];
+    if (!role || node.props.fontColor !== undefined) return [id, node];
+    const color = palette[role];
+    if (!isArgbColor(color)) throw new Error(`系统色板角色 ${role} 必须使用 #AARRGGBB。`);
+    return [id, { ...node, props: { ...clone(node.props), fontColor: color } }];
+  }));
+}
+
+function isArgbColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[\da-f]{8}$/i.test(value);
+}
+
+function compositedRgb(color: string): [number, number, number] {
+  const alpha = Number.parseInt(color.slice(1, 3), 16) / 255;
+  return [3, 5, 7].map(index => {
+    const channel = Number.parseInt(color.slice(index, index + 2), 16);
+    return Math.round(channel * alpha + 255 * (1 - alpha));
+  }) as [number, number, number];
+}
+
+function contrastRatio(
+  foreground: readonly [number, number, number],
+  background: readonly [number, number, number],
+) {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function relativeLuminance(color: readonly [number, number, number]) {
+  const channels = color.map(value => {
+    const normalized = value / 255;
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
 
 function deepMerge(base: RecordValue, override: RecordValue): RecordValue {
   const merged = clone(base);
@@ -287,6 +389,7 @@ function expandHighLevel(
   id: string,
   node: MiniNode,
   size: CardSize,
+  palette: Record<string, string>,
   data?: ExpansionDataContext,
 ): Array<[string, MiniNode]> | null {
   const p = node.props;
@@ -612,32 +715,18 @@ function expandHighLevel(
 
   if (type === "PillButton") {
     if (!["2x2", "2x4"].includes(size)) throw new Error("PillButton 仅支持 2x2 或 2x4 卡片。");
-    const allowed = [
-      "label", "icon", "actionInk", "actionSurface", "fontSize", "fontWeight", "onClick", "width",
-    ];
-    requireProps(id, type, p, ["label", "actionInk", "actionSurface", "onClick"], allowed);
+    if (p.width !== undefined) throw new Error(`${id}: PillButton 不接受 width。`);
+    const allowed = ["label", "icon", "onClick"];
+    requireProps(id, type, p, ["label", "onClick"], allowed);
     if (typeof p.label !== "string" || !p.label.trim()) {
       throw new Error(`${id}: PillButton.label 必须是非空文本。`);
     }
     requireOptionalIcon(id, type, p);
     requireAction(id, type, p.onClick);
-    requireColor(id, type, p, "actionInk");
-    requireColor(id, type, p, "actionSurface");
-    if (p.fontSize !== undefined && p.fontSize !== 14) {
-      throw new Error(`${id}: PillButton.fontSize 只能是 14。`);
-    }
-    if (p.fontWeight !== undefined && ![400, 500].includes(Number(p.fontWeight))) {
-      throw new Error(`${id}: PillButton.fontWeight 只能是 400 或 500。`);
-    }
-    const allowedWidths = size === "2x2" ? ["matchParent", 126] : ["matchParent", 116, 132];
-    if (p.width !== undefined && !allowedWidths.includes(p.width as string | number)) {
-      throw new Error(`${id}: PillButton.width 不适用于 ${size}。`);
-    }
     const visual = visualRecipePart(type, "root", size);
     const base = {
       ...visual.styles,
-      ...(p.width !== undefined ? { width: p.width } : {}),
-      backgroundColor: p.actionSurface,
+      backgroundColor: palette.componentSecondary,
       onClick: p.onClick,
     };
     if (!p.icon) {
@@ -647,9 +736,9 @@ function expandHighLevel(
           ...base,
           label: p.label,
           enabled: true,
-          fontColor: p.actionInk,
-          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
-          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
+          fontColor: palette.primary,
+          fontSize: visual.styles.fontSize ?? 14,
+          fontWeight: visual.styles.fontWeight ?? 500,
           textAlign: "center",
         },
         children: [],
@@ -670,7 +759,7 @@ function expandHighLevel(
         props: {
           ...iconVisual.styles,
           src: p.icon,
-          fillColor: p.actionInk,
+          fillColor: palette.primary,
         },
         children: [],
       }],
@@ -679,9 +768,9 @@ function expandHighLevel(
         props: {
           ...labelVisual.styles,
           content: p.label,
-          fontSize: p.fontSize ?? visual.styles.fontSize ?? 14,
-          fontWeight: p.fontWeight ?? visual.styles.fontWeight ?? 500,
-          fontColor: p.actionInk,
+          fontSize: visual.styles.fontSize ?? 14,
+          fontWeight: visual.styles.fontWeight ?? 500,
+          fontColor: palette.primary,
         },
         children: [],
       }],
@@ -690,12 +779,10 @@ function expandHighLevel(
 
   if (type === "CircleButton") {
     if (size !== "2x2") throw new Error("CircleButton 仅支持 2x2 卡片。");
-    const allowed = ["icon", "accessibility", "actionInk", "actionSurface", "onClick"];
+    const allowed = ["icon", "accessibility", "onClick"];
     requireProps(id, type, p, allowed, allowed);
     requireOptionalIcon(id, type, p);
     requireAction(id, type, p.onClick);
-    requireColor(id, type, p, "actionInk");
-    requireColor(id, type, p, "actionSurface");
     const accessibility = p.accessibility;
     const validAccessibility = record(accessibility)
       && Object.keys(accessibility).every(key => ["label", "description"].includes(key))
@@ -715,7 +802,7 @@ function expandHighLevel(
         type: "Stack",
         props: {
           ...visual.styles,
-          backgroundColor: p.actionSurface,
+          backgroundColor: palette.componentSecondary,
           alignContent: "center",
           clip: true,
           onClick: p.onClick,
@@ -731,7 +818,7 @@ function expandHighLevel(
           height: 20,
           objectFit: "contain",
           flexShrink: 0,
-          fillColor: p.actionInk,
+          fillColor: palette.primary,
         },
         children: [],
       }],
@@ -957,12 +1044,9 @@ function expandHighLevel(
     if (!isTable && size !== "2x4") {
       throw new Error("TextBlock 仅支持 2x4 卡片。");
     }
-    const required = isTable
-      ? ["items", "fontColor"]
-      : ["items", "fontColor", "backgroundColor"];
-    requireProps(id, type, p, required, ["items", "fontColor", "backgroundColor"]);
+    const required = ["items", "fontColor"];
+    requireProps(id, type, p, required, required);
     requireColor(id, type, p, "fontColor");
-    if (!isTable) requireColor(id, type, p, "backgroundColor");
     const items = labelValueItems(id, type, p.items, 2, isTable ? 3 : 4);
     const variant = isTable && items.length === 3 ? "compact" : undefined;
     const children: string[] = [];
@@ -980,7 +1064,7 @@ function expandHighLevel(
         type,
         isTable ? "row" : "item",
         size,
-        isTable ? {} : { backgroundColor: p.backgroundColor },
+        {},
         itemChildren,
         variant,
       ));
@@ -1024,12 +1108,11 @@ function expandHighLevel(
   if (type === "CardButton") {
     if (size !== "2x4") throw new Error("CardButton 仅支持 2x4 卡片。");
     const allowed = [
-      "label", "labelLines", "onClick", "fontColor", "backgroundColor", "icon", "fillColor",
+      "label", "labelLines", "onClick", "fontColor", "icon", "fillColor",
     ];
-    requireProps(id, type, p, ["label", "onClick", "fontColor", "backgroundColor"], allowed);
+    requireProps(id, type, p, ["label", "onClick", "fontColor"], allowed);
     requireDisplay(id, type, p, "label");
     requireColor(id, type, p, "fontColor");
-    requireColor(id, type, p, "backgroundColor");
     requireOptionalIcon(id, type, p);
     requireAction(id, type, p.onClick);
     const labelLines = p.labelLines === undefined ? 1 : p.labelLines;
@@ -1048,7 +1131,7 @@ function expandHighLevel(
         type,
         "root",
         size,
-        { backgroundColor: p.backgroundColor, onClick: p.onClick },
+        { onClick: p.onClick },
         [label, visual],
       ),
       row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }, [], variant),
@@ -1396,6 +1479,8 @@ export function expandCompactComponents(
   size: CardSize,
   data?: ExpansionDataContext,
 ) {
+  const palette = systemPalette(input.get("root")?.props ?? {});
+  input = applySystemComponentColors(input);
   let nodes = new Map(input);
   const putExpansion = (
     originalId: string,
@@ -1412,7 +1497,7 @@ export function expandCompactComponents(
 
   for (const [id, node] of input) {
     const parent = [...input.values()].find(item => item.children.includes(id));
-    const rows = expandHighLevel(id, node, size, data);
+    const rows = expandHighLevel(id, node, size, palette, data);
     if (rows) {
       if (node.type === "CircleButton") {
         const centeredSlot = parent?.type === "Stack"
@@ -1453,9 +1538,10 @@ export function expandCompactComponents(
       const allowed = ["title", "fontColor"];
       const invalid = Object.keys(p).some(key => !allowed.includes(key) && !PLACEMENT_PROPS.includes(key))
         || p.title == null
-        || typeof p.fontColor !== "string";
+        || typeof p.fontColor !== "string"
+        || (p.height !== undefined && p.height !== 12);
       if (invalid) {
-        throw new Error("SingleLineTitle 只接受 title/fontColor 和合法布局属性。");
+        throw new Error("SingleLineTitle 只接受 title 和合法布局属性；文字色由运行时注入。");
       }
       const rootVisual = visualRecipePart("SingleLineTitle", "root", size);
       const titleVisual = visualRecipePart("SingleLineTitle", "title", size);

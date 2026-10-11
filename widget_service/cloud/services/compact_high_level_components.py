@@ -13,6 +13,7 @@ from typing import Any
 from services.compact_component_runtime import (
     CompactComponentRuntimeError,
     component_visual_recipe,
+    resolve_card_color_palette,
     visual_recipe_part,
 )
 
@@ -44,6 +45,62 @@ CompactRow = ComponentRow | DataRow
 
 _PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
 _TWO_BY_FOUR_FIXED_SLOT_TYPES = frozenset({"InfoBlock", "CardButton"})
+_SYSTEM_FONT_ROLE_BY_COMPONENT = {
+    "SingleLineTitle": "secondary",
+    "DoubleLineTitle": "primary",
+    "Badge": "primary",
+    "EmphasizedData": "primary",
+    "EmphasisText": "primary",
+    "SecondaryBody": "primary",
+    "DataDisplay": "primary",
+    "InfoBlock": "primary",
+    "TableText": "primary",
+    "SummaryList": "primary",
+    "ProgressCircle": "primary",
+    "ProgressLine2": "primary",
+    "ProgressCircleSingle": "primary",
+    "H_BarChart": "secondary",
+    "NumericRatioStack": "secondary",
+    "EventCard": "primary",
+    "TopTextBottomValue": "primary",
+    "TextBlock": "primary",
+    "CardButton": "primary",
+}
+
+
+def apply_system_component_colors(
+    components: list[ComponentRow],
+    palette: dict[str, str],
+) -> list[ComponentRow]:
+    """Inject runtime-owned font roles before validating and expanding components."""
+    resolved: list[ComponentRow] = []
+    for component in components:
+        role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
+        if role is None:
+            resolved.append(component)
+            continue
+        color = _system_palette_color(palette, role)
+        props = copy.deepcopy(component.props)
+        # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
+        props.setdefault("fontColor", color)
+        resolved.append(
+            ComponentRow(
+                component.component_id,
+                component.component_type,
+                props,
+                component.children,
+            )
+        )
+    return resolved
+
+
+def _system_palette_color(palette: dict[str, str], role: str) -> str:
+    color = palette.get(role)
+    if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
+        raise CompactDslConversionError(
+            f"System palette role {role} must use #AARRGGBB."
+        )
+    return color
 
 
 def _place_high_level_root(
@@ -142,8 +199,21 @@ def expand_high_level_component_rows(
     *,
     size: str,
     data_model: dict[str, Any] | None = None,
+    color_palette: dict[str, str] | None = None,
 ) -> list[ComponentRow]:
     """Expand Fusion high-level rows into the existing base Compact components."""
+    if color_palette is None:
+        root = next(
+            (component for component in components if component.component_id == "root"),
+            None,
+        )
+        root_props = root.props if root is not None else {}
+        design = root_props.get("design")
+        color_palette = resolve_card_color_palette(
+            root_props,
+            fusion_ball_active=isinstance(design, str) and design.startswith("fusion-ball-"),
+        )
+    components = apply_system_component_colors(components, color_palette)
     existing_ids = {component.component_id for component in components}
     parents: dict[str, ComponentRow] = {}
     for parent in components:
@@ -178,6 +248,8 @@ def expand_high_level_component_rows(
         parent = parents.get(component.component_id)
         if expander is None:
             rows = [component]
+        elif component.component_type in {"PillButton", "CircleButton"}:
+            rows = expander(component, size, color_palette=color_palette)
         elif component.component_type in {
             "InfoBlock",
             "NumericRatioStack",
@@ -266,8 +338,8 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
             "SingleLineTitle.width must be matchParent or a positive number."
         )
     height = header.props.get("height")
-    if height is not None and height != 20:
-        raise CompactDslConversionError("SingleLineTitle.height must be 20 when provided.")
+    if height is not None and height != 12:
+        raise CompactDslConversionError("SingleLineTitle.height must be 12 when provided.")
     color = header.props.get("fontColor")
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
         raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
@@ -1120,22 +1192,22 @@ def _normalized_progress_literal(
     return int(numeric_value) if numeric_value.is_integer() else numeric_value
 
 
-def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _expand_pill_button(
+    component: ComponentRow,
+    size: str,
+    *,
+    color_palette: dict[str, str],
+) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("PillButton requires a 2x2 or 2x4 card.")
-    allowed = {
-        "label",
-        "icon",
-        "actionInk",
-        "actionSurface",
-        "fontSize",
-        "fontWeight",
-        "onClick",
-        "width",
-    }
+    if "width" in component.props:
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton does not allow width."
+        )
+    allowed = {"label", "icon", "onClick"}
     _validate_high_level_props(
         component,
-        required={"label", "actionInk", "actionSurface", "onClick"},
+        required={"label", "onClick"},
         allowed=allowed,
     )
     label = component.props.get("label")
@@ -1145,24 +1217,8 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
         )
     _validate_optional_icon(component)
     _validate_high_level_on_click(component)
-    _require_color(component, "actionInk")
-    _require_color(component, "actionSurface")
-    font_size = component.props.get("fontSize")
-    if font_size is not None and font_size != 14:
-        raise CompactDslConversionError(
-            f"{component.component_id}: PillButton.fontSize must be 14 when provided."
-        )
-    font_weight = component.props.get("fontWeight")
-    if font_weight is not None and font_weight not in {400, 500}:
-        raise CompactDslConversionError(
-            f"{component.component_id}: PillButton.fontWeight must be 400 or 500."
-        )
-    width = component.props.get("width")
-    allowed_widths = {"2x2": {"matchParent", 126}, "2x4": {"matchParent", 116, 132}}
-    if width is not None and width not in allowed_widths[size]:
-        raise CompactDslConversionError(
-            f"{component.component_id}: PillButton.width is invalid for {size}."
-        )
+    action_ink = _system_palette_color(color_palette, "primary")
+    action_surface = _system_palette_color(color_palette, "componentSecondary")
 
     _, recipe_props = _visual_recipe_part_for_converter(
         "PillButton",
@@ -1184,16 +1240,16 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             "margin",
         }
     }
-    root_props["backgroundColor"] = props["actionSurface"]
+    root_props["backgroundColor"] = action_surface
     root_props["onClick"] = copy.deepcopy(props["onClick"])
     icon = props.get("icon")
     if not isinstance(icon, str):
         root_props.update(
             {
                 "label": props["label"],
-                "fontColor": props["actionInk"],
-                "fontSize": props.get("fontSize", 14),
-                "fontWeight": props.get("fontWeight", 500),
+                "fontColor": action_ink,
+                "fontSize": 14,
+                "fontWeight": 500,
                 "textAlign": "center",
             }
         )
@@ -1231,7 +1287,7 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             {
                 **icon_props,
                 "src": icon,
-                "fillColor": props["actionInk"],
+                "fillColor": action_ink,
             },
         ),
         ComponentRow(
@@ -1240,33 +1296,30 @@ def _expand_pill_button(component: ComponentRow, size: str) -> list[ComponentRow
             {
                 **label_props,
                 "content": props["label"],
-                "fontSize": props.get("fontSize", 14),
-                "fontWeight": props.get("fontWeight", 500),
-                "fontColor": props["actionInk"],
+                "fontSize": 14,
+                "fontWeight": 500,
+                "fontColor": action_ink,
             },
         ),
     ]
 
 
-def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _expand_circle_button(
+    component: ComponentRow,
+    size: str,
+    *,
+    color_palette: dict[str, str],
+) -> list[ComponentRow]:
     if size != "2x2":
         raise CompactDslConversionError("CircleButton requires a 2x2 card.")
-    allowed = {
-        "icon",
-        "accessibility",
-        "actionInk",
-        "actionSurface",
-        "onClick",
-    }
+    allowed = {"icon", "accessibility", "onClick"}
     _validate_high_level_props(
         component,
-        required={"icon", "accessibility", "actionInk", "actionSurface", "onClick"},
+        required={"icon", "accessibility", "onClick"},
         allowed=allowed,
     )
     _validate_optional_icon(component)
     _validate_high_level_on_click(component)
-    _require_color(component, "actionInk")
-    _require_color(component, "actionSurface")
     accessibility = component.props.get("accessibility")
     allowed_accessibility = {"label", "description"}
     if not isinstance(accessibility, dict) or not set(accessibility).issubset(
@@ -1293,6 +1346,8 @@ def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentR
         size=size,
     )
     props = {**recipe_props, **copy.deepcopy(component.props)}
+    action_ink = _system_palette_color(color_palette, "primary")
+    action_surface = _system_palette_color(color_palette, "componentSecondary")
     icon_id = f"{component.component_id}_icon"
     root_props = {
         name: copy.deepcopy(value)
@@ -1310,7 +1365,7 @@ def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentR
     }
     root_props.update(
         {
-            "backgroundColor": props["actionSurface"],
+            "backgroundColor": action_surface,
             "alignContent": "center",
             "clip": True,
             "onClick": copy.deepcopy(props["onClick"]),
@@ -1328,7 +1383,7 @@ def _expand_circle_button(component: ComponentRow, size: str) -> list[ComponentR
                 "height": 20,
                 "objectFit": "contain",
                 "flexShrink": 0,
-                "fillColor": props["actionInk"],
+                "fillColor": action_ink,
             },
         ),
     ]
@@ -1860,9 +1915,6 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                     "TextBlock",
                     "item",
                     size=size,
-                    props={
-                        "backgroundColor": component.props["backgroundColor"],
-                    },
                     children=(label_slot_id, value_slot_id),
                 ),
                 _visual_row(
@@ -1919,18 +1971,16 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
         "labelLines",
         "onClick",
         "fontColor",
-        "backgroundColor",
         "icon",
         "fillColor",
     }
     _validate_high_level_props(
         component,
-        required={"label", "onClick", "fontColor", "backgroundColor"},
+        required={"label", "onClick", "fontColor"},
         allowed=allowed,
     )
     _require_text_value(component, "label")
     _require_color(component, "fontColor")
-    _require_color(component, "backgroundColor")
     _validate_optional_icon(component)
     _validate_high_level_on_click(component)
 
@@ -1947,7 +1997,6 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
     icon = component.props.get("icon")
     children = [label_id, visual_id]
     container_props: dict[str, Any] = {
-        "backgroundColor": component.props["backgroundColor"],
         "onClick": copy.deepcopy(component.props["onClick"]),
     }
     rows = [
@@ -2810,14 +2859,10 @@ def _validate_item_component(
     minimum: int,
     maximum: int,
 ) -> list[dict[str, Any]]:
-    allowed = {"items", "fontColor", "backgroundColor"}
+    allowed = {"items", "fontColor"}
     required = {"items", "fontColor"}
-    if component.component_type == "TextBlock":
-        required.add("backgroundColor")
     _validate_high_level_props(component, required=required, allowed=allowed)
     _require_color(component, "fontColor")
-    if "backgroundColor" in required:
-        _require_color(component, "backgroundColor")
     items = component.props.get("items")
     if not isinstance(items, list) or not minimum <= len(items) <= maximum:
         raise CompactDslConversionError(

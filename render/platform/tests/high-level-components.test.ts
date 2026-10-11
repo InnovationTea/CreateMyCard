@@ -177,6 +177,15 @@ test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基�
   assert.equal(unit.margin, undefined);
 });
 
+test("EmphasisText 使用与 claw-widget 一致的行盒与文本间距", () => {
+  const root = visualRecipePart("EmphasisText", "root", "2x2").styles;
+  const main = visualRecipePart("EmphasisText", "main", "2x2").styles;
+  const secondary = visualRecipePart("EmphasisText", "secondary", "2x2").styles;
+  assert.equal(root.itemMargin, 2);
+  assert.equal(Number(main.fontSize) * Number(main.lineHeight), main.height);
+  assert.equal(Number(secondary.fontSize) * Number(secondary.lineHeight), secondary.height);
+});
+
 test("带图标 PillButton 补偿文字行盒以实现视觉垂直居中", () => {
   const source = JSON.stringify([
     "action",
@@ -184,8 +193,6 @@ test("带图标 PillButton 补偿文字行盒以实现视觉垂直居中", () =>
     {
       label: "每日歌单",
       icon: "resources/base/media/music_fill.svg",
-      actionSurface: "#33563D99",
-      actionInk: "#FF563D99",
       onClick: [{ call: "clickToDeeplink", args: { uri: "hwmusic://playlist" } }],
     },
   ]);
@@ -196,15 +203,18 @@ test("带图标 PillButton 补偿文字行盒以实现视觉垂直居中", () =>
 
   assert.equal(root.height, 36);
   assert.equal(root.alignItems, "center");
+  assert.equal(root.backgroundColor, "#331F4799");
   assert.equal(icon.height, 20);
+  assert.equal(icon.fillColor, "#FF1F4799");
   assert.equal(label.height, 17);
+  assert.equal(label.fontColor, "#FF1F4799");
 });
 
 test("2x4 纵向固定槽中的 InfoBlock 与 CardButton 保持等高", () => {
   const source = [
     '["root","Column",{"width":132,"height":126,"itemMargin":12},["status","settings"]]',
     '["status","InfoBlock",{"variant":"slot","primaryText":"连接状态","secondaryText":"连接正常","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","width":"matchParent","layoutWeight":1}]',
-    '["settings","CardButton",{"label":"设备设置","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","onClick":[{"call":"openSettings","args":{}}],"width":"matchParent","layoutWeight":1}]',
+    '["settings","CardButton",{"label":"设备设置","fontColor":"#FF1F4799","onClick":[{"call":"openSettings","args":{}}],"width":"matchParent","layoutWeight":1}]',
   ].join("\n");
   const { graph } = compileMiniDsl(source, { size: "2x4" });
 
@@ -215,8 +225,10 @@ test("2x4 纵向固定槽中的 InfoBlock 与 CardButton 保持等高", () => {
     assert.equal(styles.layoutWeight, undefined);
   }
   const primary = graph.getNode("status_primary")?.props.styles as Record<string, unknown>;
+  const action = graph.getNode("settings")?.props.styles as Record<string, unknown>;
   const label = graph.getNode("settings_label")?.props.styles as Record<string, unknown>;
   assert.equal(primary.fontSize, 14);
+  assert.equal(action.backgroundColor, "#99FFFFFF");
   assert.equal(label.fontSize, 14);
 });
 
@@ -229,8 +241,6 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
       {
         icon: "resources/base/media/play_fill.svg",
         accessibility: { label: "播放" },
-        actionInk: "#FF1F4799",
-        actionSurface: "#331F4799",
         onClick: action,
       },
     ]), { size: "2x4" }),
@@ -279,12 +289,13 @@ test("SecondaryBody 继承显示值绑定、按角色限制行数并保留完整
     ),
     /必须声明 role/,
   );
-  assert.throws(
-    () => compileMiniDsl(
-      '["root","SecondaryBody",{"role":"metadata","items":[{"value":"更新时间","maxLines":2}],"fontColor":"#FF1F4799"}]',
-    ),
-    /只有 body SecondaryBody 支持两行/,
+  const multilineMetadata = compileMiniDsl(
+    '["root","SecondaryBody",{"role":"metadata","items":[{"value":"更新时间","maxLines":2}]}]',
   );
+  const multilineStyles = multilineMetadata.graph.getNode("root_item0_value")?.props
+    .styles as Record<string, unknown>;
+  assert.equal(multilineStyles.height, 36);
+  assert.equal(multilineStyles.maxLines, 2);
 });
 
 test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
@@ -296,7 +307,6 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
       {
         items: Array.from({ length: count }, (_, index) => item(index + 1)),
         fontColor: "#FF563D99",
-        backgroundColor: "#99FFFFFF",
       },
     ]);
     const { graph } = compileMiniDsl(source, { size: "2x4" });
@@ -316,6 +326,7 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     });
     assert.ok(graph.getNode(`root_item${count - 1}`));
     assert.equal(itemStyles.layoutWeight, 1);
+    assert.equal(itemStyles.backgroundColor, "#99FFFFFF");
     assert.deepEqual(graph.getNode("root_item0")?.children, [
       "root_item0_label_slot",
       "root_item0_value_slot",
@@ -356,9 +367,20 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
       {
         items: Array.from({ length: 5 }, (_, index) => item(index + 1)),
         fontColor: "#FF563D99",
-        backgroundColor: "#99FFFFFF",
       },
     ]), { size: "2x4" }),
     /2–4 项/,
+  );
+  assert.throws(
+    () => compileMiniDsl(JSON.stringify([
+      "root",
+      "TextBlock",
+      {
+        items: [item(1), item(2)],
+        fontColor: "#FF563D99",
+        backgroundColor: "#99FFFFFF",
+      },
+    ]), { size: "2x4" }),
+    /不接受 backgroundColor/,
   );
 });

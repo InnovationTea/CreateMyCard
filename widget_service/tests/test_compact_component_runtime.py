@@ -9,6 +9,7 @@ from services.compact_component_runtime import (
     CompactComponentRuntimeError,
     component_visual_recipe,
     load_visual_recipe_contract,
+    resolve_card_color_palette,
     visual_recipe_part,
 )
 
@@ -47,6 +48,47 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
     assert contract["components"]["DataDisplay"]["alignment"] == "aligned"
     assert contract["components"]["SummaryList"]["alignment"] == "native"
     assert contract["components"]["SingleLineTitle"]["alignment"] == "aligned"
+    assert set(contract["palettes"]) == {
+        "blue",
+        "purple",
+        "warm",
+        "fusionDark",
+        "neutralLight",
+        "neutralDark",
+    }
+
+
+def test_runtime_resolves_registered_palette_from_root_gradient() -> None:
+    palette = resolve_card_color_palette(
+        {
+            "linearGradient": {
+                "direction": "RightBottom",
+                "colors": [["#FFDBCCFF", 0], ["#FFF6F2FF", 1]],
+            }
+        }
+    )
+
+    assert palette["primary"] == "#FF563D99"
+    assert palette["secondary"] == "#99563D99"
+    assert palette["componentSecondary"] == "#33563D99"
+
+
+def test_runtime_uses_contrast_roles_for_custom_backgrounds() -> None:
+    dark_palette = resolve_card_color_palette({"backgroundColor": "#FF101010"})
+    light_palette = resolve_card_color_palette({"backgroundColor": "#FFF8F8F8"})
+
+    assert dark_palette["primary"] == "#FFFFFFFF"
+    assert light_palette["primary"] == "#FF1A1A1A"
+
+
+def test_runtime_defaults_to_blue_and_fusion_roles_are_isolated() -> None:
+    default_palette = resolve_card_color_palette({})
+    fusion_palette = resolve_card_color_palette({}, fusion_ball_active=True)
+
+    assert default_palette["primary"] == "#FF1F4799"
+    assert fusion_palette["primary"] == "#FFFFFFFF"
+    fusion_palette["primary"] = "changed"
+    assert resolve_card_color_palette({}, fusion_ball_active=True)["primary"] == "#FFFFFFFF"
 
 
 def test_visual_recipe_resolves_size_overrides_without_mutating_cache() -> None:
@@ -79,6 +121,8 @@ def test_single_line_title_visual_recipe_is_text_only() -> None:
     recipe = component_visual_recipe("SingleLineTitle", size="2x2")
 
     assert recipe["parts"]["root"]["styles"]["itemMargin"] == 0
+    assert recipe["parts"]["root"]["styles"]["height"] == 12
+    assert recipe["parts"]["title"]["styles"]["lineHeight"] == 1
     assert set(recipe["parts"]) == {"root", "title"}
     assert "variants" not in recipe
 
@@ -100,12 +144,32 @@ def test_emphasized_data_visual_recipe_aligns_value_and_unit_baselines() -> None
     assert "margin" not in unit
 
 
+def test_emphasis_text_visual_recipe_matches_claw_line_boxes() -> None:
+    recipe = component_visual_recipe("EmphasisText", size="2x2")
+
+    root = recipe["parts"]["root"]["styles"]
+    main = recipe["parts"]["main"]["styles"]
+    secondary = recipe["parts"]["secondary"]["styles"]
+    assert root["itemMargin"] == 2
+    assert main["height"] == main["fontSize"] * main["lineHeight"] == 24
+    assert secondary["height"] == secondary["fontSize"] * secondary["lineHeight"] == 16
+
+
 def test_pill_button_visual_recipe_compensates_label_line_box() -> None:
     recipe = component_visual_recipe("PillButton", size="2x2")
+    wide_recipe = component_visual_recipe("PillButton", size="2x4")
 
     assert recipe["parts"]["root"]["styles"]["height"] == 36
+    assert recipe["parts"]["root"]["styles"]["width"] == "matchParent"
+    assert wide_recipe["parts"]["root"]["styles"]["width"] == "matchParent"
     assert recipe["parts"]["icon"]["styles"]["height"] == 20
     assert recipe["parts"]["label"]["styles"]["height"] == 17
+
+
+def test_card_button_visual_recipe_owns_default_surface() -> None:
+    recipe = component_visual_recipe("CardButton", size="2x4")
+
+    assert recipe["parts"]["root"]["styles"]["backgroundColor"] == "#99FFFFFF"
 
 
 def test_progress_line_two_visual_recipe_aligns_value_and_unit_baselines() -> None:
@@ -135,6 +199,7 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
     assert root["layoutWeight"] == 1
     assert root["constraintSize"] == {"minHeight": 48}
     assert recipe["parts"]["item"]["styles"]["height"] == "matchParent"
+    assert recipe["parts"]["item"]["styles"]["backgroundColor"] == "#99FFFFFF"
     assert recipe["parts"]["item"]["styles"]["layoutWeight"] == 1
     assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 64
     assert recipe["parts"]["labelSlot"]["styles"] == {

@@ -914,7 +914,10 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         for key in ("role", "columns", "lines", "variant", "unitFromFieldContract"):
             if key in group:
                 props[key] = group.get(key)
-        layout_props: dict[str, Any] = {"width": "matchParent"}
+        # PillButton 的宽度由动作槽和 Recipe 决定，公开合同不接受 width。
+        layout_props: dict[str, Any] = {}
+        if group.get("component") != "PillButton":
+            layout_props["width"] = "matchParent"
         if weight is not None:
             layout_props["layoutWeight"] = weight
         output.append({

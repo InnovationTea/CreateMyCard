@@ -1,5 +1,91 @@
 {
   "version": "visual-recipes-v1",
+  "palettes": {
+    "blue": {
+      "backgrounds": ["#FFE5EDFE", "#FFCBDDFE", "#FFF1F6FE"],
+      "gradients": [["#FFCBDDFE", "#FFF1F6FE"]],
+      "roles": {
+        "primary": "#FF1F4799",
+        "secondary": "#991F4799",
+        "tertiary": "#661F4799",
+        "graphicPrimary": "#FF1F4799",
+        "graphicSecondary": "#991F4799",
+        "graphicTertiary": "#661F4799",
+        "componentSecondary": "#331F4799",
+        "componentTertiary": "#1A1F4799"
+      }
+    },
+    "purple": {
+      "backgrounds": ["#FFDBCCFF", "#FFF6F2FF"],
+      "gradients": [["#FFDBCCFF", "#FFF6F2FF"]],
+      "roles": {
+        "primary": "#FF563D99",
+        "secondary": "#99563D99",
+        "tertiary": "#66563D99",
+        "graphicPrimary": "#FF563D99",
+        "graphicSecondary": "#99563D99",
+        "graphicTertiary": "#66563D99",
+        "componentSecondary": "#33563D99",
+        "componentTertiary": "#1A563D99"
+      }
+    },
+    "warm": {
+      "backgrounds": ["#FFFFE0CC", "#FFFFF7F2"],
+      "gradients": [["#FFFFE0CC", "#FFFFF7F2"]],
+      "roles": {
+        "primary": "#FF8C4B1C",
+        "secondary": "#998C4B1C",
+        "tertiary": "#668C4B1C",
+        "graphicPrimary": "#FF8C4B1C",
+        "graphicSecondary": "#998C4B1C",
+        "graphicTertiary": "#668C4B1C",
+        "componentSecondary": "#338C4B1C",
+        "componentTertiary": "#1A8C4B1C"
+      }
+    },
+    "fusionDark": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FFFFFFFF",
+        "secondary": "#CCFFFFFF",
+        "tertiary": "#99FFFFFF",
+        "graphicPrimary": "#FFFFFFFF",
+        "graphicSecondary": "#CCFFFFFF",
+        "graphicTertiary": "#99FFFFFF",
+        "componentSecondary": "#33FFFFFF",
+        "componentTertiary": "#1AFFFFFF"
+      }
+    },
+    "neutralLight": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FF1A1A1A",
+        "secondary": "#991A1A1A",
+        "tertiary": "#661A1A1A",
+        "graphicPrimary": "#FF1A1A1A",
+        "graphicSecondary": "#991A1A1A",
+        "graphicTertiary": "#661A1A1A",
+        "componentSecondary": "#331A1A1A",
+        "componentTertiary": "#1A1A1A1A"
+      }
+    },
+    "neutralDark": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FFFFFFFF",
+        "secondary": "#CCFFFFFF",
+        "tertiary": "#99FFFFFF",
+        "graphicPrimary": "#FFFFFFFF",
+        "graphicSecondary": "#CCFFFFFF",
+        "graphicTertiary": "#99FFFFFF",
+        "componentSecondary": "#33FFFFFF",
+        "componentTertiary": "#1AFFFFFF"
+      }
+    }
+  },
   "components": {
     "SingleLineTitle": {
       "alignment": "aligned",
@@ -8,7 +94,7 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 20,
+            "height": 12,
             "itemMargin": 0,
             "flexShrink": 0,
             "justifyContent": "start",
@@ -20,6 +106,7 @@
           "styles": {
             "fontSize": 12,
             "fontWeight": 400,
+            "lineHeight": 1,
             "textAlign": "start",
             "maxLines": 1,
             "flexShrink": 0,
@@ -109,6 +196,7 @@
             "height": 24,
             "fontSize": 18,
             "fontWeight": 700,
+            "lineHeight": 1.3333333333333333,
             "maxLines": 1,
             "flexShrink": 1,
             "width": "matchParent"
@@ -120,6 +208,7 @@
             "height": 16,
             "fontSize": 12,
             "fontWeight": 400,
+            "lineHeight": 1.3333333333333333,
             "maxLines": 1,
             "flexShrink": 1,
             "width": "matchParent"
@@ -496,6 +585,15 @@
       },
       "sizes": {
         "2x2": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent"
+              }
+            }
+          }
+        },
+        "2x4": {
           "parts": {
             "root": {
               "styles": {
@@ -989,6 +1087,7 @@
           "component": "Column",
           "styles": {
             "height": "matchParent",
+            "backgroundColor": "#99FFFFFF",
             "padding": {
               "left": 8,
               "right": 8
@@ -1076,6 +1175,7 @@
               "bottom": 7
             },
             "borderRadius": 16,
+            "backgroundColor": "#99FFFFFF",
             "itemMargin": 8,
             "alignItems": "center",
             "justifyContent": "spaceBetween",

@@ -158,8 +158,8 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main"]]
-["header","SingleLineTitle",{"title":"卡片标题","fontColor":"#FF1F4799"}]
-["main","SecondaryBody",{"role":"body","items":[{"value":"主要内容","maxLines":1}],"fontColor":"#FF1F4799"}]
+["header","SingleLineTitle",{"title":"卡片标题"}]
+["main","SecondaryBody",{"role":"body","items":[{"value":"主要内容","maxLines":1}]}]
 ["/state/ready",true]
 ```
 
@@ -327,7 +327,7 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 <!-- prompt:palette -->
 # 十二、表面与颜色
 
-目标是轻盈、有层次、有一个清楚的视觉焦点。采用 UX 的同色相微渐变、白色内容背板和少量彩色素材，不用提高整卡饱和度制造吸引力。未指定配色时，root 背景收敛为以下蓝、紫、暖三套浅色渐变与内容色，严格采用 UX「纯色渐变背景」详细规范，不自行调深、调浅或派生替代色。青、绿、粉红可作为合法多色素材、图表或真实状态的局部色彩，但不作为默认 root 背景。
+目标是轻盈、有层次、有一个清楚的视觉焦点。采用 UX 的同色相微渐变、白色内容背板和少量彩色素材，不用提高整卡饱和度制造吸引力。未指定配色时，root 背景收敛为以下蓝、紫、暖三套浅色渐变，严格采用 UX「纯色渐变背景」详细规范，不自行调深、调浅或派生替代色。内容文字色由运行时根据 root 背景和组件语义角色注入。青、绿、粉红可作为合法多色素材、图表或真实状态的局部色彩，但不作为默认 root 背景。
 
 ## 背景选择与业务映射
 
@@ -342,11 +342,14 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 | 紫色 | `#FFDBCCFF` | `#FFF6F2FF` | `#FF563D99` | `#99563D99` | `#33563D99` | `#FF563D99` |
 | 暖色 | `#FFFFE0CC` | `#FFFFF7F2` | `#FF8C4B1C` | `#998C4B1C` | `#338C4B1C` | `#FF8C4B1C` |
 
+表中的主文字与辅助文字是运行时色板角色，不是组件 Props；模型只选择 root 背景，并在进度、图表、按钮等
+合同明确要求时填写对应图形色或动作色。转换器按 Recipe 为最终 A2UI 文字节点写入实际颜色。
+
 渐变起点固定为左上角，终点固定为右下角，位置分别为 0 和 1；颜色顺序不可颠倒。使用 direction，不再同时写 angle，避免方向覆盖。浅色 root 只写一个线性渐变：`linearGradient:{"direction":"RightBottom","colors":[[起点,0],[终点,1]]}`，颜色使用表中真实十六进制值，不输出中文占位符。不再叠加 backgroundColor、背景图、光斑或阴影。仅使用两个同色相色标，不生成彩虹或高反差渐变；用户明确要求纯色时使用对应渐变终点作为背景。
 
 ## 文字、背板与视觉焦点
 
-- 主数字、核心状态和正文用主文字色；城市、设备、指标标签、时间、状态及用户要求的支撑信息用主文字色；纯主题标题也优先保持主文字色，仅用 12fp/400 降低视觉重量。主文字与必要上下文 alpha 固定 FF；60%（99）仅用于可省略的来源或非必要更新时间，按钮背景保持 33，不改 UX 的 RGB 或渐变端点；不要把所有内容都加粗。
+- 主数字、核心状态和正文使用主文字角色；纯主题标题、metadata 与弱说明使用组件 Recipe 指定的辅助角色。模型不在组件中声明文字色。按钮背景保持 33，不改 UX 的 RGB 或渐变端点；不要把所有内容都加粗。
 - 唯一主焦点优先通过尺度和留白建立。数值卡突出一个主值，状态卡突出一句状态，日程卡突出事项与时间的关系；不要同时放大标题、主值、按钮与图标。
 - 浅色内容背板按尺寸区分：2x2 使用 `#CCFFFFFF`（白色 80%），2x4 使用 `#99FFFFFF`（白色 60%），包括 `S-dual-info`、`W-four-slots`/`W-split-panels`/`W-content-side-slots` 及其他骨架已声明的内容背板；白色内容背板沿用 UX 分区规范，不误用本图内容色 20% 替代；不为增加层次额外创建背板。背板内沿用本卡文字色，不再套一层有色背板，不叠加描边和阴影。
 - 进度组件主色使用图表主色，轨道使用内容色 20%（alpha `33`）。保持各骨架已定义的尺寸，不能为了装饰增加没有比例语义的进度组件或额外分隔线。
@@ -358,7 +361,8 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 - 浅色 PillButton、CircleButton、CardButton 和专用图文 Row 使用表中按钮背景和主文字色；按钮高 36vp、字号 14fp，沿用骨架几何。保持按钮与白色内容背板的区别。
 - 点击内容背板仍按尺寸使用对应白色底托：2x2 使用 `#CCFFFFFF`，2x4 使用 `#99FFFFFF`；不要因其可点击就改成按钮底色，不增加重复动作说明。
 - 同级双按钮同规格、同配色，靠准确文案区分。不为了醒目提高按钮饱和度，不让按钮抢过主读数。
-- PillButton/CircleButton 的 actionSurface/actionInk 必须成对声明。彩色图标不可传给会强制染色的按钮 icon；这类按钮使用合法图文 Row，或保留纯文字动作。
+- PillButton/CircleButton 的背景、文字与单色图标颜色由运行时根据当前卡片色板确定，不输出动作色。彩色图标
+  不可传给会强制染色的按钮 icon；这类按钮使用合法图文 Row，或保留纯文字动作。
 
 ## 素材与局部色彩
 

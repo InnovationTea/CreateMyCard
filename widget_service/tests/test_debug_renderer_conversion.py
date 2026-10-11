@@ -17,7 +17,6 @@ SOURCE = '\n'.join(
         '["root","Column",{"width":"matchParent","height":"matchParent"},["cta"]]',
         '["cta","PillButton",{"label":"打开省电模式",'
         '"icon":"resources/base/media/battery_leaf_fill.svg",'
-        '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
         '"onClick":[{"call":"clickToIntent","args":{}}]}]',
         '["/data/phoneBattery/batterySOC",68]',
     )
