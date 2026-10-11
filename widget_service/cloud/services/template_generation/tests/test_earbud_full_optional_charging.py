@@ -204,6 +204,7 @@ async def test_pair_ring_full_renders_independent_optional_status(mask: int, fus
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
+        allow_internal_components=True,
     )
     assert template_id in result.template_ids
     assert not result.projected_task_spec.eventCandidates
@@ -288,6 +289,7 @@ async def test_earphone_percent_text_full_renders_without_actions(
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
+        allow_internal_components=True,
     )
     assert template_id in result.template_ids
     assert not result.projected_task_spec.eventCandidates
@@ -371,6 +373,7 @@ async def test_case_percent_full_renders_optional_name_and_required_status(
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
+        allow_internal_components=True,
     )
     assert template_id in result.template_ids
     assert not result.projected_task_spec.eventCandidates
@@ -453,6 +456,7 @@ async def test_connection_text_full_renders_both_boolean_states(
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
+        allow_internal_components=True,
     )
     assert template_id in result.template_ids
     assert not result.projected_task_spec.eventCandidates
