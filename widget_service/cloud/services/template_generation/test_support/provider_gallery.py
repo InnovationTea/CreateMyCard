@@ -178,6 +178,7 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewPluggedTypeSupport@1": (),
     "WeatherOverviewConditionSupport@1": ("asset.sun_max",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewFeelsLikeWindSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
@@ -693,7 +694,9 @@ def _gallery_sample_overrides(
         condition = _SUPPORT_WEATHER_CONDITION
         if weather_template.template_id == "WeatherOverviewConditionSupport@1":
             condition = "晴"
-        sample_overrides["/data/weather/current/condition"] = condition
+        for field in ("/current/condition", "/daily/2/condition"):
+            if field in weather_template.fields:
+                sample_overrides[f"/data/weather{field}"] = condition
     battery_template = next(
         (
             template

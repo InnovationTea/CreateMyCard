@@ -880,3 +880,40 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
         path = case.get("a2uiFile")
         assert isinstance(path, str)
         assert (summary.manifest_path.parent / path).is_file()
+
+
+@pytest.mark.parametrize("template_id", [
+    "WeatherOverviewDaily2TravelSupport@1",
+    "WeatherOverviewFeelsLikeWindSupport@1",
+])
+@pytest.mark.parametrize("scenario_id", ["dual-support-content", "dual-support-one-action"])
+def test_weather_support_samples_stay_within_requested_fields(
+    tmp_path: Path, template_id: str, scenario_id: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    group = next(item for item in manifest.providers if item.providerId == "gallery.two-support")
+    case = next(
+        item for item in group.cases
+        if (item.targetTemplateId, item.scenarioId) == (template_id, scenario_id)
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    weather = next(item for item in bindings if item.get("capabilityId") == "ViewWeather")
+    fields = weather.get("candidateOutputFields")
+    assert isinstance(fields, list)
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    overrides = gallery_test.get("sampleOverrides")
+    assert isinstance(overrides, dict)
+    for pointer in overrides:
+        if pointer.startswith("/data/weather/"):
+            assert pointer.removeprefix("/data/weather") in fields
+    if template_id == "WeatherOverviewDaily2TravelSupport@1":
+        assert overrides.get("/data/weather/daily/2/condition") == "多云"
+    else:
+        asset_ids = content.get("candidateAssetIds")
+        assert isinstance(asset_ids, list)
+        assert "asset.icon_weather_thermometer" in asset_ids
