@@ -1564,7 +1564,8 @@ class PromptBuilder:
             + "、".join(paths)
             + " 均为带单位字符串，展示时完整绑定，不重复追加%，不能从样例提取数字写死进度。"
             "仅当字段具有真实比例语义且值为完整数值百分比时，才可按组件合同用 PathBinding"
-            "驱动进度，由转换器换算内部数值；不能用 Expression 驱动进度，也不能借用其它对象指标。"
+            "驱动进度，由转换器换算内部数值；ProgressCircle.externalText 也可使用以数值表达式"
+            "或数值表达式加百分号结尾的完整 Expression，不能借用其它对象指标。"
         )
 
     def build_design_compact(
@@ -1594,7 +1595,12 @@ class PromptBuilder:
         """首次生成使用 PROMPT，编辑时叠加文件化多轮规则。"""
         constructive_result = None
         recovery = None
-        if source_format == DESIGN_COMPACT_PROFILE_ID and compact_plan is not None:
+        runtime_prompt_context_enabled = (
+            source_format == DESIGN_COMPACT_PROFILE_ID
+            and compact_plan is not None
+            and get_settings().enable_design_compact_runtime_prompt_context
+        )
+        if runtime_prompt_context_enabled:
             constructive_result = feasible_composition_candidates(
                 task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
             )
@@ -1667,8 +1673,11 @@ class PromptBuilder:
         )
         tool = build_compact_plan_tool(task_spec_value)
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
+        capacity_context = ""
+        if get_settings().enable_design_compact_runtime_prompt_context:
+            capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         effective_system_prompt = (
-            f"{system_prompt}\n\n{compact_plan_capacity_context(task_spec.size)}\n\n"
+            f"{system_prompt}{capacity_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
             "只输出一个 JSON 工具调用包："
             '{"name":"submit_card_plan","arguments":{...}}。'
@@ -1748,17 +1757,23 @@ class PromptBuilder:
             system_prompt, task_spec, compact_plan, include_examples=include_examples,
         )
         if compact_plan is not None:
-            conflicts = composition_implementation_conflicts(compact_plan)
-            conflicts.extend(composition_text_width_conflicts(
-                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-            ))
+            runtime_prompt_context_enabled = (
+                get_settings().enable_design_compact_runtime_prompt_context
+            )
+            conflicts: list[str] = []
+            if runtime_prompt_context_enabled:
+                conflicts = composition_implementation_conflicts(compact_plan)
+                conflicts.extend(composition_text_width_conflicts(
+                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                ))
             plan_context = compact_plan_context(compact_plan, implementation_conflicts=conflicts)
             system_prompt = f"{system_prompt}\n\n{plan_context}"
-            worksheet = compact_composition_context(
-                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-                constructive_result=constructive_result,
-            )
-            system_prompt = f"{system_prompt}\n\n{worksheet}"
+            if runtime_prompt_context_enabled:
+                worksheet = compact_composition_context(
+                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                    constructive_result=constructive_result,
+                )
+                system_prompt = f"{system_prompt}\n\n{worksheet}"
         if fusion_ball_enabled(task_spec.appVersion):
             recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
             if recommendation:

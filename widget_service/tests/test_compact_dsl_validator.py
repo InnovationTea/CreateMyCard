@@ -166,6 +166,41 @@ def test_accepts_progress_circle_bound_to_complete_percentage_text() -> None:
     )
 
 
+def test_accepts_progress_circle_percentage_expression() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{},["ring"]]',
+            '["ring","ProgressCircle",'
+            '{"externalText":"{{ ${/data/battery/percent} + \'%\' }}",'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"电量百分比"},'
+            '"width":72,"height":76,"fontColor":"#FF1F4799",'
+            '"fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+            '["/data/battery/percent",68]',
+        ]
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["dataModelSchema"] = {
+        "data": {
+            "battery": {
+                "percent": {
+                    "type": "number",
+                    "description": "0 到 100 的电量百分比",
+                    "sampleValue": 68,
+                }
+            }
+        }
+    }
+
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+        enforce_model_component_types=True,
+    )
+
+
 def test_rejects_progress_circle_bound_to_business_copy_with_percentage() -> None:
     source = "\n".join(
         [

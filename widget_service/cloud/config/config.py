@@ -235,6 +235,9 @@ class Settings(BaseSettings):
     enable_design_compact_few_shot_selection: bool = (
         CONFIG.get("enable_design_compact_few_shot_selection", "false") == "true"
     )
+    enable_design_compact_runtime_prompt_context: bool = (
+        CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"
+    )
     compact_dsl_interface_retry_count: int = Field(
         default=CONFIG.get("compact_dsl_interface_retry_count", 1),
         ge=0,

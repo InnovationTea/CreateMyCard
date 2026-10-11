@@ -97,9 +97,7 @@ def apply_system_component_colors(
 def _system_palette_color(palette: dict[str, str], role: str) -> str:
     color = palette.get(role)
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-        raise CompactDslConversionError(
-            f"System palette role {role} must use #AARRGGBB."
-        )
+        raise CompactDslConversionError(f"System palette role {role} must use #AARRGGBB.")
     return color
 
 
@@ -263,9 +261,7 @@ def expand_high_level_component_rows(
         if component.component_type == "CircleButton":
             _validate_circle_button_slot(parent)
         if expander is not None:
-            rows[0] = _place_high_level_root(
-                component, rows[0], parent
-            )
+            rows[0] = _place_high_level_root(component, rows[0], parent)
             rows[0] = _stabilize_two_by_four_fixed_slot(
                 component,
                 rows[0],
@@ -304,9 +300,7 @@ def _validate_circle_button_slot(parent: ComponentRow | None) -> None:
         or parent.props.get("height") != 40
         or parent.props.get("alignContent") != "center"
     ):
-        raise CompactDslConversionError(
-            "CircleButton requires a centered 40x40 Stack slot."
-        )
+        raise CompactDslConversionError("CircleButton requires a centered 40x40 Stack slot.")
 
 
 def validate_single_line_title_layout(components: list[ComponentRow], *, size: str) -> None:
@@ -319,7 +313,13 @@ def validate_single_line_title_layout(components: list[ComponentRow], *, size: s
         _validate_high_level_props(
             header,
             required={"title", "fontColor"},
-            allowed={"title", "fontColor"},
+            allowed={"title", "fontColor", "fontSize"},
+        )
+        _validate_recipe_font_size(
+            header,
+            component_name="SingleLineTitle",
+            part_name="title",
+            size=size,
         )
         _validate_single_line_title_props(header, components)
 
@@ -360,8 +360,18 @@ def _is_positive_number(value: Any) -> bool:
 def _expand_double_line_title(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("DoubleLineTitle requires a 2x2 or 2x4 card.")
-    allowed = {"title", "secondaryInfo", "fontColor"}
-    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    allowed = {"title", "secondaryInfo", "fontColor", "fontSize"}
+    _validate_high_level_props(
+        component,
+        required={"title", "secondaryInfo", "fontColor"},
+        allowed=allowed,
+    )
+    _validate_recipe_font_size(
+        component,
+        component_name="DoubleLineTitle",
+        part_name="title",
+        size=size,
+    )
     _require_text_value(component, "title")
     _require_text_value(component, "secondaryInfo")
     _require_color(component, "fontColor")
@@ -424,11 +434,17 @@ def _expand_badge(component: ComponentRow, size: str) -> list[ComponentRow]:
 def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("EmphasisText requires a 2x2 or 2x4 card.")
-    allowed = {"mainText", "secondaryText", "fontColor"}
+    allowed = {"mainText", "secondaryText", "fontColor", "fontSize"}
     _validate_high_level_props(
         component,
         required={"mainText", "fontColor"},
         allowed=allowed,
+    )
+    _validate_recipe_font_size(
+        component,
+        component_name="EmphasisText",
+        part_name="main",
+        size=size,
     )
     _require_text_value(component, "mainText")
     if "secondaryText" in component.props:
@@ -474,7 +490,7 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
 
 
 def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
-    allowed = {"items", "role", "columns", "separator", "fontColor"}
+    allowed = {"items", "role", "columns", "separator", "fontColor", "fontSize"}
     _validate_high_level_props(
         component,
         required={"items", "fontColor"},
@@ -526,9 +542,7 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
             )
         max_lines = item.get("maxLines", 1)
         valid_max_lines = (
-            isinstance(max_lines, int)
-            and not isinstance(max_lines, bool)
-            and max_lines in {1, 2}
+            isinstance(max_lines, int) and not isinstance(max_lines, bool) and max_lines in {1, 2}
         )
         if not valid_max_lines:
             raise CompactDslConversionError(
@@ -558,6 +572,13 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
     items = _secondary_body_items(component)
     variant = _secondary_body_variant(component, items)
+    _validate_recipe_font_size(
+        component,
+        component_name="SecondaryBody",
+        part_name="text",
+        size=size,
+        variant=variant,
+    )
     recipe = _visual_recipe("SecondaryBody", size=size, variant=variant)
     text_styles = recipe["parts"]["text"]["styles"]
     line_height = text_styles["height"] / text_styles.get("maxLines", 1)
@@ -569,7 +590,7 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
         row_children: list[str] = []
-        row_items = items[start:start + columns]
+        row_items = items[start : start + columns]
         row_height = line_height * max(item.get("maxLines", 1) for item in row_items)
         for item_index, item in enumerate(row_items, start=start):
             max_lines = item.get("maxLines", 1)
@@ -881,9 +902,13 @@ def _expand_numeric_ratio_stack(
                 data_model or {},
                 value.get("path"),
             )
-            if found and isinstance(initial_value, (int, float)) and not isinstance(
-                initial_value,
-                bool,
+            if (
+                found
+                and isinstance(initial_value, (int, float))
+                and not isinstance(
+                    initial_value,
+                    bool,
+                )
             ):
                 unit = "%"
         if unit is not None:
@@ -1074,12 +1099,9 @@ def _validate_progress_circle_accessibility(component: ComponentRow) -> None:
             f"{component.component_id}: ProgressCircle.accessibility.label must be non-empty."
         )
     description = accessibility.get("description")
-    if description is not None and (
-        not isinstance(description, str) or not description.strip()
-    ):
+    if description is not None and (not isinstance(description, str) or not description.strip()):
         raise CompactDslConversionError(
-            f"{component.component_id}: ProgressCircle.accessibility.description "
-            "must be non-empty."
+            f"{component.component_id}: ProgressCircle.accessibility.description must be non-empty."
         )
 
 
@@ -1102,6 +1124,8 @@ def _progress_circle_values(
         if found and isinstance(initial_value, str):
             return progress_value, copy.deepcopy(value)
         return progress_value, f"{{{{ ${{{path}}} + '%' }}}}"
+    if _is_complete_expression(value):
+        return _progress_circle_expression_values(value)
     numeric_value = _normalized_progress_literal(
         component,
         "externalText",
@@ -1112,6 +1136,26 @@ def _progress_circle_values(
         return numeric_value, value.strip()
     visible = str(numeric_value)
     return numeric_value, f"{visible}%"
+
+
+def _is_complete_expression(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    stripped = value.strip()
+    return stripped.startswith("{{") and stripped.endswith("}}") and bool(stripped[2:-2].strip())
+
+
+def _progress_circle_expression_values(value: str) -> tuple[str, str]:
+    stripped = value.strip()
+    body = stripped[2:-2].strip()
+    percentage_match = re.fullmatch(
+        r"(?s)(.+?)\s*\+\s*(['\"])[%％]\2\s*",
+        body,
+    )
+    if percentage_match is not None:
+        numeric_body = percentage_match.group(1).strip()
+        return f"{{{{ {numeric_body} }}}}", stripped
+    return stripped, f"{{{{ ({body}) + '%' }}}}"
 
 
 def _normalized_progress_binding(
@@ -1392,11 +1436,17 @@ def _expand_circle_button(
 def _expand_emphasized_data(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("EmphasizedData requires a 2x2 or 2x4 card.")
-    allowed = {"value", "unit", "fontColor"}
+    allowed = {"value", "unit", "fontColor", "fontSize"}
     _validate_high_level_props(
         component,
         required={"value", "fontColor"},
         allowed=allowed,
+    )
+    _validate_recipe_font_size(
+        component,
+        component_name="EmphasizedData",
+        part_name="value",
+        size=size,
     )
     _require_text_value(component, "value")
     _require_color(component, "fontColor")
@@ -1481,9 +1531,7 @@ def _expand_info_block(
     _require_color(component, "fontColor")
     _require_color(component, "backgroundColor")
     legacy_icon = component.props.get("icon")
-    if legacy_icon is not None and (
-        not isinstance(legacy_icon, str) or not legacy_icon.strip()
-    ):
+    if legacy_icon is not None and (not isinstance(legacy_icon, str) or not legacy_icon.strip()):
         raise CompactDslConversionError(
             f"{component.component_id}: InfoBlock.icon must be non-empty."
         )
@@ -1829,6 +1877,13 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
         raise CompactDslConversionError("TableText requires a 2x2 or 2x4 card.")
     items = _validate_item_component(component, minimum=2, maximum=3)
     variant = "compact" if len(items) == 3 else None
+    _validate_recipe_font_size(
+        component,
+        component_name="TableText",
+        part_name="value",
+        size=size,
+        variant=variant,
+    )
     rows: list[ComponentRow] = []
     children: list[str] = []
     for index, item in enumerate(items):
@@ -2057,9 +2112,7 @@ def _expand_progress_circle_single(
     data_model: dict[str, Any] | None = None,
 ) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
-        raise CompactDslConversionError(
-            "ProgressCircleSingle requires a 2x2 or 2x4 card."
-        )
+        raise CompactDslConversionError("ProgressCircleSingle requires a 2x2 or 2x4 card.")
     allowed = {
         "value",
         "total",
@@ -2486,8 +2539,18 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
 def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRow]:
     if size != "2x2":
         raise CompactDslConversionError("DataDisplay currently requires a 2x2 card.")
-    allowed = {"label", "value", "supportingText", "fontColor"}
-    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    allowed = {"label", "value", "supportingText", "fontColor", "fontSize"}
+    _validate_high_level_props(
+        component,
+        required={"label", "value", "supportingText", "fontColor"},
+        allowed=allowed,
+    )
+    _validate_recipe_font_size(
+        component,
+        component_name="DataDisplay",
+        part_name="value",
+        size=size,
+    )
     for name in ("label", "supportingText"):
         if not isinstance(component.props.get(name), str) or not component.props[name].strip():
             raise CompactDslConversionError(
@@ -2781,6 +2844,33 @@ def _validate_high_level_props(
         )
 
 
+def _validate_recipe_font_size(
+    component: ComponentRow,
+    *,
+    component_name: str,
+    part_name: str,
+    size: str,
+    variant: str | None = None,
+) -> None:
+    """Accept an optional model-visible font size only when it matches the Recipe."""
+    if "fontSize" not in component.props:
+        return
+    _, styles = _visual_recipe_part_for_converter(
+        component_name,
+        part_name,
+        size=size,
+        variant=variant,
+    )
+    expected = styles.get("fontSize")
+    provided = component.props.get("fontSize")
+    valid_number = isinstance(provided, (int, float)) and not isinstance(provided, bool)
+    if not valid_number or not math.isfinite(provided) or provided != expected:
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component_name}.fontSize must be the fixed "
+            f"Recipe value {expected}."
+        )
+
+
 def _require_text_value(component: ComponentRow, name: str) -> None:
     value = component.props.get(name)
     valid_scalar = isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -2860,6 +2950,8 @@ def _validate_item_component(
     maximum: int,
 ) -> list[dict[str, Any]]:
     allowed = {"items", "fontColor"}
+    if component.component_type == "TableText":
+        allowed.add("fontSize")
     required = {"items", "fontColor"}
     _validate_high_level_props(component, required=required, allowed=allowed)
     _require_color(component, "fontColor")

@@ -158,8 +158,8 @@ TaskSpec 与 genui/JSONL → 动态绑定、首帧数据、事件、资源 → �
 
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main"]]
-["header","SingleLineTitle",{"title":"卡片标题"}]
-["main","SecondaryBody",{"role":"body","items":[{"value":"主要内容","maxLines":1}]}]
+["header","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
+["main","SecondaryBody",{"role":"body","items":[{"value":"主要内容","maxLines":1}],"fontSize":14}]
 ["/state/ready",true]
 ```
 

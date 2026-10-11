@@ -21,8 +21,7 @@ from services.protocol_registry import (
 )
 
 DEFAULT_BUNDLE = (
-    Path(__file__).resolve().parents[1]
-    / "cloud/data/protocol_profiles/design-compact-dsl-fusion"
+    Path(__file__).resolve().parents[1] / "cloud/data/protocol_profiles/design-compact-dsl-fusion"
 )
 DEFAULT_SOURCE = DEFAULT_BUNDLE / "prompt_source"
 
@@ -115,6 +114,8 @@ def test_plan_prompt_reuses_full_create_contract_for_size(
     assert "2x4 左右独立分区可分别使用" in plan_prompt
     assert "标题事实不推荐正文组件" in plan_prompt
     assert "时间、metadata 和补充说明使用 SecondaryBody" in plan_prompt
+    assert "固定主字号，帮助布局预算" in plan_prompt
+    assert "| `fontSize` | number | 仅静态 | 新生成必填；核心值固定 `30`" in plan_prompt
     assert included in plan_prompt
     assert excluded not in plan_prompt
 
@@ -299,10 +300,7 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     core_typography = core_fragments.get("typography", "")
     assert "`12fp`：标题区" not in core_typography
     assert "格式化主读数例外" not in core_typography
-    assert (
-        "具体组件的字号、字重、同行对齐和文本压力规则统一由后续组件合同定义"
-        in core_typography
-    )
+    assert "具体组件的字号、字重、同行对齐和文本压力规则统一由后续组件合同定义" in core_typography
 
 
 def test_size_component_rules_separate_shared_and_dedicated_components() -> None:
@@ -498,14 +496,10 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     expected = ["preamble"]
     if size == "2x2":
         expected.extend(
-            f"example-v{index:02d}"
-            for index in (1, 9, 10, 12, 4, 11, 13, 5, 6, 2, 8, 3, 7)
+            f"example-v{index:02d}" for index in (1, 9, 10, 12, 4, 11, 13, 5, 6, 2, 8, 3, 7)
         )
     else:
-        expected.extend(
-            f"example-v{index:02d}"
-            for index in (3, 16, 28, 9, 8, 10, 23, 6, 19, 38)
-        )
+        expected.extend(f"example-v{index:02d}" for index in (3, 16, 28, 9, 8, 10, 23, 6, 19, 38))
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
     modules = manifest.get("modules")
@@ -624,9 +618,7 @@ def test_invalid_manifest_is_rejected(tmp_path: Path, mutation: str) -> None:
             if prompt_name == "create" or not isinstance(prompt_references, list):
                 continue
             prompts[prompt_name] = [
-                reference
-                for reference in prompt_references
-                if reference != orphaned_reference
+                reference for reference in prompt_references if reference != orphaned_reference
             ]
     path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError):

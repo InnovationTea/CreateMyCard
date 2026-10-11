@@ -162,6 +162,33 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
 });
 
+test("ProgressCircle 将百分号 Expression 拆成数值驱动和可见读数", () => {
+  const source = [
+    '["root","Column",{},["circle"]]',
+    JSON.stringify([
+      "circle",
+      "ProgressCircle",
+      {
+        externalText: "{{ ${/data/battery/percent} + '%' }}",
+        icon: "resources/base/media/battery.svg",
+        accessibility: { label: "手机电量百分比" },
+        width: 72,
+        height: 76,
+        color: "#FF1F4799",
+        backgroundColor: "#331F4799",
+      },
+    ]),
+    '["/data/battery/percent",68]',
+  ].join("\n");
+  const graph = compileMiniDsl(source, { size: "2x4" }).graph;
+
+  assert.equal(graph.getNode("circle_ring")?.props.value, "{{ ${/data/battery/percent} }}");
+  assert.equal(
+    graph.getNode("circle_external_text")?.props.content,
+    "{{ ${/data/battery/percent} + '%' }}",
+  );
+});
+
 test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基线", () => {
   const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
   const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
@@ -258,6 +285,73 @@ test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲�
     () => compileMiniDsl('["root","Column",{},["metric"]]\n["metric","EmphasizedData",{"value":1,"fontColor":"#FF000000"}]\n["metric_value","Text",{"content":"冲突"}]'),
     /冲突/,
   );
+});
+
+test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", () => {
+  const cases: Array<{ type: string; props: Record<string, unknown>; fontSize: number }> = [
+    { type: "SingleLineTitle", props: { title: "天气" }, fontSize: 12 },
+    {
+      type: "DoubleLineTitle",
+      props: { title: "传感器", secondaryInfo: "在线" },
+      fontSize: 12,
+    },
+    { type: "EmphasizedData", props: { value: 82, unit: "分" }, fontSize: 30 },
+    {
+      type: "EmphasisText",
+      props: { mainText: "已连接", secondaryText: "耳机" },
+      fontSize: 18,
+    },
+    {
+      type: "SecondaryBody",
+      props: { role: "body", items: [{ value: "正文" }] },
+      fontSize: 14,
+    },
+    {
+      type: "SecondaryBody",
+      props: { role: "metadata", items: [{ value: "10:30" }] },
+      fontSize: 12,
+    },
+    {
+      type: "DataDisplay",
+      props: { label: "倒计时", value: 3, supportingText: "天" },
+      fontSize: 56,
+    },
+    {
+      type: "TableText",
+      props: { items: [{ label: "湿度", value: "48%" }, { label: "风力", value: "2级" }] },
+      fontSize: 12,
+    },
+    {
+      type: "TableText",
+      props: {
+        items: [
+          { label: "湿度", value: "48%" },
+          { label: "风力", value: "2级" },
+          { label: "气压", value: "1012hPa" },
+        ],
+      },
+      fontSize: 10,
+    },
+  ];
+  for (const item of cases) {
+    const source = JSON.stringify([
+      "content",
+      item.type,
+      { ...item.props, fontSize: item.fontSize },
+    ]);
+    const result = compileMiniDsl(source, { size: "2x2" });
+    const legacy = JSON.stringify(["content", item.type, item.props]);
+    assert.equal(result.jsonl, compileMiniDsl(legacy, { size: "2x2" }).jsonl);
+    const invalid = JSON.stringify([
+      "content",
+      item.type,
+      { ...item.props, fontSize: item.fontSize + 1 },
+    ]);
+    assert.throws(
+      () => compileMiniDsl(invalid, { size: "2x2" }),
+      /fontSize.*固定 Recipe 值/,
+    );
+  }
 });
 
 test("SecondaryBody 继承显示值绑定、按角色限制行数并保留完整标签", () => {

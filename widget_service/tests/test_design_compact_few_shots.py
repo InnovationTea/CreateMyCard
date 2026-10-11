@@ -392,6 +392,40 @@ def test_examples_use_only_supported_component_types(
     EXAMPLES,
     ids=[item[0] for item in EXAMPLES],
 )
+def test_text_component_examples_declare_fixed_recipe_font_size(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del task
+    fixed_sizes = {
+        "SingleLineTitle": 12,
+        "DoubleLineTitle": 12,
+        "EmphasizedData": 30,
+        "EmphasisText": 18,
+        "DataDisplay": 56,
+    }
+    for row in _rows(source):
+        if len(row) < 3:
+            continue
+        component_type = row[1]
+        props = row[2]
+        expected = fixed_sizes.get(component_type)
+        if component_type == "SecondaryBody":
+            role = props.get("role")
+            items = props.get("items", [])
+            expected = 12 if role == "metadata" or len(items) > 2 else 14
+        elif component_type == "TableText":
+            expected = 10 if len(props.get("items", [])) == 3 else 12
+        if expected is not None:
+            assert props.get("fontSize") == expected, identifier
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
 def test_examples_do_not_override_runtime_owned_component_styles(
     identifier: str,
     task: dict,
@@ -500,8 +534,7 @@ def test_palette_preserves_text_hierarchy(colors: list[str]) -> None:
     for step in range(11):
         fraction = step / 10.0
         background = tuple(
-            left + (right - left) * fraction
-            for left, right in zip(start_rgb, end_rgb, strict=True)
+            left + (right - left) * fraction for left, right in zip(start_rgb, end_rgb, strict=True)
         )
         backboard = _composite(background, _rgba("#CCFFFFFF"))
         for surface in (background, backboard):
