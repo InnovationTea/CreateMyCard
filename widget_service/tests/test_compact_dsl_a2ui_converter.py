@@ -1298,6 +1298,128 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["events_item0_title"]["styles"]["fontWeight"], 700)
         self.assertEqual(components["events_item0_time"]["styles"]["fontSize"], 10)
 
+    def test_expands_three_event_card_items_with_all_inter_item_gaps(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["events"]],
+                [
+                    "events",
+                    "EventCard",
+                    {
+                        "items": [
+                            {"title": "晨会", "time": "09:00"},
+                            {"title": "评审", "time": "14:00"},
+                            {"title": "复盘", "time": "17:00"},
+                        ],
+                        "density": "compact",
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(
+            components["events"]["children"],
+            ["events_item0", "events_item1", "events_item2"],
+        )
+        self.assertEqual(components["events"]["styles"]["height"], 112)
+
+    def test_rejects_empty_event_card_items(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["events"]],
+                [
+                    "events",
+                    "EventCard",
+                    {"items": [], "fontColor": "#FF1F4799"},
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "EventCard.items requires at least 1 entry",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_three_event_card_items_still_follow_parent_capacity_validation(self) -> None:
+        items = [
+            {"title": "晨会", "time": "09:00"},
+            {"title": "评审", "time": "14:00"},
+            {"title": "复盘", "time": "17:00"},
+        ]
+        task_spec = {
+            "size": "2x4",
+            "dataModelSchema": {},
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {"suggestSize": "2x4", "dataBindings": []}
+        valid_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent", "padding": 12},
+                    ["events"],
+                ],
+                [
+                    "events",
+                    "EventCard",
+                    {"items": items, "density": "compact", "fontColor": "#FF1F4799"},
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        validate_compact_dsl(
+            valid_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
+            protocol_profile=self.profile,
+        )
+
+        overflowing_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": "matchParent", "height": "matchParent", "padding": 12},
+                    ["body"],
+                ],
+                ["body", "Column", {"width": "matchParent", "height": 110}, ["events"]],
+                [
+                    "events",
+                    "EventCard",
+                    {"items": items, "density": "compact", "fontColor": "#FF1F4799"},
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "component body: vertical layout requires at least 112vp within 110vp",
+        ):
+            validate_compact_dsl(
+                overflowing_dsl,
+                task_spec=task_spec,
+                card_spec=card_spec,
+                protocol_profile=self.profile,
+            )
+
     def test_expands_two_by_four_content_components(self) -> None:
         handler = {"call": "openDetails", "args": {}}
         compact_dsl = _serialize(

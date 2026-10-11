@@ -204,6 +204,21 @@ test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基�
   assert.equal(unit.margin, undefined);
 });
 
+test("EventCard 允许三项并按全部相邻间距计算总高", () => {
+  const source = [
+    '["root","Column",{},["events"]]',
+    '["events","EventCard",{"items":[{"title":"晨会","time":"09:00"},{"title":"评审","time":"14:00"},{"title":"复盘","time":"17:00"}],"density":"compact","fontColor":"#FF1F4799"}]',
+  ].join("\n");
+  const graph = compileMiniDsl(source, { size: "2x4" }).graph;
+
+  assert.deepEqual(graph.getNode("events")?.children, [
+    "events_item0",
+    "events_item1",
+    "events_item2",
+  ]);
+  assert.equal((graph.getNode("events")?.props.styles as Record<string, unknown>).height, 112);
+});
+
 test("EmphasisText 使用与 claw-widget 一致的行盒与文本间距", () => {
   const root = visualRecipePart("EmphasisText", "root", "2x2").styles;
   const main = visualRecipePart("EmphasisText", "main", "2x2").styles;

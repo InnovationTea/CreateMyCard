@@ -18,9 +18,11 @@
 
 修复已匹配的语义组件时，先修错误 Props、绑定形式、必要父容器与槽位预算，再考虑更换组件。
 不能因一次属性错误直接退化为逐字段文本；模型仍不得直接输出 Text。必要事实、动作和对象归属不变。
-修复范围先按本轮实际错误确定：只有明确的 Props、绑定或素材错误，且没有结构、容量或
+修复范围先按本轮实际错误与请求内 repairStrategy 确定：首次仅有明确 Props、绑定或素材错误，且没有结构、容量或
 必需信息错误时，保持当前合法布局/变体、事实合组、动作归属和未报错区域，仅修改定位到的
 错误属性并复查相邻影响。不能因一次属性错误重选整卡骨架；不确定诊断不授权盲目重组。
+同根因重复且 repairStrategy 已升级到 parent_layout/full_dsl 时，按升级范围完整重组，
+不继续执行首轮局部冻结要求；硬事实、动作、原字号和全部合同仍不变。
 若同时存在结构、容量或必需信息错误，不能冻结已经不成立的布局；局部修复无法闭合时，
 提升到共同父级重新组合和分配空间，并完整修复全部相关错误，不能只处理第一条。
 区域关系出错时先恢复 matchParent/layoutWeight 与固定边距，不以缩字号、缩按钮或删信息解决。
@@ -73,6 +75,11 @@ CardButton 完整label过长时使用 labelLines:2，在原字号、原动作槽
 
 请以 invalidSourceDsl 为待修复对象，逐项处理 qualityErrors 中列出的 error 级问题，并尽量保持未涉及部分稳定。
 qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描述具体问题。
+若用户载荷包含 repairStrategy，它是微服务根据本请求前序失败生成的修复路由：
+按其 scope、repairStrategy 和 instruction 执行。`component` 只修对应组件；`sublayout` 重算所属信息组；
+`parent_layout` 重新分配父区域；`full_dsl` 放弃旧拓扑，从已接受 Plan 的全部硬事实重建完整 DSL。
+noProgress 为 true 或 consecutiveFailures 大于等于 2 时，禁止只修改 id、颜色、对齐、layoutWeight 或其它
+不影响根因的属性；必须使用更高层级的组合策略。
 完整 artifact 校验错误还可能包含 category、validatorStage、fileKind、line、jsonPointer、actual、expected 和
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 执行最小修改；不得忽略具体 code 和 fixHint 后仅凭通用 category 猜测修复方式。

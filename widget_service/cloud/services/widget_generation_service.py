@@ -44,6 +44,7 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.compact_plan import CompactPlanValidationError, parse_compact_plan_call
+from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -720,6 +721,11 @@ class WidgetGenerationService:
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
+        compact_repair_tracker = (
+            CompactRepairStrategyTracker()
+            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            else None
+        )
         repair_records: list[RepairArtifactRecord] = []
         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
@@ -1025,12 +1031,42 @@ class WidgetGenerationService:
         async def repair_source_dsl(
             invalid_source_dsl: str,
             quality_errors: list[str],
-        ) -> str:
+        ) -> str | None:
             from services.prompt_builder import PromptBuilder
 
             nonlocal model_call_phase, quality_repair_attempt_count
-            quality_repair_attempt_count += 1
             trace_phase("repair")
+            quality_error_payloads = [
+                asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
+                for item in latest_processing_result.errors
+            ]
+            if len(quality_error_payloads) != len(quality_errors):
+                raise RuntimeError("repair quality issue state is inconsistent")
+            quality_error_stages = sorted({item["stage"] for item in quality_error_payloads})
+            repair_strategy = None
+            if compact_repair_tracker is not None:
+                directive = compact_repair_tracker.next_directive(
+                    invalid_source_dsl,
+                    quality_error_payloads,
+                )
+                repair_strategy = directive.to_prompt_payload()
+                trace_step(
+                    "repair.strategy.selected",
+                    stage="repair.strategy",
+                    status="success" if directive.retryable else "stopped",
+                    details=repair_strategy,
+                    json_artifacts={"repair_strategy": repair_strategy},
+                    artifact_roles={"repair_strategy": "diagnostic"},
+                )
+                if not directive.retryable:
+                    logger.warning(
+                        f"{_MODULE} a2ui_repair_stopped "
+                        f"repair_strategy={json_for_log(repair_strategy)} "
+                        f"quality_error_count={len(quality_errors)}"
+                    )
+                    return None
+
+            quality_repair_attempt_count += 1
             trace_increment_attempt("qualityRepairAttempts")
             trace_increment_retry("qualityRepairRetries")
             with (
@@ -1042,13 +1078,6 @@ class WidgetGenerationService:
                     kind="group",
                 ),
             ):
-                quality_error_payloads = [
-                    asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
-                    for item in latest_processing_result.errors
-                ]
-                if len(quality_error_payloads) != len(quality_errors):
-                    raise RuntimeError("repair quality issue state is inconsistent")
-                quality_error_stages = sorted({item["stage"] for item in quality_error_payloads})
                 repair_prompt_started_at = time.perf_counter()
                 repair_prompt = PromptBuilder().build_repair(
                     effective_generation_prompt,
@@ -1061,6 +1090,7 @@ class WidgetGenerationService:
                         quality_repair_failure_history
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
                     ),
+                    repair_strategy=repair_strategy,
                 )
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
@@ -1072,6 +1102,10 @@ class WidgetGenerationService:
                     json_artifacts={
                         "repair_quality_errors": quality_error_payloads,
                         "repair_prompt": repair_prompt,
+                        **(
+                            {"repair_strategy": repair_strategy}
+                            if repair_strategy is not None else {}
+                        ),
                     },
                     text_artifacts={"repair_invalid_source_dsl": invalid_source_dsl},
                     artifact_roles={
@@ -1087,6 +1121,7 @@ class WidgetGenerationService:
                     f"source_format={policy.source_format} "
                     f"quality_error_stages={json_for_log(quality_error_stages)} "
                     f"repair_attempt={quality_repair_attempt_count} "
+                    f"repair_strategy={json_for_log(repair_strategy)} "
                     "max_repair_attempts="
                     f"{settings.validation_failure_max_repair_attempts} "
                     f"quality_error_count={len(quality_errors)}"

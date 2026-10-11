@@ -1863,6 +1863,7 @@ class PromptBuilder:
         previous_failures: list[list[dict[str, Any]]] | None = None,
         task_spec: TaskSpec | None = None,
         compact_plan: dict[str, Any] | None = None,
+        repair_strategy: dict[str, Any] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
@@ -1884,6 +1885,14 @@ class PromptBuilder:
         }
         if previous_failures is not None:
             payload["previousFailures"] = history
+        recompose_requested = False
+        if repair_strategy is not None:
+            strategy = copy.deepcopy(repair_strategy)
+            payload["repairStrategy"] = strategy
+            recompose_requested = strategy.get("scope") in ("parent_layout", "full_dsl")
+            strategy_instruction = strategy.get("instruction")
+            if isinstance(strategy_instruction, str) and strategy_instruction.strip():
+                payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if dsl_format == DESIGN_COMPACT_PROFILE_ID:
             try:
                 original_payload = json.loads(initial_prompt[1]["content"])
@@ -1940,7 +1949,7 @@ class PromptBuilder:
                     "保留事实动作和字号，落实整个变体与横纵合组，"
                     "不要继续维持 invalidSourceDsl 的超预算子树。"
                 )
-            elif not capacity_errors:
+            elif not capacity_errors and not recompose_requested:
                 payload["instruction"] += (
                     "本次没有布局或容量错误，不重做组合选型；"
                     "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"

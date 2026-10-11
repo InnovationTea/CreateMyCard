@@ -91,7 +91,7 @@ Plan 确定必须展示的信息与操作，同时提交分区、组件实例合
 - “在线/离线”“多云/晴天”等状态不是数值；作为核心结论时优先 `EmphasisText`，作为普通信息时使用 `SecondaryBody`，不推荐 `EmphasizedData` 或 `DataDisplay`。
 - 多项信息都属于同一对象，不代表每项都推荐 InfoBlock；只有当前尺寸允许的固定双信息块/辅助槽才采用它。
 - 先确认所有必要动作，再排除只属于无动作布局的组件；不得推荐后又通过省略操作来满足组件条件。
-- 同一事件的标题、起止时间和地点共同组成 EventCard 的一个 item；1–2 个事件放在同一个 EventCard 中，
+- 同一事件的标题、起止时间和地点共同组成 EventCard 的一个 item；多个事件放在同一个 EventCard 中，
   不因事实拆分而重复创建组件或省略结束时间。
 - SingleLineTitle 每个语义分区最多一个；2x4 左右独立分区可分别使用。标题事实不推荐正文组件；正文、普通
   时间、metadata 和补充说明使用 SecondaryBody，核心文本结论使用 EmphasisText。

@@ -34,6 +34,13 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
         "invalid source",
         quality_errors,
         dsl_format="compact-dsl",
+        repair_strategy={
+            "category": "layout_capacity",
+            "scope": "parent_layout",
+            "repairStrategy": "structural",
+            "retryTarget": "dsl_recompose",
+            "instruction": "重新选择父布局变体。",
+        },
     )
 
     assert messages[0]["content"].startswith("create constraints")
@@ -45,3 +52,6 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
     assert "父容器" in instruction
     assert "重复单位" in instruction
     assert payload["qualityErrors"] == quality_errors
+    assert payload["repairStrategy"]["scope"] == "parent_layout"
+    assert payload["repairStrategy"]["retryTarget"] == "dsl_recompose"
+    assert "本轮修复路由：重新选择父布局变体。" in instruction

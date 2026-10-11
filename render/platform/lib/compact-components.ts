@@ -1307,8 +1307,8 @@ function expandHighLevel(
     else if (p.title !== undefined && p.time !== undefined) {
       items = [{ title: p.title, time: p.time, ...(p.location === undefined ? {} : { location: p.location }) }];
     } else throw new Error(`${id}: EventCard 需要 items 或 title/time。`);
-    if (items.length < 1 || items.length > 2) {
-      throw new Error(`${id}: EventCard.items 需要 1–2 项。`);
+    if (items.length < 1) {
+      throw new Error(`${id}: EventCard.items 至少需要 1 项。`);
     }
     items.forEach((item, index) => {
       const valid = record(item) && isDisplayValue(item.title) && isDisplayValue(item.time)
@@ -1387,7 +1387,7 @@ function expandHighLevel(
       }
     });
     if (items.length === 1) return rows;
-    totalHeight += 8;
+    totalHeight += 8 * (items.length - 1);
     return [row(id, type, "multiRoot", size, { height: totalHeight }, itemIds), ...rows];
   }
 

@@ -2345,9 +2345,9 @@ def _event_card_items(component: ComponentRow) -> tuple[list[dict[str, Any]], bo
         )
     if has_items:
         items = component.props.get("items")
-        if not isinstance(items, list) or not 1 <= len(items) <= 2:
+        if not isinstance(items, list) or not items:
             raise CompactDslConversionError(
-                f"{component.component_id}: EventCard.items requires 1 to 2 entries."
+                f"{component.component_id}: EventCard.items requires at least 1 entry."
             )
     else:
         if "title" not in component.props or "time" not in component.props:
@@ -2594,7 +2594,7 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
         total_height += item_height
     if len(items) == 1:
         return rows
-    total_height += 8
+    total_height += 8 * (len(items) - 1)
     root = _visual_row(
         component.component_id,
         "EventCard",
