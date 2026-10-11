@@ -37,7 +37,6 @@ _SLOTS = (
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon", "icon_earphone.svg"),
     ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon", "earphone_case_16644.svg"),
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon", "icon_earphone.svg"),
-    ("BatteryOverviewPluggedTypeSupport@1", "batteryOrChangeIcon", "bolt_fill.svg"),
     ("BluetoothDeviceOverviewNameAndConnectionSupport@1", "bluetoothIconOrDeviceIcon",
      "icon_earphone.svg"),
     ("BluetoothDeviceOverviewNameAndChargeSupport@1", "bluetoothIconOrDeviceIcon",
@@ -81,7 +80,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 25
+    assert slot_count == 24
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -309,7 +308,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         # BatteryOverviewSupport@1 不贡献自身素材：icon_phone 已下架（上游 #410），
         # 其用例仅携带 partner 的温度计素材。
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
-        "BatteryOverviewPluggedTypeSupport@1": "asset.bolt_fill",
+        "WeatherOverviewConditionSupport@1": "asset.sun_max",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
@@ -346,4 +345,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         assert isinstance(gallery_test, dict)
         overrides = gallery_test.get("sampleOverrides")
         assert isinstance(overrides, dict)
-        assert overrides.get("/data/weather/current/condition") == "多云"
+        expected_condition = "多云"
+        if "WeatherOverviewConditionSupport@1" in (case.targetTemplateId, case.partnerTemplateId):
+            expected_condition = "晴"
+        assert overrides.get("/data/weather/current/condition") == expected_condition

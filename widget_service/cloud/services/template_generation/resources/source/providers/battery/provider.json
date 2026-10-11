@@ -375,7 +375,7 @@
       "templateId": "BatteryOverviewPluggedTypeSupport@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量与充电类型 Support：主行展示带单位电量文本，辅行展示充电状态和充电器类型；三个字段必需，不依赖数值电量。右侧电池或充电图标可选，根节点可绑定电池业务事件。",
+      "description": "手机电量与充电类型 Support：主行展示带单位电量文本，辅行展示充电状态和充电器类型；三个字段必需，不依赖数值电量。不声明图标槽位，根节点可绑定电池业务事件。",
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOCText"
@@ -385,11 +385,6 @@
         "/pluggedTypeDesc"
       ],
       "optionalData": [],
-      "assetParameterSemanticTags": {
-        "batteryOrChangeIcon": [
-          "battery"
-        ]
-      },
       "supportedEventIds": [
         "event.open.settings.battery",
         "event.open.settings.batteryHealth",

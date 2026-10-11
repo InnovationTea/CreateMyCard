@@ -3066,7 +3066,7 @@ Column(
 
 #End
 
-#Template WeatherOverviewConditionSupport@1(props: { conditionIcon?: asset, actionId?: string })
+#Template WeatherOverviewConditionSupport@1(props: { conditionIcon: asset, actionId?: string })
 data = {
     condition: $path("/current/condition"),
 }
@@ -3115,7 +3115,6 @@ Row(
       }
     )
   ),
-  #if props.conditionIcon
   Image(
     props.conditionIcon,
     {
@@ -3126,7 +3125,6 @@ Row(
       "fillColor": $theme('supportContentColor')
     }
   )
-  #endif
 )
 
 #End

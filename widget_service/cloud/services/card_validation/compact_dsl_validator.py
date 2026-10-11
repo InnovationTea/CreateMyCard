@@ -189,13 +189,10 @@ def validate_compact_dsl(
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
     enforce_model_component_types: bool = False,
-    allow_internal_components: bool = False,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
-        rows = parse_compact_dsl_rows(
-            compact_dsl, allow_internal_components=allow_internal_components,
-        )
+        rows = parse_compact_dsl_rows(compact_dsl)
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
 

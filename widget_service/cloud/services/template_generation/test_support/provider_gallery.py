@@ -174,8 +174,8 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
-    "BatteryOverviewPluggedTypeSupport@1": ("asset.bolt_fill",),
-    "WeatherOverviewConditionSupport@1": (),
+    "BatteryOverviewPluggedTypeSupport@1": (),
+    "WeatherOverviewConditionSupport@1": ("asset.sun_max",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
@@ -689,7 +689,10 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        condition = _SUPPORT_WEATHER_CONDITION
+        if weather_template.template_id == "WeatherOverviewConditionSupport@1":
+            condition = "晴"
+        sample_overrides["/data/weather/current/condition"] = condition
     battery_template = next(
         (
             template

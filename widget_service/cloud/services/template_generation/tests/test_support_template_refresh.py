@@ -414,10 +414,10 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
         "BluetoothDeviceOverviewEarbudsSupport@1": [
             "l_circle_fill.svg", "r_circle_fill.svg", "icon_earphone.svg",
         ],
-        "BatteryOverviewPluggedTypeSupport@1": ["bolt_fill.svg"],
+        "BatteryOverviewPluggedTypeSupport@1": [],
         "BluetoothDeviceOverviewNameAndConnectionSupport@1": ["icon_earphone.svg"],
-        "BluetoothDeviceOverviewNameAndChargeSupport@1": ["icon_earphone.svg"],
-        "WeatherOverviewConditionSupport@1": [],
+        "BluetoothDeviceOverviewNameAndChargeSupport@1": [],
+        "WeatherOverviewConditionSupport@1": ["sun_max.svg"],
         "BluetoothDeviceOverviewChargeSupport@1": ["earphone_case_16644.svg"],
         "BluetoothDeviceOverviewConnectionSupport@1": ["icon_earphone.svg"],
         "HeartRateOverviewSupport@1": ["heart_fill.svg"],
