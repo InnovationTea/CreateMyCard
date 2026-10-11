@@ -55,7 +55,7 @@ repair.system.prompt: "@prompt:../data/protocol_profiles/design-compact-dsl-fusi
 
 a2ui_form_model_backend: mep
 design_compact_model_backend: openai
-validation_failure_max_repair_attempts: 10
+validation_failure_max_repair_attempts: 1
 model_max_concurrency: 20
 model_queue_timeout_seconds: 120
 model_request_timeout_seconds: 120
