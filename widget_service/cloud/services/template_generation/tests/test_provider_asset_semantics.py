@@ -310,6 +310,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
         "WeatherOverviewConditionSupport@1": "asset.sun_max",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
+        "WeatherOverviewFeelsLikeWindSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
         "ActivityOverviewSupport@1": "asset.figure_run",
@@ -348,4 +349,10 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         expected_condition = "多云"
         if "WeatherOverviewConditionSupport@1" in (case.targetTemplateId, case.partnerTemplateId):
             expected_condition = "晴"
-        assert overrides.get("/data/weather/current/condition") == expected_condition
+        condition_path = "/data/weather/current/condition"
+        if case.targetTemplateId == "WeatherOverviewDaily2TravelSupport@1":
+            condition_path = "/data/weather/daily/2/condition"
+        elif case.targetTemplateId == "WeatherOverviewFeelsLikeWindSupport@1":
+            assert "/data/weather/current/condition" not in overrides
+            continue
+        assert overrides.get(condition_path) == expected_condition
