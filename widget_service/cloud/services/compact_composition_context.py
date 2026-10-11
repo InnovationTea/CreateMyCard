@@ -179,6 +179,8 @@ def composition_recovery_context(
             "单列能放下时不要改回窄双列；未知标签仍需核算。"
             "groupParameters 是组合说明而非可照抄的全部 Props，"
             "事实索引需转换成真实绑定，字段合同单位需解析成合法 unit；"
+            "requiresObjectCaption=true 是已预算的必要对象标题，按meaning填写最短准确名称；"
+            "它没有新增硬事实，不能省掉，也不能用连接状态代替电量对象。"
             "不得把索引、预算、样值等参考字段输出到 DSL。"
             "横排各子节点落实 suggestedLayoutProps 中的 matchParent/比例权重，"
             "不能让自然宽度的表达式挤占相邻事实。displayBudget 核算的是原值；"
@@ -334,8 +336,28 @@ def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
                 roles[paths[0]] = {
                     "component": row.component_type,
                     "role": row.props.get("role", "supporting"),
+                    "displayExpression": value,
                 }
     return roles
+
+
+def literal_display_parts(value: Any, task: dict[str, Any]) -> list[dict[str, str]]:
+    """仅分离原纯文字前缀，动态路径和后缀原样保留；未知表达式不尝试。"""
+    displayed = _literal_display_sample(value, task)
+    if displayed is None or not isinstance(value, str):
+        return []
+    path, sample = displayed
+    marker = "${" + path + "}"
+    body = value.strip().removeprefix("{{").removesuffix("}}").strip()
+    before, _, after = body.partition(marker)
+    literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    prefix = "".join(ast.literal_eval(match.group(0)) for match in re.finditer(literal, before))
+    if not prefix.strip():
+        return []
+    return [
+        {"text": prefix.strip(), "sample": prefix.strip()},
+        {"text": "{{ " + marker + after + " }}", "sample": sample[len(prefix):].strip()},
+    ]
 
 
 def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:

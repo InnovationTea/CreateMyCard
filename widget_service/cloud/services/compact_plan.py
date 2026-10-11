@@ -780,6 +780,16 @@ def _validate_facts(
         if target == "dataId" and target_value not in data_paths:
             errors.append(f"{location}.dataId is not present in TaskSpec: {target_value}.")
             continue
+        if target == "dataId" and _internal_action_parameter_fact(
+            target_value, requirement, task_spec, query_text,
+        ):
+            errors.append(
+                f"{location}: {target_value} is an internal identifier used only by an action, "
+                "not a requested visible fact. Keep its original path in the complete event "
+                "candidate and retain that action; rebuild this Plan with every real display "
+                "requirement, without adding an identifier text row. Do not remove user facts."
+            )
+            continue
         if target == "actionId" and target_value not in action_ids:
             errors.append(
                 f"{location}.actionId is not present in TaskSpec: {target_value}."
@@ -854,6 +864,31 @@ def _validate_facts(
     if errors:
         raise CompactPlanValidationError(errors)
     return normalized, warnings
+
+
+def _internal_action_parameter_fact(
+    path: str, requirement: str, task: dict[str, Any], query: str,
+) -> bool:
+    """仅反馈计划自己承认的内部传参标识错误；不推断普通字段不可见。"""
+    if not re.search(r"仅供|仅用于|用于(?:打开|定位|识别|传参)", requirement):
+        return False
+    if re.search(r"(?:显示|展示|查看).{0,16}(?:编号|标识|(?<![a-z])ID(?![a-z])|entityId)",
+                 query, re.I):
+        return False
+    from services.compact_composition_planner import _schema_value
+
+    description = _schema_value(task, path).get("description", "")
+    if not re.search(r"(?:唯一|内部).{0,12}(?:标识|(?<![a-z])ID(?![a-z]))", description, re.I):
+        return False
+    for candidate in task.get("eventCandidates", []):
+        if not isinstance(candidate, dict):
+            continue
+        paths: set[str] = set()
+        literals: list[str] = []
+        _collect_paths_and_literals(candidate.get("args"), paths, literals)
+        if path in paths:
+            return True
+    return False
 
 
 def _normalize_layout_hints(

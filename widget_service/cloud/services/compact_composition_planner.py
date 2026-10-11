@@ -56,6 +56,11 @@ def feasible_composition_candidates(
     candidates: list[dict[str, Any]] = []
     examined = 0
     diagnostics: list[dict[str, Any]] = []
+    pattern_count = sum(
+        len(value.get("patterns", [])) for value in layouts.values() if value.get("size") == size
+    )
+    pattern_budget = max(1, _SEARCH_LIMIT // max(1, pattern_count))
+    limited = False
     for name in ordered:
         layout = layouts.get(name, {})
         if layout.get("size") != size:
@@ -68,20 +73,23 @@ def feasible_composition_candidates(
             continue
         for variant, pattern in enumerate(layout.get("patterns", []), start=1):
             previous_count = len(candidates)
+            pattern_stop = examined + pattern_budget
             tree = _region_tree(size, pattern.get("rules", []))
             if tree is None:
                 continue
             zones = _leaves(tree)
             for combination in itertools.product(*choices):
                 examined += 1
-                if examined >= _SEARCH_LIMIT:
+                if examined >= pattern_stop:
+                    limited = True
                     break
                 groups: list[dict[str, Any]] = []
                 for bundle in combination:
                     groups.extend(copy.deepcopy(bundle))
                 for allocation in _allocations(zones, groups, actions, size):
                     examined += 1
-                    if examined >= _SEARCH_LIMIT:
+                    if examined >= pattern_stop:
+                        limited = True
                         break
                     if allocation is None:
                         continue
@@ -94,7 +102,7 @@ def feasible_composition_candidates(
                         break
                 if len(candidates) > previous_count:
                     break
-                if examined >= _SEARCH_LIMIT:
+                if examined >= pattern_stop:
                     break
             if len(candidates) == previous_count:
                 diagnostics.append(
@@ -112,7 +120,7 @@ def feasible_composition_candidates(
         "status": "reference_candidates" if candidates else "no_candidate_found",
         "candidates": candidates,
         "examinedAllocations": examined,
-        "searchLimited": examined >= _SEARCH_LIMIT,
+        "searchLimited": limited,
         "diagnostics": diagnostics,
         "applicationPolicy": "Preserve a valid, closed existing composition; use a complete "
         "alternative only when its actual implementation conflicts.",
@@ -170,7 +178,7 @@ def _text_width(value: str, font_size: float) -> float:
     # 保守压力估算，换行按实际字符累计，不把总宽直接除以行数冒充可换行。
     widths = []
     for line in value.splitlines():
-        widths.append(sum(font_size * (0.6 if ch.isascii() else 1) for ch in line) * 1.2)
+        widths.append(sum(font_size * (0.6 if ch.isascii() else 1) for ch in line))
     return math.ceil(max(widths, default=0))
 
 
@@ -200,6 +208,8 @@ def _group_choices(
             for index in group.get("factIndexes", []):
                 declared.setdefault(index, group)
             event = _declared_event_group(size, group, facts, task)
+            if event is None:
+                event = _declared_table_group(size, group, facts, task, display_samples)
             if event is not None:
                 indexes = set(event.get("factIndexes", []))
                 if not indexes.intersection(event_indexes):
@@ -228,6 +238,11 @@ def _group_choices(
         if source_role and "SingleLineTitle" not in hints:
             first = source_role.get("component", first)
             declared_group = {**declared_group, **source_role}
+            from services.compact_composition_context import literal_display_parts
+
+            declared_group["displayParts"] = literal_display_parts(
+                source_role.get("displayExpression"), task,
+            )
         supported = {
             "SingleLineTitle",
             "EmphasizedData",
@@ -283,6 +298,9 @@ def _group_choices(
         objects.setdefault(identity, []).append(item)
     output: list[list[list[dict[str, Any]]]] = []
     for items in objects.values():
+        has_object_title = any(item.get("component") == "SingleLineTitle" for item in items)
+        for item in items:
+            item["hasObjectTitle"] = has_object_title
         singles = [_single_group(size, item) for item in items]
         alternatives = [singles]
         ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
@@ -297,6 +315,20 @@ def _group_choices(
                         if item.get("index") not in pair_indexes:
                             rest.append(_single_group(size, item))
                     alternatives.append([packed, *rest])
+                packed = _ordinary_pair(size, pair, 2)
+                packed.update({
+                    "lines": [2, 2], "requiredHeight": packed.get("requiredHeight") * 2,
+                    "minimumWidth": packed.get("minimumWidth") / 2,
+                    "fullTextRequiresTwoLineReview": True,
+                })
+                alternatives.append([packed, *rest])
+        readouts = [group for group in singles if group.get("component") == "EmphasizedData"]
+        if len(readouts) == 1 and len(singles) == 3:
+            texts = [group for group in singles if group is not readouts[0]]
+            if all(group.get("component") != "TextBlock" for group in texts):
+                gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
+                text_column = _nested_group("Column", texts, gap)
+                alternatives.append([_nested_group("Row", [text_column, readouts[0]], gap)])
         blocks = [item for item in items if item.get("component") == "TextBlock"]
         if 2 <= len(blocks) <= 4:
             rest = [_single_group(size, item) for item in items if item not in blocks]
@@ -305,6 +337,24 @@ def _group_choices(
     for event in event_groups:
         output.append([[event]])
     return output
+
+
+def _nested_group(
+    direction: str, groups: list[dict[str, Any]], gap: float,
+) -> dict[str, Any]:
+    widths = [group.get("minimumWidth") for group in groups]
+    heights = [group.get("requiredHeight") for group in groups]
+    indexes = []
+    for group in groups:
+        indexes.extend(group.get("factIndexes", []))
+    horizontal = direction == "Row"
+    return {
+        "component": direction, "nestedGroups": copy.deepcopy(groups), "gap": gap,
+        "factIndexes": indexes, "placements": ["nestedGroups"] * len(indexes),
+        "minimumWidth": sum(widths) + gap * (len(groups) - 1) if horizontal else max(widths),
+        "requiredHeight": max(heights) if horizontal else sum(heights) + gap * (len(groups) - 1),
+        "object": groups[0].get("object"),
+    }
 
 
 def _declared_event_group(
@@ -390,6 +440,55 @@ def _declared_event_group(
     }
 
 
+def _declared_table_group(
+    size: str, group: dict[str, Any], facts: list[dict[str, Any]], task: dict[str, Any],
+    display_samples: dict[str, str] | None,
+) -> dict[str, Any] | None:
+    """保留真实已声明的明细表，不把三行表误拆成三条更高的正文。"""
+    if group.get("component") != "TableText":
+        return None
+    indexes = group.get("factIndexes", [])
+    placements = group.get("placements", [])
+    if len(indexes) not in {2, 3} or len(placements) != len(indexes):
+        return None
+    samples = []
+    sources = []
+    for position, index in enumerate(indexes):
+        if not isinstance(index, int) or not 0 <= index < len(facts):
+            return None
+        if placements[position] != f"items[{position}].value":
+            return None
+        fact = facts[index]
+        sample = _pressure(fact, task, display_samples)
+        if sample is None or "TableText" not in fact.get("componentHints", []):
+            return None
+        samples.append(sample)
+        sources.append(fact.get("dataId", "").rsplit("/", 1)[0])
+    if len(set(sources)) != 1:
+        return None
+    variant = "compact" if len(indexes) == 3 else None
+    recipe = component_visual_recipe("TableText", size=size, variant=variant)
+    styles = _part(size, "TableText", "value", variant)
+    gap_key = "threeRowGap" if len(indexes) == 3 else "twoRowGap"
+    gap = recipe.get("metrics", {}).get(gap_key, 0)
+    return {
+        "component": "TableText", "factIndexes": list(indexes),
+        "placements": list(placements), "object": sources[0],
+        "requiredHeight": styles.get("height") * len(indexes) + gap * (len(indexes) - 1),
+        "minimumWidth": max(_text_width(sample, styles.get("fontSize")) for sample in samples),
+        "fontSize": styles.get("fontSize"), "labelsRequireWidthReview": True,
+        "pressureOnly": samples,
+    }
+
+
+def _sample_with_unit(item: dict[str, Any]) -> str:
+    sample = item.get("sample")
+    unit = _declared_unit(item)
+    if unit is not None and not sample.rstrip().endswith(unit):
+        sample += unit
+    return sample
+
+
 def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
     name = item.get("component")
     if name == "TextBlock":
@@ -408,7 +507,9 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
     unit = _declared_unit(item)
     sample = item.get("sample")
     if unit is not None and name not in {"EmphasizedData", "ProgressLine2"}:
-        sample += unit
+        sample = _sample_with_unit(item)
+    elif unit is not None and sample.rstrip().endswith(unit):
+        sample = sample.rstrip().removesuffix(unit).rstrip()
     width = _text_width(sample, styles.get("fontSize"))
     placement = {
         "SingleLineTitle": "title",
@@ -434,6 +535,8 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
     }
     if name == "SecondaryBody":
         output.update({"role": role, "columns": 1, "lines": [1], "labelAllowance": 0})
+    if name == "EmphasisText":
+        output["splitDisplayParts"] = item.get("declared", {}).get("displayParts", [])
     if unit is not None:
         output["unitFromFieldContract"] = unit
         if name in {"EmphasizedData", "ProgressLine2"}:
@@ -450,6 +553,19 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
     if name == "ProgressLine2":
         output["variant"] = item.get("declared", {}).get("variant")
         output["ratioContractMustBeRetained"] = True
+    needs_caption = not item.get("hasObjectTitle", False)
+    if name == "EmphasizedData" and unit in {"%", "％"} and needs_caption:
+        if re.fullmatch(r"\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*", sample):
+            title_style = _part(size, "SingleLineTitle", "title")
+            caption = {
+                "component": "SingleLineTitle", "factIndexes": [], "placements": [],
+                "requiredHeight": _part(size, "SingleLineTitle", "root").get("height"),
+                "minimumWidth": 0,
+                "fontSize": title_style.get("fontSize"), "meaning": item.get("meaning"),
+                "object": item.get("object"), "requiresObjectCaption": True,
+            }
+            gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
+            return _nested_group("Column", [caption, output], gap)
     return output
 
 
@@ -459,7 +575,7 @@ def _ordinary_pair(size: str, pair: tuple[dict[str, Any], ...], columns: int) ->
     gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
     samples = []
     for item in pair:
-        samples.append(item.get("sample") + (_declared_unit(item) or ""))
+        samples.append(_sample_with_unit(item))
     widths = [_text_width(sample, styles.get("fontSize")) for sample in samples]
     separator = _text_width(" ｜ ", styles.get("fontSize")) if columns == 2 else 0
     return {
@@ -485,7 +601,7 @@ def _text_block(size: str, items: list[dict[str, Any]]) -> dict[str, Any]:
     value = _part(size, "TextBlock", "value")
     item_widths = []
     for item in items:
-        sample = item.get("sample") + (_declared_unit(item) or "")
+        sample = _sample_with_unit(item)
         item_widths.append(
             max(
                 item_styles.get("constraintSize", {}).get("minWidth", 0),
@@ -765,6 +881,13 @@ def _close_regions(
         if zone.kind in {"Row", "Stack"}:
             return None  # 当前搜索只在合法 Column 内容槽里构造内部横排，避免改写固定父方向。
         for group in groups:
+            if group.get("fullTextRequiresTwoLineReview"):
+                separator = _text_width(" ｜ ", group.get("fontSize"))
+                item_width = (zone.width - separator) / 2
+                samples = group.get("pressureOnly", [])
+                if any(_wrapped_lines(sample, group.get("fontSize"), item_width) > 2
+                       for sample in samples):
+                    return None
             if group.get("actionId") and not group.get("component"):
                 group["component"] = "PillButton"
                 group["requiredHeight"] = _part(size, "PillButton", "root").get("height")
@@ -885,6 +1008,24 @@ def _pack(
         if not isinstance(minimum, (int, float)) or not isinstance(height, (int, float)):
             continue
         if minimum > width:
+            parts = group.get("splitDisplayParts", [])
+            if group.get("component") == "EmphasisText" and len(parts) == 2:
+                font = group.get("fontSize")
+                if all(_text_width(part.get("sample"), font) <= width for part in parts):
+                    children = []
+                    for position, part in enumerate(parts):
+                        children.append({
+                            "component": "EmphasisText", "fontSize": font,
+                            "requiredHeight": height,
+                            "minimumWidth": _text_width(part.get("sample"), font),
+                            "factIndexes": group.get("factIndexes") if position else [],
+                            "placements": group.get("placements") if position else [],
+                            "originalMainText": part.get("text"), "object": group.get("object"),
+                        })
+                    group.update(_nested_group("Column", children, gap))
+                    height = group.get("requiredHeight")
+                    minimum = group.get("minimumWidth")
+        if minimum > width:
             if group.get("component") != "SecondaryBody" or group.get("columns") != 1:
                 continue
             sample = group.get("pressureOnly")
@@ -955,7 +1096,7 @@ def _wrapped_lines(text: str, font_size: float, width: float) -> int:
             lines += 1
             used = 0.0
             continue
-        advance = font_size * (0.6 if character.isascii() else 1) * 1.2
+        advance = font_size * (0.6 if character.isascii() else 1)
         if advance > width:
             return 3
         if used + advance > width:
@@ -1083,7 +1224,26 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
     def add_group(
         identifier: str, group: dict[str, Any], *, weight: float | None = None,
     ) -> str:
+        nested = group.get("nestedGroups")
+        if nested:
+            children = []
+            for index, child in enumerate(nested):
+                child_weight = None
+                if group.get("component") == "Row":
+                    child_weight = child.get("minimumWidth")
+                children.append(add_group(f"{identifier}_{index}", child, weight=child_weight))
+            layout_props = {"width": "matchParent"}
+            if weight is not None:
+                layout_props["layoutWeight"] = weight
+            output.append({
+                "id": identifier, "component": group.get("component"), "children": children,
+                "fixedLayoutProps": {"itemMargin": group.get("gap", 0), "padding": 0},
+                "suggestedLayoutProps": layout_props,
+            })
+            return identifier
         props = {}
+        if "originalMainText" in group:
+            props["mainText"] = group.get("originalMainText")
         for key in (
             "role", "columns", "lines", "variant", "density", "labelLines",
             "unitFromFieldContract",
@@ -1106,6 +1266,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
                 "additionalTextWidth": group.get("additionalTextWidthBudget"),
                 "fontSize": group.get("fontSize"),
                 "meaning": group.get("meaning"),
+                "requiresObjectCaption": group.get("requiresObjectCaption", False),
             },
         })
         return identifier
@@ -1165,7 +1326,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         else:
             for child in region.children:
                 children.append(visit(child))
-        fixed = {}
+        fixed = {"padding": 0}
         for key in ("padding", "itemMargin", "alignItems", "justifyContent"):
             if key in region.props:
                 fixed[key] = region.props.get(key)
