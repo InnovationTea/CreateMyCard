@@ -907,15 +907,28 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         zones[tuple(region.get("path", []))] = region
     output: list[dict[str, Any]] = []
 
-    def add_group(identifier: str, group: dict[str, Any]) -> str:
+    def add_group(
+        identifier: str, group: dict[str, Any], *, weight: float | None = None,
+    ) -> str:
         props = {}
         for key in ("role", "columns", "lines", "variant", "unitFromFieldContract"):
             if key in group:
                 props[key] = group.get(key)
-        output.append({"id": identifier, "component": group.get("component"), "children": [],
-                       "factIndexes": group.get("factIndexes"),
-                       "placements": group.get("placements"), "groupParameters": props,
-                       "additionalTextWidthBudget": group.get("additionalTextWidthBudget")})
+        layout_props: dict[str, Any] = {"width": "matchParent"}
+        if weight is not None:
+            layout_props["layoutWeight"] = weight
+        output.append({
+            "id": identifier, "component": group.get("component"), "children": [],
+            "factIndexes": group.get("factIndexes"), "placements": group.get("placements"),
+            "groupParameters": props, "suggestedLayoutProps": layout_props,
+            "displayBudget": {
+                "referenceWidth": group.get("referenceWidthBudget"),
+                "valueMinimumWidth": group.get("minimumWidth"),
+                "additionalTextWidth": group.get("additionalTextWidthBudget"),
+                "fontSize": group.get("fontSize"),
+                "meaning": group.get("meaning"),
+            },
+        })
         return identifier
 
     def add_piece(
@@ -938,8 +951,11 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
                          "referenceChildWidths": row.get("referenceChildWidths")}
                 children.append(add_piece(f"{identifier}_{index}", child, groups, gap))
         else:
+            widths = piece.get("referenceChildWidths")
+            total = sum(widths) if isinstance(widths, list) and widths else None
             for position, index in enumerate(indexes):
-                children.append(add_group(f"{identifier}_{position}", groups[index]))
+                weight = widths[position] / total if total is not None and total > 0 else None
+                children.append(add_group(f"{identifier}_{position}", groups[index], weight=weight))
         node = {"id": identifier, "component": component or "Column",
                 "children": children, "fixedLayoutProps": {"itemMargin": gap}}
         widths = piece.get("referenceChildWidths")

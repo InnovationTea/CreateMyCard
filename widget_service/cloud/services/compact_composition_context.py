@@ -203,6 +203,12 @@ def composition_recovery_context(
             "groupParameters 是组合说明而非可照抄的全部 Props，"
             "事实索引需转换成真实绑定，字段合同单位需解析成合法 unit；"
             "不得把索引、预算、样值等参考字段输出到 DSL。"
+            "横排各子节点落实 suggestedLayoutProps 中的 matchParent/归一化权重，"
+            "不能让自然宽度的表达式挤占相邻事实。displayBudget 核算的是原值；"
+            "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
+            "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
+            "或换完整合法组合；不删必要语义，不替换必需标题。"
+            "保留参考组 role 与原 Recipe 字号，不能为闭合改成较小 metadata。"
         ),
     }
     if candidates:
