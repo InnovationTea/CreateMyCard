@@ -229,10 +229,13 @@ def _composition_tool_schema(size: Any) -> dict[str, Any]:
         "type": "object",
         "properties": {
             "component": {"type": "string", "enum": list(_component_hints(size))},
-            "factIndexes": {"type": "array", "items": integer, "minItems": 1,
-                            "maxItems": 24, "uniqueItems": True},
+            "factIndexes": {"type": "array", "items": integer, "minItems": 0,
+                            "maxItems": 24,
+                            "description": (
+                                "只有装饰 SingleLineTitle 可以为空；同事实多属性重复索引。"
+                            )},
             "placements": {"type": "array", "items": {"type": "string"},
-                           "minItems": 1, "maxItems": 24,
+                           "minItems": 0, "maxItems": 24,
                            "description": "逐条对应 factIndexes 的可见 Prop，如 items[0].value。"},
             "referenceHeight": {**extent, "description": "完整组件按实际条数/行数合计占高。"},
             "variant": {"type": "string"},
@@ -346,6 +349,7 @@ def _normalize_composition(
             if normalized_group is None:
                 return None, [warning]
             covered.update(normalized_group.get("factIndexes"))
+            notes.extend(normalized_group.get("placementNotes", []))
             groups.append(normalized_group)
         height = sum(group.get("referenceHeight") for group in groups)
         height += region.get("gap") * (len(groups) - 1)
@@ -393,8 +397,27 @@ def _composition_group(
     indexes, placements = value.get("factIndexes"), value.get("placements")
     if not isinstance(indexes, list) or not isinstance(placements, list):
         return None
-    if not indexes or len(indexes) != len(placements):
+    value = dict(value)
+    placement_notes: list[str] = []
+    if not indexes:
+        if component != "SingleLineTitle" or placements not in ([], ["title"]):
+            return None
+        placements = []
+    elif len(indexes) == 1 and placements == ["value", "displayValue"]:
+        if component not in {"ProgressCircleSingle", "ProgressLine2"}:
+            return None
+        indexes = indexes * 2
+    elif len(indexes) == 1 and placements == ["value", "unit"]:
+        if component != "EmphasizedData":
+            return None
+        placements = ["value"]
+        placement_notes.append(
+            "EmphasizedData.unit is not another copy of its numeric fact: resolve the real "
+            "unit from the field contract, never bind the numeric value to unit."
+        )
+    if len(indexes) != len(placements) or len(indexes) > 24:
         return None
+    value["placements"] = placements
     remapped: list[int] = []
     for index, placement in zip(indexes, placements, strict=True):
         if not isinstance(index, int) or isinstance(index, bool) or index not in index_map:
@@ -428,7 +451,10 @@ def _composition_group(
     planned_height = value.get("referenceHeight")
     if height is not None:
         planned_height = max(height, planned_height)
-    return {**value, "factIndexes": remapped, "referenceHeight": planned_height}
+    group = {**value, "factIndexes": remapped, "referenceHeight": planned_height}
+    if placement_notes:
+        group["placementNotes"] = placement_notes
+    return group
 
 
 def parse_compact_plan_call(
@@ -438,7 +464,8 @@ def parse_compact_plan_call(
     static_text_source: str | None = None,
 ) -> CompactPlanValidationResult:
     """解析命名工具调用包，并按当前 TaskSpec 标准化 Plan。"""
-    payload = _parse_json_object(raw_output)
+    syntax_warnings: list[str] = []
+    payload = _parse_json_object(raw_output, syntax_warnings)
     if set(payload) != {"name", "arguments"}:
         raise CompactPlanValidationError(
             ["Plan output must contain only name and arguments."]
@@ -449,7 +476,7 @@ def parse_compact_plan_call(
         )
     arguments = payload.get("arguments")
     if isinstance(arguments, str):
-        arguments = _parse_json_object(arguments)
+        arguments = _parse_json_object(arguments, syntax_warnings)
     if not isinstance(arguments, dict):
         raise CompactPlanValidationError(["submit_card_plan.arguments must be an object."])
     unknown_arguments = set(arguments) - {"info_required", "layoutHints", "composition"}
@@ -461,6 +488,7 @@ def parse_compact_plan_call(
         task_spec,
         static_text_source=static_text_source,
     )
+    warnings[:0] = syntax_warnings
     plan: dict[str, Any] = {"info_required": facts}
     layout_hints, layout_warnings = _normalize_layout_hints(
         arguments.get("layoutHints"),
@@ -497,6 +525,9 @@ def compact_plan_context(plan: dict[str, Any]) -> str:
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
         "若有 composition，按它的 layout/variant、region.path 与顺序 groups 实现，"
         "factIndexes 引用下面去重后的 info_required，placements 指明每条事实的可见 Prop。"
+        "空映射 SingleLineTitle 只是装饰标题的容量预留，不是遗漏事实；"
+        "重复索引表示同一实例共用同一事实，不能据此增加实例或重复正文。"
+        "placementNotes 中的单位必须按原字段合同解决，不能把数值当单位再次绑定。"
         "不要重新逐字段实例化组件，或把单列合组改回窄双列；动作保持完整目标名称。"
         "每区 sum(referenceHeight)+gap 必须小于可用高度，横排每列还须容纳完整文字。"
         "这些数字仅用于容量核算，区域输出仍为 matchParent/layoutWeight；"
@@ -817,7 +848,9 @@ def _normalize_layout_hints(
     return accepted, warnings
 
 
-def _parse_json_object(raw_output: str) -> dict[str, Any]:
+def _parse_json_object(
+    raw_output: str, warnings: list[str] | None = None,
+) -> dict[str, Any]:
     if not isinstance(raw_output, str) or not raw_output.strip():
         raise CompactPlanValidationError(["Plan output must be non-empty JSON."])
     text = raw_output.strip()
@@ -827,10 +860,58 @@ def _parse_json_object(raw_output: str) -> dict[str, Any]:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise CompactPlanValidationError(["Plan output must be valid JSON."]) from exc
+        repaired = _recover_plan_closers(text)
+        if repaired is None:
+            raise CompactPlanValidationError(["Plan output must be valid JSON."]) from exc
+        payload = repaired
+        if warnings is not None:
+            warnings.append("Plan JSON terminal closing delimiters recovered; facts unchanged.")
     if not isinstance(payload, dict):
         raise CompactPlanValidationError(["Plan output root must be an object."])
     return payload
+
+
+def _recover_plan_closers(text: str) -> dict[str, Any] | None:
+    """只恢复终端纯闭合串，不补值、不改字符串、不修内部结构。"""
+    suffix = re.search(r"[\]}\s]+$", text)
+    if suffix is None:
+        return None
+    prefix = text[:suffix.start()]
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+    for char in prefix:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char in "[{":
+            stack.append("]" if char == "[" else "}")
+        elif char in "]}":
+            if not stack or stack.pop() != char:
+                return None
+    if in_string or not stack:
+        return None
+    actual = re.sub(r"\s", "", suffix.group())
+    expected = "".join(reversed(stack))
+    if not 1 <= abs(len(actual) - len(expected)) <= 2:
+        return None
+    shorter, longer = sorted((actual, expected), key=len)
+    cursor = iter(longer)
+    for char in shorter:
+        if char not in cursor:
+            return None
+    try:
+        payload = json.loads(prefix + expected)
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 def _collect_schema_paths(
