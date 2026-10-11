@@ -20,11 +20,11 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 204
+    assert manifest.get("templateCount") == 208
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 21,
+        "Support": 25,
         "Compact": 24,
         "Hero": 52,
         "Full": 71,
@@ -32,8 +32,8 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 170, "2x4": 34}
-    assert len(cases) == 204
+    assert manifest.get("countsBySize") == {"2x2": 174, "2x4": 34}
+    assert len(cases) == 208
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 204
+    assert len(template_ids) == 208
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -102,6 +102,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
     assert names == {
         "battery_leaf_fill.svg",
         "bell_fill.svg",
+        "bolt_fill.svg",
         "calendar_fill.svg",
         "clock_fill.svg",
         "earphone_case_16644.svg",

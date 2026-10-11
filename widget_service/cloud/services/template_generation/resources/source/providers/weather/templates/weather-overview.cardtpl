@@ -3066,6 +3066,71 @@ Column(
 
 #End
 
+#Template WeatherOverviewConditionSupport@1(props: { conditionIcon?: asset, actionId?: string })
+data = {
+    condition: $path("/current/condition"),
+}
+
+Row(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "layoutWeight": 1,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      data.condition,
+      {
+        "height": 24,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis"
+      }
+    ),
+    Text(
+      "当前天气状态",
+      {
+        "height": 20,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis"
+      }
+    )
+  ),
+  #if props.conditionIcon
+  Image(
+    props.conditionIcon,
+    {
+      "width": 24,
+      "height": 24,
+      "objectFit": "contain",
+      "flexShrink": 0,
+      "fillColor": $theme('supportContentColor')
+    }
+  )
+  #endif
+)
+
+#End
+
 #Template WeatherOverviewFeelsLikeWindSupport@1(props: { temperatureIcon: asset, actionId?: string })
 data = {
     feelsLike: $path("/current/feelsLikeC"),

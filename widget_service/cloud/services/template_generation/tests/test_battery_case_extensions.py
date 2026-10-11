@@ -79,6 +79,7 @@ async def test_diagnostics_full_renders_without_actions(fusion: bool, with_asset
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert "BatteryOverviewChargingDiagnosticsFull@1" in output.template_ids
@@ -171,6 +172,7 @@ async def test_level_full_templates_without_actions_or_assets(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert template_id in output.template_ids
@@ -247,6 +249,7 @@ async def test_current_voltage_full_displays_available_fields(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert "BatteryOverviewCurrentVoltageFull@1" in output.template_ids
@@ -471,6 +474,7 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
         # Production validates against the original TaskSpec, without internal selectors.
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
     )
@@ -589,6 +593,7 @@ async def test_q231_status_summary_hero_uses_only_four_text_fields(fusion: bool)
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     for label in ("电池电量", "充电状态", "健康状态", "电池温度"):
@@ -627,6 +632,7 @@ async def test_percent_details_full_displays_four_fields(fusion: bool) -> None:
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert "BatteryOverviewPercentDetailsFull@1" in output.template_ids
@@ -684,6 +690,7 @@ async def test_status_level_summary_hero_uses_only_four_text_fields(fusion: bool
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     for label in ("电池电量", "充电状态", "健康状态", "电量等级"):
@@ -724,6 +731,7 @@ async def test_charging_level_summary_hero_uses_only_four_text_fields(fusion: bo
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     for label in ("电池电量", "充电状态", "充电类型", "电量等级"):

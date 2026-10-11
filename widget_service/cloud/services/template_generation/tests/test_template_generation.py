@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 234
+    assert len(registry.provider_template_ids) == 238
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -1200,7 +1200,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3383,7 +3383,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -3491,6 +3491,7 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewSupport@1",
         "BatteryOverviewSupportHero@1",
         "BatteryOverviewStatusSupport@1",
+        "BatteryOverviewPluggedTypeSupport@1",
         "BatteryOverviewStatusHero@1",
         "BatteryOverviewChargeStatusHero@1",
         "BatteryOverviewPhoneTextCompact@1",
@@ -8281,6 +8282,7 @@ async def test_template_exception_obeys_route_failure_policy(
     callback_sizes: list[str] = []
 
     class ModelClient:
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -8380,6 +8382,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     policy_factory,
 ):
     processed_sources: list[str] = []
+    template_validation_bypasses: list[bool] = []
     processor_kinds: list[DslProcessorKind] = []
     template_call_count = 0
     model_generate_calls = 0
@@ -8387,6 +8390,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     saved_design_tokens: list[str | None] = []
 
     class ModelClient:
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -8406,6 +8410,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             processed_sources.append(source_dsl)
+            template_validation_bypasses.append(_context.skip_compact_dsl_validation)
             if source_dsl == "template-invalid-source":
                 return DslProcessingResult(
                     source_dsl=source_dsl,
@@ -8482,6 +8487,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     assert template_call_count == 1
     assert model_generate_calls == 0
     assert model_repair_calls == 1
+    assert template_validation_bypasses == [True, False]
     assert processed_sources == [
         "template-invalid-source",
         "generic-repaired-source",

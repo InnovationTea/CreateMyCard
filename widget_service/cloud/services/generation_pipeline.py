@@ -156,6 +156,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 task_spec=context.task_spec,
                 card_spec=context.card_spec,
+                allow_internal_components=context.skip_compact_dsl_validation,
             )
         except CompactDslConversionError as exc:
             trace_step(
@@ -277,6 +278,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+                allow_internal_components=context.skip_compact_dsl_validation,
             )
             trace_step(
                 "dsl.conversion.completed",
