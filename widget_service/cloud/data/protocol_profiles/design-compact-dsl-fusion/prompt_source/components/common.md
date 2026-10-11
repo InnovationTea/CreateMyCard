@@ -62,6 +62,8 @@
 5. 单占比使用 `ProgressCircleSingle`；两个或四个同级占比使用多个 `ProgressCircle`；三个图标可区分的同级占比使用 `NumericRatioStack`；明确目标差距使用 `ProgressLine2`；2–3 个对象同指标比较使用 `H_BarChart`。
 6. 一至两个按时间排列的事件使用一个 `EventCard`；普通时间属性使用 `SecondaryBody role="metadata"`。同一事实只展示一次。
 7. 动作按槽位选择 `PillButton`、`CircleButton` 或 `CardButton`，只能绑定当前事件候选，不伪造操作。
+8. 模型只输出总表及尺寸文件登记的语义组件；`Text` 仅由转换器展开为 A2UI 基础节点。
+9. 每个组件只使用自身属性表声明的 Props 与绑定能力；选型、容量和槽位以对应组件合同为准。
 <!-- /prompt:selection -->
 
 <!-- prompt:catalog -->
@@ -74,18 +76,16 @@
 `ProgressCircle`、`ProgressLine2`、`H_BarChart`、`ProgressCircleSingle`、`NumericRatioStack`、
 `EventCard`、`PillButton`，以及尺寸文件登记的 `CircleButton`、`TopTextBottomValue`、`TextBlock`、`CardButton`。
 
-禁止输出 `Button`、`Progress`、`List`、`TextInput`、`Toggle`、`Radio`、`Select`、`NavContainer`、
-`Tabs`、`TabContent`、`Web`、`Grid`、`If`。禁止所有组件的 `theme`、`onAppear`、`onChange`、
-`onSelect`、`onReachStart`、`onReachEnd`。
-`Text` 只由转换器在展开语义组件时生成，模型不得直接输出。
-
 ## 2.1 组件共同规则
 
 - 组件行的语义字段和样式字段直接写在第三项 `props`，不用的字段省略，不嵌套 `styles`。
 - 只有 `Row`、`Column`、`Stack` 在第 4 项声明非空 `children`；其它组件均只输出一行且不带 children。
 - 布局组件只能使用各自章节列出的字段。使用视觉 Recipe 的组件只能使用自身属性表，
   并可额外使用 `width`、`height`、`layoutWeight`、`flexShrink`、`margin` 调整组件根的外部布局。
+- `PillButton` 不使用上述 `width` 例外；其宽度固定由所在动作槽和 Recipe 撑满。
 - 视觉 Recipe 组件不接受 `padding`、圆角、字号、内部间距或对齐覆盖；内部结构、子节点 ID 和样式由转换器确定。
+- 组件不声明文字颜色；转换器根据 root 背景解析主色、辅助色等语义色板角色，并按组件 Recipe 注入。
+  自定义背景同样由运行时选择具有足够对比度的文字角色，不在组件 Props 中重复指定颜色。
 - 显示值按属性表使用静态值、完整 Expression 或 PathBinding；颜色和布局样式必须是静态合法值。
 - `onClick` 只用于当前组件合同明确支持事件、且存在匹配事件候选的情况；一个入口只绑定一个真实动作。
 - 动态布局样式、动态 children 和数组模板均不支持；不能从格式化字符串中猜测或截取数值。
@@ -117,34 +117,11 @@
 `topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。可使用与 Row 相同的布局与表面字段，
 但不使用 `itemMargin`、`justifyContent` 或 `alignItems`。进度组件已包含内部结构，不再手写内部 Stack。
 
-## 4. 显示内容共同规则
-
-- 先按对象与信息关系合组，再选择能够完整承载该组的组件。Plan 首选满足自身语义、绑定、事件和容量合同
-  时落实；不匹配才改用其它合法语义组件或组合。不将匹配的信息组无理由拆为逐字段单文字组件。
-- 外部区域、背板和文字承载宽度随所属区域分配；固定标题、文字行高、图标、圆环和按钮高度不缩放。
-  原有 padding 和组内间距保持原值；内容自然高度与自适应正文承载区分开，不拉大文字之间间距。
-
-- 模型不直接生成 `Text`。标题、核心数字、核心文本、普通正文、metadata、主辅信息、事件和操作分别使用
-  对应语义组件；转换器再将这些组件确定性展开为 A2UI 基础文字节点。
-- 每个组件的属性表分别声明绑定能力；未声明可绑定的 Prop 只能使用静态值。`显示值`支持非空静态字符串、
-  完整 Expression 或 PathBinding；直接 PathBinding 只绑定 string/number/integer，boolean 必须先用 Expression
-  映射为用户可读文案。动态数据必须绑定真实路径，不能把 `sampleValue` 写成静态文字。
-- 普通正文、普通时间、来源、更新时间、弱提示或没有更强语义结构的剩余单段内容使用
-  `SecondaryBody`；一个文本结论或状态需要成为主焦点时使用 `EmphasisText`；量化主值使用
-  `EmphasizedData` 或对应进度组件。
-- 用户明确的标题、状态、日期、时间、主指标、价格、数量、联系人称呼和 CTA 必须完整显示；前后缀、负号、
-  百分号和单位也是显示值的一部分。格式化值已含单位时完整绑定原值，不重复追加或拆分；原始数值需要单位时
-  使用组件合同中的 `unit` 或完整 Expression，只展示一次准确单位。
-- 选择组件前按字段语义允许的较长合法值完成压力检查；单行内容保留约 20% 宽度余量。放不下时按顺序缩短
-  弱标签、删除可选字段、使用合同允许的两行模式、改选容量更大的槽位或简化布局，不依赖裁切、省略号、
-  超小字号、负间距或遮罩。
-- 同一事实只展示一次；不增加重复同义后缀，不用空内容制造间距，也不用多个语义组件重造已经完整匹配的结构。
-
-## 5. 文本与信息组件
+## 4. 文本与信息组件
 
 本节组件使用视觉 Recipe，只能使用自身属性表和 2.1 允许的外部布局字段。
 
-### 5.1 `SingleLineTitle`
+### 4.1 `SingleLineTitle`
 
 #### 选择条件
 
@@ -156,24 +133,23 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
-固定高 `20vp`，进入卡级或分区标题位置。2x4 左右分区各自预算成立时可各放一个；具体宽度和合法位置由
-尺寸布局文件规定。
+占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding。进入卡级或分区标题位置；
+2x4 左右分区各自预算成立时可各放一个，具体宽度和合法位置由尺寸布局文件规定。
 
 #### 示例
 
 ```genui
-["header","SingleLineTitle",{"title":"天气","fontColor":"#FF1F4799"}]
+["header","SingleLineTitle",{"title":"天气"}]
 ```
 
 #### 注意事项
 
 标题固定左对齐 `12fp/400`，只承载标题文字；不覆盖内部 padding、字号或字重。
 
-### 5.2 `DoubleLineTitle`
+### 4.2 `DoubleLineTitle`
 
 #### 选择条件
 
@@ -186,7 +162,6 @@
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；最多一行 |
 | `secondaryInfo` | 显示值 | 静态 / Expression / PathBinding | 必填；最多两行 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -194,10 +169,10 @@
 单行标题或更宽内容区。
 
 ```genui
-["device_title","DoubleLineTitle",{"title":{"path":"/data/sensor/displayName"},"secondaryInfo":{"path":"/data/sensor/connectionStatus"},"fontColor":"#FF1F4799"}]
+["device_title","DoubleLineTitle",{"title":{"path":"/data/sensor/displayName"},"secondaryInfo":{"path":"/data/sensor/connectionStatus"}}]
 ```
 
-### 5.3 `Badge`
+### 4.3 `Badge`
 
 #### 选择条件
 
@@ -209,7 +184,6 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `value` | 显示值 | 静态 / Expression / PathBinding | 必填；短数量或 `99+` |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
@@ -217,10 +191,10 @@
 不能单独进入标题位或内容位；必须紧跟标题组件，共同放入标题 Row。数量在整卡只表达一次。
 
 ```genui
-["event_count","Badge",{"value":{"path":"/data/calendar/eventCount"},"fontColor":"#FF8C4B1C","backgroundColor":"#338C4B1C"}]
+["event_count","Badge",{"value":{"path":"/data/calendar/eventCount"},"backgroundColor":"#338C4B1C"}]
 ```
 
-### 5.4 `EmphasizedData`
+### 4.4 `EmphasizedData`
 
 #### 选择条件
 
@@ -232,7 +206,6 @@
 |---|---|---|---|
 | `value` | 显示值 | 静态 / Expression / PathBinding | 必填；一个核心值 |
 | `unit` | string | 静态 / Expression / string PathBinding | 可选；只绑定或填写单位文本 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -241,14 +214,14 @@
 #### 示例
 
 ```genui
-["reading","EmphasizedData",{"value":{"path":"/data/healthSport/sleepScore"},"unit":"分","fontColor":"#FF563D99"}]
+["reading","EmphasizedData",{"value":{"path":"/data/healthSport/sleepScore"},"unit":"分"}]
 ```
 
 #### 注意事项
 
 值已包含单位时不再传 `unit`；不把多个同级值拼进一个 `value`。
 
-### 5.5 `EmphasisText`
+### 4.5 `EmphasisText`
 
 #### 选择条件
 
@@ -261,13 +234,12 @@
 |---|---|---|---|
 | `mainText` | 显示值 | 静态 / Expression / PathBinding | 必填；核心文本 |
 | `secondaryText` | 显示值 | 静态 / Expression / PathBinding | 可选；同一语义的一条短补充 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
-["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"},"fontColor":"#FF1F4799"}]
+["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"}}]
 ```
 
-### 5.6 `SecondaryBody`
+### 4.6 `SecondaryBody`
 
 #### 选择条件
 
@@ -285,7 +257,6 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 | `role` | string | 仅静态 | 单项必填；`body|metadata|supporting`；多项新生成也应显式填写 |
 | `columns` | number | 仅静态 | 可选；`1|2`，缺省 2；长说明使用 1，让每项占完整行宽 |
 | `separator` | string | 仅静态 | 可选；默认 ` ｜ ` |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 `role:"body"` 恰好一项，不写 label；`role:"metadata"` 恰好一项；各角色每项 `maxLines` 可为 `1|2`。
 `role:"supporting"` 支持 1–4 项；`columns:1` 每项独占一行，`columns:2` 每行最多两项。
@@ -298,12 +269,12 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 字号、字重、padding 或内部对齐等任意样式属性。
 
 ```genui
-["description","SecondaryBody",{"role":"body","items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]
-["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}","maxLines":2}],"fontColor":"#FF1F4799"}]
-["sleep_detail","SecondaryBody",{"role":"supporting","columns":1,"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"},"maxLines":2},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"fontColor":"#FF563D99"}]
+["description","SecondaryBody",{"role":"body","items":[{"value":{"path":"/data/weather/description"},"maxLines":2}]}]
+["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}","maxLines":2}]}]
+["sleep_detail","SecondaryBody",{"role":"supporting","columns":1,"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"},"maxLines":2},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}]}]
 ```
 
-### 5.7 `DataDisplay`
+### 4.7 `DataDisplay`
 
 #### 选择条件
 
@@ -316,7 +287,6 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 | `label` | string | 仅静态 | 必填；非空短文本 |
 | `value` | 显示值 | 静态 / Expression / PathBinding | 必填；唯一核心值 |
 | `supportingText` | string | 仅静态 | 必填；单位或短说明 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -325,14 +295,14 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 #### 示例
 
 ```genui
-["display","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天","fontColor":"#FFFFFFFF"}]
+["display","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天"}]
 ```
 
 #### 注意事项
 
 值已包含完整单位时改用其他合适组件，不重复单位。
 
-### 5.8 `InfoBlock`
+### 4.8 `InfoBlock`
 
 #### 选择条件
 
@@ -347,7 +317,6 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 | `primaryText` | 显示值 | 静态 / Expression / PathBinding | 必填 |
 | `secondaryText` | 显示值 | 静态 / Expression / PathBinding | 必填；与主信息属于同一对象或指标 |
 | `unit` | string | 仅静态 | 可选；主信息未包含单位时使用 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `variant` | string | 仅静态 | 按尺寸文件填写；2x2 可省略，2x4 必填 |
 | `visual` | object | 仅静态 | 可选；`{type:"icon",icon,color?:"native"}` 或 `{type:"progressCircle",icon}` |
@@ -361,7 +330,7 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 #### 示例
 
 ```genui
-["battery","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/phoneBattery/batterySOC"},"unit":"%","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"visual":{"type":"progressCircle","icon":"resources/base/media/battery_leaf_fill.svg"},"fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF"}]
+["battery","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/phoneBattery/batterySOC"},"unit":"%","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"visual":{"type":"progressCircle","icon":"resources/base/media/battery_leaf_fill.svg"},"backgroundColor":"#99FFFFFF"}]
 ```
 
 #### 注意事项
@@ -369,7 +338,7 @@ metadata；多个短字段使用 supporting。稳定标签—值表使用 `Table
 visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。没有准确 visual 时不生成尾部空槽；
 外层和内部均不得写 `onClick`。
 
-### 5.9 `TableText`
+### 4.9 `TableText`
 
 #### 选择条件
 
@@ -382,7 +351,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `items` | Array | 数组结构仅静态 | 必填；2–3 项，每项只含 `label`、`value` |
 | `items[].label` | 显示值 | 静态 / Expression / PathBinding | 必填；非空标签 |
 | `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见值 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -393,14 +361,14 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["metrics","TableText",{"items":[{"label":"紫外线","value":{"path":"/data/weatherHealth/ultravioletLevel"}},{"label":"空气质量","value":{"path":"/data/weatherHealth/airQualityLevel"}}],"fontColor":"#FF1F4799"}]
+["metrics","TableText",{"items":[{"label":"紫外线","value":{"path":"/data/weatherHealth/ultravioletLevel"}},{"label":"空气质量","value":{"path":"/data/weatherHealth/airQualityLevel"}}]}]
 ```
 
 #### 注意事项
 
 每项只表达一个事实；不把同一个值同时作为核心读数和表格项。
 
-### 5.10 `SummaryList`
+### 4.10 `SummaryList`
 
 #### 选择条件
 
@@ -411,7 +379,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `items` | 显示值数组 | 数组结构仅静态；每项可静态 / Expression / PathBinding | 必填；2–3 条显示值 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
@@ -421,20 +388,20 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["list","SummaryList",{"items":[{"path":"/data/calendar/events/0/title"},{"path":"/data/calendar/events/1/title"},{"path":"/data/calendar/events/2/title"}],"fontColor":"#FF8C4B1C","backgroundColor":"#99FFFFFF"}]
+["list","SummaryList",{"items":[{"path":"/data/calendar/events/0/title"},{"path":"/data/calendar/events/1/title"},{"path":"/data/calendar/events/2/title"}],"backgroundColor":"#99FFFFFF"}]
 ```
 
 #### 注意事项
 
 条目不嵌套标签、图标或按钮；超出三条时按信息优先级取舍或改选布局，不使用动态数组模板。
 
-## 6. 进度与占比组件
+## 5. 进度与占比组件
 
 进度组件默认不生成。只有字段描述明确表示占比、完成度、使用率、电量等比例语义，并且范围可验证时才允许；
 温度、日期、时间、时长、倒计时、状态、名称和普通数值不使用。完整数值百分比字符串可直接作为比例输入，
 但不从包含其它正文的字符串中截取数字或猜测范围。
 
-### 6.1 `ProgressCircle`
+### 5.1 `ProgressCircle`
 
 #### 选择条件
 
@@ -449,7 +416,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
 | `accessibility` | object | 仅静态 | 必填；包含非空 `label`，可选 `description` |
 | `width`、`height` | number | 仅静态 | 必填；按当前槽位填写正数 vp |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填；环外读数颜色 |
 | `color` | `#AARRGGBB` | 仅静态 | 必填；完成轨道颜色 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填；未完成轨道颜色 |
 | `fillColor` | `#AARRGGBB` | 仅静态 | 可选；单色环心图标颜色 |
@@ -461,14 +427,14 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["ratio","ProgressCircle",{"externalText":{"path":"/data/device/batteryPercent"},"icon":"resources/base/media/battery_leaf_fill.svg","accessibility":{"label":"设备电量百分比"},"width":52,"height":68,"fontColor":"#FF1F4799","fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["ratio","ProgressCircle",{"externalText":{"path":"/data/device/batteryPercent"},"icon":"resources/base/media/battery_leaf_fill.svg","accessibility":{"label":"设备电量百分比"},"width":52,"height":68,"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
 ```
 
 #### 注意事项
 
 `externalText` 同时驱动圆环和环外读数；不传 `value`、`total`、`type`、`strokeWidth`、`size` 或 children。
 
-### 6.2 `ProgressLine2`
+### 5.2 `ProgressLine2`
 
 #### 选择条件
 
@@ -483,7 +449,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `total` | number | 仅静态 | 必填；正数 |
 | `displayValue` | 显示值 | 静态 / Expression / PathBinding | 必填；与 `value/total` 表达同一事实 |
 | `unit` | string | 静态 / Expression / string PathBinding | 可选；读数未包含单位时填写 |
-| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -492,7 +458,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["score","ProgressLine2",{"value":{"path":"/data/healthSport/sleepScore"},"total":100,"displayValue":{"path":"/data/healthSport/sleepScore"},"unit":"分","fontColor":"#FF563D99","color":"#FF563D99","backgroundColor":"#33563D99"}]
+["score","ProgressLine2",{"value":{"path":"/data/healthSport/sleepScore"},"total":100,"displayValue":{"path":"/data/healthSport/sleepScore"},"unit":"分","color":"#FF563D99","backgroundColor":"#33563D99"}]
 ```
 
 #### 注意事项
@@ -500,7 +466,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 `value`、`total` 和 `displayValue` 必须属于同一进度关系；`value` 只接受纯数值或完整百分比字符串，
 不能从包含标签、单位说明或其它正文的字符串中截取数字。
 
-### 6.3 `ProgressCircleSingle`
+### 5.3 `ProgressCircleSingle`
 
 #### 选择条件
 
@@ -516,7 +482,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `displayValue` | 显示值 | 静态 / Expression / PathBinding | 必填；与环形进度表达同一数值 |
 | `label` | 显示值 | 静态 / Expression / PathBinding | 必填；非空说明 |
 | `secondaryLabel` | 显示值 | 静态 / Expression / PathBinding | 可选；同一对象的一条状态说明 |
-| `fontColor`、`color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `color`、`backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -525,14 +491,14 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["main","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"手机电量","secondaryLabel":{"path":"/data/phoneBattery/chargingStatusDesc"},"fontColor":"#FF1F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["main","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"手机电量","secondaryLabel":{"path":"/data/phoneBattery/chargingStatusDesc"},"color":"#FF1F4799","backgroundColor":"#331F4799"}]
 ```
 
 #### 注意事项
 
 `value`、`displayValue` 与 `secondaryLabel` 必须属于同一对象；图标只标识对象，不代替可见读数。
 
-### 6.4 `H_BarChart`
+### 5.4 `H_BarChart`
 
 #### 选择条件
 
@@ -547,13 +513,13 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `items[].label` | string | 仅静态 | 必填；对象标签 |
 | `items[].valueUnit` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见值 |
 | `items[].percent` | number | 仅静态 | 必填；`0–100`，按同一尺度决定柱长 |
-| `fontColor`、`barColor`、`trackColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `barColor`、`trackColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
-["energy_compare","H_BarChart",{"items":[{"label":"客厅","valueUnit":{"path":"/data/energy/livingText"},"percent":80},{"label":"书房","valueUnit":{"path":"/data/energy/studyText"},"percent":45}],"fontColor":"#FF1F4799","barColor":"#FF1F4799","trackColor":"#331F4799"}]
+["energy_compare","H_BarChart",{"items":[{"label":"客厅","valueUnit":{"path":"/data/energy/livingText"},"percent":80},{"label":"书房","valueUnit":{"path":"/data/energy/studyText"},"percent":45}],"barColor":"#FF1F4799","trackColor":"#331F4799"}]
 ```
 
-### 6.5 `NumericRatioStack`
+### 5.5 `NumericRatioStack`
 
 #### 选择条件
 
@@ -569,15 +535,15 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见数值 |
 | `items[].unit` | string | 仅静态 | 可选；完整值已含单位时不得重复 |
 | `direction` | `row` / `column` | 仅静态 | 可选；默认 `column` |
-| `fontColor`、`fillColor` | `#AARRGGBB` | 仅静态 | 必填 |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 ```genui
-["storage_ratio","NumericRatioStack",{"direction":"column","items":[{"icon":"resources/base/media/externaldrive_fill.svg","value":{"path":"/data/storage/nodeA/usedPercent"},"unit":"%"},{"icon":"resources/base/media/earphone_case_16644.svg","value":{"path":"/data/storage/nodeB/usedPercent"},"unit":"%"},{"icon":"resources/base/media/l_circle_fill.svg","value":{"path":"/data/storage/nodeC/usedPercent"},"unit":"%"}],"fontColor":"#FF1F4799","fillColor":"#FF1F4799"}]
+["storage_ratio","NumericRatioStack",{"direction":"column","items":[{"icon":"resources/base/media/externaldrive_fill.svg","value":{"path":"/data/storage/nodeA/usedPercent"},"unit":"%"},{"icon":"resources/base/media/earphone_case_16644.svg","value":{"path":"/data/storage/nodeB/usedPercent"},"unit":"%"},{"icon":"resources/base/media/l_circle_fill.svg","value":{"path":"/data/storage/nodeC/usedPercent"},"unit":"%"}],"fillColor":"#FF1F4799"}]
 ```
 
-## 7. 日程组件
+## 6. 日程组件
 
-### 7.1 `EventCard`
+### 6.1 `EventCard`
 
 #### 选择条件
 
@@ -593,7 +559,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `items[].time` | 显示值 | 静态 / Expression / PathBinding | 必填；事件时间 |
 | `items[].location` | 显示值 | 静态 / Expression / PathBinding | 可选；事件地点 |
 | `density` | `compact` | 仅静态 | 可选；两项普通高度放不下时使用 |
-| `fontColor` | `#AARRGGBB` | 仅静态 | 必填 |
 
 #### 槽位与容量
 
@@ -602,7 +567,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["content_area","EventCard",{"items":[{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"},"location":{"path":"/data/calendar/events/0/location"}},{"title":{"path":"/data/calendar/events/1/title"},"time":{"path":"/data/calendar/events/1/dtStart"}}],"density":"compact","fontColor":"#FF8C4B1C"}]
+["content_area","EventCard",{"items":[{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"},"location":{"path":"/data/calendar/events/0/location"}},{"title":{"path":"/data/calendar/events/1/title"},"time":{"path":"/data/calendar/events/1/dtStart"}}],"density":"compact"}]
 ```
 
 #### 注意事项
@@ -612,9 +577,9 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 compact 的时间与地点同行：时间取自然宽度，分隔符保持原间距，地点承接剩余宽度。
 完整地点太长时改用普通有地点规格并重算总高，或选择更宽的合法内容区；不删地点或让时间占满整行。
 
-## 8. 操作组件
+## 7. 操作组件
 
-### 8.1 `PillButton`
+### 7.1 `PillButton`
 
 #### 选择条件
 
@@ -626,29 +591,26 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 |---|---|---|---|
 | `label` | string | 仅静态 | 必填；非空动作文字 |
 | `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
-| `actionSurface` | `#AARRGGBB` | 仅静态 | 必填；按钮背景色 |
-| `actionInk` | `#AARRGGBB` | 仅静态 | 必填；文字与单色图标颜色 |
 | `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
-| `fontSize` | number | 仅静态 | 可选；只允许 `14` |
-| `fontWeight` | number | 仅静态 | 可选；只允许 `400` 或 `500` |
-| `width` | number / `matchParent` | 仅静态 | 可选；按尺寸文件合法槽位填写 |
 
 #### 槽位与容量
 
-固定高 `36vp`、圆角 `30vp`。2x2 用于底部文字操作；2x4 用于完整内容区的直属操作，不进入固定模块槽。
+固定高 `36vp`、圆角 `30vp`，宽度自动撑满当前合法动作槽。2x2 用于底部文字操作；2x4 用于完整内容区的
+直属操作，不进入固定模块槽。背景色、文字与单色图标颜色取当前卡片语义色板，字号固定 `14fp/500`。
 
 #### 示例
 
 ```genui
-["cta","PillButton",{"label":"蓝牙设置","actionSurface":"#331F4799","actionInk":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["cta","PillButton",{"label":"蓝牙设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
 ```
 
 #### 注意事项
 
-一个实例只绑定一个动作，同一动作只保留一个入口。有 icon 时由 Recipe 生成图标与文字，不手写相同按钮皮肤；
+一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 icon 时由 Recipe
+生成图标与文字，不手写相同按钮皮肤；
 完整标签放不下时更换布局，不裁切、不缩小 Recipe，也不回退为基础 `Button`。
 
-## 9. 选择检查
+## 8. 选择检查
 
 - 组件内容结构与真实信息关系一致，没有为了使用组件而合并无关字段或补造信息。
 - 每个组件只使用自身属性表中的 Props；视觉 Recipe 组件只额外使用允许的外部布局字段。

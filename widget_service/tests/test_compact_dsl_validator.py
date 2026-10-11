@@ -460,8 +460,7 @@ def _fusion_overloaded_dsl() -> str:
             '["status1","Text",{"content":"未充电","fontSize":12}]',
             '["status2","Text",{"content":"健康正常","fontSize":12}]',
             '["action","PillButton",{"label":"电池设置",'
-            '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
-            '"width":126,"onClick":[{"call":"openBattery","args":{}}]}]',
+            '"onClick":[{"call":"openBattery","args":{}}]}]',
         ]
     )
 
@@ -717,8 +716,7 @@ def _centered_single_value_hero_dsl(
             '"padding":{"bottom":4},"maxLines":1}]',
             '["action_area","Column",{"width":126,"height":36},["action"]]',
             '["action","PillButton",{"label":"打开闹钟",'
-            '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
-            '"fontSize":14,"fontWeight":400,"onClick":'
+            '"onClick":'
             '[{"call":"openAlarm","args":{}}]}]',
             '["/data/countdown/days",30]',
         ]
@@ -862,9 +860,7 @@ def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
             '["action_area","Column",{"width":136,"height":36,'
             '"alignItems":"center"},["action"]]',
             '["action","PillButton",{"label":"打开歌单",'
-            '"icon":"resources/base/media/music_fill.svg","width":126,'
-            '"actionSurface":"#331F4799","actionInk":"#FF1F4799",'
-            '"fontSize":14,"fontWeight":400,'
+            '"icon":"resources/base/media/music_fill.svg",'
             '"onClick":[{"call":"openMusic","args":{}}]}]',
             '["/data/healthSport/steps",2319]',
             '["/data/healthSport/calorieText","260 千卡"]',

@@ -109,7 +109,7 @@ def test_plan_prompt_reuses_full_create_contract_for_size(
     assert "| 标题 | `SingleLineTitle` | 单行标题 |" in plan_prompt
     assert "| 多项属性 | `TableText` | 多行标签—值 |" in plan_prompt
     assert "# 2. Compact DSL 组件合同" in plan_prompt
-    assert "### 7.1 `EventCard`" in plan_prompt
+    assert "### 6.1 `EventCard`" in plan_prompt
     assert "## 从事实到组件组合" in plan_prompt
     assert "# Compact Info Plan" in plan_prompt
     assert "2x4 左右独立分区可分别使用" in plan_prompt
@@ -131,6 +131,97 @@ def test_plan_prompt_appends_contract_after_complete_create_prompt() -> None:
     assert plan_references == [*create_references, "plan.md#contract"]
 
 
+def test_two_by_two_layout_prompt_delegates_derived_sizes_to_flex_layout() -> None:
+    source = (DEFAULT_SOURCE / "layouts/2x2.md").read_text(encoding="utf-8")
+    layouts = dict(FRAGMENT.findall(source)).get("s-layouts", "")
+
+    for removed_budget in (
+        "20 + 6 + 100",
+        "20 + 6 + 46 + 8 + 46",
+        "20 + 6 + 56 + 8 + 36",
+        "20 + 4 + 58 + 8 + 36",
+        "38 + 8 + 36 + 8 + 36",
+        '"layoutWeight":13',
+        '"layoutWeight":10',
+        '"height":20',
+        "82vp` 文字组",
+    ):
+        assert removed_budget not in layouts
+
+    for retained_contract in (
+        "`padding:12`",
+        "`padding:8`",
+        "`layoutWeight`",
+        "动作按钮固定高 `36vp`",
+        "固定 `40×40vp` 槽",
+        '"alignContent":"center"',
+    ):
+        assert retained_contract in layouts
+
+
+def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> None:
+    source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
+    fragments = dict(FRAGMENT.findall(source))
+    layouts = fragments.get("w-layouts", "")
+
+    assert list(fragments) == ["w-layouts"]
+    for removed_budget in (
+        "132 + 12 + 132",
+        "57 + 12 + 57",
+        "70vp` 正文 + `4vp`",
+        "4×16+3×2",
+        "26 + 6 + 36 + 6 + 36",
+        "38 + 8 + 36 + 8 + 36",
+        "title 20 + 4 + body 86",
+        "132×126vp",
+        "132×57vp",
+        "116×110vp",
+        '"layoutWeight":15',
+        '"layoutWeight":8',
+        '"height":20',
+    ):
+        assert removed_budget not in layouts
+
+    for retained_contract in (
+        "`padding:12`",
+        "`padding:8`",
+        "Sub-118 内纵向主要角色使用 `6vp` 间距",
+        "Sub-140 使用 `8vp`",
+        '"layoutWeight":1',
+        '"height":"matchParent"',
+    ):
+        assert retained_contract in layouts
+
+    for sub_layout in (
+        "Sub-118-A",
+        "Sub-118-B",
+        "Sub-118-C",
+        "Sub-118-D",
+        "Sub-140-A",
+        "Sub-140-B",
+        "Sub-140-C",
+        "Sub-140-D",
+        "Sub-140-F",
+        "Sub-140-G",
+        "Sub-140-H",
+    ):
+        assert sub_layout in layouts
+
+    for removed_preset in (
+        "neutral-footer",
+        "text-footer",
+        "value-led",
+        "metric-triple",
+        "progress-detail",
+        "ring-summary",
+        "list-rows",
+        "ring-detail",
+        "agenda-cta",
+        "受控内容预设",
+    ):
+        assert removed_preset not in layouts
+
+
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_create_and_plan_share_common_component_catalog(size: str) -> None:
     create_prompt = read_prompt(DEFAULT_SOURCE, "create", size=size)
@@ -149,6 +240,7 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     core_fragments = dict(FRAGMENT.findall(core_source))
 
     assert list(fragments) == ["selection", "catalog"]
+    selection = fragments.get("selection", "")
     catalog = fragments.get("catalog", "")
     for removed_heading in (
         "通用 props 字段",
@@ -184,12 +276,15 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     ):
         assert dedicated_heading not in catalog
     assert "`width`、`height`、`layoutWeight`、`flexShrink`、`margin`" in catalog
+    assert "fontColor" not in selection
+    assert "fontColor" not in catalog
+    assert "组件不声明文字颜色" in catalog
     assert "进度组件默认不生成" in catalog
     assert "SVG 默认视为可通过 `fillColor` 染色" in core_fragments.get(
         "input-candidates",
         "",
     )
-    assert "`Text` 只由转换器在展开语义组件时生成" in catalog
+    assert "`Text` 仅由转换器展开为 A2UI 基础节点" in selection
     assert "| `role` | string | 仅静态 | 单项必填" in catalog
     assert "| `items[].label` | 显示值 | 静态 / Expression / PathBinding" in catalog
     progress_binding_contract = (
@@ -197,7 +292,10 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     )
     assert progress_binding_contract in catalog
     assert '`role:"body"`' in catalog
-    assert "单行内容保留约 20% 宽度余量" in catalog
+    assert "仍保留至少 20% 水平余量" in core_fragments.get(
+        "input-candidates",
+        "",
+    )
     core_typography = core_fragments.get("typography", "")
     assert "`12fp`：标题区" not in core_typography
     assert "格式化主读数例外" not in core_typography
@@ -360,6 +458,20 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
         assert layout_id in two_by_two
     for layout_id in layout_ids_for_size("2x4"):
         assert layout_id in two_by_four
+    for sub_layout in (
+        "Sub-118-A",
+        "Sub-118-B",
+        "Sub-118-C",
+        "Sub-118-D",
+        "Sub-140-A",
+        "Sub-140-B",
+        "Sub-140-C",
+        "Sub-140-D",
+        "Sub-140-F",
+        "Sub-140-G",
+        "Sub-140-H",
+    ):
+        assert sub_layout in two_by_four
 
     manifest_path = DEFAULT_BUNDLE / "prompt_source/manifest.yaml"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -380,14 +492,19 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
 def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     source = DEFAULT_SOURCE / "fewshots" / f"{size}.md"
     assert not list((DEFAULT_SOURCE / "fewshots" / size).rglob("*.md"))
-    fragments = dict(FRAGMENT.findall(source.read_text(encoding="utf-8")))
+    source_content = source.read_text(encoding="utf-8")
+    assert "fontColor" not in source_content
+    fragments = dict(FRAGMENT.findall(source_content))
     expected = ["preamble"]
     if size == "2x2":
-        expected.extend(f"example-v{index:02d}" for index in range(1, 14))
+        expected.extend(
+            f"example-v{index:02d}"
+            for index in (1, 9, 10, 12, 4, 11, 13, 5, 6, 2, 8, 3, 7)
+        )
     else:
         expected.extend(
             f"example-v{index:02d}"
-            for index in (3, 6, 8, 9, 10, 16, 19, 23, 28, 38)
+            for index in (3, 16, 28, 9, 8, 10, 23, 6, 19, 38)
         )
     assert list(fragments) == expected
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))

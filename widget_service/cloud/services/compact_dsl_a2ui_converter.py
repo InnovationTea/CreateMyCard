@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from services.compact_component_bindings import collect_compact_component_binding_errors
+from services.compact_component_runtime import resolve_card_color_palette
 from services.compact_high_level_components import (
     CompactDslConversionError as CompactDslConversionError,
 )
@@ -517,6 +518,16 @@ def convert_compact_dsl_to_a2ui(
     components, data_rows = _split_component_rows(rows)
     _validate_compact_component_bindings(components)
     data_model = _build_data_model(data_rows)
+    fusion_palette = fusion_ball_palette_for_root(
+        components,
+        size=size,
+        app_version=profile.get("appVersion"),
+    )
+    card_palette = resolve_card_color_palette(
+        components[0].props,
+        theme=theme,
+        fusion_ball_active=fusion_palette is not None,
+    )
     author_types = {component.component_id: component.component_type for component in components}
     author_weights = frozenset(
         component.component_id for component in components if "layoutWeight" in component.props
@@ -533,13 +544,9 @@ def convert_compact_dsl_to_a2ui(
         components,
         size=size,
         data_model=data_model,
+        color_palette=card_palette,
     )
     validate_single_line_title_layout(components, size=size)
-    fusion_palette = fusion_ball_palette_for_root(
-        components,
-        size=size,
-        app_version=profile.get("appVersion"),
-    )
 
     normalized_components = [_normalize_component(row) for row in components]
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")

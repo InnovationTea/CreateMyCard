@@ -71,19 +71,26 @@ test("dataModel 叶子写入可读取父数组，父级替换不留下旧叶子"
 });
 
 test("SingleLineTitle 展开固定几何且阻止生成 ID 冲突", () => {
-  const source = '["root","Column",{},["header"]]\n["header","SingleLineTitle",{"title":"天气","fontColor":"#FF000000"}]';
+  const source = '["root","Column",{},["header"]]\n["header","SingleLineTitle",{"title":"天气"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).width, "matchParent");
+  assert.equal((graph.getNode("header")!.props.styles as Record<string, unknown>).height, 12);
   assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).fontSize, 12);
+  assert.equal((graph.getNode("header_title")!.props.styles as Record<string, unknown>).lineHeight, 1);
+  assert.equal(
+    (graph.getNode("header_title")!.props.styles as Record<string, unknown>).fontColor,
+    "#991F4799",
+  );
   assert.throws(() => compileMiniDsl(source + '\n["header_title","Text",{"content":"冲突"}]'), /冲突/);
-  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"unknown":12,"fontColor"')), /SingleLineTitle/);
-  assert.throws(() => compileMiniDsl(source.replace('"fontColor"', '"icon":"sun.svg","fontColor"')), /SingleLineTitle/);
+  assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"unknown":12,"title"')), /SingleLineTitle/);
+  assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"icon":"sun.svg","title"')), /SingleLineTitle/);
+  assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"height":20,"title"')), /SingleLineTitle/);
 });
 
 test("SingleLineTitle 可作为任意分区的单行标题", () => {
   const source = '["root","Row",{},["panel"]]\n'
     + '["panel","Column",{"width":132},["sectionTitle","body"]]\n'
-    + '["sectionTitle","SingleLineTitle",{"title":"设备状态","fontColor":"#FF000000"}]\n'
+    + '["sectionTitle","SingleLineTitle",{"title":"设备状态"}]\n'
     + '["body","Text",{"content":"在线"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal(graph.getNode("sectionTitle")?.type, "Extended.Row");
@@ -96,8 +103,8 @@ test("SingleLineTitle 可作为任意分区的单行标题", () => {
 
 test("2x4 左右独立分区可以分别使用 SingleLineTitle", () => {
   const source = '["root","Row",{},["left","right"]]\n'
-    + '["left","SingleLineTitle",{"title":"手机","fontColor":"#FF000000"}]\n'
-    + '["right","SingleLineTitle",{"title":"手表","fontColor":"#FF000000"}]';
+    + '["left","SingleLineTitle",{"title":"手机"}]\n'
+    + '["right","SingleLineTitle",{"title":"手表"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
   assert.equal(graph.getNode("left_title")?.props.content, "手机");
   assert.equal(graph.getNode("right_title")?.props.content, "手表");
@@ -109,7 +116,7 @@ test("TimelineUnit 与 CircleButton 展开为可渲染基础组件", () => {
   assert.equal((graph.getNode("line")!.props.styles as Record<string, unknown>).height, 48);
   assert.equal(graph.getNode("line_dot")!.type, "Extended.Divider");
   assert.throws(() => compileMiniDsl(timeline, { size: "2x4" }), /2x2/);
-  const round = compileMiniDsl('["root","Stack",{"width":40,"height":40,"alignContent":"center"},["action"]]\n["action","CircleButton",{"icon":"resources/base/media/play_fill.svg","actionSurface":"#331F4799","actionInk":"#FF1F4799","accessibility":{"label":"播放"},"onClick":[{"call":"clickToIntent","args":{"intentName":"Music"}}]}]');
+  const round = compileMiniDsl('["root","Stack",{"width":40,"height":40,"alignContent":"center"},["action"]]\n["action","CircleButton",{"icon":"resources/base/media/play_fill.svg","accessibility":{"label":"播放"},"onClick":[{"call":"clickToIntent","args":{"intentName":"Music"}}]}]');
   assert.equal(round.graph.getNode("action_icon")!.type, "Extended.Image");
   assert.equal((round.graph.getNode("action")!.props.styles as Record<string, unknown>).width, 40);
 });

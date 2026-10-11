@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,20 @@ _CONTRACT_PATH = (
     / "visual-recipes-v1.json"
 )
 _ALIGNMENT_VALUES = frozenset({"aligned", "adapted", "native"})
+_ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
+_PALETTE_ROLES = frozenset(
+    {
+        "primary",
+        "secondary",
+        "tertiary",
+        "graphicPrimary",
+        "graphicSecondary",
+        "graphicTertiary",
+        "componentSecondary",
+        "componentTertiary",
+    }
+)
+_DEFAULT_PALETTE = "blue"
 
 
 class CompactComponentRuntimeError(ValueError):
@@ -41,6 +56,34 @@ def _load_contract() -> dict[str, Any]:
 def load_visual_recipe_contract() -> dict[str, Any]:
     """Return an isolated copy of the complete visual recipe contract."""
     return copy.deepcopy(_load_contract())
+
+
+def resolve_card_color_palette(
+    root_props: dict[str, Any],
+    *,
+    theme: str = "light",
+    fusion_ball_active: bool = False,
+) -> dict[str, str]:
+    """Resolve semantic content-color roles from the authored root surface."""
+    palettes = _load_contract()["palettes"]
+    if fusion_ball_active:
+        return _palette_roles(palettes, "fusionDark")
+
+    surface_colors, gradient_colors = _root_surface_colors(root_props)
+    matched_name = _match_registered_palette(
+        palettes,
+        surface_colors=surface_colors,
+        gradient_colors=gradient_colors,
+    )
+    if matched_name is not None:
+        return _palette_roles(palettes, matched_name)
+
+    if surface_colors:
+        palette_name = _contrast_palette_name(surface_colors, theme=theme)
+        return _palette_roles(palettes, palette_name)
+    if root_props.get("backgroundImage") is not None and theme == "dark":
+        return _palette_roles(palettes, "neutralDark")
+    return _palette_roles(palettes, _DEFAULT_PALETTE)
 
 
 def component_visual_recipe(
@@ -114,6 +157,7 @@ def _validate_contract(payload: Any) -> None:
         raise CompactComponentRuntimeError(
             f"Compact visual recipe contract must use version {VISUAL_RECIPE_VERSION}."
         )
+    _validate_palettes(payload.get("palettes"))
     components = payload.get("components")
     if not isinstance(components, dict) or not components:
         raise CompactComponentRuntimeError(
@@ -133,6 +177,169 @@ def _validate_contract(payload: Any) -> None:
             raise CompactComponentRuntimeError(
                 f"Visual recipe {component_name}.parts must be an object."
             )
+
+
+def _validate_palettes(palettes: Any) -> None:
+    if not isinstance(palettes, dict) or not palettes:
+        raise CompactComponentRuntimeError(
+            "Compact visual recipe contract must declare palettes."
+        )
+    required_names = {
+        "blue",
+        "purple",
+        "warm",
+        "fusionDark",
+        "neutralLight",
+        "neutralDark",
+    }
+    if not required_names.issubset(palettes):
+        raise CompactComponentRuntimeError(
+            "Compact visual recipe contract is missing required palettes."
+        )
+    for palette_name, palette in palettes.items():
+        if not isinstance(palette_name, str) or not isinstance(palette, dict):
+            raise CompactComponentRuntimeError(
+                "Compact visual recipe palettes must be named objects."
+            )
+        backgrounds = palette.get("backgrounds")
+        gradients = palette.get("gradients")
+        roles = palette.get("roles")
+        if not isinstance(backgrounds, list) or not all(
+            _is_argb_color(color) for color in backgrounds
+        ):
+            raise CompactComponentRuntimeError(
+                f"Visual palette {palette_name}.backgrounds must contain ARGB colors."
+            )
+        if not isinstance(gradients, list) or not all(
+            _is_color_pair(colors) for colors in gradients
+        ):
+            raise CompactComponentRuntimeError(
+                f"Visual palette {palette_name}.gradients must contain ARGB color pairs."
+            )
+        if not isinstance(roles, dict) or set(roles) != _PALETTE_ROLES:
+            raise CompactComponentRuntimeError(
+                f"Visual palette {palette_name}.roles must declare every semantic role."
+            )
+        if not all(_is_argb_color(color) for color in roles.values()):
+            raise CompactComponentRuntimeError(
+                f"Visual palette {palette_name}.roles must use ARGB colors."
+            )
+
+
+def _palette_roles(palettes: dict[str, Any], palette_name: str) -> dict[str, str]:
+    palette = palettes.get(palette_name)
+    roles = palette.get("roles") if isinstance(palette, dict) else None
+    if not isinstance(roles, dict):
+        raise CompactComponentRuntimeError(
+            f"Visual palette {palette_name} does not declare semantic roles."
+        )
+    return copy.deepcopy(roles)
+
+
+def _root_surface_colors(
+    root_props: dict[str, Any],
+) -> tuple[list[str], tuple[str, ...] | None]:
+    gradient = root_props.get("linearGradient")
+    gradient_colors: tuple[str, ...] | None = None
+    if isinstance(gradient, dict):
+        stops = gradient.get("colors")
+        extracted: list[str] = []
+        if isinstance(stops, list):
+            for stop in stops:
+                if not isinstance(stop, list) or not stop:
+                    continue
+                color = stop[0]
+                if _is_argb_color(color):
+                    extracted.append(color.upper())
+        if extracted:
+            gradient_colors = tuple(extracted)
+
+    surface_colors = list(gradient_colors or ())
+    background = root_props.get("backgroundColor")
+    if not surface_colors and _is_argb_color(background):
+        surface_colors.append(background.upper())
+    return surface_colors, gradient_colors
+
+
+def _match_registered_palette(
+    palettes: dict[str, Any],
+    *,
+    surface_colors: list[str],
+    gradient_colors: tuple[str, ...] | None,
+) -> str | None:
+    for palette_name in ("blue", "purple", "warm"):
+        palette = palettes.get(palette_name)
+        if not isinstance(palette, dict):
+            continue
+        backgrounds = {
+            color.upper()
+            for color in palette.get("backgrounds", [])
+            if isinstance(color, str)
+        }
+        if len(surface_colors) == 1 and surface_colors[0] in backgrounds:
+            return palette_name
+        gradients = palette.get("gradients", [])
+        normalized_gradients = {
+            tuple(color.upper() for color in colors)
+            for colors in gradients
+            if _is_color_pair(colors)
+        }
+        if gradient_colors in normalized_gradients:
+            return palette_name
+    return None
+
+
+def _contrast_palette_name(colors: list[str], *, theme: str) -> str:
+    backdrop = (0, 0, 0) if theme == "dark" else (255, 255, 255)
+    backgrounds = [_composited_rgb(color, backdrop=backdrop) for color in colors]
+    dark = (26, 26, 26)
+    light = (255, 255, 255)
+    dark_contrast = min(_contrast_ratio(dark, background) for background in backgrounds)
+    light_contrast = min(_contrast_ratio(light, background) for background in backgrounds)
+    return "neutralDark" if light_contrast > dark_contrast else "neutralLight"
+
+
+def _composited_rgb(
+    color: str,
+    *,
+    backdrop: tuple[int, int, int],
+) -> tuple[int, int, int]:
+    alpha = int(color[1:3], 16) / 255
+    foreground = tuple(int(color[index:index + 2], 16) for index in (3, 5, 7))
+    return tuple(
+        round(channel * alpha + background * (1 - alpha))
+        for channel, background in zip(foreground, backdrop, strict=True)
+    )
+
+
+def _contrast_ratio(
+    foreground: tuple[int, int, int],
+    background: tuple[int, int, int],
+) -> float:
+    lighter = max(_relative_luminance(foreground), _relative_luminance(background))
+    darker = min(_relative_luminance(foreground), _relative_luminance(background))
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _relative_luminance(color: tuple[int, int, int]) -> float:
+    channels: list[float] = []
+    for value in color:
+        normalized = value / 255
+        if normalized <= 0.04045:
+            channels.append(normalized / 12.92)
+        else:
+            channels.append(((normalized + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _is_argb_color(value: Any) -> bool:
+    return isinstance(value, str) and bool(_ARGB_COLOR_PATTERN.fullmatch(value))
+
+
+def _is_color_pair(value: Any) -> bool:
+    return isinstance(value, list) and len(value) == 2 and all(
+        _is_argb_color(color) for color in value
+    )
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

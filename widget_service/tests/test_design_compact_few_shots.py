@@ -43,6 +43,18 @@ HIGH_LEVEL_COMPONENTS = {
     "TextBlock",
     "TopTextBottomValue",
 }
+RUNTIME_OWNED_PROPS = {
+    "PillButton": {
+        "actionSurface",
+        "actionInk",
+        "fontSize",
+        "fontWeight",
+        "width",
+    },
+    "CircleButton": {"actionSurface", "actionInk"},
+    "CardButton": {"backgroundColor"},
+    "TextBlock": {"backgroundColor"},
+}
 BASE_COMPONENTS = {
     "Button",
     "Column",
@@ -53,6 +65,60 @@ BASE_COMPONENTS = {
     "Row",
     "Stack",
     "Text",
+}
+EXPECTED_EXAMPLE_ORDER = {
+    "2x2": (
+        "2x2-V01",
+        "2x2-V09",
+        "2x2-V10",
+        "2x2-V12",
+        "2x2-V04",
+        "2x2-V11",
+        "2x2-V13",
+        "2x2-V05",
+        "2x2-V06",
+        "2x2-V02",
+        "2x2-V08",
+        "2x2-V03",
+        "2x2-V07",
+    ),
+    "2x4": (
+        "2x4-V03",
+        "2x4-V16",
+        "2x4-V28",
+        "2x4-V09",
+        "2x4-V08",
+        "2x4-V10",
+        "2x4-V23",
+        "2x4-V06",
+        "2x4-V19",
+        "2x4-V38",
+    ),
+}
+EXPECTED_LAYOUT_BY_EXAMPLE = {
+    "2x2-V01": "S-center",
+    "2x2-V09": "S-center",
+    "2x2-V10": "S-title-content",
+    "2x2-V12": "S-quad-content",
+    "2x2-V04": "S-title-content-action",
+    "2x2-V11": "S-title-content-action",
+    "2x2-V13": "S-title-content-action",
+    "2x2-V05": "S-title-primary-secondary-action",
+    "2x2-V06": "S-title-primary-secondary-action",
+    "2x2-V02": "S-title-anchor",
+    "2x2-V08": "S-title-anchor",
+    "2x2-V03": "S-content-dual-action",
+    "2x2-V07": "S-dual-info",
+    "2x4-V03": "W-top-bottom",
+    "2x4-V16": "W-top-bottom",
+    "2x4-V28": "W-top-bottom",
+    "2x4-V09": "W-split-panels",
+    "2x4-V08": "W-content-side-slots",
+    "2x4-V10": "W-content-side-slots",
+    "2x4-V23": "W-content-side-slots",
+    "2x4-V06": "W-four-slots",
+    "2x4-V19": "W-four-slots",
+    "2x4-V38": "W-four-slots",
 }
 
 
@@ -155,11 +221,48 @@ def test_few_shot_validates_and_converts(
 
 
 def test_example_ids_match_selected_library_and_are_unique() -> None:
-    expected = [f"2x2-V{index:02d}" for index in range(1, 14)]
-    expected.extend(
-        f"2x4-V{index:02d}" for index in (3, 6, 8, 9, 10, 16, 19, 23, 28, 38)
-    )
+    expected = [*EXPECTED_EXAMPLE_ORDER["2x2"], *EXPECTED_EXAMPLE_ORDER["2x4"]]
     assert [item[0] for item in EXAMPLES] == expected
+
+
+def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> None:
+    for size, expected in EXPECTED_EXAMPLE_ORDER.items():
+        source = (PROMPT_SOURCE / f"fewshots/{size}.md").read_text(encoding="utf-8")
+        actual = [
+            identifier.replace("-v", "-V")
+            for identifier in re.findall(rf'<a id="({size}-v\d\d)"', source)
+        ]
+        assert actual == list(expected)
+
+    two_by_two = (PROMPT_SOURCE / "fewshots/2x2.md").read_text(encoding="utf-8")
+    for layout in ("S-title-dual-content", "S-title-dual-column-action"):
+        group = two_by_two.split(f"**布局骨架：`{layout}`**", maxsplit=1)[1]
+        assert "待补充 Few-shot" in group.split("---", maxsplit=1)[0]
+
+    two_by_four = (PROMPT_SOURCE / "fewshots/2x4.md").read_text(encoding="utf-8")
+    for missing in (
+        "同类同级",
+        "Sub-118-A",
+        "Sub-118-B",
+        "Sub-118-C",
+        "Sub-140-A",
+        "Sub-140-C",
+        "Sub-140-D",
+        "Sub-140-H",
+    ):
+        matching_rows = [line for line in two_by_four.splitlines() if missing in line]
+        assert matching_rows
+        assert any("待补充" in line for line in matching_rows)
+
+
+def test_every_example_heading_declares_its_formal_layout() -> None:
+    for size in ("2x2", "2x4"):
+        headings = {
+            match.group(1): match.group(0)
+            for match in re.finditer(rf"(?m)^## ({size}-V\d\d)：.*$", PROMPTS[f"fewshot_{size}"])
+        }
+        for identifier in EXPECTED_EXAMPLE_ORDER[size]:
+            assert EXPECTED_LAYOUT_BY_EXAMPLE[identifier] in headings[identifier]
 
 
 def test_two_by_two_examples_cover_expected_layouts() -> None:
@@ -282,6 +385,28 @@ def test_examples_use_only_supported_component_types(
     types = set(_component_types(source))
     assert "Progress" not in types, identifier
     assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
+def test_examples_do_not_override_runtime_owned_component_styles(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del task
+    for row in _rows(source):
+        if len(row) < 3:
+            continue
+        component_type = row[1]
+        props = row[2]
+        if component_type in HIGH_LEVEL_COMPONENTS:
+            assert "fontColor" not in props, identifier
+        forbidden = RUNTIME_OWNED_PROPS.get(component_type, set())
+        assert not forbidden.intersection(props), identifier
 
 
 @pytest.mark.parametrize(
