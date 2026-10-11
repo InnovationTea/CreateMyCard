@@ -397,13 +397,19 @@ async def _generate_selected_templates(
             for path in slot.field_bindings.values():
                 if path not in generic_paths:
                     generic_paths.append(path)
-    projected_task_spec = project_content_component_facts(
-        source_task_spec,
-        effective_capability_ids,
-        scope.advanced_component_ids,
-        required_output_fields_by_capability=required_output_fields_by_capability,
-        generic_output_fields=tuple(generic_paths) if template_plans else None,
-    )
+    if template_plans:
+        # Search 已校验模板字段；二层使用下方复制的真实 Provider 路径，
+        # 不要求稀疏模板同时满足旧聚合组件的事实组合。
+        projected_task_spec = source_task_spec.model_copy(
+            update={"dataModelSchema": {"data": {}}}
+        )
+    else:
+        projected_task_spec = project_content_component_facts(
+            source_task_spec,
+            effective_capability_ids,
+            scope.advanced_component_ids,
+            required_output_fields_by_capability=required_output_fields_by_capability,
+        )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
         projected_task_spec,

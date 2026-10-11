@@ -78,7 +78,7 @@ def _example_request(
         query += "\n补充说明：" + example.context
     content.update(
         title=example.card_title or example.title.split(" ", maxsplit=1)[-1],
-        description="模版场景示例，全部为演示数据",
+        description="仅供演示的样例",
         userQuery=query,
         candidateEventCandidates=events,
     )

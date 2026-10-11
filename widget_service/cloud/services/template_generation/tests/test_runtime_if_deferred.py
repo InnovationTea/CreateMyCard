@@ -202,6 +202,8 @@ def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
         size="2x2",
         card_spec={"title": "日程", "description": "日程状态", "suggestSize": "2x2"},
         task_spec=_task(sample), protocol_profile=profile, design_profile_id="design-compact-dsl",
+        # 与生产入口一致，模板源使用模板校验路径，最终标准 A2UI 仍独立校验。
+        skip_compact_dsl_validation=True,
     )
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     assert not result.errors

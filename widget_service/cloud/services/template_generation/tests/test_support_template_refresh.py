@@ -410,7 +410,8 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
         "WeatherOverviewTemperatureSupport@1": [],
         "WeatherOverviewTemperatureUvSupport@1": [],
         "WeatherOverviewTemperaturecoldLevelSupport@1": [],
-        "BatteryOverviewSupport@1": ["icon_phone.svg"],
+        # 当前注册表已移除手机设备图标，独立预览省略可选图标。
+        "BatteryOverviewSupport@1": [],
     }
     for case in build_template_preview_cases():
         if case.template_id not in expected:

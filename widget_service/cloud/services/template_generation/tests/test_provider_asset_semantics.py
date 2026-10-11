@@ -301,6 +301,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
+        "WeatherOverviewFeelsLikeWindSupport@1": "asset.icon_weather_thermometer",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",
@@ -330,4 +331,16 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         assert isinstance(gallery_test, dict)
         overrides = gallery_test.get("sampleOverrides")
         assert isinstance(overrides, dict)
-        assert overrides.get("/data/weather/current/condition") == "多云"
+        bindings = content.get("candidateDataBindings")
+        assert isinstance(bindings, list)
+        weather_fields: set[str] = set()
+        for binding in bindings:
+            if binding.get("writeResultTo") != "/data/weather":
+                continue
+            fields = binding.get("candidateOutputFields")
+            assert isinstance(fields, list)
+            weather_fields.update(fields)
+        if "/current/condition" in weather_fields:
+            assert overrides.get("/data/weather/current/condition") == "多云"
+        else:
+            assert "/data/weather/current/condition" not in overrides
