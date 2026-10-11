@@ -34,11 +34,12 @@ def feasible_composition_candidates(
     size: str,
     plan: dict[str, Any],
     task: dict[str, Any],
+    *, display_samples: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """列出完整参考解；搜索未命中不是新失败，也不能视为合同无解。"""
     facts = plan.get("info_required", [])
     unresolved: list[str] = []
-    choices = _group_choices(size, facts, plan, task, unresolved)
+    choices = _group_choices(size, facts, plan, task, unresolved, display_samples=display_samples)
     if unresolved:
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
     actions = _action_groups(size, facts, task, unresolved)
@@ -53,6 +54,9 @@ def feasible_composition_candidates(
     for name in ordered:
         layout = layouts.get(name, {})
         if layout.get("size") != size:
+            continue
+        # 当前求解器只构造独立按钮，不支持该布局的只读列表整体点击。
+        if name == "W-top-bottom" and actions:
             continue
         count = layout.get("actionCount", {})
         if not count.get("min", 0) <= len(actions) <= count.get("max", 0):
@@ -141,12 +145,18 @@ def _schema_value(task: dict[str, Any], path: str) -> dict[str, Any]:
     return node if isinstance(node, dict) else {}
 
 
-def _pressure(fact: dict[str, Any], task: dict[str, Any]) -> str | None:
+def _pressure(
+    fact: dict[str, Any], task: dict[str, Any], display_samples: dict[str, str] | None = None,
+) -> str | None:
     path = fact.get("dataId")
     value = _schema_value(task, path).get("sampleValue") if path else fact.get("text")
     if isinstance(value, bool):
-        return None  # 枚举/布尔展示映射未知，不能用 True 的宽度证明实际中文状态放得下。
+        # 只能使用失败源中已存在的完整两分支文字；未知映射不能用 True 的宽度证明。
+        return display_samples.get(path) if display_samples is not None else None
     if isinstance(value, (str, int, float)):
+        displayed = display_samples.get(path) if display_samples is not None else None
+        if isinstance(displayed, str) and _text_width(displayed, 1) > _text_width(str(value), 1):
+            return displayed
         return str(value)
     return None
 
@@ -174,17 +184,28 @@ def _group_choices(
     plan: dict[str, Any],
     task: dict[str, Any],
     unresolved: list[str],
+    *, display_samples: dict[str, str] | None = None,
 ) -> list[list[list[dict[str, Any]]]]:
     declared: dict[int, dict[str, Any]] = {}
+    event_groups: list[dict[str, Any]] = []
+    event_indexes: set[int] = set()
     for region in plan.get("composition", {}).get("regions", []):
         for group in region.get("groups", []):
             for index in group.get("factIndexes", []):
                 declared.setdefault(index, group)
+            event = _declared_event_group(size, group, facts, task)
+            if event is not None:
+                indexes = set(event.get("factIndexes", []))
+                if not indexes.intersection(event_indexes):
+                    event_groups.append(event)
+                    event_indexes.update(indexes)
     objects: dict[str, list[dict[str, Any]]] = {}
     for index, fact in enumerate(facts):
         if fact.get("actionId"):
             continue
-        sample = _pressure(fact, task)
+        if index in event_indexes:
+            continue
+        sample = _pressure(fact, task, display_samples)
         if sample is None:
             unresolved.append(f"fact {index}: no trustworthy display pressure sample")
             continue
@@ -193,8 +214,10 @@ def _group_choices(
         if "SingleLineTitle" in hints:
             first = "SingleLineTitle"
         declared_group = declared.get(index, {})
-        if declared_group.get("component") == "ProgressLine2":
-            first = "ProgressLine2"
+        declared_name = declared_group.get("component")
+        scalar_names = {"EmphasizedData", "EmphasisText", "SecondaryBody", "ProgressLine2"}
+        if declared_name in scalar_names and "SingleLineTitle" not in hints:
+            first = declared_name
         supported = {
             "SingleLineTitle",
             "EmphasizedData",
@@ -208,6 +231,15 @@ def _group_choices(
         if first not in supported:
             if "EmphasizedData" in hints:
                 first = "EmphasizedData"
+            elif first == "InfoBlock" and "SecondaryBody" in hints:
+                # 普通 InfoBlock 主文14fp，正文回退沿用14fp；数值+单位16fp不可降级。
+                placements = declared_group.get("placements", [])
+                field_type = _schema_value(task, fact.get("dataId", "")).get("type")
+                if "unit" in placements or field_type not in {"string", "boolean"}:
+                    unresolved.append(f"fact {index}: numeric InfoBlock needs exact unit recipe")
+                    continue
+                first = "SecondaryBody"
+                declared_group = {"role": "supporting"}
             else:
                 unresolved.append(f"fact {index}: unsupported exact recipe occupancy {first}")
                 continue
@@ -251,7 +283,92 @@ def _group_choices(
             rest = [_single_group(size, item) for item in items if item not in blocks]
             alternatives.insert(0, [_text_block(size, blocks), *rest])
         output.append(alternatives)
+    for event in event_groups:
+        output.append([[event]])
     return output
+
+
+def _declared_event_group(
+    size: str, group: dict[str, Any], facts: list[dict[str, Any]], task: dict[str, Any],
+) -> dict[str, Any] | None:
+    """仅重建完整已声明事件；不从字段名猜角色，也不创造标题或删掉备注。"""
+    if group.get("component") != "EventCard":
+        return None
+    indexes = group.get("factIndexes", [])
+    placements = group.get("placements", [])
+    if not indexes or len(indexes) != len(placements) or len(set(indexes)) != len(indexes):
+        return None
+    items: dict[int, dict[str, list[str]]] = {}
+    sources = []
+    for index, placement in zip(indexes, placements, strict=True):
+        if not isinstance(index, int) or not 0 <= index < len(facts):
+            return None
+        match = (
+            re.fullmatch(r"items\[(\d+)\]\.(title|time|location)", placement)
+            if isinstance(placement, str) else None
+        )
+        fact = facts[index]
+        candidate = "EventCard" in fact.get("componentHints", [])
+        if match is None or fact.get("actionId") or not candidate:
+            return None
+        sample = _pressure(fact, task)
+        if sample is None:
+            return None
+        values = items.setdefault(int(match.group(1)), {})
+        values.setdefault(match.group(2), []).append(sample)
+        path = fact.get("dataId")
+        if isinstance(path, str):
+            sources.append(path)
+    if sorted(items) != list(range(len(items))) or len(items) > 2:
+        return None
+    density = group.get("density", "normal")
+    if density not in {"normal", "compact"}:
+        return None
+    height = 0.0
+    widths = []
+    fonts = {}
+    for item in items.values():
+        titles = item.get("title", [])
+        times = item.get("time", [])
+        locations = item.get("location", [])
+        if len(titles) != 1 or not 1 <= len(times) <= 2 or len(locations) > 1:
+            return None
+        variant = "compact" if density == "compact" else (
+            "withLocation" if locations else "withoutLocation"
+        )
+        recipe = component_visual_recipe("EventCard", size=size, variant=variant)
+        parts = recipe.get("parts", {})
+        title = parts.get("title", {}).get("styles", {})
+        meta = parts.get("meta", {}).get("styles", {})
+        fonts = {"title": title.get("fontSize"), "meta": meta.get("fontSize")}
+        line_widths = [_text_width(titles[0], fonts.get("title"))]
+        time_width = _text_width(" - ".join(times), fonts.get("meta"))
+        if locations and density == "compact":
+            location_width = _text_width(locations[0], fonts.get("meta"))
+            time_width += location_width + parts.get("metaRow", {}).get("styles", {}).get(
+                "itemMargin", 0
+            )
+        elif locations:
+            line_widths.append(_text_width(locations[0], fonts.get("meta")))
+        line_widths.append(time_width)
+        rail_width = parts.get("rail", {}).get("styles", {}).get("width", 0)
+        root_gap = parts.get("root", {}).get("styles", {}).get("itemMargin", 0)
+        widths.append(max(line_widths) + rail_width + root_gap)
+        height += recipe.get("metrics", {}).get("height", 0)
+    height += _part(size, "EventCard", "multiRoot").get("itemMargin", 0) * (len(items) - 1)
+    if height <= 0:
+        return None
+    identity = "/".join(sources[0].split("/")[:-1]) if sources else None
+    while identity and any(not path.startswith(identity + "/") for path in sources):
+        identity = identity.rsplit("/", 1)[0]
+    return {
+        "component": "EventCard", "density": density,
+        "factIndexes": list(indexes), "placements": list(placements),
+        "requiredHeight": height, "minimumWidth": max(widths),
+        "partFonts": fonts, "object": identity,
+        "displayInstruction": "Keep every declared title/time/location binding and density; "
+        "join paired start/end times without dropping either endpoint. No invented title.",
+    }
 
 
 def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
@@ -555,7 +672,14 @@ def _allocations(
         )
     if any(not pool for pool in pools):
         return
-    for destinations in itertools.islice(itertools.product(*pools), _SEARCH_LIMIT):
+    destinations_to_try = itertools.islice(itertools.product(*pools), _SEARCH_LIMIT)
+    if len(unused_actions) > 1 and len(body_zones) > 1:
+        # 等价完整分配优先均衡独立动作，避免最先把多个按钮堆进一个窄内容区。
+        destinations_to_try = sorted(
+            destinations_to_try,
+            key=lambda targets: _action_distribution_cost(targets[len(remaining):], allocation),
+        )
+    for destinations in destinations_to_try:
         belonging: dict[str, int] = {}
         split = False
         for group, destination in zip(remaining, destinations, strict=False):
@@ -586,6 +710,22 @@ def _allocations(
         for group, destination in zip(remaining + unused_actions, destinations, strict=True):
             value[destination].append(copy.deepcopy(group))
         yield value
+
+
+def _action_distribution_cost(
+    destinations: tuple[int, ...], allocation: list[list[dict[str, Any]]],
+) -> int:
+    """只排序已有合法分配，不猜事件归属、不删除或新增动作。"""
+    counts = []
+    for groups in allocation:
+        count = 0
+        for group in groups:
+            if group.get("actionId"):
+                count += 1
+        counts.append(count)
+    for destination in destinations:
+        counts[destination] += 1
+    return sum(count * count for count in counts)
 
 
 def _close_regions(
@@ -911,7 +1051,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         identifier: str, group: dict[str, Any], *, weight: float | None = None,
     ) -> str:
         props = {}
-        for key in ("role", "columns", "lines", "variant", "unitFromFieldContract"):
+        for key in ("role", "columns", "lines", "variant", "density", "unitFromFieldContract"):
             if key in group:
                 props[key] = group.get(key)
         # PillButton 的宽度由动作槽和 Recipe 决定，公开合同不接受 width。
@@ -939,7 +1079,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
     ) -> str:
         indexes = piece.get("groupIndexes", [])
         component = piece.get("component")
-        if len(indexes) == 1:
+        if len(indexes) == 1 and piece.get("placement") != "remaining_body":
             group = groups[indexes[0]]
             if component is None or component == group.get("component"):
                 return add_group(identifier, group)
@@ -961,6 +1101,11 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
                 children.append(add_group(f"{identifier}_{position}", groups[index], weight=weight))
         node = {"id": identifier, "component": component or "Column",
                 "children": children, "fixedLayoutProps": {"itemMargin": gap}}
+        if piece.get("placement") == "remaining_body":
+            node["suggestedLayoutProps"] = {"width": "matchParent", "layoutWeight": 1}
+            node["fixedLayoutProps"].update({"alignItems": "start", "justifyContent": "start"})
+        elif piece.get("placement") == "single_foreground_wrapper":
+            node["suggestedLayoutProps"] = {"width": "matchParent", "height": "matchParent"}
         widths = piece.get("referenceChildWidths")
         if widths is not None:
             node["referenceChildWeights"] = widths
@@ -990,8 +1135,11 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
                 fixed[key] = region.props.get(key)
         if zone is not None:
             fixed["itemMargin"] = zone.get("gap", 0)
-        output.append({"id": identifier, "component": region.kind, "children": children,
-                       "fixedLayoutProps": fixed})
+        node = {"id": identifier, "component": region.kind, "children": children,
+                "fixedLayoutProps": fixed}
+        if not region.path:
+            node["suggestedLayoutProps"] = {"width": "matchParent", "height": "matchParent"}
+        output.append(node)
         return identifier
 
     visit(tree)

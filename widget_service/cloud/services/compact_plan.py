@@ -512,6 +512,7 @@ def parse_compact_plan_call(
 
 def compact_plan_context(
     plan: dict[str, Any], *, implementation_conflicts: list[str] | None = None,
+    execution_selected: bool = False,
 ) -> str:
     """构造第二阶段使用的硬事实与软候选说明。"""
     conflicts = (
@@ -523,6 +524,22 @@ def compact_plan_context(
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
     payload = json.dumps(context_plan, ensure_ascii=False, separators=(",", ":"))
+    if execution_selected:
+        return (
+            "# 已接受的 Compact Info Plan\n\n"
+            "info_required 冻结全部必须可见的事实与真实动作。组件候选不是新增实例清单；"
+            "compositionRecovery 提供完整参考时实现其中已选方案，不再按 componentHints 第一项"
+            "重做选型，也不照抄已经诊断为冲突的旧 composition。"
+            "没有恢复参考时，合法composition保持原分区和合组；没有完整composition时"
+            "按对象信息关系和当前尺寸完整案例组织，不能把候选第一项当作逐事实实例清单。"
+            "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
+            "局部修复保持待修树的合法结构，只处理明确错误。"
+            "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
+            "索引从0开始，不能把索引或压力样值写入最终 DSL。标题绑定保留指定标题职责。"
+            "核对必要的对象标签、完整单位与全部动作，原字号不变，不能裁切或删信息。"
+            "参考预算不代替标签与单位的核算；明确发现参考方案仍不成立时才整体重组。\n\n"
+            f"```json\n{payload}\n```"
+        )
     return (
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"

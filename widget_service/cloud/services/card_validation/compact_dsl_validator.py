@@ -1036,7 +1036,10 @@ def _nearby_text_context(
     parent_by_child: dict[str, str],
     components_by_id: dict[str, ComponentRow],
 ) -> str:
-    fragments = [_static_text_fragments(component.props.get("content"))]
+    fragments = [
+        _static_text_fragments(component.props.get("content")),
+        _paired_recipe_label_context(component, parent_by_child, components_by_id),
+    ]
     parent_id = parent_by_child.get(component.component_id)
     parent = components_by_id.get(parent_id) if parent_id else None
     if parent is None:
@@ -1048,6 +1051,32 @@ def _nearby_text_context(
         if sibling is None or sibling.component_type != "Text":
             continue
         fragments.append(_static_text_fragments(sibling.props.get("content")))
+    return " ".join(fragment for fragment in fragments if fragment)
+
+
+def _paired_recipe_label_context(
+    component: ComponentRow,
+    parent_by_child: dict[str, str],
+    components_by_id: dict[str, ComponentRow],
+) -> str:
+    """识别当前 TextBlock 项内的真实标签，不跨项或跨分区寻找文字。"""
+    if not _uses_visual_recipe_part(component, "TextBlock.value"):
+        return ""
+    slot = components_by_id.get(parent_by_child.get(component.component_id))
+    if slot is None or not _uses_visual_recipe_part(slot, "TextBlock.valueSlot"):
+        return ""
+    item = components_by_id.get(parent_by_child.get(slot.component_id))
+    if item is None or not _uses_visual_recipe_part(item, "TextBlock.item"):
+        return ""
+    fragments: list[str] = []
+    for sibling_id in item.children:
+        sibling = components_by_id.get(sibling_id)
+        if sibling is None or not _uses_visual_recipe_part(sibling, "TextBlock.labelSlot"):
+            continue
+        for child_id in sibling.children:
+            child = components_by_id.get(child_id)
+            if child is not None and _uses_visual_recipe_part(child, "TextBlock.label"):
+                fragments.append(_static_text_fragments(child.props.get("content")))
     return " ".join(fragment for fragment in fragments if fragment)
 
 
@@ -1190,6 +1219,8 @@ def _has_nearby_metric_label(
         )
 
     if has_metric_label(component.props.get("content")):
+        return True
+    if has_metric_label(_paired_recipe_label_context(component, parent_by_child, components_by_id)):
         return True
 
     current = component.component_id

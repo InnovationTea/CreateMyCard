@@ -12,6 +12,7 @@ from services.compact_composition_context import (
     compact_plan_capacity_context,
     composition_implementation_conflicts,
     composition_recovery_context,
+    repair_display_samples,
 )
 from services.compact_composition_planner import (
     composition_text_width_conflicts,
@@ -1595,13 +1596,18 @@ class PromptBuilder:
         constructive_result = None
         recovery = None
         if source_format == DESIGN_COMPACT_PROFILE_ID and compact_plan is not None:
-            constructive_result = feasible_composition_candidates(
-                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-            )
-            recovery = composition_recovery_context(
-                task_spec.size, compact_plan, constructive_result,
-                task=task_spec.model_dump(mode="json"),
-            )
+            task_value = task_spec.model_dump(mode="json")
+            conflicts = composition_implementation_conflicts(compact_plan)
+            conflicts.extend(composition_text_width_conflicts(
+                task_spec.size, compact_plan, task_value,
+            ))
+            if conflicts:
+                constructive_result = feasible_composition_candidates(
+                    task_spec.size, compact_plan, task_value,
+                )
+                recovery = composition_recovery_context(
+                    task_spec.size, compact_plan, constructive_result, task=task_value,
+                )
         effective_system_prompt = self._design_token_system_prompt(
             task_spec,
             system_prompt,
@@ -1609,6 +1615,7 @@ class PromptBuilder:
             compact_plan=compact_plan,
             include_examples=not defer_compact_examples,
             constructive_result=constructive_result,
+            execution_selected=compact_plan is not None,
         )
         task_spec_value = task_spec.model_dump(
             mode="json",
@@ -1741,6 +1748,7 @@ class PromptBuilder:
         compact_plan: dict[str, Any] | None = None,
         include_examples: bool = True,
         constructive_result: dict[str, Any] | None = None,
+        execution_selected: bool = False,
     ) -> str:
         if source_format != DESIGN_COMPACT_PROFILE_ID:
             return system_prompt
@@ -1752,7 +1760,10 @@ class PromptBuilder:
             conflicts.extend(composition_text_width_conflicts(
                 task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
             ))
-            plan_context = compact_plan_context(compact_plan, implementation_conflicts=conflicts)
+            plan_context = compact_plan_context(
+                compact_plan, implementation_conflicts=conflicts,
+                execution_selected=execution_selected,
+            )
             system_prompt = f"{system_prompt}\n\n{plan_context}"
             worksheet = compact_composition_context(
                 task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
@@ -1834,6 +1845,8 @@ class PromptBuilder:
         *,
         dsl_format: str = "a2ui-form",
         previous_failures: list[list[dict[str, Any]]] | None = None,
+        task_spec: TaskSpec | None = None,
+        compact_plan: dict[str, Any] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
@@ -1864,12 +1877,46 @@ class PromptBuilder:
             recovery = None
             if isinstance(original_payload, dict):
                 recovery = original_payload.get("compositionRecovery")
-            if isinstance(recovery, dict):
+            capacity_errors = []
+            for error in quality_errors:
+                message = error.get("message", "")
+                if re.search(r"vertical layout requires|overflow|layout.*match", message):
+                    capacity_errors.append(message)
+            if capacity_errors and task_spec is not None and compact_plan is not None:
+                task_value = task_spec.model_dump(mode="json")
+                samples = repair_display_samples(invalid_source_dsl, task_value)
+                constructive = feasible_composition_candidates(
+                    task_spec.size, compact_plan, task_value, display_samples=samples,
+                )
+                updated = composition_recovery_context(
+                    task_spec.size, compact_plan, constructive, task=task_value,
+                    implementation_conflicts=capacity_errors,
+                )
+                if updated is not None:
+                    recovery = updated
+                    recovery["displayPressureBasis"] = {
+                        "sourceDisplaySamplesOnly": samples,
+                        "instruction": "只用于原源完整文案和布尔最宽分支核算；保留原标签、"
+                        "前缀及完整绑定，不得把压力文案写成静态字段或省掉另一分支。",
+                    }
+            if isinstance(original_payload, dict) and "compositionRecovery" in original_payload:
+                original_payload.pop("compositionRecovery")
+                payload["originalUserContent"] = json.dumps(
+                    original_payload, ensure_ascii=False, separators=(",", ":"),
+                )
+            if capacity_errors and isinstance(recovery, dict):
                 payload["compositionRecovery"] = copy.deepcopy(recovery)
                 payload["instruction"] += (
-                    "遇到布局或容量冲突，compositionRecovery 是完整重组的直接依据；"
+                    "遇到布局或容量冲突，按compositionRecovery的诊断与完整文案压力重算；"
+                    "只有提供完整参考方案时才实现该方案，"
+                    "有限搜索未给出完整解时仍按完整合同合组，不能沿用已失效的旧参考。"
                     "保留事实动作和字号，落实整个变体与横纵合组，"
                     "不要继续维持 invalidSourceDsl 的超预算子树。"
+                )
+            elif not capacity_errors:
+                payload["instruction"] += (
+                    "本次没有布局或容量错误，不重做组合选型；"
+                    "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"
                 )
         user_content = json.dumps(
             payload,
