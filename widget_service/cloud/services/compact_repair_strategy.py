@@ -22,6 +22,7 @@ _STRUCTURE_MARKERS = (
     "must use row",
     "must use column",
 )
+COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -38,10 +39,14 @@ class CompactRepairDirective:
     no_progress: bool
     retryable: bool
     instruction: str
+    fallback_stage: str | None = None
+    fallback_attempt: int | None = None
+    fallback_attempt_limit: int | None = None
+    fallback_remaining_attempts: int | None = None
 
     def to_prompt_payload(self) -> dict[str, Any]:
         """转换成可进入修复提示词和 Trace 的稳定字段。"""
-        return {
+        payload: dict[str, Any] = {
             "category": self.category,
             "scope": self.scope,
             "repairStrategy": self.repair_strategy,
@@ -53,6 +58,16 @@ class CompactRepairDirective:
             "retryable": self.retryable,
             "instruction": self.instruction,
         }
+        if self.fallback_stage is not None:
+            payload.update(
+                {
+                    "fallbackStage": self.fallback_stage,
+                    "fallbackAttempt": self.fallback_attempt,
+                    "fallbackAttemptLimit": self.fallback_attempt_limit,
+                    "fallbackRemainingAttempts": self.fallback_remaining_attempts,
+                }
+            )
+        return payload
 
 
 def _normalized_issue_message(message: str) -> str:
@@ -201,6 +216,9 @@ def _exhausted_directive(
     consecutive_failures: int,
     category_attempt: int,
     no_progress: bool,
+    fallback_stage: str | None = None,
+    fallback_attempt: int | None = None,
+    fallback_attempt_limit: int | None = None,
 ) -> CompactRepairDirective:
     return CompactRepairDirective(
         category=category,
@@ -216,6 +234,44 @@ def _exhausted_directive(
             "完整 DSL 重组后仍出现同一根因或原样返回；"
             "停止重复调用模型，保留当前诊断并按校验失败处理。"
         ),
+        fallback_stage=fallback_stage,
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=fallback_attempt_limit,
+        fallback_remaining_attempts=(0 if fallback_stage is not None else None),
+    )
+
+
+def _compact_component_fallback_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    fallback_attempt: int,
+) -> CompactRepairDirective:
+    """进入 claw-widget 同义的无损紧凑组件兜底阶段。"""
+    remaining_attempts = COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS - fallback_attempt
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="compact_component",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=(
+            "正常布局修复与完整 DSL 重组仍未闭合；进入 compact_component "
+            "无损紧凑组件替换阶段。按修复合同改用语义兼容且占位更小的已登记组件、"
+            "合并同对象辅助信息，并在当前尺寸合法布局内重新分配；必须保留全部事实、"
+            "动态绑定和 Action，不得删除、静态化、缩字、裁切或隐藏内容。"
+        ),
+        fallback_stage="compact_component",
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+        fallback_remaining_attempts=remaining_attempts,
     )
 
 
@@ -228,6 +284,8 @@ class CompactRepairStrategyTracker:
         self._consecutive_failures = 0
         self._category_attempts: dict[str, int] = {}
         self._previous_strategy: str | None = None
+        self._active_fallback: str | None = None
+        self._fallback_submission_count = 0
 
     def next_directive(
         self,
@@ -252,7 +310,41 @@ class CompactRepairStrategyTracker:
         self._previous_source = normalized_source
 
         repeated_root_cause = self._consecutive_failures >= 2 or no_progress
-        if repeated_root_cause and self._previous_strategy == "plan_guided_recompose":
+        is_layout_failure = category in {"layout_capacity", "layout_structure"}
+        if self._active_fallback == "compact_component":
+            if self._fallback_submission_count >= COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS:
+                directive = _exhausted_directive(
+                    category=category,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    fallback_stage=self._active_fallback,
+                    fallback_attempt=self._fallback_submission_count,
+                    fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+                )
+            else:
+                directive = _compact_component_fallback_directive(
+                    category=category,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    fallback_attempt=self._fallback_submission_count,
+                )
+                self._fallback_submission_count += 1
+        elif is_layout_failure and self._previous_strategy == "plan_guided_recompose":
+            self._active_fallback = "compact_component"
+            directive = _compact_component_fallback_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                fallback_attempt=self._fallback_submission_count,
+            )
+            self._fallback_submission_count += 1
+        elif repeated_root_cause and self._previous_strategy == "plan_guided_recompose":
             directive = _exhausted_directive(
                 category=category,
                 fingerprint=fingerprint,
@@ -260,7 +352,7 @@ class CompactRepairStrategyTracker:
                 category_attempt=category_attempt,
                 no_progress=no_progress,
             )
-        elif category in {"layout_capacity", "layout_structure"}:
+        elif is_layout_failure:
             directive = _layout_directive(
                 category=category,
                 fingerprint=fingerprint,

@@ -48,6 +48,9 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     first = tracker.next_directive("dsl-v1", first_errors)
     second = tracker.next_directive("dsl-v2", second_errors)
     third = tracker.next_directive("dsl-v3", second_errors)
+    fallback_first = tracker.next_directive("dsl-v4", second_errors)
+    fallback_second = tracker.next_directive("dsl-v5", second_errors)
+    exhausted = tracker.next_directive("dsl-v6", second_errors)
 
     assert first.category == "layout_capacity"
     assert first.repair_strategy == "rebudget"
@@ -58,6 +61,35 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert third.repair_strategy == "plan_guided_recompose"
     assert third.scope == "full_dsl"
     assert third.consecutive_failures == 2
+    assert fallback_first.repair_strategy == "compact_component"
+    assert fallback_first.fallback_stage == "compact_component"
+    assert fallback_first.fallback_attempt == 0
+    assert fallback_first.fallback_attempt_limit == 2
+    assert fallback_first.fallback_remaining_attempts == 2
+    assert fallback_second.repair_strategy == "compact_component"
+    assert fallback_second.fallback_attempt == 1
+    assert fallback_second.fallback_remaining_attempts == 1
+    assert exhausted.repair_strategy == "exhausted"
+    assert exhausted.fallback_attempt == 2
+    assert exhausted.fallback_remaining_attempts == 0
+    assert exhausted.retryable is False
+
+
+def test_compact_component_fallback_stays_active_for_non_layout_regression() -> None:
+    tracker = CompactRepairStrategyTracker()
+    layout_errors = [
+        _issue("component body: vertical layout requires at least 142vp within 126vp")
+    ]
+    contract_errors = [_issue("component summary: unsupported prop density")]
+
+    tracker.next_directive("dsl-v1", layout_errors)
+    tracker.next_directive("dsl-v2", layout_errors)
+    first_fallback = tracker.next_directive("dsl-v3", layout_errors)
+    second_fallback = tracker.next_directive("dsl-v4", contract_errors)
+
+    assert first_fallback.repair_strategy == "compact_component"
+    assert second_fallback.repair_strategy == "compact_component"
+    assert second_fallback.fallback_attempt == 1
 
 
 def test_unchanged_dsl_is_reported_as_no_progress_and_escalated() -> None:

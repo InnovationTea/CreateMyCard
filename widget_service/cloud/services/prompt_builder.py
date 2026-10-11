@@ -25,6 +25,37 @@ from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRe
 
 _MODULE = "[Prompt Builder]"
 
+_REPAIR_TARGET_INSTRUCTIONS = {
+    "component": (
+        "以 invalidSourceDsl 为直接修复对象，只修改错误组件和必要的直接父容器；"
+    ),
+    "sublayout": (
+        "将 invalidSourceDsl 作为整体上下文与事实来源，重建报错所属信息组，"
+        "保持其它区域稳定；"
+    ),
+    "parent_layout": (
+        "invalidSourceDsl 只用于恢复事实、绑定、动作和父区外正确内容；"
+        "允许替换整个报错父布局，不受其旧父区拓扑约束；"
+    ),
+    "full_dsl": (
+        "invalidSourceDsl 只作为失败诊断与事实核对材料，禁止沿用其旧拓扑；"
+        "从 originalUserContent、已接受 Plan 和首次系统约束重新构造完整 DSL；"
+    ),
+}
+
+
+def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
+    """根据修复范围定义上一轮 DSL 在本轮中的角色。"""
+    if repair_strategy is None:
+        return "以 invalidSourceDsl 为直接修复对象；"
+    raw_scope = repair_strategy.get("scope")
+    if not isinstance(raw_scope, str):
+        return "以 invalidSourceDsl 为直接修复对象；"
+    return _REPAIR_TARGET_INSTRUCTIONS.get(
+        raw_scope,
+        "以 invalidSourceDsl 为直接修复对象；",
+    )
+
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
 REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(
@@ -1856,13 +1887,14 @@ class PromptBuilder:
             raise ValueError("Repair prompt requires the initial system and user messages")
         system_prompt = initial_prompt[0]["content"] + "\n\n" + REPAIR_SYSTEM_PROMPT
         history = copy.deepcopy(previous_failures) if previous_failures else []
+        target_instruction = _repair_target_instruction(repair_strategy)
         payload: dict[str, Any] = {
             "originalUserContent": initial_prompt[1]["content"],
             "invalidSourceDsl": invalid_source_dsl,
             "qualityErrors": quality_errors,
             "dslFormat": dsl_format,
             "instruction": (
-                "以 invalidSourceDsl 为直接修复对象；先从 originalUserContent 恢复"
+                f"{target_instruction}先从 originalUserContent 恢复"
                 " TaskSpec 的字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
                 "每次修改后复查受影响父容器、"
                 "相邻节点和全部首次生成门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
