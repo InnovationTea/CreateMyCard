@@ -476,6 +476,21 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
+def is_template_compact_dsl(compact_dsl: str) -> bool:
+    """仅为结构完整且根直接包含模板内容层的标准组件 DSL 启用模板转换。"""
+    if "template_root" not in compact_dsl:
+        return False
+    try:
+        rows = _parse_compact_rows(compact_dsl)
+        components, _data_rows = _validate_component_tree(rows)
+    except CompactDslConversionError:
+        return False
+    root = components[0]
+    if root.component_id != "root" or "template_root" not in root.children:
+        return False
+    return any(component.component_id == "template_root" for component in components)
+
+
 def repair_compact_dsl_binding_paths(
     compact_dsl: str,
     *,

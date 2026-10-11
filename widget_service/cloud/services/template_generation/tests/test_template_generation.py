@@ -8281,6 +8281,8 @@ async def test_template_exception_obeys_route_failure_policy(
     callback_sizes: list[str] = []
 
     class ModelClient:
+        # 固定模拟输出只验证模板失败后的路由分支，不进入真实模型的 Plan 阶段。
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:

@@ -118,6 +118,8 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
 
     parameters: dict[str, str] = {}
     asset_candidates: list[dict[str, object]] = []
+    if template_id == "ScheduleOverviewMeetingSenderFull@1":
+        parameters["title"] = "UI需求评审会"
     if template_id == "BluetoothDeviceOverviewMusicFull@1":
         icon_path = "resources/base/media/earphone_case_16644.svg"
         parameters["deviceIcon"] = icon_path
@@ -147,6 +149,8 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
             }
         ],
     }
+    if "title" in parameters:
+        card_spec["title"] = parameters.get("title")
     intent = {
         "requiredOutputFieldsByCapability": {definition.capability_id: paths},
         "primaryOutputFieldByCapability": {},

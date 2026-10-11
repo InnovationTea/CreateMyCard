@@ -1,10 +1,9 @@
 """Regression coverage for the reviewed Q058/Q060/Q073 layout geometry."""
 
-from pathlib import Path
-
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.protocol_registry import A2UIProtocolRegistry
 from services.template_generation.engine.cardplan.compiler import (
     _estimate_height,
     _instantiate_blueprint,
@@ -115,10 +114,7 @@ def test_wide_full_hero_action_flexes_within_content_budget(template_id):
 
 
 def test_production_prompt_uses_current_wide_canvas():
-    cloud = Path(__file__).resolve().parents[3]
-    prompt = (cloud / "data/protocol_profiles/design-compact-dsl/PROMPT.md").read_text(
-        encoding="utf-8"
-    )
+    prompt = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
     assert "300vp × 150vp" in prompt
     assert "276vp × 126vp" in prompt
     assert "59 + 8 + 59 = 126" in prompt
