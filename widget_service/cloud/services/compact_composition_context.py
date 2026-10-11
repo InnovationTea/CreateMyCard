@@ -20,7 +20,10 @@ _RULE_KEYS = (
 )
 
 
-def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str, Any]) -> str:
+def compact_composition_context(
+    size: str, plan: dict[str, Any], task: dict[str, Any],
+    *, constructive_result: dict[str, Any] | None = None,
+) -> str:
     """提供当前合同的容量与责任清单；参考尺寸只用于核算，不写回产品宽高。"""
     facts = plan.get("info_required", [])
     if not isinstance(facts, list):
@@ -63,7 +66,10 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "candidateRecipeParts": _recipe_geometry(size, names),
         "ordinaryFactPacking": _fact_packing(size, facts, task),
         "referenceContentBudgets": _content_budgets(size, layouts, len(actions)),
-        "constructiveCompositions": feasible_composition_candidates(size, plan, task),
+        "constructiveCompositions": (
+            constructive_result if constructive_result is not None
+            else feasible_composition_candidates(size, plan, task)
+        ),
     }
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
@@ -104,6 +110,103 @@ def compact_composition_context(size: str, plan: dict[str, Any], task: dict[str,
         "本表只摘要已有合同，不授权新 Props；不要输出本表或任何额外协议字段。\n\n"
         f"```json\n{encoded}\n```"
     )
+
+
+def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
+    """识别软方案的明确冲突；父子分配同时核算，不新增发布校验。"""
+    composition = plan.get("composition")
+    if not isinstance(composition, dict):
+        notes = plan.get("compositionNotes", [])
+        return list(notes) if isinstance(notes, list) else []
+    layout = load_layout_contract().get("layouts", {}).get(composition.get("layout"), {})
+    patterns = layout.get("patterns", [])
+    variant = composition.get("variant")
+    if not isinstance(variant, int) or not 1 <= variant <= len(patterns):
+        return ["composition variant must be rebuilt from the current contract"]
+    rules = patterns[variant - 1].get("rules", [])
+    directions = {}
+    for rule in rules:
+        types = rule.get("types", [])
+        directions[tuple(rule.get("path", []))] = types[0] if types else None
+    regions = {}
+    conflicts: list[str] = []
+    for region in composition.get("regions", []):
+        path = tuple(region.get("path", []))
+        if path in regions:
+            conflicts.append(f"duplicate region assignment at {list(path)}")
+        regions[path] = region
+    occupied: dict[tuple[int, ...], float] = {}
+    for path in sorted(regions, key=len, reverse=True):
+        region = regions.get(path)
+        own_height = region.get("requiredHeight")
+        capacity = region.get("referenceHeight")
+        if not isinstance(own_height, (int, float)) or not isinstance(capacity, (int, float)):
+            continue
+        children = []
+        for child_path, child_height in occupied.items():
+            if len(child_path) <= len(path) or child_path[:len(path)] != path:
+                continue
+            intermediate = False
+            for other in regions:
+                if len(path) < len(other) < len(child_path):
+                    if other[:len(path)] == path and child_path[:len(other)] == other:
+                        intermediate = True
+                        break
+            if not intermediate:
+                children.append(child_height)
+        total = own_height
+        if children and directions.get(path) == "Column":
+            gap = region.get("gap", 0)
+            extra_gaps = len(children) if region.get("groups") else len(children) - 1
+            total += sum(children) + gap * max(0, extra_gaps)
+        elif children:
+            total = max(total, max(children))
+        occupied[path] = total
+        if total > capacity:
+            conflicts.append(
+                f"region {list(path)} including nested assignments requires {total:g}vp "
+                f"within {capacity:g}vp; old grouping is not executable"
+            )
+    return conflicts
+
+
+def composition_recovery_context(
+    size: str, plan: dict[str, Any], constructive_result: dict[str, Any],
+) -> dict[str, Any] | None:
+    """把冲突软方案的完整替代落点交给生成，不改硬事实或已闭合方案。"""
+    conflicts = composition_implementation_conflicts(plan)
+    if not conflicts:
+        return None
+    candidates = constructive_result.get("candidates", [])
+    result: dict[str, Any] = {
+        "status": "recompose_conflicting_plan",
+        "conflicts": conflicts,
+        "instruction": (
+            "旧 composition 是不可执行的诊断，不是必须照抄的结构。"
+            "保留全部 info_required 及真实动作、主值字号，整体落实下列一个完整组合的"
+            "布局变体、path、directChildren 包装和 rows 横纵关系；不要给旧超高树调权重。"
+            "不得额外叠加候选未预留的装饰标题；必要标题事实仍按指定组件显示。"
+            "referenceWidth/Height 只用于核算，区域用 matchParent/layoutWeight，"
+            "横排行宽比例转成 layoutWeight，不写死区域宽高；固定设计量不变。"
+            "核对标签、单位、进度范围和动作完整名称；若完整文字不满足预算，"
+            "可改用另一个完整合法组合并复算，不能缩字、删信息或截断。"
+        ),
+    }
+    if candidates:
+        selected = copy.deepcopy(candidates[0])
+        for region in selected.get("regions", []):
+            for group in region.get("groups", []):
+                group.pop("pressureOnly", None)
+        result["referenceComposition"] = selected
+        alternatives = _layout_geometry(size, None).get(selected.get("layout"), [])
+        variant = selected.get("variant")
+        if isinstance(variant, int) and 1 <= variant <= len(alternatives):
+            result["completeLayoutRules"] = alternatives[variant - 1]
+    else:
+        result["searchStatus"] = constructive_result.get("status")
+        result["unresolved"] = constructive_result.get("unresolved", [])
+        result["instruction"] += "有限搜索未给出完整解，仍应按当前合同重新合组，不提前失败。"
+    return result
 
 
 def compact_plan_capacity_context(size: str) -> str:

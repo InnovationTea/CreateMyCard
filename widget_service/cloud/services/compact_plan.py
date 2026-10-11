@@ -12,6 +12,7 @@ from typing import Any
 
 from services.compact_composition_context import (
     composition_group_minimum_height,
+    composition_implementation_conflicts,
     composition_region_capacity,
 )
 from services.compact_dsl_a2ui_converter import (
@@ -511,7 +512,12 @@ def parse_compact_plan_call(
 
 def compact_plan_context(plan: dict[str, Any]) -> str:
     """构造第二阶段使用的硬事实与软候选说明。"""
-    payload = json.dumps(plan, ensure_ascii=False, separators=(",", ":"))
+    conflicts = composition_implementation_conflicts(plan)
+    context_plan = dict(plan)
+    if conflicts:
+        context_plan.pop("composition", None)
+        context_plan["compositionNotes"] = conflicts
+    payload = json.dumps(context_plan, ensure_ascii=False, separators=(",", ":"))
     return (
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"

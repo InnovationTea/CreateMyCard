@@ -10,7 +10,9 @@ from models.generation import TaskSpec
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
+    composition_recovery_context,
 )
+from services.compact_composition_planner import feasible_composition_candidates
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
@@ -1584,12 +1586,22 @@ class PromptBuilder:
         defer_compact_examples: bool = False,
     ) -> list[dict[str, str]]:
         """首次生成使用 PROMPT，编辑时叠加文件化多轮规则。"""
+        constructive_result = None
+        recovery = None
+        if source_format == DESIGN_COMPACT_PROFILE_ID and compact_plan is not None:
+            constructive_result = feasible_composition_candidates(
+                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+            )
+            recovery = composition_recovery_context(
+                task_spec.size, compact_plan, constructive_result,
+            )
         effective_system_prompt = self._design_token_system_prompt(
             task_spec,
             system_prompt,
             source_format,
             compact_plan=compact_plan,
             include_examples=not defer_compact_examples,
+            constructive_result=constructive_result,
         )
         task_spec_value = task_spec.model_dump(
             mode="json",
@@ -1622,6 +1634,10 @@ class PromptBuilder:
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
+        if recovery is not None:
+            user_payload = json.loads(user_content)
+            user_payload["compositionRecovery"] = recovery
+            user_content = json.dumps(user_payload, ensure_ascii=False, separators=(",", ":"))
         return [
             {"role": "system", "content": effective_system_prompt},
             {
@@ -1717,6 +1733,7 @@ class PromptBuilder:
         *,
         compact_plan: dict[str, Any] | None = None,
         include_examples: bool = True,
+        constructive_result: dict[str, Any] | None = None,
     ) -> str:
         if source_format != DESIGN_COMPACT_PROFILE_ID:
             return system_prompt
@@ -1727,6 +1744,7 @@ class PromptBuilder:
             system_prompt = f"{system_prompt}\n\n{compact_plan_context(compact_plan)}"
             worksheet = compact_composition_context(
                 task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                constructive_result=constructive_result,
             )
             system_prompt = f"{system_prompt}\n\n{worksheet}"
         if fusion_ball_enabled(task_spec.appVersion):
@@ -1825,6 +1843,22 @@ class PromptBuilder:
         }
         if previous_failures is not None:
             payload["previousFailures"] = history
+        if dsl_format == DESIGN_COMPACT_PROFILE_ID:
+            try:
+                original_payload = json.loads(initial_prompt[1]["content"])
+            except json.JSONDecodeError:
+                # 兼容旧调用的纯文字输入；可选交接解析不能新增修复失败。
+                original_payload = None
+            recovery = None
+            if isinstance(original_payload, dict):
+                recovery = original_payload.get("compositionRecovery")
+            if isinstance(recovery, dict):
+                payload["compositionRecovery"] = copy.deepcopy(recovery)
+                payload["instruction"] += (
+                    "遇到布局或容量冲突，compositionRecovery 是完整重组的直接依据；"
+                    "保留事实动作和字号，落实整个变体与横纵合组，"
+                    "不要继续维持 invalidSourceDsl 的超预算子树。"
+                )
         user_content = json.dumps(
             payload,
             ensure_ascii=False,
