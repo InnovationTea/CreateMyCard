@@ -1427,14 +1427,19 @@ def _collect_text_width_budget_errors(
     errors: list[str],
     protocol_profile: dict[str, Any] | None,
 ) -> None:
-    """兜底明确的单行超宽；未知表达式/自然尺寸不猜，反馈原字号重组方向。"""
+    """兜底明确单行超宽；自然宽度只用已知祖先内宽作上界，不猜实际尺寸。"""
     from services.compact_composition_context import _literal_display_sample
 
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size not in {"2x2", "2x4"}:
         return
     nodes = []
+    parents = {}
+    by_id = {}
     for row in components:
+        by_id[row.component_id] = row
+        for child in row.children:
+            parents[child] = row.component_id
         nodes.append({
             "id": row.component_id, "component": row.component_type,
             "styles": row.props, "children": list(row.children),
@@ -1454,7 +1459,24 @@ def _collect_text_width_budget_errors(
             continue
         font = _non_negative_number(props.get("fontSize"))
         box = boxes.get(row.component_id)
-        if font is None or box is None or box.width is None:
+        if font is None or box is None:
+            continue
+        width = box.width
+        width_description = "allocated text area"
+        if width is None:
+            ancestor_id = parents.get(row.component_id)
+            seen = set()
+            while ancestor_id is not None and ancestor_id not in seen:
+                seen.add(ancestor_id)
+                ancestor_box = boxes.get(ancestor_id)
+                ancestor = by_id.get(ancestor_id)
+                if ancestor_box is not None and ancestor_box.width is not None:
+                    if ancestor is not None:
+                        width = ancestor_box.width - _horizontal_padding(ancestor.props)
+                        width_description = "known containing area upper bound"
+                    break
+                ancestor_id = parents.get(ancestor_id)
+        if width is None:
             continue
         content = props.get("content") if row.component_type == "Text" else props.get("label")
         displayed = _literal_display_sample(content, task_spec)
@@ -1463,17 +1485,17 @@ def _collect_text_width_budget_errors(
             text = content
         if not isinstance(text, str) or not text or "\n" in text:
             continue
-        available = box.width - _horizontal_padding(props)
+        available = width - _horizontal_padding(props)
         maximum = _non_negative_number(props.get("maxWidth"))
         if maximum is not None:
             available = min(available, maximum)
-        # 只反馈明显冲突，不把生成侧1.2保守压力估计作为精确字体测量门禁。
+        # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
         required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
         if available > 0 and required > available * 1.1:
             errors.append(
                 f"component {row.component_id}: text width overflow; complete text {text!r} "
                 f"at original font {font:g} needs about {required:g}vp in one line, "
-                f"but its allocated text area is {available:g}vp. Keep every label, prefix, "
+                f"but its {width_description} is {available:g}vp. Keep every label, prefix, "
                 "value and action; use legal lines at the same font or regroup into a wider "
                 "region. A fixed single-line component needs same-font separate lines or a "
                 "different legal composition, not clipping, smaller secondary text or weight."

@@ -191,6 +191,23 @@ def _declared_unit(item: dict[str, Any]) -> str | None:
     return suffix.group(1) if suffix is not None else None
 
 
+def quantitative_main_bindings(plan: dict[str, Any], task: dict[str, Any]) -> list[str]:
+    """列出已计划为量化主值的真实数值绑定，不按业务名称推测。"""
+    paths = []
+    for fact in plan.get("info_required", []):
+        path = fact.get("dataId")
+        hints = fact.get("componentHints", [])
+        if not isinstance(path, str) or not hints:
+            continue
+        primary = hints[0] == "EmphasizedData"
+        ratio = hints[0] == "InfoBlock" and "ProgressCircleSingle" in hints
+        if not primary and not ratio:
+            continue
+        if _schema_value(task, path).get("type") in {"number", "integer"}:
+            paths.append(path)
+    return paths
+
+
 def _group_choices(
     size: str,
     facts: list[dict[str, Any]],
@@ -203,6 +220,7 @@ def _group_choices(
     declared: dict[int, dict[str, Any]] = {}
     event_groups: list[dict[str, Any]] = []
     event_indexes: set[int] = set()
+    quantitative_paths = set(quantitative_main_bindings(plan, task))
     for region in plan.get("composition", {}).get("regions", []):
         for group in region.get("groups", []):
             for index in group.get("factIndexes", []):
@@ -243,6 +261,13 @@ def _group_choices(
             declared_group["displayParts"] = literal_display_parts(
                 source_role.get("displayExpression"), task,
             )
+        if fact.get("dataId") in quantitative_paths:
+            first = "EmphasizedData"
+            label = source_role.get("displayLabel")
+            if isinstance(label, str) and label.strip():
+                value = _schema_value(task, fact.get("dataId")).get("sampleValue")
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    sample = str(value)
         supported = {
             "SingleLineTitle",
             "EmphasizedData",
@@ -535,7 +560,7 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
     }
     if name == "SecondaryBody":
         output.update({"role": role, "columns": 1, "lines": [1], "labelAllowance": 0})
-    if name == "EmphasisText":
+    if name in {"EmphasisText", "EmphasizedData"}:
         output["splitDisplayParts"] = item.get("declared", {}).get("displayParts", [])
     if unit is not None:
         output["unitFromFieldContract"] = unit
@@ -1009,19 +1034,22 @@ def _pack(
             continue
         if minimum > width:
             parts = group.get("splitDisplayParts", [])
-            if group.get("component") == "EmphasisText" and len(parts) == 2:
+            if group.get("component") in {"EmphasisText", "EmphasizedData"} and len(parts) == 2:
                 font = group.get("fontSize")
                 if all(_text_width(part.get("sample"), font) <= width for part in parts):
                     children = []
                     for position, part in enumerate(parts):
                         children.append({
-                            "component": "EmphasisText", "fontSize": font,
+                            "component": group.get("component"), "fontSize": font,
                             "requiredHeight": height,
                             "minimumWidth": _text_width(part.get("sample"), font),
                             "factIndexes": group.get("factIndexes") if position else [],
                             "placements": group.get("placements") if position else [],
-                            "originalMainText": part.get("text"), "object": group.get("object"),
+                            "object": group.get("object"),
                         })
+                        key = "originalValue" if group.get("component") == "EmphasizedData" \
+                            else "originalMainText"
+                        children[-1][key] = part.get("text")
                     group.update(_nested_group("Column", children, gap))
                     height = group.get("requiredHeight")
                     minimum = group.get("minimumWidth")
@@ -1244,6 +1272,8 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         props = {}
         if "originalMainText" in group:
             props["mainText"] = group.get("originalMainText")
+        if "originalValue" in group:
+            props["value"] = group.get("originalValue")
         for key in (
             "role", "columns", "lines", "variant", "density", "labelLines",
             "unitFromFieldContract",
@@ -1297,7 +1327,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
                 weight = widths[position] if total is not None and total > 0 else None
                 children.append(add_group(f"{identifier}_{position}", groups[index], weight=weight))
         node = {"id": identifier, "component": component or "Column",
-                "children": children, "fixedLayoutProps": {"itemMargin": gap}}
+                "children": children, "fixedLayoutProps": {"itemMargin": gap, "padding": 0}}
         if piece.get("placement") == "remaining_body":
             node["suggestedLayoutProps"] = {"width": "matchParent", "layoutWeight": 1}
             node["fixedLayoutProps"].update({"alignItems": "start", "justifyContent": "start"})

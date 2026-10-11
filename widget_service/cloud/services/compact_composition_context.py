@@ -13,6 +13,7 @@ from services.compact_composition_planner import (
     _text_width,
     composition_structure_blueprint,
     composition_text_width_conflicts,
+    quantitative_main_bindings,
 )
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
@@ -60,6 +61,10 @@ def compact_composition_context(
         "requiredActionCount": len(actions),
         "requiredActions": handlers,
         "requiredSingleLineTitleBindings": titles,
+        "quantitativeMainBindings": quantitative_main_bindings(plan, task),
+        "quantitativeMainFontSize": component_visual_recipe(
+            "EmphasizedData", size=size,
+        ).get("parts", {}).get("value", {}).get("styles", {}).get("fontSize"),
     }
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
@@ -81,7 +86,9 @@ def compact_composition_context(
         "不把数值改成状态的小字补充，也不以圆环代替可读读数。"
         "长静态正文优先在原字号正文组件内用单列、合法两行；固定单行组件不能"
         "靠新增空白高度获得第二行。长强调说明可拆成同字号完整上下文行和读数行，"
-        "或重选更宽分区，不能把统计范围挪成小字。\n\n"
+        "或重选更宽分区，不能把统计范围挪成小字。quantitativeMainBindings明确的数值主值"
+        "按quantitativeMainFontSize显示，不能改为普通正文或较小强调文字；"
+        "对象名称独立可读，长统计读数可保持主值规格拆为两行。\n\n"
         f"```json\n{encoded}\n```"
     )
 
@@ -286,6 +293,8 @@ def repair_display_samples(source: str, task: dict[str, Any]) -> dict[str, str]:
                         values.append(item)
         elif row.component_type == "EmphasisText":
             values.append({"value": row.props.get("mainText")})
+        elif row.component_type == "EmphasizedData":
+            values.append({"value": row.props.get("value")})
         for item in values:
             display = _literal_display_sample(item.get("value"), task)
             if display is None:
@@ -338,6 +347,10 @@ def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
                     "role": row.props.get("role", "supporting"),
                     "displayExpression": value,
                 }
+                if row.component_type == "SecondaryBody":
+                    for item in items:
+                        if isinstance(item, dict) and item.get("value") == value:
+                            roles[paths[0]]["displayLabel"] = item.get("label")
     return roles
 
 
