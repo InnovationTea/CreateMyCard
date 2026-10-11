@@ -1849,6 +1849,7 @@ class PromptBuilder:
         *,
         dsl_format: str = "a2ui-form",
         previous_failures: list[list[dict[str, Any]]] | None = None,
+        repair_strategy: dict[str, Any] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
@@ -1870,6 +1871,12 @@ class PromptBuilder:
         }
         if previous_failures is not None:
             payload["previousFailures"] = history
+        if repair_strategy is not None:
+            strategy = copy.deepcopy(repair_strategy)
+            payload["repairStrategy"] = strategy
+            strategy_instruction = strategy.get("instruction")
+            if isinstance(strategy_instruction, str) and strategy_instruction.strip():
+                payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if dsl_format == DESIGN_COMPACT_PROFILE_ID:
             try:
                 original_payload = json.loads(initial_prompt[1]["content"])

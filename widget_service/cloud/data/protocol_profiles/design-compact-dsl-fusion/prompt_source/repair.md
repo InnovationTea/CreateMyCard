@@ -58,6 +58,11 @@ CardButton 完整label过长时使用 labelLines:2，在原字号、原动作槽
 
 请以 invalidSourceDsl 为待修复对象，逐项处理 qualityErrors 中列出的 error 级问题，并尽量保持未涉及部分稳定。
 qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描述具体问题。
+若用户载荷包含 repairStrategy，它是微服务根据本请求前序失败生成的修复路由：
+按其 scope、repairStrategy 和 instruction 执行。`component` 只修对应组件；`sublayout` 重算所属信息组；
+`parent_layout` 重新分配父区域；`full_dsl` 放弃旧拓扑，从已接受 Plan 的全部硬事实重建完整 DSL。
+noProgress 为 true 或 consecutiveFailures 大于等于 2 时，禁止只修改 id、颜色、对齐、layoutWeight 或其它
+不影响根因的属性；必须使用更高层级的组合策略。
 完整 artifact 校验错误还可能包含 category、validatorStage、fileKind、line、jsonPointer、actual、expected 和
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 执行最小修改；不得忽略具体 code 和 fixHint 后仅凭通用 category 猜测修复方式。
