@@ -624,7 +624,7 @@ def _close_regions(
         gap = zone.props.get(
             "itemMargin", _part(size, "SecondaryBody", "root").get("itemMargin", 0)
         )
-        packed = _pack(groups, zone.width, gap)
+        packed = _pack(groups, zone.width, gap, height_budget=zone.height)
         if packed is None:
             return None
         rows, height = packed
@@ -632,7 +632,16 @@ def _close_regions(
             return None
         direct_children = _direct_children(zone, groups, rows)
         if direct_children is None:
-            return None
+            # 单列优先不能覆盖布局直属子数合同；需横排时再比较紧凑组合。
+            packed = _pack(groups, zone.width, gap)
+            if packed is None:
+                return None
+            rows, height = packed
+            if height > zone.height:
+                return None
+            direct_children = _direct_children(zone, groups, rows)
+            if direct_children is None:
+                return None
         _record_text_allowances(groups, rows, zone.width, size)
         result.append(
             {
@@ -676,8 +685,25 @@ def _record_text_allowances(
                 group["perItemLabelWidthBudget"] = (available - gap * (count - 1)) / count - padding
 
 
-def _pack(groups: list[dict[str, Any]], width: float, gap: float):
+def _pack(
+    groups: list[dict[str, Any]], width: float, gap: float, *, height_budget: float | None = None,
+):
     """保持组顺序，比较单列与相邻组横排；操作始终留在底部独立行。"""
+    if height_budget is not None:
+        columns = []
+        total = gap * max(0, len(groups) - 1)
+        for index, group in enumerate(groups):
+            minimum = group.get("minimumWidth")
+            height = group.get("requiredHeight")
+            if not isinstance(minimum, (int, float)) or not isinstance(height, (int, float)):
+                break
+            if minimum > width:
+                break
+            total += height
+            columns.append({"direction": "column", "groupIndexes": [index],
+                            "height": height, "availableWidth": width})
+        if len(columns) == len(groups) and total <= height_budget:
+            return columns, total
     best: dict[int, tuple[list[dict[str, Any]], float]] = {len(groups): ([], 0.0)}
     for i in range(len(groups) - 1, -1, -1):
         group = groups[i]
@@ -820,3 +846,134 @@ def _all_facts_covered(candidate: dict[str, Any], count: int) -> bool:
         for group in region.get("groups", []):
             seen.extend(group.get("factIndexes", []))
     return sorted(seen) == list(range(count))
+
+
+def composition_text_width_conflicts(
+    size: str, plan: dict[str, Any], task: dict[str, Any],
+) -> list[str]:
+    """只核对能够确定的等宽组压力值；不猜未知标签或改发布校验。"""
+    conflicts = []
+    facts = plan.get("info_required", [])
+    composition = plan.get("composition", {})
+    if not isinstance(composition, dict) or not isinstance(facts, list):
+        return conflicts
+    for region in composition.get("regions", []):
+        available = region.get("referenceWidth")
+        if not isinstance(available, (int, float)):
+            continue
+        for group in region.get("groups", []):
+            if group.get("component") != "TextBlock":
+                continue
+            indexes = group.get("factIndexes", [])
+            count = len(indexes)
+            if count < 2:
+                continue
+            root = _part(size, "TextBlock", "root")
+            item_padding = _extent(_part(size, "TextBlock", "item").get("padding"), "width")
+            inner_width = available - _extent(root.get("padding"), "width")
+            item_width = (inner_width - root.get("itemMargin", 0) * (count - 1)) / count
+            item_width -= item_padding
+            value_style = _part(size, "TextBlock", "value")
+            font = value_style.get("fontSize")
+            if not isinstance(font, (int, float)):
+                continue
+            for index in indexes:
+                if not isinstance(index, int) or not 0 <= index < len(facts):
+                    continue
+                sample = _pressure(facts[index], task)
+                if sample is None:
+                    continue
+                required = _text_width(sample, font)
+                if required > item_width:
+                    conflicts.append(
+                        f"TextBlock fact {index} complete pressure value requires {required:g}vp "
+                        f"within an equal item of {item_width:g}vp; regroup without truncation"
+                    )
+    return conflicts
+
+
+def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> list[dict[str, Any]]:
+    """展开参考结构的节点关系，不生成最终DSL或组件视觉属性。"""
+    layout = load_layout_contract().get("layouts", {}).get(candidate.get("layout"), {})
+    patterns = layout.get("patterns", [])
+    variant = candidate.get("variant")
+    if not isinstance(variant, int) or not 1 <= variant <= len(patterns):
+        return []
+    tree = _region_tree(size, patterns[variant - 1].get("rules", []))
+    if tree is None:
+        return []
+    zones = {}
+    for region in candidate.get("regions", []):
+        zones[tuple(region.get("path", []))] = region
+    output: list[dict[str, Any]] = []
+
+    def add_group(identifier: str, group: dict[str, Any]) -> str:
+        props = {}
+        for key in ("role", "columns", "lines", "variant", "unitFromFieldContract"):
+            if key in group:
+                props[key] = group.get(key)
+        output.append({"id": identifier, "component": group.get("component"), "children": [],
+                       "factIndexes": group.get("factIndexes"),
+                       "placements": group.get("placements"), "groupParameters": props,
+                       "additionalTextWidthBudget": group.get("additionalTextWidthBudget")})
+        return identifier
+
+    def add_piece(
+        identifier: str, piece: dict[str, Any], groups: list[dict[str, Any]], gap: float,
+    ) -> str:
+        indexes = piece.get("groupIndexes", [])
+        component = piece.get("component")
+        if len(indexes) == 1:
+            group = groups[indexes[0]]
+            if component is None or component == group.get("component"):
+                return add_group(identifier, group)
+        children = []
+        if "children" in piece:
+            for index, child in enumerate(piece.get("children")):
+                children.append(add_piece(f"{identifier}_{index}", child, groups, gap))
+        elif "rows" in piece:
+            for index, row in enumerate(piece.get("rows")):
+                child = {"component": "Row" if row.get("direction") == "row" else None,
+                         "groupIndexes": row.get("groupIndexes", []),
+                         "referenceChildWidths": row.get("referenceChildWidths")}
+                children.append(add_piece(f"{identifier}_{index}", child, groups, gap))
+        else:
+            for position, index in enumerate(indexes):
+                children.append(add_group(f"{identifier}_{position}", groups[index]))
+        node = {"id": identifier, "component": component or "Column",
+                "children": children, "fixedLayoutProps": {"itemMargin": gap}}
+        widths = piece.get("referenceChildWidths")
+        if widths is not None:
+            node["referenceChildWeights"] = widths
+        output.append(node)
+        return identifier
+
+    def visit(region: Region) -> str:
+        identifier = "root" if not region.path else "region_" + "_".join(map(str, region.path))
+        zone = zones.get(region.path)
+        groups = zone.get("groups", []) if zone is not None else []
+        if zone is not None and region.kind not in _CONTAINERS:
+            if not groups:
+                raise ValueError("Reference leaf has no complete fact group")
+            return add_group(identifier, groups[0])
+        children = []
+        if zone is not None:
+            for index, piece in enumerate(zone.get("directChildren", [])):
+                children.append(add_piece(
+                    f"{identifier}_child{index}", piece, groups, zone.get("gap", 0),
+                ))
+        else:
+            for child in region.children:
+                children.append(visit(child))
+        fixed = {}
+        for key in ("padding", "itemMargin", "alignItems", "justifyContent"):
+            if key in region.props:
+                fixed[key] = region.props.get(key)
+        if zone is not None:
+            fixed["itemMargin"] = zone.get("gap", 0)
+        output.append({"id": identifier, "component": region.kind, "children": children,
+                       "fixedLayoutProps": fixed})
+        return identifier
+
+    visit(tree)
+    return list(reversed(output))

@@ -10,9 +10,13 @@ from models.generation import TaskSpec
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
+    composition_implementation_conflicts,
     composition_recovery_context,
 )
-from services.compact_composition_planner import feasible_composition_candidates
+from services.compact_composition_planner import (
+    composition_text_width_conflicts,
+    feasible_composition_candidates,
+)
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
@@ -1594,6 +1598,7 @@ class PromptBuilder:
             )
             recovery = composition_recovery_context(
                 task_spec.size, compact_plan, constructive_result,
+                task=task_spec.model_dump(mode="json"),
             )
         effective_system_prompt = self._design_token_system_prompt(
             task_spec,
@@ -1741,7 +1746,12 @@ class PromptBuilder:
             system_prompt, task_spec, compact_plan, include_examples=include_examples,
         )
         if compact_plan is not None:
-            system_prompt = f"{system_prompt}\n\n{compact_plan_context(compact_plan)}"
+            conflicts = composition_implementation_conflicts(compact_plan)
+            conflicts.extend(composition_text_width_conflicts(
+                task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+            ))
+            plan_context = compact_plan_context(compact_plan, implementation_conflicts=conflicts)
+            system_prompt = f"{system_prompt}\n\n{plan_context}"
             worksheet = compact_composition_context(
                 task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
                 constructive_result=constructive_result,

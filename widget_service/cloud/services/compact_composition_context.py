@@ -7,7 +7,11 @@ import re
 from typing import Any
 
 from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
-from services.compact_composition_planner import feasible_composition_candidates
+from services.compact_composition_planner import (
+    composition_structure_blueprint,
+    composition_text_width_conflicts,
+    feasible_composition_candidates,
+)
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
 
@@ -172,9 +176,12 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
 
 def composition_recovery_context(
     size: str, plan: dict[str, Any], constructive_result: dict[str, Any],
+    *, task: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """把冲突软方案的完整替代落点交给生成，不改硬事实或已闭合方案。"""
     conflicts = composition_implementation_conflicts(plan)
+    if task is not None:
+        conflicts.extend(composition_text_width_conflicts(size, plan, task))
     if not conflicts:
         return None
     candidates = constructive_result.get("candidates", [])
@@ -190,6 +197,12 @@ def composition_recovery_context(
             "横排行宽比例转成 layoutWeight，不写死区域宽高；固定设计量不变。"
             "核对标签、单位、进度范围和动作完整名称；若完整文字不满足预算，"
             "可改用另一个完整合法组合并复算，不能缩字、删信息或截断。"
+            "structureBlueprint 明确完整父子节点、直属 children 和组件合组，"
+            "按引用构建一棵树，不能把 Row 子组另拆成多行或省略前景包装。"
+            "单列能放下时不要改回窄双列；未知标签仍需核算。"
+            "groupParameters 是组合说明而非可照抄的全部 Props，"
+            "事实索引需转换成真实绑定，字段合同单位需解析成合法 unit；"
+            "不得把索引、预算、样值等参考字段输出到 DSL。"
         ),
     }
     if candidates:
@@ -198,6 +211,7 @@ def composition_recovery_context(
             for group in region.get("groups", []):
                 group.pop("pressureOnly", None)
         result["referenceComposition"] = selected
+        result["structureBlueprint"] = composition_structure_blueprint(size, selected)
         alternatives = _layout_geometry(size, None).get(selected.get("layout"), [])
         variant = selected.get("variant")
         if isinstance(variant, int) and 1 <= variant <= len(alternatives):

@@ -510,9 +510,14 @@ def parse_compact_plan_call(
     return CompactPlanValidationResult(plan=plan, warnings=tuple(warnings))
 
 
-def compact_plan_context(plan: dict[str, Any]) -> str:
+def compact_plan_context(
+    plan: dict[str, Any], *, implementation_conflicts: list[str] | None = None,
+) -> str:
     """构造第二阶段使用的硬事实与软候选说明。"""
-    conflicts = composition_implementation_conflicts(plan)
+    conflicts = (
+        composition_implementation_conflicts(plan)
+        if implementation_conflicts is None else implementation_conflicts
+    )
     context_plan = dict(plan)
     if conflicts:
         context_plan.pop("composition", None)
