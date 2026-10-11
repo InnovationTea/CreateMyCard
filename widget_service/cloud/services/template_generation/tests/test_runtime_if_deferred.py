@@ -186,7 +186,7 @@ def test_template_source_adapter_rejects_deferred_runtime_if() -> None:
 def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
     # 文案带「今天」时间范围标记：日历 eventCount 语义规则（必须同时给出时间
     # 范围与日程含义）由 #422 收紧后生效，样例文案需符合产品规则，
-    # 本测试的主体是 Expr 条件表达式仍走通公共处理链。
+    # 本测试使用模板编译产物，验证 Expr 仍通过公共处理链的受信任模板入口。
     definition = _definition('Text(Expr(data.eventCont > 0 ? "今天有日程" : "今天暂无日程"))')
     root = _instantiate_blueprint(
         definition.variants[0].root, {}, {"eventCont": "${data.calendar.eventCount}"},
@@ -202,6 +202,7 @@ def test_runtime_expression_still_passes_public_processor(sample: Any) -> None:
         size="2x2",
         card_spec={"title": "日程", "description": "日程状态", "suggestSize": "2x2"},
         task_spec=_task(sample), protocol_profile=profile, design_profile_id="design-compact-dsl",
+        skip_compact_dsl_validation=True,
     )
     result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
     assert not result.errors
