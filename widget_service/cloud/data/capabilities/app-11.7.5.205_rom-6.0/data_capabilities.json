@@ -481,7 +481,7 @@
   },
   {
     "id": "GetPhoneBatteryInfo",
-    "description": "获取手机本机的全量电池状态快照，返回经过端侧语义化和字符化转换的电池状态。",
+    "description": "获取手机本机的当前电池状态快照，不包含最大电池容量和电池健康度，返回经过端侧语义化和字符化转换的电池状态。",
     "defaultWriteResultTo": "/data/phoneBattery",
     "dependencies": {
       "requiredPackages": []

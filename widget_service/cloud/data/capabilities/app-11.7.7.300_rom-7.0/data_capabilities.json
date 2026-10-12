@@ -481,7 +481,7 @@
   },
   {
     "id": "GetPhoneBatteryInfo",
-    "description": "获取手机本机的全量电池状态快照，返回经过端侧语义化和字符化转换的电池状态。",
+    "description": "获取手机本机的当前电池状态快照，不包含最大电池容量和电池健康度，返回经过端侧语义化和字符化转换的电池状态。",
     "defaultWriteResultTo": "/data/phoneBattery",
     "dependencies": {
       "requiredPackages": []
@@ -792,7 +792,7 @@
   },
   {
     "id": "GetAppPowerConsumptionRanking",
-    "description": "获取系统级的应用耗电量排行榜。返回当前设备中耗电最高的前列应用名称及耗电占比/数值文本。适合在桌面卡片中动态展示设备的“电量刺客”。",
+    "description": "获取系统级的应用耗电量排行榜,不支持获取指定app的应用时长数据。返回当前设备中耗电最高的前列应用名称及耗电占比/数值文本。适合在桌面卡片中动态展示设备的“电量刺客”。",
     "inputSchema": {
       "type": "object",
       "description": "查询耗电排行榜的入参配置。",

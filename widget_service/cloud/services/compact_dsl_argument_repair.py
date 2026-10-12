@@ -43,7 +43,6 @@ _PRESERVED_OUTER_KEYS = frozenset({"bundleName", "odid", "romVersion", "uid"})
 _BUSINESS_KEYS = frozenset(
     {
         "userQuery",
-        "extrainfo",
         "sourceArtifactUrl",
         "size",
         "title",
@@ -58,7 +57,6 @@ _TARGET_STRUCTURE = {
     "bundleName": "string, optional",
     "romVersion": "string, optional",
     "userQuery": "non-empty string, required",
-    "extrainfo": ["non-empty string, optional"],
     "sourceArtifactUrl": "non-empty string, edit only, optional",
     "size": "2x2 or 2x4, optional",
     "title": "non-empty string, required when sourceArtifactUrl is absent",
