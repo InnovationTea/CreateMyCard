@@ -89,6 +89,12 @@ async def test_pipeline_compiles_new_full_only_after_original_miss(
     fields: tuple[str, ...],
 ) -> None:
     inputs = _case(size, fields, parent=_LEAF in fields)
+    if target == _SOURCE:
+        # 新增 ScheduleOverviewReminderSourceFull@1 已能在正常检索中完整覆盖同字段组合，
+        # 需显式排除后才能保留“正常检索确实失败才进入旧兜底”的测试前提。
+        registry = CardPlanRegistry(
+            disabled_template_ids=("ScheduleOverviewReminderSourceFull@1",),
+        )
     if target == "ScheduleOverviewReminderWideFull@1":
         inputs = inputs._replace(
             task=inputs.task.model_copy(
@@ -136,6 +142,49 @@ async def test_pipeline_compiles_new_full_only_after_original_miss(
         inputs.bindings[0].model_dump(),
         inputs.intent.model_dump(),
     )
+
+
+@pytest.mark.asyncio
+async def test_pipeline_compiles_reminder_source_full_in_normal_retrieval(
+    monkeypatch: pytest.MonkeyPatch,
+    registry: CardPlanRegistry,
+) -> None:
+    """新增提醒来源 Full 应在正常检索中直接命中并编译通过，不进入旧无按钮兜底。"""
+    inputs = _case("2x2", ("/events/0/senderName", _LEAF), parent=True)
+    controls = TemplateControls(
+        schemaVersion="template-controls/1",
+        firstLayerComponentSelector="search",
+    )
+    monkeypatch.setattr(pipeline, "load_template_controls", lambda: controls)
+    monkeypatch.setattr(pipeline, "get_cardplan_registry", lambda _flag: registry)
+    fallback_calls: list[Any] = []
+
+    def record_fallback(*args: Any, **kwargs: Any) -> Any:
+        fallback_calls.append(args[0])
+        return plan_calendar_no_action_fallback(*args, **kwargs)
+
+    monkeypatch.setattr(pipeline, "plan_calendar_no_action_fallback", record_fallback)
+
+    class Model:
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return inputs.intent.model_dump(mode="json", by_alias=True)
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            return (
+                'Template("SingleFocusLayout@1",{},'
+                'Template("ScheduleOverviewReminderSourceFull@1",{}));'
+            )
+
+    output = await pipeline.generate_template_a2ui(
+        inputs.task,
+        inputs.card,
+        inputs.bindings,
+        Model(),
+    )
+    assert fallback_calls == []
+    assert "ScheduleOverviewReminderSourceFull@1" in output.template_ids
+    assert output.projected_task_spec.eventCandidates == []
+    assert '"call":"clickToIntent"' not in output.a2ui
 
 
 def test_default_registry_and_first_layer_hide_new_templates(registry: CardPlanRegistry) -> None:

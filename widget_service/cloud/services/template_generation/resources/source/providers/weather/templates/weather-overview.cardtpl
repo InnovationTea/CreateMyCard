@@ -3967,3 +3967,102 @@ Column(
 )
 
 #End
+
+#Template WeatherOverviewTemperatureHumiditySupport@1(props: { location?: string, actionId?: string })
+data = {
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    humidity: $optionalPath("/current/humidityPercent"),
+    airQuality: $optionalPath("/current/airQuality")
+}
+
+Row(
+  {
+    "_advancedComponent": "WeatherOverviewTemperatureSupport",
+    "width": "matchParent",
+    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Row(
+      {
+        "height": 20,
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Text(
+        data.temperature,
+        {
+          "fontSize": 16,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      ),
+      Text(
+        data.condition,
+        { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+      )
+    ),
+    #if data.humidity && data.airQuality
+      Text(
+        Expr("湿度 " + data.humidity + "% · 空气质量" + data.airQuality),
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #elseif data.humidity
+      Text(
+        Expr("湿度 " + data.humidity + "%"),
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #elseif data.airQuality
+      Text(
+        Expr("空气质量" + data.airQuality),
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #endif
+  )
+)
+#End

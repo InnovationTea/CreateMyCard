@@ -63,6 +63,9 @@ _APPROVED = {
     "WeatherOverviewTemperatureUvSupport@1": [
         "event.open.weather"
     ],
+    "WeatherOverviewTemperatureHumiditySupport@1": [
+        "event.open.weather"
+    ],
     "WeatherOverviewTemperaturecoldLevelSupport@1": [
         "event.open.weather"
     ],
@@ -76,6 +79,11 @@ _APPROVED = {
         "event.setPowerSavingMode"
     ],
     "BatteryOverviewStatusSupport@1": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth",
+        "event.setPowerSavingMode"
+    ],
+    "BatteryOverviewPhoneTextSupport@1": [
         "event.open.settings.battery",
         "event.open.settings.batteryHealth",
         "event.setPowerSavingMode"
@@ -401,7 +409,7 @@ def test_prompt_projects_only_matching_action_instances() -> None:
 def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path) -> None:
     manifest = provider_gallery.write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
-    assert len(provider.cases) == 61
+    assert len(provider.cases) == 67
     assert all(case.targetTemplateId != "CountdownOverviewSupport@1" for case in provider.cases)
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
