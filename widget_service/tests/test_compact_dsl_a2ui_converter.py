@@ -204,6 +204,38 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertNotIn("header_icon", components)
         self.assertNotIn("_visualRecipe", result)
 
+    def test_single_line_title_with_icon_uses_taller_recipe_variant(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["header"]],
+                [
+                    "header",
+                    "SingleLineTitle",
+                    {
+                        "title": "今日天气",
+                        "icon": "resources/base/media/weather.png",
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["header"]["children"], ["header_title", "header_icon"])
+        self.assertEqual(components["header"]["styles"]["height"], 20)
+        self.assertEqual(components["header"]["styles"]["justifyContent"], "spaceBetween")
+        self.assertEqual(components["header_icon"]["component"], "Image")
+        self.assertEqual(components["header_icon"]["src"], "resources/base/media/weather.png")
+        self.assertEqual(components["header_icon"]["styles"]["width"], 20)
+        self.assertEqual(components["header_icon"]["styles"]["height"], 20)
+
     def test_runtime_injects_component_font_roles_from_root_palette(self) -> None:
         compact_dsl = _serialize(
             [
@@ -476,6 +508,59 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         with self.assertRaisesRegex(
             CompactDslConversionError,
             "SVG icon.*must set fillColor",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_single_line_title_with_icon_rejects_wrong_height_override(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["header"]],
+                [
+                    "header",
+                    "SingleLineTitle",
+                    {
+                        "title": "分区标题",
+                        "icon": "resources/base/media/weather.png",
+                        "fontColor": "#FF1F4799",
+                        "height": 12,
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "SingleLineTitle.height must be 20",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_single_line_title_svg_icon_requires_fill_color(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["header"]],
+                [
+                    "header",
+                    "SingleLineTitle",
+                    {
+                        "title": "分区标题",
+                        "icon": "resources/base/media/weather.svg",
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "SVG icon requires fillColor",
         ):
             convert_compact_dsl_to_a2ui(
                 compact_dsl,

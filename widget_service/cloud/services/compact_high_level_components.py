@@ -375,7 +375,7 @@ def validate_single_line_title_layout(components: list[ComponentRow], *, size: s
         _validate_high_level_props(
             header,
             required={"title", "fontColor"},
-            allowed={"title", "fontColor", "fontSize"},
+            allowed={"title", "icon", "fillColor", "fontColor", "fontSize"},
         )
         _validate_recipe_font_size(
             header,
@@ -399,13 +399,37 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
         raise CompactDslConversionError(
             "SingleLineTitle.width must be matchParent or a positive number."
         )
+    icon = header.props.get("icon")
+    has_icon = isinstance(icon, str) and bool(icon.strip())
+    if icon is not None and not has_icon:
+        raise CompactDslConversionError(
+            "SingleLineTitle.icon must be a non-empty static asset path."
+        )
+    fill_color = header.props.get("fillColor")
+    if fill_color is not None and not has_icon:
+        raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
+    if fill_color is not None and not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
+        raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
+    if has_icon:
+        normalized_icon = icon.lower()
+        is_svg = normalized_icon.endswith(".svg")
+        is_bitmap = normalized_icon.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"))
+        if is_svg and fill_color is None:
+            raise CompactDslConversionError("SingleLineTitle SVG icon requires fillColor.")
+        if is_bitmap and fill_color is not None:
+            raise CompactDslConversionError("SingleLineTitle bitmap icon must not set fillColor.")
     height = header.props.get("height")
-    if height is not None and height != 12:
-        raise CompactDslConversionError("SingleLineTitle.height must be 12 when provided.")
+    expected_height = 20 if has_icon else 12
+    if height is not None and height != expected_height:
+        raise CompactDslConversionError(
+            f"SingleLineTitle.height must be {expected_height} when provided."
+        )
     color = header.props.get("fontColor")
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
         raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
     generated_ids = {f"{header.component_id}_title"}
+    if has_icon:
+        generated_ids.add(f"{header.component_id}_icon")
     if any(item.component_id in generated_ids for item in components):
         raise CompactDslConversionError("SingleLineTitle generated title id must not collide.")
 
@@ -3092,24 +3116,32 @@ def _validate_item_component(
 
 def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
+    has_icon = isinstance(props.get("icon"), str) and bool(props["icon"].strip())
+    variant = "withIcon" if has_icon else None
     root_type, root_styles = _visual_recipe_part_for_converter(
         "SingleLineTitle",
         "root",
         size=size,
+        variant=variant,
     )
     title_type, title_styles = _visual_recipe_part_for_converter(
         "SingleLineTitle",
         "title",
         size=size,
+        variant=variant,
     )
     root_styles.pop("_visualRecipe", None)
     title_styles.pop("_visualRecipe", None)
     item_margin = root_styles.pop("itemMargin", 0)
     title_id = f"{component.component_id}_title"
+    children = [title_id]
+    icon_id = f"{component.component_id}_icon"
+    if has_icon:
+        children.append(icon_id)
     row = {
         "id": component.component_id,
         "component": root_type,
-        "children": [title_id],
+        "children": children,
         "itemMargin": item_margin,
         "styles": root_styles,
     }
@@ -3123,7 +3155,26 @@ def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> li
     for name in _PLACEMENT_PROPS:
         if name in props:
             row["styles"][name] = copy.deepcopy(props[name])
-    return [row, title]
+    output = [row, title]
+    if has_icon:
+        icon_type, icon_styles = _visual_recipe_part_for_converter(
+            "SingleLineTitle",
+            "icon",
+            size=size,
+            variant=variant,
+        )
+        icon_styles.pop("_visualRecipe", None)
+        if "fillColor" in props:
+            icon_styles["fillColor"] = props["fillColor"]
+        output.append(
+            {
+                "id": icon_id,
+                "component": icon_type,
+                "src": props["icon"],
+                "styles": icon_styles,
+            }
+        )
+    return output
 
 
 def _is_path_binding(value: Any) -> bool:

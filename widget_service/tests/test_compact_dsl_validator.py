@@ -358,7 +358,6 @@ def test_rejects_removed_direct_compact_input(component_type: str) -> None:
 @pytest.mark.parametrize(
     "extra_props",
     [
-        ',"icon":"resources/heart.svg"',
         ',"fillColor":"#FF563D99"',
     ],
 )
@@ -374,6 +373,33 @@ def test_rejects_single_line_title_visual_props(extra_props: str) -> None:
                 "eventCandidates": [],
                 "dataModelSchema": {"data": {}},
                 "assetCandidates": [{"src": "resources/heart.svg"}],
+            },
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+def test_accepts_single_line_title_with_task_spec_icon() -> None:
+    validate_compact_dsl(
+        _single_line_title_dsl(',"icon":"resources/weather.png"'),
+        task_spec={
+            "size": "2x4",
+            "eventCandidates": [],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [{"src": "resources/weather.png"}],
+        },
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+def test_rejects_single_line_title_icon_outside_task_spec_assets() -> None:
+    with pytest.raises(CompactDslValidationError, match="asset must use an original src"):
+        validate_compact_dsl(
+            _single_line_title_dsl(',"icon":"resources/weather.png"'),
+            task_spec={
+                "size": "2x4",
+                "eventCandidates": [],
+                "dataModelSchema": {"data": {}},
+                "assetCandidates": [],
             },
             card_spec={"suggestSize": "2x4", "dataBindings": []},
         )

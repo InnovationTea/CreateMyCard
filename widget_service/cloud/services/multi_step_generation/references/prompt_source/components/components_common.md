@@ -54,22 +54,33 @@ description: 规定两种尺寸共用单组件的选择条件、真实 Props、�
 | Prop | 类型 | 要求 | 可绑定字段 |
 |---|---|---|---|
 | `title` | `string` | 必选 | `dataIds.title` |
+| `icon` | `string` | 可选；逐字使用与标题对象严格匹配的当前资源候选，只作不可点击的主题装饰 | 不绑定 |
+| `fillColor` | `string` | 仅 SVG `icon` 必选，使用 `#AARRGGBB`；PNG 不填写并保留原色 | 不绑定 |
 | `titleTemplate` | `string` | 仅绑定动态标题且需要静态前后缀时可选；必须且只能包含一个 `{value}` | 与 `dataIds.title` 配对 |
 | `dataIds` | `{ title?: string }` | `title` 来自 `data[]` 时填写 | 仅 `title` |
 
 #### 槽位与容量
 
-进入标题位置，显示一个短标题。与内容的空间分配由 `Region.variant` 处理。
+进入标题位置，显示一个短标题。无 `icon` 时高度为 `16vp`；有 `icon` 时标题区高度为 `20vp`，
+图标固定在右侧并使用 `20×20vp`，标题在剩余宽度内单行省略。与内容的空间分配由
+`Region.variant` 处理，选择图标前必须确认增加的标题高度不会挤压必要内容或 Action。
 
 #### 示例
 
 ```jsx
-<SingleLineTitle title="书房空气" dataIds={{ title: "air.device.roomName" }} />
+<SingleLineTitle
+  title="书房空气"
+  icon="air_quality_fill.svg"
+  fillColor="#FF1F4799"
+  dataIds={{ title: "air.device.roomName" }}
+/>
 ```
 
 #### 注意事项
 
-根据 `userQuery` 概括的标题是静态 UI 文案，不绑定不存在的标题 ID。动态值需要固定前后缀时使用 `titleTemplate`，不要在正文再次展示同一事实。
+根据 `userQuery` 概括的标题是静态 UI 文案，不绑定不存在的标题 ID。动态值需要固定前后缀时使用
+`titleTemplate`，不要在正文再次展示同一事实。`icon` 不能表达实时状态、操作入口或代替正文信息；
+没有严格匹配素材、卡片包含多个无法由一个图标代表的业务对象，或 `20vp` 标题区导致容量不成立时省略。
 
 ### 2.2 `DoubleLineTitle`
 

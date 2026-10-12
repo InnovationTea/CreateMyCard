@@ -3742,6 +3742,8 @@ a{text-decoration:none}
   line-height:64px;}
 .generated-card-frame .title-demo-row{position:relative;width:100%;min-height:12px;height:auto;gap:4px;align-items:flex-start;}
 .generated-card-frame .single-line-title-row{flex:0 1 auto;width:fit-content;max-width:100%;min-width:0;}
+.generated-card-frame .single-line-title-row.single-line-title-with-icon{width:100%;height:20px;min-height:20px;align-items:center;justify-content:space-between;}
+.generated-card-frame .single-line-title-with-icon .single-line-title-layout{min-width:0;flex:1 1 auto;}
 .generated-card-frame .single-line-title-layout{
   box-sizing:border-box;width:100%;min-height:16px;height:auto;padding-right:0;}
 .generated-card-frame .single-line-title{
@@ -4242,10 +4244,51 @@ a{text-decoration:none}
     return <Icon name={name} src={src} alt={alt} decorative={!alt} className={cx("weather-icon-demo-glyph", className)} {...rest} />;
   }
 
-  function SingleLineTitle({ title, titleTemplate: _titleTemplate, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
+  function SingleLineTitle({ title, titleTemplate: _titleTemplate, icon, fillColor, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
+    const iconSource = typeof icon === "string" && icon.trim() ? assetUrl(icon) : null;
+    const tintableSvg = iconSource && /\.svg(?:[?#].*)?$/i.test(iconSource) && fillColor;
+    let titleIcon = null;
+    if (tintableSvg) {
+      titleIcon = (
+        <span
+          className="title-area-icon"
+          aria-hidden="true"
+          style={{
+            backgroundColor: fillColor,
+            WebkitMaskImage: `url("${iconSource}")`,
+            maskImage: `url("${iconSource}")`,
+            WebkitMaskPosition: "center",
+            maskPosition: "center",
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskSize: "contain",
+            maskSize: "contain",
+          }}
+        />
+      );
+    } else if (iconSource) {
+      titleIcon = (
+        <img
+          className="title-area-icon"
+          src={iconSource}
+          alt=""
+          aria-hidden="true"
+          style={{ objectFit: "contain" }}
+        />
+      );
+    }
     return (
-      <div className={cx("title-demo-row", "single-line-title-row", className)} {...rest}>
+      <div
+        className={cx(
+          "title-demo-row",
+          "single-line-title-row",
+          iconSource && "single-line-title-with-icon",
+          className,
+        )}
+        {...rest}
+      >
         <div className="single-line-title-layout"><p className="single-line-title">{title}</p></div>
+        {titleIcon}
       </div>
     );
   }
@@ -5056,7 +5099,7 @@ a{text-decoration:none}
     Stack: { optional: ["children", "direction", "gap", "align", "justify", "wrap", "flex", "basis", "width", "minWidth", "height", "minHeight", "mt", "mb", "ml", "mr", "position", "top", "right", "bottom", "left", "alignSelf", "surface"], surface: ["backplate"] },
     Grid: { optional: ["children", "columns", "rows", "gap", "rowGap", "columnGap", "flex", "basis", "width", "minWidth", "height", "minHeight", "align", "justify", "mt", "mb"] },
     Icon: { optional: ["name", "src", "size", "alt", "decorative"] },
-    SingleLineTitle: { required: ["title"], optional: ["titleTemplate", "dataIds"] },
+    SingleLineTitle: { required: ["title"], optional: ["icon", "fillColor", "titleTemplate", "dataIds"] },
     DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["titleTemplate", "secondaryInfoTemplate", "dataIds"] },
     Badge: { required: ["value"], optional: ["dataIds"], color: ["blue", "orange", "green", "red", "purple", "cyan", "pink"] },
     EmphasizedData: { requiredOneOf: ["value", "items"], optional: ["unit", "dataIds"] },
