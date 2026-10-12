@@ -146,17 +146,20 @@ def _certain_label_pressure(
 
 
 def _joined_value(label: str, value: Any) -> str | None:
-    if "${" in label or "{{" in label:
+    if "${" in label or "{{" in label or '"' in label:
         return None
+    escaped = json.dumps(label, ensure_ascii=False).removeprefix('"').removesuffix('"')
+    escaped = escaped.replace('\\"', '"').replace("'", "\\'")
+    literal = "'" + escaped + "'"
     result: str | None = None
     if isinstance(value, dict):
         path = value.get("path")
         if set(value) == {"path"} and isinstance(path, str):
-            result = "{{ " + json.dumps(label, ensure_ascii=False) + " + ${" + path + "} }}"
+            result = "{{ " + literal + " + ${" + path + "} }}"
     elif isinstance(value, str):
         expression = re.fullmatch(r"\s*\{\{(.*?)\}\}\s*", value, re.DOTALL)
         if expression is not None:
-            result = "{{ " + json.dumps(label, ensure_ascii=False)
+            result = "{{ " + literal
             result += " + (" + expression.group(1).strip() + ") }}"
         elif "{{" not in value:
             result = label + value

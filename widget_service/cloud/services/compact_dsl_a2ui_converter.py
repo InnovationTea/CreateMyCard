@@ -556,7 +556,9 @@ def convert_compact_dsl_to_a2ui(
     )
     validate_single_line_title_layout(components, size=size)
 
-    normalized_components = [_normalize_component(row) for row in components]
+    normalized_components = [
+        _normalize_component(row, normalize_axis_aliases=size == "2x2") for row in components
+    ]
     normalized_components = normalize_mixed_font_text_rows(
         normalized_components, data_model=data_model,
     )
@@ -1626,8 +1628,14 @@ def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int) -> 
             props["constraintSize"] = constraints
 
 
-def _normalize_component(component: ComponentRow) -> ComponentRow:
+def _normalize_component(
+    component: ComponentRow, *, normalize_axis_aliases: bool = False,
+) -> ComponentRow:
     props = _expand_component_design(component)
+    if normalize_axis_aliases:
+        _repair_axis_value_aliases(component.component_type, props)
+        if component.component_type == "Row" and props.get("alignItems") == "baseline":
+            props["alignItems"] = "bottom"
     resolved_props: dict[str, Any] = {}
     for property_name, value in props.items():
         resolved_props[property_name] = _resolve_tokens(
