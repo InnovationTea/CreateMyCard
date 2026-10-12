@@ -12,6 +12,9 @@ from typing import Any
 
 import httpx
 
+from app.logger import json_for_log, logger
+from services.generation_trace_recorder import trace_record
+
 _OFFICIAL_MAX_OUTPUT_TOKENS = 8192
 
 
@@ -93,6 +96,53 @@ def parse_official_http_completion(payload: object) -> OfficialHttpCompletion:
     )
 
 
+def _token_count(usage: object, key: str) -> int | None:
+    value = usage.get(key) if isinstance(usage, dict) else None
+    result: int | None = None
+    if isinstance(value, int) and not isinstance(value, bool):
+        result = value
+    return result
+
+
+def _record_completion(
+    completion: OfficialHttpCompletion,
+    *,
+    thinking_enabled: bool | None,
+    max_tokens: int,
+) -> None:
+    """只记录结构化用量和长度，不记录正文、推理、工具参数或凭据。"""
+    usage = completion.usage
+    details = usage.get("completion_tokens_details") if isinstance(usage, dict) else None
+    metrics = {
+        "inputTokens": _token_count(usage, "prompt_tokens"),
+        "completionTokens": _token_count(usage, "completion_tokens"),
+        "totalTokens": _token_count(usage, "total_tokens"),
+        "reasoningTokens": _token_count(details, "reasoning_tokens"),
+        "promptCacheHitTokens": _token_count(usage, "prompt_cache_hit_tokens"),
+        "promptCacheMissTokens": _token_count(usage, "prompt_cache_miss_tokens"),
+        "outputChars": len(completion.content),
+        "reasoningChars": len(completion.reasoning_content),
+    }
+    metadata = {
+        "finishReason": completion.finish_reason,
+        "thinkingEnabled": thinking_enabled,
+        "maxOutputTokens": max_tokens,
+    }
+    status = "completed"
+    if completion.finish_reason == "length":
+        status = "truncated"
+    elif not completion.content.strip() and not completion.tool_calls:
+        status = "empty"
+    logger.info(
+        f"[Official HTTP] completion status={status} "
+        f"details={json_for_log(metadata)} metrics={json_for_log(metrics)}"
+    )
+    trace_record(
+        "model.transport_completion", stage="model.transport", status=status,
+        details=metadata, metrics=metrics,
+    )
+
+
 async def request_official_http(
     *,
     url: str,
@@ -161,4 +211,8 @@ async def request_official_http(
             raise RuntimeError(
                 f"official HTTP request returned HTTP {response.status_code}{suffix}"
             ) from exc
-        return parse_official_http_completion(response.json())
+        completion = parse_official_http_completion(response.json())
+        _record_completion(
+            completion, thinking_enabled=thinking_enabled, max_tokens=bounded_max_tokens,
+        )
+        return completion

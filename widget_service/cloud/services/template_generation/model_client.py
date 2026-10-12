@@ -69,6 +69,9 @@ class TemplateModelClient:
             prompt,
             self._request_context,
             phase=phase,
+            empty_output_max_retries=(
+                1 if phase in {"advanced-mixed-body", "advanced-mixed-body-repair"} else None
+            ),
         )
 
 
