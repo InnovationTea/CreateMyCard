@@ -586,6 +586,8 @@ def build_ux_mixed_prompt(
     user = "\n".join(
         (
             "themeId=" + json.dumps(base.theme_id, ensure_ascii=False),
+            "cardComposition="
+            + json.dumps({"businessTitleCandidate": card_spec.get("title")}, ensure_ascii=False),
             "trustedStringLiterals=" + json.dumps(contract.trusted_literals, ensure_ascii=False),
             "trustedAssetSources=" + json.dumps(contract.allowed_asset_sources, ensure_ascii=False),
             "trustedAssetCandidates=" + json.dumps(asset_candidates, ensure_ascii=False),

@@ -1,5 +1,7 @@
 # 第二层业务模板使用规则
 
+2×2 单耳机以动作适配优先于字段得分：单动作优先选择合法 Hero，仅在 Hero 不可用时使用 Full 图标动作；无动作使用 Full，双动作使用 Compact。显式动作与自动补选动作规则一致。第二层只在服务端提供的完整 Plan 中选择，不把 Hero 的动作搬到 Full，不因 Full 的主要字段匹配更多而跨角色选择；字段完整覆盖与输入准入要求保持。
+
 - Provider：`com.huawei.earphone.cli`；业务领域为 `BluetoothDeviceOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
@@ -37,6 +39,7 @@
     左右双焦点布局的一个 Hero 槽位；`deviceIcon` 为可选参数，仅在本轮存在匹配的充电盒素材时传入。
   - `BluetoothDeviceOverviewEarbudPairFull@1`：展示盒电量和左右耳电量；名称、连接状态可选，同时存在时名称作小标题、连接状态作主文字，只有一项时小标题用“蓝牙耳机”、主文字用已有项；盒与左右耳
     图标均可选；左右耳与盒充电状态为可选字段，三个字段齐全时才在电量下同时增加状态层，缺任意字段则整层隐藏；用于无 Action 的 Full，或按现有布局规则搭配一个 `IconAction@1`。
+    仅名称或仅连接状态时，若 `cardComposition.businessTitleCandidate` 为非空标题，必须逐字传入可选 `title` 参数以替换固定“蓝牙耳机”；无标题时省略参数并使用“蓝牙耳机”。两项同时存在时保留设备名称小标题，不传 `title`。
   - `BluetoothDeviceOverviewEarbudPairCompact@1`：展示设备名和左右耳电量，左右耳图标可选；用于
     `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsPhoneWideFull@1`、

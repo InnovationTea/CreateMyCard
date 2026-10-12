@@ -939,7 +939,7 @@ Stack(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudPairFull@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudPairFull@1(props: { title?: string, caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $optionalPath("/isConnected"),
     name: $optionalPath("/earphoneName"),
@@ -970,9 +970,13 @@ Column(
     #if data.name
       #if data.connected
         Text(data.name, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+      #elseif props.title
+        Text(props.title, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #else
         Text("蓝牙耳机", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #endif
+    #elseif props.title
+      Text(props.title, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
     #else
       Text("蓝牙耳机", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
     #endif
