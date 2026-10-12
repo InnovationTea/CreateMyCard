@@ -112,6 +112,10 @@ def test_plan_prompt_reuses_full_create_contract_for_size(
     assert "## 从事实到组件组合" in plan_prompt
     assert "# Compact Info Plan" in plan_prompt
     assert "2x4 左右独立分区可分别使用" in plan_prompt
+    assert "完整单焦点" in plan_prompt
+    assert "存在地点、备注、另一指标等独立补充时" in plan_prompt
+    assert "短文本结论固定 `18`" in plan_prompt
+    assert "`supportingText` | 显示值 | 静态 / Expression / PathBinding" in plan_prompt
     assert "标题事实不推荐正文组件" in plan_prompt
     assert "时间、metadata 和补充说明使用 SecondaryBody" in plan_prompt
     assert "固定主字号，帮助布局预算" in plan_prompt
