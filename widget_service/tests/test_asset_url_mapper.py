@@ -131,8 +131,6 @@ def test_mapping_covers_expanded_action_icon():
                 {
                     "label": "查看",
                     "icon": SRC,
-                    "actionSurface": "#33000000",
-                    "actionInk": "#FF000000",
                     "onClick": [{"call": "test", "args": {}}],
                 },
             ],
@@ -171,8 +169,6 @@ def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
                 {
                     "label": "查看",
                     "icon": src,
-                    "actionSurface": "#33000000",
-                    "actionInk": "#FF000000",
                     "onClick": [{"call": "test", "args": {}}],
                 },
             ],
