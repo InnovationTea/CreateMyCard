@@ -490,9 +490,9 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
             "WeatherOverviewDailyDateFull@1",
             ("/daily/1/condition",),
             ("/daily/1/date", "/daily/1/weekday"),
-            ("/location/districtName",),
+            ("/location/districtName", "/daily/1/temperatureRangeText"),
             ("date", "weekday", "condition"),
-            ("district",),
+            ("district", "temperatureRange"),
         ),
         (
             "WeatherOverviewDailyRainFull@1",
@@ -759,21 +759,20 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
         "/current/windDirection",
         "/current/windLevel",
     )
-    assert definition.secondary_data == (
-        "/location/prefectureName",
-    )
+    assert definition.secondary_data == ()
     assert definition.optional_data == (
         "/updatedAt",
         "/current/temperatureText",
         "/current/condition",
         "/location/cityCode",
+        "/location/prefectureName",
     )
     assert variant.required_bindings == (
-        "city",
         "windDirection",
         "windLevel",
     )
     assert variant.optional_bindings == (
+        "city",
         "updatedAt",
         "temperatureText",
         "condition",
@@ -7489,7 +7488,6 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     weather_full_candidates = [
         "WeatherOverviewFull@1",
         "WeatherOverviewAlertInfoFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
