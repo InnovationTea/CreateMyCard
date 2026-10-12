@@ -7,13 +7,14 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import sys
 from pathlib import Path
 from typing import Any, Literal
 
 from services.compact_component_bindings import collect_compact_component_binding_errors
-from services.compact_component_runtime import resolve_card_color_palette
+from services.compact_component_runtime import VISUAL_RECIPE_VERSION, resolve_card_color_palette
 from services.compact_high_level_components import (
     CompactDslConversionError as CompactDslConversionError,
 )
@@ -61,6 +62,13 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200b"
+_INLINE_DISPLAY_UNITS = frozenset({
+    "%", "％", "°", "°C", "℃", "°F", "天", "小时", "分钟", "分", "秒", "毫秒",
+    "步", "次", "件", "个", "条", "项", "人", "级", "公里", "千米", "米", "厘米", "毫米",
+    "km", "m", "cm", "mm", "kg", "g", "mg", "kcal", "千卡", "cal", "mL", "ml", "L",
+    "A", "mA", "V", "W", "kW", "kWh", "bpm", "次/分钟", "mV", "μA", "uA", "kHz", "MHz",
+    "Pa", "kPa", "Wh", "MB", "GB", "TB", "km/h", "m/s",
+})
 COMPACT_INPUT_COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -559,7 +567,12 @@ def convert_compact_dsl_to_a2ui(
     )
     validate_single_line_title_layout(components, size=size)
 
-    normalized_components = [_normalize_component(row) for row in components]
+    normalized_components = [
+        _normalize_component(row, normalize_axis_aliases=size == "2x2") for row in components
+    ]
+    normalized_components = normalize_mixed_font_text_rows(
+        normalized_components, data_model=data_model,
+    )
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     converted_components = []
     for component in normalized_components:
@@ -1525,8 +1538,274 @@ def _split_component_rows(
     return [root, *components], data_rows
 
 
-def _normalize_component(component: ComponentRow) -> ComponentRow:
+def normalize_mixed_font_text_rows(
+    components: list[ComponentRow], *, data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
+    """同行字底补偿与单项正文槽底对齐；保留字号、内容和两行容量。"""
+    by_id = {component.component_id: component for component in components}
+    replacements: dict[str, ComponentRow] = {}
+    for row in components:
+        if row.component_type != "Row":
+            continue
+        texts: list[ComponentRow] = []
+        fonts: list[float] = []
+        complete_single_line = True
+        for child_id in row.children:
+            child = by_id.get(child_id)
+            if child is None or child.component_type != "Text":
+                continue
+            font = _positive_static_number(child.props.get("fontSize"))
+            if font is None or child.props.get("maxLines", 1) != 1:
+                complete_single_line = False
+                break
+            texts.append(child)
+            fonts.append(font)
+        if not complete_single_line or len(texts) < 2:
+            continue
+        if min(fonts) == max(fonts):
+            continue
+        largest = max(fonts)
+        reference = texts[fonts.index(largest)]
+        row_props = {**row.props, "alignItems": "bottom"}
+        pair = _is_numeric_unit_pair(row, texts, fonts, data_model)
+        if pair:
+            row_props["itemMargin"] = 2
+            if row_props.get("justifyContent") in {"spaceAround", "spaceBetween", "spaceEvenly"}:
+                row_props["justifyContent"] = "start"
+        replacements[row.component_id] = ComponentRow(
+            row.component_id, row.component_type, row_props, row.children,
+        )
+        for child, font in zip(texts, fonts, strict=True):
+            props = copy.deepcopy(child.props)
+            if pair:
+                props.pop("width", None)
+                props.pop("layoutWeight", None)
+            if font < largest:
+                offset = _text_bottom_offset(
+                    props, font, largest, primary=reference.props, numeric_unit_pair=pair,
+                )
+                _compensate_text_bottom(props, font, offset)
+            replacements[child.component_id] = ComponentRow(
+                child.component_id, child.component_type, props, child.children,
+            )
+    output = [replacements.get(item.component_id, item) for item in components]
+    return _align_inline_body_slots(output)
+
+
+def _inline_text_fonts(
+    component: ComponentRow, by_id: dict[str, ComponentRow], visiting: frozenset[str],
+) -> list[float]:
+    if component.component_id in visiting:
+        return []
+    if component.component_type == "Text":
+        font = _positive_static_number(component.props.get("fontSize"))
+        if font is None or component.props.get("maxLines", 1) not in (1, 2):
+            return []
+        return [font]
+    if component.component_type not in {"Row", "Column"} or not component.children:
+        return []
+    if component.component_type == "Column" and len(component.children) != 1:
+        return []
+    fonts: list[float] = []
+    trail = visiting | {component.component_id}
+    for identifier in component.children:
+        child = by_id.get(identifier)
+        if child is None:
+            return []
+        child_fonts = _inline_text_fonts(child, by_id, trail)
+        if not child_fonts:
+            return []
+        fonts.extend(child_fonts)
+    return fonts
+
+
+def _single_body_slot(
+    component: ComponentRow, by_id: dict[str, ComponentRow],
+) -> tuple[list[ComponentRow], ComponentRow] | None:
+    prefix = f"{VISUAL_RECIPE_VERSION}:SecondaryBody."
+    if component.props.get("_visualRecipe") != prefix + "root":
+        return None
+    wrappers: list[ComponentRow] = []
+    seen: set[str] = set()
+    current = component
+    while current.component_type in {"Row", "Column"}:
+        if current.component_id in seen or len(current.children) != 1:
+            return None
+        marker = current.props.get("_visualRecipe")
+        if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
+            return None
+        seen.add(current.component_id)
+        wrappers.append(current)
+        child = by_id.get(current.children[0])
+        if child is None:
+            return None
+        current = child
+    if current.component_type != "Text" or current.props.get("_visualRecipe") != prefix + "text":
+        return None
+    if _positive_static_number(current.props.get("height")) is None:
+        return None
+    constraints = current.props.get("constraintSize")
+    if isinstance(constraints, dict) and constraints.get("minHeight", 0) != 0:
+        return None
+    return wrappers, current
+
+
+def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRow]:
+    """只穿透单项正文Recipe包装；原40vp两行槽和横向分配不变。"""
+    by_id = {component.component_id: component for component in components}
+    replacements: dict[str, ComponentRow] = {}
+    for row in components:
+        if row.component_type != "Row" or len(row.children) < 2:
+            continue
+        slots: list[tuple[list[ComponentRow], ComponentRow]] = []
+        pure_text_line = True
+        for identifier in row.children:
+            child = by_id.get(identifier)
+            if child is None or not _inline_text_fonts(child, by_id, frozenset()):
+                pure_text_line = False
+                break
+            slot = _single_body_slot(child, by_id)
+            if slot is not None:
+                slots.append(slot)
+        if not pure_text_line or not slots:
+            continue
+        replacements[row.component_id] = ComponentRow(
+            row.component_id, row.component_type, {**row.props, "alignItems": "bottom"},
+            row.children,
+        )
+        for wrappers, text in slots:
+            for wrapper in wrappers:
+                props = copy.deepcopy(wrapper.props)
+                alignment = "alignItems" if wrapper.component_type == "Row" else "justifyContent"
+                props[alignment] = "bottom" if wrapper.component_type == "Row" else "end"
+                replacements[wrapper.component_id] = ComponentRow(
+                    wrapper.component_id, wrapper.component_type, props, wrapper.children,
+                )
+            props = copy.deepcopy(text.props)
+            props.pop("height", None)
+            replacements[text.component_id] = ComponentRow(
+                text.component_id, text.component_type, props, text.children,
+            )
+    return [replacements.get(item.component_id, item) for item in components]
+
+
+def _positive_static_number(value: Any) -> float | None:
+    result = None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if math.isfinite(value) and value > 0:
+            result = float(value)
+    return result
+
+
+def _is_numeric_unit_pair(
+    row: ComponentRow, texts: list[ComponentRow], fonts: list[float],
+    data_model: dict[str, Any] | None,
+) -> bool:
+    if len(row.children) != 2 or len(texts) != 2 or fonts[0] <= fonts[1]:
+        return False
+    unit = texts[1].props.get("content")
+    marker = texts[1].props.get("_visualRecipe", "")
+    if isinstance(marker, str) and marker.startswith(VISUAL_RECIPE_VERSION + ":"):
+        if marker.endswith(":unit"):
+            return True
+    if not isinstance(unit, str) or unit.strip() not in _INLINE_DISPLAY_UNITS:
+        return False
+    value = texts[0].props.get("content")
+    if isinstance(value, dict) and data_model is not None:
+        path = value.get("path")
+        if isinstance(path, str):
+            found, value = _json_pointer_value(data_model, path)
+            if not found:
+                return False
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return math.isfinite(value)
+    return isinstance(value, str) and re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value.strip()) is not None
+
+
+def _text_bottom_offset(
+    props: dict[str, Any], font: float, largest: float, *,
+    primary: dict[str, Any], numeric_unit_pair: bool,
+) -> int | float:
+    offset: int | float = min(8, math.ceil((largest - font) / 4))
+    if _can_calibrate_unit_bottom(props, font, largest, primary, numeric_unit_pair):
+        unit = props.get("content")
+        references: dict[tuple[float, float], dict[str, int | float]] = {
+            (30, 12): {"%": 1.25, "步": 2, "分": 2, "天": 1.75,
+                       "℃": 1.25, "°C": 1.25, "km": 1.25, "小时": 1.75},
+            (16, 10): {"%": 2, "步": 3, "分": 3, "天": 2.75,
+                       "℃": 2, "°C": 2, "km": 2, "小时": 2.75},
+        }
+        if isinstance(unit, str):
+            # 字形设计数据不按用例/机型分支，不外推未测文字规格。
+            calibrated = references.get((largest, font), {})
+            offset = calibrated.get(unit, offset)
+    return offset
+
+
+def _can_calibrate_unit_bottom(
+    props: dict[str, Any], font: float, largest: float,
+    primary: dict[str, Any], numeric_unit_pair: bool,
+) -> bool:
+    marker = props.get("_visualRecipe", "")
+    recipe_unit = False
+    if isinstance(marker, str) and marker.startswith(VISUAL_RECIPE_VERSION + ":"):
+        recipe_unit = marker.endswith(":unit")
+    if not numeric_unit_pair and not recipe_unit:
+        return False
+    if props.get("fontWeight") != 500 or primary.get("fontWeight") != 700:
+        return False
+    if props.get("fontFamily") is not None or primary.get("fontFamily") is not None:
+        return False
+    if (largest, font) == (30, 12):
+        return props.get("lineHeight") == 1 and primary.get("lineHeight") == 1
+    if (largest, font) == (16, 10):
+        return props.get("lineHeight") is None and primary.get("lineHeight") is None
+    return False
+
+
+def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int | float) -> None:
+    padding = props.get("padding", 0)
+    if isinstance(padding, (int, float)) and not isinstance(padding, bool):
+        padding = {side: padding for side in ("top", "right", "bottom", "left")}
+    elif isinstance(padding, dict):
+        padding = dict(padding)
+    else:
+        return  # 动态/未知padding不覆盖、不猜测其占用。
+    bottom = padding.get("bottom", 0)
+    top = padding.get("top", 0)
+    previous = props.get("_glyphBottomOffset", 0)
+    for value in (bottom, top, previous):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return
+        if not math.isfinite(value) or value < 0:
+            return
+    already_compensated = "_glyphBottomOffset" in props
+    padding["bottom"] = bottom - previous + offset
+    props["padding"] = padding
+    props["_glyphBottomOffset"] = offset  # 仅转换内部标记，不进入标准A2UI。
+    line_height = _positive_static_number(props.get("lineHeight")) or 1.4
+    required = font * line_height + top + padding.get("bottom", 0)
+    height = _positive_static_number(props.get("height"))
+    if height is not None and (height <= 24 or already_compensated):
+        props["height"] = max(height, required)
+    else:
+        props.pop("height", None)
+        constraints = props.get("constraintSize", {})
+        if isinstance(constraints, dict):
+            constraints = dict(constraints)
+            old_minimum = _positive_static_number(constraints.get("minHeight")) or 0
+            constraints["minHeight"] = max(old_minimum, required)
+            props["constraintSize"] = constraints
+
+
+def _normalize_component(
+    component: ComponentRow, *, normalize_axis_aliases: bool = False,
+) -> ComponentRow:
     props = _expand_component_design(component)
+    if normalize_axis_aliases:
+        _repair_axis_value_aliases(component.component_type, props)
+        if component.component_type == "Row" and props.get("alignItems") == "baseline":
+            props["alignItems"] = "bottom"
     resolved_props: dict[str, Any] = {}
     for property_name, value in props.items():
         resolved_props[property_name] = _resolve_tokens(

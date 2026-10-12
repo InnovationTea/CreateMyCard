@@ -1895,6 +1895,7 @@ class PromptBuilder:
         task_spec: TaskSpec | None = None,
         compact_plan: dict[str, Any] | None = None,
         repair_strategy: dict[str, Any] | None = None,
+        original_display_roles: dict[str, dict[str, Any]] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
@@ -1986,6 +1987,37 @@ class PromptBuilder:
                     "本次没有布局或容量错误，不重做组合选型；"
                     "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"
                 )
+            if task_spec is not None and task_spec.size == "2x2" and capacity_errors:
+                from services.card_validation.compact_dsl_validator import small_card_text_pressure
+
+                pressure = small_card_text_pressure(
+                    invalid_source_dsl, task_spec.model_dump(mode="json"),
+                )
+                if pressure:
+                    payload["smallCardTextPressure"] = pressure
+                    payload["instruction"] += (
+                        "smallCardTextPressure是完整标签和值的压力估计，不是精确字体测量。"
+                        "已报高度溢出的信息组，先在同字号全宽同行合并短辅助字段；"
+                        "这些长标签/值改为合法同字号分行，整体核算行高和底部动作，不堆独立强调块。"
+                    )
+            if task_spec is not None and task_spec.size == "2x2":
+                if original_display_roles is not None:
+                    roles = copy.deepcopy(original_display_roles)
+                else:
+                    roles = repair_display_roles(invalid_source_dsl, size="2x2")
+                if roles:
+                    payload["originalDisplayRoles"] = roles
+                    payload["instruction"] += (
+                        "originalDisplayRoles是各路径首次可读输出的原规格，不是上轮失败输出的新规格，"
+                        "也不是新组件清单；不能因为中途降字就把较小字号当成基准。"
+                        "按fontSize保留实际Recipe规格，supporting多条时可能为12fp，不能只按role猜字号。"
+                        "容量修复保留对应正文/metadata和主值字号；先在全宽同行合并短辅助属性，"
+                        "长文案按原字号合法分行并预留行高，再换可承载的完整布局变体。"
+                        "不要将14fp supporting改成12fp TableText/metadata，也不要把30fp主读数"
+                        "降为18fp EmphasisText以消除溢出；重复主值只去重，不删独有事实。"
+                        "只固定合法文字规格，不照搬原错误布局、绑定或重复单位；类型/单位"
+                        "本来不合法时仍按原字段合同纠正，不能把容量错误当作降字理由。"
+                    )
         user_content = json.dumps(
             payload,
             ensure_ascii=False,

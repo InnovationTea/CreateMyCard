@@ -54,7 +54,10 @@ def feasible_composition_candidates(
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
     layouts = load_layout_contract().get("layouts", {})
     preferred = plan.get("layoutHints", [])
-    ordered = sorted(layouts, key=lambda name: name not in preferred)
+    ordered = sorted(
+        layouts,
+        key=lambda name: preferred.index(name) if name in preferred else len(preferred),
+    )
     candidates: list[dict[str, Any]] = []
     examined = 0
     diagnostics: list[dict[str, Any]] = []
@@ -172,10 +175,10 @@ def compound_duration_bindings(plan: dict[str, Any], task: dict[str, Any]) -> li
         path = fact.get("dataId")
         if not isinstance(path, str):
             continue
-        field = _schema_value(task, path)
-        if field.get("type") != "string":
+        schema_field = _schema_value(task, path)
+        if schema_field.get("type") != "string":
             continue
-        if is_compound_duration_text(field.get("sampleValue")) and path not in paths:
+        if is_compound_duration_text(schema_field.get("sampleValue")) and path not in paths:
             paths.append(path)
     return paths
 
@@ -304,8 +307,8 @@ def _group_choices(
             if "EmphasizedData" in hints:
                 first = "EmphasizedData"
             elif first == "InfoBlock" and "ProgressCircleSingle" in hints:
-                field = _schema_value(task, fact.get("dataId", ""))
-                if field.get("type") not in {"number", "integer"}:
+                schema_field = _schema_value(task, fact.get("dataId", ""))
+                if schema_field.get("type") not in {"number", "integer"}:
                     unresolved.append(f"fact {index}: quantitative main needs numeric contract")
                     continue
                 # 数字比例主值不与状态合成小字辅文；完整数值与真实单位沿用主值规格。
@@ -330,8 +333,8 @@ def _group_choices(
                 unresolved.append(f"fact {index}: structured props cannot be reconstructed")
                 continue
             first = "SecondaryBody"
-        field = _schema_value(task, fact.get("dataId")) if fact.get("dataId") else {}
-        value = field.get("sampleValue") if field else fact.get("text")
+        schema_field = _schema_value(task, fact.get("dataId")) if fact.get("dataId") else {}
+        value = schema_field.get("sampleValue") if schema_field else fact.get("text")
         if first == "EmphasizedData" and is_compound_duration_text(value):
             # 修正错误数值选型，不把普通数值缩小，也不将完整文本拆成样例数字。
             first = "EmphasisText"
@@ -772,6 +775,7 @@ def _action_groups(
                 "labelRequiresWidthReview": True,
                 "ownerRoots": _action_owners(event),
                 "pressureLabelOnly": (action_labels or {}).get(identifier),
+                "componentCandidates": list(fact.get("componentHints", [])),
             }
         )
     return output
@@ -803,6 +807,7 @@ def _region_tree(size: str, rules: list[dict[str, Any]]) -> Region | None:
         region.kind = containers[0] if containers else types[0]
         region.props = {**rule.get("props", {}), **rule.get("slotSize", {})}
         region.rule = rule
+    _add_implicit_allocation_slots(nodes)
     for path in sorted(nodes):
         if path:
             parent = nodes.get(path[:-1])
@@ -817,6 +822,20 @@ def _region_tree(size: str, rules: list[dict[str, Any]]) -> Region | None:
     ):
         return None
     return root
+
+
+def _add_implicit_allocation_slots(nodes: dict[tuple[int, ...], Region]) -> None:
+    """为合同只约束结构、未约束组件类型的子槽补组合搜索落点。"""
+    for path, region in list(nodes.items()):
+        count = region.rule.get("childCount")
+        if not isinstance(count, int):
+            count = region.rule.get("childCountMin")
+        if not isinstance(count, int) or count <= 0:
+            continue
+        for index in range(count):
+            child_path = (*path, index)
+            if child_path not in nodes:
+                nodes[child_path] = Region(child_path, "Column", {}, {})
 
 
 def _assign_boxes(region: Region, width: float, height: float, size: str) -> bool:
@@ -887,8 +906,10 @@ def _allocations(
         if policy == "require":
             if not unused_actions:
                 return
-            name = "CardButton" if "CardButton" in zone.rule.get("types", []) else "PillButton"
             action = unused_actions.pop(0)
+            name = _action_component_for_zone(zone, action)
+            if name is None:
+                return
             action.update(
                 {
                     "component": name,
@@ -931,12 +952,13 @@ def _allocations(
         )
     if any(not pool for pool in pools):
         return
+    action_start = len(remaining)
     destinations_to_try = itertools.islice(itertools.product(*pools), _SEARCH_LIMIT)
     if len(unused_actions) > 1 and len(body_zones) > 1:
         # 等价完整分配优先均衡独立动作，避免最先把多个按钮堆进一个窄内容区。
         destinations_to_try = sorted(
             destinations_to_try,
-            key=lambda targets: _action_distribution_cost(targets[len(remaining):], allocation),
+            key=lambda targets: _action_distribution_cost(targets[action_start:], allocation),
         )
     for destinations in destinations_to_try:
         belonging: dict[str, int] = {}
@@ -952,7 +974,7 @@ def _allocations(
         if split:
             yield None
             continue
-        action_destinations = destinations[len(remaining) :]
+        action_destinations = destinations[action_start:]
         for action, destination in zip(unused_actions, action_destinations, strict=True):
             owners = action.get("ownerRoots", [])
             matching_destinations = set()
@@ -1017,6 +1039,10 @@ def _close_regions(
             if group.get("actionId"):
                 name = group.get("component")
                 root = _part(size, name, "root")
+                if name == "CircleButton":
+                    group["accessibilityLabel"] = group.get("labelMeaning")
+                    group["requiresAccurateIcon"] = True
+                    continue
                 label_width = zone.width - _extent(root.get("padding"), "width")
                 if name == "CardButton":
                     label_width -= _part(size, name, "placeholder").get("width", 0)
@@ -1086,6 +1112,24 @@ def _close_regions(
         )
         result[-1]["directChildren"] = direct_children
     return result
+
+
+def _action_component_for_zone(
+    zone: Region,
+    action: dict[str, Any],
+) -> str | None:
+    """按 Plan 候选和槽位合同选择动作组件；纯图标槽必须有显式语义选择。"""
+    zone_types = zone.rule.get("types", [])
+    candidates = action.get("componentCandidates", [])
+    for name in candidates:
+        if name in zone_types and name in {"PillButton", "CircleButton", "CardButton"}:
+            return name
+    if "CircleButton" in zone_types:
+        return None
+    for name in ("CardButton", "PillButton"):
+        if name in zone_types:
+            return name
+    return None
 
 
 def _record_text_allowances(
@@ -1385,7 +1429,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
             props["value"] = group.get("originalValue")
         for key in (
             "role", "columns", "lines", "variant", "density", "labelLines",
-            "unitFromFieldContract",
+            "unitFromFieldContract", "accessibilityLabel", "requiresAccurateIcon",
         ):
             if key in group:
                 props[key] = group.get(key)

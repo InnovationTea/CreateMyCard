@@ -375,6 +375,48 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     assert any("打开日历" in item for item in errors)
 
 
+def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["SecondaryBody"],
+            },
+            {
+                "requirement": "打开日历",
+                "actionId": "event.open.calendar",
+                "componentHints": ["CircleButton", "PillButton"],
+            },
+        ],
+        "layoutHints": ["S-title-anchor", "S-title-content-action"],
+        "composition": {
+            "layout": "S-title-anchor",
+            "variant": 1,
+            "regions": [],
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["title","content","action"]]',
+            '["title","SingleLineTitle",{"title":"会议"}]',
+            '["content","SecondaryBody",{"role":"body","items":'
+            '[{"value":{"path":"/data/calendar/events/0/title"}}]}]',
+            '["action","PillButton",{"label":"打开日历","onClick":'
+            '[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(source, plan, spec)
+
+    assert errors == (
+        "Accepted Compact Plan selected S-title-anchor as its executable composition; "
+        "keep the CircleButton anchor layout instead of replacing it with a text-action "
+        "layout that compresses the required content.",
+    )
+
+
 def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
     spec = task_spec()
     plan = {
@@ -465,7 +507,7 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
     )
     result = DesignCompactProcessor().process(
         '["root","Column",{},["title"]]\n'
-        '["title","Text",{"content":"其他文字"}]',
+        '["title","SecondaryBody",{"role":"body","items":[{"value":"其他文字"}]}]',
         context,
     )
 

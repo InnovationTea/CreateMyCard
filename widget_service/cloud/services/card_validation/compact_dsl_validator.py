@@ -18,6 +18,7 @@ from services.compact_dsl_a2ui_converter import (
     DataRow,
     build_compact_data_model,
     expand_high_level_component_rows,
+    normalize_mixed_font_text_rows,
     parse_compact_dsl_rows,
     validate_single_line_title_layout,
 )
@@ -259,8 +260,11 @@ def validate_compact_dsl(
     _collect_progress_value_errors(components, task_spec, errors)
     _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
-    _collect_height_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
-    _collect_text_width_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
+    budget_components = normalize_mixed_font_text_rows(components, data_model=data_model)
+    _collect_height_budget_errors(budget_components, task_spec, card_spec, errors, protocol_profile)
+    _collect_text_width_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile,
+    )
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -330,7 +334,7 @@ def _collect_asset_source_errors(
         if isinstance(src, str):
             sources.add(src)
     for component in components:
-        for key in ("backgroundImage",):
+        for key in ("backgroundImage", "icon"):
             value = component.props.get(key)
             if not isinstance(value, str) or value.strip().startswith("{{"):
                 continue
@@ -1404,7 +1408,10 @@ def _collect_height_budget_errors(
                 "id": row.component_id,
                 "component": row.component_type,
                 "styles": (
-                    {**row.props, "height": _single_line_title_height(size=size)}
+                    {
+                        **row.props,
+                        "height": _single_line_title_height(row, size=size),
+                    }
                     if row.component_type == "SingleLineTitle" else row.props
                 ),
                 "children": list(row.children),
@@ -1433,8 +1440,10 @@ def _collect_height_budget_errors(
         required_height = _column_children_minimum_height(
             component,
             components_by_id,
+            measure_content_overflow=size == "2x2",
         )
-        if required_height <= available_height + 1e-7:
+        height_tolerance = 2.0 if size == "2x2" else 0.0
+        if required_height <= available_height + height_tolerance + 1e-7:
             continue
         overflow = required_height - available_height
         breakdown = _column_height_breakdown(component, components_by_id)
@@ -1454,6 +1463,7 @@ def _collect_text_width_budget_errors(
     card_spec: dict[str, Any],
     errors: list[str],
     protocol_profile: dict[str, Any] | None,
+    *, include_label_pressure: bool = False,
 ) -> None:
     """兜底明确单行超宽；自然宽度只用已知祖先内宽作上界，不猜实际尺寸。"""
     from services.compact_composition_context import _literal_display_sample
@@ -1509,12 +1519,17 @@ def _collect_text_width_budget_errors(
         content = props.get("content") if row.component_type == "Text" else props.get("label")
         displayed = _literal_display_sample(content, task_spec)
         text = displayed[1] if displayed is not None else None
+        if size == "2x2":
+            from services.compact_composition_context import small_card_display_text
+
+            text = small_card_display_text(content, task_spec)
         if text is None and isinstance(content, str) and "{{" not in content:
             text = content
         if not isinstance(text, str) or not text or "\n" in text:
             continue
         duration_error = _compound_duration_label_width_error(
             row, text, by_id, parents, boxes,
+            include_regular_text=include_label_pressure and size == "2x2",
         )
         if duration_error is not None:
             errors.append(duration_error)
@@ -1535,14 +1550,35 @@ def _collect_text_width_budget_errors(
             )
 
 
+def small_card_text_pressure(source: str, task_spec: dict[str, Any]) -> list[str]:
+    """同行自然标签的估计只交给错误修复，不当精确字体测量的发布门禁。"""
+    if task_spec.get("size") != "2x2":
+        return []
+    try:
+        rows = parse_compact_dsl_rows(source)
+        components = [row for row in rows if isinstance(row, ComponentRow)]
+        data_model = build_compact_data_model([row for row in rows if isinstance(row, DataRow)])
+        components = expand_high_level_component_rows(components, size="2x2", data_model=data_model)
+        messages: list[str] = []
+        _collect_text_width_budget_errors(
+            components, task_spec, {"suggestSize": "2x2"}, messages, None,
+            include_label_pressure=True,
+        )
+        return messages
+    except ValueError:
+        return []
+
+
 def _compound_duration_label_width_error(
     row: ComponentRow, text: str, by_id: dict[str, ComponentRow],
     parents: dict[str, str], boxes: dict[str, Any],
+    *, include_regular_text: bool = False,
 ) -> str | None:
     """带标签的多段时长按完整同行压力核算；未知兄弟宽度不猜测。"""
     from services.compact_composition_planner import _text_width, is_compound_duration_text
 
-    if not is_compound_duration_text(text) or row.props.get("layoutWeight") != 1:
+    if (not include_regular_text and not is_compound_duration_text(text)) \
+            or row.props.get("layoutWeight") != 1:
         return None
     parent_id = parents.get(row.component_id)
     parent = by_id.get(parent_id)
@@ -1578,8 +1614,11 @@ def _compound_duration_label_width_error(
     if required <= available + 1e-7:
         return None
     return (
-        f"component {parent.component_id}: complete label {''.join(labels)!r} plus compound "
-        f"duration {text!r} requires about {required:g}vp of pressure width within "
+        f"component {parent.component_id}: "
+        + ("text width overflow; " if include_regular_text else "")
+        + f"complete label {''.join(labels)!r} plus compound "
+        f"{'value' if include_regular_text else 'duration'} {text!r} requires about "
+        f"{required:g}vp of pressure width within "
         f"{available:g}vp at the original body font. Keep the full label and value; use "
         "legal two-line body text at the same font and budget its height, or regroup. "
         "Weight, clipping and dropping units do not close this text budget."
@@ -1649,6 +1688,7 @@ def _component_outer_height(
 def _column_children_minimum_height(
     component: ComponentRow,
     components_by_id: dict[str, ComponentRow],
+    *, measure_content_overflow: bool = False,
 ) -> float:
     child_heights: list[float] = []
     for child_id in component.children:
@@ -1658,6 +1698,7 @@ def _column_children_minimum_height(
         child_height = _minimum_outer_height(
             child, components_by_id, set(),
             height_weighted=bool(_non_negative_number(child.props.get("layoutWeight"))),
+            measure_content_overflow=measure_content_overflow,
         )
         child_heights.append(child_height + _vertical_margin(child.props))
 
@@ -1665,9 +1706,14 @@ def _column_children_minimum_height(
     return sum(child_heights) + gap
 
 
-def _single_line_title_height(*, size: str | None = None) -> float:
+def _single_line_title_height(
+    component: ComponentRow,
+    *,
+    size: str | None = None,
+) -> float:
     """标题预占与实际展开共用视觉合同，不维护另一份固定高度。"""
-    _, styles = visual_recipe_part("SingleLineTitle", "root", size=size)
+    variant = "withIcon" if component.props.get("icon") else None
+    _, styles = visual_recipe_part("SingleLineTitle", "root", size=size, variant=variant)
     height = _non_negative_number(styles.get("height"))
     if height is None:
         raise CompactDslValidationError(["SingleLineTitle Recipe must declare a fixed height."])
@@ -1680,15 +1726,17 @@ def _minimum_outer_height(
     visiting: set[str],
     *,
     height_weighted: bool = False,
+    measure_content_overflow: bool = False,
 ) -> float:
     if component.component_type == "SingleLineTitle":
-        return _single_line_title_height()
+        return _single_line_title_height(component)
     constraints = component.props.get("constraintSize")
     minimum = constraints.get("minHeight") if isinstance(constraints, dict) else None
     minimum_height = _non_negative_number(minimum) or 0.0
     explicit_height = _non_negative_number(component.props.get("height"))
     is_container = component.component_type in _NON_EMPTY_CONTAINER_TYPES
-    if explicit_height is not None and not (height_weighted and is_container):
+    if explicit_height is not None and not (is_container and
+                                           (height_weighted or measure_content_overflow)):
         return max(minimum_height, explicit_height)
     if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
         return minimum_height
@@ -1707,6 +1755,7 @@ def _minimum_outer_height(
                 component.component_type == "Column"
                 and bool(_non_negative_number(child.props.get("layoutWeight")))
             ),
+            measure_content_overflow=measure_content_overflow,
         )
         child_heights.append(child_height + _vertical_margin(child.props))
     visiting.remove(component.component_id)
@@ -1716,7 +1765,9 @@ def _minimum_outer_height(
         content_height += _vertical_gap(component, len(child_heights))
     else:
         content_height = max(child_heights, default=0.0)
-    return max(minimum_height, _vertical_padding(component.props) + content_height)
+    reserved_height = explicit_height if measure_content_overflow and not height_weighted else 0
+    return max(minimum_height, reserved_height or 0,
+               _vertical_padding(component.props) + content_height)
 
 
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:

@@ -4,6 +4,10 @@ from services.multi_step_generation.jsx_runner.prompt import (
     build_plan_context,
     build_plan_prompt,
 )
+from services.multi_step_generation.jsx_runner.resources import (
+    assemble_prompt_bundle,
+    generation_contract_sync_errors,
+)
 
 
 def test_plan_prompt_prefers_core_with_secondary_body_over_table_text() -> None:
@@ -25,3 +29,19 @@ def test_plan_context_reinforces_core_with_secondary_body_over_table_text() -> N
     assert "其余带标签短字段统一放入同一个 SecondaryBody" in context
     assert "分区内不存在可识别核心信息时，才允许 TableText" in context
     assert "字段数量多、可写成标签和值或空间紧张都不是选用依据" in context
+
+
+def test_generation_prompt_allows_single_line_title_theme_icon() -> None:
+    for size in ("2x2", "2x4"):
+        prompt = assemble_prompt_bundle(size).initial_content
+
+        assert "`SingleLineTitle` 可在存在严格匹配的静态主题素材" in prompt
+        assert "有 `icon` 时标题区高度为 `20vp`" in prompt
+        assert "SVG `icon` 必须填写合法" in prompt
+        assert "标题组件为纯文本" not in prompt
+
+
+def test_single_line_title_generation_contract_keeps_icon_props() -> None:
+    errors = generation_contract_sync_errors()
+
+    assert not any("SingleLineTitle" in error for error in errors)

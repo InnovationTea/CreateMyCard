@@ -249,6 +249,7 @@ def expand_high_level_component_rows(
         elif component.component_type in {"PillButton", "CircleButton"}:
             rows = expander(component, size, color_palette=color_palette)
         elif component.component_type in {
+            "EmphasizedData",
             "InfoBlock",
             "NumericRatioStack",
             "ProgressCircle",
@@ -375,7 +376,7 @@ def validate_single_line_title_layout(components: list[ComponentRow], *, size: s
         _validate_high_level_props(
             header,
             required={"title", "fontColor"},
-            allowed={"title", "fontColor", "fontSize"},
+            allowed={"title", "icon", "fillColor", "fontColor", "fontSize"},
         )
         _validate_recipe_font_size(
             header,
@@ -399,13 +400,37 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
         raise CompactDslConversionError(
             "SingleLineTitle.width must be matchParent or a positive number."
         )
+    icon = header.props.get("icon")
+    has_icon = isinstance(icon, str) and bool(icon.strip())
+    if icon is not None and not has_icon:
+        raise CompactDslConversionError(
+            "SingleLineTitle.icon must be a non-empty static asset path."
+        )
+    fill_color = header.props.get("fillColor")
+    if fill_color is not None and not has_icon:
+        raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
+    if fill_color is not None and not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
+        raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
+    if has_icon:
+        normalized_icon = icon.lower()
+        is_svg = normalized_icon.endswith(".svg")
+        is_bitmap = normalized_icon.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"))
+        if is_svg and fill_color is None:
+            raise CompactDslConversionError("SingleLineTitle SVG icon requires fillColor.")
+        if is_bitmap and fill_color is not None:
+            raise CompactDslConversionError("SingleLineTitle bitmap icon must not set fillColor.")
     height = header.props.get("height")
-    if height is not None and height != 12:
-        raise CompactDslConversionError("SingleLineTitle.height must be 12 when provided.")
+    expected_height = 20 if has_icon else 12
+    if height is not None and height != expected_height:
+        raise CompactDslConversionError(
+            f"SingleLineTitle.height must be {expected_height} when provided."
+        )
     color = header.props.get("fontColor")
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
         raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
     generated_ids = {f"{header.component_id}_title"}
+    if has_icon:
+        generated_ids.add(f"{header.component_id}_icon")
     if any(item.component_id in generated_ids for item in components):
         raise CompactDslConversionError("SingleLineTitle generated title id must not collide.")
 
@@ -652,7 +677,8 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
         row_children: list[str] = []
-        row_items = items[start : start + columns]
+        row_end = start + columns
+        row_items = items[start:row_end]
         row_height = line_height * max(item.get("maxLines", 1) for item in row_items)
         for item_index, item in enumerate(row_items, start=start):
             max_lines = item.get("maxLines", 1)
@@ -1522,9 +1548,44 @@ def _expand_circle_button(
     ]
 
 
-def _expand_emphasized_data(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _small_numeric_unit_props(
+    component: ComponentRow, data_model: dict[str, Any] | None,
+) -> ComponentRow:
+    """单数值路径的短单位回到原Recipe单位位，不切分格式化字符串或猜表达式。"""
+    props = component.props
+    if "unit" in props or not isinstance(data_model, dict):
+        return component
+    value = props.get("value")
+    if not isinstance(value, str):
+        return component
+    match = re.fullmatch(
+        r"\s*\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*"
+        r"(?P<quote>['\"])(?P<unit>\s*(?:%|％|℃|°C|°)\s*)(?P=quote)\s*\}\}\s*",
+        value,
+    )
+    if match is None:
+        return component
+    present, sample = _json_pointer_value(data_model, match.group("path"))
+    is_numeric = isinstance(sample, (int, float)) and not isinstance(sample, bool)
+    if not present or not is_numeric:
+        return component
+    if isinstance(sample, float) and not math.isfinite(sample):
+        return component
+    updated = copy.deepcopy(props)
+    updated["value"] = {"path": match.group("path")}
+    updated["unit"] = match.group("unit")
+    return ComponentRow(
+        component.component_id, component.component_type, updated, component.children,
+    )
+
+
+def _expand_emphasized_data(
+    component: ComponentRow, size: str, *, data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("EmphasizedData requires a 2x2 or 2x4 card.")
+    if size == "2x2":
+        component = _small_numeric_unit_props(component, data_model)
     allowed = {"value", "unit", "fontColor", "fontSize"}
     _validate_high_level_props(
         component,
@@ -3070,24 +3131,32 @@ def _validate_item_component(
 
 def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> list[dict[str, Any]]:
     props = component.props
+    has_icon = isinstance(props.get("icon"), str) and bool(props["icon"].strip())
+    variant = "withIcon" if has_icon else None
     root_type, root_styles = _visual_recipe_part_for_converter(
         "SingleLineTitle",
         "root",
         size=size,
+        variant=variant,
     )
     title_type, title_styles = _visual_recipe_part_for_converter(
         "SingleLineTitle",
         "title",
         size=size,
+        variant=variant,
     )
     root_styles.pop("_visualRecipe", None)
     title_styles.pop("_visualRecipe", None)
     item_margin = root_styles.pop("itemMargin", 0)
     title_id = f"{component.component_id}_title"
+    children = [title_id]
+    icon_id = f"{component.component_id}_icon"
+    if has_icon:
+        children.append(icon_id)
     row = {
         "id": component.component_id,
         "component": root_type,
-        "children": [title_id],
+        "children": children,
         "itemMargin": item_margin,
         "styles": root_styles,
     }
@@ -3101,7 +3170,26 @@ def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> li
     for name in _PLACEMENT_PROPS:
         if name in props:
             row["styles"][name] = copy.deepcopy(props[name])
-    return [row, title]
+    output = [row, title]
+    if has_icon:
+        icon_type, icon_styles = _visual_recipe_part_for_converter(
+            "SingleLineTitle",
+            "icon",
+            size=size,
+            variant=variant,
+        )
+        icon_styles.pop("_visualRecipe", None)
+        if "fillColor" in props:
+            icon_styles["fillColor"] = props["fillColor"]
+        output.append(
+            {
+                "id": icon_id,
+                "component": icon_type,
+                "src": props["icon"],
+                "styles": icon_styles,
+            }
+        )
+    return output
 
 
 def _is_path_binding(value: Any) -> bool:

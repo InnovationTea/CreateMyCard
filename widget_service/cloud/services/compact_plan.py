@@ -21,7 +21,11 @@ from services.compact_dsl_a2ui_converter import (
     ComponentRow,
     parse_compact_dsl_rows,
 )
-from services.compact_layout_runtime import load_layout_contract
+from services.compact_layout_runtime import (
+    CompactLayoutRuntimeError,
+    load_layout_contract,
+    match_compact_layout,
+)
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
@@ -331,6 +335,10 @@ def _normalize_composition(
     for region in regions:
         if not _composition_region_shape(region, region_schema):
             return None, [warning]
+        if size == "2x2":
+            region, slot_note = _small_content_region(region, layout, variant)
+            if slot_note is not None:
+                notes.append(slot_note)
         capacity = composition_region_capacity(
             size, value.get("layout"), variant, region.get("path"),
         )
@@ -356,7 +364,8 @@ def _normalize_composition(
         height = sum(group.get("referenceHeight") for group in groups)
         height += region.get("gap") * (len(groups) - 1)
         remaining = region.get("referenceHeight") - height
-        if remaining < 0:
+        height_tolerance = 2.0 if size == "2x2" else 0.0
+        if remaining < -height_tolerance:
             notes.append(f"region {region.get('id')} overflows by {-remaining:g}vp; "
                          "replace this complete grouping, do not shrink or omit facts.")
         normalized.append({**region, "groups": groups, "requiredHeight": height,
@@ -365,6 +374,42 @@ def _normalize_composition(
         return None, ["composition incomplete: retain every info_required fact and action; "
                       "rebuild complete region assignments before generating."]
     return {"layout": value.get("layout"), "variant": variant, "regions": normalized}, notes
+
+
+def _small_content_region(
+    region: dict[str, Any], layout: dict[str, Any], variant: int,
+) -> tuple[dict[str, Any], str | None]:
+    """正文误分到带嵌套动作的父区时，交接真实纯正文槽，不重复分配动作高度。"""
+    groups = region.get("groups", [])
+    if not groups or any(not isinstance(group, dict) for group in groups):
+        return region, None
+    if any(group.get("component") in
+                         {"SingleLineTitle", "DoubleLineTitle", *_ACTION_FACT_COMPONENTS}
+                         for group in groups):
+        return region, None
+    path = tuple(region.get("path", []))
+    rules = layout.get("patterns", [])[variant - 1].get("rules", [])
+    action_paths = [tuple(rule.get("path", [])) for rule in rules
+                    if rule.get("eventPolicy") == "require"]
+    if not any(len(action) > len(path) and action[:len(path)] == path for action in action_paths):
+        return region, None
+    slots = []
+    for rule in rules:
+        slot = rule.get("path", [])
+        if len(slot) != len(path) + 1 or tuple(slot)[:len(path)] != path:
+            continue
+        if rule.get("types") != ["Column"]:
+            continue
+        if any(action[:len(slot)] == tuple(slot) for action in action_paths):
+            continue
+        slots.append(slot)
+    if len(slots) != 1:
+        return region, None
+    return {**region, "path": slots[0]}, (
+        f"content assignment moved from parent {list(path)} to pure content slot {slots[0]}; "
+        "its capacity excludes the separate action reservation. Keep all facts and original "
+        "fonts; regroup short same-object auxiliary facts if the complete content overflows."
+    )
 
 
 def _composition_region_shape(value: Any, schema: dict[str, Any]) -> bool:
@@ -452,8 +497,24 @@ def _composition_group(
     height = composition_group_minimum_height(size, value)
     planned_height = value.get("referenceHeight")
     if height is not None:
-        planned_height = max(height, planned_height)
+        exact_small_readout = size == "2x2" and component in {"EmphasizedData", "EmphasisText"}
+        planned_height = height if exact_small_readout else max(height, planned_height)
     group = {**value, "factIndexes": remapped, "referenceHeight": planned_height}
+    if size == "2x2" and component == "TableText":
+        item_indexes = set()
+        for placement in placements:
+            match = re.fullmatch(r"items\[(\d+)\]\.(?:label|value)", placement)
+            if match is not None:
+                item_indexes.add(int(match.group(1)))
+        if item_indexes and (len(item_indexes) not in (2, 3)
+                             or item_indexes != set(range(len(item_indexes)))):
+            group["implementationConflict"] = (
+                "TableText only supports two or three contiguous items, not "
+                f"{len(item_indexes)}. Keep every fact; regroup ordinary information in "
+                "SecondaryBody at its original role/font, combining short same-object "
+                "attributes into full-width labelled lines when they fit. Do not copy "
+                "the invalid table or shrink text to create a smaller table."
+            )
     if placement_notes:
         group["placementNotes"] = placement_notes
     return group
@@ -556,8 +617,33 @@ def compact_plan_context(
     if conflicts:
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
+    small_conflict = False
+    if conflicts:
+        for layout_hint in plan.get("layoutHints", []):
+            if isinstance(layout_hint, str) and layout_hint.startswith("S-"):
+                small_conflict = True
+                break
+    preference_instruction = (
+        "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
+        "具体条件不成立才改选合法备选或组件组合。"
+    )
+    intent_context = _component_intent_context(plan)
+    if small_conflict:
+        preference_instruction = (
+            "当前小卡compositionNotes已证明原合组或容量有冲突，原候选首项不再是实例清单。"
+            "先重算完整信息组与动作的合法承载，再选匹配组件；不要按旧候选逐事实实例化，"
+            "普通辅助状态不新增强调焦点。候选与全部硬事实保留，不靠降字或删事实过关。"
+        )
+        intent_context = ""
     payload = json.dumps(context_plan, ensure_ascii=False, separators=(",", ":"))
     if execution_selected:
+        conflict_instruction = ""
+        if small_conflict:
+            conflict_instruction = (
+                "本轮小卡旧分区已有明确合组或容量冲突，不能继续保留失效的body包装或"
+                "按候选首项逐事实新增实例。按当前完整布局变体重新核算全部事实和动作，"
+                "普通辅助状态不叠加强调焦点；只交接诊断与文字指导，不提供恢复蓝图。"
+            )
         return (
             "# 已接受的 Compact Info Plan\n\n"
             "info_required 冻结全部必须可见的事实与真实动作。组件候选不是新增实例清单；"
@@ -565,6 +651,7 @@ def compact_plan_context(
             "重做选型，也不照抄已经诊断为冲突的旧 composition。"
             "没有恢复参考时，合法composition保持原分区和合组；没有完整composition时"
             "按对象信息关系和当前尺寸完整案例组织，不能把候选第一项当作逐事实实例清单。"
+            f"{conflict_instruction}"
             "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
             "局部修复保持待修树的合法结构，只处理明确错误。"
             "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
@@ -577,8 +664,9 @@ def compact_plan_context(
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"
         "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
-        "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
-        "具体条件不成立才改选合法备选或组件组合。先按对象和信息关系合组，再映射可见 Prop。"
+        "当 composition 已选中且合同、容量均成立时，它是本轮的执行选择；尤其"
+        "S-title-anchor 不能仅因存在 PillButton 就被降级替换为底部文字动作布局。"
+        f"{preference_instruction}先按对象和信息关系合组，再映射可见 Prop。"
         "不能因为完整案例使用了其它组件就将匹配的信息组拆成逐字段的单文字组件。"
         "每项事实必须在最终 Compact DSL 中有完整可读的落点；"
         "同组图形与对应读数允许共用绑定，禁止跨组无意义重复。"
@@ -615,7 +703,7 @@ def compact_plan_context(
         "动作先留足高度，环、状态、标题的总高度不能超出剩余正文；layoutWeight 不会让"
         "文字或环缩小。时间段、日期时间和带长单位的指标使用普通字号或分行，不套用大数字。\n\n"
         f"```json\n{payload}\n```"
-        f"{_component_intent_context(plan)}"
+        f"{intent_context}"
     )
 
 
@@ -730,9 +818,42 @@ def compact_plan_coverage_errors(
                     "Plan title fact must be visible in a SingleLineTitle.title: "
                     f"{label}."
                 )
+    required_layout = _required_anchor_layout(plan, task_spec)
+    if required_layout is not None:
+        try:
+            match_compact_layout(
+                components,
+                size="2x2",
+                layout_scope=required_layout,
+            )
+        except CompactLayoutRuntimeError:
+            errors.append(
+                "Accepted Compact Plan selected S-title-anchor as its executable "
+                "composition; keep the CircleButton anchor layout instead of replacing it "
+                "with a text-action layout that compresses the required content."
+            )
     return tuple(errors)
 
 
+def _required_anchor_layout(
+    plan: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> str | None:
+    """已闭合的 anchor 方案是执行选择，不允许 DSL 阶段无理由降级为文字按钮。"""
+    if task_spec.get("size") != "2x2":
+        return None
+    composition = plan.get("composition")
+    if not isinstance(composition, dict) or composition.get("layout") != "S-title-anchor":
+        return None
+    if composition_implementation_conflicts(plan):
+        return None
+    for fact in plan.get("info_required", []):
+        if not isinstance(fact, dict) or "actionId" not in fact:
+            continue
+        hints = fact.get("componentHints")
+        if isinstance(hints, list) and hints and hints[0] == "CircleButton":
+            return "S-title-anchor"
+    return None
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
     """按 TaskSpec 顺序列出可作为事实目标的叶子 JSON Pointer。"""
     schema = task_spec.get("dataModelSchema")
@@ -861,6 +982,12 @@ def _validate_facts(
                     if hint not in accepted_hints:
                         accepted_hints.append(hint)
                 removed_single_line_title_alternatives = False
+                removed_single_line_title_backup = False
+                if task_spec.get("size") == "2x2" and accepted_hints:
+                    title_is_backup = accepted_hints[0] != "SingleLineTitle"
+                    if title_is_backup and "SingleLineTitle" in accepted_hints:
+                        accepted_hints.remove("SingleLineTitle")
+                        removed_single_line_title_backup = True
                 if "SingleLineTitle" in accepted_hints and accepted_hints != ["SingleLineTitle"]:
                     accepted_hints = ["SingleLineTitle"]
                     removed_single_line_title_alternatives = True
@@ -868,7 +995,12 @@ def _validate_facts(
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
                     reason = "unsupported or duplicate values."
-                    if removed_single_line_title_alternatives:
+                    if removed_single_line_title_backup:
+                        reason = (
+                            "a fallback SingleLineTitle cannot override the preferred "
+                            "body component or create a new mandatory title role."
+                        )
+                    elif removed_single_line_title_alternatives:
                         reason = (
                             "alternatives because SingleLineTitle is the exclusive "
                             "title component."

@@ -104,6 +104,8 @@
 子组件宽度、padding 与最小间距之和必须不超过父宽；分布式对齐不能修复负剩余空间。
 `justifyContent` 使用 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍是必须保留的最小间距；
 两者可以同时设置，但只能把扣除最小间距后的非负剩余空间交给分布式对齐。
+同一行不同字号的文字采用`Row alignItems="bottom"`底部对齐，2x2与2x4都遵守；语义组件内部由转换器统一执行，
+不手写Text或覆盖组件内部padding。数值与真实单位保留各自固定字号并紧邻，不把单位居中悬在大字旁。
 
 ### 3.2 `Column`
 
@@ -134,22 +136,27 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
+| `icon` | string | 仅静态 | 可选；仅使用 `assetCandidates` 中与标题对象严格匹配的装饰性主题图标，不可点击、不可承担状态或动作语义 |
+| `fillColor` | color | 仅静态 | 仅 SVG `icon` 必填；位图图标不得填写，颜色使用 `#AARRGGBB` |
 | `fontSize` | number | 仅静态 | 新生成必填；固定 `12`，不允许修改 |
 
 #### 槽位与容量
 
-占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding。进入卡级或分区标题位置；
+无 `icon` 时占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding；有 `icon` 时占高 `20vp`，
+图标固定右对齐为 `20×20vp`，标题在剩余宽度内单行省略。图标只用于增强对象识别，不可替代按钮、状态或内容图标。
+进入卡级或分区标题位置；
 2x4 左右分区各自预算成立时可各放一个，具体宽度和合法位置由尺寸布局文件规定。
 
 #### 示例
 
 ```genui
-["header","SingleLineTitle",{"title":"天气","fontSize":12}]
+["header","SingleLineTitle",{"title":"天气","icon":"resources/base/media/weather.png","fontSize":12}]
 ```
 
 #### 注意事项
 
-标题固定左对齐 `12fp/400`，只承载标题文字；`fontSize:12` 只声明固定主字号，不覆盖 Recipe。
+标题固定左对齐 `12fp/400`；有图标时文字与右侧图标共同构成标题区。只有存在准确、静态的主题素材时才填写 `icon`；
+`fontSize:12` 只声明固定主字号，不覆盖 Recipe。
 
 ### 4.2 `DoubleLineTitle`
 
