@@ -73,12 +73,14 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateSearchIntent,
     build_template_retrieval_prompt,
     normalize_calendar_reminder_intent,
+    normalize_redundant_date_intent,
     restrict_search_intent_to_preferred_templates,
     search_template_variants,
 )
 from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
 )
+from services.template_generation.postprocessing import remove_png_fill_colors
 from services.template_generation.profile import (
     TERSEL_PROTOCOL_PROFILE_ID,
     read_tersel_protocol_profile,
@@ -177,6 +179,7 @@ async def generate_template_a2ui(
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
             intent = TemplateSearchIntent.model_validate(raw_query)
+            intent = normalize_redundant_date_intent(intent, coverage_bindings)
             original_intent = intent
             intent = normalize_calendar_reminder_intent(
                 intent, selected_task_spec, coverage_bindings,
@@ -540,7 +543,7 @@ async def _generate_selected_templates(
         f"repair_count={repair_count}"
     )
     return TemplateEngineOutput(
-        a2ui=compilation.a2ui,
+        a2ui=remove_png_fill_colors(compilation.a2ui),
         tersel=compilation.effective_output,
         projected_task_spec=projected_task_spec,
         template_ids=tuple(compilation.stats.template_used_ids),
