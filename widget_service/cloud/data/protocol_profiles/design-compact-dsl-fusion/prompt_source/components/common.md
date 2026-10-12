@@ -136,22 +136,27 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
+| `icon` | string | 仅静态 | 可选；仅使用 `assetCandidates` 中与标题对象严格匹配的装饰性主题图标，不可点击、不可承担状态或动作语义 |
+| `fillColor` | color | 仅静态 | 仅 SVG `icon` 必填；位图图标不得填写，颜色使用 `#AARRGGBB` |
 | `fontSize` | number | 仅静态 | 新生成必填；固定 `12`，不允许修改 |
 
 #### 槽位与容量
 
-占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding。进入卡级或分区标题位置；
+无 `icon` 时占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding；有 `icon` 时占高 `20vp`，
+图标固定右对齐为 `20×20vp`，标题在剩余宽度内单行省略。图标只用于增强对象识别，不可替代按钮、状态或内容图标。
+进入卡级或分区标题位置；
 2x4 左右分区各自预算成立时可各放一个，具体宽度和合法位置由尺寸布局文件规定。
 
 #### 示例
 
 ```genui
-["header","SingleLineTitle",{"title":"天气","fontSize":12}]
+["header","SingleLineTitle",{"title":"天气","icon":"resources/base/media/weather.png","fontSize":12}]
 ```
 
 #### 注意事项
 
-标题固定左对齐 `12fp/400`，只承载标题文字；`fontSize:12` 只声明固定主字号，不覆盖 Recipe。
+标题固定左对齐 `12fp/400`；有图标时文字与右侧图标共同构成标题区。只有存在准确、静态的主题素材时才填写 `icon`；
+`fontSize:12` 只声明固定主字号，不覆盖 Recipe。
 
 ### 4.2 `DoubleLineTitle`
 

@@ -1627,5 +1627,263 @@
       "air-quality"
     ],
     "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_batteryTemperature_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_batteryTemperature_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。蓝色仅为视觉配色，不表示低温、正常温度或电池健康状态。",
+    "sceneTags": [
+      "battery",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_batteryTemperature_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_batteryTemperature_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。紫色仅为视觉配色，不表示温度等级或电池健康状态。",
+    "sceneTags": [
+      "battery",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_batteryTemperature_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_batteryTemperature_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。黄色仅为视觉配色，不表示高温、告警或电池健康状态。",
+    "sceneTags": [
+      "battery",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_bule.svg",
+    "description": "样式：蓝色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_purple.svg",
+    "description": "样式：紫色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_bule.svg",
+    "description": "样式：蓝色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_purple.svg",
+    "description": "样式：紫色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_yellow.svg",
+    "description": "样式：黄色到橙色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sun",
+    "type": "asset",
+    "src": "resources/base/media/ic_sun.svg",
+    "description": "样式：黄色到橙色纵向渐变的太阳图标，由圆形日面和八向光线组成，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气或紫外线信息卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示晴朗、日照或紫外线主题，不表示具体天气现象、温度或紫外线等级。",
+    "sceneTags": [
+      "weather",
+      "sun",
+      "uv"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_temperature_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_temperature_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。蓝色仅为视觉配色，不表示低温或具体温度等级；不用于电池温度。",
+    "sceneTags": [
+      "weather",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_temperature_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_temperature_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。紫色仅为视觉配色，不表示具体温度等级；不用于电池温度。",
+    "sceneTags": [
+      "weather",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_temperature_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_temperature_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。黄色仅为视觉配色，不表示高温或告警等级；不用于电池温度。",
+    "sceneTags": [
+      "weather",
+      "temperature"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_warning_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_warning_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；蓝色背景不代表蓝色预警或其它具体预警等级。",
+    "sceneTags": [
+      "weather",
+      "warning",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_warning_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_warning_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；紫色背景不代表任何具体预警等级。",
+    "sceneTags": [
+      "weather",
+      "warning",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_warning_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_warning_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；黄色背景不代表黄色预警或其它具体预警等级。",
+    "sceneTags": [
+      "weather",
+      "warning",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
   }
 ]

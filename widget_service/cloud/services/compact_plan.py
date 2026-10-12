@@ -21,7 +21,11 @@ from services.compact_dsl_a2ui_converter import (
     ComponentRow,
     parse_compact_dsl_rows,
 )
-from services.compact_layout_runtime import load_layout_contract
+from services.compact_layout_runtime import (
+    CompactLayoutRuntimeError,
+    load_layout_contract,
+    match_compact_layout,
+)
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
@@ -716,6 +720,8 @@ def compact_plan_context(
         "才允许省略程序指定的非 Action 事实。"
         "除标题组件职责外，"
         "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+        "当 composition 已选中且合同、容量均成立时，它是本轮的执行选择；尤其"
+        "S-title-anchor 不能仅因存在 PillButton 就被降级替换为底部文字动作布局。"
         f"{preference_instruction}先按对象和信息关系合组，再映射可见 Prop。"
         "不能因为完整案例使用了其它组件就将匹配的信息组拆成逐字段的单文字组件。"
         "每项事实必须在最终 Compact DSL 中有完整可读的落点；"
@@ -894,6 +900,20 @@ def compact_plan_coverage_errors(
         if index in allowed and "actionId" not in fact:
             continue
         errors.append(error)
+    required_layout = _required_anchor_layout(plan, task_spec)
+    if required_layout is not None:
+        try:
+            match_compact_layout(
+                components,
+                size="2x2",
+                layout_scope=required_layout,
+            )
+        except CompactLayoutRuntimeError:
+            errors.append(
+                "Accepted Compact Plan selected S-title-anchor as its executable "
+                "composition; keep the CircleButton anchor layout instead of replacing it "
+                "with a text-action layout that compresses the required content."
+            )
     return tuple(errors)
 
 
@@ -984,6 +1004,27 @@ def compact_plan_optional_drop_candidate(
     if not candidates:
         return None
     return max(candidates, key=lambda item: (max(item.fact_indexes), item.component_id))
+
+
+def _required_anchor_layout(
+    plan: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> str | None:
+    """已闭合的 anchor 方案是执行选择，不允许 DSL 阶段无理由降级为文字按钮。"""
+    if task_spec.get("size") != "2x2":
+        return None
+    composition = plan.get("composition")
+    if not isinstance(composition, dict) or composition.get("layout") != "S-title-anchor":
+        return None
+    if composition_implementation_conflicts(plan):
+        return None
+    for fact in plan.get("info_required", []):
+        if not isinstance(fact, dict) or "actionId" not in fact:
+            continue
+        hints = fact.get("componentHints")
+        if isinstance(hints, list) and hints and hints[0] == "CircleButton":
+            return "S-title-anchor"
+    return None
 
 
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:

@@ -331,7 +331,7 @@ def _collect_asset_source_errors(
         if isinstance(src, str):
             sources.add(src)
     for component in components:
-        for key in ("backgroundImage",):
+        for key in ("backgroundImage", "icon"):
             value = component.props.get(key)
             if not isinstance(value, str) or value.strip().startswith("{{"):
                 continue
@@ -1405,7 +1405,10 @@ def _collect_height_budget_errors(
                 "id": row.component_id,
                 "component": row.component_type,
                 "styles": (
-                    {**row.props, "height": _single_line_title_height(size=size)}
+                    {
+                        **row.props,
+                        "height": _single_line_title_height(row, size=size),
+                    }
                     if row.component_type == "SingleLineTitle" else row.props
                 ),
                 "children": list(row.children),
@@ -1700,9 +1703,14 @@ def _column_children_minimum_height(
     return sum(child_heights) + gap
 
 
-def _single_line_title_height(*, size: str | None = None) -> float:
+def _single_line_title_height(
+    component: ComponentRow,
+    *,
+    size: str | None = None,
+) -> float:
     """标题预占与实际展开共用视觉合同，不维护另一份固定高度。"""
-    _, styles = visual_recipe_part("SingleLineTitle", "root", size=size)
+    variant = "withIcon" if component.props.get("icon") else None
+    _, styles = visual_recipe_part("SingleLineTitle", "root", size=size, variant=variant)
     height = _non_negative_number(styles.get("height"))
     if height is None:
         raise CompactDslValidationError(["SingleLineTitle Recipe must declare a fixed height."])
@@ -1718,7 +1726,7 @@ def _minimum_outer_height(
     measure_content_overflow: bool = False,
 ) -> float:
     if component.component_type == "SingleLineTitle":
-        return _single_line_title_height()
+        return _single_line_title_height(component)
     constraints = component.props.get("constraintSize")
     minimum = constraints.get("minHeight") if isinstance(constraints, dict) else None
     minimum_height = _non_negative_number(minimum) or 0.0
