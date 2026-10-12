@@ -75,6 +75,7 @@ _ASSET_BY_PARAMETER = {
     "alertIcon": "resources/base/media/bell_fill.svg",
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "bluetoothIconOrDeviceIcon": "resources/base/media/icon_earphone.svg",
     "bellIcon": "resources/base/media/bell_fill.svg",
     "calendarIcon": "resources/base/media/calendar_fill.svg",
     "caseIcon": "resources/base/media/earphone_case_16644.svg",
@@ -87,11 +88,13 @@ _ASSET_BY_PARAMETER = {
     "distanceIcon": "resources/base/media/location_north_up_right_fill.svg",
     "icon": "resources/base/media/externaldrive_fill.svg",
     "leftEarIcon": "resources/base/media/l_circle_fill.svg",
+    "leftIcon": "resources/base/media/l_circle_fill.svg",
     "locationIcon": "resources/base/media/location_north_up_right_fill.svg",
     "meetingIcon": "resources/base/media/icon_meeting.svg",
     "musicIcon": "resources/base/media/music_fill.svg",
     "rainIcon": "resources/base/media/drop_1.svg",
     "rightEarIcon": "resources/base/media/r_circle_fill.svg",
+    "rightIcon": "resources/base/media/r_circle_fill.svg",
     "stepsIcon": "resources/base/media/figure_run.svg",
     "temperatureIcon": "resources/base/media/heat_generation.svg",
     "timeIcon": "resources/base/media/clock_fill.svg",
@@ -130,6 +133,8 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
 }
 # 单业务多云样例没有匹配状态素材，省略图标；Support 可使用表达气温的温度计。
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
+    ("WeatherOverviewConditionSupport@1", "conditionIcon"):
+        "resources/base/media/sun_max.svg",
     ("BatteryOverviewSupportHero@1", "batteryIcon"):
         "resources/base/media/icon_phone.svg",
     ("BatteryOverviewChargeStatusHero@1", "batteryIcon"):
@@ -565,14 +570,17 @@ def _build_data_schema(definition: TemplateDefinition) -> dict[str, Any]:
 
 
 def _sample_value(definition: TemplateDefinition, name: str, data_type: str) -> Any:
-    if definition.business_id == "BatteryOverview":
-        return _battery_sample(definition.wire_id, name, data_type)
-    if definition.business_id == "BluetoothDeviceOverview" and name == "connected":
-        return "Disconnected" not in definition.wire_id
-    key = (definition.business_id or "", name)
-    if key in _SAMPLE_BY_BUSINESS_BINDING:
-        return _SAMPLE_BY_BUSINESS_BINDING[key]
-    return _fallback_sample(data_type)
+    sample: Any
+    if definition.wire_id == "WeatherOverviewConditionSupport@1" and name == "condition":
+        sample = "晴"
+    elif definition.business_id == "BatteryOverview":
+        sample = _battery_sample(definition.wire_id, name, data_type)
+    elif definition.business_id == "BluetoothDeviceOverview" and name == "connected":
+        sample = "Disconnected" not in definition.wire_id
+    else:
+        key = (definition.business_id or "", name)
+        sample = _SAMPLE_BY_BUSINESS_BINDING.get(key, _fallback_sample(data_type))
+    return sample
 
 
 def _battery_sample(template_id: str, name: str, data_type: str) -> Any:
