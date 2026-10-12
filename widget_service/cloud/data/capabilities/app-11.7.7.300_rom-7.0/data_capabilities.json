@@ -173,13 +173,13 @@
                 "unitIncluded": true
               },
               "rainProbabilityPercent": {
-                "type": "string",
-                "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
-                "sampleValue": "20%",
+                "type": "number",
+                "description": "白天降雨概率的百分数数值，返回值不包含单位，例如 20 表示 20%；文本展示必须追加一个“%”，进度组件直接使用数值。",
+                "sampleValue": 20,
                 "displayUnits": [
                   "%"
                 ],
-                "unitIncluded": true
+                "unitIncluded": false
               },
               "airQuality": {
                 "type": "string",

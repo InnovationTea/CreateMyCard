@@ -10,6 +10,7 @@ from services.template_generation.engine.cardplan.preview_dataset import (
     validate_preview_asset_paths,
     write_template_preview_dataset,
 )
+from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 
 
 def test_template_preview_dataset_covers_all_business_templates(tmp_path):
@@ -252,3 +253,51 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "leftChargingStatusDesc",
         "rightChargingStatusDesc",
     }
+
+
+def test_weather_rain_previews_keep_numbers_and_format_text_units():
+    registry = get_cardplan_registry()
+    covered: set[str] = set()
+    for case in build_template_preview_cases():
+        if case.business_id != "WeatherOverview":
+            continue
+        definition = registry.require_template(case.template_id)
+        rain_bindings = []
+        for binding in definition.bindings.values():
+            if binding.path.endswith("/rainProbabilityPercent"):
+                assert binding.data_type == "number"
+                rain_bindings.append(binding)
+        if not rain_bindings:
+            continue
+        covered.add(case.template_id)
+        data_message = case.messages[2].get("updateDataModel")
+        assert isinstance(data_message, dict)
+        data = data_message.get("value")
+        assert isinstance(data, dict)
+        weather = data.get("data", {}).get("weather", {})
+        daily = weather.get("daily")
+        assert isinstance(daily, list)
+        for item in daily:
+            if not isinstance(item, dict) or "rainProbabilityPercent" not in item:
+                continue
+            probability = item.get("rainProbabilityPercent")
+            assert isinstance(probability, (int, float))
+            assert not isinstance(probability, bool)
+        component_message = case.messages[1].get("updateComponents")
+        assert isinstance(component_message, dict)
+        components = component_message.get("components")
+        assert isinstance(components, list)
+        rain_text_count = 0
+        for component in components:
+            if component.get("component") == "Progress":
+                value = component.get("value")
+                if isinstance(value, str) and "rainProbabilityPercent" in value:
+                    assert "%" not in value
+            content = component.get("content")
+            if not isinstance(content, str) or "rainProbabilityPercent" not in content:
+                continue
+            assert component.get("component") == "Text"
+            assert content.count("%") == 1
+            rain_text_count += 1
+        assert rain_text_count > 0
+    assert len(covered) == 9

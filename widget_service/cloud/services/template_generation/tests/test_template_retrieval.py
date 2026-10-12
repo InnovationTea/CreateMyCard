@@ -480,7 +480,7 @@ def test_specialized_weather_focus_routes_to_ux_template(
                 {},
                 {
                     "temperatureRangeText": _field("25℃ / 32℃"),
-                    "rainProbabilityPercent": _field("20%"),
+                    "rainProbabilityPercent": _field(20, "number"),
                 },
             ],
             (
