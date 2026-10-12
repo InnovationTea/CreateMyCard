@@ -448,4 +448,13 @@ def adapt_region_layout(
                 author_weights, wrappers,
             )
     _wrap_regions(result, wrappers, geometry)
+    # 横排权重负责行宽分配，避免重复整行宽度再收缩相邻文字。
+    # 仅编译横向填充关系；纵向承载和固定设计尺寸沿用已验证行为。
+    for node in result:
+        props = _styles(node)
+        axis = parent_axes.get(node.get("id"))
+        weight = _number(props.get("layoutWeight"))
+        if axis == "width" and weight is not None and weight > 0:
+            if props.get(axis) == "matchParent":
+                props.pop(axis)
     return result

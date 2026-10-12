@@ -15,6 +15,7 @@ from services.compact_composition_context import (
     composition_implementation_conflicts,
     composition_region_capacity,
 )
+from services.compact_composition_planner import compound_duration_bindings
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     ComponentRow,
@@ -503,6 +504,38 @@ def parse_compact_plan_call(
         task_spec.get("size"),
     )
     warnings.extend(composition_warnings)
+    duration_paths = set(compound_duration_bindings(plan, task_spec))
+    for fact in facts:
+        if fact.get("dataId") not in duration_paths:
+            continue
+        hints = fact.get("componentHints", [])
+        if "EmphasizedData" not in hints:
+            continue
+        corrected: list[str] = []
+        for hint in hints:
+            candidate = "EmphasisText" if hint == "EmphasizedData" else hint
+            if candidate not in corrected:
+                corrected.append(candidate)
+        fact["componentHints"] = corrected
+        warnings.append("Compound duration text uses EmphasisText, not a numeric hero; "
+                        "retain the complete binding and all units.")
+    if composition is not None:
+        incompatible = False
+        for region in composition.get("regions", []):
+            for group in region.get("groups", []):
+                if group.get("component") != "EmphasizedData":
+                    continue
+                for index in group.get("factIndexes", []):
+                    if not isinstance(index, int) or not 0 <= index < len(facts):
+                        continue
+                    if facts[index].get("dataId") in duration_paths:
+                        incompatible = True
+        if incompatible:
+            composition = None
+            note = ("composition uses a numeric hero for compound duration text; regroup "
+                    "with EmphasisText and retain every fact, binding and unit.")
+            composition_warnings.append(note)
+            warnings.append(note)
     if composition is not None:
         plan["composition"] = composition
     if composition_warnings:
@@ -512,6 +545,7 @@ def parse_compact_plan_call(
 
 def compact_plan_context(
     plan: dict[str, Any], *, implementation_conflicts: list[str] | None = None,
+    execution_selected: bool = False,
 ) -> str:
     """构造第二阶段使用的硬事实与软候选说明。"""
     conflicts = (
@@ -523,6 +557,22 @@ def compact_plan_context(
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
     payload = json.dumps(context_plan, ensure_ascii=False, separators=(",", ":"))
+    if execution_selected:
+        return (
+            "# 已接受的 Compact Info Plan\n\n"
+            "info_required 冻结全部必须可见的事实与真实动作。组件候选不是新增实例清单；"
+            "compositionRecovery 提供完整参考时实现其中已选方案，不再按 componentHints 第一项"
+            "重做选型，也不照抄已经诊断为冲突的旧 composition。"
+            "没有恢复参考时，合法composition保持原分区和合组；没有完整composition时"
+            "按对象信息关系和当前尺寸完整案例组织，不能把候选第一项当作逐事实实例清单。"
+            "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
+            "局部修复保持待修树的合法结构，只处理明确错误。"
+            "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
+            "索引从0开始，不能把索引或压力样值写入最终 DSL。标题绑定保留指定标题职责。"
+            "核对必要的对象标签、完整单位与全部动作，原字号不变，不能裁切或删信息。"
+            "参考预算不代替标签与单位的核算；明确发现参考方案仍不成立时才整体重组。\n\n"
+            f"```json\n{payload}\n```"
+        )
     return (
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"
@@ -763,6 +813,16 @@ def _validate_facts(
         if target == "dataId" and target_value not in data_paths:
             errors.append(f"{location}.dataId is not present in TaskSpec: {target_value}.")
             continue
+        if target == "dataId" and _internal_action_parameter_fact(
+            target_value, requirement, task_spec, query_text,
+        ):
+            errors.append(
+                f"{location}: {target_value} is an internal identifier used only by an action, "
+                "not a requested visible fact. Keep its original path in the complete event "
+                "candidate and retain that action; rebuild this Plan with every real display "
+                "requirement, without adding an identifier text row. Do not remove user facts."
+            )
+            continue
         if target == "actionId" and target_value not in action_ids:
             errors.append(
                 f"{location}.actionId is not present in TaskSpec: {target_value}."
@@ -837,6 +897,31 @@ def _validate_facts(
     if errors:
         raise CompactPlanValidationError(errors)
     return normalized, warnings
+
+
+def _internal_action_parameter_fact(
+    path: str, requirement: str, task: dict[str, Any], query: str,
+) -> bool:
+    """仅反馈计划自己承认的内部传参标识错误；不推断普通字段不可见。"""
+    if not re.search(r"仅供|仅用于|用于(?:打开|定位|识别|传参)", requirement):
+        return False
+    if re.search(r"(?:显示|展示|查看).{0,16}(?:编号|标识|(?<![a-z])ID(?![a-z])|entityId)",
+                 query, re.I):
+        return False
+    from services.compact_composition_planner import _schema_value
+
+    description = _schema_value(task, path).get("description", "")
+    if not re.search(r"(?:唯一|内部).{0,12}(?:标识|(?<![a-z])ID(?![a-z]))", description, re.I):
+        return False
+    for candidate in task.get("eventCandidates", []):
+        if not isinstance(candidate, dict):
+            continue
+        paths: set[str] = set()
+        literals: list[str] = []
+        _collect_paths_and_literals(candidate.get("args"), paths, literals)
+        if path in paths:
+            return True
+    return False
 
 
 def _normalize_layout_hints(

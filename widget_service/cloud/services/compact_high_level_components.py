@@ -276,6 +276,8 @@ def expand_high_level_component_rows(
                 component.children,
             )
             rows[0] = _place_high_level_root(component, header, parents.get(component.component_id))
+        if expander is not None:
+            rows = _allocate_expanded_ids(component, rows, existing_ids | generated_ids)
         for index, row in enumerate(rows):
             is_original_root = index == 0 and row.component_id == component.component_id
             if not is_original_root and row.component_id in existing_ids:
@@ -290,6 +292,47 @@ def expand_high_level_component_rows(
             generated_ids.add(row.component_id)
             expanded.append(row)
     return expanded
+
+
+def _allocate_expanded_ids(
+    component: ComponentRow,
+    rows: list[ComponentRow],
+    occupied: set[str],
+) -> list[ComponentRow]:
+    """只重命名发生碰撞的私有节点，公开根与其它组件引用保持不变。"""
+    local_ids: set[str] = set()
+    for row in rows:
+        if row.component_id in local_ids:
+            raise CompactDslConversionError(
+                f"High-level component generated duplicate id {row.component_id}."
+            )
+        local_ids.add(row.component_id)
+    reserved = occupied | local_ids
+    replacements: dict[str, str] = {}
+    for row in rows:
+        identifier = row.component_id
+        if identifier == component.component_id or identifier not in occupied:
+            continue
+        suffix = 1
+        candidate = f"{identifier}__generated_{suffix}"
+        while candidate in reserved:
+            suffix += 1
+            candidate = f"{identifier}__generated_{suffix}"
+        replacements[identifier] = candidate
+        reserved.add(candidate)
+    if not replacements:
+        return rows
+    output: list[ComponentRow] = []
+    for row in rows:
+        output.append(
+            ComponentRow(
+                replacements.get(row.component_id, row.component_id),
+                row.component_type,
+                row.props,
+                tuple(replacements.get(child, child) for child in row.children),
+            )
+        )
+    return output
 
 
 def _validate_circle_button_slot(parent: ComponentRow | None) -> None:
@@ -1166,6 +1209,33 @@ def _normalized_progress_binding(
     total: int | float,
     data_model: dict[str, Any] | None,
 ) -> Any:
+    if isinstance(value, str):
+        match = re.fullmatch(
+            r"\s*\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*"
+            r"(?:\+\s*(?P<quote>['\"])(?P<percent>[%％])(?P=quote)\s*)?\}\}\s*",
+            value,
+        )
+        if match is not None:
+            path = match.group("path")
+            found, initial_value = _json_pointer_value(data_model or {}, path)
+            if match.group("percent"):
+                duplicated = isinstance(initial_value, str) and initial_value.strip().endswith(
+                    ("%", "％")
+                )
+                if total != 100 or duplicated:
+                    raise CompactDslConversionError(
+                        f"{component.component_id}: {component.component_type}.{prop_name} "
+                        "percent expression must append one suffix to a pure 0–100 numeric path."
+                    )
+            if found:
+                _normalized_progress_literal(component, prop_name, initial_value, total=total)
+            return _normalized_progress_binding(
+                component,
+                prop_name,
+                {"path": path},
+                total=total,
+                data_model=data_model,
+            )
     if not _is_path_binding(value):
         return _normalized_progress_literal(
             component,

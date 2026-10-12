@@ -234,6 +234,7 @@ def validate_compact_dsl(
         components,
         task_spec.get("dataModelSchema"),
     )
+    _collect_compound_duration_component_errors(components, task_spec, binding_contract_errors)
     if binding_contract_errors:
         raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
     try:
@@ -256,6 +257,7 @@ def validate_compact_dsl(
     _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     _collect_height_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
+    _collect_text_width_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -334,6 +336,30 @@ def _collect_asset_source_errors(
                     f"component {component.component_id}.props.{key}: "
                     "asset must use an original src from TaskSpec.assetCandidates."
                 )
+
+def _collect_compound_duration_component_errors(
+    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str],
+) -> None:
+    """只兜底有明确样值的文本/数值选型错误，不改变组件内部字号。"""
+    from services.compact_composition_context import _literal_display_sample
+    from services.compact_composition_planner import is_compound_duration_text
+
+    for component in components:
+        if component.component_type != "EmphasizedData":
+            continue
+        value = component.props.get("value")
+        displayed = _literal_display_sample(value, task_spec)
+        sample = displayed[1] if displayed is not None else value
+        if not is_compound_duration_text(sample):
+            continue
+        errors.append(
+            f"component {component.component_id}: compound duration {sample!r} is a complete "
+            "text readout, not a single numeric value. Use EmphasisText.mainText with the "
+            "same complete binding at its registered 18fp text style; keep every duration "
+            "part and unit. Do not split sample digits, invent fields or change numeric "
+            "hero font sizes. Supporting durations keep their existing body role."
+        )
+
 
 def _collect_hero_value_errors(
     components: list[ComponentRow],
@@ -1036,7 +1062,10 @@ def _nearby_text_context(
     parent_by_child: dict[str, str],
     components_by_id: dict[str, ComponentRow],
 ) -> str:
-    fragments = [_static_text_fragments(component.props.get("content"))]
+    fragments = [
+        _static_text_fragments(component.props.get("content")),
+        _paired_recipe_label_context(component, parent_by_child, components_by_id),
+    ]
     parent_id = parent_by_child.get(component.component_id)
     parent = components_by_id.get(parent_id) if parent_id else None
     if parent is None:
@@ -1048,6 +1077,32 @@ def _nearby_text_context(
         if sibling is None or sibling.component_type != "Text":
             continue
         fragments.append(_static_text_fragments(sibling.props.get("content")))
+    return " ".join(fragment for fragment in fragments if fragment)
+
+
+def _paired_recipe_label_context(
+    component: ComponentRow,
+    parent_by_child: dict[str, str],
+    components_by_id: dict[str, ComponentRow],
+) -> str:
+    """识别当前 TextBlock 项内的真实标签，不跨项或跨分区寻找文字。"""
+    if not _uses_visual_recipe_part(component, "TextBlock.value"):
+        return ""
+    slot = components_by_id.get(parent_by_child.get(component.component_id))
+    if slot is None or not _uses_visual_recipe_part(slot, "TextBlock.valueSlot"):
+        return ""
+    item = components_by_id.get(parent_by_child.get(slot.component_id))
+    if item is None or not _uses_visual_recipe_part(item, "TextBlock.item"):
+        return ""
+    fragments: list[str] = []
+    for sibling_id in item.children:
+        sibling = components_by_id.get(sibling_id)
+        if sibling is None or not _uses_visual_recipe_part(sibling, "TextBlock.labelSlot"):
+            continue
+        for child_id in sibling.children:
+            child = components_by_id.get(child_id)
+            if child is not None and _uses_visual_recipe_part(child, "TextBlock.label"):
+                fragments.append(_static_text_fragments(child.props.get("content")))
     return " ".join(fragment for fragment in fragments if fragment)
 
 
@@ -1190,6 +1245,8 @@ def _has_nearby_metric_label(
         )
 
     if has_metric_label(component.props.get("content")):
+        return True
+    if has_metric_label(_paired_recipe_label_context(component, parent_by_child, components_by_id)):
         return True
 
     current = component.component_id
@@ -1386,6 +1443,151 @@ def _collect_height_budget_errors(
             "design heights. Weight, clipping, flex shrink and distributed alignment "
             f"cannot eliminate content height. Occupancy: {breakdown}."
         )
+
+
+def _collect_text_width_budget_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+    errors: list[str],
+    protocol_profile: dict[str, Any] | None,
+) -> None:
+    """兜底明确单行超宽；自然宽度只用已知祖先内宽作上界，不猜实际尺寸。"""
+    from services.compact_composition_context import _literal_display_sample
+
+    size = card_spec.get("suggestSize") or task_spec.get("size")
+    if size not in {"2x2", "2x4"}:
+        return
+    nodes = []
+    parents = {}
+    by_id = {}
+    for row in components:
+        by_id[row.component_id] = row
+        for child in row.children:
+            parents[child] = row.component_id
+        nodes.append({
+            "id": row.component_id, "component": row.component_type,
+            "styles": row.props, "children": list(row.children),
+        })
+    try:
+        boxes = reference_region_boxes(nodes, size=size, profile=protocol_profile)
+    except ValueError as exc:
+        message = str(exc)
+        if message not in errors:
+            errors.append(message)
+        return
+    for row in components:
+        if row.component_type not in {"Text", "Button"}:
+            continue
+        props = row.props
+        if props.get("maxLines", 1) != 1:
+            continue
+        font = _non_negative_number(props.get("fontSize"))
+        box = boxes.get(row.component_id)
+        if font is None or box is None:
+            continue
+        width = box.width
+        width_description = "allocated text area"
+        if width is None:
+            ancestor_id = parents.get(row.component_id)
+            seen = set()
+            while ancestor_id is not None and ancestor_id not in seen:
+                seen.add(ancestor_id)
+                ancestor_box = boxes.get(ancestor_id)
+                ancestor = by_id.get(ancestor_id)
+                if ancestor_box is not None and ancestor_box.width is not None:
+                    if ancestor is not None:
+                        width = ancestor_box.width - _horizontal_padding(ancestor.props)
+                        width_description = "known containing area upper bound"
+                    break
+                ancestor_id = parents.get(ancestor_id)
+        if width is None:
+            continue
+        content = props.get("content") if row.component_type == "Text" else props.get("label")
+        displayed = _literal_display_sample(content, task_spec)
+        text = displayed[1] if displayed is not None else None
+        if text is None and isinstance(content, str) and "{{" not in content:
+            text = content
+        if not isinstance(text, str) or not text or "\n" in text:
+            continue
+        duration_error = _compound_duration_label_width_error(
+            row, text, by_id, parents, boxes,
+        )
+        if duration_error is not None:
+            errors.append(duration_error)
+        available = width - _horizontal_padding(props)
+        maximum = _non_negative_number(props.get("maxWidth"))
+        if maximum is not None:
+            available = min(available, maximum)
+        # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
+        required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
+        if available > 0 and required > available + 1e-7:
+            errors.append(
+                f"component {row.component_id}: text width overflow; complete text {text!r} "
+                f"at original font {font:g} needs about {required:g}vp in one line, "
+                f"but its {width_description} is {available:g}vp. Keep every label, prefix, "
+                "value and action; use legal lines at the same font or regroup into a wider "
+                "region. A fixed single-line component needs same-font separate lines or a "
+                "different legal composition, not clipping, smaller secondary text or weight."
+            )
+
+
+def _compound_duration_label_width_error(
+    row: ComponentRow, text: str, by_id: dict[str, ComponentRow],
+    parents: dict[str, str], boxes: dict[str, Any],
+) -> str | None:
+    """带标签的多段时长按完整同行压力核算；未知兄弟宽度不猜测。"""
+    from services.compact_composition_planner import _text_width, is_compound_duration_text
+
+    if not is_compound_duration_text(text) or row.props.get("layoutWeight") != 1:
+        return None
+    parent_id = parents.get(row.component_id)
+    parent = by_id.get(parent_id)
+    box = boxes.get(parent_id)
+    if parent is None or box is None:
+        return None
+    if not _uses_visual_recipe_part(parent, "SecondaryBody.item") or box.width is None:
+        return None
+    font = _non_negative_number(row.props.get("fontSize"))
+    if font is None:
+        return None
+    required = _text_width(text, font)
+    labels: list[str] = []
+    for identifier in parent.children:
+        if identifier == row.component_id:
+            continue
+        sibling = by_id.get(identifier)
+        if sibling is None or sibling.component_type != "Text":
+            return None
+        label = sibling.props.get("content")
+        sibling_font = _non_negative_number(sibling.props.get("fontSize"))
+        if not isinstance(label, str) or "{{" in label or sibling_font is None:
+            return None
+        if _non_negative_number(sibling.props.get("width")) is not None:
+            return None
+        labels.append(label)
+        required += _text_width(label, sibling_font) + _horizontal_padding(sibling.props)
+    if not labels:
+        return None
+    gap = _non_negative_number(parent.props.get("itemMargin")) or 0
+    required += gap * max(0, len(parent.children) - 1)
+    available = box.width - _horizontal_padding(parent.props)
+    if required <= available + 1e-7:
+        return None
+    return (
+        f"component {parent.component_id}: complete label {''.join(labels)!r} plus compound "
+        f"duration {text!r} requires about {required:g}vp of pressure width within "
+        f"{available:g}vp at the original body font. Keep the full label and value; use "
+        "legal two-line body text at the same font and budget its height, or regroup. "
+        "Weight, clipping and dropping units do not close this text budget."
+    )
+
+
+def _horizontal_padding(props: dict[str, Any]) -> float:
+    value = props.get("padding", 0)
+    if isinstance(value, dict):
+        return sum(_non_negative_number(value.get(side)) or 0 for side in ("left", "right"))
+    return (_non_negative_number(value) or 0) * 2
 
 
 def _column_height_breakdown(

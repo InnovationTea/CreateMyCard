@@ -1,5 +1,6 @@
 """从现有合同提取生成工作表，不改写 DSL，也不另维护布局或机型常量。"""
 
+import ast
 import copy
 import json
 import math
@@ -8,9 +9,12 @@ from typing import Any
 
 from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
 from services.compact_composition_planner import (
+    _schema_value,
+    _text_width,
     composition_structure_blueprint,
     composition_text_width_conflicts,
-    feasible_composition_candidates,
+    compound_duration_bindings,
+    quantitative_main_bindings,
 )
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
@@ -28,13 +32,13 @@ def compact_composition_context(
     size: str, plan: dict[str, Any], task: dict[str, Any],
     *, constructive_result: dict[str, Any] | None = None,
 ) -> str:
-    """提供当前合同的容量与责任清单；参考尺寸只用于核算，不写回产品宽高。"""
+    """只交接本轮信息责任；容量枚举留在程序内部，不重复给模型选择。"""
+    del constructive_result
     facts = plan.get("info_required", [])
     if not isinstance(facts, list):
         return ""
     actions: set[str] = set()
     titles: list[dict[str, Any]] = []
-    names = {"SingleLineTitle", "SecondaryBody", "TableText", "PillButton"}
     for fact in facts:
         if not isinstance(fact, dict):
             continue
@@ -42,22 +46,14 @@ def compact_composition_context(
         if isinstance(action, str):
             actions.add(action)
         hints = fact.get("componentHints", [])
-        if not isinstance(hints, list):
-            continue
-        for name in hints:
-            if isinstance(name, str):
-                names.add(name)
-        if "SingleLineTitle" in hints:
+        if isinstance(hints, list) and "SingleLineTitle" in hints:
             titles.append({key: fact[key] for key in ("dataId", "text") if key in fact})
-
     handlers: list[dict[str, Any]] = []
     candidates = task.get("eventCandidates", [])
     if isinstance(candidates, list):
         for candidate in candidates:
             if isinstance(candidate, dict) and candidate.get("id") in actions:
                 handlers.append(copy.deepcopy(candidate))
-
-    layouts = _layout_geometry(size, len(actions))
     payload = {
         "referenceCanvasOnly": {
             "width": reference_dimension(size, "width"),
@@ -66,53 +62,45 @@ def compact_composition_context(
         "requiredActionCount": len(actions),
         "requiredActions": handlers,
         "requiredSingleLineTitleBindings": titles,
-        "legalLayoutAlternatives": layouts,
-        "candidateRecipeParts": _recipe_geometry(size, names),
-        "ordinaryFactPacking": _fact_packing(size, facts, task),
-        "referenceContentBudgets": _content_budgets(size, layouts, len(actions)),
-        "constructiveCompositions": (
-            constructive_result if constructive_result is not None
-            else feasible_composition_candidates(size, plan, task)
-        ),
+        "quantitativeMainBindings": quantitative_main_bindings(plan, task),
+        "quantitativeMainFontSize": component_visual_recipe(
+            "EmphasizedData", size=size,
+        ).get("parts", {}).get("value", {}).get("styles", {}).get("fontSize"),
     }
+    duration_paths = compound_duration_bindings(plan, task)
+    duration_instruction = ""
+    if duration_paths:
+        payload["compoundDurationBindings"] = duration_paths
+        duration_instruction = (
+            "compoundDurationBindings已包含多段数量与时间单位，属于完整文本读数；"
+            "作为主信息用EmphasisText.mainText的固定18fp规格，不用30fp EmphasizedData。"
+            "作为辅助信息沿用原正文规格；标签加完整时长单行放不下时用合法两行并预留行高，"
+            "或在所属区域重排。保留整个原绑定与所有单位，不截样值、不伪造分段字段。\n\n"
+        )
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
-        "# 本轮组合容量工作表（来自当前运行时合同）\n\n"
-        "先为 requiredActions 中每个真实动作预留合法入口及高度；"
-        "requiredActionCount 是去重后的真实操作数，不能为填满槽位复制相同按钮；"
-        "requiredSingleLineTitleBindings 必须落到 SingleLineTitle.title，"
-        "不能仅放在 InfoBlock 或正文里，也不要额外创建重复标题。"
-        "从 legalLayoutAlternatives 选择能放下完整信息组的一个布局与一个完整变体，"
-        "不能混用不同变体的根节点和子槽；path 为从 root 开始的子节点序号。"
-        "referenceBox 与 referenceCanvasOnly 仅用于参考容量核算，绝非输出固定宽高；"
-        "承载区仍用 matchParent/layoutWeight，padding、组间距、按钮与文字设计量不变。"
-        "candidateRecipeParts 是部件尺寸，不是整组件总高；variants 是对 base 的差量覆盖。"
-        "依完整组件合同按 items 数、"
-        "行数和横纵排列合计，横排取高度包络，纵排累加高度和间距。不得机械累加所有可选部件。"
-        "横排还须按实际权重逐区核对完整值、单位和标签的文字宽度，不能用总宽够用代替子区够用。"
-        "数值字段和真实单位优先分别传 value 与 unit；已有格式化字符串保持完整，不拆单位。"
-        "若某个横排子区装不下完整读数，不得裁切尾部；改合法分区比例或组件组合后重算宽高。"
-        "无法容纳时先改合法组合或布局，不缩字、删事实、删操作或只调权重。"
-        "constructiveCompositions 是程序对完整事实/动作计算的替代组合："
-        "已有合法且预算闭合的 composition 优先保留，不为采用参考候选改写正常组合；"
-        "优先核对它的 layout/variant、各区 path、groups 的事实索引/可见属性和 rows 的横纵关系，"
-        "整区采用一个完整候选，不再逐字段补到旧的超预算树上。"
-        "参考行宽高只用于算式，输出区域用 matchParent/layoutWeight；"
-        "动作在所属区底部独立行或明确动作槽，不能与正文混成点击对象。"
-        "候选中标签、单位和进度范围的待核事项必须补齐核算，"
-        "不能把 minimumWidth 当作带未知标签/单位的完整宽度。"
-        "unresolved/no_candidate_found 只表示有限搜索未给出完整参考解，"
-        "保留全部事实，依完整合同继续重组，不作为删除信息或提前失败的理由。"
-        "ordinaryFactPacking 给出完整事实的普通信息组合高度，不强迫把核心主值降为正文；"
-        "普通时间、状态等没有真实强调要求时，不因 componentHints 首项就各做一个强调块。"
-        "referenceContentBudgets 已扣除区域内边距，localReservations 才是扣标题与本地动作后的余额；"
-        "动作若已落在独立动作槽，不在正文区域重复扣除或复制。"
-        "先比较普通单列、双列、表格的确切高度与文字宽度，再决定是否保留额外装饰标题。"
-        "不要把两个较长 label+value 放在同一短行；长日期和地点用单列并声明允许的两行。"
-        "CardButton 完整标签一行放不下时可用 labelLines:2，原字号不变，"
-        "两行标签加上下 padding 必须仍在槽位内；不删动作目标文字。"
-        "本表只摘要已有合同，不授权新 Props；不要输出本表或任何额外协议字段。\n\n"
-        f"```json\n{encoded}\n```"
+        "# 本轮执行约束\n\n"
+        "落实已接受 Plan；compositionRecovery 提供完整参考方案时实现该方案，"
+        "未提供完整方案时按诊断重新合组，不沿用已失效旧参考或混用变体。"
+        "事实和真实动作全部保留；标题绑定落到 SingleLineTitle.title。"
+        "不额外叠加装饰标题、重复按钮或重复读数。区域自适应，正文承接标题、动作及固定间距"
+        "扣除后的剩余空间，按钮在所属区底部；文字间距、字号、图标、按钮高度不随区域拉伸。"
+        "参考尺寸仅用于核算，不作为输出固定宽高。完整标签、值、单位仍须可读，不缩字、删信息"
+        "或裁切。按当前组件合同生成 Props，不输出预算或参考字段。\n\n"
+        "完整展示文案包括对象标签、前缀、值和单位；不要只按裸值占宽。"
+        "固定单行主文字放不下必要前缀时，在合法承载区拆为原字号的独立行，"
+        "不塞入更小字号的次文字。窄列中 label 与 value 共用文字宽度；"
+        "完整文案放不下时改合法分行或分区，不靠 clip、maxLines:1 隐藏尾字。\n\n"
+        "量化主值与普通状态是不同职责：主读数不得合并进 InfoBlock.secondaryText、"
+        "EmphasisText.secondaryText 或 metadata。真实数字比例指标需要主值规格时，"
+        "使用能容纳完整对象标签及读数的 EmphasizedData；单位依据字段合同，"
+        "不把数值改成状态的小字补充，也不以圆环代替可读读数。"
+        "长静态正文优先在原字号正文组件内用单列、合法两行；固定单行组件不能"
+        "靠新增空白高度获得第二行。长强调说明可拆成同字号完整上下文行和读数行，"
+        "或重选更宽分区，不能把统计范围挪成小字。quantitativeMainBindings明确的数值主值"
+        "按quantitativeMainFontSize显示，不能改为普通正文或较小强调文字；"
+        "对象名称独立可读，长统计读数可保持主值规格拆为两行。\n\n"
+        f"{duration_instruction}```json\n{encoded}\n```"
     )
 
 
@@ -122,6 +110,10 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
     if not isinstance(composition, dict):
         notes = plan.get("compositionNotes", [])
         return list(notes) if isinstance(notes, list) else []
+    if composition.get("layout") == "W-top-bottom":
+        if any(fact.get("actionId") for fact in plan.get("info_required", [])):
+            return ["W-top-bottom cannot implement independent action buttons; regroup "
+                    "into an action-compatible layout without deleting actions"]
     layout = load_layout_contract().get("layouts", {}).get(composition.get("layout"), {})
     patterns = layout.get("patterns", [])
     variant = composition.get("variant")
@@ -177,9 +169,12 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
 def composition_recovery_context(
     size: str, plan: dict[str, Any], constructive_result: dict[str, Any],
     *, task: dict[str, Any] | None = None,
+    implementation_conflicts: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """把冲突软方案的完整替代落点交给生成，不改硬事实或已闭合方案。"""
     conflicts = composition_implementation_conflicts(plan)
+    if implementation_conflicts:
+        conflicts.extend(implementation_conflicts)
     if task is not None:
         conflicts.extend(composition_text_width_conflicts(size, plan, task))
     if not conflicts:
@@ -202,8 +197,10 @@ def composition_recovery_context(
             "单列能放下时不要改回窄双列；未知标签仍需核算。"
             "groupParameters 是组合说明而非可照抄的全部 Props，"
             "事实索引需转换成真实绑定，字段合同单位需解析成合法 unit；"
+            "requiresObjectCaption=true 是已预算的必要对象标题，按meaning填写最短准确名称；"
+            "它没有新增硬事实，不能省掉，也不能用连接状态代替电量对象。"
             "不得把索引、预算、样值等参考字段输出到 DSL。"
-            "横排各子节点落实 suggestedLayoutProps 中的 matchParent/归一化权重，"
+            "横排各子节点落实 suggestedLayoutProps 中的 matchParent/比例权重，"
             "不能让自然宽度的表达式挤占相邻事实。displayBudget 核算的是原值；"
             "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
             "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
@@ -227,6 +224,239 @@ def composition_recovery_context(
         result["unresolved"] = constructive_result.get("unresolved", [])
         result["instruction"] += "有限搜索未给出完整解，仍应按当前合同重新合组，不提前失败。"
     return result
+
+
+def repair_boolean_display_samples(source: str, task: dict[str, Any]) -> dict[str, str]:
+    """只读原源的简单完整布尔映射，核算两支最宽文字，不执行表达式或猜文案。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return {}  # 结构未能解析时继续原修复，不新增搜索失败。
+    literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    pattern = re.compile(
+        r"\s*\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\?\s*"
+        + rf"(?P<yes>{literal})\s*:\s*(?P<no>{literal})\s*\}}\}}\s*"
+    )
+    visible = {
+        "title", "mainText", "secondaryText", "value", "primaryText", "displayValue",
+        "supportingText", "text", "content", "label", "time", "location",
+    }
+    samples: dict[str, str] = {}
+
+    def collect(value: Any) -> None:
+        if isinstance(value, list):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                if key in visible or key == "items":
+                    collect(item)
+        elif isinstance(value, str):
+            match = pattern.fullmatch(value)
+            if match is None:
+                return
+            path = match.group("path")
+            field = _schema_value(task, path)
+            if field.get("type") != "boolean":
+                return
+            branches = []
+            for name in ("yes", "no"):
+                try:
+                    text = ast.literal_eval(match.group(name))
+                except (SyntaxError, ValueError):
+                    return
+                if not isinstance(text, str) or not text.strip():
+                    return
+                branches.append(text)
+            widest = max(branches, key=lambda text: _text_width(text, 1))
+            previous = samples.get(path)
+            if previous is None or _text_width(widest, 1) > _text_width(previous, 1):
+                samples[path] = widest
+
+    for row in rows:
+        if isinstance(row, ComponentRow):
+            collect(row.props)
+    return samples
+
+
+def repair_display_samples(source: str, task: dict[str, Any]) -> dict[str, str]:
+    """读取已写出的完整正文压力；不执行表达式，不跨项借标签，不修改源。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    samples = repair_boolean_display_samples(source, task)
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return samples
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        values: list[dict[str, Any]] = []
+        if row.component_type == "SecondaryBody":
+            items = row.props.get("items", [])
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        values.append(item)
+        elif row.component_type == "EmphasisText":
+            values.append({"value": row.props.get("mainText")})
+        elif row.component_type == "EmphasizedData":
+            values.append({"value": row.props.get("value")})
+        for item in values:
+            display = _literal_display_sample(item.get("value"), task)
+            if display is None:
+                continue
+            path, text = display
+            label = item.get("label")
+            if isinstance(label, str) and "{{" not in label:
+                text = label + " " + text
+            previous = samples.get(path)
+            if previous is None or _text_width(text, 1) > _text_width(previous, 1):
+                samples[path] = text
+    return samples
+
+
+def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
+    """保留失败源的主文字规格，不能因容量恢复把18fp主文变成14fp正文。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return {}
+    roles: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        if row.component_type not in {"EmphasisText", "EmphasizedData", "SecondaryBody"}:
+            continue
+        if row.component_type == "SecondaryBody":
+            items = row.props.get("items", [])
+            if not isinstance(items, list):
+                continue
+            values = [item.get("value") for item in items if isinstance(item, dict)]
+        else:
+            key = "mainText" if row.component_type == "EmphasisText" else "value"
+            values = [row.props.get(key)]
+        for value in values:
+            encoded = json.dumps(value, ensure_ascii=False)
+            paths = re.findall(r"\$\{(/[^{}]+)\}", encoded)
+            if isinstance(value, dict) and isinstance(value.get("path"), str):
+                paths = [value.get("path")]
+            if len(paths) == 1:
+                priority = {"EmphasizedData": 3, "EmphasisText": 2, "SecondaryBody": 1}
+                previous = roles.get(paths[0], {})
+                if priority.get(previous.get("component"), 0) > priority.get(row.component_type, 0):
+                    continue
+                roles[paths[0]] = {
+                    "component": row.component_type,
+                    "role": row.props.get("role", "supporting"),
+                    "displayExpression": value,
+                }
+                if row.component_type == "SecondaryBody":
+                    for item in items:
+                        if isinstance(item, dict) and item.get("value") == value:
+                            roles[paths[0]]["displayLabel"] = item.get("label")
+    return roles
+
+
+def literal_display_parts(value: Any, task: dict[str, Any]) -> list[dict[str, str]]:
+    """仅分离原纯文字前缀，动态路径和后缀原样保留；未知表达式不尝试。"""
+    displayed = _literal_display_sample(value, task)
+    if displayed is None or not isinstance(value, str):
+        return []
+    path, sample = displayed
+    marker = "${" + path + "}"
+    body = value.strip().removeprefix("{{").removesuffix("}}").strip()
+    before, _, after = body.partition(marker)
+    literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    prefix = "".join(ast.literal_eval(match.group(0)) for match in re.finditer(literal, before))
+    if not prefix.strip():
+        return []
+    return [
+        {"text": prefix.strip(), "sample": prefix.strip()},
+        {"text": "{{ " + marker + after + " }}", "sample": sample[len(prefix):].strip()},
+    ]
+
+
+def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:
+    """按完整事件匹配失败源按钮原文，不从业务名推断或缩短标签。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import CompactDslConversionError, ComponentRow
+
+    try:
+        rows = parse_compact_dsl_rows(source)
+    except CompactDslConversionError:
+        return {}
+    labels: dict[str, str] = {}
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        label = row.props.get("label")
+        handlers = row.props.get("onClick", [])
+        if not isinstance(label, str) or "{{" in label:
+            continue
+        if not isinstance(handlers, list):
+            continue
+        for event in task.get("eventCandidates", []):
+            if not isinstance(event, dict):
+                continue
+            handler = {key: event.get(key) for key in ("call", "args")}
+            if handler in handlers and isinstance(event.get("id"), str):
+                labels[event.get("id")] = label
+    return labels
+
+
+def _literal_display_sample(value: Any, task: dict[str, Any]) -> tuple[str, str] | None:
+    """只接受一个原路径和字符串字面量的加法串；函数、算术和多路径都不猜测。"""
+    if isinstance(value, dict) and set(value) == {"path"}:
+        path = value.get("path")
+        if not isinstance(path, str):
+            return None
+        sample = _schema_value(task, path).get("sampleValue")
+        if isinstance(sample, (str, int, float)) and not isinstance(sample, bool):
+            return path, str(sample)
+        return None
+    if not isinstance(value, str) or not value.strip().startswith("{{"):
+        return None
+    expression = re.fullmatch(r"\s*\{\{(.*?)\}\}\s*", value, flags=re.DOTALL)
+    if expression is None:
+        return None
+    literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    token = re.compile(rf"(?P<path>\$\{{(/[^{{}}]+)\}})|(?P<literal>{literal})")
+    body = expression.group(1).strip()
+    paths: list[str] = []
+    parts: list[str] = []
+    offset = 0
+    for match in token.finditer(body):
+        separator = body[offset:match.start()].strip()
+        if separator != ("+" if parts else ""):
+            return None
+        raw_path = match.group("path")
+        if raw_path is not None:
+            path = raw_path.removeprefix("${").removesuffix("}")
+            sample = _schema_value(task, path).get("sampleValue")
+            if isinstance(sample, bool) or not isinstance(sample, (str, int, float)):
+                return None
+            paths.append(path)
+            parts.append(str(sample))
+        else:
+            try:
+                text = ast.literal_eval(match.group("literal"))
+            except (SyntaxError, ValueError):
+                return None
+            if not isinstance(text, str):
+                return None
+            parts.append(text)
+        offset = match.end()
+    if len(paths) != 1 or body[offset:].strip():
+        return None
+    return paths[0], "".join(parts)
 
 
 def compact_plan_capacity_context(size: str) -> str:

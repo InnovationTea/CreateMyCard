@@ -1084,6 +1084,8 @@ class WidgetGenerationService:
                     invalid_source_dsl,
                     quality_error_payloads,
                     dsl_format=policy.source_format,
+                    task_spec=task_spec,
+                    compact_plan=accepted_compact_plan,
                     previous_failures=(
                         quality_repair_failure_history
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
