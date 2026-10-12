@@ -521,6 +521,19 @@ def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
     if expression is None:
         return None
     literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    comparison = re.fullmatch(
+        r"\s*\$\{(/[^{}]+)\}\s*(?:==|!=)\s*-?\d+(?:\.\d+)?\s*\?\s*("
+        + literal + r")\s*:\s*(" + literal + r")\s*", expression.group(1),
+    )
+    if comparison is not None:
+        schema_type = _schema_value(task, comparison.group(1)).get("type")
+        if schema_type not in {"integer", "number"}:
+            return None
+        try:
+            branches = [ast.literal_eval(comparison.group(index)) for index in (2, 3)]
+        except (SyntaxError, ValueError):
+            return None
+        return max(branches, key=lambda text: _text_width(text, 1))
     boolean = re.fullmatch(
         r"\s*\$\{(/[^{}]+)\}\s*\?\s*(" + literal + r")\s*:\s*(" + literal + r")\s*",
         expression.group(1),

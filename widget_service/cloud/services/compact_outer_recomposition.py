@@ -166,6 +166,162 @@ def _joined_value(label: str, value: Any) -> str | None:
     return result
 
 
+def _source_pressure_task(task: dict[str, Any], data: list[DataRow]) -> dict[str, Any]:
+    """只读当前源实际值替换压力样值；不改发布schema或模型输入。"""
+    result = copy.deepcopy(task)
+    values = {row.path: row.value for row in data}
+
+    def visit(schema: Any, path: str) -> None:
+        if isinstance(schema, list):
+            for index, child in enumerate(schema):
+                visit(child, path + f"/{index}")
+            return
+        if not isinstance(schema, dict):
+            return
+        if "type" in schema:
+            value = values.get(path)
+            if isinstance(value, (str, int, float)) and not isinstance(value, bool):
+                schema["sampleValue"] = value
+            return
+        for key, child in schema.items():
+            escaped = key.replace("~", "~0").replace("/", "~1")
+            visit(child, path + "/" + escaped)
+
+    visit(result.get("dataModelSchema"), "")
+    return result
+
+
+def _object_owner(task: dict[str, Any], path: str) -> str | None:
+    schema = task.get("dataModelSchema")
+    owner: str | None = None
+    traversed = ""
+    for part in path.removeprefix("/").split("/"):
+        key = part.replace("~1", "/").replace("~0", "~")
+        if isinstance(schema, list) and part.isdigit():
+            index = int(part)
+            schema = schema[index] if index < len(schema) else None
+        elif isinstance(schema, dict) and "type" not in schema:
+            schema = schema.get(key)
+        else:
+            return None
+        traversed += "/" + part
+        if isinstance(schema, dict) and "type" not in schema:
+            owner = traversed
+    if not isinstance(schema, dict) or "type" not in schema:
+        return None
+    return owner
+
+
+def _single_attribute(
+    row: ComponentRow, task: dict[str, Any],
+) -> tuple[dict[str, Any], str, str] | None:
+    items = _reflow_items(row)
+    if items is None or len(items) != 1:
+        return None
+    item = items[0]
+    value = item.get("value")
+    paths: list[str] = []
+    if isinstance(value, dict) and isinstance(value.get("path"), str):
+        paths.append(value.get("path"))
+    elif isinstance(value, str):
+        paths = re.findall(r"\$\{(/[^{}]+)\}", value)
+    if not paths:
+        return None
+    owners = {_object_owner(task, path) for path in paths}
+    if None in owners or len(owners) != 1:
+        return None
+    text = small_card_display_text(value, task)
+    if text is None or "\n" in text:
+        return None
+    owner = next(iter(owners))
+    if not isinstance(owner, str):
+        return None
+    return item, owner, text
+
+
+def _paragraph(
+    leaves: list[ComponentRow], task: dict[str, Any], width: float,
+) -> list[ComponentRow] | None:
+    """至多合一个同对象连续组；用既有body14两行，不缩字或跨对象。"""
+    for start in range(1, len(leaves) - 1):
+        expressions: list[str] = []
+        display: list[str] = []
+        owner: str | None = None
+        chosen: list[ComponentRow] | None = None
+        for end in range(start, min(len(leaves), start + 4)):
+            attribute = _single_attribute(leaves[end], task)
+            if attribute is None:
+                break
+            item, current_owner, text = attribute
+            if owner is not None and owner != current_owner:
+                break
+            owner = current_owner
+            label = item.get("label")
+            if not isinstance(label, str) or "\n" in label:
+                break
+            label = label.rstrip()
+            joined = _joined_value(label, item.get("value"))
+            if joined is None or not joined.startswith("{{"):
+                break
+            expressions.append("(" + joined.removeprefix("{{").removesuffix("}}").strip() + ")")
+            display.append(label + text)
+            full_text = ";".join(display)
+            # 沿用容量估算的ASCII半字宽，仅筛候选；原宽度门禁与真机验收不放宽。
+            estimated = sum(14 * (0.5 if ch.isascii() else 1) for ch in full_text)
+            if estimated > width * 2:
+                break
+            if len(expressions) < 2:
+                continue
+            value = "{{ " + " + ';' + ".join(expressions) + " }}"
+            body = ComponentRow(
+                leaves[start].component_id, "SecondaryBody",
+                {"role": "body", "fontSize": 14, "width": "matchParent",
+                 "items": [{"value": value, "maxLines": 2}]},
+            )
+            after_group = end + 1
+            chosen = leaves[:start] + [body] + leaves[after_group:]
+        if chosen is not None:
+            return chosen
+    return None
+
+
+def _wrap_metadata(
+    leaves: list[ComponentRow], task: dict[str, Any], width: float,
+) -> tuple[list[ComponentRow], bool]:
+    output: list[ComponentRow] = []
+    changed = False
+    for row in leaves:
+        eligible = row.component_type == "SecondaryBody" and row.props.get("role") == "metadata"
+        allowed = {"role", "fontSize", "width", "columns", "items"}
+        if not eligible or set(row.props) - allowed or row.props.get("width") != "matchParent":
+            output.append(row)
+            continue
+        items = row.props.get("items")
+        same_spec = row.props.get("fontSize", 12) == 12 and row.props.get("columns", 1) == 1
+        if not same_spec or not isinstance(items, list) or len(items) != 1:
+            output.append(row)
+            continue
+        item = items[0]
+        if not isinstance(item, dict) or set(item) - _ITEM_PROPS or item.get("maxLines", 1) != 1:
+            output.append(row)
+            continue
+        value = small_card_display_text(item.get("value"), task)
+        label = item.get("label", "")
+        if value is None or not isinstance(label, str):
+            output.append(row)
+            continue
+        text = label + value
+        estimated = sum(12 * (0.6 if ch.isascii() else 1) for ch in text)
+        if "\n" in text or not width < estimated <= width * 2:
+            output.append(row)
+            continue
+        props = copy.deepcopy(row.props)
+        props["items"] = [{**item, "maxLines": 2}]
+        output.append(ComponentRow(row.component_id, row.component_type, props))
+        changed = True
+    return output, changed
+
+
 def _unique_id(base: str, used: set[str]) -> str:
     candidate = base
     index = 1
@@ -268,7 +424,7 @@ def recompose_small_card(
     protocol_profile: dict[str, Any] | None, layout_scope: str | None,
     compact_plan: dict[str, Any] | None,
 ) -> OuterRecompositionResult:
-    """最多16个无模型候选，原校验与硬事实均闭合才替换；否则原样回退。"""
+    """最多32个无模型候选，原校验与硬事实均闭合才替换；否则原样回退。"""
     unchanged = OuterRecompositionResult(source_dsl)
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size != "2x2" or layout_scope is None:
@@ -290,29 +446,46 @@ def recompose_small_card(
         if ": vertical layout requires at least " not in message:
             return unchanged
     width = _inner_width(root, protocol_profile)
+    data = [row for row in rows if isinstance(row, DataRow)]
+    pressure_task = _source_pressure_task(task_spec, data)
     pressure_ids: set[str] = set()
+    metadata_wrapped = False
     if width is not None:
         for row in leaves:
-            if _certain_label_pressure(row, task_spec, width):
+            if _certain_label_pressure(row, pressure_task, width):
                 pressure_ids.add(row.component_id)
-    if not original_errors and not pressure_ids:
+        leaves, metadata_wrapped = _wrap_metadata(leaves, pressure_task, width)
+    if not original_errors and not pressure_ids and not metadata_wrapped:
         return unchanged
     reasons = ("height_capacity",) if original_errors else ()
     if pressure_ids:
         reasons += ("complete_label_width",)
-    data = [row for row in rows if isinstance(row, DataRow)]
+    if metadata_wrapped:
+        reasons += ("complete_metadata_width",)
+    variants = [leaves]
+    if width is not None:
+        grouped = _paragraph(leaves, pressure_task, width)
+        if grouped is not None:
+            variants.append(grouped)
     used = set(row.component_id for row in rows if isinstance(row, ComponentRow))
     gaps = (6, 4, 2, 0) if leaves[-1].component_type == "PillButton" else (6,)
     attempted = 0
-    for gap in gaps:
-        for content_gap in (6, 4, 2, 0):
-            candidate = _candidate(root, leaves, data, gap, content_gap, pressure_ids, used)
-            if candidate is None:
-                continue
-            attempted += 1
-            if _validation_errors(candidate, context):
-                continue
-            if compact_plan_coverage_errors(candidate, compact_plan, task_spec):
-                continue
-            return OuterRecompositionResult(candidate, reasons, attempted, True)
+    for variant in variants:
+        remaining_pressure = set()
+        for row in variant:
+            if row.component_id in pressure_ids and _reflow_items(row) is not None:
+                remaining_pressure.add(row.component_id)
+        for gap in gaps:
+            for content_gap in (6, 4, 2, 0):
+                candidate = _candidate(
+                    root, variant, data, gap, content_gap, remaining_pressure, used,
+                )
+                if candidate is None:
+                    continue
+                attempted += 1
+                if _validation_errors(candidate, context):
+                    continue
+                if compact_plan_coverage_errors(candidate, compact_plan, task_spec):
+                    continue
+                return OuterRecompositionResult(candidate, reasons, attempted, True)
     return OuterRecompositionResult(source_dsl, reasons, attempted)
