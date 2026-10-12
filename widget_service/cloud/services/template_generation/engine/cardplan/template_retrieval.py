@@ -275,6 +275,9 @@ def build_template_retrieval_prompt(
             "保留全部候选，先比较双动作Compact组合，均不可用时再比较单动作Hero，仍不可用时尝试Full。"
             "不在第一层为了匹配模板自动添加动作，不固定候选动作名称或ID。"
             "用户明确要求的合法动作必须保留；两个明确动作继续按既有规则处理。"
+            "显式动作与自动补选动作统一按动作适配优先：一个选中动作先选择合法Hero，"
+            "Hero不可用时才尝试Full图标动作；无动作使用Full，双动作使用Compact。"
+            "同一角色内才比较主焦点和字段匹配，不能为了高优先级角色删除明确字段或动作。"
         )
         layout_rule = "按耳机专用规则内部比较Full/Hero/Compact，最终布局仍由服务端Planner校验。"
     elif earphone_single:
