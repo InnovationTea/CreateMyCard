@@ -1454,7 +1454,10 @@ def _component_templates_for_capability(
                 if required_paths.issubset(paths):
                     has_existing_match = True
                     break
-            if has_existing_match:
+            trusted_fallback_preview = (
+                BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE in preferred_template_ids
+            )
+            if has_existing_match and not trusted_fallback_preview:
                 matches.pop(BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE)
         limited_matches: dict[str, frozenset[str]] = {}
         if matches:

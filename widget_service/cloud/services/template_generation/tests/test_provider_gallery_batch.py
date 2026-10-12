@@ -687,8 +687,8 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     assert summary.total == 208
     assert summary.failed == 0
-    assert summary.missing == 6
-    assert summary.not_generated == 202
+    assert summary.missing == 9
+    assert summary.not_generated == 199
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9

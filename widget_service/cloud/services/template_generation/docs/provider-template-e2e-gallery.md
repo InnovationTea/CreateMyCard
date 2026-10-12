@@ -89,6 +89,24 @@ Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还�
 
 ## 生成
 
+单业务画廊先检查目标模板的必需素材是否能由当前注册候选满足；缺少必需素材时记录 `missing`，
+不使用语义不同的图标替代。手机设备图标已从当前素材版本下线，因此依赖该必选图标的三段式电量
+Hero 暂不可生成。预留 1.5x2 的电量 SupportHero 和仅供横版组合的歌单 Compact 也保留明确缺失原因；
+独立模板预览省略已下线的可选手机图标；依赖必选手机图标的模板记入清单 `missingTemplates`，
+不输出失效资源。资源占用模板依赖的数据能力当前未注册，同样记入独立预览的缺失清单。
+歌单 Compact 的独立预览仍保留，但预览本身不代表单业务生成链路可用。
+独立预览省略可选操作，歌单及耳机充电信息的操作绑定当前注册动作。无操作日程的输入文案去除模板说明中的
+隔离实现约束，并使用“无需按钮”表达；普通请求的操作保护和补充分支门禁继续执行。
+
+提醒分钟数、睡眠得分等稀疏模板的二层输入按选中模板的真实数据路径构造，不要求同时提供旧聚合组件的
+其它指标。画廊测试值只能覆盖已请求字段，后日天气和体感风况输入不注入未声明的当前天气字段。
+耳机本体、充电盒和温度计候选分别满足目标模板的素材语义。受信画廊可预览电量文本等级兜底模板，
+普通请求仍优先已有完整覆盖模板。
+画廊宿主标题和概述采用短文案，完整场景需求与演示事实不压缩，避免标题与概述长度告警。
+公共 Compact 转换器只在组件结构完整、ID 无重复且 `root` 直接包含 `template_root` 时，
+将模板标准组件交给模板转换器处理，保留融球 Divider、Image、Progress 和正式事件绑定；
+普通模型输出仍遵守当前语义组件合同，无效模板标记不能启用兼容路径。最终产物继续执行 Artifact 校验。
+
 ### 模版场景示例页签
 
 加上 `--include-template-examples` 可追加“模版场景示例”分组，配置源为
@@ -134,7 +152,7 @@ Planner 对已选省电事件复用素材的 `power-saving` 语义标签，允�
 
 | 业务图标槽位 | 当前画廊资源 | 约束 |
 | --- | --- | --- |
-| 手机电量 Support | `icon_phone.svg` | 手机设备轮廓，位于右侧 40vp 电量环内，图标为 16vp；不表示省电或充电状态 |
+| 手机电量 Support | 当前省略可选手机图标 | 手机设备图标已下线，不能用省电或充电图标代替；依赖必选手机图标的 Hero 记录缺失 |
 | 手机充电状态 Support | `bolt_fill.svg` | 右侧 24vp 充电闪电图标，表达当前充电状态；不用省电绿叶或手机设备图标替代 |
 | 步数 | `figure_run.svg` | 注册说明明确支持步数统计 |
 | 训练 | `figure_run.svg` | 当前跑步样例，不代表任意运动项目 |
@@ -181,7 +199,7 @@ widget_service/.venv312/bin/python -m pip install -r widget_service/requirements
 ```
 
 首次配置时，以 `widget_service/.env.example` 为模板创建 `widget_service/.env`，不要覆盖已经存在的本地
-配置。真实批跑必须设置 `WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false`，并按
+配置。真实批跑必须设置 `ENABLE_A2UI_MODEL_MOCK=false`，并按
 [Widget Service README](../../../../README.md) 配置当前选择的模型后端。凭据必须通过本地环境或受控密钥
 服务提供，不得写入输入文件、命令行、日志或仓库。
 
@@ -195,8 +213,9 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-当前应生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 141 个用例；
-其中 61 个 Support 配对用例。无模型 dry-run 中 8 个状态为 `missing`，133 个状态为 `not_generated`。
+当前应生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 208 个用例；
+其中 61 个 Support 配对用例。无模型 dry-run 中 9 个状态为 `missing`，199 个状态为 `not_generated`。
+追加 8 个模板场景示例后共 216 个用例，缺失数量不变。
 应用使用时长能力已下线，其单业务和配对场景不再生成；系统内存等其它缺失场景仍独立记录。
 Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
 与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
@@ -208,7 +227,7 @@ Provider 或模板调整后数量可以变化，应以重新生成的
 无模型预检通过后，确认本地真实模型配置可用，再执行：
 
 ```bash
-WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false \
+ENABLE_A2UI_MODEL_MOCK=false \
 widget_service/.venv312/bin/python \
   widget_service/cloud/services/template_generation/tools/generate_provider_template_gallery.py \
   --refresh-inputs --concurrency 2 --strict

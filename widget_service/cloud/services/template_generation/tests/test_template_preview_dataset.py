@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
+from services.capability_registry import CapabilityRegistry
 from services.template_generation.engine.cardplan.preview_dataset import (
     build_template_preview_cases,
     validate_preview_asset_paths,
@@ -20,20 +22,28 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 204
+    assert manifest.get("templateCount") == 199
+    assert manifest.get("sourceTemplateCount") == 204
+    missing = manifest.get("missingTemplates")
+    assert isinstance(missing, list)
+    assert {item.get("templateId") for item in missing} == {
+        "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
+        "ResourceUsageOverviewSupport@1", "ResourceUsageOverviewCompact@1",
+        "ResourceUsageOverviewFull@1",
+    }
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 21,
-        "Compact": 24,
-        "Hero": 52,
-        "Full": 71,
+        "Support": 20,
+        "Compact": 23,
+        "Hero": 50,
+        "Full": 70,
         "WideHero": 5,
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 170, "2x4": 34}
-    assert len(cases) == 204
+    assert manifest.get("countsBySize") == {"2x2": 165, "2x4": 34}
+    assert len(cases) == 199
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +52,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 204
+    assert len(template_ids) == 199
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -106,13 +116,11 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "clock_fill.svg",
         "earphone_case_16644.svg",
         "drop_1.svg",
-        "externaldrive_fill.svg",
         "figure_run.svg",
         "flame_fill.svg",
         "heart_fill.svg",
         "heat_generation.svg",
         "icon_earphone.svg",
-        "icon_phone.svg",
         "icon_timing.svg",
         "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
@@ -328,14 +336,9 @@ def test_battery_2x2_icon_contracts_and_previews_are_required():
                 images.append(node)
         assert len(images) == 1, case.template_id
         image = images[0]
-        expected_name = "battery_leaf_fill.svg"
-        if case.template_id in (
-            "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1"
-        ):
-            expected_name = "icon_phone.svg"
-        assert image.get("src") == f"resources/base/media/{expected_name}"
+        assert image.get("src") == "resources/base/media/battery_leaf_fill.svg"
         covered.add(case.template_id)
-    assert len(covered) == 12
+    assert len(covered) == 10
 
 
 def test_battery_wide_and_support_icons_remain_optional():
@@ -349,3 +352,52 @@ def test_battery_wide_and_support_icons_remain_optional():
     ):
         variant = registry.require_variant(template_id, "default")
         assert "batteryIcon" not in variant.parameters_schema.get("required", [])
+
+
+def test_template_preview_only_references_current_registered_assets():
+    capabilities_path = (
+        Path(__file__).resolve().parents[3]
+        / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
+    )
+    capabilities = json.loads(capabilities_path.read_text(encoding="utf-8"))
+    registered = {asset.get("src") for asset in capabilities}
+    cases = build_template_preview_cases()
+    assert validate_preview_asset_paths(cases).issubset(registered)
+    registry = CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    available_data = {item.id for item in registry.list_data_capabilities()}
+    assert all(case.capability_id in available_data for case in cases)
+    support = next(case for case in cases if case.template_id == "BatteryOverviewSupport@1")
+    update = support.messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    assert all(node.get("component") != "Image" for node in components)
+
+
+def test_template_preview_actions_are_bound_registered_events():
+    cases = build_template_preview_cases()
+    required_events = {
+        "BluetoothDeviceOverviewMusicCompact@1": "event.open.music.daily",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1": "event.open.settings.bluetooth",
+    }
+    bound_handlers = {}
+    for case in cases:
+        update = case.messages[1].get("updateComponents")
+        assert isinstance(update, dict)
+        components = update.get("components")
+        assert isinstance(components, list)
+        for component in components:
+            handlers = component.get("onClick", [])
+            assert isinstance(handlers, list)
+            for handler in handlers:
+                assert handler.get("call") != "sendToAssistant"
+                if case.template_id not in required_events:
+                    raise AssertionError(f"unexpected optional action: {case.template_id}")
+                assert case.template_id not in bound_handlers
+                bound_handlers[case.template_id] = handler
+    registry = CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    assert set(bound_handlers) == set(required_events)
+    for template_id, event_id in required_events.items():
+        event = registry.get_event_capability(event_id)
+        assert event is not None
+        assert bound_handlers.get(template_id) == event.actionTemplate.model_dump()

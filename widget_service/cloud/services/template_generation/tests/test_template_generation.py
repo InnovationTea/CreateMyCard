@@ -1200,7 +1200,8 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
+    assert len(registry.enabled_template_ids(calendar.local_template_ids)) == 31
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3383,7 +3384,8 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 46
+    assert len(registry.enabled_template_ids(calendar.local_template_ids)) == 31
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -8281,6 +8283,8 @@ async def test_template_exception_obeys_route_failure_policy(
     callback_sizes: list[str] = []
 
     class ModelClient:
+        # 固定模拟输出只验证模板失败后的路由分支，不进入真实模型的 Plan 阶段。
+        use_mock = True
         model_failure_retry_count = 0
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:

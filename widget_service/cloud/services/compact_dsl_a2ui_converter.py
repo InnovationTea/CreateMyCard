@@ -374,6 +374,20 @@ _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
 def parse_compact_dsl_rows(compact_dsl: str) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
+    if _is_template_compact_source(compact_dsl):
+        from services.template_generation.engine import (
+            compact_dsl_a2ui_converter as template_converter,
+        )
+
+        parsed_rows: list[CompactRow] = []
+        for row in template_converter._parse_compact_rows(compact_dsl):
+            if isinstance(row, template_converter.DataRow):
+                parsed_rows.append(DataRow(row.path, copy.deepcopy(row.value)))
+            else:
+                parsed_rows.append(ComponentRow(
+                    row.component_id, row.component_type, copy.deepcopy(row.props), row.children,
+                ))
+        return tuple(parsed_rows)
     return tuple(_parse_compact_rows(compact_dsl))
 
 
@@ -401,6 +415,17 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
+def _is_template_compact_source(compact_dsl: str) -> bool:
+    if "template_root" not in compact_dsl:
+        return False
+    # 延迟导入避免模板公共入口与生成处理器之间的模块初始化循环。
+    from services.template_generation.engine.compact_dsl_a2ui_converter import (
+        is_template_compact_dsl,
+    )
+
+    return is_template_compact_dsl(compact_dsl)
+
+
 def repair_compact_dsl_binding_paths(
     compact_dsl: str,
     *,
@@ -408,6 +433,17 @@ def repair_compact_dsl_binding_paths(
     card_spec: dict[str, Any],
 ) -> str:
     """Repair unique data roots or safely inline unbacked local values."""
+    if _is_template_compact_source(compact_dsl):
+        from services.template_generation.engine import (
+            compact_dsl_a2ui_converter as template_converter,
+        )
+
+        try:
+            return template_converter.repair_compact_dsl_binding_paths(
+                compact_dsl, task_spec=task_spec, card_spec=card_spec,
+            )
+        except template_converter.CompactDslConversionError as exc:
+            raise CompactDslConversionError(str(exc)) from exc
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
     event_replacements = _event_handler_replacements(components, task_spec)
@@ -510,6 +546,18 @@ def convert_compact_dsl_to_a2ui(
     surface_id: str = "surface_card",
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
+    if _is_template_compact_source(compact_dsl):
+        from services.template_generation.engine import (
+            compact_dsl_a2ui_converter as template_converter,
+        )
+
+        try:
+            return template_converter.convert_compact_dsl_to_a2ui(
+                compact_dsl, size=size, protocol_profile=protocol_profile or {"version": "v0.9"},
+                theme=theme, surface_id=surface_id,
+            )
+        except template_converter.CompactDslConversionError as exc:
+            raise CompactDslConversionError(str(exc)) from exc
     # 布局运行时复用本模块的行类型，延迟导入避免模块初始化循环。
     from services.compact_layout_runtime import adaptive_slot_ids
 

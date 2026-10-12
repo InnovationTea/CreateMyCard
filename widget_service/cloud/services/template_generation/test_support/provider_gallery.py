@@ -24,10 +24,17 @@ from api.schemas import (
 from core.errors import ErrorCode, GenerationStatus
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import WidgetArtifact
-from models.generation import ModelRequestContext
+from models.generation import ModelRequestContext, TaskSpec
 from models.service import ArtifactSaveResult
 from services.artifact_store import ArtifactStore
 from services.template_generation.controls import TemplateControls, load_template_controls
+from services.template_generation.engine.cardplan.registry import (
+    CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS,
+    get_cardplan_registry,
+)
+from services.template_generation.engine.cardplan.template_retrieval import (
+    template_required_assets_are_available,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 INPUT_SCHEMA_VERSION = "provider-template-gallery-input/4"
@@ -132,7 +139,13 @@ _ACTION_QUERIES_BY_BUSINESS = {
 }
 
 _ASSET_IDS_BY_TEMPLATE_PREFIX = {
+    "BatteryOverviewSupportHero": ("asset.icon_phone",),
+    "BatteryOverviewChargeStatusHero": ("asset.icon_phone",),
     "BatteryOverview": ("asset.battery_leaf_fill",),
+    "BluetoothDeviceOverviewEarphoneCaseHero": ("asset.earphone_case_16644",),
+    "BluetoothDeviceOverviewEarphoneHero": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewCaseConnectionHero": ("asset.earphone_case_16644",),
+    "BluetoothDeviceOverviewMusicFull": ("asset.earphone_case_16644",),
     "HeartRateOverviewIcon": ("asset.heart_fill",),
     "HeartRateOverviewUpdatedIcon": ("asset.heart_fill",),
     "ScheduleOverviewNextEventHero": ("asset.calendar_fill",),
@@ -177,6 +190,7 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewFeelsLikeWindSupport@1": ("asset.icon_weather_thermometer",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
@@ -198,6 +212,10 @@ _BATTERY_FACT_FIELDS = frozenset(("/batterySOC", "/batterySOCText"))
 _BATTERY_FACT_FALLBACK_EXEMPT_TEMPLATE_IDS = frozenset(
     {"BatteryOverviewHealthLevelHero@1"}
 )
+_UNAVAILABLE_SINGLE_LAYOUTS = {
+    "BatteryOverviewSupportHero@1": "当前单业务布局没有预留的 1.5x2 槽位",
+    "BluetoothDeviceOverviewMusicCompact@1": "歌单操作模板仅用于横版组合槽位",
+}
 
 
 class GalleryInputCase(BaseModel):
@@ -682,7 +700,12 @@ def _gallery_sample_overrides(
                 "/data/weather2/current/condition": "晴",
             }
         )
-    if weather_template is not None and weather_template.suffix == "Support":
+    support_displays_current_condition = (
+        weather_template is not None
+        and weather_template.suffix == "Support"
+        and "/current/condition" in weather_template.fields
+    )
+    if support_displays_current_condition:
         sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
     battery_template = next(
         (
@@ -724,10 +747,18 @@ def _request_envelope(
     event_capabilities: dict[str, dict[str, Any]],
     asset_capabilities: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    business_description = _BUSINESS_DESCRIPTIONS[definition.business_id][1]
+    business_info = _BUSINESS_DESCRIPTIONS.get(definition.business_id)
+    if business_info is None:
+        raise ValueError(f"unknown gallery business: {definition.business_id}")
+    business_title, business_description = business_info
     template_description = (
         target_template.description if target_template is not None else business_description
     )
+    if (
+        target_template is not None
+        and target_template.template_id in CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS
+    ):
+        template_description = template_description.partition("无按钮")[0].rstrip("，。； ")
     data_bindings = _single_template_data_bindings(definition, target_template)
     action_count = 0
     if scenario_id == "single-two-actions":
@@ -747,7 +778,7 @@ def _request_envelope(
     else:
         user_query = (
             f"生成一个2×2完整信息卡片，按“{template_description}”展示，"
-            "不显示操作按钮。"
+            "无需按钮。"
         )
     if (
         target_template is not None
@@ -766,9 +797,9 @@ def _request_envelope(
         ),
         "candidateDataBindings": data_bindings,
         "candidateEventCandidates": event_candidates,
-        "description": f"{definition.business_name}模板画廊端到端验证",
+        "description": f"{business_title}模板预览",
         "size": "2x2",
-        "title": f"{definition.business_name}模板画廊",
+        "title": business_title,
         "userQuery": user_query,
     }
     target_name = (
@@ -848,6 +879,7 @@ def _missing_reason(
     capability_available: bool,
     provider_disabled: bool,
     template_disabled: bool,
+    asset_capabilities: dict[str, dict[str, Any]] | None = None,
 ) -> str:
     suffix = _scenario_metadata(scenario_id)[2]
     if target_template is None:
@@ -858,7 +890,21 @@ def _missing_reason(
         return "数据能力当前未注册"
     if template_disabled:
         return "模板当前已禁用"
-    return ""
+    reason = _UNAVAILABLE_SINGLE_LAYOUTS.get(target_template.template_id, "")
+    if not reason and asset_capabilities is not None:
+        candidates = []
+        for asset_id in _candidate_asset_ids(target_template, asset_capabilities):
+            asset = asset_capabilities.get(asset_id)
+            if asset is not None:
+                candidates.append(asset)
+        task = TaskSpec(
+            userQuery=target_template.description, size="2x2",
+            dataModelSchema={}, assetCandidates=candidates,
+        )
+        definition = get_cardplan_registry().require_template(target_template.template_id)
+        if not template_required_assets_are_available(definition, task):
+            reason = "缺少模板必需的已注册素材"
+    return reason
 
 
 def _expects_fusion_ball(
@@ -931,6 +977,7 @@ def write_gallery_input_dataset(
                             and target_template.template_id
                             in controls.disabled_template_ids
                         ),
+                        asset_capabilities=asset_capabilities,
                     )
                     for appearance in _GALLERY_APPEARANCES:
                         case_id = (
@@ -1102,6 +1149,7 @@ def _paired_missing_reason(
     pair: GalleryTemplatePair,
     controls: TemplateControls,
     data_capability_ids: set[str],
+    asset_capabilities: dict[str, dict[str, Any]] | None = None,
 ) -> str:
     for selection in (pair.title, pair.content):
         reason = _missing_reason(
@@ -1110,6 +1158,7 @@ def _paired_missing_reason(
             capability_available=selection.business.capability_id in data_capability_ids,
             provider_disabled=selection.business.provider_id in controls.disabled_provider_ids,
             template_disabled=selection.template.template_id in controls.disabled_template_ids,
+            asset_capabilities=asset_capabilities,
         )
         if reason:
             return f"{selection.template.template_id}：{reason}"
@@ -1151,12 +1200,11 @@ def _paired_request_envelope(
             if asset_id not in asset_ids:
                 asset_ids.append(asset_id)
         sample_overrides.update(_gallery_sample_overrides(selection.template))
-    business_name = f"{pair.title.business.business_name} + {pair.content.business.business_name}"
     content.update(
         candidateDataBindings=bindings,
         candidateAssetIds=asset_ids,
-        title=f"{business_name}组合画廊",
-        description=f"{business_name}双业务模板画廊端到端验证",
+        title="双业务组合",
+        description="双业务模板预览",
         userQuery=user_query,
     )
     payload["galleryTest"] = {"sampleOverrides": sample_overrides}
@@ -1187,7 +1235,9 @@ def _paired_gallery_provider(
     scenario_id = "dual-one-action"
     scenario_name, expected_layout, suffix = _scenario_metadata(scenario_id)
     for pair in _gallery_template_pairs(definitions):
-        missing_reason = _paired_missing_reason(pair, controls, data_capability_ids)
+        missing_reason = _paired_missing_reason(
+            pair, controls, data_capability_ids, asset_capabilities,
+        )
         business_id = f"{pair.title.business.business_id}--{pair.content.business.business_id}"
         business_name = (
             f"{pair.title.business.business_name} + {pair.content.business.business_name}"
@@ -1309,7 +1359,9 @@ def _support_gallery_provider(
     )
     scenarios = ("dual-support-content", "dual-support-one-action", "dual-support-two-actions")
     for pair in _support_template_pairs(definitions, controls, data_capability_ids):
-        missing_reason = _paired_missing_reason(pair, controls, data_capability_ids)
+        missing_reason = _paired_missing_reason(
+            pair, controls, data_capability_ids, asset_capabilities,
+        )
         for scenario_id in scenarios:
             if _expected_action_count(scenario_id) > len(
                 _support_action_options(pair, event_capabilities)

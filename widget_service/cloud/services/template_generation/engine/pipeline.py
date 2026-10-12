@@ -448,17 +448,18 @@ async def _generate_selected_templates(
             for path in slot.field_bindings.values():
                 if path not in generic_paths:
                     generic_paths.append(path)
-    if registry.enabled_calendar_fallback_template_ids:
-        # 补充 Full 的最小字段不依赖旧日程投影形态。下方仍按已检索模板的
-        # required/optional 路径复制真实源字段，并由正式编译器验证绑定。
-        projected_task_spec = source_task_spec.model_copy(update={"dataModelSchema": {"data": {}}})
+    if template_plans or registry.enabled_calendar_fallback_template_ids:
+        # Search 已校验模板字段；二层使用下方复制的真实 Provider 路径，
+        # 不要求稀疏模板同时满足旧聚合组件的事实组合。
+        projected_task_spec = source_task_spec.model_copy(
+            update={"dataModelSchema": {"data": {}}}
+        )
     else:
         projected_task_spec = project_content_component_facts(
             source_task_spec,
             effective_capability_ids,
             scope.advanced_component_ids,
             required_output_fields_by_capability=required_output_fields_by_capability,
-            generic_output_fields=tuple(generic_paths) if template_plans else None,
         )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,

@@ -95,10 +95,26 @@ class AssetUrlMapper:
             styles = props.get("styles")
             if isinstance(styles, dict):
                 changed |= self._rewrite_property(styles, "backgroundImage", True)
+            changed |= self._restore_nested_icons(row.component_type, props)
             restored_rows.append([row.component_id, row.component_type, props, list(row.children)])
         if not changed:
             return token
         return "\n".join(json.dumps(row, ensure_ascii=False) for row in restored_rows)
+
+    def _restore_nested_icons(self, component_type: str, props: dict[str, Any]) -> bool:
+        """按语义组件合同恢复内嵌图标，不遍历文本、事件或任意同名字段。"""
+        changed = False
+        if component_type == "InfoBlock":
+            visual = props.get("visual")
+            if isinstance(visual, dict):
+                changed |= self._rewrite_property(visual, "icon", True)
+        elif component_type == "NumericRatioStack":
+            items = props.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        changed |= self._rewrite_property(item, "icon", True)
+        return changed
 
     def restore_diagnostic_values(self, value: Any) -> Any:
         """修复提示中的结构化 actual/expected 使用原始路径，避免回灌长 URL。"""

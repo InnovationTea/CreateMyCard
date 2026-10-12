@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from models.generation import TaskSpec
+from services.capability_registry import CapabilityRegistry
 from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.tersel_converter import (
     Nested2Node,
@@ -16,12 +17,19 @@ from services.template_generation.engine.tersel_converter import (
 )
 
 from .compiler import (
+    _bind_template_actions,
     _expand_health_metric_generic_template,
     _instantiate_blueprint,
     _serialize_effective_document,
     _strip_advanced_component_markers,
 )
-from .models import TemplateBinding, TemplateDefinition, ThemeDefinition
+from .models import (
+    ActionBinding,
+    HybridBodyContract,
+    TemplateBinding,
+    TemplateDefinition,
+    ThemeDefinition,
+)
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 
@@ -122,6 +130,8 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
     ("WeatherOverviewUvFull@1", "location"): "青浦区",
     ("ActivityOverviewTrainingSummaryFull@1", "title"): "训练总结",
     ("BluetoothDeviceOverviewMusicCompact@1", "actionId"): "event.open.music.daily",
+    ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "actionId"):
+        "event.open.settings.bluetooth",
     ("CountdownOverviewDepartureHero@1", "title"): "北京出差",
     ("CountdownOverviewTargetDetailFull@1", "targetDate"): "2026-11-15",
     ("CountdownOverviewTravelSupport@1", "title"): "国庆回家",
@@ -130,10 +140,6 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
 }
 # 单业务多云样例没有匹配状态素材，省略图标；Support 可使用表达气温的温度计。
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
-    ("BatteryOverviewSupportHero@1", "batteryIcon"):
-        "resources/base/media/icon_phone.svg",
-    ("BatteryOverviewChargeStatusHero@1", "batteryIcon"):
-        "resources/base/media/icon_phone.svg",
     ("BluetoothDeviceOverviewEarphoneHero@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"):
@@ -143,7 +149,7 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
     ("BluetoothDeviceOverviewMusicCompact@1", "musicIcon"):
         "resources/base/media/music_fill.svg",
     ("BatteryOverviewSupport@1", "batteryIcon"):
-        "resources/base/media/icon_phone.svg",
+        None,
     ("WeatherOverviewTemperatureSupport@1", "conditionIcon"):
         "resources/base/media/icon_weather_thermometer.svg",
     ("WeatherOverviewDaily2TravelSupport@1", "conditionIcon"):
@@ -151,19 +157,10 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
     ("WeatherOverviewTravelSupport@1", "conditionIcon"):
         "resources/base/media/icon_weather_thermometer.svg",
 }
-# 预览用可选 actionId 参数：取事件能力目录（data/capabilities/*/event_capabilities.json）
-# 中与业务语义一致的真实事件 id，与评测语料的 candidateEventCandidates 保持同源。
-_ACTION_ID_BY_BUSINESS = {
-    "ActivityOverview": "event.open.health.sport",
-    "BatteryOverview": "event.open.settings.battery",
-    "BluetoothDeviceOverview": "event.open.settings.bluetooth",
-    "CalendarOverview": "event.viewCalendarEvent",
-    "CountdownOverview": "event.open.clock.alarm",
-    "HeartRateOverview": "event.open.health.sport",
-    "ResourceUsageOverview": "event.open.settings.storage",
-    "SleepOverview": "event.open.health.sleep",
-    "WeatherOverview": "event.open.weather",
-    "WorkoutOverview": "event.open.health.sport",
+# 当前素材版本已移除手机设备图标，不能把电池或电话听筒图标作为替代。
+_UNAVAILABLE_PREVIEW_TEMPLATES = {
+    "BatteryOverviewSupportHero@1": "缺少模板必需的已注册手机设备图标",
+    "BatteryOverviewChargeStatusHero@1": "缺少模板必需的已注册手机设备图标",
 }
 # 预览用可选文本参数按业务取真实样例值；模板间需要差异时用 _TEXT_BY_TEMPLATE_PARAMETER 覆盖。
 _TEXT_BY_BUSINESS_PARAMETER = {
@@ -346,8 +343,18 @@ class TemplatePreviewCase:
         }
 
 
+@dataclass(frozen=True)
+class _PreviewDataset:
+    cases: tuple[TemplatePreviewCase, ...]
+    missing_templates: tuple[dict[str, str], ...]
+
+
 def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
-    """Expand every business Provider Template into a local A2UI preview case."""
+    """Expand available business Provider Templates into local A2UI previews."""
+    return _build_preview_dataset().cases
+
+
+def _build_preview_dataset() -> _PreviewDataset:
     registry = CardPlanRegistry(
         disabled_provider_ids=(),
         disabled_template_ids=(),
@@ -360,17 +367,29 @@ def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
     ]
     definitions.sort(key=_definition_sort_key)
     profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
+    capability_registry = CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    data_capability_ids = {item.id for item in capability_registry.list_data_capabilities()}
     cases: list[TemplatePreviewCase] = []
+    missing_templates: list[dict[str, str]] = []
     for index, definition in enumerate(definitions, start=1):
         case_id = f"T{index:03d}"
+        reason = _UNAVAILABLE_PREVIEW_TEMPLATES.get(definition.wire_id)
+        if definition.capability_id not in data_capability_ids:
+            reason = "数据能力当前未注册或已禁用"
+        if reason is not None:
+            missing_templates.append(
+                {"id": case_id, "templateId": definition.wire_id, "reason": reason}
+            )
+            continue
         cases.append(_build_case(case_id, definition, profile, registry))
-    return tuple(cases)
+    return _PreviewDataset(tuple(cases), tuple(missing_templates))
 
 
 def write_template_preview_dataset(output_dir: Path) -> dict[str, Any]:
     """Write one A2UI array per template and return the generated manifest."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    cases = build_template_preview_cases()
+    dataset = _build_preview_dataset()
+    cases = dataset.cases
     expected_files = {case.file_name for case in cases}
     for stale in output_dir.glob("T*.json"):
         if stale.name not in expected_files:
@@ -382,6 +401,8 @@ def write_template_preview_dataset(output_dir: Path) -> dict[str, Any]:
     manifest = {
         "datasetVersion": "provider-template-gallery/1",
         "templateCount": len(cases),
+        "sourceTemplateCount": len(cases) + len(dataset.missing_templates),
+        "missingTemplates": list(dataset.missing_templates),
         "countsByLayout": dict(
             sorted(layout_counts.items(), key=lambda item: _LAYOUT_ORDER[item[0]])
         ),
@@ -433,6 +454,19 @@ def _build_case(
             bindings,
             theme.reference_values,
         )
+    action_id = parameters.get("actionId")
+    if action_id is not None:
+        event = CapabilityRegistry(version="app-11.7.5.205_rom-6.0").get_event_capability(action_id)
+        if event is None:
+            raise ValueError(f"Preview event is not registered: {action_id}")
+        binding = ActionBinding(
+            action_id=action_id, event_id=event.id, display_label=event.description,
+            call=event.actionTemplate.call, args=event.actionTemplate.args,
+        )
+        contract = HybridBodyContract.model_construct(
+            action_bindings=(binding,), content_action_ids=(action_id,),
+        )
+        content, _ = _bind_template_actions(content, contract)
     content = _strip_advanced_component_markers(content)
     root = _preview_root(content, content_height, theme.root_style)
     effective = _serialize_effective_document(root, task_spec, True)
@@ -527,9 +561,8 @@ def _template_parameters(definition: TemplateDefinition) -> dict[str, str]:
         elif name in _ASSET_BY_PARAMETER:
             parameters[name] = _ASSET_BY_PARAMETER[name]
         elif name == "actionId":
-            action_id = _ACTION_ID_BY_BUSINESS.get(definition.business_id or "")
-            if action_id is not None:
-                parameters[name] = action_id
+            # 独立预览省略可选交互；必选操作在上方显式样例映射中提供。
+            continue
         else:
             business_text = _TEXT_BY_BUSINESS_PARAMETER.get(
                 (definition.business_id or "", name)
