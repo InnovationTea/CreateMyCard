@@ -1,0 +1,137 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，带电量进度条，看看电量够不够，点击打开省电模式，并且可以直接导航回家。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "低电量导航",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.setPowerSavingMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode",
+              "switchFlag": 0
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "home",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "电量+充电+导航+省电",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.location_north_up_right_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "044",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，带电量进度条，看看电量够不够，点击打开省电模式，并且可以直接导航回家。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，带电量进度条，看看电量够不够，点击打开省电模式，并且可以直接导航回家。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "低电量导航",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.setPowerSavingMode",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode",
+            "switchFlag": 0
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.startNavigate",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "home",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "电量+充电+导航+省电",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.location_north_up_right_fill"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "compileTimeCoexistence": [
+    "compile-time-conditional",
+    "expression",
+    "interpolation"
+  ],
+  "multilineExprKind": "expression",
+  "multilineIgnoredCallText": "Expr(data.private)"
+}

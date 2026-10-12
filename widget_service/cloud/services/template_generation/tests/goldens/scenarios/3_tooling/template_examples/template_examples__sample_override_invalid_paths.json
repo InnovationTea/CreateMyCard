@@ -1,0 +1,29 @@
+{
+  "errors": {
+    "/data/calendar/events/-1/title": {
+      "errorType": "ValueError",
+      "message": "trusted sample override path is unavailable: /data/calendar/events/-1/title"
+    },
+    "/data/calendar/events/0": {
+      "errorType": "ValueError",
+      "message": "trusted sample override target is not a field: /data/calendar/events/0"
+    },
+    "/data/calendar/events/0/unknown": {
+      "errorType": "ValueError",
+      "message": "trusted sample override path is unavailable: /data/calendar/events/0/unknown"
+    },
+    "/data/calendar/events/01/title": {
+      "errorType": "ValueError",
+      "message": "trusted sample override path is unavailable: /data/calendar/events/01/title"
+    },
+    "/data/calendar/events/1/title": {
+      "errorType": "ValueError",
+      "message": "trusted sample override path is unavailable: /data/calendar/events/1/title"
+    },
+    "/outside/calendar/events/0/title": {
+      "errorType": "ValueError",
+      "message": "trusted sample override path must stay under /data"
+    }
+  },
+  "specUnchanged": true
+}

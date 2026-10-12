@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "709baf1c02ddb4b3880b584157cca2b48c223098e299c7fd78ae157a8467edd9",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/daily/1/date\",\"/daily/1/weekday\",\"/daily/1/condition\"]},\"action\":[],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "7955782e2fb968b2e3657d7952d5dd3e00ac3de5c29dfabedf47b1a148ee1724",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDailyDateFull@1\", {}));"
+    }
+  ]
+}

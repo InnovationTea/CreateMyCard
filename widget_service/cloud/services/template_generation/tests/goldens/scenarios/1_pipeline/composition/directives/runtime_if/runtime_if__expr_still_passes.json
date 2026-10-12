@@ -1,0 +1,46 @@
+{
+  "empty_string": {
+    "errorCodes": [],
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "component root_0: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.",
+        "stage": "validation"
+      }
+    ],
+    "standardDsl": ""
+  },
+  "none": {
+    "errorCodes": [],
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "component root_0: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.",
+        "stage": "validation"
+      }
+    ],
+    "standardDsl": ""
+  },
+  "one": {
+    "errorCodes": [],
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "component root_0: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.",
+        "stage": "validation"
+      }
+    ],
+    "standardDsl": ""
+  },
+  "zero": {
+    "errorCodes": [],
+    "processorErrors": [
+      {
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": "component root_0: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.",
+        "stage": "validation"
+      }
+    ],
+    "standardDsl": ""
+  }
+}

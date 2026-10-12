@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "99f1a62b8c707577250f1ce56e86f1bb6921415197b6f736b7394e1db93078f2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/nightSleepDurationText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/nightSleepDurationText\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "fc6e216d9b44071b6ba8c5453c2f089911ba315d95ab90ad5486e7e9a71645f2",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {}));"
+    }
+  ]
+}

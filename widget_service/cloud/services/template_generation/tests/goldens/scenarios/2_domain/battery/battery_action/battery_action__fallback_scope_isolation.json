@@ -1,0 +1,43 @@
+{
+  "calendar": {
+    "actionIds": []
+  },
+  "earphone": {
+    "actionIds": []
+  },
+  "explicit-action": {
+    "actionIds": [
+      "event.open.settings.batteryHealth"
+    ]
+  },
+  "forbidden": {
+    "actionIds": []
+  },
+  "mixed": {
+    "actionIds": []
+  },
+  "multiple-groups": {
+    "actionIds": []
+  },
+  "size-mismatch": {
+    "actionIds": []
+  },
+  "two-actions": {
+    "actionIds": [
+      "event.open.settings.batteryHealth",
+      "event.open.settings.battery"
+    ]
+  },
+  "weather": {
+    "actionIds": []
+  },
+  "wide": {
+    "actionIds": []
+  },
+  "wrong-business": {
+    "actionIds": []
+  },
+  "wrong-capability": {
+    "actionIds": []
+  }
+}

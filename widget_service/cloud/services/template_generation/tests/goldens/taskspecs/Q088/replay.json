@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "c2d5a990a866ef42801a18b286bb916659d898ac0a5c150ef73d41169e14b5f1",
+      "response": "Template(\"WideHeroActionFullLayout@1\", {}, Template(\"WeatherOverviewDestinationDayFull@1\", {\"location\": \"石家庄市\", \"targetDate\": \"2026-09-03\"}), Template(\"CountdownOverviewDepartureHero@1\", {\"title\": \"回家看望\"}), Template(\"PillAction@1\", {\"actionId\": \"event.call.phone\", \"label\": \"联系家人\"}));"
+    },
+    {
+      "key": "fe88a35064d51b0f67ff7ed0d61ac12d61781f1a9038479bf92c6a25f1378e36",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/3/temperatureRangeText\",\"/daily/3/rainProbabilityPercent\",\"/daily/3/airQuality\"]},\"action\":[\"event.call.phone\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

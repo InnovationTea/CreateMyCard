@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "3ab4ae0ad45fe64298765ee970a395fcba1da5671566c021628d23e36068c31e",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WorkoutOverviewFull@1\", {}));"
+    },
+    {
+      "key": "4e614a00c3350c44086e14d852c7ba4e177c443509ec9402d7e85984b7dd97cb",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseDurationText\"]},\"primaryOutputFieldByCapability\":{\"GetHealthAndSportSummary\":\"/exerciseDurationText\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

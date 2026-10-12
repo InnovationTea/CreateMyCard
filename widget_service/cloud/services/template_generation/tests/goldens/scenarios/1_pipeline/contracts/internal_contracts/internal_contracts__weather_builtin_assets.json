@@ -1,0 +1,8 @@
+{
+  "templateImplementation": [],
+  "terseDslImplementation": [
+    "resources/base/media/icon_weather1.svg",
+    "resources/base/media/sun_max.svg",
+    "resources/base/media/cold.svg"
+  ]
+}

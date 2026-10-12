@@ -1,0 +1,218 @@
+{
+  "WeatherOverviewCompact@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": false,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": []
+  },
+  "WeatherOverviewDaily2TravelSupport@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": true,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/heat_generation.svg": {
+        "conditionIcon": "resources/base/media/heat_generation.svg"
+      },
+      "resources/base/media/icon_weather_thermometer.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
+      },
+      "resources/base/media/icon_weather_thermometer_medium.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer_medium.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": [
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg"
+    ]
+  },
+  "WeatherOverviewFull@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": false,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": []
+  },
+  "WeatherOverviewHero@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": false,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": []
+  },
+  "WeatherOverviewTemperatureSupport@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": true,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/heat_generation.svg": {
+        "conditionIcon": "resources/base/media/heat_generation.svg"
+      },
+      "resources/base/media/icon_weather_thermometer.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
+      },
+      "resources/base/media/icon_weather_thermometer_medium.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer_medium.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": [
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg"
+    ]
+  },
+  "WeatherOverviewTravelSupport@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": true,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/heat_generation.svg": {
+        "conditionIcon": "resources/base/media/heat_generation.svg"
+      },
+      "resources/base/media/icon_weather_thermometer.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer.svg"
+      },
+      "resources/base/media/icon_weather_thermometer_medium.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_thermometer_medium.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": [
+      "resources/base/media/heat_generation.svg",
+      "resources/base/media/icon_weather_thermometer_medium.svg",
+      "resources/base/media/icon_weather_thermometer.svg"
+    ]
+  },
+  "WeatherOverviewUvCompact@1": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/sun_max.svg",
+      "resources/base/media/typhoon_fill.svg",
+      "resources/base/media/icon_weather_wind.svg"
+    ],
+    "dualBusiness": false,
+    "identityNormalize": {
+      "resources/base/media/drop_1.svg": {
+        "conditionIcon": "resources/base/media/drop_1.svg"
+      },
+      "resources/base/media/icon_weather_wind.svg": {
+        "conditionIcon": "resources/base/media/icon_weather_wind.svg"
+      },
+      "resources/base/media/sun_max.svg": {
+        "conditionIcon": "resources/base/media/sun_max.svg"
+      },
+      "resources/base/media/typhoon_fill.svg": {
+        "conditionIcon": "resources/base/media/typhoon_fill.svg"
+      }
+    },
+    "temperatureOnlyAllowed": []
+  }
+}

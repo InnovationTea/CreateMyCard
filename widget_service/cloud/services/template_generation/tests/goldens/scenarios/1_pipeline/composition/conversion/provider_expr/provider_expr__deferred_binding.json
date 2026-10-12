@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    "value"
+  ],
+  "rendered": {
+    "data.first.value": "{{ ${/data/first/value} + '单位' }}",
+    "data.second.nested.value": "{{ ${/data/second/nested/value} + '单位' }}"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "87cca61c936a14a3c61143b6926db4c4e606e9f36e5581b79c796f17874e66b8",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/exerciseDurationText\",\"/exerciseCalorieText\",\"/exerciseHeartRateAvg\"]},\"action\":[\"event.open.music.daily\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "e7031f7dae5475f72ec9f93b45f09f0c6ac053957d0316d9e88b297ff46be325",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WorkoutOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.music.daily\", \"label\": \"每日推荐\"}));"
+    }
+  ]
+}

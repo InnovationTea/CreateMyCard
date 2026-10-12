@@ -1,0 +1,12 @@
+{
+  "actionIds": [
+    "event.open.settings.battery"
+  ],
+  "candidates": [
+    "BatteryOverviewChargeStatusHero@1",
+    "BatteryOverviewCompact@1",
+    "BatteryOverviewPercentStatusCompact@1",
+    "BatteryOverviewSupport@1",
+    "BatteryOverviewSupportHero@1"
+  ]
+}

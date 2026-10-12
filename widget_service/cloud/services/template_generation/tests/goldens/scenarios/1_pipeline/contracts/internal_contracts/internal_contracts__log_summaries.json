@@ -1,0 +1,19 @@
+{
+  "promptSizeSummary": {
+    "messageCount": 2,
+    "systemPromptChars": 15,
+    "totalPromptChars": 39,
+    "userPromptChars": 24
+  },
+  "promptSummaryLeaksContent": false,
+  "taskSpecSummary": {
+    "assetCandidateCount": 0,
+    "dataModelRootKeys": [
+      "privateDomain"
+    ],
+    "eventCandidateCount": 0,
+    "size": "2x2"
+  },
+  "taskSpecSummaryLeaksQuery": false,
+  "taskSpecSummaryLeaksSchema": false
+}

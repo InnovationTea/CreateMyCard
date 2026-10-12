@@ -1,5 +1,22 @@
-"""两种卡片尺寸的内容根、防溢出标识、安全边距和多业务编译回归。"""
+"""非融球固定布局的防溢出标识、安全边距和双业务编译回归。
 
+防溢出包装与双业务编译的完整产物已固化为场景金样（Layer C）：3 种容器
+（Column/Row/Stack）× 3 种 padding（无/统一 12/四边 8-8-12-12）各一份，
+快照整体冻结包装几何（tersel 树 + A2UI 消息）；TwoSupportLayout 双业务
+共享骨架渲染一份；无单一骨架的旧壳（空/单文本/文本+列）与 2x4 尺寸的
+「不包装」语义各固化一份（``non_fusion__legacy_*``，快照同时记录包装
+是否返回原对象）。`__genui_render_component__` 标记恰好一个的属性仍保留
+显式断言（这是本测试的核心属性，快照只固定其余细节）。引擎或模板改动后
+按 golden 工作流 `check --diff` / `bless --declared` 复核。
+
+上游 2x4 放开改造新增的普通测试按原样保留、不转场景：
+``test_wide_pipeline_marks_shared_content_without_enabling_fusion``（宽管线
+融球门禁）与 ``test_unsupported_size_layout_is_unchanged``（不支持尺寸不
+包装）；旧「2x4 不包装」语义仍由 ``non_fusion__legacy_shell_non_2x2_size``
+场景冻结，其与上游新行为的漂移走 golden 工作流复核。
+"""
+
+import asyncio
 import json
 from copy import deepcopy
 from typing import Any
@@ -17,6 +34,11 @@ from services.template_generation.engine.cardplan.registry import get_cardplan_r
 from services.template_generation.engine.cardplan.template_retrieval import TemplateSearchIntent
 from services.template_generation.engine.pipeline import generate_template_a2ui
 from services.template_generation.engine.tersel_converter import Nested2Node, convert_tersel_to_a2ui
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_template_generation import (
     _FixedTemplateModel,
     _provider_field,
@@ -30,14 +52,20 @@ from services.template_generation.tests.test_template_retrieval import (
 from services.template_generation.tests.test_wide_template_planner import _PlanModel
 
 _SKELETON_ID = "__genui_render_component__root_1"
+_PER_SIDE_PADDING = {"left": 8, "right": 8, "top": 12, "bottom": 12}
 
 
-@pytest.mark.parametrize("component_type", ["Column", "Row", "Stack"])
-@pytest.mark.parametrize("padding", [None, 12, {"left": 8, "right": 8, "top": 12, "bottom": 12}])
-@pytest.mark.parametrize("size", ["2x2", "2x4"])
-def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
-    component_type: str, padding: int | dict[str, int] | None, size: str,
-) -> None:
+def _padding_slug(padding: int | dict[str, int] | None) -> str:
+    if padding is None:
+        return "nopadding"
+    if isinstance(padding, dict):
+        return "perside"
+    return "uniform12"
+
+
+def _build_non_fusion_geometry(
+    component_type: str, padding: int | dict[str, int] | None,
+) -> dict[str, Any]:
     skeleton_options = {
         "_id": "template_root",
         "width": "matchParent",
@@ -63,51 +91,182 @@ def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
     original = Nested2Node("Column", ("card", column_options), (skeleton,))
     snapshot = deepcopy(original)
 
-    wrapped = apply_content_safe_inset(original, size=size)
+    wrapped = apply_content_safe_inset(original, size="2x2")
 
-    assert original == snapshot
-    assert wrapped.component_type == "Stack"
-    assert wrapped.values == ("card", {
-        **root_options, "padding": 0, "alignContent": "topStart",
-    })
-    assert len(wrapped.children) == 1
-    foreground = wrapped.children[0]
-    assert foreground.component_type == "Stack"
-    assert foreground.values == ("overlay", {
-        "_id": "template_root", "padding": 12 if padding is None else padding,
-    })
-    assert len(foreground.children) == 1
-    marked = foreground.children[0]
-    assert marked.component_type == component_type
-    assert marked.values == ({**skeleton_options, "_id": _SKELETON_ID},)
-    assert marked.children == skeleton.children
-    assert "__genui_render_component__template_root" not in str(wrapped)
+    assert original == snapshot  # 输入树不得被原地修改（非输出结构的保留属性）
+    tersel = _serialize_node(wrapped) + ";"
     a2ui = convert_tersel_to_a2ui(
-        _serialize_node(wrapped) + ";", size=size,
+        tersel, size="2x2",
         protocol_profile=A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile(),
     )
-    messages = [json.loads(line) for line in a2ui.splitlines()]
-    components = messages[1].get("updateComponents", {}).get("components")
-    assert isinstance(components, list)
-    ids = [component.get("id") for component in components]
-    assert ids == [
-        "root", "template_root", _SKELETON_ID, "business_title", "root_1_1", "root_1_1_0",
-    ]
-    marked_component = components[2]
-    assert marked_component.get("children") == ["business_title", "root_1_1"]
-    nested_component = components[4]
-    assert nested_component.get("children") == ["root_1_1_0"]
+    return {
+        "terselTree": tersel,
+        "a2uiMessages": [json.loads(line) for line in a2ui.splitlines() if line.strip()],
+    }
 
 
-@pytest.mark.parametrize("children", [(), (Nested2Node("Text", ("正文",), ()),), (
-    Nested2Node("Text", ("标题",), ()), Nested2Node("Column", (), ()),
-)])
-@pytest.mark.parametrize("size", ["2x2", "2x4"])
-def test_legacy_shell_without_single_layout_skeleton_is_unchanged(
-    children: tuple[Nested2Node, ...], size: str,
+@scenario("non_fusion__column__nopadding")
+def _build_column_nopadding() -> dict:
+    return _build_non_fusion_geometry("Column", None)
+
+
+@scenario("non_fusion__column__uniform12")
+def _build_column_uniform12() -> dict:
+    return _build_non_fusion_geometry("Column", 12)
+
+
+@scenario("non_fusion__column__perside")
+def _build_column_perside() -> dict:
+    return _build_non_fusion_geometry("Column", _PER_SIDE_PADDING)
+
+
+@scenario("non_fusion__row__nopadding")
+def _build_row_nopadding() -> dict:
+    return _build_non_fusion_geometry("Row", None)
+
+
+@scenario("non_fusion__row__uniform12")
+def _build_row_uniform12() -> dict:
+    return _build_non_fusion_geometry("Row", 12)
+
+
+@scenario("non_fusion__row__perside")
+def _build_row_perside() -> dict:
+    return _build_non_fusion_geometry("Row", _PER_SIDE_PADDING)
+
+
+@scenario("non_fusion__stack__nopadding")
+def _build_stack_nopadding() -> dict:
+    return _build_non_fusion_geometry("Stack", None)
+
+
+@scenario("non_fusion__stack__uniform12")
+def _build_stack_uniform12() -> dict:
+    return _build_non_fusion_geometry("Stack", 12)
+
+
+@scenario("non_fusion__stack__perside")
+def _build_stack_perside() -> dict:
+    return _build_non_fusion_geometry("Stack", _PER_SIDE_PADDING)
+
+
+async def _render_two_support_shared_skeleton() -> dict[str, Any]:
+    templates = ("BatteryOverviewSupport@1", "ActivityOverviewSupport@1")
+    task = TaskSpec(
+        userQuery="显示手机电量、充电状态和今天步数",
+        size="2x2",
+        dataModelSchema={"data": {
+            "healthSport": {"dailySteps": _provider_field(6200, "integer")},
+            "phoneBattery": {
+                "batterySOC": _provider_field(82, "integer"),
+                "chargingStatusDesc": _provider_field("充电中", "string"),
+            },
+        }},
+    )
+    activity_binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary", writeResultTo="/data/healthSport",
+        candidateOutputFields=["/dailySteps"],
+    )
+    battery_binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo", writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOC", "/chargingStatusDesc"],
+    )
+    card_spec = {
+        "title": "电量和活动", "description": "电量和步数", "suggestSize": "2x2",
+        "dataBindings": [{
+            "capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport",
+        }, {
+            "capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery",
+        }],
+    }
+
+    class TwoSupportModel(_FixedTemplateModel):
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "requiredOutputFieldsByCapability": {
+                    "GetHealthAndSportSummary": ["/dailySteps"],
+                    "GetPhoneBatteryInfo": ["/batterySOC", "/chargingStatusDesc"],
+                },
+                "action": [],
+            }
+
+    model = TwoSupportModel(
+        theme_id="2x2-two-support", component_id="BatteryOverview",
+        available_template_ids=templates, capability_id="GetHealthAndSportSummary",
+        required_fields=("/dailySteps",),
+        body=(
+            'Template("TwoSupportLayout@1",{},'
+            'Template("BatteryOverviewSupport@1",{}),'
+            'Template("ActivityOverviewSupport@1",{}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task, card_spec, (activity_binding, battery_binding), model,
+        enable_fusion_ball=False, trusted_template_candidate_ids=templates,
+    )
+    return a2ui_messages(output)
+
+
+@scenario("non_fusion__two_support_shared_skeleton")
+def _build_two_support_shared_skeleton() -> dict:
+    return asyncio.run(_render_two_support_shared_skeleton())
+
+
+def _build_legacy_shell(
+    children: tuple[Nested2Node, ...],
+    size: str = "2x2",
+    root_options: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    card = Nested2Node("Column", ("card", root_options or {"_id": "root", "padding": 12}), children)
+    snapshot = deepcopy(card)
+    wrapped = apply_content_safe_inset(card, size=size)
+    assert card == snapshot  # 输入树不得被原地修改（非输出结构的保留属性）
+    tersel = _serialize_node(wrapped) + ";"
+    a2ui = convert_tersel_to_a2ui(
+        tersel, size=size,
+        protocol_profile=A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile(),
+    )
+    return {
+        "returnedSameObject": wrapped is card,
+        "terselTree": tersel,
+        "a2uiMessages": [json.loads(line) for line in a2ui.splitlines() if line.strip()],
+    }
+
+
+@scenario("non_fusion__legacy_shell_no_children")
+def _build_legacy_no_children() -> dict[str, Any]:
+    return _build_legacy_shell(())
+
+
+@scenario("non_fusion__legacy_shell_single_text")
+def _build_legacy_single_text() -> dict[str, Any]:
+    return _build_legacy_shell((Nested2Node("Text", ("正文",), ()),))
+
+
+@scenario("non_fusion__legacy_shell_text_and_column")
+def _build_legacy_text_and_column() -> dict[str, Any]:
+    return _build_legacy_shell(
+        (Nested2Node("Text", ("标题",), ()), Nested2Node("Column", (), ()))
+    )
+
+
+@scenario("non_fusion__legacy_shell_non_2x2_size")
+def _build_legacy_non_2x2_size() -> dict[str, Any]:
+    return _build_legacy_shell(
+        (Nested2Node("Column", ({"_id": "template_root"},), ()),),
+        size="2x4", root_options={"_id": "root"},
+    )
+
+
+@pytest.mark.parametrize("component_type", ["Column", "Row", "Stack"])
+@pytest.mark.parametrize("padding", [None, 12, _PER_SIDE_PADDING])
+def test_non_fusion_marks_actual_skeleton_and_preserves_geometry(
+    component_type: str, padding: int | dict[str, int] | None,
 ) -> None:
-    card = Nested2Node("Column", ("card", {"_id": "root", "padding": 12}), children)
-    assert apply_content_safe_inset(card, size=size) is card
+    assert_golden_scenario(
+        f"non_fusion__{component_type.lower()}__{_padding_slug(padding)}"
+    )
 
 
 def test_unsupported_size_layout_is_unchanged() -> None:
@@ -205,100 +364,10 @@ async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
     assert all(event in actual_events for event in expected_events)
 
 
-@pytest.mark.asyncio
-async def test_two_support_compilation_marks_one_shared_skeleton() -> None:
-    templates = ("BatteryOverviewSupport@1", "ActivityOverviewSupport@1")
-    task = TaskSpec(
-        userQuery="显示手机电量、充电状态和今天步数",
-        size="2x2",
-        dataModelSchema={"data": {
-            "healthSport": {"dailySteps": _provider_field(6200, "integer")},
-            "phoneBattery": {
-                "batterySOC": _provider_field(82, "integer"),
-                "chargingStatusDesc": _provider_field("充电中", "string"),
-            },
-        }},
-    )
-    activity_binding = CandidateDataBinding(
-        capabilityId="GetHealthAndSportSummary", writeResultTo="/data/healthSport",
-        candidateOutputFields=["/dailySteps"],
-    )
-    battery_binding = CandidateDataBinding(
-        capabilityId="GetPhoneBatteryInfo", writeResultTo="/data/phoneBattery",
-        candidateOutputFields=["/batterySOC", "/chargingStatusDesc"],
-    )
-    card_spec = {
-        "title": "电量和活动", "description": "电量和步数", "suggestSize": "2x2",
-        "dataBindings": [{
-            "capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport",
-        }, {
-            "capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery",
-        }],
-    }
-
-    class TwoSupportModel(_FixedTemplateModel):
-        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "requiredOutputFieldsByCapability": {
-                    "GetHealthAndSportSummary": ["/dailySteps"],
-                    "GetPhoneBatteryInfo": ["/batterySOC", "/chargingStatusDesc"],
-                },
-                "action": [],
-            }
-
-    model = TwoSupportModel(
-        theme_id="2x2-two-support", component_id="BatteryOverview",
-        available_template_ids=templates, capability_id="GetHealthAndSportSummary",
-        required_fields=("/dailySteps",),
-        body=(
-            'Template("TwoSupportLayout@1",{},'
-            'Template("BatteryOverviewSupport@1",{}),'
-            'Template("ActivityOverviewSupport@1",{}));'
-        ),
-    )
-
-    output = await generate_template_a2ui(
-        task, card_spec, (activity_binding, battery_binding), model,
-        enable_fusion_ball=False, trusted_template_candidate_ids=templates,
-    )
-
-    messages = [json.loads(line) for line in output.a2ui.splitlines()]
-    components = messages[1].get("updateComponents", {}).get("components")
-    assert isinstance(components, list)
-    by_id = {}
-    for component in components:
-        component_id = component.get("id")
-        assert isinstance(component_id, str)
-        assert component_id not in by_id
-        by_id[component_id] = component
+def test_two_support_compilation_marks_one_shared_skeleton() -> None:
+    payload = _build_two_support_shared_skeleton()
+    components = payload["a2ui"][1]["updateComponents"]["components"]
+    by_id = {component["id"]: component for component in components}
     marked_ids = [key for key in by_id if key.startswith("__genui_render_component__")]
-    assert marked_ids == [_SKELETON_ID]
-    foreground = by_id.get("template_root")
-    assert foreground is not None
-    assert foreground.get("children") == [_SKELETON_ID]
-    skeleton = by_id.get(_SKELETON_ID)
-    assert skeleton is not None
-    assert skeleton.get("component") == "Column"
-    assert len(skeleton.get("children", [])) == 2
-    root = by_id.get("root")
-    assert root is not None
-    root_styles = root.get("styles")
-    assert isinstance(root_styles, dict)
-    assert root_styles.get("linearGradient") == {
-        "direction": "RightBottom",
-        "colors": [["#FFCBDDFE", 0], ["#FFF1F6FE", 1]],
-    }
-    support_children = skeleton.get("children")
-    assert isinstance(support_children, list)
-    for child_id in support_children:
-        support = by_id.get(child_id)
-        assert support is not None
-        styles = support.get("styles")
-        assert isinstance(styles, dict)
-        assert styles.get("backgroundColor") == "#CCFFFFFF"
-    for field in (
-        "/data/healthSport/dailySteps", "/data/phoneBattery/batterySOC",
-        "/data/phoneBattery/chargingStatusDesc",
-    ):
-        assert field in output.a2ui
-    assert "fusionBallBackground" not in by_id
+    assert marked_ids == [_SKELETON_ID]  # 共享骨架恰好一个防溢出标记（本测试的核心属性）
+    assert_golden_scenario("non_fusion__two_support_shared_skeleton")

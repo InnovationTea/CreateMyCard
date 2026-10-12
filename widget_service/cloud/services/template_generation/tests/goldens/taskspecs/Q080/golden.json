@@ -1,0 +1,820 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "description": "电量+健康+温度+充电器",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "出门续航"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.battery_leaf_fill",
+        "asset.bolt_fill",
+        "asset.heat_generation"
+      ],
+      "data": [
+        "GetPhoneBatteryInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "smart_charge_battery_health"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池健康页。",
+          "id": "event.open.settings.batteryHealth"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.battery_leaf_fill",
+        "asset.bolt_fill",
+        "asset.heat_generation"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batterySOC",
+            "/healthStatusDesc",
+            "/batteryTemperatureText",
+            "/pluggedTypeDesc"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.settings.MainAbility",
+              "bundleName": "com.huawei.hmos.settings",
+              "intentName": "Settings",
+              "uri": "smart_charge_battery_health"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.settings.batteryHealth"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "fusionBallBackground",
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#00000000",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer"
+              ],
+              "component": "Stack",
+              "id": "fusionBallBackground",
+              "styles": {
+                "alignContent": "topStart",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLarge"
+              ],
+              "component": "Stack",
+              "id": "fusionBallLargeSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "58.75%",
+                "width": "112.5%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallLarge",
+              "styles": {
+                "backgroundColor": "#FF1F9985",
+                "borderRadius": 210,
+                "clip": true,
+                "color": "#00000000",
+                "height": "446.808511%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "116.666667%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallMedium"
+              ],
+              "component": "Stack",
+              "id": "fusionBallMediumSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "175%",
+                "width": "50%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallMedium",
+              "styles": {
+                "backgroundColor": "#FF24B3B3",
+                "borderRadius": 160,
+                "clip": true,
+                "color": "#00000000",
+                "height": "114.285714%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "200%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallSmall"
+              ],
+              "component": "Stack",
+              "id": "fusionBallSmallSlot",
+              "styles": {
+                "alignContent": "bottomEnd",
+                "height": "137.5%",
+                "width": "121.875%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallSmall",
+              "styles": {
+                "backgroundColor": "#FF5AB38E",
+                "borderRadius": 100,
+                "clip": true,
+                "color": "#00000000",
+                "height": "90.909091%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "51.282051%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallGlassLayer",
+              "styles": {
+                "backdropBlur": {
+                  "radius": 210
+                },
+                "backgroundColor": "#0DFFFFFF",
+                "color": "#00000000",
+                "height": "matchParent",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__template_root"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1"
+              ],
+              "component": "Stack",
+              "id": "__genui_render_component__template_root",
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0"
+              ],
+              "component": "Stack",
+              "id": "root_1",
+              "styles": {
+                "alignContent": "topStart",
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "itemMargin": 4,
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "intentName": "Settings",
+                    "uri": "smart_charge_battery_health"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1",
+                "root_1_0_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "spaceBetween",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "电池状态",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FF1F4799",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 70,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0_1",
+                "root_1_0_0_0_1_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_0_1_0",
+              "styles": {
+                "alignContent": "center",
+                "flexShrink": 0,
+                "height": 44,
+                "width": 44
+              }
+            },
+            {
+              "component": "Progress",
+              "id": "root_1_0_0_0_1_0_0",
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "color": "#FFCCFFF6",
+                "height": 44,
+                "strokeWidth": 6,
+                "type": "ring",
+                "width": 44
+              },
+              "total": 100,
+              "value": "{{ ${/data/phoneBattery/batterySOC} }}"
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_0_1_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "height": 16,
+                "objectFit": "contain",
+                "width": 16
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_1_0",
+                "root_1_0_0_0_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_1_1",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 44,
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '' + ${/data/phoneBattery/batterySOC} + '%' }}",
+              "id": "root_1_0_0_0_1_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FF1F4799",
+                "fontSize": 16,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "剩余电量",
+              "id": "root_1_0_0_0_1_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4799",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_2_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0_2"
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/pluggedTypeDesc} }}",
+              "id": "root_1_0_0_0_2_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4799",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "end",
+                "layoutWeight": 1,
+                "padding": {
+                  "top": 20
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "backgroundColor": "#1A1F4799",
+                "borderRadius": 12,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0_0",
+                "root_1_0_0_1_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0_0_0",
+                "root_1_0_0_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batteryTemperatureText} }}",
+              "id": "root_1_0_0_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FF1F4799",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "电池温度",
+              "id": "root_1_0_0_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4799",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_1_0_0_1",
+              "src": "resources/base/media/heat_generation.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "backgroundColor": "#1A1F4799",
+                "borderRadius": 12,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0_0",
+                "root_1_0_0_1_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0_0_0",
+                "root_1_0_0_1_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "center",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "电池健康",
+              "id": "root_1_0_0_1_1_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FF1F4799",
+                "fontSize": 14,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/healthStatusDesc} }}",
+              "id": "root_1_0_0_1_1_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4799",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_1_1_0_1",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "styles": {
+                "fillColor": "#99CCFFF6",
+                "flexShrink": 0,
+                "height": 24,
+                "objectFit": "contain",
+                "width": 24
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "phoneBattery": {
+                "batterySOC": 68,
+                "batteryTemperatureText": "29.0 ℃",
+                "healthStatusDesc": "正常",
+                "pluggedTypeDesc": "未连接充电器"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心竖向闪电图标；适用：正在充电、快充、电能或闪电状态。",
+          "id": "asset.bolt_fill",
+          "src": "resources/base/media/bolt_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框温度计，底部为圆形感温泡，内部带弧形刻度；适用：温度、升温、制热或体感温度。",
+          "id": "asset.heat_generation",
+          "src": "resources/base/media/heat_generation.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batterySOC": {
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68,
+              "type": "integer"
+            },
+            "batteryTemperatureText": {
+              "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+              "sampleValue": "29.0 ℃",
+              "type": "string"
+            },
+            "healthStatusDesc": {
+              "description": "当前设备电池的物理健康状态文本描述。",
+              "sampleValue": "正常",
+              "type": "string"
+            },
+            "pluggedTypeDesc": {
+              "description": "当前设备连接的充电器类型文本描述。",
+              "sampleValue": "未连接充电器",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "smart_charge_battery_health"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的电池健康页。",
+          "id": "event.open.settings.batteryHealth"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "做个卡片，查看电量、电池健康、电池温度和充电器，用电量进度环表示电量，点击查看电池健康设置。"
+    }
+  },
+  "caseId": "Q080",
+  "status": "success",
+  "suggestSize": "2x4"
+}

@@ -1,0 +1,24 @@
+{
+  "optional_missing": {
+    "candidates": [
+      "WeatherOverviewWindHero@1",
+      "WeatherOverviewWindFull@1"
+    ]
+  },
+  "optional_present": {
+    "candidates": [
+      "WeatherOverviewWindHero@1",
+      "WeatherOverviewWindFull@1"
+    ]
+  },
+  "required_missing": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output fields must come from candidates"
+  },
+  "required_present": {
+    "candidates": [
+      "WeatherOverviewWindHero@1",
+      "WeatherOverviewWindFull@1"
+    ]
+  }
+}

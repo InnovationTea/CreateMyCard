@@ -1,0 +1,20 @@
+{
+  "recordings": [
+    {
+      "key": "1f468586374a343be2d1f8de8ead34f1d9fe95cdd4056a232490730f3f86b757",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewThreeMeetingsFull@1\", {}), Template(\"BatteryOverviewPercentStatusCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    },
+    {
+      "key": "67dc072f570960ccf5b7bcb5028b3d1747f3ed79ea7c6880237a0aa45ad2cb86",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewThreeMeetingsFull@1\", {}), Template(\"BatteryOverviewPercentStatusCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"CompactSubtitleAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
+    },
+    {
+      "key": "6a32a18d6b1f4303c599b9383b3a10c0bc1abe475f9539142e0b2efdf9af6555",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewThreeMeetingsFull@1\", {}), Template(\"BatteryOverviewPercentStatusCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"CompactSubtitleAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
+    },
+    {
+      "key": "cf78878cb88af2170ecd276e2a60f89159a45c28f3f6b10196f37f39b15b6a5f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/1/title\",\"/events/1/dtStart\",\"/events/1/eventLocation\",\"/events/2/title\",\"/events/2/dtStart\",\"/events/2/eventLocation\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

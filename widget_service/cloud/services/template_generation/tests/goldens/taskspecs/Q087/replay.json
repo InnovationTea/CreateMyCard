@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "926233b29852b75309a2c9f05b8b6adb533cf87ec1491f4daede026fd9f5bf9e",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"GetCalendarEvents\": [\"/events/0/dtStart\", \"/events/0/eventLocation\"], \"GetHealthAndSportSummary\": [\"/dailySteps\", \"/sleepScore\"]}, \"primaryOutputFieldByCapability\": {}, \"action\": [\"event.open.music.favorite\"], \"allowCalendarViewFallback\": true}"
+    },
+    {
+      "key": "f3fff4bd7e8e97077a595cc2654e32f2379b297625627526eaa154ade6ce3a17",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ScheduleOverviewMeetingSenderFull@1\", {}), Template(\"ActivityOverviewYesterdayStepsSleepCompact@1\", {}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\", \"icon\": \"resources/base/media/music_fill.svg\"}));"
+    }
+  ]
+}

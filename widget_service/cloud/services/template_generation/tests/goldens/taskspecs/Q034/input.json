@@ -1,0 +1,103 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个天气卡片，看看成都和上海各多少度、什么天气，能直接在卡片上看到。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "上海市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather1",
+        "candidateOutputFields": [
+          "/current/temperatureC",
+          "/current/condition"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "成都市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather2",
+        "candidateOutputFields": [
+          "/current/temperatureC",
+          "/current/condition"
+        ]
+      }
+    ],
+    "title": "双城天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "两地温度天气",
+    "candidateAssetIds": [
+      "asset.icon_weather_thermometer"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "034",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个天气卡片，看看成都和上海各多少度、什么天气，能直接在卡片上看到。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个天气卡片，看看成都和上海各多少度、什么天气，能直接在卡片上看到。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "上海市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather1",
+      "candidateOutputFields": [
+        "/current/temperatureC",
+        "/current/condition"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "成都市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather2",
+      "candidateOutputFields": [
+        "/current/temperatureC",
+        "/current/condition"
+      ]
+    }
+  ],
+  "title": "双城天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "两地温度天气",
+  "candidateAssetIds": [
+    "asset.icon_weather_thermometer"
+  ]
+}

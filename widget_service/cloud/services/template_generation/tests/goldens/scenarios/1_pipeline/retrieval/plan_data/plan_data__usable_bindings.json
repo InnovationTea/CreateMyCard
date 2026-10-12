@@ -1,0 +1,37 @@
+{
+  "available": [
+    "/data/weather/current/airQuality",
+    "/data/weather/current/coldLevel",
+    "/data/weather/current/condition",
+    "/data/weather/current/temperatureText",
+    "/data/weather/location/districtName",
+    "/data/weather/location/prefectureName"
+  ],
+  "dual_root": [
+    "/data/weather1/current/condition",
+    "/data/weather1/current/temperatureC",
+    "/data/weather2/current/condition",
+    "/data/weather2/current/temperatureC"
+  ],
+  "missing": [
+    "/data/weather/current/coldLevel",
+    "/data/weather/current/condition",
+    "/data/weather/current/temperatureText",
+    "/data/weather/location/districtName",
+    "/data/weather/location/prefectureName"
+  ],
+  "not_candidate": [
+    "/data/weather/current/coldLevel",
+    "/data/weather/current/condition",
+    "/data/weather/current/temperatureText",
+    "/data/weather/location/districtName",
+    "/data/weather/location/prefectureName"
+  ],
+  "wrong_type": [
+    "/data/weather/current/coldLevel",
+    "/data/weather/current/condition",
+    "/data/weather/current/temperatureText",
+    "/data/weather/location/districtName",
+    "/data/weather/location/prefectureName"
+  ]
+}

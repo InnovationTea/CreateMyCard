@@ -1,0 +1,11 @@
+{
+  "identical": true,
+  "withVariant": [
+    "BatteryOverviewChargingProgressHero@1",
+    "BatteryOverviewFull@1"
+  ],
+  "withoutVariant": [
+    "BatteryOverviewChargingProgressHero@1",
+    "BatteryOverviewFull@1"
+  ]
+}

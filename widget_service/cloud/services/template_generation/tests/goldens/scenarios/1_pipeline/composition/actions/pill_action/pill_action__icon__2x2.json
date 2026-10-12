@@ -1,0 +1,36 @@
+{
+  "children": [
+    {
+      "children": [],
+      "component": "Image",
+      "values": [
+        "resources/base/media/battery_leaf_fill.svg",
+        {
+          "fillColor": "#FF1F4799",
+          "height": 16,
+          "objectFit": "contain",
+          "width": 16
+        }
+      ]
+    }
+  ],
+  "component": "Stack",
+  "values": [
+    {
+      "_boundTemplateAction": "event.setPowerSavingMode",
+      "alignContent": "center",
+      "backgroundColor": "#331F4799",
+      "borderRadius": 15,
+      "height": 30,
+      "onClick": [
+        {
+          "args": {
+            "intentName": "SetPowerSavingMode"
+          },
+          "call": "clickToIntent"
+        }
+      ],
+      "width": 30
+    }
+  ]
+}

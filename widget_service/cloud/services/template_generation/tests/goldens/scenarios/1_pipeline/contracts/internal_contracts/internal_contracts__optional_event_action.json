@@ -1,0 +1,16 @@
+{
+  "blueprint": {
+    "onClickKind": "event-action",
+    "parameterKind": "optional-parameter"
+  },
+  "null_action_id": null,
+  "with_action_id": [
+    {
+      "args": {
+        "eventName": "event.open.weather"
+      },
+      "call": "sendToAssistant"
+    }
+  ],
+  "without_action_id": null
+}

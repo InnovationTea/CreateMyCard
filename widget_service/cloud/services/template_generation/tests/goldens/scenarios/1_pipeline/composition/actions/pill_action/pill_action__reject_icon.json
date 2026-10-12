@@ -1,0 +1,26 @@
+{
+  "2x2__empty": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  },
+  "2x2__icon": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  },
+  "2x2__none": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  },
+  "2x4__empty": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  },
+  "2x4__icon": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  },
+  "2x4__none": {
+    "errorType": "TerselConversionError",
+    "message": "Template params are invalid for PillAction@1/default: Additional properties are not allowed ('icon' was unexpected)"
+  }
+}

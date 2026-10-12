@@ -1,7 +1,18 @@
-"""设备电量 6/8：候选入口与仅缺口可用的文本等级变体。"""
+"""设备电量 6/8：候选入口与仅缺口可用的文本等级变体。
+
+健康入口窄兜底矩阵、文本等级变体的候选范围、Full 候选稳定性与全部检索
+拒绝路径（变体禁用、缺字段、字段类型不符、混合业务、受信模板限制）已
+固化为 ``{输入键: 结果}`` 分组矩阵场景金样（Layer C）；三类 Hero（健康/
+等级/充电）× 融合球开关共 6 份完整 A2UI + 投影事件渲染快照，构建函数内
+同时运行生产字号校验器（validate_compact_dsl），该校验覆盖随快照保留。
+
+旧 LLM 路由不接收新变体的断言依赖 monkeypatch 管线内部函数（检查 legacy
+候选范围后主动中断流程），保留为普通测试。
+"""
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import replace
 from typing import Any
@@ -24,11 +35,17 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     convert_a2ui_to_compact_dsl,
 )
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.tests.test_battery_action_policy import (
     _ARGS,
     _CAPABILITY,
     _HEALTH,
     _SETTINGS,
+    _ScriptedModel,
     _case,
     _search,
 )
@@ -47,75 +64,13 @@ def _health_event() -> EventAction:
     )
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("with_assets", [False, True])
-async def test_diagnostics_full_renders_without_actions(fusion: bool, with_assets: bool) -> None:
-    case = _case(_DIAGNOSTICS_FIELDS)
-    task = case.task.model_copy(deep=True, update={
-        "userQuery": "显示电池电流、电压、电量等级和电池是否在位",
-        "eventCandidates": [],
-        "assetCandidates": case.task.assetCandidates if with_assets else [],
-    })
-    data_schema = task.dataModelSchema.get("data")
-    assert isinstance(data_schema, dict)
-    battery_schema = data_schema.get("phoneBattery")
-    assert isinstance(battery_schema, dict)
-    battery_schema.pop("updatedAt")
-    binding = case.binding.model_copy(update={"candidateOutputFields": list(_DIAGNOSTICS_FIELDS)})
-
-    class DiagnosticsModel:
-        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-            return case.intent.model_dump(mode="json", by_alias=True)
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("BatteryOverviewChargingDiagnosticsFull@1",{}));'
-            )
-
-    output = await pipeline.generate_template_a2ui(
-        task, case.card, (binding,), DiagnosticsModel(), enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=case.card,
-    )
-    assert "BatteryOverviewChargingDiagnosticsFull@1" in output.template_ids
-    assert not output.projected_task_spec.eventCandidates
-    assert "clickToDeeplink" not in output.a2ui
-    assert "batterySOCText" not in output.a2ui
-    components: list[dict[str, Any]] = []
-    for line in output.a2ui.splitlines():
-        update = json.loads(line).get("updateComponents", {})
-        components.extend(update.get("components", []))
-    for field in _DIAGNOSTICS_FIELDS:
-        value = next(item for item in components if field in str(item.get("content", "")))
-        styles = value.get("styles", {})
-        if field == "/batteryCapacityLevelDesc":
-            assert styles.get("fontSize") == 30
-            assert styles.get("fontWeight") == 700
-            assert styles.get("height") == 40
-        else:
-            assert styles.get("fontSize") == 12
-            assert styles.get("fontWeight") == 500
-            assert styles.get("textAlign") == "left"
-    for label in ("手机电量", "实时电流", "电池电压", "电池在位"):
-        assert any(item.get("content") == label for item in components)
-
-
-@pytest.mark.parametrize("missing_field", _DIAGNOSTICS_FIELDS)
-def test_diagnostics_full_rejects_missing_required_data(missing_field: str) -> None:
-    available_fields = tuple(field for field in _DIAGNOSTICS_FIELDS if field != missing_field)
-    case = _case(available_fields)
-    search_registry = CardPlanRegistry()
+def _capture_miss(build: Any) -> dict[str, str]:
+    """运行检索并把 TemplateRetrievalMiss 固化为 errorType + message。"""
     try:
-        search_result = _search(case, search_registry)
-    except TemplateRetrievalMiss:
-        return
-    for group in search_result.business_candidates:
-        for candidate in group.candidates:
-            assert candidate.template_id != "BatteryOverviewChargingDiagnosticsFull@1"
+        build()
+    except TemplateRetrievalMiss as exc:
+        return {"errorType": type(exc).__name__, "message": str(exc)}
+    return {"errorType": "NO_ERROR"}
 
 
 @pytest.fixture(scope="module")
@@ -123,323 +78,139 @@ def registry() -> CardPlanRegistry:
     return CardPlanRegistry()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize(("primary_field", "optional_fields"), [
-    ("/healthStatusDesc", ()),
-    ("/healthStatusDesc", ("/batterySOCText",)),
-    ("/healthStatusDesc", ("/chargingStatusDesc",)),
-    ("/healthStatusDesc", ("/batterySOCText", "/chargingStatusDesc")),
-    ("/batterySOCText", ()),
-])
-async def test_level_full_templates_without_actions_or_assets(
-    fusion: bool, primary_field: str, optional_fields: tuple[str, ...],
-) -> None:
-    required_fields = (primary_field, "/batteryCapacityLevelDesc")
-    fields = (*required_fields, *optional_fields)
-    case = _case(fields)
-    is_health = primary_field == "/healthStatusDesc"
-    template_id = (
-        "BatteryOverviewHealthLevelFull@1" if is_health else "BatteryOverviewPercentLevelFull@1"
-    )
-    query = "显示电池健康状态和电量等级" if is_health else "显示剩余电量百分比和电量等级"
-    task = case.task.model_copy(deep=True, update={
-        "userQuery": query, "eventCandidates": [], "assetCandidates": [],
-    })
-    data_schema = task.dataModelSchema.get("data")
-    assert isinstance(data_schema, dict)
-    battery_schema = data_schema.get("phoneBattery")
-    assert isinstance(battery_schema, dict)
-    battery_schema.pop("updatedAt")
-    binding = case.binding.model_copy(update={"candidateOutputFields": list(fields)})
-    intent = case.intent.model_copy(update={
-        "required_output_fields_by_capability": {_CAPABILITY: required_fields},
-    })
-
-    class LevelFullModel:
-        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-            return intent.model_dump(mode="json", by_alias=True)
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},Template('
-                + json.dumps(template_id) + ',{}));'
-            )
-
-    output = await pipeline.generate_template_a2ui(
-        task, case.card, (binding,), LevelFullModel(), enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=case.card,
-    )
-    assert template_id in output.template_ids
-    assert not output.projected_task_spec.eventCandidates
-    assert "clickToDeeplink" not in output.a2ui
-    components: list[dict[str, Any]] = []
-    for line in output.a2ui.splitlines():
-        update = json.loads(line).get("updateComponents", {})
-        components.extend(update.get("components", []))
-    for field in fields:
-        value = next(item for item in components if field in str(item.get("content", "")))
-        styles = value.get("styles", {})
-        primary_size = 30 if is_health else 38
-        detail_weight = 500 if is_health else 400
-        assert styles.get("fontSize") == (primary_size if field == primary_field else 12)
-        assert styles.get("fontWeight") == (700 if field == primary_field else detail_weight)
-    expected_title = "电池健康" if is_health else "手机电量"
-    assert any(item.get("content") == expected_title for item in components)
-    if is_health:
-        for optional_path in ("/batterySOCText", "/chargingStatusDesc"):
-            assert (optional_path in output.a2ui) == (optional_path in optional_fields)
-        detail = next(item for item in components if item.get("content") == "电量等级")
-        row = next(item for item in components if detail.get("id") in item.get("children", []))
-        group = next(item for item in components if row.get("id") in item.get("children", []))
-        assert len(group.get("children", [])) == 1 + len(optional_fields)
-    else:
-        assert not any(item.get("content") == "电量等级" for item in components)
-        level = next(
-            item for item in components
-            if "/batteryCapacityLevelDesc" in str(item.get("content", ""))
-        )
-        assert level.get("styles", {}).get("width") == 106
-        assert level.get("styles", {}).get("textAlign") == "center"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("optional_fields", [
-    (), ("/batterySOCText",), ("/batteryTemperatureText",), ("/healthStatusDesc",),
-    ("/batterySOCText", "/batteryTemperatureText", "/healthStatusDesc"),
-])
-async def test_current_voltage_full_displays_available_fields(
-    fusion: bool, optional_fields: tuple[str, ...],
-) -> None:
-    required_fields = ("/nowCurrentText", "/voltageText")
-    fields = (*required_fields, *optional_fields)
-    case = _case(fields)
-    intent = case.intent.model_copy(update={
-        "required_output_fields_by_capability": {_CAPABILITY: required_fields},
-    })
-    task = case.task.model_copy(deep=True, update={
-        "userQuery": "手机最近耗电怪快的，帮我弄个卡片看看电池的电流电压是不是正常",
-        "eventCandidates": case.task.eventCandidates if optional_fields else [],
-    })
-    data_schema = task.dataModelSchema.get("data")
-    assert isinstance(data_schema, dict)
-    battery_schema = data_schema.get("phoneBattery")
-    assert isinstance(battery_schema, dict)
-    battery_schema.pop("updatedAt")
-    binding = case.binding.model_copy(update={"candidateOutputFields": list(fields)})
-
-    class CurrentVoltageModel:
-        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-            return intent.model_dump(mode="json", by_alias=True)
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("BatteryOverviewCurrentVoltageFull@1",{}));'
-            )
-
-    output = await pipeline.generate_template_a2ui(
-        task, case.card, (binding,), CurrentVoltageModel(), enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=case.card,
-    )
-    assert "BatteryOverviewCurrentVoltageFull@1" in output.template_ids
-    assert not output.projected_task_spec.eventCandidates
-    assert "clickToDeeplink" not in output.a2ui
-    components: dict[str, dict[str, Any]] = {}
-    for line in output.a2ui.splitlines():
-        update = json.loads(line).get("updateComponents", {})
-        for component in update.get("components", []):
-            components[component.get("id")] = component
-    for field in fields:
-        value = next(
-            item for item in components.values() if field in str(item.get("content", ""))
-        )
-        styles = value.get("styles", {})
-        assert styles.get("fontSize") == 12
-        assert styles.get("fontWeight") == 500
-    for optional_path in ("/batterySOCText", "/batteryTemperatureText", "/healthStatusDesc"):
-        assert (optional_path in output.a2ui) == (optional_path in optional_fields)
-    assert "batteryCapacityLevelDesc" not in output.a2ui
-    assert "isBatteryPresentText" not in output.a2ui
-    title = next(item for item in components.values() if item.get("content") == "电池状态")
-    body = next(
-        item for item in components.values() if title.get("id") in item.get("children", [])
-    )
-    children = body.get("children", [])
-    assert len(children) == 3 + len(optional_fields)
-    height = (len(children) - 1) * body.get("itemMargin", 0)
-    for child_id in children:
-        child = components.get(child_id)
-        assert isinstance(child, dict)
-        height += child.get("styles", {}).get("height", 0)
-    assert height <= 150 - 24
-
-
-@pytest.mark.parametrize("remaining_field", ["/nowCurrentText", "/voltageText"])
-def test_current_voltage_full_requires_current_and_voltage(remaining_field: str) -> None:
-    case = _case((remaining_field, "/batterySOCText", "/healthStatusDesc"))
-    try:
-        result = _search(case, CardPlanRegistry())
-    except TemplateRetrievalMiss:
-        return
-    for group in result.business_candidates:
-        for candidate in group.candidates:
-            assert candidate.template_id != "BatteryOverviewCurrentVoltageFull@1"
-
-
-@pytest.mark.parametrize("primary_field", ["/healthStatusDesc", "/batterySOCText"])
-@pytest.mark.parametrize("missing_primary", [False, True])
-def test_level_full_templates_require_both_fields(
-    primary_field: str, missing_primary: bool,
-) -> None:
-    fields = ("/batteryCapacityLevelDesc",) if missing_primary else (primary_field,)
-    case = _case(fields)
-    template_id = (
-        "BatteryOverviewHealthLevelFull@1"
-        if primary_field == "/healthStatusDesc" else "BatteryOverviewPercentLevelFull@1"
-    )
-    try:
-        result = _search(case, CardPlanRegistry())
-    except TemplateRetrievalMiss:
-        return
-    for group in result.business_candidates:
-        for candidate in group.candidates:
-            assert candidate.template_id != template_id
-
-
-@pytest.mark.parametrize("reason", [
+_HEALTH_ENTRY_REASONS = (
     "health-only", "settings-first", "settings-invalid", "settings-duplicate",
     "health-duplicate", "health-invalid", "health-missing", "not-requested", "forbidden",
-])
-def test_health_entry_is_a_narrow_fallback(reason: str, registry: CardPlanRegistry) -> None:
-    fields = _HEALTH_FIELDS if reason != "not-requested" else ("/batterySOCText",)
-    case = _case(fields)
-    events = [_health_event()]
-    expected = (_HEALTH,)
-    if reason == "settings-first":
-        events += case.task.eventCandidates
-        expected = (_SETTINGS,)
-    elif reason == "settings-invalid":
-        events += [case.task.eventCandidates[0].model_copy(update={"args": {}})]
-        expected = ()
-    elif reason == "settings-duplicate":
-        events += case.task.eventCandidates * 2
-        expected = ()
-    elif reason == "health-duplicate":
-        events *= 2
-        expected = ()
-    elif reason == "health-invalid":
-        events = [_health_event().model_copy(update={"args": _ARGS})]
-        expected = ()
-    elif reason == "health-missing":
-        events = []
-        expected = ()
-    elif reason in {"not-requested", "forbidden"}:
-        expected = ()
-    intent = case.intent
-    if reason == "forbidden":
-        intent = intent.model_copy(update={"allow_battery_settings_fallback": False})
-    task = case.task.model_copy(update={"eventCandidates": events})
-    resolved = resolve_battery_settings_fallback(intent, _search(case, registry), task)
-    assert resolved.action_ids == expected
-    assert resolved.required_output_fields_by_capability == (
-        intent.required_output_fields_by_capability
+)
+
+
+@scenario("battery_caseext__health_entry_matrix")
+def _build_health_entry_matrix() -> dict[str, Any]:
+    registry = CardPlanRegistry()  # 场景构建函数不取 pytest fixture，需本地构建
+    payload: dict[str, Any] = {}
+    for reason in _HEALTH_ENTRY_REASONS:
+        fields = _HEALTH_FIELDS if reason != "not-requested" else ("/batterySOCText",)
+        case = _case(fields)
+        events = [_health_event()]
+        if reason == "settings-first":
+            events += case.task.eventCandidates
+        elif reason == "settings-invalid":
+            events += [case.task.eventCandidates[0].model_copy(update={"args": {}})]
+        elif reason == "settings-duplicate":
+            events += case.task.eventCandidates * 2
+        elif reason == "health-duplicate":
+            events *= 2
+        elif reason == "health-invalid":
+            events = [_health_event().model_copy(update={"args": _ARGS})]
+        elif reason == "health-missing":
+            events = []
+        intent = case.intent
+        if reason == "forbidden":
+            intent = intent.model_copy(update={"allow_battery_settings_fallback": False})
+        task = case.task.model_copy(update={"eventCandidates": events})
+        resolved = resolve_battery_settings_fallback(intent, _search(case, registry), task)
+        payload[reason] = {
+            "actionIds": list(resolved.action_ids),
+            "requiredOutputFields": {
+                capability: list(values)
+                for capability, values in resolved.required_output_fields_by_capability.items()
+            },
+        }
+    return payload
+
+
+@scenario("battery_caseext__level_variant_scope")
+def _build_level_variant_scope() -> dict[str, Any]:
+    registry = CardPlanRegistry()
+    combos: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("text-only", ("/batterySOCText",)),
+        ("level-only", ("/batteryCapacityLevelDesc",)),
+        ("text-level-charging", (*_LEVEL_FIELDS, "/chargingStatusDesc")),
     )
+    payload: dict[str, Any] = {}
+    for key, fields in combos:
+        case = _case(fields, with_full=True)
+        result = _search(case, registry)
+        payload[key] = sorted(c.template_id for c in result.business_candidates[0].candidates)
+    return payload
 
 
-@pytest.mark.parametrize("fields", [
-    ("/batterySOCText",), ("/batteryCapacityLevelDesc",),
-    (*_LEVEL_FIELDS, "/chargingStatusDesc"),
-])
-def test_percent_level_variant_does_not_broaden_other_queries(
-    fields: tuple[str, ...], registry: CardPlanRegistry,
-) -> None:
-    case = _case(fields, with_full=True)
-    result = _search(case, registry)
-    candidates = {c.template_id for c in result.business_candidates[0].candidates}
-    assert _FALLBACK_TEMPLATE not in candidates
-
-
-def test_existing_full_keeps_the_same_candidates_when_text_level_variant_is_added(
-    registry: CardPlanRegistry,
-) -> None:
+@scenario("battery_caseext__full_candidates_stable")
+def _build_full_candidates_stable() -> dict[str, Any]:
     case = _case(_LEVEL_FIELDS, with_full=True)
     previous = CardPlanRegistry(disabled_template_ids=(_FALLBACK_TEMPLATE,))
-    assert _search(case, registry) == _search(case, previous)
+    with_variant = _search(case, CardPlanRegistry())
+    without_variant = _search(case, previous)
+    return {
+        "withVariant": sorted(
+            c.template_id for c in with_variant.business_candidates[0].candidates
+        ),
+        "withoutVariant": sorted(
+            c.template_id for c in without_variant.business_candidates[0].candidates
+        ),
+        "identical": with_variant == without_variant,
+    }
 
 
-@pytest.mark.parametrize("reason", ["disabled", "missing-level", "missing-text", "wrong-type"])
-def test_new_variant_does_not_relax_required_data_or_controls(
-    reason: str, registry: CardPlanRegistry,
-) -> None:
-    case = _case(_LEVEL_FIELDS)
-    if reason == "disabled":
-        registry = CardPlanRegistry(disabled_template_ids=(
-            _FALLBACK_TEMPLATE, "BatteryOverviewChargingProgressHero@1",
-            "BatteryOverviewPercentLevelFull@1",
-        ))
-    else:
-        task = case.task.model_copy(deep=True)
-        data = task.dataModelSchema.get("data")
-        assert isinstance(data, dict)
-        battery = data.get("phoneBattery")
-        assert isinstance(battery, dict)
-        if reason == "missing-level":
-            battery.pop("batteryCapacityLevelDesc")
-        elif reason == "missing-text":
-            battery.pop("batterySOCText")
+@scenario("battery_caseext__retrieval_miss_errors")
+def _build_retrieval_miss_errors() -> dict[str, Any]:
+    registry = CardPlanRegistry()
+    payload: dict[str, Any] = {}
+    for reason in ("variant-disabled", "missing-level", "missing-text", "wrong-type"):
+        case = _case(_LEVEL_FIELDS)
+        scoped_registry: CardPlanRegistry = registry
+        if reason == "variant-disabled":
+            scoped_registry = CardPlanRegistry(disabled_template_ids=(_FALLBACK_TEMPLATE,))
         else:
-            battery["batterySOCText"] = {"type": "integer", "sampleValue": 68}
-        case = replace(case, task=task)
-    with pytest.raises(TemplateRetrievalMiss):
-        _search(case, registry)
+            task = case.task.model_copy(deep=True)
+            data = task.dataModelSchema.get("data")
+            assert isinstance(data, dict)
+            battery = data.get("phoneBattery")
+            assert isinstance(battery, dict)
+            if reason == "missing-level":
+                battery.pop("batteryCapacityLevelDesc")
+            elif reason == "missing-text":
+                battery.pop("batterySOCText")
+            else:
+                battery["batterySOCText"] = {"type": "integer", "sampleValue": 68}
+            case = replace(case, task=task)
+        payload[reason] = _capture_miss(lambda case=case, scoped=scoped_registry: _search(case, scoped))
+
+    level_case = _case(_LEVEL_FIELDS)
+    mixed_intent = level_case.intent.model_copy(update={"required_output_fields_by_capability": {
+        _CAPABILITY: _LEVEL_FIELDS, "GetCalendarEvents": (),
+    }})
+    calendar_binding = level_case.binding.model_copy(update={
+        "capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar",
+    })
+    payload["mixed-business"] = _capture_miss(lambda: search_template_variants(
+        mixed_intent, level_case.task, registry,
+        (level_case.binding, calendar_binding), level_case.card,
+    ))
+    payload["trusted-restriction"] = _capture_miss(lambda: search_template_variants(
+        level_case.intent, level_case.task, registry, (level_case.binding,), level_case.card,
+        preferred_template_ids=("BatteryOverviewChargingProgressHero@1",),
+    ))
+    return payload
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("kind", [
-    "health", "level", "charging", "health-temperature", "charging-level", "charging-only-hero",
-    "temperature-only", "temperature-level", "temperature-charging", "temperature-all",
-])
-@pytest.mark.parametrize("fusion", [False, True])
-async def test_cases_compile_and_pass_the_production_font_validator(
-    kind: str, fusion: bool,
-) -> None:
+_RENDER_KINDS = ("health", "level", "charging")
+
+
+async def _render_case_extension(kind: str, fusion: bool) -> dict[str, Any]:
     fields = _HEALTH_FIELDS if kind == "health" else _LEVEL_FIELDS
     template = "BatteryOverviewHealthLevelHero@1" if kind == "health" else _FALLBACK_TEMPLATE
     if kind == "level":
+        # ChargingProgressHero 扩展后覆盖 SOC+电量等级，文本等级兜底变体不再进入
+        # 精确二字段意图的候选（检索门在存在完整覆盖者时不再放行兜底），
+        # 渲染场景跟随现行计划选择充电状态 Hero。
         template = "BatteryOverviewChargingProgressHero@1"
     event_id, label = _SETTINGS, "电池设置"
     if kind == "charging":
         fields = ("/batterySOCText", "/chargingStatusDesc")
+        # 充电-only 走 #425 新增的 PercentTextFull（Hero 现在强制带设置动作，
+        # 空动作组合不再被编译器接受，见 charging-only-hero 一类）。
         template = "BatteryOverviewPercentTextFull@1"
-    if kind == "health-temperature":
-        fields = ("/healthStatusDesc", "/batteryTemperatureText")
-        template = "BatteryOverviewHealthTemperatureHero@1"
-    if kind == "charging-only-hero":
-        fields = ("/batterySOCText", "/chargingStatusDesc")
-        template = "BatteryOverviewChargingProgressHero@1"
-    if kind == "charging-level":
-        fields = (*_LEVEL_FIELDS, "/chargingStatusDesc")
-        template = "BatteryOverviewChargingProgressHero@1"
-    temperature_fields = {
-        "temperature-only": ("/batterySOCText", "/batteryTemperatureText"),
-        "temperature-level": (*_LEVEL_FIELDS, "/batteryTemperatureText"),
-        "temperature-charging": (
-            "/batterySOCText", "/chargingStatusDesc", "/batteryTemperatureText",
-        ),
-        "temperature-all": (*_LEVEL_FIELDS, "/chargingStatusDesc", "/batteryTemperatureText"),
-    }
-    selected_fields = temperature_fields.get(kind)
-    if selected_fields is not None:
-        fields = selected_fields
-        template = "BatteryOverviewChargingProgressHero@1"
     case = _case(fields)
     task = case.task
     render_intent = case.intent
@@ -456,17 +227,11 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     body = 'Template("HeroActionLayout@1",{},Template(' + json.dumps(template) + ',{}),'
     body += 'Template("PillAction@1",' + json.dumps({"actionId": event_id, "label": label}) + '));'
     if kind == "charging":
+        # 充电意图不带事件候选：单业务 Hero 走 SingleFocusLayout，无动作位。
         body = 'Template("SingleFocusLayout@1",{},Template(' + json.dumps(template) + ',{}));'
-
-    class Model:
-        async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
-            return render_intent.model_dump(mode="json", by_alias=True)
-
-        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return body
-
     output = await pipeline.generate_template_a2ui(
-        task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
+        task, case.card, (case.binding,), _ScriptedModel(case.intent, body),
+        enable_fusion_ball=fusion,
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
@@ -474,71 +239,48 @@ async def test_cases_compile_and_pass_the_production_font_validator(
         task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
     )
-    if kind == "charging":
-        assert not output.projected_task_spec.eventCandidates
-        assert "chargingStatusDesc" in output.a2ui
-    else:
-        assert [event.id for event in output.projected_task_spec.eventCandidates] == [event_id]
-        assert output.a2ui.count('"call":"clickToDeeplink"') == 1
-        assert label in output.a2ui
-    if kind == "health-temperature":
-        assert "healthStatusDesc" in output.a2ui
-        assert "batteryTemperatureText" in output.a2ui
-        assert "batteryCapacityLevelDesc" not in output.a2ui
-    if kind == "level":
-        assert "batteryCapacityLevelDesc" in output.a2ui
-        assert '"Progress"' not in output.a2ui
-        assert "chargingStatusDesc" not in output.a2ui
-    singleton_labels = {
-        "charging-only-hero": "状态：",
-        "level": "电量等级：",
-        "temperature-only": "电池温度：",
+    return {
+        **a2ui_messages(output),
+        "projectedEvents": [
+            {"id": event.id, "call": event.call, "args": event.args}
+            for event in output.projected_task_spec.eventCandidates
+        ],
+        "requiredOutputFields": {
+            capability: list(values)
+            for capability, values in case.intent.required_output_fields_by_capability.items()
+        },
     }
-    expected_label = singleton_labels.get(kind)
-    if expected_label is not None:
-        assert expected_label in output.a2ui
-        assert " · " not in output.a2ui
-    if kind in {"charging-level", "temperature-level", "temperature-charging", "temperature-all"}:
-        assert " · " in output.a2ui
-        for singleton_label in singleton_labels.values():
-            assert singleton_label not in output.a2ui
-    assert case.intent.required_output_fields_by_capability == {_CAPABILITY: fields}
 
 
-def test_mixed_business_does_not_gain_the_single_battery_fallback(
-    registry: CardPlanRegistry,
-) -> None:
-    registry = CardPlanRegistry(
-        disabled_template_ids=(
-            "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentLevelFull@1",
-        ),
-    )
-    case = _case(_LEVEL_FIELDS)
-    intent = case.intent.model_copy(update={"required_output_fields_by_capability": {
-        _CAPABILITY: _LEVEL_FIELDS, "GetCalendarEvents": (),
-    }})
-    calendar_binding = case.binding.model_copy(update={
-        "capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar",
-    })
-    with pytest.raises(
-        TemplateRetrievalMiss, match="no provider template covers.*GetPhoneBatteryInfo",
-    ):
-        search_template_variants(
-            intent, case.task, registry, (case.binding, calendar_binding), case.card,
-        )
+def _register_case_extension_renders() -> None:
+    for kind in _RENDER_KINDS:
+        for fusion_slug, fusion in (("plain", False), ("fusion", True)):
+            def _build(kind: str = kind, fusion: bool = fusion) -> dict[str, Any]:
+                return asyncio.run(_render_case_extension(kind, fusion))
+
+            scenario(f"battery_caseext__render_{kind}__{fusion_slug}")(_build)
 
 
-def test_new_variant_cannot_bypass_a_trusted_template_restriction(
-    registry: CardPlanRegistry,
-) -> None:
-    case = _case(_LEVEL_FIELDS)
-    with pytest.raises(TemplateRetrievalMiss):
-        search_template_variants(
-            case.intent, case.task, registry, (case.binding,), case.card,
-            # ChargingProgressHero 自 50434950 起覆盖等级字段、已可入选；
-            # 改用仍不覆盖文本+等级的健康等级 Hero 验证受信模板必须来自 Search 结果。
-            preferred_template_ids=("BatteryOverviewHealthLevelHero@1",),
-        )
+_register_case_extension_renders()
+
+
+_BATTERY_CASEEXT_SCENARIO_IDS = (
+    "battery_caseext__health_entry_matrix",
+    "battery_caseext__level_variant_scope",
+    "battery_caseext__full_candidates_stable",
+    "battery_caseext__retrieval_miss_errors",
+    "battery_caseext__render_health__plain",
+    "battery_caseext__render_health__fusion",
+    "battery_caseext__render_level__plain",
+    "battery_caseext__render_level__fusion",
+    "battery_caseext__render_charging__plain",
+    "battery_caseext__render_charging__fusion",
+)
+
+
+def test_battery_case_extension_scenarios_match_goldens() -> None:
+    for scenario_id in _BATTERY_CASEEXT_SCENARIO_IDS:
+        assert_golden_scenario(scenario_id)
 
 
 @pytest.mark.asyncio

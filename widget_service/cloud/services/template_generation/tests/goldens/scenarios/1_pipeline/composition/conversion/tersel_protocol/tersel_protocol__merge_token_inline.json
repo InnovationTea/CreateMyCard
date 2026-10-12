@@ -1,0 +1,90 @@
+{
+  "a2ui": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "root_0"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "backgroundColor": "#FFFFFFFF",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_0_0",
+              "root_0_1",
+              "root_0_2"
+            ],
+            "component": "Column",
+            "id": "root_0",
+            "itemMargin": 9,
+            "styles": {
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "token only",
+            "id": "root_0_0",
+            "styles": {
+              "fontColor": "#E5000000",
+              "fontSize": 20,
+              "fontWeight": 700
+            }
+          },
+          {
+            "component": "Text",
+            "content": "token and inline",
+            "id": "root_0_1",
+            "styles": {
+              "fontColor": "#FF1122",
+              "fontSize": 20,
+              "fontWeight": 700
+            }
+          },
+          {
+            "component": "Text",
+            "content": "inline only",
+            "id": "root_0_2",
+            "styles": {
+              "fontColor": "#FF3344",
+              "fontSize": 30
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "ui": {
+            "state": "ready"
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ]
+}

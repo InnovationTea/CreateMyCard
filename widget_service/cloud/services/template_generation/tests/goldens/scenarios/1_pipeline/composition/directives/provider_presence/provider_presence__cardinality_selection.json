@@ -1,0 +1,63 @@
+{
+  "city": {
+    "cardinality": 1,
+    "layout": "Text",
+    "texts": [
+      "${data.context.city}"
+    ]
+  },
+  "city_temperature": {
+    "cardinality": 2,
+    "layout": "Row",
+    "texts": [
+      "${data.context.city}",
+      "${data.context.temperature}"
+    ]
+  },
+  "city_temperature_uv": {
+    "cardinality": 3,
+    "layout": "Column",
+    "texts": [
+      "${data.context.city}",
+      "${data.context.temperature}",
+      "{{ '紫外线等级' + ${/data/context/uv} }}"
+    ]
+  },
+  "city_uv": {
+    "cardinality": 2,
+    "layout": "Row",
+    "texts": [
+      "${data.context.city}",
+      "{{ '紫外线等级' + ${/data/context/uv} }}"
+    ]
+  },
+  "none": {
+    "cardinality": 0,
+    "layout": "Text",
+    "texts": [
+      "暂无数据"
+    ]
+  },
+  "temperature": {
+    "cardinality": 1,
+    "layout": "Text",
+    "texts": [
+      "${data.context.temperature}"
+    ]
+  },
+  "temperature_uv": {
+    "cardinality": 2,
+    "layout": "Row",
+    "texts": [
+      "${data.context.temperature}",
+      "{{ '紫外线等级' + ${/data/context/uv} }}"
+    ]
+  },
+  "uv": {
+    "cardinality": 1,
+    "layout": "Text",
+    "texts": [
+      "{{ '紫外线等级' + ${/data/context/uv} }}"
+    ]
+  }
+}

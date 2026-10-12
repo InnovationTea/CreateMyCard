@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "0dadf3c09a5a0063e0717affc8600d740f298e6a82e9002ab63b7f0e0c9ace02",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewTitleHero@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    },
+    {
+      "key": "484d8be945a22e57f541d32a4a19e933b1b4fce5ef5c0f160a4b89866ccbdf17",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}

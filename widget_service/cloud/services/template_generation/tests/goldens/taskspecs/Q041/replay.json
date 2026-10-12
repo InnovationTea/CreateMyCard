@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "5407e1632ac51956686f74399e4baa30cca11beabc7e08fa1b3fc748efc9811e",
+      "response": "{\n  \"requiredOutputFieldsByCapability\": {\n    \"GetCalendarEvents\": [\n      \"/events/0/title\",\n      \"/events/0/timeZone\",\n      \"/events/0/isAllDay\",\n      \"/events/0/eventLocation\"\n    ]\n  },\n  \"allowCalendarViewFallback\": true\n}"
+    },
+    {
+      "key": "939920617ce277d752cc682ec309a90181673dff40f709650e239a6069a5a9a8",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTimezoneAllDayFull@1\", {\"calendarIcon\": \"resources/base/media/icon_meeting.svg\", \"headerLabel\": \"日程详情\"}));"
+    }
+  ]
+}

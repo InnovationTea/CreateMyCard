@@ -1,0 +1,21 @@
+{
+  "airQualityOptional": true,
+  "cases": {
+    "air_quality": {
+      "airQuality": true,
+      "coldLevel": false
+    },
+    "air_quality_cold_level": {
+      "airQuality": true,
+      "coldLevel": true
+    },
+    "base": {
+      "airQuality": false,
+      "coldLevel": false
+    },
+    "cold_level": {
+      "airQuality": false,
+      "coldLevel": true
+    }
+  }
+}

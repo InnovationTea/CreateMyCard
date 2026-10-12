@@ -1,0 +1,34 @@
+{
+  "leftBatteryLevel_101": null,
+  "leftBatteryLevel_neg1": null,
+  "leftBatteryLevel_null": null,
+  "leftBatteryLevel_str76": null,
+  "leftBatteryLevel_true": null,
+  "missing_leftBatteryLevel": null,
+  "missing_rightBatteryLevel": null,
+  "rightBatteryLevel_101": null,
+  "rightBatteryLevel_neg1": null,
+  "rightBatteryLevel_null": null,
+  "rightBatteryLevel_str76": null,
+  "rightBatteryLevel_true": null,
+  "split_entities": {
+    "case_battery_level": null,
+    "case_charging_status": null,
+    "earphone_name": "示例耳机",
+    "is_connected": null,
+    "left_battery_level": 76,
+    "left_charging_status": null,
+    "right_battery_level": 78,
+    "right_charging_status": null
+  },
+  "valid_pair": {
+    "case_battery_level": null,
+    "case_charging_status": null,
+    "earphone_name": "示例耳机",
+    "is_connected": null,
+    "left_battery_level": 76,
+    "left_charging_status": null,
+    "right_battery_level": 78,
+    "right_charging_status": null
+  }
+}

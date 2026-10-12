@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "2e9919dc8c53df10582b77a403de225568fcccc4fb42ef9c0c68f761ba1c692f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetEarphoneInfo\":[\"/batteryLevel\",\"/leftBatteryLevel\",\"/rightBatteryLevel\"],\"GetHealthAndSportSummary\":[\"/exerciseTypeName\",\"/exerciseDurationText\"]},\"action\":[\"event.open.music.favorite\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "3f6073351ceefc229a27537ed80d01f5f2347ef1b0554f8a9066e2b334df1189",
+      "response": "Template(\"WideHalfTwoCompactLayout@1\", {}, Template(\"BluetoothDeviceOverviewTripleBatteryWideHalf@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\", \"leftEarIcon\": \"resources/base/media/icon_earphone.svg\", \"rightEarIcon\": \"resources/base/media/icon_earphone.svg\"}), Template(\"WorkoutOverviewTypeDurationCompact@1\", {\"sourceIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.music.favorite\", \"label\": \"心动歌单\", \"icon\": \"resources/base/media/music_fill.svg\"}));"
+    }
+  ]
+}

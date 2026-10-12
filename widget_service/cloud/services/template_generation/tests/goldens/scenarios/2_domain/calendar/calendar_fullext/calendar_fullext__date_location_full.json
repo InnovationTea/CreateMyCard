@@ -1,0 +1,977 @@
+{
+  "templateId": "ScheduleOverviewDateLocationFull@1",
+  "variants": {
+    "default__icon": {
+      "props": {
+        "calendarIcon": "calendar"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "下一个日程",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  },
+                  {
+                    "children": [],
+                    "component": "Image",
+                    "values": [
+                      "calendar",
+                      {
+                        "fillColor": "#991F4799",
+                        "flexShrink": 0,
+                        "height": 20,
+                        "objectFit": "contain",
+                        "width": 20
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    },
+    "default__no_icon": {
+      "props": {},
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "下一个日程",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    },
+    "long__icon": {
+      "props": {
+        "calendarIcon": "calendar",
+        "headerLabel": "跨时区项目联合评审及下一阶段计划安排"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "跨时区项目联合评审及下一阶段计划安排",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  },
+                  {
+                    "children": [],
+                    "component": "Image",
+                    "values": [
+                      "calendar",
+                      {
+                        "fillColor": "#991F4799",
+                        "flexShrink": 0,
+                        "height": 20,
+                        "objectFit": "contain",
+                        "width": 20
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    },
+    "long__no_icon": {
+      "props": {
+        "headerLabel": "跨时区项目联合评审及下一阶段计划安排"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "跨时区项目联合评审及下一阶段计划安排",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    },
+    "short__icon": {
+      "props": {
+        "calendarIcon": "calendar",
+        "headerLabel": "我的日程详情"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "我的日程详情",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  },
+                  {
+                    "children": [],
+                    "component": "Image",
+                    "values": [
+                      "calendar",
+                      {
+                        "fillColor": "#991F4799",
+                        "flexShrink": 0,
+                        "height": 20,
+                        "objectFit": "contain",
+                        "width": 20
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    },
+    "short__no_icon": {
+      "props": {
+        "headerLabel": "我的日程详情"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Text",
+                    "values": [
+                      "我的日程详情",
+                      {
+                        "constraintSize": {
+                          "minHeight": 0,
+                          "minWidth": 0
+                        },
+                        "fontColor": "#991F4799",
+                        "fontSize": 12,
+                        "fontWeight": 700,
+                        "height": 16,
+                        "layoutWeight": 1,
+                        "maxLines": 1,
+                        "textOverflow": "ellipsis"
+                      }
+                    ]
+                  }
+                ],
+                "component": "Row",
+                "values": [
+                  {
+                    "alignItems": "top",
+                    "clip": true,
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "height": 20,
+                    "itemMargin": 4,
+                    "justifyContent": "spaceBetween",
+                    "width": "matchParent"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#FF1F4799",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "height": 28,
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 8,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.startDate}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.eventLocation}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4799",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "height": 16,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "itemMargin": 0,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_advancedComponent": "ScheduleOverview",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      }
+    }
+  }
+}

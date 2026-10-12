@@ -1,0 +1,25 @@
+{
+  "connection_support_requires_connection": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template variant does not match the trusted connection state."
+  },
+  "legacy_hero_requires_connection": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template has no trusted earphone identity."
+  },
+  "pair_compact_accept": {
+    "error": "NO_ERROR"
+  },
+  "pair_compact_missing_earphoneName": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template variant does not match the trusted data shape."
+  },
+  "pair_compact_missing_leftBatteryLevel": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template has no trusted earphone facts."
+  },
+  "pair_compact_missing_rightBatteryLevel": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template has no trusted earphone facts."
+  }
+}

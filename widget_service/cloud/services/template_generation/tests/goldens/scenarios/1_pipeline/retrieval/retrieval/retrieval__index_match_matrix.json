@@ -1,0 +1,21 @@
+{
+  "card_size_filter": {
+    "candidates": [
+      "WeatherCompact@1"
+    ]
+  },
+  "per_field_matches": {
+    "candidates": [
+      "WeatherCondition@1",
+      "WeatherTemperature@1"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherCondition@1"
+      ],
+      [
+        "WeatherTemperature@1"
+      ]
+    ]
+  }
+}

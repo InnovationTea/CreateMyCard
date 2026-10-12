@@ -1,0 +1,66 @@
+{
+  "double_else": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if at line 2 has multiple #else blocks"
+  },
+  "else_if_after_else": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif follows #else at line 6"
+  },
+  "elseif_comparison": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_disjunction": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_duplicate_group": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_expression_call": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_mixed_namespaces": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_nested_path": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_triple_group": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "elseif_without_if": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif has no matching #if at line 2"
+  },
+  "elseif_without_target": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 3"
+  },
+  "lone_end": {
+    "errorType": "ValueError",
+    "message": "Provider Template #end has no matching #if at line 2"
+  },
+  "lone_endif": {
+    "errorType": "ValueError",
+    "message": "Provider Template #endif has no matching #if at line 2"
+  },
+  "trailing_text_after_end": {
+    "errorType": "ValueError",
+    "message": "Provider Template #end is invalid at line 4"
+  },
+  "trailing_text_after_endif": {
+    "errorType": "ValueError",
+    "message": "Provider Template #endif is invalid at line 4"
+  },
+  "unterminated_chain": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if at line 2 is missing #endif or #end"
+  }
+}

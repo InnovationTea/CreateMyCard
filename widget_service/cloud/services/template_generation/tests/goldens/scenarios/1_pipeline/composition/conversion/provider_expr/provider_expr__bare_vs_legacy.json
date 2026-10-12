@@ -1,0 +1,30 @@
+{
+  "arithmetic": {
+    "bare": "{{ ${/data/calendar/value} * 2 + 1 }}",
+    "legacy": "{{ ${/data/calendar/value} * 2 + 1 }}"
+  },
+  "fraction": {
+    "bare": "{{ '' + ((${/data/calendar/value} + 0.5) % 1) }}",
+    "legacy": "{{ '' + ((${/data/calendar/value} + 0.5) % 1) }}"
+  },
+  "identity": {
+    "bare": "{{ ${/data/calendar/value} }}",
+    "legacy": "{{ ${/data/calendar/value} }}"
+  },
+  "nested_ternary": {
+    "bare": "{{ ${/data/calendar/value} > 1 ? 2 : ${/data/calendar/value} > 0 ? 1 : 0 }}",
+    "legacy": "{{ ${/data/calendar/value} > 1 ? 2 : ${/data/calendar/value} > 0 ? 1 : 0 }}"
+  },
+  "not_or": {
+    "bare": "{{ !(${/data/calendar/value} > 0) || false }}",
+    "legacy": "{{ !(${/data/calendar/value} > 0) || false }}"
+  },
+  "size_and": {
+    "bare": "{{ size(${/data/calendar/value}) > 0 && true }}",
+    "legacy": "{{ size(${/data/calendar/value}) > 0 && true }}"
+  },
+  "ternary_empty": {
+    "bare": "{{ ${/data/calendar/value} == '' ? '空' : ${/data/calendar/value} }}",
+    "legacy": "{{ ${/data/calendar/value} == '' ? '空' : ${/data/calendar/value} }}"
+  }
+}

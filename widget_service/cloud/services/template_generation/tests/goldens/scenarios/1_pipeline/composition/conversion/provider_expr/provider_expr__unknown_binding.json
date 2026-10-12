@@ -1,0 +1,14 @@
+{
+  "style_missing": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template data reference: ['missing']"
+  },
+  "sum_missing": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template data reference: ['missing']"
+  },
+  "ternary_missing": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template data reference: ['missing']"
+  }
+}

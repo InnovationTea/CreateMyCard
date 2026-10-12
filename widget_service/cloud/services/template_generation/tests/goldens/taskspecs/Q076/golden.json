@@ -1,0 +1,635 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "南京市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "description": "日出天气+手机电池温度",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "日出准备"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.sun_min",
+        "asset.icon_weather_wind",
+        "asset.drop_1",
+        "asset.heat_generation"
+      ],
+      "data": [
+        "ViewWeather",
+        "GetPhoneBatteryInfo"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.sun_min",
+        "asset.icon_weather_wind",
+        "asset.drop_1",
+        "asset.heat_generation"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "forecastDays": 1,
+            "prefectureName": "南京市"
+          },
+          "candidateOutputFields": [
+            "/current/temperatureText",
+            "/current/humidityPercent",
+            "/current/windDirection",
+            "/current/windLevel",
+            "/current/alertLevel",
+            "/location/cityCode",
+            "/location/prefectureName",
+            "/current/condition"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "candidateOutputFields": [
+            "/batteryTemperatureText"
+          ],
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "",
+              "bundleName": "",
+              "intentName": "Weather_CityCode",
+              "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.weather"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121259",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121259",
+                      0
+                    ],
+                    [
+                      "#FF2B65D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1",
+                "root_1_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 8,
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "",
+                    "bundleName": "",
+                    "intentName": "Weather_CityCode",
+                    "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "alignItems": "top",
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/location/prefectureName} }}",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/temperatureText} }}",
+              "id": "root_1_0_0_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/condition} }}",
+              "id": "root_1_0_0_1_0_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "padding": {
+                  "bottom": 2
+                },
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0",
+                "root_1_0_0_2_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_2",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '空气湿度 ' + ${/data/weather/current/humidityPercent} + '%' }}",
+              "id": "root_1_0_0_2_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/current/windDirection} + ${/data/weather/current/windLevel} + '级 | ' + ${/data/weather/current/alertLevel} }}",
+              "id": "root_1_0_0_2_1",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0",
+                "root_1_1_0_1",
+                "root_1_1_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0",
+              "styles": {
+                "alignItems": "top",
+                "height": 20,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "手机电池温度",
+              "id": "root_1_1_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_1",
+              "styles": {
+                "alignItems": "start",
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/phoneBattery/batteryTemperatureText} }}",
+              "id": "root_1_1_0_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 20,
+                "fontWeight": 700,
+                "maxLines": 2,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_2_0"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_2",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "height": 20,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "当前温度正常",
+              "id": "root_1_1_0_2_0",
+              "styles": {
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "phoneBattery": {
+                "batteryTemperatureText": "29.0 ℃"
+              },
+              "weather": {
+                "current": {
+                  "alertLevel": "大风蓝色预警",
+                  "condition": "多云",
+                  "humidityPercent": 68,
+                  "temperatureText": "29℃",
+                  "windDirection": "东南风",
+                  "windLevel": 2
+                },
+                "location": {
+                  "cityCode": "60814",
+                  "prefectureName": "上海市"
+                }
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认黑色的单色线框太阳，中央圆环，周围为八个较短圆点式光芒；适用：低亮度、柔和阳光、亮度减小。",
+          "id": "asset.sun_min",
+          "src": "resources/base/media/sun_min.svg"
+        },
+        {
+          "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+          "id": "asset.icon_weather_wind",
+          "src": "resources/base/media/icon_weather_wind.svg"
+        },
+        {
+          "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+          "id": "asset.drop_1",
+          "src": "resources/base/media/drop_1.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色线框温度计，底部为圆形感温泡，内部带弧形刻度；适用：温度、升温、制热或体感温度。",
+          "id": "asset.heat_generation",
+          "src": "resources/base/media/heat_generation.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batteryTemperatureText": {
+              "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+              "sampleValue": "29.0 ℃",
+              "type": "string"
+            }
+          },
+          "weather": {
+            "current": {
+              "alertLevel": {
+                "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                "sampleValue": "大风蓝色预警",
+                "type": "string"
+              },
+              "condition": {
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云",
+                "type": "string"
+              },
+              "humidityPercent": {
+                "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                "sampleValue": 68,
+                "type": "number"
+              },
+              "temperatureText": {
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃",
+                "type": "string"
+              },
+              "windDirection": {
+                "description": "当前风向。",
+                "sampleValue": "东南风",
+                "type": "string"
+              },
+              "windLevel": {
+                "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                "sampleValue": 2,
+                "type": "integer"
+              }
+            },
+            "location": {
+              "cityCode": {
+                "description": "城市代码，如60814代表青浦区",
+                "sampleValue": "60814",
+                "type": "string"
+              },
+              "prefectureName": {
+                "description": "城市名称",
+                "sampleValue": "上海市",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，明早要去南京紫金山拍日出，看气温、湿度、风向、风力、天气预警和手机电池温度，点击查看天气详情。"
+    }
+  },
+  "caseId": "Q076",
+  "status": "success",
+  "suggestSize": "2x4"
+}

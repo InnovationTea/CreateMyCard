@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "79f15d9dc652508c2a764db820e28cb47e542cc3a7377e44d0b52407d31e15de",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"action\":[\"event.startNavigate\"],\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "c8ff057a00ac51d8f3260e4c16d51972a7740c6bed9c7350fc5e6765f0f020af",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewLocationHero@1\", {\"calendarIcon\": \"resources/base/media/local_fill.svg\", \"headerLabel\": \"发布排期\"}), Template(\"PillAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\"}));"
+    }
+  ]
+}

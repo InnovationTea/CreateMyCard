@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4bcb319b66bd992b0e9390ea47909f2fc5b7b10df6de66d159d742bd1cf66931",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/humidityPercent\",\"/current/windDirection\",\"/current/windLevel\",\"/current/alertLevel\"],\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    },
+    {
+      "key": "6687ee1d89c8ff385af5443807e850893472903dd8551a5849f6fae92ce5f837",
+      "response": "Template(\"WideTwoFocusLayout@1\", {}, Template(\"WeatherOverviewHumidityWindLevelHero@1\", {\"location\": \"南京市\", \"actionId\": \"event.open.weather\"}), Template(\"BatteryOverviewTemperatureHero@1\", {\"temperatureIcon\": \"resources/base/media/heat_generation.svg\"}));"
+    }
+  ]
+}

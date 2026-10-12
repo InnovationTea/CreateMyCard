@@ -1,0 +1,1022 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-10-01"
+          },
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "forecastDays": 3,
+            "prefectureName": "重庆市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "description": "返乡倒计时+三日天气",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x4",
+      "title": "重庆返乡"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.calendar_fill",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1"
+      ],
+      "data": [
+        "GetCountdownDays",
+        "ViewWeather"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.calendar_fill",
+        "asset.icon_weather_thermometer",
+        "asset.drop_1"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDate": "2026-10-01"
+          },
+          "candidateOutputFields": [
+            "/countdownDays"
+          ],
+          "capabilityId": "GetCountdownDays",
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "arguments": {
+            "forecastDays": 3,
+            "prefectureName": "重庆市"
+          },
+          "candidateOutputFields": [
+            "/daily/0/date",
+            "/daily/0/weekday",
+            "/daily/0/condition",
+            "/daily/0/temperatureRangeText",
+            "/daily/0/rainProbabilityPercent",
+            "/daily/1/date",
+            "/daily/1/weekday",
+            "/daily/1/condition",
+            "/daily/1/temperatureRangeText",
+            "/daily/1/rainProbabilityPercent",
+            "/daily/2/date",
+            "/daily/2/weekday",
+            "/daily/2/condition",
+            "/daily/2/temperatureRangeText",
+            "/daily/2/rainProbabilityPercent",
+            "/location/cityCode"
+          ],
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "",
+              "bundleName": "",
+              "intentName": "Weather_CityCode",
+              "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.weather"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#FF121259",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "linearGradient": {
+                  "colors": [
+                    [
+                      "#FF121259",
+                      0
+                    ],
+                    [
+                      "#FF2B65D9",
+                      1
+                    ]
+                  ],
+                  "direction": "RightBottom"
+                },
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__root_1"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Row",
+              "id": "__genui_render_component__root_1",
+              "itemMargin": 8,
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0",
+                "root_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "itemMargin": 8,
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1,
+                "padding": {
+                  "bottom": 8,
+                  "left": 12,
+                  "right": 12,
+                  "top": 8
+                }
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "styles": {
+                "height": 82,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_0",
+              "itemMargin": 3,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "重庆返乡",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 14,
+                "fontWeight": 400,
+                "height": 19,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_1_0",
+                "root_1_0_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "bottom",
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 40,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/countdown/countdownDays} }}",
+              "id": "root_1_0_0_0_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 38,
+                "fontWeight": 700,
+                "height": 40,
+                "maxLines": 1,
+                "textOverflow": "ellipsis"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "天",
+              "id": "root_1_0_0_0_1_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "height": 16,
+                "maxLines": 1,
+                "padding": {
+                  "bottom": 7
+                },
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_0_1_0",
+              "label": "查看详情",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "",
+                    "bundleName": "",
+                    "intentName": "Weather_CityCode",
+                    "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "backgroundColor": "#1ACCEEFF",
+                "borderRadius": 12,
+                "height": "matchParent",
+                "layoutWeight": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0",
+                "root_1_1_0_0_1",
+                "root_1_1_0_0_2",
+                "root_1_1_0_0_3"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "maxHeight": 102,
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_0_0",
+                "root_1_1_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 16,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "重庆市",
+              "id": "root_1_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "未来三天天气",
+              "id": "root_1_1_0_0_0_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#99CCDDFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0",
+                "root_1_1_0_0_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_1",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "start",
+                "height": 24,
+                "justifyContent": "start",
+                "margin": {
+                  "top": 5
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_0_0",
+                "root_1_1_0_0_1_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/0/date} }}",
+              "id": "root_1_1_0_0_1_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 64
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/0/weekday} }}",
+              "id": "root_1_1_0_0_1_0_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 40
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_1_1_0",
+                "root_1_1_0_0_1_1_1",
+                "root_1_1_0_0_1_1_2"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_1_1",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/0/condition} }}",
+              "id": "root_1_1_0_0_1_1_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 32
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/0/rainProbabilityPercent} }}",
+              "id": "root_1_1_0_0_1_1_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 24
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/0/temperatureRangeText} }}",
+              "id": "root_1_1_0_0_1_1_2",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 54
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_2_0",
+                "root_1_1_0_0_2_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_2",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "start",
+                "height": 24,
+                "justifyContent": "start",
+                "margin": {
+                  "top": 4
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_2_0_0",
+                "root_1_1_0_0_2_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_2_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/1/date} }}",
+              "id": "root_1_1_0_0_2_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 64
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/1/weekday} }}",
+              "id": "root_1_1_0_0_2_0_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 40
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_2_1_0",
+                "root_1_1_0_0_2_1_1",
+                "root_1_1_0_0_2_1_2"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_2_1",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/1/condition} }}",
+              "id": "root_1_1_0_0_2_1_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 32
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/1/rainProbabilityPercent} }}",
+              "id": "root_1_1_0_0_2_1_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 24
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/1/temperatureRangeText} }}",
+              "id": "root_1_1_0_0_2_1_2",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 54
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_3_0",
+                "root_1_1_0_0_3_1"
+              ],
+              "component": "Column",
+              "id": "root_1_1_0_0_3",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "start",
+                "height": 24,
+                "justifyContent": "start",
+                "margin": {
+                  "top": 5
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_3_0_0",
+                "root_1_1_0_0_3_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_3_0",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/2/date} }}",
+              "id": "root_1_1_0_0_3_0_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 64
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/2/weekday} }}",
+              "id": "root_1_1_0_0_3_0_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 40
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0_0_3_1_0",
+                "root_1_1_0_0_3_1_1",
+                "root_1_1_0_0_3_1_2"
+              ],
+              "component": "Row",
+              "id": "root_1_1_0_0_3_1",
+              "itemMargin": 0,
+              "styles": {
+                "alignItems": "center",
+                "height": 12,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/2/condition} }}",
+              "id": "root_1_1_0_0_3_1_0",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 32
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/2/rainProbabilityPercent} }}",
+              "id": "root_1_1_0_0_3_1_1",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#99CCDDFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 24
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/weather/daily/2/temperatureRangeText} }}",
+              "id": "root_1_1_0_0_3_1_2",
+              "styles": {
+                "flexShrink": 0,
+                "fontColor": "#FFCCDDFF",
+                "fontSize": 10,
+                "fontWeight": 500,
+                "height": 12,
+                "maxLines": 1,
+                "textAlign": "end",
+                "textOverflow": "ellipsis",
+                "width": 54
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "countdown": {
+                "countdownDays": 30
+              },
+              "weather": {
+                "daily": [
+                  {
+                    "condition": "多云",
+                    "date": "2026-08-06",
+                    "rainProbabilityPercent": "20%",
+                    "temperatureRangeText": "25℃ / 32℃",
+                    "weekday": "星期四"
+                  },
+                  {
+                    "condition": "多云",
+                    "date": "2026-08-06",
+                    "rainProbabilityPercent": "20%",
+                    "temperatureRangeText": "25℃ / 32℃",
+                    "weekday": "星期四"
+                  },
+                  {
+                    "condition": "多云",
+                    "date": "2026-08-06",
+                    "rainProbabilityPercent": "20%",
+                    "temperatureRangeText": "25℃ / 32℃",
+                    "weekday": "星期四"
+                  }
+                ],
+                "location": {
+                  "cityCode": "60814"
+                }
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+          "id": "asset.calendar_fill",
+          "src": "resources/base/media/calendar_fill.svg"
+        },
+        {
+          "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+          "id": "asset.icon_weather_thermometer",
+          "src": "resources/base/media/icon_weather_thermometer.svg"
+        },
+        {
+          "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+          "id": "asset.drop_1",
+          "src": "resources/base/media/drop_1.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "countdown": {
+            "countdownDays": {
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30,
+              "type": "integer"
+            }
+          },
+          "weather": {
+            "daily": [
+              {
+                "condition": {
+                  "description": "白天天气现象，来源于weather_icon。",
+                  "sampleValue": "多云",
+                  "type": "string"
+                },
+                "date": {
+                  "description": "预报日期，来源于 day_time。",
+                  "sampleValue": "2026-08-06",
+                  "type": "string"
+                },
+                "rainProbabilityPercent": {
+                  "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                  "sampleValue": "20%",
+                  "type": "string"
+                },
+                "temperatureRangeText": {
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string"
+                },
+                "weekday": {
+                  "description": "星期文本，例如“星期日”。",
+                  "sampleValue": "星期四",
+                  "type": "string"
+                }
+              },
+              {
+                "condition": {
+                  "description": "白天天气现象，来源于weather_icon。",
+                  "sampleValue": "多云",
+                  "type": "string"
+                },
+                "date": {
+                  "description": "预报日期，来源于 day_time。",
+                  "sampleValue": "2026-08-06",
+                  "type": "string"
+                },
+                "rainProbabilityPercent": {
+                  "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                  "sampleValue": "20%",
+                  "type": "string"
+                },
+                "temperatureRangeText": {
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string"
+                },
+                "weekday": {
+                  "description": "星期文本，例如“星期日”。",
+                  "sampleValue": "星期四",
+                  "type": "string"
+                }
+              },
+              {
+                "condition": {
+                  "description": "白天天气现象，来源于weather_icon。",
+                  "sampleValue": "多云",
+                  "type": "string"
+                },
+                "date": {
+                  "description": "预报日期，来源于 day_time。",
+                  "sampleValue": "2026-08-06",
+                  "type": "string"
+                },
+                "rainProbabilityPercent": {
+                  "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                  "sampleValue": "20%",
+                  "type": "string"
+                },
+                "temperatureRangeText": {
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string"
+                },
+                "weekday": {
+                  "description": "星期文本，例如“星期日”。",
+                  "sampleValue": "星期四",
+                  "type": "string"
+                }
+              }
+            ],
+            "location": {
+              "cityCode": {
+                "description": "城市代码，如60814代表青浦区",
+                "sampleValue": "60814",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
+          "id": "event.open.weather"
+        }
+      ],
+      "size": "2x4",
+      "userQuery": "帮我做个卡片，我准备10月1号国庆回重庆老家，看离出发还有几天和重庆未来三天每天的日期、星期、天气、温度范围、下雨概率，点击查看重庆天气详情。"
+    }
+  },
+  "caseId": "Q072",
+  "status": "success",
+  "suggestSize": "2x4"
+}

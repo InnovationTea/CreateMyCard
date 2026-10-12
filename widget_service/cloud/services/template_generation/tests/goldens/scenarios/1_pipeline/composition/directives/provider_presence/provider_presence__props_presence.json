@@ -1,0 +1,17 @@
+{
+  "missing": {
+    "texts": [
+      "缺失"
+    ]
+  },
+  "present_empty_string": {
+    "texts": [
+      ""
+    ]
+  },
+  "present_value": {
+    "texts": [
+      "深圳"
+    ]
+  }
+}

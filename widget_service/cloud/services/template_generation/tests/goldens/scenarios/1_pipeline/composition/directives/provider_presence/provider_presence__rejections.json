@@ -1,0 +1,34 @@
+{
+  "compile:match_requires_cardtpl2": {
+    "errorType": "ValueError",
+    "message": "Provider Template #match requires cardtpl/2"
+  },
+  "compile:transform_borrows_missing_optional": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Bind must be nested under #if data.temperature or #Expr"
+  },
+  "parse:case_exceeds_present": {
+    "errorType": "ValueError",
+    "message": "Provider Template #case exceeds present(...) size"
+  },
+  "parse:default_items_index_out_of_range": {
+    "errorType": "ValueError",
+    "message": "Provider Template items[0] is out of range"
+  },
+  "parse:duplicate_guards": {
+    "errorType": "ValueError",
+    "message": "Provider Template present(...) guards must be unique"
+  },
+  "parse:four_item_limit_exceeded": {
+    "errorType": "ValueError",
+    "message": "Provider Template present(...) exceeds the four-item limit"
+  },
+  "parse:items_index_out_of_range": {
+    "errorType": "ValueError",
+    "message": "Provider Template items[1] is out of range"
+  },
+  "parse:unguarded_transform": {
+    "errorType": "ValueError",
+    "message": "Provider Template transformed present item must use '(guard => value)'"
+  }
+}

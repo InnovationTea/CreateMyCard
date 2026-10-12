@@ -1,0 +1,10 @@
+{
+  "cloud_only_fusion_ball": {
+    "errorType": "TerselConversionError",
+    "message": "Unsupported component type \"FusionBall\"."
+  },
+  "unknown_design_token": {
+    "errorType": "TerselConversionError",
+    "message": "Unsupported Text designToken \"not-a-token\"."
+  }
+}

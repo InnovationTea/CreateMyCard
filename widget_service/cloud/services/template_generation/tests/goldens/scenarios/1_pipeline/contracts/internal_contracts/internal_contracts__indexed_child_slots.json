@@ -1,0 +1,30 @@
+{
+  "childSlotComponents": [
+    "__CardTplChildSlot",
+    "__CardTplChildSlot"
+  ],
+  "instantiatedSlotChildren": [
+    [
+      {
+        "component": "Text",
+        "values": [
+          "hero"
+        ]
+      }
+    ],
+    [
+      {
+        "component": "Text",
+        "values": [
+          "action"
+        ]
+      }
+    ]
+  ],
+  "missingSecondChildError": {
+    "errorType": "TerselConversionError",
+    "message": "Template child slot is missing: children[1]"
+  },
+  "rootComponent": "Column",
+  "rootItemMargin": 8
+}

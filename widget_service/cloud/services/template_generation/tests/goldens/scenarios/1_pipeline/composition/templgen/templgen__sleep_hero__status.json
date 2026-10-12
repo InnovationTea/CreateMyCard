@@ -1,0 +1,87 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Text",
+          "values": [
+            "睡眠监测",
+            {
+              "fontColor": "#991F4799",
+              "fontSize": 12,
+              "fontWeight": 500,
+              "maxLines": 1
+            }
+          ]
+        }
+      ],
+      "component": "Row",
+      "values": [
+        {
+          "alignItems": "top",
+          "itemMargin": 4,
+          "justifyContent": "spaceBetween",
+          "width": "matchParent"
+        }
+      ]
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Text",
+          "values": [
+            "${data.healthSport.nightSleepDurationText}",
+            {
+              "fontColor": "#FF401F99",
+              "fontSize": 20,
+              "fontWeight": 700,
+              "height": 28,
+              "maxLines": 1,
+              "width": "matchParent"
+            }
+          ]
+        }
+      ],
+      "component": "Row",
+      "values": [
+        {
+          "alignItems": "center",
+          "itemMargin": 4,
+          "justifyContent": "start",
+          "width": "matchParent"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "component": "Text",
+      "values": [
+        "{{ '睡眠状况' + ${/data/healthSport/sleepStatus} }}",
+        {
+          "fontColor": "#991F4799",
+          "fontSize": 12,
+          "fontWeight": 400,
+          "maxLines": 1
+        }
+      ]
+    }
+  ],
+  "component": "Column",
+  "values": [
+    {
+      "_advancedComponent": "SleepOverview",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": "matchParent",
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "width": "matchParent"
+    }
+  ]
+}

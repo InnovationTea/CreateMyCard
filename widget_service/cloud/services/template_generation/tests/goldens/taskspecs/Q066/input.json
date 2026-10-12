@@ -1,0 +1,141 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，明天有三场会议，上午9点是用户卡片需求评审会，在上海练秋湖研发中心C5会议室，下午2点是华东渠道策略会，在A3会议室，下午4点半是版本交付排期会，在B1会议室。看三场会议的标题、开始时间和地点，也看手机剩余电量和充电状态，点一下进入闹钟。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/eventLocation",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/eventLocation"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "明日会议",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "三场会议+手机续航+闹钟",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_meeting",
+      "asset.battery_leaf_fill",
+      "asset.alarm_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "066",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，明天有三场会议，上午9点是用户卡片需求评审会，在上海练秋湖研发中心C5会议室，下午2点是华东渠道策略会，在A3会议室，下午4点半是版本交付排期会，在B1会议室。看三场会议的标题、开始时间和地点，也看手机剩余电量和充电状态，点一下进入闹钟。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，明天有三场会议，上午9点是用户卡片需求评审会，在上海练秋湖研发中心C5会议室，下午2点是华东渠道策略会，在A3会议室，下午4点半是版本交付排期会，在B1会议室。看三场会议的标题、开始时间和地点，也看手机剩余电量和充电状态，点一下进入闹钟。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/1/title",
+        "/events/1/dtStart",
+        "/events/1/eventLocation",
+        "/events/2/title",
+        "/events/2/dtStart",
+        "/events/2/eventLocation"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "明日会议",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "三场会议+手机续航+闹钟",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_meeting",
+    "asset.battery_leaf_fill",
+    "asset.alarm_fill_1"
+  ]
+}

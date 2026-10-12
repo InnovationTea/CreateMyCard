@@ -1,0 +1,103 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "出门前检查耳机仓，帮我做个卡片，用进度环看耳机仓电量和充电状态，点一下打开蓝牙设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "耳机仓状态",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.bluetooth",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry"
+          }
+        }
+      }
+    ],
+    "description": "仓电量和蓝牙",
+    "candidateAssetIds": [
+      "asset.earphone_case_16644",
+      "asset.bolt_fill",
+      "asset.icon_earphone"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "019",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "出门前检查耳机仓，帮我做个卡片，用进度环看耳机仓电量和充电状态，点一下打开蓝牙设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "出门前检查耳机仓，帮我做个卡片，用进度环看耳机仓电量和充电状态，点一下打开蓝牙设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/batteryLevel",
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "耳机仓状态",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.bluetooth",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        }
+      }
+    }
+  ],
+  "description": "仓电量和蓝牙",
+  "candidateAssetIds": [
+    "asset.earphone_case_16644",
+    "asset.bolt_fill",
+    "asset.icon_earphone"
+  ]
+}

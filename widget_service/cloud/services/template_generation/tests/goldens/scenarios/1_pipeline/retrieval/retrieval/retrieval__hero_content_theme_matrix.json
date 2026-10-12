@@ -1,0 +1,32 @@
+{
+  "fusion__meeting_requested": "fusion-schedule-cool",
+  "fusion__schedule_cool": "fusion-schedule-cool",
+  "fusion__schedule_theme_removed": "meeting-paper-neutral",
+  "fusion__weather_blue": "fusion-schedule-cool",
+  "non_owner__content_only": [
+    null,
+    null
+  ],
+  "non_owner__empty": [
+    null,
+    null
+  ],
+  "non_owner__hero_with_content": [
+    null,
+    null
+  ],
+  "non_owner__title_content_with_sleep": [
+    null,
+    null
+  ],
+  "non_owner__title_only": [
+    null,
+    null
+  ],
+  "non_owner__title_with_date_full": [
+    null,
+    null
+  ],
+  "version_gate__plain_family": "meeting-paper-neutral",
+  "version_gate__plain_meeting": "meeting-paper-neutral"
+}

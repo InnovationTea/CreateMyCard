@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/totalNapDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText"
+        ]
+      }
+    ],
+    "title": "作息提醒",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "小睡作息和闹钟",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.alarm_fill_1",
+      "asset.z_alarm_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "021",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ]
+    }
+  ],
+  "title": "作息提醒",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "小睡作息和闹钟",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.alarm_fill_1",
+    "asset.z_alarm_fill"
+  ]
+}

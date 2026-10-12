@@ -1,0 +1,4 @@
+{
+  "errorType": "TemplateRouteNotApplicable",
+  "message": "no provider template covers capability GetEarphoneInfo and its requested fields"
+}

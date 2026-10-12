@@ -1,0 +1,56 @@
+{
+  "count__missing": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "count__none": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "count__present": {
+    "serialized": "Column(Text(\"存在\"))",
+    "texts": [
+      "存在"
+    ]
+  },
+  "flag__missing": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "flag__none": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "flag__present": {
+    "serialized": "Column(Text(\"存在\"))",
+    "texts": [
+      "存在"
+    ]
+  },
+  "label__missing": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "label__none": {
+    "serialized": "Column(Text(\"缺失\"))",
+    "texts": [
+      "缺失"
+    ]
+  },
+  "label__present": {
+    "serialized": "Column(Text(\"存在\"))",
+    "texts": [
+      "存在"
+    ]
+  }
+}

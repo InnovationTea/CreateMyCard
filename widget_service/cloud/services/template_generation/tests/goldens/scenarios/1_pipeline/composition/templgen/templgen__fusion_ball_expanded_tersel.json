@@ -1,0 +1,123 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Divider",
+          "values": [
+            {
+              "_id": "fusionBallLarge",
+              "backgroundColor": "#FF1F1F99",
+              "borderRadius": 105,
+              "clip": true,
+              "color": "#00000000",
+              "height": "477.272727%",
+              "strokeWidth": 0,
+              "width": "116.666667%"
+            }
+          ]
+        }
+      ],
+      "component": "Stack",
+      "values": [
+        "overlay",
+        {
+          "_id": "fusionBallLargeSlot",
+          "alignContent": "center",
+          "height": "27.5%",
+          "width": "112.5%"
+        }
+      ]
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Divider",
+          "values": [
+            {
+              "_id": "fusionBallMedium",
+              "backgroundColor": "#FF2B65D9",
+              "borderRadius": 80,
+              "clip": true,
+              "color": "#00000000",
+              "height": "72.727273%",
+              "strokeWidth": 0,
+              "width": "200%"
+            }
+          ]
+        }
+      ],
+      "component": "Stack",
+      "values": [
+        "overlay",
+        {
+          "_id": "fusionBallMediumSlot",
+          "alignContent": "bottom",
+          "height": "137.5%",
+          "width": "50%"
+        }
+      ]
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "component": "Divider",
+          "values": [
+            {
+              "_id": "fusionBallSmall",
+              "backgroundColor": "#FF57AED9",
+              "borderRadius": 50,
+              "clip": true,
+              "color": "#00000000",
+              "height": "52.631579%",
+              "strokeWidth": 0,
+              "width": "51.282051%"
+            }
+          ]
+        }
+      ],
+      "component": "Stack",
+      "values": [
+        "overlay",
+        {
+          "_id": "fusionBallSmallSlot",
+          "alignContent": "bottomEnd",
+          "height": "118.75%",
+          "width": "121.875%"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "component": "Divider",
+      "values": [
+        {
+          "_id": "fusionBallGlassLayer",
+          "backdropBlur": {
+            "radius": 210
+          },
+          "backgroundColor": "#0DFFFFFF",
+          "color": "#00000000",
+          "height": "100%",
+          "strokeWidth": 0,
+          "width": "100%"
+        }
+      ]
+    }
+  ],
+  "component": "Stack",
+  "values": [
+    "overlay",
+    {
+      "_id": "fusionBallBackground",
+      "alignContent": "topStart",
+      "borderRadius": 18,
+      "clip": true,
+      "height": "100%",
+      "width": "100%"
+    }
+  ]
+}

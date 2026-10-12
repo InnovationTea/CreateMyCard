@@ -1,0 +1,30 @@
+{
+  "double_negation": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 2"
+  },
+  "mixed_namespace_group": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 2"
+  },
+  "single_ampersand": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 2"
+  },
+  "unguarded_binding_reference": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Bind must be nested under #if data.first or #Expr"
+  },
+  "unguarded_param_reference": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Param/Asset must be nested under #if props.label or #Expr"
+  },
+  "unknown_binding": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template conditional binding: unknown"
+  },
+  "unknown_param": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template conditional parameter: unknown"
+  }
+}
