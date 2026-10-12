@@ -119,6 +119,16 @@ _CASES = (
 _MINIMAL = (_CASES[7], _CASES[4], _CASES[6], _CASES[1], _CASES[3], _CASES[9], _CASES[2], _CASES[8])
 _NEW_IDS = tuple(f"ScheduleOverview{case.suffix}@1" for case in _MINIMAL)
 
+# 证书线新增的日程 Full（标题时间/日期地点时间/提醒）直接覆盖了下列原“先失败再补”
+# 的意图：原匹配成功，不再走无按钮补充路径。
+_NOW_DIRECTLY_COVERED = {
+    "802e": "ScheduleOverviewReminderFull@1",
+    "a2a2": "ScheduleOverviewTitleTimeFull@1",
+    "aeb5": "ScheduleOverviewDateLocationTimeFull@1",
+    "bfdb": "ScheduleOverviewTitleTimeFull@1",
+}
+_MISS_CASES = tuple(case for case in _CASES if case.case_id not in _NOW_DIRECTLY_COVERED)
+
 
 @pytest.fixture(scope="module")
 def registry() -> CardPlanRegistry:
@@ -154,9 +164,9 @@ def _pipeline_registry(monkeypatch: pytest.MonkeyPatch, registry: CardPlanRegist
     monkeypatch.setattr(pipeline, "get_cardplan_registry", lambda _flag: registry)
 
 
-@pytest.mark.parametrize("case", _CASES, ids=lambda case: case.case_id)
+@pytest.mark.parametrize("case", _MISS_CASES, ids=lambda case: case.case_id)
 @pytest.mark.asyncio
-async def test_richeng_thirteen_intents_compile_only_after_original_miss(
+async def test_richeng_intents_compile_only_after_original_miss(
     monkeypatch: pytest.MonkeyPatch, registry: CardPlanRegistry, case: Case
 ) -> None:
     inputs = _case(case, view_candidate=case.case_id in {"a6c4", "aa3c", "aeb5", "aed3"})
@@ -190,6 +200,25 @@ async def test_richeng_thirteen_intents_compile_only_after_original_miss(
     assert output.projected_task_spec.eventCandidates == []
     assert '"call":"clickToIntent"' not in output.a2ui
     assert inputs == original
+
+
+@pytest.mark.parametrize("case_id", tuple(_NOW_DIRECTLY_COVERED))
+def test_new_calendar_fulls_directly_cover_former_fallback_intents(
+    monkeypatch: pytest.MonkeyPatch, registry: CardPlanRegistry, case_id: str
+) -> None:
+    case = next(item for item in _CASES if item.case_id == case_id)
+    inputs = _case(case, view_candidate=case_id in {"a6c4", "aa3c", "aeb5", "aed3"})
+    plans = _old_plans(inputs, registry)
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == _NOW_DIRECTLY_COVERED[case_id]
+    assert plans[0].action_assignments == ()
+    _pipeline_registry(monkeypatch, registry)
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("原匹配已成功，不得调用无按钮补充分支")
+
+    monkeypatch.setattr(pipeline, "plan_calendar_no_action_fallback", forbidden)
+    monkeypatch.setattr(pipeline, "plan_calendar_list_no_action_fallback", forbidden)
 
 
 @pytest.mark.parametrize("case", _MINIMAL, ids=lambda case: case.suffix)
@@ -247,7 +276,7 @@ async def test_950a_keeps_original_plan_and_never_calls_fallback(
     inputs = CalendarInputs(task, bindings, card, intent)
     plans = _old_plans(inputs, registry)
     assert plans[0].layout_template_id == "SingleFocusLayout@1"
-    assert plans[0].business_slots[0].template_id == "ScheduleOverviewNextEventLocationFull@1"
+    assert plans[0].business_slots[0].template_id == "ScheduleOverviewDateLocationTimeFull@1"
     assert plans[0].action_assignments == ()
     _pipeline_registry(monkeypatch, registry)
 
@@ -264,11 +293,11 @@ async def test_950a_keeps_original_plan_and_never_calls_fallback(
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("ScheduleOverviewNextEventLocationFull@1",{}));'
+                'Template("ScheduleOverviewDateLocationTimeFull@1",{}));'
             )
 
     output = await pipeline.generate_template_a2ui(task, card, bindings, Model())
-    assert "ScheduleOverviewNextEventLocationFull@1" in output.template_ids
+    assert "ScheduleOverviewDateLocationTimeFull@1" in output.template_ids
     assert not set(_NEW_IDS).intersection(output.template_ids)
 
 

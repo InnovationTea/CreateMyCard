@@ -237,8 +237,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景及 27 个 Support 模板的双业务动作组合。
-    assert len(all_cases) == 231
+    # 包含各业务场景及 27 个 Support 模板的双业务动作组合；
+    # 天气明日日期 Full 贡献一个用例（总数 231 → 232）。
+    assert len(all_cases) == 232
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -329,7 +330,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 230
+    assert len(targeted_cases) == 231
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -685,10 +686,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 231
+    assert summary.total == 232
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 225
+    assert summary.not_generated == 226
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9

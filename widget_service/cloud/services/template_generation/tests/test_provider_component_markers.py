@@ -29,6 +29,7 @@ _SHAPE_SPECIFIC_MARKERS = {
     "WeatherOverviewTemperatureSupport@1": "WeatherOverviewTemperatureSupport",
     "WeatherOverviewTemperatureUvSupport@1": "WeatherOverviewTemperatureSupport",
     "WeatherOverviewTemperaturecoldLevelSupport@1": "WeatherOverviewTemperatureSupport",
+    "WeatherOverviewTemperatureHumiditySupport@1": "WeatherOverviewTemperatureSupport",
 }
 
 

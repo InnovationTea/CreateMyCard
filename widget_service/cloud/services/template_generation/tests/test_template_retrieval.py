@@ -27,12 +27,14 @@ from services.template_generation.engine.cardplan.retrieval_index import (
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
+    TemplateSearchIntent,
     _component_templates_for_capability,
     _limit_component_templates,
     _required_field_template_groups,
     build_template_retrieval_prompt,
     restrict_query_to_preferred_templates,
     retrieve_template_variants,
+    search_template_variants,
 )
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     convert_a2ui_to_compact_dsl,
@@ -1424,9 +1426,11 @@ def test_q004_weather_alert_fields_match_alert_full() -> None:
         _card_spec(),
     )
 
-    assert result.component_candidates[0].available_template_ids == (
+    # 候选元组的顺序随注册表迭代不稳定，多成员一律按排序比较。
+    assert sorted(result.component_candidates[0].available_template_ids) == [
         "WeatherOverviewAlertFull@1",
-    )
+        "WeatherOverviewUpdatedAtFull@1",
+    ]
 
 
 def test_q025_weather_wind_fields_match_wind_hero() -> None:
@@ -1490,10 +1494,11 @@ def test_q025_weather_wind_fields_match_wind_hero() -> None:
 
     # 风况字段同时精确覆盖 WindFull（风向+风力为主数据）与 WindHero 的契约，
     # 两者都进入候选（与 q001 的 Full+Hero 组合一致）。
-    assert result.component_candidates[0].available_template_ids == (
+    assert sorted(result.component_candidates[0].available_template_ids) == [
+        "WeatherOverviewUpdatedAtFull@1",
         "WeatherOverviewWindFull@1",
         "WeatherOverviewWindHero@1",
-    )
+    ]
 
 
 def test_q034_two_weather_bindings_match_dual_city_full() -> None:
@@ -1928,10 +1933,11 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     template_ids = set(result.component_candidates[0].available_template_ids)
     # AlertInfoFull / UpdatedAtFull share Full@1's primary/secondary contract,
     # so the condition-only query matches them too.
+    # UpdatedAtFull 的 updatedAt 已改为必出主数据，本意图不提供 updatedAt，
+    # 不再进入候选。
     assert template_ids == {
         "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
         "WeatherOverviewConditionFeelsLikeAlertFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     }
 
 
@@ -2709,3 +2715,32 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
     assert not battery_plugged_ids
     assert earphone_status_ids <= descendant_ids(row_children[0])
     assert battery_percent_ids <= descendant_ids(row_children[1])
+
+
+def test_required_current_date_must_not_be_silently_dropped() -> None:
+    """模板未承载的用户必选能力必须整体拒绝，禁止静默丢弃成单业务。"""
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureText",),
+            "GetCurrentTime": ("/currentDate",),
+        },
+    )
+    task = _task()
+    task.dataModelSchema["data"]["time"] = {"currentDate": _field("2026-10-12")}
+    time_binding = CandidateDataBinding(
+        capabilityId="GetCurrentTime",
+        writeResultTo="/data/time",
+        candidateOutputFields=["/currentDate"],
+    )
+    card_spec = _card_spec()
+    card_spec["dataBindings"].append(
+        {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/time"},
+    )
+
+    with pytest.raises(
+        TemplateRetrievalMiss,
+        match="no provider template covers capability GetCurrentTime",
+    ):
+        search_template_variants(
+            intent, task, get_cardplan_registry(), (_binding(), time_binding), card_spec,
+        )
