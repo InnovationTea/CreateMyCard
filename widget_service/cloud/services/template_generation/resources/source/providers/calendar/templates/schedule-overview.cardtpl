@@ -193,7 +193,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -323,7 +322,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -381,7 +379,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -439,7 +436,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,

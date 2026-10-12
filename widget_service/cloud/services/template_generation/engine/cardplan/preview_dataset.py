@@ -404,7 +404,16 @@ def _build_case(
     registry: CardPlanRegistry,
 ) -> TemplatePreviewCase:
     layout_kind = provider_template_layout_kind(definition.wire_id)
-    size = _SIZE_BY_LAYOUT[layout_kind]
+    variant = definition.variants[0]
+    # Most templates derive their preview size from the suffix.  Legacy
+    # templates may explicitly override that convention in provider.json;
+    # preview generation must use the same registry decision as retrieval so
+    # the gallery cannot emit a 2x2 case for a 2x4-only template.
+    size = (
+        variant.supported_card_sizes[0]
+        if variant.supported_card_sizes
+        else _SIZE_BY_LAYOUT[layout_kind]
+    )
     content_height = _CONTENT_HEIGHT_BY_LAYOUT[layout_kind]
     data_schema = _build_data_schema(definition)
     task_spec = TaskSpec(
@@ -414,7 +423,6 @@ def _build_case(
         assetCandidates=[],
         dataModelSchema=data_schema,
     )
-    variant = definition.variants[0]
     bindings = {
         name: _binding_placeholder(definition, binding)
         for name, binding in definition.bindings.items()

@@ -152,7 +152,9 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 - `WideFull`：完整 `4x2`，单独使用。
 - `WideHalf`：约 `4x1`，用于 `2x4` 的半高组合布局。
 
-业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
+业务模板通常不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。
+如果一个历史模板虽然使用了 `Full`/`Compact` 后缀、但实际上只为宽卡 2x4 槽位设计，可以在该模板条目
+中显式声明 `supportedCardSizes`（例如 `["2x4"]`）覆盖后缀推导；这样它不会参与 2x2 检索。业务语义或
 需要区分的状态写在后缀前，例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用
 通用名称，例如 `BatteryOverviewCompact@1`。布局 Provider 不受此后缀约束。
 同一 UI 形态的 `Support` 与 `Compact` 在业务族状态校验中使用相同状态判定规则，但形态标识和布局身份

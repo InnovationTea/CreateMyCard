@@ -129,11 +129,6 @@ def test_support_ux_spacing_typography_and_right_icon(
     template_id: str, with_optional: bool, with_action: bool,
 ) -> None:
     root = _support_ux_root(template_id, with_optional, with_action)
-    options = root.values[0]
-    assert isinstance(options, dict)
-    padding = options.get("padding")
-    assert isinstance(padding, dict)
-    assert padding.get("left") == padding.get("right") == 8
 
     # 旧覆盖层中的空 Text 仅提供点击命中区域，不属于主辅信息。
     texts = [node for node in _nodes(root, "Text") if node.values[0] != ""]
