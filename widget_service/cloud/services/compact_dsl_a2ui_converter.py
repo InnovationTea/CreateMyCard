@@ -1538,6 +1538,7 @@ def normalize_mixed_font_text_rows(
         if min(fonts) == max(fonts):
             continue
         largest = max(fonts)
+        reference = texts[fonts.index(largest)]
         row_props = {**row.props, "alignItems": "bottom"}
         pair = _is_numeric_unit_pair(row, texts, fonts, data_model)
         if pair:
@@ -1554,7 +1555,7 @@ def normalize_mixed_font_text_rows(
                 props.pop("layoutWeight", None)
             if font < largest:
                 offset = _text_bottom_offset(
-                    props, font, largest, primary=texts[0].props, numeric_unit_pair=pair,
+                    props, font, largest, primary=reference.props, numeric_unit_pair=pair,
                 )
                 _compensate_text_bottom(props, font, offset)
             replacements[child.component_id] = ComponentRow(
@@ -1599,24 +1600,42 @@ def _is_numeric_unit_pair(
 def _text_bottom_offset(
     props: dict[str, Any], font: float, largest: float, *,
     primary: dict[str, Any], numeric_unit_pair: bool,
-) -> int:
-    offset = min(8, math.ceil((largest - font) / 4))
-    if not numeric_unit_pair or (largest, font) != (30, 12):
-        return offset
-    if props.get("lineHeight") != 1 or primary.get("lineHeight") != 1:
-        return offset
-    if props.get("fontWeight") != 500 or primary.get("fontWeight") != 700:
-        return offset
-    if props.get("fontFamily") is not None or primary.get("fontFamily") is not None:
-        return offset
-    unit = props.get("content")
-    if isinstance(unit, str):
-        # 固定字体规格的真实字形校准，不按用例/机型，也不外推未测单位。
-        offset = {"%": 1, "步": 2}.get(unit, offset)
+) -> int | float:
+    offset: int | float = min(8, math.ceil((largest - font) / 4))
+    if _can_calibrate_unit_bottom(props, font, largest, primary, numeric_unit_pair):
+        unit = props.get("content")
+        calibrated = {
+            "%": 1.25, "步": 2, "分": 2, "天": 1.75,
+            "℃": 1.25, "°C": 1.25, "km": 1.25, "小时": 1.75,
+        }
+        if isinstance(unit, str):
+            # 字形设计数据不按用例/机型分支，不外推未测文字规格。
+            offset = calibrated.get(unit, offset)
     return offset
 
 
-def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int) -> None:
+def _can_calibrate_unit_bottom(
+    props: dict[str, Any], font: float, largest: float,
+    primary: dict[str, Any], numeric_unit_pair: bool,
+) -> bool:
+    marker = props.get("_visualRecipe", "")
+    recipe_unit = False
+    if isinstance(marker, str) and marker.startswith(VISUAL_RECIPE_VERSION + ":"):
+        recipe_unit = marker.endswith(":unit")
+    if not numeric_unit_pair and not recipe_unit:
+        return False
+    if (largest, font) != (30, 12):
+        return False
+    if props.get("lineHeight") != 1 or primary.get("lineHeight") != 1:
+        return False
+    if props.get("fontWeight") != 500 or primary.get("fontWeight") != 700:
+        return False
+    if props.get("fontFamily") is not None or primary.get("fontFamily") is not None:
+        return False
+    return True
+
+
+def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int | float) -> None:
     padding = props.get("padding", 0)
     if isinstance(padding, (int, float)) and not isinstance(padding, bool):
         padding = {side: padding for side in ("top", "right", "bottom", "left")}
