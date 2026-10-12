@@ -17,6 +17,7 @@ from services.compact_dsl_a2ui_converter import (
     normalize_compact_dsl_design_tokens,
     parse_compact_dsl_rows,
     repair_compact_dsl_binding_paths,
+    repair_compact_dsl_safe_structure,
 )
 
 
@@ -1390,6 +1391,41 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["metadata_item0_value"]["styles"]["height"], 36)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 2)
 
+    def test_secondary_body_font_size_error_explains_role_and_item_count(self) -> None:
+        cases = [
+            (2, 12, "Recipe value 14", "role=supporting with 2 items"),
+            (3, 14, "Recipe value 12", "role=supporting with 3 items"),
+        ]
+        for item_count, font_size, expected_value, expected_context in cases:
+            with self.subTest(item_count=item_count):
+                items = [{"value": f"详情{index}"} for index in range(item_count)]
+                compact_dsl = _serialize(
+                    [
+                        ["root", "Column", {}, ["details"]],
+                        [
+                            "details",
+                            "SecondaryBody",
+                            {
+                                "role": "supporting",
+                                "items": items,
+                                "fontSize": font_size,
+                            },
+                        ],
+                    ]
+                )
+
+                with self.assertRaises(CompactDslConversionError) as context:
+                    convert_compact_dsl_to_a2ui(
+                        compact_dsl,
+                        size="2x2",
+                        protocol_profile=self.profile,
+                    )
+
+                message = str(context.exception)
+                self.assertIn(expected_value, message)
+                self.assertIn(expected_context, message)
+                self.assertIn("Recompute fontSize after changing role or items", message)
+
     def test_expands_info_block_progress_visual_and_two_event_card_items(self) -> None:
         compact_dsl = _serialize(
             [
@@ -1447,7 +1483,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["events"]["children"],
             ["events_item0", "events_item1"],
         )
-        self.assertEqual(components["events"]["styles"]["height"], 72)
+        self.assertEqual(components["events"]["styles"]["height"], 68)
+        self.assertEqual(components["events"]["itemMargin"], 4)
         self.assertEqual(components["events_item0_title"]["styles"]["fontWeight"], 700)
         self.assertEqual(components["events_item0_time"]["styles"]["fontSize"], 10)
 
@@ -1483,7 +1520,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["events"]["children"],
             ["events_item0", "events_item1", "events_item2"],
         )
-        self.assertEqual(components["events"]["styles"]["height"], 112)
+        self.assertEqual(components["events"]["styles"]["height"], 104)
+        self.assertEqual(components["events"]["itemMargin"], 4)
 
     def test_rejects_empty_event_card_items(self) -> None:
         compact_dsl = _serialize(
@@ -1552,7 +1590,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     {"width": "matchParent", "height": "matchParent", "padding": 12},
                     ["body"],
                 ],
-                ["body", "Column", {"width": "matchParent", "height": 110}, ["events"]],
+                ["body", "Column", {"width": "matchParent", "height": 102}, ["events"]],
                 [
                     "events",
                     "EventCard",
@@ -1564,7 +1602,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             CompactDslValidationError,
-            "component body: vertical layout requires at least 112vp within 110vp",
+            "component body: vertical layout requires at least 104vp within 102vp",
         ):
             validate_compact_dsl(
                 overflowing_dsl,
@@ -3711,6 +3749,64 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
+
+    def test_safe_structure_repair_prunes_orphan_and_restores_split_padding(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Row",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 12,
+                    },
+                    ["left", "right"],
+                ],
+                [
+                    "left",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "layoutWeight": 1,
+                        "borderRadius": 16,
+                        "clip": True,
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                    ["left_text"],
+                ],
+                ["left_text", "SecondaryBody", {"items": [{"value": "左侧"}]}],
+                [
+                    "right",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "layoutWeight": 1,
+                        "borderRadius": 16,
+                        "clip": True,
+                        "backgroundColor": "#99FFFFFF",
+                    },
+                    ["right_text"],
+                ],
+                ["right_text", "SecondaryBody", {"items": [{"value": "右侧"}]}],
+                ["orphan", "SecondaryBody", {"items": [{"value": "孤立节点"}]}],
+            ]
+        )
+
+        repaired = repair_compact_dsl_safe_structure(compact_dsl, size="2x4")
+        rows = parse_compact_dsl_rows(repaired)
+        components = {
+            row.component_id: row
+            for row in rows
+            if hasattr(row, "component_id")
+        }
+
+        self.assertNotIn("orphan", components)
+        self.assertEqual(components["left"].props.get("padding"), 8)
+        self.assertEqual(components["right"].props.get("padding"), 8)
 
 
 if __name__ == "__main__":

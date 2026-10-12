@@ -659,12 +659,20 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
     items = _secondary_body_items(component)
     variant = _secondary_body_variant(component, items)
+    role = component.props.get("role", "supporting")
+    font_size_context = (
+        f"Current SecondaryBody has role={role} with {len(items)} items. "
+        "Body or 1-2 supporting items require fontSize 14; metadata or "
+        "3-4 supporting items require fontSize 12. Recompute fontSize after "
+        "changing role or items."
+    )
     _validate_recipe_font_size(
         component,
         component_name="SecondaryBody",
         part_name="text",
         size=size,
         variant=variant,
+        expectation_context=font_size_context,
     )
     recipe = _visual_recipe("SecondaryBody", size=size, variant=variant)
     text_styles = recipe["parts"]["text"]["styles"]
@@ -2650,6 +2658,16 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
     rows: list[ComponentRow] = []
     item_ids: list[str] = []
     total_height = 0
+    item_margin = 8
+    if compact:
+        compact_recipe = _visual_recipe("EventCard", size=size, variant="compact")
+        compact_metrics = compact_recipe.get("metrics")
+        if not isinstance(compact_metrics, dict):
+            raise CompactDslConversionError("EventCard visual recipe has invalid metrics.")
+        item_margin_value = compact_metrics.get("itemMargin")
+        if not isinstance(item_margin_value, int) or item_margin_value < 0:
+            raise CompactDslConversionError("EventCard visual recipe has invalid item margin.")
+        item_margin = item_margin_value
     for index, item in enumerate(items):
         if len(items) == 1:
             item_id = component.component_id
@@ -2668,13 +2686,13 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
         total_height += item_height
     if len(items) == 1:
         return rows
-    total_height += 8 * (len(items) - 1)
+    total_height += item_margin * (len(items) - 1)
     root = _visual_row(
         component.component_id,
         "EventCard",
         "multiRoot",
         size=size,
-        props={"height": total_height},
+        props={"height": total_height, "itemMargin": item_margin},
         children=tuple(item_ids),
     )
     return [root, *rows]
@@ -2998,6 +3016,7 @@ def _validate_recipe_font_size(
     part_name: str,
     size: str,
     variant: str | None = None,
+    expectation_context: str | None = None,
 ) -> None:
     """Accept an optional model-visible font size only when it matches the Recipe."""
     if "fontSize" not in component.props:
@@ -3012,10 +3031,13 @@ def _validate_recipe_font_size(
     provided = component.props.get("fontSize")
     valid_number = isinstance(provided, (int, float)) and not isinstance(provided, bool)
     if not valid_number or not math.isfinite(provided) or provided != expected:
-        raise CompactDslConversionError(
+        message = (
             f"{component.component_id}: {component_name}.fontSize must be the fixed "
             f"Recipe value {expected}."
         )
+        if expectation_context is not None:
+            message = f"{message} {expectation_context}"
+        raise CompactDslConversionError(message)
 
 
 def _require_text_value(component: ComponentRow, name: str) -> None:

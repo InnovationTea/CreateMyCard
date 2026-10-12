@@ -89,6 +89,14 @@ def test_create_prompt_uses_unified_component_terms() -> None:
         assert deprecated not in create_prompt
 
 
+@pytest.mark.parametrize("prompt_name", ["create", "plan"])
+def test_secondary_body_contract_groups_related_items(prompt_name: str) -> None:
+    prompt = read_prompt(DEFAULT_SOURCE, prompt_name, size="2x4")
+
+    assert "同组有 2–4 项时必须使用一个 supporting 实例" in prompt
+    assert "不得把三项拆成三个单项后再给每项声明 `12`" in prompt
+
+
 @pytest.mark.parametrize(
     ("size", "included", "excluded"),
     [
@@ -347,6 +355,14 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
             "wide-components",
             "",
         )
+    assert "只允许进入 `W-top-bottom` 的 details" in two_by_four_fragments.get(
+        "wide-components",
+        "",
+    )
+    assert "整卡改选为 `W-top-bottom`" in two_by_four_fragments.get(
+        "wide-components",
+        "",
+    )
     assert "2x4 专属组件：`SummaryList`" not in two_by_four_fragments.get(
         "wide-components",
         "",

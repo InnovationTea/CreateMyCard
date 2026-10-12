@@ -10,13 +10,21 @@ export function ExtendedProgress({ value = 0, total = 100, ...s }: ExtendedProgr
   if (!valid) return <span role="alert" style={common}>进度值无效</span>;
   const pct = value / total * 100;
   const color = normalizeSchemaColor(typeof s.color === "string" ? s.color : undefined) ?? HARMONY_PRIMARY;
-  const trackColor = normalizeSchemaColor(typeof s.backgroundColor === "string" ? s.backgroundColor : undefined) ?? HARMONY_BORDER;
-  const stroke = typeof s.strokeWidth === "number" ? s.strokeWidth : 4;
+  const trackColor = normalizeSchemaColor(
+    typeof s.backgroundColor === "string"
+      ? s.backgroundColor
+      : typeof s.trackColor === "string"
+        ? s.trackColor
+        : undefined,
+  ) ?? HARMONY_BORDER;
+  const ring = s.type === "ring" || s.type === "scaleRing";
+  const stroke = ring ? 6 : typeof s.strokeWidth === "number" ? s.strokeWidth : 4;
   const metadata = { ...domProps(s), role: "progressbar", "aria-valuenow": value, "aria-valuemin": 0, "aria-valuemax": total };
-  if (s.type === "ring" || s.type === "scaleRing") {
-    const width = typeof s.width === "number" ? s.width : 48;
+  if (ring) {
+    const width = typeof s.width === "number" ? s.width : 44;
     const height = typeof s.height === "number" ? s.height : width;
-    const radius = Math.max(0, (Math.min(width, height) - stroke) / 2);
+    // 对齐 claw-widget ProgressRing：环中心线固定内收 4vp（44 -> r18，96 -> r44）。
+    const radius = Math.max(0, Math.min(width, height) / 2 - 4);
     const circumference = 2 * Math.PI * radius;
     return <div {...metadata} style={{ width, height, flexShrink: 0, ...common, backgroundColor: "transparent" }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" aria-hidden="true" style={{ display: "block", overflow: "visible" }}>

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import copy
 import hashlib
 import inspect
 import json
@@ -43,7 +44,11 @@ from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
-from services.compact_plan import CompactPlanValidationError, parse_compact_plan_call
+from services.compact_plan import (
+    CompactPlanValidationError,
+    compact_plan_omitted_facts,
+    parse_compact_plan_call,
+)
 from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
@@ -721,8 +726,11 @@ class WidgetGenerationService:
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
+        compact_repair_context_history: list[dict[str, Any]] = []
         compact_repair_tracker = (
-            CompactRepairStrategyTracker()
+            CompactRepairStrategyTracker(
+                max_repair_attempts=settings.validation_failure_max_repair_attempts
+            )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
         )
@@ -825,6 +833,9 @@ class WidgetGenerationService:
                             raw_plan,
                             task_spec.model_dump(mode="json", exclude_none=True),
                             static_text_source=previous_design_token,
+                            require_composition=(
+                                settings.enable_design_compact_runtime_prompt_context
+                            ),
                         )
                     except CompactPlanValidationError as exc:
                         plan_span.outcome("failed", errorCount=len(exc.errors))
@@ -1053,6 +1064,8 @@ class WidgetGenerationService:
                 directive = compact_repair_tracker.next_directive(
                     invalid_source_dsl,
                     quality_error_payloads,
+                    compact_plan=accepted_compact_plan,
+                    task_spec=task_spec.model_dump(mode="json", exclude_none=True),
                 )
                 repair_strategy = directive.to_prompt_payload()
                 trace_step(
@@ -1095,6 +1108,10 @@ class WidgetGenerationService:
                         quality_repair_failure_history
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
                     ),
+                    repair_history=(
+                        compact_repair_context_history
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
+                    ),
                     repair_strategy=repair_strategy,
                     **({"original_display_roles": original_small_display_roles}
                        if task_spec.size == "2x2"
@@ -1102,6 +1119,16 @@ class WidgetGenerationService:
                 )
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
+                    history_entry: dict[str, Any] = {
+                        "repairAttempt": quality_repair_attempt_count,
+                        "sourceDsl": invalid_source_dsl,
+                        "qualityErrors": copy.deepcopy(quality_error_payloads),
+                    }
+                    if repair_strategy is not None:
+                        history_entry["selectedRepairStrategy"] = copy.deepcopy(
+                            repair_strategy
+                        )
+                    compact_repair_context_history.append(history_entry)
                 trace_step(
                     "repair.prompt.built",
                     stage="repair.promptBuild",
@@ -1110,6 +1137,15 @@ class WidgetGenerationService:
                     json_artifacts={
                         "repair_quality_errors": quality_error_payloads,
                         "repair_prompt": repair_prompt,
+                        **(
+                            {
+                                "repair_context_history": copy.deepcopy(
+                                    compact_repair_context_history[:-1]
+                                )
+                            }
+                            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                            else {}
+                        ),
                         **(
                             {"repair_strategy": repair_strategy}
                             if repair_strategy is not None else {}
@@ -1180,6 +1216,10 @@ class WidgetGenerationService:
                 processing_context,
                 trusted_template_source=source_generated_by_template,
                 compact_plan=accepted_compact_plan,
+                allowed_omitted_plan_fact_indexes=(
+                    compact_repair_tracker.allowed_omitted_fact_indexes
+                    if compact_repair_tracker is not None else ()
+                ),
             )
             with trace_attempt(**validation_attempts):
                 processing_started_at = time.perf_counter()
@@ -1589,6 +1629,27 @@ class WidgetGenerationService:
         )
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         trace_phase("response")
+        omitted_facts: tuple[dict[str, Any], ...] = ()
+        if accepted_compact_plan is not None and compact_repair_tracker is not None:
+            omitted_facts = compact_plan_omitted_facts(
+                latest_processing_result.source_dsl,
+                accepted_compact_plan,
+                task_spec.model_dump(mode="json", exclude_none=True),
+                compact_repair_tracker.allowed_omitted_fact_indexes,
+            )
+        omitted_requirements = [
+            str(fact.get("requirement") or "")
+            for fact in omitted_facts
+            if fact.get("requirement")
+        ]
+        if omitted_requirements:
+            trace_step(
+                "response.plan_facts_omitted",
+                stage="responsePlanning",
+                status="success",
+                json_artifacts={"omitted_requirements": omitted_requirements},
+                artifact_roles={"omitted_requirements": "diagnostic"},
+            )
         with trace_span("response_plan.completed", stage="responsePlanning"):
             response_plan = ResponsePlanner().plan(
                 len(request.candidateDataBindings),
@@ -1596,6 +1657,7 @@ class WidgetGenerationService:
                 removed,
                 has_artifact=True,
                 generation_mode=generation_mode,
+                omitted_requirements=omitted_requirements,
             )
         logger.info(
             f"{_MODULE} generate_widget_card_completed status={response_plan.status.value} "

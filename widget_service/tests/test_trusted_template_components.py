@@ -11,6 +11,7 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
     parse_compact_dsl_rows,
     repair_compact_dsl_binding_paths,
+    repair_compact_dsl_safe_structure,
 )
 from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
 
@@ -140,4 +141,42 @@ def test_trusted_permission_does_not_disable_background_asset_allowlist() -> Non
             _source("Divider", {"backgroundImage": "resources/undeclared.svg"}),
             task_spec=_context().task_spec, card_spec=_context().card_spec,
             allow_internal_components=True,
+        )
+
+
+@pytest.mark.parametrize(("component_type", "props"), [
+    ("Image", {"src": "resources/battery.svg", "width": 24, "height": 24,
+               "fillColor": "#FF1F4799"}),
+    ("Divider", {"height": 1}),
+    ("Progress", {"value": 50, "total": 100, "height": 8}),
+    ("Button", {"label": "按钮", "height": 36}),
+])
+@pytest.mark.parametrize("with_orphan", [False, True])
+def test_safe_structure_keeps_template_permission_during_orphan_repair(
+    component_type: str, props: dict, with_orphan: bool,
+) -> None:
+    source = _source(component_type, props)
+    if with_orphan:
+        source += '\n["orphan", "SecondaryBody", {"items": [{"value": "孤立节点"}]}]'
+    with pytest.raises(CompactDslConversionError, match="unsupported component type"):
+        repair_compact_dsl_safe_structure(source, size="2x2")
+    repaired = repair_compact_dsl_safe_structure(
+        source, size="2x2", allow_internal_components=True,
+    )
+    if not with_orphan:
+        assert repaired == source
+    rows = parse_compact_dsl_rows(repaired, allow_internal_components=True)
+    assert [row.component_id for row in rows] == ["root", "template_root", "body"]
+    result = DesignCompactProcessor().process(
+        source, replace(_context(), trusted_template_source=True),
+    )
+    assert not result.errors
+    assert "orphan" not in result.standard_dsl
+    assert f'"{component_type}"' in result.standard_dsl
+
+
+def test_safe_structure_template_permission_preserves_unknown_component_error() -> None:
+    with pytest.raises(CompactDslConversionError, match="unsupported component type"):
+        repair_compact_dsl_safe_structure(
+            _source("UnknownWidget", {}), size="2x2", allow_internal_components=True,
         )

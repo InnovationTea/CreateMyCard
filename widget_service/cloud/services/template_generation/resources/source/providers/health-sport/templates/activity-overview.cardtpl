@@ -75,7 +75,7 @@ Column(
     #if props.stepsIcon
       Image(
         props.stepsIcon,
-        {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+        {"fillColor": $theme('primaryColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
       )
     #endif
   ),
@@ -184,7 +184,7 @@ Row(
               {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
               Image(
                   props.stepsIcon,
-                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                  {"fillColor": $theme('primaryColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
               )
           )
         #endif
@@ -228,7 +228,7 @@ Row(
               #if props.caloriesIcon
                 Image(
                     props.caloriesIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+                    {"fillColor": $theme('primaryColor'), "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
                 )
               #endif
           )
@@ -273,7 +273,7 @@ Row(
               #if props.distanceIcon
                 Image(
                     props.distanceIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+                    {"fillColor": $theme('primaryColor'), "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
                 )
               #endif
           )
@@ -325,7 +325,7 @@ Column(
     #if props.stepsIcon
       Image(
         props.stepsIcon,
-        {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+        {"fillColor": $theme('primaryColor'), "width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
       )
     #endif
   ),
@@ -486,7 +486,7 @@ Column(
         #if props.stepsIcon
           Image(
             props.stepsIcon,
-            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+            {"fillColor": $theme('primaryColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
           )
         #endif
       ),
@@ -569,7 +569,7 @@ Column(
         #if props.stepsIcon
           Image(
             props.stepsIcon,
-            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+            {"fillColor": $theme('primaryColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
           )
         #endif
       ),
@@ -830,6 +830,7 @@ Row(
               Image(
                   props.stepsIcon,
                   {
+                      "fillColor": $theme('primaryColor'),
                       "margin": {"top": 0, "bottom": 2, "left": 0, "right": 0},
                       "width": 24,
                       "height": 24,
@@ -903,7 +904,7 @@ Row(
               #if props.caloriesIcon
                 Image(
                     props.caloriesIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+                    {"fillColor": $theme('primaryColor'), "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
                 )
               #endif
           )
@@ -948,7 +949,7 @@ Row(
               #if props.distanceIcon
                 Image(
                     props.distanceIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+                    {"fillColor": $theme('primaryColor'), "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
                 )
               #endif
           )

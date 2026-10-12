@@ -1,5 +1,6 @@
 import { UIGraph } from "@genui-sdk/graph";
-import { tryNormalizeV09Protocol } from "@genui-sdk/parser";
+import { JsonlStreamParser, tryNormalizeV09Protocol } from "@genui-sdk/parser";
+import { adaptCloudEventProps } from "@genui-sdk/renderer";
 import { applyDesignStyles } from "./design-handle";
 import { parseExpression, resolvePathBindingsInValue } from "@genui-sdk/interactions";
 import {
@@ -16,6 +17,37 @@ const TYPES = new Set([
   ..."Card Row Column Text Image SingleLineTitle TimelineUnit Input TextInput Radio CheckboxGroup Select Toggle Divider Grid GridRow Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
+
+export function compileA2uiJsonl(source: string, options: { size?: CardSize } = {}) {
+  const graph = new UIGraph();
+  const warnings: string[] = [];
+  const parser = new JsonlStreamParser<RecordValue>({
+    onMessage: command => graph.applyCommand(command),
+    onParseError: (_raw, error) => {
+      warnings.push(error instanceof Error ? error.message : String(error));
+    },
+    onBraceMismatch: () => warnings.push("A2UI 包含不匹配的右花括号。"),
+  });
+  parser.push(source);
+  parser.end();
+  if (parser.getPending().trim()) warnings.push("A2UI 末尾包含未完成的 JSON。");
+  for (const node of graph.getAllNodes().values()) {
+    node.props = adaptCloudEventProps(node.props);
+  }
+  if (!graph.getRoot()) {
+    const detail = warnings[0] ? `：${warnings[0]}` : "";
+    throw new Error(`正式 Python 转换器没有返回可渲染的 A2UI${detail}`);
+  }
+  const count = graph.getAllNodes().size;
+  return {
+    graph,
+    jsonl: source.trim(),
+    warnings,
+    count,
+    expandedCount: count,
+    size: options.size ?? "2x2",
+  };
+}
 
 /** Balanced JSON tuples: supports JSONL, multiline tuples, and a JSON array of tuples. */
 function parseTuples(source: string): unknown[][] {
@@ -107,7 +139,10 @@ function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export function compileMiniDsl(source: string, options: { size?: CardSize } = {}) {
+export function compileMiniDsl(
+  source: string,
+  options: { size?: CardSize; previewMode?: boolean } = {},
+) {
   const rows = parseTuples(source);
   let nodes = new Map<string, MiniNode>();
   const data: unknown[][] = [];
@@ -132,6 +167,7 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
   const sourceCount = nodes.size;
   const size = options.size ?? ([...nodes.values()].some(n => typeof n.props.width === "number" && n.props.width >= 240) ? "2x4" : "2x2");
   const initialData: RecordValue = {};
+  const warnings = new Set<string>();
   for (const [path, value] of data) setPointer(initialData, String(path), value);
   const derivedData: unknown[][] = [];
   nodes = expandCompactComponents(nodes, size, {
@@ -140,6 +176,8 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
       setPointer(initialData, path, value);
       derivedData.push([path, value]);
     },
+    previewMode: options.previewMode,
+    warn: message => warnings.add(message),
   });
   const parents = new Map<string, string>();
   for (const [id, node] of nodes) for (const child of node.children) {
@@ -159,7 +197,6 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
   visit(roots[0]);
   if (ordered.length !== nodes.size) throw new Error("存在未连接到根节点的循环引用。");
   const messages: RecordValue[] = [{ version: "v0.9", createSurface: { surfaceId: SURFACE_ID, catalogId: "ohos.a2ui.extended.catalog" } }];
-  const warnings = new Set<string>();
   for (const id of ordered) {
     const node = nodes.get(id)!;
     const { styles: nested, onClick, action, ...flat } = node.props;
@@ -171,17 +208,29 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
       const validWidth = typeof width === "number" && Number.isFinite(width) && width > 0;
       const validHeight = typeof height === "number" && Number.isFinite(height) && height > 0;
       if (!validWidth || !validHeight) {
-        throw new Error(`组件 ${id}：ring Progress 的 width/height 必须是正数。`);
+        const message = `组件 ${id}：ring Progress 的 width/height 必须是正数。`;
+        if (!options.previewMode) throw new Error(message);
+        warnings.add(message);
       }
-      if (width !== height) throw new Error(`组件 ${id}：ring Progress 的 width/height 必须相等。`);
+      if (width !== height) {
+        const message = `组件 ${id}：ring Progress 的 width/height 必须相等。`;
+        if (!options.previewMode) throw new Error(message);
+        warnings.add(message);
+      }
       if (props.strokeWidth !== undefined && props.strokeWidth !== 6) {
-        throw new Error(`组件 ${id}：ring Progress.strokeWidth 必须是 6。`);
+        const message = `组件 ${id}：ring Progress.strokeWidth 必须是 6。`;
+        if (!options.previewMode) throw new Error(message);
+        warnings.add(message);
       }
       if ("trackColor" in props) {
-        throw new Error(`组件 ${id}：ring Progress 使用 backgroundColor，不使用 trackColor。`);
+        const message = `组件 ${id}：ring Progress 使用 backgroundColor，不使用 trackColor。`;
+        if (!options.previewMode) throw new Error(message);
+        warnings.add(message);
       }
       if ("icon" in props || "externalText" in props) {
-        throw new Error(`组件 ${id}：环心图标和环外读数必须使用 Stack/Column 组合。`);
+        const message = `组件 ${id}：环心图标和环外读数必须使用 Stack/Column 组合。`;
+        if (!options.previewMode) throw new Error(message);
+        warnings.add(message);
       }
     }
     const { content, label, text, src, value, total, enabled, select, accessibility, ...styleProps } = props;
@@ -223,7 +272,11 @@ export function compileMiniDsl(source: string, options: { size?: CardSize } = {}
         if (typeof resolved.value !== "number" || !Number.isFinite(resolved.value) || typeof total !== "number" || !Number.isFinite(total) || total <= 0 || resolved.value < 0 || resolved.value > total) throw new Error("Progress.value 必须是 0 到 total 之间的有限数值，不能使用百分比字符串。");
       }
       if (resolved.enabled !== undefined && typeof resolved.enabled !== "boolean") throw new Error("enabled 必须解析为 boolean。");
-    } catch (error) { throw new Error(`组件 ${id}：${error instanceof Error ? error.message : String(error)}`); }
+    } catch (error) {
+      const message = `组件 ${id}：${error instanceof Error ? error.message : String(error)}`;
+      if (!options.previewMode) throw new Error(message);
+      warnings.add(message);
+    }
   }
   return { graph, jsonl: messages.map(m => JSON.stringify(m)).join("\n"), warnings: [...warnings], count: sourceCount, expandedCount: nodes.size, size };
 }

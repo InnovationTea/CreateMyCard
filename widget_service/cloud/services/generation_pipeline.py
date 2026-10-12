@@ -15,9 +15,13 @@ from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
+    repair_compact_dsl_safe_structure,
 )
 from services.compact_outer_recomposition import recompose_small_card
-from services.compact_plan import compact_plan_coverage_errors
+from services.compact_plan import (
+    compact_plan_omitted_facts,
+    evaluate_compact_plan_coverage,
+)
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
 from utils.ops_metrics import report_ops_metrics
@@ -72,6 +76,7 @@ class DslProcessingContext:
     trusted_template_source: bool = False
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
+    allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -154,6 +159,12 @@ class DesignCompactProcessor:
         binding_repair_started_at = time.perf_counter()
         original_source_dsl = source_dsl
         try:
+            source_dsl = repair_compact_dsl_safe_structure(
+                source_dsl,
+                size=context.size,
+                allow_internal_components=context.trusted_template_source,
+            )
+            safe_structure_repaired = source_dsl != original_source_dsl
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
                 task_spec=context.task_spec,
@@ -175,6 +186,7 @@ class DesignCompactProcessor:
             stage="dsl.bindingRepair",
             status="success",
             duration_ms=_elapsed_ms(binding_repair_started_at),
+            details={"safeStructureRepaired": safe_structure_repaired},
             text_artifacts={
                 "binding_repair_input": original_source_dsl,
                 "compact_dsl_binding_repaired": source_dsl,
@@ -215,21 +227,60 @@ class DesignCompactProcessor:
             )
 
         plan_coverage_started_at = time.perf_counter()
-        plan_errors = compact_plan_coverage_errors(
+        plan_coverage = evaluate_compact_plan_coverage(
             source_dsl,
             context.compact_plan,
             context.task_spec,
+            allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+        )
+        plan_errors = plan_coverage.errors
+        plan_warnings = plan_coverage.warnings
+        omitted_facts = compact_plan_omitted_facts(
+            source_dsl,
+            context.compact_plan,
+            context.task_spec,
+            context.allowed_omitted_plan_fact_indexes,
         )
         plan_issues = self._validation_failure(
             source_dsl, plan_errors, code="COMPACT_PLAN_COVERAGE_FAILED",
         ).issues
+        plan_warning_issues = tuple(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_COVERAGE_WARNING",
+                message=message,
+                severity="warning",
+            )
+            for message in plan_warnings
+        )
+        optional_omission_issues = tuple(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_FACT_OMITTED",
+                message=(
+                    "Plan fact was omitted by the bounded fallback: "
+                    f"{fact.get('requirement') or 'unknown requirement'}."
+                ),
+                severity="warning",
+            )
+            for fact in omitted_facts
+        )
         trace_step(
             "dsl.plan_coverage_validation.completed",
             stage="dsl.planCoverageValidation",
             status="failed" if plan_errors else "success",
             duration_ms=_elapsed_ms(plan_coverage_started_at),
+            details={"warningCount": len(plan_warnings)},
             text_artifacts={"coverage_validation_input": source_dsl},
-            json_artifacts={"plan_coverage_result": {"errors": list(plan_errors)}},
+            json_artifacts={
+                "plan_coverage_result": {
+                    "errors": list(plan_errors),
+                    "warnings": list(plan_warnings),
+                    "omittedFacts": [
+                        fact.get("requirement") for fact in omitted_facts
+                    ],
+                }
+            },
             artifact_roles={
                 "coverage_validation_input": "input",
                 "plan_coverage_result": "diagnostic",
@@ -260,7 +311,13 @@ class DesignCompactProcessor:
                 )
                 compact_issues = self._validation_failure(source_dsl, exc.errors).issues
                 return DslProcessingResult(
-                    source_dsl=source_dsl, issues=(*plan_issues, *compact_issues),
+                    source_dsl=source_dsl,
+                    issues=(
+                        *plan_issues,
+                        *plan_warning_issues,
+                        *optional_omission_issues,
+                        *compact_issues,
+                    ),
                 )
             trace_step(
                 "dsl.compact_validation.completed",
@@ -291,7 +348,10 @@ class DesignCompactProcessor:
             )
 
         if plan_issues:
-            return DslProcessingResult(source_dsl=source_dsl, issues=plan_issues)
+            return DslProcessingResult(
+                source_dsl=source_dsl,
+                issues=(*plan_issues, *plan_warning_issues, *optional_omission_issues),
+            )
 
         try:
             design_protocol["appVersion"] = context.task_spec["appVersion"]
@@ -355,7 +415,11 @@ class DesignCompactProcessor:
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl=standard_dsl,
-                issues=warnings,
+                issues=(
+                    *plan_warning_issues,
+                    *optional_omission_issues,
+                    *warnings,
+                ),
             )
         except CompactDslConversionError as exc:
             trace_step(

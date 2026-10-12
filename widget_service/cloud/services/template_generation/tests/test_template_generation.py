@@ -3125,6 +3125,17 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewNapFull@1", "sourceIcon"),
         ("SleepOverviewNapHero@1", "sourceIcon"),
         ("WorkoutOverviewSupport@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewCompletePhoneWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewCompletePhoneWideFull@1", "rightEarIcon"),
     }
     expected_themed_assets = {
         (template_id, prop): "supportContentColor"
@@ -3134,6 +3145,11 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     expected_themed_assets[("WorkoutOverviewTypeDurationCompact@1", "sourceIcon")] = (
         "primaryColor"
     )
+    # 原来由编译器补齐的运动图标主色现由源模板显式声明。
+    for template_id in (
+        "WorkoutOverviewCompact@1", "WorkoutOverviewHero@1", "WorkoutOverviewTrainingRecordHero@1",
+    ):
+        expected_themed_assets[(template_id, "sourceIcon")] = "primaryColor"
     # 耳机三电量/成对 Full 深色画布固定白色前景：图标与同级兜底文字同为 #99FFFFFF。
     expected_white_artwork_assets = {
         ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
@@ -3143,14 +3159,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
     }
-    expected_inherited_assets = {
-        ("WorkoutOverviewCompact@1", "sourceIcon"),
-        ("WorkoutOverviewHero@1", "sourceIcon"),
-        ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
-    }
     themed_assets: set[tuple[str, str]] = set()
     white_artwork_assets: set[tuple[str, str]] = set()
-    inherited_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
         asset_props = original_color_props.get(definition.business_id or "")
@@ -3180,30 +3190,15 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
                 white_artwork_assets.add(asset_key)
                 continue
             assert "fillColor" not in options.properties
-            if asset_key in expected_inherited_assets:
-                assert "_preserveOriginalColor" not in options.properties
-                icon = Nested2Node(
-                    "Image", ("resources/workout.svg", _template_node_options(image)), (),
-                )
-                contract = HybridBodyContract.model_construct(
-                    theme_profile_id="race-sunrise-action"
-                )
-                styled = _apply_theme_content_color(icon, contract, registry)
-                styled_options = styled.values[-1]
-                assert isinstance(styled_options, dict)
-                assert styled_options.get("fillColor") == "#FF99521F"
-                inherited_assets.add(asset_key)
-                continue
             preserve_original = options.properties.get("_preserveOriginalColor")
             assert preserve_original is not None, asset_key
             assert preserve_original.kind == "literal"
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 12
+    assert not preserved_assets
     assert themed_assets == set(expected_themed_assets)
     assert white_artwork_assets == expected_white_artwork_assets
-    assert inherited_assets == expected_inherited_assets
 
 
 def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:

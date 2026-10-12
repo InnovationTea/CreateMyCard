@@ -9,7 +9,10 @@ from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
     compact_plan_coverage_errors,
+    compact_plan_coverage_warnings,
     compact_plan_data_paths,
+    compact_plan_omitted_facts,
+    compact_plan_optional_drop_candidate,
     parse_compact_plan_call,
 )
 from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
@@ -79,6 +82,64 @@ def plan_call() -> str:
     )
 
 
+def plan_call_with_composition(*, content_height: int = 34) -> str:
+    payload = json.loads(plan_call())
+    for fact in payload["arguments"]["info_required"]:
+        fact["priority"] = "must"
+    payload["arguments"]["composition"] = {
+        "layout": "S-title-content-action",
+        "variant": 1,
+        "regions": [
+            {
+                "id": "title",
+                "path": [0],
+                "referenceWidth": 126,
+                "referenceHeight": 20,
+                "gap": 0,
+                "groups": [
+                    {
+                        "component": "SingleLineTitle",
+                        "factIndexes": [],
+                        "placements": [],
+                        "referenceHeight": 20,
+                    }
+                ],
+            },
+            {
+                "id": "content",
+                "path": [1, 0],
+                "referenceWidth": 126,
+                "referenceHeight": 64,
+                "gap": 0,
+                "groups": [
+                    {
+                        "component": "EventCard",
+                        "factIndexes": [0, 1],
+                        "placements": ["items[0].title", "items[0].time"],
+                        "referenceHeight": content_height,
+                    }
+                ],
+            },
+            {
+                "id": "action",
+                "path": [1, 1],
+                "referenceWidth": 126,
+                "referenceHeight": 36,
+                "gap": 0,
+                "groups": [
+                    {
+                        "component": "PillButton",
+                        "factIndexes": [2],
+                        "placements": ["onClick"],
+                        "referenceHeight": 36,
+                    }
+                ],
+            },
+        ],
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
 def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     spec = task_spec()
     assert compact_plan_data_paths(spec) == (
@@ -96,6 +157,58 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "Button" not in fact_properties["componentHints"]["items"]["enum"]
     assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
     assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
+    assert properties["info_required"]["items"]["properties"]["priority"]["enum"] == [
+        "must",
+        "should",
+    ]
+    assert "priority" in properties["info_required"]["items"]["required"]
+    assert "composition" not in properties
+    assert tool["function"]["parameters"]["required"] == ["info_required"]
+
+
+def test_plan_tool_requires_composition_only_with_runtime_context() -> None:
+    tool = build_compact_plan_tool(task_spec(), include_composition=True)
+    parameters = tool["function"]["parameters"]
+
+    assert "composition" in parameters["properties"]
+    assert parameters["required"] == ["info_required", "composition"]
+
+
+def test_plan_parser_rejects_composition_when_runtime_context_is_disabled() -> None:
+    with pytest.raises(CompactPlanValidationError, match="Unsupported Plan arguments"):
+        parse_compact_plan_call(plan_call_with_composition(), task_spec())
+
+
+def test_plan_parser_requires_valid_composition_when_runtime_context_is_enabled() -> None:
+    result = parse_compact_plan_call(
+        plan_call_with_composition(),
+        task_spec(),
+        require_composition=True,
+    )
+
+    assert result.plan["composition"]["layout"] == "S-title-content-action"
+    assert all(
+        region["remainingHeight"] >= 0
+        for region in result.plan["composition"]["regions"]
+    )
+
+
+def test_plan_parser_rejects_negative_remaining_height_in_runtime_mode() -> None:
+    with pytest.raises(CompactPlanValidationError, match="negative remainingHeight"):
+        parse_compact_plan_call(
+            plan_call_with_composition(content_height=100),
+            task_spec(),
+            require_composition=True,
+        )
+
+
+def test_plan_parser_requires_composition_in_runtime_mode() -> None:
+    with pytest.raises(CompactPlanValidationError, match="composition is required"):
+        parse_compact_plan_call(
+            plan_call(),
+            task_spec(),
+            require_composition=True,
+        )
 
 
 @pytest.mark.parametrize(
@@ -238,6 +351,32 @@ def test_plan_normalization_removes_target_incompatible_component_hints() -> Non
         "target-incompatible or duplicate values.",
         "info_required[1].componentHints removed unsupported, "
         "target-incompatible or duplicate values.",
+    )
+
+
+def test_plan_forces_action_priority_to_must() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "打开日历",
+                        "priority": "should",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["PillButton"],
+                    }
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    assert result.plan["info_required"][0]["priority"] == "must"
+    assert result.warnings == (
+        "info_required[0].priority was forced to must for an action.",
     )
 
 
@@ -417,6 +556,180 @@ def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
     )
 
 
+def test_optional_drop_candidate_prefers_should_only_component() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["SingleLineTitle"],
+            },
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+                "componentHints": ["SecondaryBody"],
+            },
+            {
+                "requirement": "打开日历",
+                "priority": "must",
+                "actionId": "event.open.calendar",
+                "componentHints": ["PillButton"],
+            },
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["title","time","action"]]',
+            '["title","SingleLineTitle",{"title":{"path":'
+            '"/data/calendar/events/0/title"}}]',
+            '["time","SecondaryBody",{"role":"metadata","items":'
+            '[{"value":{"path":"/data/calendar/events/0/start"}}]}]',
+            '["action","PillButton",{"label":"打开日历","onClick":'
+            '[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]}]',
+        ]
+    )
+
+    candidate = compact_plan_optional_drop_candidate(source, plan, spec)
+
+    assert candidate is not None
+    assert candidate.component_id == "time"
+    assert candidate.fact_indexes == (1,)
+    assert candidate.contains_must_facts is False
+
+    without_time = source.replace(',"time"', "").replace(
+        '["time","SecondaryBody",{"role":"metadata","items":'
+        '[{"value":{"path":"/data/calendar/events/0/start"}}]}]\n',
+        "",
+    )
+    errors = compact_plan_coverage_errors(without_time, plan, spec)
+    assert len(errors) == 1
+    assert "会议开始时间" in errors[0]
+    assert compact_plan_coverage_errors(
+        without_time,
+        plan,
+        spec,
+        allowed_omitted_fact_indexes=(1,),
+    ) == ()
+    omitted = compact_plan_omitted_facts(without_time, plan, spec, (1,))
+    assert [fact["requirement"] for fact in omitted] == ["会议开始时间"]
+
+
+def test_optional_drop_candidate_prefers_the_component_with_fewer_facts() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/title",
+            },
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+            },
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["event","time"]]',
+            '["event","EventCard",{"items":[{"title":{"path":'
+            '"/data/calendar/events/0/title"},"time":{"path":'
+            '"/data/calendar/events/0/start"}}]}]',
+            '["time","SecondaryBody",{"role":"metadata","items":'
+            '[{"value":{"path":"/data/calendar/events/0/start"}}]}]',
+        ]
+    )
+
+    candidate = compact_plan_optional_drop_candidate(source, plan, spec)
+
+    assert candidate is not None
+    assert candidate.component_id == "time"
+    assert candidate.fact_indexes == (1,)
+
+
+def test_optional_drop_candidate_can_select_component_that_carries_must_fact() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+            },
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+            },
+        ]
+    }
+    source = (
+        '["root","Column",{},["event"]]\n'
+        '["event","EventCard",{"items":[{"title":{"path":'
+        '"/data/calendar/events/0/title"},"time":{"path":'
+        '"/data/calendar/events/0/start"}}]}]'
+    )
+
+    candidate = compact_plan_optional_drop_candidate(source, plan, spec)
+
+    assert candidate is not None
+    assert candidate.component_id == "event"
+    assert candidate.fact_indexes == (0, 1)
+    assert candidate.contains_must_facts is True
+
+    without_event = '["root","Column",{},[]]'
+    assert compact_plan_coverage_errors(
+        without_event,
+        plan,
+        spec,
+        allowed_omitted_fact_indexes=candidate.fact_indexes,
+    ) == ()
+    omitted = compact_plan_omitted_facts(
+        without_event,
+        plan,
+        spec,
+        candidate.fact_indexes,
+    )
+    assert [fact["requirement"] for fact in omitted] == ["会议标题", "会议开始时间"]
+
+
+def test_optional_drop_never_allows_action_fact_to_be_omitted() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "打开日历",
+                "priority": "must",
+                "actionId": "event.open.calendar",
+            }
+        ]
+    }
+    source = (
+        '["root","Column",{},["action"]]\n'
+        '["action","PillButton",{"label":"打开日历","onClick":'
+        '[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]}]'
+    )
+
+    assert compact_plan_optional_drop_candidate(source, plan, spec) is None
+    errors = compact_plan_coverage_errors(
+        '["root","Column",{},[]]',
+        plan,
+        spec,
+        allowed_omitted_fact_indexes=(0,),
+    )
+    assert len(errors) == 1
+    assert "打开日历" in errors[0]
+    assert compact_plan_omitted_facts(
+        '["root","Column",{},[]]',
+        plan,
+        spec,
+        (0,),
+    ) == ()
+
 def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
     spec = task_spec()
     plan = {
@@ -447,6 +760,31 @@ def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
         "会议标题 (/data/calendar/events/0/title).",
     )
     assert compact_plan_coverage_errors(header_source, plan, spec) == ()
+
+
+def test_static_title_plan_fact_keeps_hard_title_placement_validation() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "卡片标题",
+                "text": "设计评审",
+                "componentHints": ["SingleLineTitle"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","SecondaryBody",{"role":"body","items":'
+            '[{"value":"设计评审"}],"fontSize":14}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, spec) == (
+        "Plan title fact must be visible in a SingleLineTitle.title: 卡片标题.",
+    )
+    assert compact_plan_coverage_warnings(source, plan, spec) == ()
 
 
 def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
@@ -488,7 +826,7 @@ def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
     assert compact_plan_coverage_errors(source, plan, spec) == ()
 
 
-def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
+def test_processor_reports_missing_static_plan_text_as_warning() -> None:
     plan = {
         "info_required": [
             {
@@ -498,10 +836,12 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
             }
         ]
     }
+    spec = task_spec()
+    spec["appVersion"] = "12.0.0.1"
     context = DslProcessingContext(
         size="2x2",
         card_spec={},
-        task_spec=task_spec(),
+        task_spec=spec,
         protocol_profile={},
         compact_plan=plan,
     )
@@ -511,10 +851,12 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
         context,
     )
 
-    assert result.standard_dsl == ""
-    assert len(result.errors) == 1
-    assert result.errors[0].code == "COMPACT_PLAN_COVERAGE_FAILED"
-    assert "卡片标题" in result.errors[0].message
+    assert result.standard_dsl
+    assert result.errors == ()
+    warnings = tuple(issue for issue in result.issues if issue.severity == "warning")
+    assert len(warnings) == 1
+    assert warnings[0].code == "COMPACT_PLAN_COVERAGE_WARNING"
+    assert "卡片标题" in warnings[0].message
 
 
 def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
@@ -534,5 +876,32 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
     )
 
     errors = compact_plan_coverage_errors(source, plan, task_spec())
+    warnings = compact_plan_coverage_warnings(source, plan, task_spec())
 
-    assert errors == ("Plan static text is missing from visible DSL: 卡片标题.",)
+    assert errors == ()
+    assert warnings == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+
+
+def test_shortened_static_plan_text_is_warning_only() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "展示提醒文字“每天带孩子出去运动两次”",
+                "text": "每天带孩子出去运动两次",
+                "componentHints": ["SecondaryBody"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["reminder"]]',
+            '["reminder","SecondaryBody",{"role":"body","items":'
+            '[{"value":"每天带孩子运动","maxLines":1}],"fontSize":14}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, task_spec()) == ()
+    assert compact_plan_coverage_warnings(source, plan, task_spec()) == (
+        "Plan static text is not fully visible in DSL: "
+        "展示提醒文字“每天带孩子出去运动两次”.",
+    )
