@@ -7,7 +7,14 @@ from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 WidgetSize = Literal["2x2", "2x4"]
+MaterialType = Literal["thick", "thin"]
+SUPPORTED_MATERIAL_TYPES: tuple[MaterialType, ...] = ("thick", "thin")
 DEFAULT_WIDGET_SIZE: WidgetSize = "2x2"
+
+
+def uses_material_background(material_type: object) -> bool:
+    """Return whether the card background is provided by a system material."""
+    return material_type in SUPPORTED_MATERIAL_TYPES
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,7 @@ class CardSpec(BaseModel):
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     suggestSize: WidgetSize
+    materialType: MaterialType | None = None
     imageDomainWhitelist: list[str] | None = None
     dataBindings: list[CardSpecDataBinding] | None = None
 

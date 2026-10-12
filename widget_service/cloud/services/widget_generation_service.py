@@ -35,9 +35,11 @@ from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import (
     DEFAULT_WIDGET_SIZE,
+    MaterialType,
     ModelRequestContext,
     TaskSpec,
     WidgetSize,
+    uses_material_background,
 )
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairArtifactRecord
@@ -514,7 +516,13 @@ class WidgetGenerationService:
         )
         stage_started_at = time.perf_counter()
         # 设备可用性已由第一个接口完成；生成前置门禁只做确定性的注册表和结构校验。
-        preflight = GenerationPreflight(registry).run(request)
+        material_type: MaterialType | None = None
+        if policy.supports_new_material and settings.enable_new_material:
+            material_type = "thick"
+        preflight = GenerationPreflight(registry).run(
+            request,
+            material_type=material_type,
+        )
         if preflight.blocking_issues:
             issue_payloads = [item.model_dump(mode="json") for item in preflight.blocking_issues]
             trace_step(
@@ -1447,6 +1455,8 @@ class WidgetGenerationService:
             )
             return response
         source_dsl = retry_result.result
+        if uses_material_background(card_spec.materialType):
+            source_dsl = latest_processing_result.source_dsl
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
         model_failure_retry_count = model_client.model_failure_retry_count
@@ -1810,6 +1820,7 @@ class WidgetGenerationService:
             design_profile_id=selection.design_profile_id,
             validation_failure_blocking=True,
             stores_design_token=True,
+            supports_new_material=True,
         )
         try:
             response = await self._generate_widget_card_with_policy(

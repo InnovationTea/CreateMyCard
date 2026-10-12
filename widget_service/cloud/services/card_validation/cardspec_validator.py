@@ -34,6 +34,10 @@ class CardSpecValidator(BaseValidator):
         )
         write_prefix = cardspec_rules.get("writeResultToPrefix", "/data/")
         allowed_sizes = sorted(rules.protocol.get("sizes", {"2x2": {}, "2x4": {}}).keys())
+        allowed_material_types = cardspec_rules.get(
+            "materialTypes",
+            ["thick", "thin"],
+        )
 
         for field in required_fields:
             if field not in cardspec or is_empty_required_value(cardspec.get(field)):
@@ -98,6 +102,19 @@ class CardSpecValidator(BaseValidator):
                 actual=suggest_size,
                 expected=allowed_sizes,
                 message=f"suggestSize 只能是 {allowed_sizes}。",
+            )
+
+        material_type = cardspec.get("materialType")
+        if material_type is not None and material_type not in allowed_material_types:
+            reporter.add(
+                "error",
+                "CARD_MATERIAL_TYPE_INVALID",
+                "hard",
+                "cardspec",
+                json_pointer="/materialType",
+                actual=material_type,
+                expected=allowed_material_types,
+                message=f"materialType 只能是 {allowed_material_types}。",
             )
 
         extra = sorted(set(cardspec.keys()) - set(top_level_fields))

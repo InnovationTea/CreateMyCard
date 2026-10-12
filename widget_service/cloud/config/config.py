@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     enable_artifact_validation: bool = (
         CONFIG.get("enable_artifact_validation") == "true"
     )  # bool类型需要str转bool
+    enable_new_material: bool = CONFIG.get("enable_new_material", "false") == "true"
     enable_a2ui_model_mock: bool = (
         CONFIG.get("enable_a2ui_model_mock") == "true"
     )  # bool类型需要str转bool

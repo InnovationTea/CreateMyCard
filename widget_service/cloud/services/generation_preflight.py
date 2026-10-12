@@ -12,7 +12,7 @@ from app.logger import json_for_log, logger
 from core.errors import ErrorCode
 from core.json_pointer import parse_json_pointer
 from models.capability import AssetCapability, DataCapability, RemovedCapability
-from models.generation import CandidateDataBinding, EventAction
+from models.generation import CandidateDataBinding, EventAction, MaterialType
 from models.preflight import (
     AgentAction,
     GenerationPreflightResult,
@@ -43,7 +43,12 @@ class GenerationPreflight:
     def __init__(self, registry: CapabilityRegistry) -> None:
         self.registry = registry
 
-    def run(self, request: GenerateWidgetCardRequest) -> GenerationPreflightResult:
+    def run(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        material_type: MaterialType | None = None,
+    ) -> GenerationPreflightResult:
         """校验候选计划并在通过后一次性构造 CardSpec 与 TaskSpec。"""
         if request.size is None or request.title is None or request.description is None:
             raise ValueError("generation request must be normalized before preflight")
@@ -76,6 +81,7 @@ class GenerationPreflight:
                 effective_bindings,
                 request.title,
                 request.description,
+                material_type,
             )
             task_spec = TaskSpecBuilder().build(
                 request.userQuery,

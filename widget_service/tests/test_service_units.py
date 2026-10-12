@@ -3730,6 +3730,7 @@ async def test_generation_routes_accept_each_configured_model_backend(
     async def capture_route(_request, policy, **kwargs):
         captured["model_backend"] = policy.backend
         captured["design_profile_id"] = policy.design_profile_id
+        captured["supports_new_material"] = policy.supports_new_material
         captured["template_source_generator"] = kwargs.get(
             "template_source_generator"
         )
@@ -3744,6 +3745,70 @@ async def test_generation_routes_accept_each_configured_model_backend(
     assert captured["template_source_generator"] is None
     if generation_method == "generate_widget_card_compact_dsl":
         assert captured["design_profile_id"] == "design-compact-dsl"
+        assert captured["supports_new_material"] is True
+    else:
+        assert captured["supports_new_material"] is False
+
+
+@pytest.mark.asyncio
+async def test_compact_new_material_keeps_cardspec_and_artifact_backgrounds_consistent(
+    monkeypatch,
+):
+    settings = get_settings()
+    saved: dict[str, object] = {}
+
+    def save_artifact(store, artifact):
+        saved["design_token"] = store.design_token
+        saved["artifact"] = artifact
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/new-material",
+            artifactDigest="sha256:new-material",
+        )
+
+    monkeypatch.setattr(settings, "enable_new_material", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    artifact = saved.get("artifact")
+    assert artifact is not None
+    assert artifact.cardSpec.get("materialType") == "thick"
+    design_token = saved.get("design_token")
+    assert isinstance(design_token, str)
+    design_root = json_module.loads(design_token.splitlines()[0])
+    assert "backgroundColor" not in design_root[2]
+    genui_update = json_module.loads(artifact.genui.splitlines()[1])
+    components = genui_update.get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    root = next(item for item in components if item.get("id") == "root")
+    root_styles = root.get("styles", {})
+    assert "backgroundColor" not in root_styles
+    assert "linearGradient" not in root_styles
+    assert "backgroundImage" not in root_styles
+
+
+@pytest.mark.asyncio
+async def test_terse_compact_route_does_not_enable_new_material(monkeypatch):
+    service = WidgetGenerationService()
+    captured: dict[str, object] = {}
+    sentinel = object()
+
+    async def capture_route(_request, policy, **_kwargs):
+        captured["supports_new_material"] = policy.supports_new_material
+        return sentinel
+
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
+
+    result = await service.generate_widget_card_terse_dsl_nested2(
+        _model_failure_request()
+    )
+
+    assert result is sentinel
+    assert captured.get("supports_new_material") is False
 
 
 @pytest.mark.parametrize(

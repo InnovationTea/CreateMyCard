@@ -7,6 +7,7 @@ from models.generation import (
     CandidateDataBinding,
     CardSpec,
     CardSpecDataBinding,
+    MaterialType,
     WidgetSize,
 )
 
@@ -22,6 +23,7 @@ class CardSpecBuilder:
         effective_bindings: list[CandidateDataBinding],
         title: str,
         description: str,
+        material_type: MaterialType | None = None,
     ) -> CardSpec:
         """生成最终 CardSpec。
 
@@ -30,6 +32,7 @@ class CardSpecBuilder:
         - effective_bindings：能力过滤后仍可使用的数据绑定列表。
         - title：第三个生成接口传入的卡片标题。
         - description：第三个生成接口传入的卡片说明。
+        - material_type：当前生成入口裁决的新材质类型；未启用时为 None。
         出参：最终 CardSpec；没有有效数据能力时返回静态 CardSpec。
         """
         # imageDomainWhitelist 来自 asset.json 的 allowedRemoteHosts，端侧据此放行外部图片域名。
@@ -40,12 +43,14 @@ class CardSpecBuilder:
                 title=title,
                 description=description,
                 suggestSize=size,
+                materialType=material_type,
                 imageDomainWhitelist=image_domain_whitelist,
             )
         return CardSpec(
             title=title,
             description=description,
             suggestSize=size,
+            materialType=material_type,
             imageDomainWhitelist=image_domain_whitelist,
             dataBindings=[
                 CardSpecDataBinding(
