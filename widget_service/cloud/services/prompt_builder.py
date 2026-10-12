@@ -1711,16 +1711,10 @@ class PromptBuilder:
             exclude_none=True,
             exclude={"appVersion"},
         )
-        runtime_prompt_context_enabled = (
-            get_settings().enable_design_compact_runtime_prompt_context
-        )
-        tool = build_compact_plan_tool(
-            task_spec_value,
-            include_composition=runtime_prompt_context_enabled,
-        )
+        tool = build_compact_plan_tool(task_spec_value)
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         capacity_context = ""
-        if runtime_prompt_context_enabled:
+        if get_settings().enable_design_compact_runtime_prompt_context:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}\n\n"

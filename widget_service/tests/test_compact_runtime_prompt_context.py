@@ -43,15 +43,6 @@ def _compact_plan() -> dict[str, Any]:
     }
 
 
-def _plan_tool_from_prompt(prompt: list[dict[str, str]]) -> dict[str, Any]:
-    system = prompt[0]["content"]
-    payload = system.split("# 可用工具合同\n\n", 1)[1].split(
-        "\n\n只输出一个 JSON 工具调用包",
-        1,
-    )[0]
-    return json.loads(payload)
-
-
 def test_disabled_runtime_prompt_context_omits_plan_dsl_and_recovery(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -87,9 +78,6 @@ def test_disabled_runtime_prompt_context_omits_plan_dsl_and_recovery(
     assert "legalLayoutAlternatives" not in dsl_prompt[0]["content"]
     assert "compositionRecovery" not in json.loads(dsl_prompt[1]["content"])
     assert "# 已接受的 Compact Info Plan" in dsl_prompt[0]["content"]
-    tool_parameters = _plan_tool_from_prompt(plan_prompt)["function"]["parameters"]
-    assert "composition" not in tool_parameters["properties"]
-    assert tool_parameters["required"] == ["info_required"]
 
 
 def test_enabled_runtime_prompt_context_includes_plan_dsl_and_recovery(
@@ -113,11 +101,6 @@ def test_enabled_runtime_prompt_context_includes_plan_dsl_and_recovery(
         "composition_recovery_context",
         lambda *_args, **_kwargs: {"status": "test_recovery"},
     )
-    monkeypatch.setattr(
-        prompt_builder_module,
-        "composition_implementation_conflicts",
-        lambda *_args, **_kwargs: ["test composition conflict"],
-    )
     builder = PromptBuilder()
     task_spec = _task_spec()
     plan_prompt = builder.build_compact_plan(task_spec, "design rules", "{}")
@@ -130,9 +113,6 @@ def test_enabled_runtime_prompt_context_includes_plan_dsl_and_recovery(
     user_payload = json.loads(dsl_prompt[1]["content"])
 
     assert "# Plan 分区与合组容量合同" in plan_prompt[0]["content"]
-    assert "# 本轮执行约束" in dsl_prompt[0]["content"]
-    assert "referenceCanvasOnly" in dsl_prompt[0]["content"]
+    assert "# 本轮组合容量工作表" in dsl_prompt[0]["content"]
+    assert "legalLayoutAlternatives" in dsl_prompt[0]["content"]
     assert user_payload["compositionRecovery"] == {"status": "test_recovery"}
-    tool_parameters = _plan_tool_from_prompt(plan_prompt)["function"]["parameters"]
-    assert "composition" in tool_parameters["properties"]
-    assert tool_parameters["required"] == ["info_required", "composition"]

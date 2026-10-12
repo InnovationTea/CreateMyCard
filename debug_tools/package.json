@@ -11,11 +11,8 @@
   ],
   "scripts": {
     "dev": "npm --workspace @widget-debug/platform run dev",
-    "sync:renderer-runtime": "node card_renderer/runtime/scripts/sync-runtime.mjs --sync",
-    "check:renderer-runtime": "node card_renderer/runtime/scripts/sync-runtime.mjs --check",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm --workspace @widget-debug/platform run build",
-    "pretest": "npm run check:renderer-runtime",
     "test": "npm run test --workspaces --if-present"
   },
   "dependencies": {

@@ -8,11 +8,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from services.compact_plan import (
-    CompactOptionalDropCandidate,
-    compact_plan_optional_drop_candidate,
-)
-
 _CAPACITY_MARKERS = (
     "vertical layout requires at least",
     "overflows by",
@@ -28,7 +23,6 @@ _STRUCTURE_MARKERS = (
     "must use column",
 )
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
-DROP_OPTIONAL_COMPONENT_FALLBACK_MAX_ATTEMPTS = 3
 
 
 @dataclass(frozen=True)
@@ -49,7 +43,6 @@ class CompactRepairDirective:
     fallback_attempt: int | None = None
     fallback_attempt_limit: int | None = None
     fallback_remaining_attempts: int | None = None
-    optional_drop: CompactOptionalDropCandidate | None = None
 
     def to_prompt_payload(self) -> dict[str, Any]:
         """转换成可进入修复提示词和 Trace 的稳定字段。"""
@@ -74,14 +67,6 @@ class CompactRepairDirective:
                     "fallbackRemainingAttempts": self.fallback_remaining_attempts,
                 }
             )
-        if self.optional_drop is not None:
-            payload["optionalDrop"] = {
-                "componentId": self.optional_drop.component_id,
-                "componentType": self.optional_drop.component_type,
-                "allowedOmittedFactIndexes": list(self.optional_drop.fact_indexes),
-                "requirements": list(self.optional_drop.requirements),
-                "containsMustFacts": self.optional_drop.contains_must_facts,
-            }
         return payload
 
 
@@ -290,43 +275,6 @@ def _compact_component_fallback_directive(
     )
 
 
-def _drop_optional_component_fallback_directive(
-    *,
-    category: str,
-    fingerprint: str,
-    consecutive_failures: int,
-    category_attempt: int,
-    no_progress: bool,
-    fallback_attempt: int,
-    candidate: CompactOptionalDropCandidate,
-) -> CompactRepairDirective:
-    """删除一个由程序确定的非 Action 组件，不授权第二次删减。"""
-    remaining_attempts = DROP_OPTIONAL_COMPONENT_FALLBACK_MAX_ATTEMPTS - fallback_attempt
-    requirements = "、".join(candidate.requirements)
-    return CompactRepairDirective(
-        category=category,
-        scope="full_dsl",
-        repair_strategy="drop_optional_component",
-        retry_target="dsl_recompose",
-        fingerprint=fingerprint,
-        consecutive_failures=consecutive_failures,
-        category_attempt=category_attempt,
-        no_progress=no_progress,
-        retryable=True,
-        instruction=(
-            "无损紧凑兜底已用尽。只允许删除程序指定的一个非 Action 业务展示组件："
-            f"{candidate.component_id} ({candidate.component_type})，对应信息：{requirements}。"
-            "重排其余全部 must/should 事实与 Action；不得再删除任何其他组件、"
-            "改变动态绑定、缩字、裁切或隐藏内容。"
-        ),
-        fallback_stage="drop_optional_component",
-        fallback_attempt=fallback_attempt,
-        fallback_attempt_limit=DROP_OPTIONAL_COMPONENT_FALLBACK_MAX_ATTEMPTS,
-        fallback_remaining_attempts=remaining_attempts,
-        optional_drop=candidate,
-    )
-
-
 class CompactRepairStrategyTracker:
     """在单次生成请求内跟踪失败指纹并选择下一轮修复范围。"""
 
@@ -338,29 +286,11 @@ class CompactRepairStrategyTracker:
         self._previous_strategy: str | None = None
         self._active_fallback: str | None = None
         self._fallback_submission_count = 0
-        self._optional_drop_candidate: CompactOptionalDropCandidate | None = None
-
-    @property
-    def allowed_omitted_fact_indexes(self) -> tuple[int, ...]:
-        """只在 drop_optional_component 阶段暴露程序选中的非 Action 事实。"""
-        if self._active_fallback != "drop_optional_component":
-            return ()
-        if self._optional_drop_candidate is None:
-            return ()
-        return self._optional_drop_candidate.fact_indexes
-
-    @property
-    def optional_drop_candidate(self) -> CompactOptionalDropCandidate | None:
-        """返回当前请求唯一允许删除的组件。"""
-        return self._optional_drop_candidate
 
     def next_directive(
         self,
         invalid_source_dsl: str,
         quality_errors: list[dict[str, Any]],
-        *,
-        compact_plan: dict[str, Any] | None = None,
-        task_spec: dict[str, Any] | None = None,
     ) -> CompactRepairDirective:
         """根据当前失败和请求内历史选择局部修复或结构重组。"""
         category = _issue_category(quality_errors)
@@ -381,11 +311,8 @@ class CompactRepairStrategyTracker:
 
         repeated_root_cause = self._consecutive_failures >= 2 or no_progress
         is_layout_failure = category in {"layout_capacity", "layout_structure"}
-        if self._active_fallback == "drop_optional_component":
-            if (
-                self._fallback_submission_count
-                >= DROP_OPTIONAL_COMPONENT_FALLBACK_MAX_ATTEMPTS
-            ):
+        if self._active_fallback == "compact_component":
+            if self._fallback_submission_count >= COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS:
                 directive = _exhausted_directive(
                     category=category,
                     fingerprint=fingerprint,
@@ -394,55 +321,8 @@ class CompactRepairStrategyTracker:
                     no_progress=no_progress,
                     fallback_stage=self._active_fallback,
                     fallback_attempt=self._fallback_submission_count,
-                    fallback_attempt_limit=DROP_OPTIONAL_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+                    fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
                 )
-            else:
-                if self._optional_drop_candidate is None:
-                    raise RuntimeError("optional drop fallback has no selected candidate")
-                directive = _drop_optional_component_fallback_directive(
-                    category=category,
-                    fingerprint=fingerprint,
-                    consecutive_failures=self._consecutive_failures,
-                    category_attempt=category_attempt,
-                    no_progress=no_progress,
-                    fallback_attempt=self._fallback_submission_count,
-                    candidate=self._optional_drop_candidate,
-                )
-                self._fallback_submission_count += 1
-        elif self._active_fallback == "compact_component":
-            if self._fallback_submission_count >= COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS:
-                candidate = None
-                if is_layout_failure and task_spec is not None:
-                    candidate = compact_plan_optional_drop_candidate(
-                        invalid_source_dsl,
-                        compact_plan,
-                        task_spec,
-                    )
-                if candidate is None:
-                    directive = _exhausted_directive(
-                        category=category,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        fallback_stage=self._active_fallback,
-                        fallback_attempt=self._fallback_submission_count,
-                        fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
-                    )
-                else:
-                    self._active_fallback = "drop_optional_component"
-                    self._fallback_submission_count = 0
-                    self._optional_drop_candidate = candidate
-                    directive = _drop_optional_component_fallback_directive(
-                        category=category,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        fallback_attempt=self._fallback_submission_count,
-                        candidate=candidate,
-                    )
-                    self._fallback_submission_count += 1
             else:
                 directive = _compact_component_fallback_directive(
                     category=category,

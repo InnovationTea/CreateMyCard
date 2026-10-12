@@ -8,11 +8,11 @@
 
 | 类型 | 外部来源 | Debug Tools 使用位置 | 关系与更新触发条件 |
 | --- | --- | --- | --- |
-| Graph | `render/genui-sdk/graph/src/` | `debug_tools/card_renderer/runtime/graph/src/` | 由 `sync:renderer-runtime` 确定性同步。节点、DataModel、surface 或 graph command 行为变化时同步。 |
-| Parser | `render/genui-sdk/parser/src/` | `debug_tools/card_renderer/runtime/parser/src/` | 由 `sync:renderer-runtime` 确定性同步。A2UI v0.9、JSONL、Compact command 或容错行为变化时同步。 |
-| Components | `render/genui-sdk/components/src/` | `debug_tools/card_renderer/runtime/components/src/` | 由 `sync:renderer-runtime` 确定性同步；仅保留下述图片代理差异。 |
-| Interactions | `render/genui-sdk/interactions/src/` | `debug_tools/card_renderer/runtime/interactions/src/` | 由 `sync:renderer-runtime` 确定性同步。表达式、路径绑定、事件上下文或 action dispatch 变化时同步。 |
-| Renderer | `render/genui-sdk/renderer/src/` | `debug_tools/card_renderer/runtime/renderer/src/` | 由 `sync:renderer-runtime` 确定性同步。registry、`renderTree`、动态子节点、循环或 TextInput 写回行为变化时同步。 |
+| Graph | `render/genui-sdk/graph/src/` | `debug_tools/card_renderer/runtime/graph/src/` | 源码副本。节点、DataModel、surface 或 graph command 行为变化时同步。 |
+| Parser | `render/genui-sdk/parser/src/` | `debug_tools/card_renderer/runtime/parser/src/` | 源码副本。A2UI v0.9、JSONL、Compact command 或容错行为变化时同步。 |
+| Components | `render/genui-sdk/components/src/` | `debug_tools/card_renderer/runtime/components/src/` | 源码副本。基础组件、Extended 组件、样式转换或表单行为变化时同步；同步后必须重新应用下述图片代理差异。 |
+| Interactions | `render/genui-sdk/interactions/src/` | `debug_tools/card_renderer/runtime/interactions/src/` | 源码副本。表达式、路径绑定、事件上下文或 action dispatch 变化时同步。 |
+| Renderer | `render/genui-sdk/renderer/src/` | `debug_tools/card_renderer/runtime/renderer/src/` | 源码副本。registry、`renderTree`、动态子节点、循环或 TextInput 写回行为变化时同步。 |
 | 视觉 Recipe | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json` | 由云侧 Python 高阶组件模块读取 | 单一真实来源，不复制。Recipe 版本、组件参数或布局几何变化会立即影响构建，需同步适配展开逻辑和测试期望。 |
 | 布局契约 | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/layout-contracts-v1.json` | 当前不被浏览器运行时直接导入 | 间接契约。更新后应检查生成 DSL 是否引入新布局字段，并评估 parser、components、renderer 是否需要同步；不要为它创建本地副本。 |
 | 卡片素材 | `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。新增或替换素材会直接生效；目录迁移时必须同时修改 `debug_tools/static_site.py`、`debug_tools/platform/vite.config.ts` 和资源兼容测试。 |
@@ -49,16 +49,6 @@ Concert One 字体当前与来源一致；如果同步后出现差异，应在�
 
 ## 同步流程
 
-不要手工复制运行时源码。根 `render/genui-sdk` 更新后，在 `debug_tools/` 执行：
-
-```powershell
-npm run sync:renderer-runtime
-```
-
-该命令只同步五个包的 `src/`，会清理来源中已删除的陈旧文件，并在生成
-`components/src/extended/ExtendedMedia.tsx` 时确定性应用“不使用 `/img-proxy`”的本地转换。普通测试通过
-`pretest` 自动执行只读的 `check:renderer-runtime`；运行时发生未登记漂移时测试会在执行前失败。
-
 ### 1. 确认上游变化范围
 
 使用 Git 比较目标更新前后的文件，至少检查：
@@ -78,17 +68,21 @@ git diff --name-status <旧版本> <新版本> -- widget_service/cloud/data/prot
 - 不同步根 `render/platform/lib/` 的 Compact 编译、高阶展开或 Design 样式副本。
 - 上游新增跨包 import 时，同时更新对应 `runtime/*/package.json` 和
   `card_renderer/frontend/package.json`；然后在 `debug_tools/` 执行 `npm install` 更新锁文件。
-- 上游删除或重命名文件时，`sync:renderer-runtime` 会删除非本地适配的陈旧副本；同步前先查看上游差异，
-  确认删除属于运行时源码变更。
+- 上游删除或重命名文件时，不要机械覆盖或递归删除。先用 `rg` 确认 Debug Tools 没有额外引用，再删除
+  明确废弃的本地副本。
 
-同步或只读检查分别使用：
+从仓库根目录复制新增或修改文件时，可以按下列映射逐包执行；该操作不会删除本地文件，删除项仍需按
+上一条规则单独确认：
 
 ```powershell
-npm run sync:renderer-runtime
-npm run check:renderer-runtime
+Copy-Item -Recurse -Force 'render/genui-sdk/graph/src/*' 'debug_tools/card_renderer/runtime/graph/src/'
+Copy-Item -Recurse -Force 'render/genui-sdk/parser/src/*' 'debug_tools/card_renderer/runtime/parser/src/'
+Copy-Item -Recurse -Force 'render/genui-sdk/components/src/*' 'debug_tools/card_renderer/runtime/components/src/'
+Copy-Item -Recurse -Force 'render/genui-sdk/interactions/src/*' 'debug_tools/card_renderer/runtime/interactions/src/'
+Copy-Item -Recurse -Force 'render/genui-sdk/renderer/src/*' 'debug_tools/card_renderer/runtime/renderer/src/'
 ```
 
-脚本执行后仍应查看 `git diff`，确认同步范围和上游变更一致；不再需要手工恢复 `ExtendedMedia`。
+复制后应立即恢复本地差异，再查看 `git diff`；不要在恢复差异之前运行构建或提交。
 
 ### 3. 同步配置、素材与测试
 
@@ -116,7 +110,6 @@ npm run check:renderer-runtime
 
 ```powershell
 npm.cmd run typecheck
-npm.cmd run check:renderer-runtime
 npm.cmd test -- --run
 npm.cmd run build
 ```

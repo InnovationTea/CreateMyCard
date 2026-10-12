@@ -22,8 +22,6 @@
   line-height: 1.5;
 }
 
-.renderLoading { color: var(--text-2); font-size: 12px; }
-
 .galleryShell[data-theme="dark"] {
   --surface: #2e3033;
   --surface-2: #17191b;

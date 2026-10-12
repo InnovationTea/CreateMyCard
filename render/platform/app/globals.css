@@ -35,9 +35,6 @@ textarea { flex: 1; min-height: 430px; width: calc(100% - 32px); margin: 0 16px;
 .tabs button { border: 0; background: transparent; padding: 7px 15px; }
 .tabs button[aria-selected="true"] { background: white; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
 .preview-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
-.converter-presets { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: #eef2ff; }
-.converter-presets button { padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: #6e7b90; font-size: 10px; }
-.converter-presets button[aria-pressed="true"] { background: #fff; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
 .size-presets { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: #f2f4f7; }
 .size-presets button { display: flex; align-items: baseline; gap: 5px; padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: #6e7b90; }
 .size-presets button strong { font-size: 11px; font-weight: 700; }

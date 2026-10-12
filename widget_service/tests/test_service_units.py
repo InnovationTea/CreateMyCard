@@ -4477,20 +4477,11 @@ def test_response_planner_returns_structured_status():
         ],
         has_artifact=True,
     )
-    optional_omission_plan = ResponsePlanner().plan(
-        requested_count=1,
-        effective_count=1,
-        removed=[],
-        has_artifact=True,
-        omitted_requirements=["补充时间"],
-    )
 
     assert success_plan.status == GenerationStatus.SUCCESS
     assert success_plan.errorCode == ""
     assert degraded_plan.status == GenerationStatus.DEGRADED
     assert "能力未注册" in degraded_plan.message
-    assert optional_omission_plan.status == GenerationStatus.DEGRADED
-    assert "部分信息" in optional_omission_plan.message
 
 
 @pytest.mark.asyncio

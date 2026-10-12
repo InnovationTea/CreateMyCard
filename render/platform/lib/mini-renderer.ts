@@ -1,6 +1,5 @@
 import { UIGraph } from "@genui-sdk/graph";
-import { JsonlStreamParser, tryNormalizeV09Protocol } from "@genui-sdk/parser";
-import { adaptCloudEventProps } from "@genui-sdk/renderer";
+import { tryNormalizeV09Protocol } from "@genui-sdk/parser";
 import { applyDesignStyles } from "./design-handle";
 import { parseExpression, resolvePathBindingsInValue } from "@genui-sdk/interactions";
 import {
@@ -17,37 +16,6 @@ const TYPES = new Set([
   ..."Card Row Column Text Image SingleLineTitle TimelineUnit Input TextInput Radio CheckboxGroup Select Toggle Divider Grid GridRow Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
-
-export function compileA2uiJsonl(source: string, options: { size?: CardSize } = {}) {
-  const graph = new UIGraph();
-  const warnings: string[] = [];
-  const parser = new JsonlStreamParser<RecordValue>({
-    onMessage: command => graph.applyCommand(command),
-    onParseError: (_raw, error) => {
-      warnings.push(error instanceof Error ? error.message : String(error));
-    },
-    onBraceMismatch: () => warnings.push("A2UI 包含不匹配的右花括号。"),
-  });
-  parser.push(source);
-  parser.end();
-  if (parser.getPending().trim()) warnings.push("A2UI 末尾包含未完成的 JSON。");
-  for (const node of graph.getAllNodes().values()) {
-    node.props = adaptCloudEventProps(node.props);
-  }
-  if (!graph.getRoot()) {
-    const detail = warnings[0] ? `：${warnings[0]}` : "";
-    throw new Error(`正式 Python 转换器没有返回可渲染的 A2UI${detail}`);
-  }
-  const count = graph.getAllNodes().size;
-  return {
-    graph,
-    jsonl: source.trim(),
-    warnings,
-    count,
-    expandedCount: count,
-    size: options.size ?? "2x2",
-  };
-}
 
 /** Balanced JSON tuples: supports JSONL, multiline tuples, and a JSON array of tuples. */
 function parseTuples(source: string): unknown[][] {

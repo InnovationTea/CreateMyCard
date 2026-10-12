@@ -15,7 +15,6 @@ class ResponsePlanner:
         removed: list[RemovedCapability],
         has_artifact: bool,
         generation_mode: str = "create",
-        omitted_requirements: list[str] | None = None,
     ) -> ResponsePlan:
         """规划生成接口响应状态。
 
@@ -25,7 +24,6 @@ class ResponsePlanner:
         - removed：被移除能力列表。
         - has_artifact：是否已生成 artifact。
         - generation_mode：create 或 edit，用于选择用户话术。
-        - omitted_requirements：最终有界兜底中实际省略的信息。
         出参：结构化响应规划结果。
         """
         if not has_artifact:
@@ -39,33 +37,20 @@ class ResponsePlanner:
             if generation_mode == "edit"
             else "已为你生成可用的桌面卡片。"
         )
-        if removed:
-            reasons = "、".join(sorted({item.userReadableReason for item in removed}))
-            optional_reason = (
-                "；部分信息因卡片空间限制未展示"
-                if omitted_requirements else ""
-            )
-            return ResponsePlan(
-                status=GenerationStatus.DEGRADED,
-                message=(
-                    f"{reasons}{optional_reason}，已按可用能力完成本次修改。"
-                    if generation_mode == "edit"
-                    else f"{reasons}{optional_reason}，已先为你生成可用版本。"
-                ),
-            )
-        if omitted_requirements:
-            return ResponsePlan(
-                status=GenerationStatus.DEGRADED,
-                message=(
-                    "部分信息因卡片空间限制未展示，已按其余内容完成本次修改。"
-                    if generation_mode == "edit"
-                    else "部分信息因卡片空间限制未展示，已先为你生成可用版本。"
-                ),
-            )
-        if requested_count > 0 and effective_count == requested_count:
+        if requested_count > 0 and effective_count == requested_count and not removed:
             return ResponsePlan(
                 status=GenerationStatus.SUCCESS,
                 message=success_message,
+            )
+        if removed:
+            reasons = "、".join(sorted({item.userReadableReason for item in removed}))
+            return ResponsePlan(
+                status=GenerationStatus.DEGRADED,
+                message=(
+                    f"{reasons}，已按可用能力完成本次修改。"
+                    if generation_mode == "edit"
+                    else f"{reasons}，已先为你生成可用版本。"
+                ),
             )
         return ResponsePlan(
             status=GenerationStatus.SUCCESS,
