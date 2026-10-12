@@ -4192,7 +4192,7 @@ Row(
       Text(
         data.temperature,
         {
-          "fontSize": 14,
+          "fontSize": 16,
           "fontWeight": 700,
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
