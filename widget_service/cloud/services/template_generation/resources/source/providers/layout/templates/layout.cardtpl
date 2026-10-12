@@ -175,12 +175,7 @@ Stack({
   "width": "matchParent",
   "height": "matchParent",
   "alignContent": "topStart"
-},
-  Column({
-    "width": "matchParent",
-    "height": "matchParent"
-  }, children[0])
-)
+}, children[0])
 #End
 
 #Template WideTwoFullLayout@1(props: {}, ...children)
