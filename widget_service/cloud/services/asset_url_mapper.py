@@ -82,7 +82,8 @@ class AssetUrlMapper:
         """只还原极简协议的素材属性，不做整段字符串替换或改写 DataModel。"""
         if "https://" not in token and "http://" not in token:
             return token
-        rows = parse_compact_dsl_rows(token)
+        # 按归档组件结构还原模板素材地址。
+        rows = parse_compact_dsl_rows(token, allow_internal_components=True)
         restored_rows: list[list[Any]] = []
         changed = False
         for row in rows:

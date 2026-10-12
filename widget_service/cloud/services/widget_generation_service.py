@@ -1035,6 +1035,9 @@ class WidgetGenerationService:
             from services.prompt_builder import PromptBuilder
 
             nonlocal model_call_phase, quality_repair_attempt_count
+            nonlocal source_generated_by_template
+            # 模型修复阶段切换回模型组件规则。
+            source_generated_by_template = False
             trace_phase("repair")
             quality_error_payloads = [
                 asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
@@ -1164,7 +1167,7 @@ class WidgetGenerationService:
                 return []
             processing_context_for_source = replace(
                 processing_context,
-                skip_compact_dsl_validation=source_generated_by_template,
+                trusted_template_source=source_generated_by_template,
                 compact_plan=accepted_compact_plan,
             )
             with trace_attempt(**validation_attempts):

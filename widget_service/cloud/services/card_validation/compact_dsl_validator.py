@@ -189,10 +189,13 @@ def validate_compact_dsl(
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
     enforce_model_component_types: bool = False,
+    allow_internal_components: bool = False,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
-        rows = parse_compact_dsl_rows(compact_dsl)
+        rows = parse_compact_dsl_rows(
+            compact_dsl, allow_internal_components=allow_internal_components,
+        )
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
 
@@ -523,7 +526,7 @@ def _is_readable_formatted_hero(
             return False
         if node.get("type") not in (*_NUMERIC_SCHEMA_TYPES, "string"):
             return False
-        if not isinstance(sample, (int, float, str)) or isinstance(sample, bool):
+        if not isinstance(sample, int | float | str) or isinstance(sample, bool):
             return False
         sample = f"{sample}{expression_unit}"
     elif node.get("type") != "string" or not isinstance(sample, str):
@@ -768,7 +771,7 @@ def _collect_adjacent_display_unit_errors(
                     continue
                 padding = suffix.props.get("padding")
                 unit_bottom_padding = None
-                if isinstance(padding, (int, float)):
+                if isinstance(padding, int | float):
                     unit_bottom_padding = float(padding)
                 elif isinstance(padding, dict):
                     unit_bottom_padding = _non_negative_number(padding.get("bottom"))
@@ -873,7 +876,7 @@ def _collect_mixed_font_row_alignment_errors(
                 continue
             padding = child.props.get("padding")
             actual_padding = None
-            if isinstance(padding, (int, float)):
+            if isinstance(padding, int | float):
                 actual_padding = float(padding)
             elif isinstance(padding, dict):
                 actual_padding = _non_negative_number(padding.get("bottom"))
@@ -1041,7 +1044,7 @@ def _is_ambiguous_metric_node(node: Any) -> bool:
         if marker != "概率"
     ):
         return False
-    if isinstance(sample, (int, float)) and not isinstance(sample, bool):
+    if isinstance(sample, int | float) and not isinstance(sample, bool):
         return True
     return isinstance(sample, str) and 0 < len(sample.strip()) <= 8
 
@@ -1745,7 +1748,7 @@ def _vertical_box_extent(value: Any) -> float:
 
 
 def _non_negative_number(value: Any) -> float | None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, int | float):
         return None
     if value < 0:
         return None
@@ -2064,7 +2067,7 @@ def _value_matches_schema_type(value: Any, expected_type: str) -> bool:
     if expected_type == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
     if expected_type == "number":
-        return isinstance(value, (int, float)) and not isinstance(value, bool)
+        return isinstance(value, int | float) and not isinstance(value, bool)
     if expected_type == "boolean":
         return isinstance(value, bool)
     if expected_type == "object":

@@ -68,6 +68,7 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
+    trusted_template_source: bool = False
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
 
@@ -156,6 +157,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 task_spec=context.task_spec,
                 card_spec=context.card_spec,
+                allow_internal_components=context.trusted_template_source,
             )
         except CompactDslConversionError as exc:
             trace_step(
@@ -214,8 +216,9 @@ class DesignCompactProcessor:
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
                     protocol_profile=design_protocol,
-                    layout_scope=context.layout_scope,
-                    enforce_model_component_types=True,
+                    layout_scope=None if context.trusted_template_source else context.layout_scope,
+                    enforce_model_component_types=not context.trusted_template_source,
+                    allow_internal_components=context.trusted_template_source,
                 )
             except CompactDslValidationError as exc:
                 trace_step(
@@ -250,15 +253,13 @@ class DesignCompactProcessor:
                 },
             )
         else:
-            # Template output intentionally bypasses the general Compact DSL
-            # semantic rules. The converter keeps structural checks, and the
-            # generated artifact is still checked by ArtifactValidator.
+            # 跳过 Compact 专项校验，后续转换与 artifact 校验按原流程执行。
             validation_result = None
             trace_record(
                 "dsl.compact_validation.skipped",
                 stage="dsl.compactValidation",
                 status="skipped",
-                details={"reason": "template_source"},
+                details={"reason": "explicit_validation_skip"},
             )
 
         if plan_issues:
@@ -271,6 +272,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+                allow_internal_components=context.trusted_template_source,
             )
             trace_step(
                 "dsl.conversion.completed",

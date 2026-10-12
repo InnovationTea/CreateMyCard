@@ -10,6 +10,7 @@ import pytest
 
 from models.generation import EventAction
 from services.card_validation.compact_dsl_validator import validate_compact_dsl
+from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
 from services.template_generation.controls import TemplateControls
 from services.template_generation.engine import pipeline
 from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
@@ -39,6 +40,19 @@ _FALLBACK_TEMPLATE = "BatteryOverviewPercentLevelHero@1"
 _DIAGNOSTICS_FIELDS = (
     "/nowCurrentText", "/voltageText", "/batteryCapacityLevelDesc", "/isBatteryPresentText",
 )
+
+
+def _assert_public_template_processing(a2ui: str, task_spec: dict, card_spec: dict) -> None:
+    result = DesignCompactProcessor().process(
+        convert_a2ui_to_compact_dsl(a2ui, size="2x2"),
+        DslProcessingContext(
+            size="2x2", task_spec=task_spec, card_spec=card_spec,
+            protocol_profile={"version": "v0.9"}, trusted_template_source=True,
+            layout_scope="all",
+        ),
+    )
+    assert not result.errors
+    assert result.standard_dsl
 
 
 def _health_event() -> EventAction:
@@ -79,8 +93,10 @@ async def test_diagnostics_full_renders_without_actions(fusion: bool, with_asset
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     assert "BatteryOverviewChargingDiagnosticsFull@1" in output.template_ids
     assert not output.projected_task_spec.eventCandidates
     assert "clickToDeeplink" not in output.a2ui
@@ -171,8 +187,10 @@ async def test_level_full_templates_without_actions_or_assets(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     assert template_id in output.template_ids
     assert not output.projected_task_spec.eventCandidates
     assert "clickToDeeplink" not in output.a2ui
@@ -247,8 +265,10 @@ async def test_current_voltage_full_displays_available_fields(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     assert "BatteryOverviewCurrentVoltageFull@1" in output.template_ids
     assert not output.projected_task_spec.eventCandidates
     assert "clickToDeeplink" not in output.a2ui
@@ -470,10 +490,12 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         # Production validates against the original TaskSpec, without internal selectors.
         task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     if kind == "charging":
         assert not output.projected_task_spec.eventCandidates
         assert "chargingStatusDesc" in output.a2ui
@@ -589,8 +611,10 @@ async def test_q231_status_summary_hero_uses_only_four_text_fields(fusion: bool)
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     for label in ("电池电量", "充电状态", "健康状态", "电池温度"):
         assert label in output.a2ui
     for field in fields:
@@ -627,8 +651,10 @@ async def test_percent_details_full_displays_four_fields(fusion: bool) -> None:
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     assert "BatteryOverviewPercentDetailsFull@1" in output.template_ids
     assert "healthStatusDesc" not in output.a2ui
     assert not output.projected_task_spec.eventCandidates
@@ -684,8 +710,10 @@ async def test_status_level_summary_hero_uses_only_four_text_fields(fusion: bool
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     for label in ("电池电量", "充电状态", "健康状态", "电量等级"):
         assert label in output.a2ui
     for field in fields:
@@ -724,8 +752,10 @@ async def test_charging_level_summary_hero_uses_only_four_text_fields(fusion: bo
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
+        allow_internal_components=True,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
     for label in ("电池电量", "充电状态", "充电类型", "电量等级"):
         assert label in output.a2ui
     for field in fields:

@@ -522,7 +522,7 @@ async def test_partial_exclusions_reach_generated_actions():
     processed = DesignCompactProcessor().process(compact, DslProcessingContext(
         size="2x2", card_spec=_card(),
         task_spec=result.projected_task_spec.model_dump(mode="json"),
-        protocol_profile=profile, skip_compact_dsl_validation=True,
+        protocol_profile=profile, skip_compact_dsl_validation=True, trusted_template_source=True,
     ))
     assert not processed.errors
     assert "bluetooth_entry" in processed.standard_dsl
@@ -576,7 +576,7 @@ async def test_complete_status_group_survives_public_processor(template):
     processed = DesignCompactProcessor().process(compact, DslProcessingContext(
         size="2x2", card_spec=_card(),
         task_spec=result.projected_task_spec.model_dump(mode="json"),
-        protocol_profile=profile, skip_compact_dsl_validation=True,
+        protocol_profile=profile, skip_compact_dsl_validation=True, trusted_template_source=True,
     ))
     assert not processed.errors
     for output in (result.a2ui, processed.standard_dsl):
