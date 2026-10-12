@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, Literal
 
+from models.generation import MaterialType, uses_material_background
 from services.compact_component_bindings import collect_compact_component_binding_errors
 from services.compact_component_runtime import resolve_card_color_palette
 from services.compact_high_level_components import (
@@ -266,6 +267,14 @@ _COLOR_TOKENS = {
     "mask_sixth": "#0C000000",
 }
 _DEFAULT_ROOT_BACKGROUND = "#FFE5EDFE"
+_CARD_BACKGROUND_PROPERTIES = frozenset(
+    {
+        "backgroundColor",
+        "backgroundImage",
+        "backgroundImageSizeWithStyle",
+        "linearGradient",
+    }
+)
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "metric-display-xl": {"fontSize": 38, "fontWeight": 300},
     "metric-display-lg": {"fontSize": 38, "fontWeight": 300},
@@ -501,6 +510,37 @@ def _serialize_repaired_rows(
     return _serialize_rows(repaired_rows)
 
 
+def strip_compact_card_background(compact_dsl: str) -> str:
+    """删除新材质卡片 root 的旧背景配置，保留所有子组件局部背景。"""
+    rows = _parse_compact_rows(compact_dsl)
+    processed_rows: list[Any] = []
+    for row in rows:
+        if not isinstance(row, ComponentRow) or row.component_id != "root":
+            if isinstance(row, ComponentRow):
+                processed_rows.append(_component_to_tuple(row))
+            else:
+                processed_rows.append([row.path, copy.deepcopy(row.value)])
+            continue
+
+        props = copy.deepcopy(row.props)
+        for property_name in _CARD_BACKGROUND_PROPERTIES:
+            props.pop(property_name, None)
+        design = props.get("design")
+        if isinstance(design, str) and design.startswith("fusion-ball-"):
+            props.pop("design")
+        processed_rows.append(
+            _component_to_tuple(
+                ComponentRow(
+                    component_id=row.component_id,
+                    component_type=row.component_type,
+                    props=props,
+                    children=row.children,
+                )
+            )
+        )
+    return _serialize_rows(processed_rows)
+
+
 def convert_compact_dsl_to_a2ui(
     compact_dsl: str,
     *,
@@ -508,11 +548,14 @@ def convert_compact_dsl_to_a2ui(
     protocol_profile: dict[str, Any] | None = None,
     theme: ThemeMode = "light",
     surface_id: str = "surface_card",
+    material_type: MaterialType | None = None,
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
     # 布局运行时复用本模块的行类型，延迟导入避免模块初始化循环。
     from services.compact_layout_runtime import adaptive_slot_ids
 
+    if uses_material_background(material_type):
+        compact_dsl = strip_compact_card_background(compact_dsl)
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
@@ -558,6 +601,7 @@ def convert_compact_dsl_to_a2ui(
                 component,
                 hide_label=hide_label,
                 card_size=size,
+                material_type=material_type,
             )
         )
     converted_components = adapt_region_layout(
@@ -1628,6 +1672,7 @@ def _convert_component_rows(
     *,
     hide_label: bool = False,
     card_size: str = "2x2",
+    material_type: MaterialType | None = None,
 ) -> list[dict[str, Any]]:
     if component.component_type == "SingleLineTitle":
         return _convert_single_line_title(component, card_size)
@@ -1635,6 +1680,7 @@ def _convert_component_rows(
         _convert_component(
             component,
             hide_label=hide_label,
+            material_type=material_type,
         )
     ]
 
@@ -1643,6 +1689,7 @@ def _convert_component(
     component: ComponentRow,
     *,
     hide_label: bool = False,
+    material_type: MaterialType | None = None,
 ) -> dict[str, Any]:
     output_type = _output_component_type(component, hide_label)
     converted: dict[str, Any] = {
@@ -1683,7 +1730,7 @@ def _convert_component(
             styles[property_name] = value
 
     if component.component_id == "root":
-        _normalize_root_component(styles)
+        _normalize_root_component(styles, material_type=material_type)
     if _is_icon_button_stack(component, hide_label):
         _normalize_icon_button_stack(styles)
     if component.component_type == "Text":
@@ -1715,10 +1762,17 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
     styles.setdefault("textOverflow", "clip")
 
 
-def _normalize_root_component(styles: dict[str, Any]) -> None:
+def _normalize_root_component(
+    styles: dict[str, Any],
+    *,
+    material_type: MaterialType | None,
+) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
-    if not any(name in styles for name in ("linearGradient", "backgroundColor", "backgroundImage")):
+    if uses_material_background(material_type):
+        return
+    background_names = ("linearGradient", "backgroundColor", "backgroundImage")
+    if not any(name in styles for name in background_names):
         styles["backgroundColor"] = _DEFAULT_ROOT_BACKGROUND
 
 

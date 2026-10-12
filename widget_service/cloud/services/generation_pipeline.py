@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol
 
 from custom.model_transport import ModelBackend
+from models.generation import uses_material_background
 from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
@@ -15,6 +16,7 @@ from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
+    strip_compact_card_background,
 )
 from services.compact_plan import compact_plan_coverage_errors
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
@@ -101,6 +103,7 @@ class GenerationRoutePolicy:
     supports_dynamic_capabilities: bool = True
     validation_failure_blocking: bool = False
     stores_design_token: bool = False
+    supports_new_material: bool = False
 
 
 class DslProcessor(Protocol):
@@ -151,6 +154,11 @@ class DesignCompactProcessor:
     ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
         original_source_dsl = source_dsl
+        if uses_material_background(context.card_spec.get("materialType")):
+            try:
+                source_dsl = strip_compact_card_background(source_dsl)
+            except CompactDslConversionError as exc:
+                return self._validation_failure(source_dsl, (str(exc),))
         try:
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
@@ -271,6 +279,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+                material_type=context.card_spec.get("materialType"),
             )
             trace_step(
                 "dsl.conversion.completed",

@@ -17,6 +17,7 @@ asset.src.url.mapping: ""
 workspace_root: "D:/WorkSpace/CreateMyCard/widget_service/cloud"
 
 enable_artifact_validation: false
+enable_new_material: false
 enable_a2ui_model_mock: true
 enable_ids_mock: true
 ai_widget_data_huashan_enable: false
