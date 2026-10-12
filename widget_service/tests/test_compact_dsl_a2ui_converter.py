@@ -451,6 +451,69 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ ${/battery} + '%' }}",
         )
 
+    def test_converter_rejects_svg_icon_without_fill_color(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["circle"]],
+                [
+                    "circle",
+                    "ProgressCircle",
+                    {
+                        "externalText": 68,
+                        "icon": "resources/base/media/battery.svg",
+                        "accessibility": {"label": "手机电量百分比"},
+                        "width": 72,
+                        "height": 76,
+                        "fontColor": "#FF1F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "SVG icon.*must set fillColor",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_converter_rejects_fill_color_on_bitmap_icon(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["circle"]],
+                [
+                    "circle",
+                    "ProgressCircle",
+                    {
+                        "externalText": 68,
+                        "icon": "resources/base/media/battery.png",
+                        "accessibility": {"label": "手机电量百分比"},
+                        "width": 72,
+                        "height": 76,
+                        "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "bitmap icon.*must not set fillColor",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
     def test_progress_circle_normalizes_bound_percentage_text(self) -> None:
         compact_dsl = _serialize(
             [
@@ -465,6 +528,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "width": 72,
                         "height": 76,
                         "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
                     },
@@ -509,6 +573,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "width": 72,
                         "height": 76,
                         "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
                     },
@@ -548,6 +613,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "width": 72,
                         "height": 76,
                         "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
                         "color": "#FF1F4799",
                         "backgroundColor": "#331F4799",
                     },
@@ -1260,6 +1326,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                             "icon": "resources/base/media/battery_leaf_fill.svg",
                         },
                         "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
                         "backgroundColor": "#99FFFFFF",
                     },
                 ],
