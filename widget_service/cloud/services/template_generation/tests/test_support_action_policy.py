@@ -109,6 +109,10 @@ _APPROVED = {
     "BluetoothDeviceOverviewConnectionSupport@1": [
         "event.open.settings.bluetooth"
     ],
+    "BluetoothDeviceOverviewConnectionBatterySupport@1": [],
+    "BluetoothDeviceOverviewMusicSupport@1": [
+        "event.open.music.favorite"
+    ],
     "ActivityOverviewSupport@1": [
         "event.open.health.sport"
     ],
@@ -228,7 +232,8 @@ def test_support_event_business_matrix(template_id: str, event_id: str) -> None:
     definition = get_cardplan_registry().require_template(template_id)
     expected = _APPROVED.get(template_id)
     assert expected is not None
-    assert supports_business_action(definition, _binding(event_id), "2x2") is (
+    card_size = definition.variants[0].supported_card_sizes[0]
+    assert supports_business_action(definition, _binding(event_id), card_size) is (
         event_id in expected
     )
 
@@ -244,6 +249,32 @@ def test_manifest_rejects_invalid_event_type_ids(value: object) -> None:
             description="天气",
             entry="templates/weather-overview.cardtpl",
             supportedEventIds=value,
+        )
+
+
+def test_manifest_can_scope_a_support_template_to_2x4() -> None:
+    entry = ProviderTemplateEntry(
+        templateId="BluetoothDeviceOverviewMusicSupport@1",
+        businessId="BluetoothDeviceOverview",
+        capabilityId="GetEarphoneInfo",
+        description="歌单入口",
+        entry="templates/bluetooth-device-overview.cardtpl",
+        supportedCardSizes=["2x4"],
+    )
+
+    assert entry.supported_card_sizes == ("2x4",)
+
+
+@pytest.mark.parametrize("value", ([], ["2x4", "2x4"]))
+def test_manifest_rejects_empty_or_duplicate_supported_card_sizes(value: object) -> None:
+    with pytest.raises(ValueError, match="supportedCardSizes must be nonempty and unique"):
+        ProviderTemplateEntry(
+            templateId="BluetoothDeviceOverviewMusicSupport@1",
+            businessId="BluetoothDeviceOverview",
+            capabilityId="GetEarphoneInfo",
+            description="歌单入口",
+            entry="templates/bluetooth-device-overview.cardtpl",
+            supportedCardSizes=value,
         )
 
 

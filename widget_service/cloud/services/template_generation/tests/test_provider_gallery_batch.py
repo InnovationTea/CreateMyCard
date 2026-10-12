@@ -207,10 +207,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 合并横版模板与上游每种 Support 的可行 0/1/2 动作场景。
-    # 50434950 新增 WorkoutOverviewTrainingRecordHero 与 WeatherOverviewTargetDayHealthFull
-    # 各贡献一个用例（总数 188 → 189）。
-    assert len(all_cases) == 189
+    # 合并横版模板与仅支持 2x2 的 Support 可行 0/1/2 动作场景。
+    # 两个耳机 Support 只用于 2x4 组合，不再贡献原有的 2x2 Compact 单模板用例。
+    assert len(all_cases) == 187
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -301,7 +300,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 188
+    assert len(targeted_cases) == 186
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -651,10 +650,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 189
+    assert summary.total == 187
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 183
+    assert summary.not_generated == 181
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -789,7 +788,7 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
     expected_templates: set[str] = set()
     for definition in definitions:
         for template in definition.templates:
-            if template.suffix == "Support":
+            if template.suffix == "Support" and "2x2" in template.supported_card_sizes:
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
     # 三个 Support 不提供自身动作，各少一个双动作场景。

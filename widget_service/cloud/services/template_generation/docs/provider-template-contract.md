@@ -63,6 +63,9 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 数据路径访问数组时必须写显式非负整数索引（例如 `/events/0/title`、`/events/1/title`）；准入与编译均按
 该索引读取 TaskSpec，不得在索引缺失或越界时回退到第 `0` 项。
 
+业务模板的卡片尺寸默认由模板后缀推导；需要复用跨尺寸骨架槽位时，可通过非空且不重复的
+`supportedCardSizes` 显式声明。该声明只作用于当前模板，不放宽同类后缀的其它模板。
+
 ## UI 模板语法
 
 ### Support 内嵌事件白名单
@@ -143,8 +146,8 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 
 - `HeroTitle`：双业务单 Action 的位置 0，后接一个 HeroContent；
 - `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
-- `Support`：约 `2x1`，Search 按数据覆盖返回候选，由 Planner 组成双 Support；事件可按需绑定在
-  Support 内部；
+- `Support`：Search 按数据覆盖返回候选；默认由 Planner 组成 2x2 双 Support，显式声明支持 2x4 后
+  也可作为 `WideFullTwoCompactLayout@1` 右侧上下两个 1x2 支撑槽位；事件可按需绑定在 Support 内部；
 - `Compact`：约 `2x1`，只用于一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
 - `Full`：完整 `2x2`，无 Action 时单独使用，或在存在语义匹配图标素材时加一个 IconAction；
@@ -152,9 +155,10 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 - `WideFull`：完整 `4x2`，单独使用。
 - `WideHalf`：约 `4x1`，用于 `2x4` 的半高组合布局。
 
-业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
-需要区分的状态写在后缀前，例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用
-通用名称，例如 `BatteryOverviewCompact@1`。布局 Provider 不受此后缀约束。
+业务模板默认不重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导；仅当
+模板需要复用跨尺寸骨架槽位时，才显式声明 `supportedCardSizes`。业务语义或需要区分的状态写在后缀前，
+例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用通用名称，例如
+`BatteryOverviewCompact@1`。布局 Provider 不受此后缀约束。
 同一 UI 形态的 `Support` 与 `Compact` 在业务族状态校验中使用相同状态判定规则，但形态标识和布局身份
 仍分别保持 `Support` 与 `Compact`，不得把双业务 Support 放入单业务 Compact 布局。
 
@@ -183,7 +187,8 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 | 2 | 1 | 位置 0 为 `HeroTitle`；位置 1 为 `HeroContent` | `HeroTitleContentActionLayout` + 1 个末尾 `PillAction` |
 
 双业务仅在两侧候选分别完整覆盖显式字段时适用。Planner 可以确定性重排为 HeroTitle、HeroContent，
-也可以选择两个 Support；其它多业务组合在二层模型调用前显式拒绝。每个业务组至少提供一个规范化
+也可以选择两个 Support；2x4 可选择一个 Full 与两个 Support，并复用
+`WideFullTwoCompactLayout@1` 的左整列、右侧上下槽位；其它多业务组合在二层模型调用前显式拒绝。每个业务组至少提供一个规范化
 Support 入口：模板在一个业务槽位内使用两行文本，第一行为主信息、第二行为辅助信息；允许同一行由多个
 Text 组成，但不得增加第三个信息段落。可按模板保留 24vp 业务图标或 32～44vp 电量环，
 不得挤占另一业务槽位；TwoSupportLayout 以 Column 垂直排列两个等权 Row 槽位。

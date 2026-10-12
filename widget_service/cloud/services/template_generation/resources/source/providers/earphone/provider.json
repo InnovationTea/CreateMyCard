@@ -389,10 +389,13 @@
       }
     },
     {
-      "templateId": "BluetoothDeviceOverviewCaseConnectionCompact@1",
+      "templateId": "BluetoothDeviceOverviewConnectionBatterySupport@1",
+      "supportedCardSizes": [
+        "2x4"
+      ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机仓连接 Compact，主行展示连接状态，次行展示充电盒电量，可选充电盒图标；用于宽版右列 2x1 组合槽位。",
+      "description": "耳机仓连接与电量 Support，主行展示耳机仓电量，次行展示连接状态，可选充电盒图标；用于宽版右列 1x2 支撑槽位。",
       "entry": "templates/earphone-case-connection.cardtpl",
       "primaryData": [
         "/isConnected",
@@ -407,13 +410,16 @@
       }
     },
     {
-      "templateId": "BluetoothDeviceOverviewMusicCompact@1",
+      "templateId": "BluetoothDeviceOverviewMusicSupport@1",
+      "supportedCardSizes": [
+        "2x4"
+      ],
       "supportedEventIds": [
         "event.open.music.favorite"
       ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机歌单入口 Compact：标题打开歌单、副标题播放我的收藏，右侧 24vp 音乐图标，根节点绑定收藏歌单事件；用于宽版右列 2x1 组合槽位，不展示耳机数据。",
+      "description": "耳机歌单入口 Support：标题打开歌单、副标题播放我的收藏，右侧 24vp 音乐图标，根节点绑定收藏歌单事件；用于宽版右列 1x2 支撑槽位，不展示耳机数据。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [],
       "secondaryData": [],
