@@ -535,9 +535,9 @@ def _build_design_test_task_spec() -> dict:
                                 "sampleValue": "24℃ / 31℃",
                             },
                             "rainProbabilityPercent": {
-                                "type": "string",
-                                "description": "白天降雨概率百分比",
-                                "sampleValue": "20%",
+                                "type": "number",
+                                "description": "白天降雨概率数值，不带单位，文本展示需追加 %",
+                                "sampleValue": 20,
                             },
                         }
                     ],
