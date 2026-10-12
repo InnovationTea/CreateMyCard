@@ -1553,7 +1553,10 @@ def normalize_mixed_font_text_rows(
                 props.pop("width", None)
                 props.pop("layoutWeight", None)
             if font < largest:
-                _compensate_text_bottom(props, font, min(8, math.ceil((largest - font) / 4)))
+                offset = _text_bottom_offset(
+                    props, font, largest, primary=texts[0].props, numeric_unit_pair=pair,
+                )
+                _compensate_text_bottom(props, font, offset)
             replacements[child.component_id] = ComponentRow(
                 child.component_id, child.component_type, props, child.children,
             )
@@ -1591,6 +1594,26 @@ def _is_numeric_unit_pair(
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return math.isfinite(value)
     return isinstance(value, str) and re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value.strip()) is not None
+
+
+def _text_bottom_offset(
+    props: dict[str, Any], font: float, largest: float, *,
+    primary: dict[str, Any], numeric_unit_pair: bool,
+) -> int:
+    offset = min(8, math.ceil((largest - font) / 4))
+    if not numeric_unit_pair or (largest, font) != (30, 12):
+        return offset
+    if props.get("lineHeight") != 1 or primary.get("lineHeight") != 1:
+        return offset
+    if props.get("fontWeight") != 500 or primary.get("fontWeight") != 700:
+        return offset
+    if props.get("fontFamily") is not None or primary.get("fontFamily") is not None:
+        return offset
+    unit = props.get("content")
+    if isinstance(unit, str):
+        # 固定字体规格的真实字形校准，不按用例/机型，也不外推未测单位。
+        offset = {"%": 1, "步": 2}.get(unit, offset)
+    return offset
 
 
 def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int) -> None:

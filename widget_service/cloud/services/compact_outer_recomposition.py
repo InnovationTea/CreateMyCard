@@ -285,19 +285,65 @@ def _paragraph(
     return None
 
 
-def _wrap_metadata(
+def _compact_existing_attribute_group(
     leaves: list[ComponentRow], task: dict[str, Any], width: float,
+) -> list[ComponentRow] | None:
+    """两项原属性同字号合组；仍仅一个同对象组，不修改组件内部Recipe。"""
+    for index, row in enumerate(leaves):
+        items = _reflow_items(row)
+        if items is None or len(items) != 2:
+            continue
+        expressions: list[str] = []
+        display: list[str] = []
+        owners: set[str] = set()
+        for item in items:
+            single = ComponentRow(row.component_id, row.component_type,
+                                  {**row.props, "items": [item]})
+            attribute = _single_attribute(single, task)
+            if attribute is None:
+                break
+            original, owner, text = attribute
+            label = original.get("label")
+            if not isinstance(label, str) or "\n" in label:
+                break
+            label = label.rstrip()
+            joined = _joined_value(label, original.get("value"))
+            if joined is None or not joined.startswith("{{"):
+                break
+            owners.add(owner)
+            display.append(label + text)
+            expression = joined.removeprefix("{{").removesuffix("}}").strip()
+            expressions.append("(" + expression + ")")
+        if len(expressions) != len(items) or len(owners) != 1:
+            continue
+        text_width = sum(14 * (0.6 if char.isascii() else 1) for char in ";".join(display))
+        if text_width > width * 2:
+            continue
+        value = "{{ " + " + ';' + ".join(expressions) + " }}"
+        body = ComponentRow(
+            row.component_id, "SecondaryBody",
+            {"role": "body", "fontSize": 14, "width": "matchParent",
+             "items": [{"value": value, "maxLines": 2}]},
+        )
+        after_group = index + 1
+        return leaves[:index] + [body] + leaves[after_group:]
+    return None
+
+
+def _wrap_complete_value_rows(
+    leaves: list[ComponentRow], task: dict[str, Any], width: float, role: str,
 ) -> tuple[list[ComponentRow], bool]:
     output: list[ComponentRow] = []
     changed = False
     for row in leaves:
-        eligible = row.component_type == "SecondaryBody" and row.props.get("role") == "metadata"
+        eligible = row.component_type == "SecondaryBody" and row.props.get("role") == role
         allowed = {"role", "fontSize", "width", "columns", "items"}
         if not eligible or set(row.props) - allowed or row.props.get("width") != "matchParent":
             output.append(row)
             continue
         items = row.props.get("items")
-        same_spec = row.props.get("fontSize", 12) == 12 and row.props.get("columns", 1) == 1
+        font = 12 if role == "metadata" else 14
+        same_spec = row.props.get("fontSize", font) == font and row.props.get("columns", 1) == 1
         if not same_spec or not isinstance(items, list) or len(items) != 1:
             output.append(row)
             continue
@@ -310,8 +356,11 @@ def _wrap_metadata(
         if value is None or not isinstance(label, str):
             output.append(row)
             continue
+        if role == "body" and label:
+            output.append(row)  # 独立label和值分占文字区，不用整区宽度替代原标签布局。
+            continue
         text = label + value
-        estimated = sum(12 * (0.6 if ch.isascii() else 1) for ch in text)
+        estimated = sum(font * (0.6 if ch.isascii() else 1) for ch in text)
         if "\n" in text or not width < estimated <= width * 2:
             output.append(row)
             continue
@@ -442,22 +491,36 @@ def recompose_small_card(
     context = {"task_spec": task_spec, "card_spec": card_spec,
                "protocol_profile": protocol_profile, "layout_scope": layout_scope}
     original_errors = _validation_errors(source_dsl, context)
+    height_error = False
+    width_error = False
     for message in original_errors:
-        if ": vertical layout requires at least " not in message:
+        if ": vertical layout requires at least " in message:
+            height_error = True
+        elif ": text width overflow;" in message:
+            width_error = True
+        else:
             return unchanged
     width = _inner_width(root, protocol_profile)
     data = [row for row in rows if isinstance(row, DataRow)]
     pressure_task = _source_pressure_task(task_spec, data)
     pressure_ids: set[str] = set()
     metadata_wrapped = False
+    body_wrapped = False
     if width is not None:
         for row in leaves:
             if _certain_label_pressure(row, pressure_task, width):
                 pressure_ids.add(row.component_id)
-        leaves, metadata_wrapped = _wrap_metadata(leaves, pressure_task, width)
-    if not original_errors and not pressure_ids and not metadata_wrapped:
+        leaves, metadata_wrapped = _wrap_complete_value_rows(
+            leaves, pressure_task, width, "metadata",
+        )
+        if width_error:
+            leaves, body_wrapped = _wrap_complete_value_rows(leaves, pressure_task, width, "body")
+    wrapped = metadata_wrapped or body_wrapped
+    if not original_errors and not pressure_ids and not wrapped:
         return unchanged
-    reasons = ("height_capacity",) if original_errors else ()
+    reasons = ("height_capacity",) if height_error else ()
+    if width_error or body_wrapped:
+        reasons += ("complete_text_width",)
     if pressure_ids:
         reasons += ("complete_label_width",)
     if metadata_wrapped:
@@ -465,6 +528,8 @@ def recompose_small_card(
     variants = [leaves]
     if width is not None:
         grouped = _paragraph(leaves, pressure_task, width)
+        if grouped is None:
+            grouped = _compact_existing_attribute_group(leaves, pressure_task, width)
         if grouped is not None:
             variants.append(grouped)
     used = set(row.component_id for row in rows if isinstance(row, ComponentRow))
