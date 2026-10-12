@@ -1986,6 +1986,30 @@ class PromptBuilder:
                     "本次没有布局或容量错误，不重做组合选型；"
                     "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"
                 )
+            if task_spec is not None and task_spec.size == "2x2" and capacity_errors:
+                from services.card_validation.compact_dsl_validator import small_card_text_pressure
+
+                pressure = small_card_text_pressure(
+                    invalid_source_dsl, task_spec.model_dump(mode="json"),
+                )
+                if pressure:
+                    payload["smallCardTextPressure"] = pressure
+                    payload["instruction"] += (
+                        "smallCardTextPressure是完整标签和值的压力估计，不是精确字体测量。"
+                        "已报高度溢出的信息组，先在同字号全宽同行合并短辅助字段；"
+                        "这些长标签/值改为合法同字号分行，整体核算行高和底部动作，不堆独立强调块。"
+                    )
+                roles = repair_display_roles(invalid_source_dsl, size="2x2")
+                if roles:
+                    payload["originalDisplayRoles"] = roles
+                    payload["instruction"] += (
+                        "originalDisplayRoles是待修源的文字职责与完整文案，不是新组件清单。"
+                        "按fontSize保留实际Recipe规格，supporting多条时可能为12fp，不能只按role猜字号。"
+                        "容量修复保留对应正文/metadata和主值字号；先在全宽同行合并短辅助属性，"
+                        "长文案按原字号合法分行并预留行高，再换可承载的完整布局变体。"
+                        "不要将14fp supporting改成12fp TableText/metadata，也不要把30fp主读数"
+                        "降为18fp EmphasisText以消除溢出；重复主值只去重，不删独有事实。"
+                    )
         user_content = json.dumps(
             payload,
             ensure_ascii=False,

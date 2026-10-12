@@ -128,6 +128,11 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
     conflicts: list[str] = []
     for region in composition.get("regions", []):
         path = tuple(region.get("path", []))
+        if layout.get("size") == "2x2" or composition.get("layout", "").startswith("S-"):
+            for group in region.get("groups", []):
+                conflict = group.get("implementationConflict")
+                if isinstance(conflict, str):
+                    conflicts.append(conflict)
         if path in regions:
             conflicts.append(f"duplicate region assignment at {list(path)}")
         regions[path] = region
@@ -158,10 +163,24 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
         elif children:
             total = max(total, max(children))
         occupied[path] = total
-        if total > capacity:
+        tolerance = 2.0 if layout.get("size") == "2x2" else 0.0
+        if total > capacity + tolerance:
+            action_paths = [tuple(rule.get("path", [])) for rule in rules
+                            if rule.get("eventPolicy") == "require"]
+            content_paths = [
+                list(rule.get("path", [])) for rule in rules
+                if tuple(rule.get("path", []))[:len(path)] == path
+                and len(rule.get("path", [])) == len(path) + 1
+                and rule.get("types") == ["Column"]
+                and not any(action[:len(rule.get("path", []))] == tuple(rule.get("path", []))
+                            for action in action_paths)
+            ] if composition.get("layout", "").startswith("S-") else []
             conflicts.append(
                 f"region {list(path)} including nested assignments requires {total:g}vp "
                 f"within {capacity:g}vp; old grouping is not executable"
+                + (f". Assign content to its pure content slot {content_paths}, reserving "
+                   "the separate action slot once; regroup all facts at original fonts"
+                   if content_paths else "")
             )
     return conflicts
 
@@ -320,7 +339,7 @@ def repair_display_samples(source: str, task: dict[str, Any]) -> dict[str, str]:
     return samples
 
 
-def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
+def repair_display_roles(source: str, *, size: str | None = None) -> dict[str, dict[str, Any]]:
     """保留失败源的主文字规格，不能因容量恢复把18fp主文变成14fp正文。"""
     from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
     from services.compact_high_level_components import CompactDslConversionError, ComponentRow
@@ -358,6 +377,19 @@ def repair_display_roles(source: str) -> dict[str, dict[str, Any]]:
                     "role": row.props.get("role", "supporting"),
                     "displayExpression": value,
                 }
+                if size == "2x2":
+                    variant = None
+                    part = "main" if row.component_type == "EmphasisText" else "value"
+                    if row.component_type == "SecondaryBody":
+                        role = row.props.get("role", "supporting")
+                        variant = role if role in {"body", "metadata"} else (
+                            "multiline" if len(items) > 2 else None
+                        )
+                        part = "text"
+                    recipe = component_visual_recipe(row.component_type, size=size, variant=variant)
+                    roles[paths[0]]["fontSize"] = recipe.get("parts", {}).get(part, {}).get(
+                        "styles", {},
+                    ).get("fontSize")
                 if row.component_type == "SecondaryBody":
                     for item in items:
                         if isinstance(item, dict) and item.get("value") == value:
@@ -457,6 +489,58 @@ def _literal_display_sample(value: Any, task: dict[str, Any]) -> tuple[str, str]
     if len(paths) != 1 or body[offset:].strip():
         return None
     return paths[0], "".join(parts)
+
+
+def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
+    """小卡完整文字压力：只读字符串连接或简单布尔映射，不执行表达式。"""
+    if isinstance(value, dict):
+        displayed = _literal_display_sample(value, task)
+        return displayed[1] if displayed is not None else None
+    if not isinstance(value, str):
+        return None
+    if "{{" not in value:
+        return value
+    expression = re.fullmatch(r"\s*\{\{(.*?)\}\}\s*", value, flags=re.DOTALL)
+    if expression is None:
+        return None
+    literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
+    boolean = re.fullmatch(
+        r"\s*\$\{(/[^{}]+)\}\s*\?\s*(" + literal + r")\s*:\s*(" + literal + r")\s*",
+        expression.group(1),
+    )
+    if boolean is not None:
+        if _schema_value(task, boolean.group(1)).get("type") != "boolean":
+            return None
+        try:
+            branches = [ast.literal_eval(boolean.group(index)) for index in (2, 3)]
+        except (SyntaxError, ValueError):
+            return None
+        return max(branches, key=lambda text: _text_width(text, 1))
+    token = re.compile(rf"(?P<path>\$\{{(/[^{{}}]+)\}})|(?P<literal>{literal})")
+    body = expression.group(1).strip()
+    parts: list[str] = []
+    string_mode = False
+    offset = 0
+    for match in token.finditer(body):
+        if body[offset:match.start()].strip() != ("+" if parts else ""):
+            return None
+        if match.group("path") is not None:
+            path = match.group("path")[2:-1]
+            sample = _schema_value(task, path).get("sampleValue")
+            if isinstance(sample, bool) or not isinstance(sample, (str, int, float)):
+                return None
+            if parts and not string_mode and not isinstance(sample, str):
+                return None  # 两个数值的加法不是字符串连接，不猜运算结果。
+            string_mode = string_mode or isinstance(sample, str)
+            parts.append(str(sample))
+        else:
+            try:
+                parts.append(ast.literal_eval(match.group("literal")))
+                string_mode = True
+            except (SyntaxError, ValueError):
+                return None
+        offset = match.end()
+    return "".join(parts) if parts and not body[offset:].strip() else None
 
 
 def compact_plan_capacity_context(size: str) -> str:

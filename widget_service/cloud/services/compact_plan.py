@@ -331,6 +331,10 @@ def _normalize_composition(
     for region in regions:
         if not _composition_region_shape(region, region_schema):
             return None, [warning]
+        if size == "2x2":
+            region, slot_note = _small_content_region(region, layout, variant)
+            if slot_note is not None:
+                notes.append(slot_note)
         capacity = composition_region_capacity(
             size, value.get("layout"), variant, region.get("path"),
         )
@@ -356,7 +360,8 @@ def _normalize_composition(
         height = sum(group.get("referenceHeight") for group in groups)
         height += region.get("gap") * (len(groups) - 1)
         remaining = region.get("referenceHeight") - height
-        if remaining < 0:
+        height_tolerance = 2.0 if size == "2x2" else 0.0
+        if remaining < -height_tolerance:
             notes.append(f"region {region.get('id')} overflows by {-remaining:g}vp; "
                          "replace this complete grouping, do not shrink or omit facts.")
         normalized.append({**region, "groups": groups, "requiredHeight": height,
@@ -365,6 +370,38 @@ def _normalize_composition(
         return None, ["composition incomplete: retain every info_required fact and action; "
                       "rebuild complete region assignments before generating."]
     return {"layout": value.get("layout"), "variant": variant, "regions": normalized}, notes
+
+
+def _small_content_region(
+    region: dict[str, Any], layout: dict[str, Any], variant: int,
+) -> tuple[dict[str, Any], str | None]:
+    """正文误分到带嵌套动作的父区时，交接真实纯正文槽，不重复分配动作高度。"""
+    groups = region.get("groups", [])
+    if not groups or any(not isinstance(group, dict) for group in groups):
+        return region, None
+    if any(group.get("component") in
+                         {"SingleLineTitle", "DoubleLineTitle", *_ACTION_FACT_COMPONENTS}
+                         for group in groups):
+        return region, None
+    path = tuple(region.get("path", []))
+    rules = layout.get("patterns", [])[variant - 1].get("rules", [])
+    action_paths = [tuple(rule.get("path", [])) for rule in rules
+                    if rule.get("eventPolicy") == "require"]
+    if not any(len(action) > len(path) and action[:len(path)] == path for action in action_paths):
+        return region, None
+    slots = [rule.get("path") for rule in rules
+             if len(rule.get("path", [])) == len(path) + 1
+             and tuple(rule.get("path", []))[:len(path)] == path
+             and rule.get("types") == ["Column"]
+             and not any(action[:len(rule.get("path", []))] == tuple(rule.get("path", []))
+                         for action in action_paths)]
+    if len(slots) != 1:
+        return region, None
+    return {**region, "path": slots[0]}, (
+        f"content assignment moved from parent {list(path)} to pure content slot {slots[0]}; "
+        "its capacity excludes the separate action reservation. Keep all facts and original "
+        "fonts; regroup short same-object auxiliary facts if the complete content overflows."
+    )
 
 
 def _composition_region_shape(value: Any, schema: dict[str, Any]) -> bool:
@@ -454,6 +491,20 @@ def _composition_group(
     if height is not None:
         planned_height = max(height, planned_height)
     group = {**value, "factIndexes": remapped, "referenceHeight": planned_height}
+    if size == "2x2" and component == "TableText":
+        item_indexes = {
+            int(match.group(1)) for placement in placements
+            if (match := re.fullmatch(r"items\[(\d+)\]\.(?:label|value)", placement))
+        }
+        if item_indexes and (len(item_indexes) not in (2, 3)
+                             or item_indexes != set(range(len(item_indexes)))):
+            group["implementationConflict"] = (
+                "TableText only supports two or three contiguous items, not "
+                f"{len(item_indexes)}. Keep every fact; regroup ordinary information in "
+                "SecondaryBody at its original role/font, combining short same-object "
+                "attributes into full-width labelled lines when they fit. Do not copy "
+                "the invalid table or shrink text to create a smaller table."
+            )
     if placement_notes:
         group["placementNotes"] = placement_notes
     return group
