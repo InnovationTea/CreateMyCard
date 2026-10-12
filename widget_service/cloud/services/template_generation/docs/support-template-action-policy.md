@@ -21,32 +21,49 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 
 | 模板 | supportedEventIds |
 | --- | --- |
-| WeatherOverviewTemperatureSupport@1 | event.open.weather |
-| WeatherOverviewTemperatureUvSupport@1 | event.open.weather |
-| WeatherOverviewTemperaturecoldLevelSupport@1 | event.open.weather |
-| WeatherOverviewDaily2TravelSupport@1 | 空 |
-| WeatherOverviewTravelSupport@1 | event.open.weather |
+| BatteryOverviewSupportHero@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | BatteryOverviewSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | BatteryOverviewStatusSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
 | BatteryOverviewStatusWideFull@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
+| BatteryOverviewPluggedTypeSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
+| BatteryOverviewPhoneTextSupport@1 | event.open.settings.battery、event.open.settings.batteryHealth、event.setPowerSavingMode |
+| ScheduleOverviewEventCountTwoEventsFull@1 | event.viewCalendarEvent |
 | ScheduleOverviewTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewLocationSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewStartTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewDateSupport@1 | event.viewCalendarEvent、event.enter.meeting |
-| CountdownOverviewTravelSupport@1 | event.open.clock.alarm |
-| BluetoothDeviceOverviewEarbudsSupport@1 | event.open.settings.bluetooth |
-| BluetoothDeviceOverviewChargeSupport@1 | event.open.settings.bluetooth |
-| BluetoothDeviceOverviewConnectionSupport@1 | event.open.settings.bluetooth |
-| ActivityOverviewSupport@1 | event.open.health.sport |
-| WorkoutOverviewSupport@1 | event.open.health.sport |
-| HeartRateOverviewSupport@1 | event.open.health.sport |
+| CountdownOverviewTravelSupport@1 | event.open.clock.alarm、event.open.clock.alarmTab |
+| BluetoothDeviceOverviewNameAndConnectionSupport@1 | event.open.settings.bluetooth、event.setBluetoothMode |
+| BluetoothDeviceOverviewNameAndChargeSupport@1 | event.open.settings.bluetooth、event.setBluetoothMode |
+| BluetoothDeviceOverviewEarbudsSupport@1 | event.open.settings.bluetooth、event.setBluetoothMode |
+| BluetoothDeviceOverviewConnectionSupport@1 | event.open.settings.bluetooth、event.setBluetoothMode |
+| BluetoothDeviceOverviewChargeSupport@1 | event.open.settings.bluetooth、event.setBluetoothMode |
+| BluetoothDeviceOverviewEarbudChargingWideFull@1 | event.open.music.favorite |
+| BluetoothDeviceOverviewMusicCompact@1 | event.open.music.favorite |
+| BluetoothDeviceOverviewEarbudsChargingWideFull@1 | event.open.music.daily |
+| WorkoutOverviewTrainingRecordWideFull@1 | event.open.health.sport、event.open.health.sportsRecord、event.open.health.workoutDuration |
+| WorkoutOverviewTrainingRecordHero@1 | event.open.health.sport、event.open.health.sportsRecord、event.open.health.workoutDuration |
+| SleepOverviewNapHero@1 | event.open.health.sport |
+| ActivityOverviewSupport@1 | event.open.health.sport、event.open.health.activityRecord |
+| WorkoutOverviewSupport@1 | event.open.health.sport、event.open.health.sportsRecord、event.open.health.workoutDuration |
+| HeartRateOverviewSupport@1 | event.open.health.sport、event.open.health.sportsRecord |
 | SleepOverviewSupport@1 | event.open.health.sleep |
-| ResourceUsageOverviewSupport@1 | event.clean.memory |
+| WeatherOverviewDaily2TravelSupport@1 | 空 |
+| WeatherOverviewTravelSupport@1 | event.open.weather |
+| WeatherOverviewConditionSupport@1 | event.open.weather |
+| WeatherOverviewTemperatureSupport@1 | event.open.weather |
+| WeatherOverviewTemperatureUvSupport@1 | event.open.weather |
+| WeatherOverviewTemperaturecoldLevelSupport@1 | event.open.weather |
+| WeatherOverviewFeelsLikeWindSupport@1 | 空 |
+| WeatherOverviewHumidityWindLevelHero@1 | event.open.weather |
+| WeatherOverviewFeelsLikeHero@1 | event.open.weather |
+| WeatherOverviewTemperatureHumiditySupport@1 | event.open.weather |
 
 事件含义及参数以请求版本的 event_capabilities.json 为准。步数、训练及运动心率允许锻炼页作为关联入口，
-不得宣称直达步数、心率或某次训练详情。睡眠不能复用锻炼事件；耳机不能绑定手机电池设置或音乐歌单。
+不得宣称直达步数、心率或某次训练详情。睡眠 Support 不能复用锻炼事件；普通耳机 Support 不能绑定
+手机电池设置或音乐歌单。具有独立音乐动作的耳机模板及午睡组合模板遵循上表已有声明。
 运行内存清理不是存储空间设置；通用倒计时不使用闹钟替代，只有出行倒计时 Support 可以消费用户明确要求的
-闹钟跳转。应用时长及系统内存仍受原数据能力门禁约束。
+闹钟跳转。指定应用时长和系统内存均不提供在线业务模板。
 健身准备组合卡片（课程信息加昨日步数、昨晚睡眠）的打开收藏歌单动作由根 `CompactAction@1` 承载，
 不属于业务模板内嵌事件；动作固定为 `event.open.music.favorite` 的注册 deeplink，不得宣称直达具体
 歌曲、歌手或播放控制。
@@ -67,7 +84,10 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
    第二层只能遵循所选 Plan，不能跨 Plan 移动动作。不得复制 URI、call、args 到模板配置或模型输出。
 
 事件参数依赖不等于用户显式展示字段，cityCode、entityId 等不需要额外显示在卡片中。省电模式保持注册
-协议中 0=开启、1=关闭的固定语义，不实现自动切换。用户指定点击哪个业务区域的额外语义提取不在本次范围。
+协议中 0=开启、1=关闭的固定语义，不实现自动切换。
+蓝牙开关同样保持 0=开启、1=关闭，不根据连接状态推断或自动反转开关。活动记录入口归属步数业务；
+运动记录入口归属训练或运动心率业务；锻炼时长入口归属展示训练时长的模板。固定健康入口不表示
+当前单次训练详情，也不用于替代睡眠详情。闹钟 Tab 只由出行倒计时消费，不扩展通用倒计时动作。用户指定点击哪个业务区域的额外语义提取不在本次范围。
 
 ## 画廊与回归
 

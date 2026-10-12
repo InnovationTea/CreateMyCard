@@ -9,7 +9,6 @@
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
     "GetPhoneBatteryInfo",
-    "GetSystemMemInfo",
     "ViewWeather"
   ],
   "supportedLayoutIds": ["TwoSupportLayout"],
