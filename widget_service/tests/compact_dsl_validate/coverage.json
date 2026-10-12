@@ -8,10 +8,10 @@
     "directory": "_collect_asset_source_errors\\01"
   },
   {
-    "function": "_collect_asset_color_errors",
-    "line": 332,
+    "function": "expand_high_level_component_rows",
+    "line": 305,
     "expectedErrors": [
-      "component icon: tintable SVG resources/heart.svg must set fillColor explicitly; omitting it renders the asset's default black."
+      "component icon_icon: SVG icon resources/heart.svg must set fillColor; all SVG icons are treated as tintable."
     ],
     "directory": "_collect_asset_color_errors\\01"
   },

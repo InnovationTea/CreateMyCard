@@ -1201,6 +1201,7 @@ def _validate_provider_template_state(
             "percentRingHero",
             "percentStatusCompact",
             "phoneTextCompact",
+            "phoneTextSupport",
             "progressCompact",
             "progressSupport",
             "statusIconCompact",

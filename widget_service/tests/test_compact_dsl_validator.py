@@ -123,6 +123,83 @@ def test_accepts_progress_circle_free_box_geometry() -> None:
     )
 
 
+def test_rejects_svg_icon_without_fill_color() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        '"fillColor":"#991F4799",',
+        "",
+    )
+
+    with pytest.raises(CompactDslValidationError, match="SVG icon.*must set fillColor"):
+        validate_compact_dsl(
+            source,
+            task_spec=_progress_circle_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+def test_rejects_fill_color_on_bitmap_icon() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        "resources/battery.svg",
+        "resources/battery.png",
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["assetCandidates"][0]["src"] = "resources/battery.png"
+
+    with pytest.raises(CompactDslValidationError, match="bitmap icon.*must not set fillColor"):
+        validate_compact_dsl(
+            source,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+def test_accepts_bitmap_icon_without_fill_color() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        "resources/battery.svg",
+        "resources/battery.png",
+    ).replace('"fillColor":"#991F4799",', "")
+    task_spec = _progress_circle_task_spec()
+    task_spec["assetCandidates"][0]["src"] = "resources/battery.png"
+
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+def test_accepts_svg_icon_auto_tinted_by_pill_button() -> None:
+    handler = {
+        "call": "clickToDeeplink",
+        "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry",
+        },
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["cta"]]',
+            '["cta","PillButton",{"label":"蓝牙设置",'
+            '"icon":"resources/settings.svg",'
+            f'"onClick":[{json.dumps(handler, ensure_ascii=False)}]' + "}]",
+        ]
+    )
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [handler],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [{"src": "resources/settings.svg"}],
+    }
+
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+
 def test_accepts_progress_circle_bound_to_complete_percentage_text() -> None:
     source = "\n".join(
         [

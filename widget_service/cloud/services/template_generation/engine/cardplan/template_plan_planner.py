@@ -160,6 +160,13 @@ def plan_template_candidates(
         if preferred:
             drafts = preferred
 
+    earphone_ranking = (
+        task_spec.size == "2x2"
+        and requested_capabilities == ("GetEarphoneInfo",)
+    )
+    if earphone_ranking:
+        drafts = _prefer_earphone_action_role(drafts, len(action_ids))
+
     battery_ranking = (
         task_spec.size == "2x2"
         and requested_capabilities == ("GetPhoneBatteryInfo",)
@@ -203,6 +210,23 @@ def plan_template_candidates(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
         for index, item in enumerate(selected)
     )
+
+
+def _prefer_earphone_action_role(drafts: list[_PlanDraft], action_count: int) -> list[_PlanDraft]:
+    """Choose the action-compatible role before comparing focus or field scores."""
+    roles = ("Full",)
+    if action_count == 1:
+        roles = ("Hero", "Full")
+    elif action_count == 2:
+        roles = ("Compact",)
+    for role in roles:
+        matching = []
+        for draft in drafts:
+            if draft.plan.business_slots[0].layout_role == role:
+                matching.append(draft)
+        if matching:
+            return matching
+    return drafts
 
 
 def _verify_plans_cover_request(
