@@ -198,7 +198,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudPairFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机成对 Full，名称与连接状态可选，支持两者都有、仅名称、仅连接状态；展示盒与左右耳电量；三项充电状态均存在时增加完整的充电状态层。",
+      "description": "耳机成对 Full，名称与连接状态可选，支持两者都有、仅名称、仅连接状态；仅一项时，若 cardComposition.businessTitleCandidate 非空，必须逐字传入 title 参数替换固定蓝牙耳机标题，无请求标题则省略；展示盒与左右耳电量；三项充电状态均存在时增加完整的充电状态层。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/batteryLevel",
