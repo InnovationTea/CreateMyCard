@@ -108,7 +108,11 @@ CONTRACTS = {
         optional=("color", "dataIds"),
         color=("blue", "orange", "green", "red", "purple", "cyan", "pink"),
     ),
-    "DataDisplay": contract(required=("label", "value", "supportingText"), optional=("dataIds",)),
+    "DataDisplay": contract(
+        required=("label", "value", "supportingText"),
+        optional=("variant", "dataIds"),
+        variant=("textConclusion",),
+    ),
     "InfoBlock": contract(
         required=("primaryText", "secondaryText"),
         optional=("primaryTextTemplate", "secondaryTextTemplate", "unit", "visual", "dataIds"),

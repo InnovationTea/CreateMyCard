@@ -2665,18 +2665,20 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
         required={"label", "value", "supportingText", "fontColor"},
         allowed=allowed,
     )
+    variant = "textConclusion" if component.props.get("fontSize") == 18 else None
     _validate_recipe_font_size(
         component,
         component_name="DataDisplay",
         part_name="value",
         size=size,
+        variant=variant,
     )
-    for name in ("label", "supportingText"):
-        if not isinstance(component.props.get(name), str) or not component.props[name].strip():
-            raise CompactDslConversionError(
-                f"{component.component_id}: DataDisplay.{name} must be non-empty text."
-            )
+    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
+        raise CompactDslConversionError(
+            f"{component.component_id}: DataDisplay.label must be non-empty text."
+        )
     _require_text_value(component, "value")
+    _require_text_value(component, "supportingText")
     _require_color(component, "fontColor")
     secondary_color = _color_with_alpha(component.props["fontColor"], 0.6)
 
@@ -2706,6 +2708,7 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
             "DataDisplay",
             "value",
             size=size,
+            variant=variant,
             props={
                 "content": copy.deepcopy(component.props["value"]),
                 "fontColor": component.props["fontColor"],
@@ -2717,7 +2720,7 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
             "supporting",
             size=size,
             props={
-                "content": component.props["supportingText"],
+                "content": copy.deepcopy(component.props["supportingText"]),
                 "fontColor": secondary_color,
             },
         ),
