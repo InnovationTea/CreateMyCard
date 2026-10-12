@@ -67,6 +67,8 @@ def _is_valid_full_template(wire_id: str, definition) -> bool:
         return False
     if provider_template_layout_kind(wire_id) != "Full":
         return False
+    if "2x2" not in definition.variants[0].supported_card_sizes:
+        return False
     if wire_id.startswith("BatteryOverview"):
         return False
     if wire_id == "WeatherOverviewRainWindFull@1":
