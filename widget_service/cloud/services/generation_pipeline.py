@@ -16,6 +16,7 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
 )
+from services.compact_outer_recomposition import recompose_small_card
 from services.compact_plan import compact_plan_coverage_errors
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
@@ -74,7 +75,7 @@ class DslProcessingContext:
 
 @dataclass(frozen=True)
 class DslProcessingResult:
-    """保留模型源 DSL、标准 DSL 和转换阶段问题。"""
+    """保留实际编译源、标准 DSL 和转换问题；模型原源另存于Trace。"""
 
     source_dsl: str
     standard_dsl: str = ""
@@ -182,6 +183,31 @@ class DesignCompactProcessor:
             },
         )
 
+        design_profile_id = context.design_profile_id or "design-compact-dsl"
+        design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
+        outer_applied = False
+        if context.size == "2x2" and not context.skip_compact_dsl_validation:
+            outer_started_at = time.perf_counter()
+            outer_input = source_dsl
+            outer_result = recompose_small_card(
+                source_dsl, task_spec=context.task_spec, card_spec=context.card_spec,
+                protocol_profile=design_protocol, layout_scope=context.layout_scope,
+                compact_plan=context.compact_plan,
+            )
+            source_dsl = outer_result.source_dsl
+            outer_applied = outer_result.applied
+            trace_step(
+                "dsl.outer_recomposition.completed",
+                stage="dsl.outerRecomposition", status="success",
+                duration_ms=_elapsed_ms(outer_started_at),
+                details={"applied": outer_applied, "reasons": list(outer_result.reasons),
+                         "candidateCount": outer_result.candidate_count},
+                text_artifacts={"outer_recomposition_input": outer_input,
+                                "outer_recomposition_output": source_dsl},
+                artifact_roles={"outer_recomposition_input": "input",
+                                "outer_recomposition_output": "output"},
+            )
+
         plan_coverage_started_at = time.perf_counter()
         plan_errors = compact_plan_coverage_errors(
             source_dsl,
@@ -204,8 +230,6 @@ class DesignCompactProcessor:
             },
         )
 
-        design_profile_id = context.design_profile_id or "design-compact-dsl"
-        design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         if not context.skip_compact_dsl_validation:
             compact_validation_started_at = time.perf_counter()
             try:
@@ -316,6 +340,12 @@ class DesignCompactProcessor:
                 )
                 for message in (validation_result.warnings if validation_result else ())
             )
+            if outer_applied:
+                warnings += (QualityIssue(
+                    stage="conversion", code="COMPACT_OUTER_RECOMPOSITION_APPLIED",
+                    message="2x2 outer composition compiled without changing facts or font sizes.",
+                    severity="warning",
+                ),)
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl=standard_dsl,
