@@ -26,6 +26,8 @@ _CALENDAR_SUPPORTS = (
 # 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "BatteryOverviewPluggedTypeSupport@1": (0,),
+    "BatteryOverviewPhoneTextSupport@1": (0,),
+    "WeatherOverviewTemperatureHumiditySupport@1": (0, 1),
     "BluetoothDeviceOverviewNameAndConnectionSupport@1": (0,),
     "BluetoothDeviceOverviewNameAndChargeSupport@1": (0,),
     "WeatherOverviewConditionSupport@1": (0,),
@@ -52,8 +54,10 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WorkoutOverviewSupport@1": (0,),
 }
 
-# 电量缺失时只保留一行主文本的 Support：不要求存在辅助文本行。
+# 可选数据缺失时仅保留主文本的 Support：不要求存在辅助文本行。
 _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
+    "BatteryOverviewPhoneTextSupport@1",
+    "WeatherOverviewTemperatureHumiditySupport@1",
     "BatteryOverviewSupport@1",
     "BluetoothDeviceOverviewChargeSupport@1",
     "BluetoothDeviceOverviewConnectionSupport@1",
@@ -157,6 +161,13 @@ def test_support_ux_spacing_typography_and_right_icon(
             "WeatherOverviewTravelSupport@1",
         } else 12
         font_size = 14 if primary else subtitle_size
+        # 上游新增的纯文本电量和温湿度模板使用 16fp 主读数。
+        large_primary = template_id in {
+            "BatteryOverviewPhoneTextSupport@1",
+            "WeatherOverviewTemperatureHumiditySupport@1",
+        }
+        if large_primary and index == 0:
+            font_size = 16
         assert styles.get("fontSize") == font_size
         if primary:
             assert styles.get("fontWeight") == 700
@@ -256,7 +267,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 25
+    assert len(supports) == 27
     assert not supports.intersection({
         "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
