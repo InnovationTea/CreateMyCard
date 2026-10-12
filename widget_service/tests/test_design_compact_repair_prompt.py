@@ -19,6 +19,8 @@ def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> Non
     assert "无损紧凑组件替换阶段" in REPAIR_SYSTEM_PROMPT
     assert "本阶段最多提交两次完整 Compact DSL" in REPAIR_SYSTEM_PROMPT
     assert "不启用可选信息删除" in REPAIR_SYSTEM_PROMPT
+    assert "drop_optional_component" in REPAIR_SYSTEM_PROMPT
+    assert "唯一可删的非 Action 业务展示组件" in REPAIR_SYSTEM_PROMPT
     assert "没有 repairStrategy 的兼容调用才以 invalidSourceDsl 为直接修复对象" in (
         REPAIR_SYSTEM_PROMPT
     )
@@ -150,3 +152,44 @@ def test_build_repair_exposes_compact_component_fallback_budget() -> None:
     assert "禁止沿用其旧拓扑" in payload["instruction"]
     assert "以 invalidSourceDsl 为直接修复对象" not in payload["instruction"]
     assert "本轮修复路由：进入无损紧凑组件替换阶段。" in payload["instruction"]
+
+
+def test_build_repair_exposes_the_only_allowed_optional_drop() -> None:
+    messages = PromptBuilder().build_repair(
+        [
+            {"role": "system", "content": "create constraints"},
+            {"role": "user", "content": '{"size":"2x4"}'},
+        ],
+        "invalid source",
+        [
+            {
+                "stage": "validation",
+                "code": "COMPACT_DSL_VALIDATION_FAILED",
+                "message": "vertical layout requires at least 142vp within 126vp",
+            }
+        ],
+        dsl_format="compact-dsl",
+        repair_strategy={
+            "category": "layout_capacity",
+            "scope": "full_dsl",
+            "repairStrategy": "drop_optional_component",
+            "retryTarget": "dsl_recompose",
+            "fallbackStage": "drop_optional_component",
+            "fallbackAttempt": 0,
+            "fallbackAttemptLimit": 3,
+            "fallbackRemainingAttempts": 3,
+            "optionalDrop": {
+                "componentId": "support",
+                "componentType": "SecondaryBody",
+                "allowedOmittedFactIndexes": [2],
+                "requirements": ["补充时间"],
+            },
+            "instruction": "只删除指定的补充信息组件。",
+        },
+    )
+
+    payload = json.loads(messages[1]["content"])
+    optional_drop = payload["repairStrategy"]["optionalDrop"]
+    assert optional_drop["componentId"] == "support"
+    assert optional_drop["allowedOmittedFactIndexes"] == [2]
+    assert "invalidSourceDsl 只作为失败诊断" in payload["instruction"]
