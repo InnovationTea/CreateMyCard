@@ -153,6 +153,11 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "temperatureRangeText",
         "alertLevel",
         "updatedAt",
+        # 风况模板族（WindFull/WindHero primaryData、RainWindFull secondaryData）的
+        # 可渲染事实——严格四要素天气 selector 缺席（仅风况/降水+风况最小输入）时，
+        # 直连叶子回退仍须投影出所选模板实际渲染的风况字段。
+        "windDirection",
+        "windLevel",
     ),
     "DateOverview": ("startDate", "weekday"),
     "ScheduleOverview": ("title", "dtStart", "dtEnd", "eventLocation"),

@@ -494,7 +494,7 @@
       "templateId": "WeatherOverviewNextDayHealthFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日健康指数 Full（当日 daily[0] 形态），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量、感冒指数，可选补充天气现象与气温范围。",
+      "description": "今日健康指数 Full（当日 daily[0] 形态），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量、感冒指数，可选补充天气现象与气温范围。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/uvIndex"

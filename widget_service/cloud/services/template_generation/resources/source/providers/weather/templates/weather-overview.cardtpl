@@ -1479,7 +1479,7 @@ Column(
     },
     Row(
       { "width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "top" },
-      Text("明日健康指数", { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+      Text("今日健康指数", { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #if props.uvIcon
       Image(props.uvIcon, { "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
     #endif
