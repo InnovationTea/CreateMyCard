@@ -202,7 +202,7 @@ Column(
             #endif
             #if data.daily4RainProbability
             Text(
-              Expr("降雨概率 " + data.daily4RainProbability),
+              Expr("降雨概率 " + data.daily4RainProbability + "%"),
               {
                 "fontSize": 10,
                 "fontWeight": 400,
@@ -532,7 +532,7 @@ Row(
     #endif
     #if data.rainProbability
       Text(
-        `降雨 ${data.rainProbability}`,
+        Expr("降雨 " + data.rainProbability + "%"),
         {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}
       )
     #endif
@@ -626,7 +626,7 @@ Row(
     #endif
     #if data.rainProbability
       Text(
-        `降雨 ${data.rainProbability}`,
+        Expr("降雨 " + data.rainProbability + "%"),
         {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "end"}
       )
     #endif
@@ -769,7 +769,7 @@ Row(
     #endif
     #if data.rainProbability
       Text(
-        `降雨 ${data.rainProbability}`,
+        Expr("降雨 " + data.rainProbability + "%"),
         {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "textAlign": "end"}
       )
     #endif
@@ -1337,7 +1337,7 @@ Column(
     ),
     Column(
       { "width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-      Text(data.rainProbability, { "height": 40, "width": "matchParent", "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis" }),
+      Text(Expr("" + data.rainProbability + "%"), { "height": 40, "width": "matchParent", "fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis" }),
       Text("降雨概率", { "width": "matchParent", "fontSize": 12, "height": 20, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 })
     ),
   ),
@@ -3241,7 +3241,7 @@ Column(
     Row(
       { "width": "matchParent", "justifyContent": "spaceBetween", "alignItems": "center" },
       Text("降雨", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }),
-      Text(data.rainProbability, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "end" })
+      Text(Expr("" + data.rainProbability + "%"), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "end" })
     ),
     Row(
       { "width": "matchParent", "justifyContent": "spaceBetween", "alignItems": "center" },
@@ -3357,7 +3357,7 @@ Column(
         { "width": 32, "height": 12, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
-        data.firstRainProbability,
+        Expr("" + data.firstRainProbability + "%"),
         { "width": 24, "height": 12, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
@@ -3405,7 +3405,7 @@ Column(
         { "width": 32, "height": 12, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
-        data.secondRainProbability,
+        Expr("" + data.secondRainProbability + "%"),
         { "width": 24, "height": 12, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
@@ -3453,7 +3453,7 @@ Column(
         { "width": 32, "height": 12, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
-        data.thirdRainProbability,
+        Expr("" + data.thirdRainProbability + "%"),
         { "width": 24, "height": 12, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0 }
       ),
       Text(
@@ -3542,7 +3542,7 @@ Column(
     Row(
       { "width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center" },
       Text("降雨", { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }),
-      Text(data.rainProbability, { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1 })
+      Text(Expr("" + data.rainProbability + "%"), { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1 })
     ),
     Row(
       { "width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center" },
@@ -3862,7 +3862,7 @@ Column(
         "alignItems": "start",
       },
       Text(
-        `${data.rainProbability}%`,
+        Expr("" + data.rainProbability + "%"),
         { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
       ),
       Text(
