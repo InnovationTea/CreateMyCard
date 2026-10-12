@@ -32,7 +32,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 182, "2x4": 34}
+    assert manifest.get("countsBySize") == {"2x2": 181, "2x4": 35}
     assert len(cases) == 216
     template_ids: set[str] = set()
     for case in cases:
@@ -46,6 +46,16 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
+
+
+def test_explicit_wide_only_weather_preview_uses_2x4():
+    case = next(
+        item
+        for item in build_template_preview_cases()
+        if item.template_id == "WeatherOverviewThreeDayForecastFull@1"
+    )
+
+    assert case.size == "2x4"
 
 
 def test_template_preview_a2ui_has_surface_components_and_data():
