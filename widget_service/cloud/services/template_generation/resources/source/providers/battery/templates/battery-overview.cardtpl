@@ -2946,7 +2946,7 @@ Row(
       Text(
         Expr("电量 " + data.socText),
         {
-          "fontSize": 16,
+          "fontSize": 14,
           "fontWeight": 700,
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
