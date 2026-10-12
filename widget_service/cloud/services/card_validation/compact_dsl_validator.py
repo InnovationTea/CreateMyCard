@@ -18,6 +18,7 @@ from services.compact_dsl_a2ui_converter import (
     DataRow,
     build_compact_data_model,
     expand_high_level_component_rows,
+    normalize_mixed_font_text_rows,
     parse_compact_dsl_rows,
     validate_single_line_title_layout,
 )
@@ -256,8 +257,11 @@ def validate_compact_dsl(
     _collect_progress_value_errors(components, task_spec, errors)
     _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
-    _collect_height_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
-    _collect_text_width_budget_errors(components, task_spec, card_spec, errors, protocol_profile)
+    budget_components = normalize_mixed_font_text_rows(components, data_model=data_model)
+    _collect_height_budget_errors(budget_components, task_spec, card_spec, errors, protocol_profile)
+    _collect_text_width_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile,
+    )
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(

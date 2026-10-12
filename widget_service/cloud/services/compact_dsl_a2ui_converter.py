@@ -7,13 +7,14 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import sys
 from pathlib import Path
 from typing import Any, Literal
 
 from services.compact_component_bindings import collect_compact_component_binding_errors
-from services.compact_component_runtime import resolve_card_color_palette
+from services.compact_component_runtime import VISUAL_RECIPE_VERSION, resolve_card_color_palette
 from services.compact_high_level_components import (
     CompactDslConversionError as CompactDslConversionError,
 )
@@ -61,6 +62,13 @@ ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _A2UI_ICON_BUTTON_LABEL = "\u200b"
+_INLINE_DISPLAY_UNITS = frozenset({
+    "%", "％", "°", "°C", "℃", "°F", "天", "小时", "分钟", "分", "秒", "毫秒",
+    "步", "次", "件", "个", "条", "项", "人", "级", "公里", "千米", "米", "厘米", "毫米",
+    "km", "m", "cm", "mm", "kg", "g", "mg", "kcal", "千卡", "cal", "mL", "ml", "L",
+    "A", "mA", "V", "W", "kW", "kWh", "bpm", "次/分钟", "mV", "μA", "uA", "kHz", "MHz",
+    "Pa", "kPa", "Wh", "MB", "GB", "TB", "km/h", "m/s",
+})
 COMPACT_INPUT_COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -549,6 +557,9 @@ def convert_compact_dsl_to_a2ui(
     validate_single_line_title_layout(components, size=size)
 
     normalized_components = [_normalize_component(row) for row in components]
+    normalized_components = normalize_mixed_font_text_rows(
+        normalized_components, data_model=data_model,
+    )
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     converted_components = []
     for component in normalized_components:
@@ -1496,6 +1507,123 @@ def _split_component_rows(
             "The root component is missing; model output may be truncated."
         )
     return [root, *components], data_rows
+
+
+def normalize_mixed_font_text_rows(
+    components: list[ComponentRow], *, data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
+    """同一Row的直接单行文字字底补偿；不改字号、内容、跨区关系或多行文本。"""
+    by_id = {component.component_id: component for component in components}
+    replacements: dict[str, ComponentRow] = {}
+    for row in components:
+        if row.component_type != "Row":
+            continue
+        texts: list[ComponentRow] = []
+        fonts: list[float] = []
+        complete_single_line = True
+        for child_id in row.children:
+            child = by_id.get(child_id)
+            if child is None or child.component_type != "Text":
+                continue
+            font = _positive_static_number(child.props.get("fontSize"))
+            if font is None or child.props.get("maxLines", 1) != 1:
+                complete_single_line = False
+                break
+            texts.append(child)
+            fonts.append(font)
+        if not complete_single_line or len(texts) < 2:
+            continue
+        if min(fonts) == max(fonts):
+            continue
+        largest = max(fonts)
+        row_props = {**row.props, "alignItems": "bottom"}
+        pair = _is_numeric_unit_pair(row, texts, fonts, data_model)
+        if pair:
+            row_props["itemMargin"] = 2
+            if row_props.get("justifyContent") in {"spaceAround", "spaceBetween", "spaceEvenly"}:
+                row_props["justifyContent"] = "start"
+        replacements[row.component_id] = ComponentRow(
+            row.component_id, row.component_type, row_props, row.children,
+        )
+        for child, font in zip(texts, fonts, strict=True):
+            props = copy.deepcopy(child.props)
+            if pair:
+                props.pop("width", None)
+                props.pop("layoutWeight", None)
+            if font < largest:
+                _compensate_text_bottom(props, font, min(8, math.ceil((largest - font) / 4)))
+            replacements[child.component_id] = ComponentRow(
+                child.component_id, child.component_type, props, child.children,
+            )
+    return [replacements.get(item.component_id, item) for item in components]
+
+
+def _positive_static_number(value: Any) -> float | None:
+    result = None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if math.isfinite(value) and value > 0:
+            result = float(value)
+    return result
+
+
+def _is_numeric_unit_pair(
+    row: ComponentRow, texts: list[ComponentRow], fonts: list[float],
+    data_model: dict[str, Any] | None,
+) -> bool:
+    if len(row.children) != 2 or len(texts) != 2 or fonts[0] <= fonts[1]:
+        return False
+    unit = texts[1].props.get("content")
+    marker = texts[1].props.get("_visualRecipe", "")
+    if isinstance(marker, str) and marker.startswith(VISUAL_RECIPE_VERSION + ":"):
+        if marker.endswith(":unit"):
+            return True
+    if not isinstance(unit, str) or unit.strip() not in _INLINE_DISPLAY_UNITS:
+        return False
+    value = texts[0].props.get("content")
+    if isinstance(value, dict) and data_model is not None:
+        path = value.get("path")
+        if isinstance(path, str):
+            found, value = _json_pointer_value(data_model, path)
+            if not found:
+                return False
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return math.isfinite(value)
+    return isinstance(value, str) and re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value.strip()) is not None
+
+
+def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int) -> None:
+    padding = props.get("padding", 0)
+    if isinstance(padding, (int, float)) and not isinstance(padding, bool):
+        padding = {side: padding for side in ("top", "right", "bottom", "left")}
+    elif isinstance(padding, dict):
+        padding = dict(padding)
+    else:
+        return  # 动态/未知padding不覆盖、不猜测其占用。
+    bottom = padding.get("bottom", 0)
+    top = padding.get("top", 0)
+    previous = props.get("_glyphBottomOffset", 0)
+    for value in (bottom, top, previous):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return
+        if not math.isfinite(value) or value < 0:
+            return
+    already_compensated = "_glyphBottomOffset" in props
+    padding["bottom"] = bottom - previous + offset
+    props["padding"] = padding
+    props["_glyphBottomOffset"] = offset  # 仅转换内部标记，不进入标准A2UI。
+    line_height = _positive_static_number(props.get("lineHeight")) or 1.4
+    required = font * line_height + top + padding.get("bottom", 0)
+    height = _positive_static_number(props.get("height"))
+    if height is not None and (height <= 24 or already_compensated):
+        props["height"] = max(height, required)
+    else:
+        props.pop("height", None)
+        constraints = props.get("constraintSize", {})
+        if isinstance(constraints, dict):
+            constraints = dict(constraints)
+            old_minimum = _positive_static_number(constraints.get("minHeight")) or 0
+            constraints["minHeight"] = max(old_minimum, required)
+            props["constraintSize"] = constraints
 
 
 def _normalize_component(component: ComponentRow) -> ComponentRow:
