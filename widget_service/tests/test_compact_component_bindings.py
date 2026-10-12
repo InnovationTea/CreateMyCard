@@ -19,6 +19,13 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
 )
+from services.multi_step_generation.jsx_to_a2ui.catalog.bindings import (
+    BINDABLE_PROP_TYPES,
+)
+from services.multi_step_generation.jsx_to_a2ui.catalog.contracts import (
+    collect_jsx_component_errors,
+)
+from services.multi_step_generation.jsx_to_a2ui.parser.jsx_ast import JSXElement
 
 
 def _serialize(rows: list[list[object]]) -> str:
@@ -164,6 +171,79 @@ def test_progress_circle_driver_accepts_path_and_expression() -> None:
     assert path_errors == []
     assert expression_errors == []
     assert "does not accept expression bindings" in line_errors[0]
+
+
+def test_data_display_supporting_text_accepts_dynamic_binding() -> None:
+    path_errors = collect_compact_component_binding_errors(
+        "display",
+        "DataDisplay",
+        {"supportingText": {"path": "/data/weather/updatedAt"}},
+    )
+    expression_errors = collect_compact_component_binding_errors(
+        "display",
+        "DataDisplay",
+        {
+            "supportingText": (
+                "{{ '更新 ' + ${/data/weather/updatedAt} }}"
+            )
+        },
+    )
+
+    assert path_errors == []
+    assert expression_errors == []
+    assert "supportingText" in BINDABLE_PROP_TYPES["DataDisplay"]
+
+    jsx_errors = collect_jsx_component_errors(
+        JSXElement(
+            "DataDisplay",
+            {
+                "label": "天气预警",
+                "value": "大风蓝色预警",
+                "supportingText": "10:30 更新",
+                "variant": "textConclusion",
+            },
+        )
+    )
+    assert jsx_errors == []
+
+
+def test_data_display_converts_text_conclusion_and_dynamic_support() -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["display"]],
+            [
+                "display",
+                "DataDisplay",
+                {
+                    "label": "天气预警",
+                    "value": {"path": "/data/weather/alert"},
+                    "supportingText": (
+                        "{{ '更新 ' + ${/data/weather/updatedAt} }}"
+                    ),
+                    "fontSize": 18,
+                    "fontColor": "#FF1F4799",
+                },
+            ],
+            ["/data/weather/alert", "大风蓝色预警"],
+            ["/data/weather/updatedAt", "10:30"],
+        ]
+    )
+
+    converted = convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
+    update_components = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {
+        component["id"]: component
+        for component in update_components["components"]
+    }
+
+    assert components["display_value"]["content"] == (
+        "{{ ${/data/weather/alert} }}"
+    )
+    assert components["display_value"]["styles"]["fontSize"] == 18
+    assert components["display_value"]["styles"]["height"] == 24
+    assert components["display_supporting"]["content"] == (
+        "{{ '更新 ' + ${/data/weather/updatedAt} }}"
+    )
 
 
 def test_validator_checks_semantic_prop_binding_before_expansion() -> None:

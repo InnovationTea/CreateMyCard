@@ -58,6 +58,13 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
     }
 
 
+def test_data_display_registers_text_conclusion_recipe() -> None:
+    recipe = component_visual_recipe("DataDisplay", variant="textConclusion")
+
+    assert recipe["parts"]["value"]["styles"]["height"] == 24
+    assert recipe["parts"]["value"]["styles"]["fontSize"] == 18
+
+
 def test_runtime_resolves_registered_palette_from_root_gradient() -> None:
     palette = resolve_card_color_palette(
         {

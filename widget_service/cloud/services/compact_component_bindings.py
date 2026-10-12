@@ -81,7 +81,10 @@ COMPACT_COMPONENT_BINDING_CONTRACTS: dict[
         "secondaryText": DISPLAY_BINDING,
     },
     "SecondaryBody": {"items[].value": DISPLAY_BINDING},
-    "DataDisplay": {"value": DISPLAY_BINDING},
+    "DataDisplay": {
+        "value": DISPLAY_BINDING,
+        "supportingText": DISPLAY_BINDING,
+    },
     "InfoBlock": {
         "primaryText": DISPLAY_BINDING,
         "secondaryText": DISPLAY_BINDING,
