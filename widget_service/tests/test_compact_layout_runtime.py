@@ -434,6 +434,57 @@ def test_w_content_side_slots_accepts_equal_flexible_regions() -> None:
     assert result.layout_id == "W-content-side-slots"
 
 
+def test_w_content_side_slots_rejects_text_block_in_content_region() -> None:
+    components = [
+        ComponentRow(
+            "root",
+            "Row",
+            {"padding": 12, "itemMargin": 12},
+            ("content", "slots"),
+        ),
+        ComponentRow(
+            "content",
+            "Column",
+            {"width": 132, "height": 126},
+            ("details",),
+        ),
+        ComponentRow("details", "TextBlock", {}, ()),
+        ComponentRow(
+            "slots",
+            "Column",
+            {"width": 132, "height": 126, "itemMargin": 12},
+            ("upper", "lower"),
+        ),
+        ComponentRow("upper", "InfoBlock", {}, ()),
+        ComponentRow("lower", "InfoBlock", {}, ()),
+    ]
+
+    with pytest.raises(
+        CompactLayoutRuntimeError,
+        match=r"TextBlock is only allowed in W-top-bottom\.details.*switch the complete layout",
+    ):
+        match_compact_layout(
+            components,
+            size="2x4",
+            layout_scope="W-content-side-slots",
+        )
+
+
+def test_w_top_bottom_accepts_text_block() -> None:
+    components = [
+        ComponentRow("root", "Column", {"padding": 12}, ("details",)),
+        ComponentRow("details", "TextBlock", {}, ()),
+    ]
+
+    result = match_compact_layout(
+        components,
+        size="2x4",
+        layout_scope="W-top-bottom",
+    )
+
+    assert result.layout_id == "W-top-bottom"
+
+
 def test_w_four_slots_accepts_equal_flexible_rows_and_slots() -> None:
     components = [
         ComponentRow(

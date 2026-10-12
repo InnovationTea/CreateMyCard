@@ -18,9 +18,20 @@
 
 修复已匹配的语义组件时，先修错误 Props、绑定形式、必要父容器与槽位预算，再考虑更换组件。
 不能因一次属性错误直接退化为逐字段文本；模型仍不得直接输出 Text。必要事实、动作和对象归属不变。
+属性错误只授权修改被定位的 Prop 及必要的相邻属性；未报错的绑定、事件、图标、视觉变体和色彩角色保持不变。
+不能通过删除组件视觉能力来消除数值或绑定错误。`InfoBlock.visual.type:"progressCircle"` 的 `primaryText`
+报数值格式错误时，保留 `visual`、`icon` 和 `fillColor`，将同一 number/integer 字段改为原始 PathBinding，
+百分号单独写为 `unit:"%"`；不得把业务标签或百分号拼入 `primaryText`，也不得删除 `visual` 绕过校验。
+`SecondaryBody.items[].label` 报动态值错误时，静态标签保持不变；动态 label 与同项现有 value 按原显示顺序
+合并为一个完整的 `items[].value` Expression，保留全部原始绑定，不得静态化、删除或改写成样例值。
+`SecondaryBody.fontSize` 报错时，保持当前合法的 `role`、`items`、绑定和事实不变，只改为诊断给出的固定
+Recipe 值：body 或 1–2 项 supporting 使用 14，metadata 或 3–4 项 supporting 使用 12。若其它错误授权
+重新合组 `items`，合组后必须按最终角色和项目数重新选择字号；不得仅为缩字伪装成 metadata、拆组或删事实。
 修复范围先按本轮实际错误与请求内 repairStrategy 确定：首次仅有明确 Props、绑定或素材错误，且没有结构、容量或
 必需信息错误时，保持当前合法布局/变体、事实合组、动作归属和未报错区域，仅修改定位到的
 错误属性并复查相邻影响。不能因一次属性错误重选整卡骨架；不确定诊断不授权盲目重组。
+策略名直接表达修复目的：`component_contract_repair` 只修复被定位的组件合同；
+`parent_layout_recompose` 重组报错组件所属的父布局并重新分配完整信息组与动作。
 同根因重复且 repairStrategy 已升级到 parent_layout/full_dsl 时，按升级范围完整重组，
 不继续执行首轮局部冻结要求；硬事实、动作、原字号和全部合同仍不变。
 若同时存在结构、容量或必需信息错误，不能冻结已经不成立的布局；局部修复无法闭合时，
@@ -85,13 +96,16 @@ CardButton 完整label过长时使用 labelLines:2，在原字号、原动作槽
   第二次兜底只修复第一次结果的剩余错误，不得改变这些保护边界。
 
 当 `repairStrategy.repairStrategy` 为 `drop_optional_component` 时，表示上述无损阶段已失败，并且微服务已在
-`repairStrategy.optionalDrop` 中选定唯一可删的非 Action 业务展示组件。程序优先选择 should-only 组件；
-没有这类候选时，指定组件可以承载 `must` 事实。本阶段严格执行：
+`repairStrategy.optionalDrop` 中选定本轮唯一可删的非 Action 业务展示组件。程序优先选择 should-only 组件；
+没有这类候选时，指定组件可以承载 `must` 事实。本轮严格执行：
 
 - 只删除 `optionalDrop.componentId` 指定的一个组件，并从父级 children 移除引用；不自行改选其他组件。
 - `allowedOmittedFactIndexes` 只是该组件对应的非 Action 事实索引；其余 must/should 事实与所有 Action 仍必须完整可见。
-- 如果指定组件已不存在，不得再删第二个组件；只修复剩余结构、容量和引用错误。
+- 不自行删除第二个组件。指定组件及父级引用已删除、但布局仍不闭合时，等待微服务根据剩余 DSL
+  明确指定下一轮候选；后续每轮仍只能删除当轮 `optionalDrop.componentId`。
 - 按当前尺寸合法布局重排剩余完整内容，不改动态绑定，不缩字、裁切、隐藏或静态化信息。
+- 若反馈指出上一轮输出与 `invalidSourceDsl` 完全相同，本轮必须删除指定组件行及其直接父级 children 引用；
+  若该组件已经不存在，则保持删除并闭合剩余布局。必须输出完整 Compact DSL，禁止原样返回。
 
 除上述 `drop_optional_component` 特例外，Plan 中 priority 为 `must` 和 `should` 的事实在所有生成、局部修复、
 父布局重组、完整 DSL 重组与 `compact_component` 阶段都同样必须保留。

@@ -724,9 +724,12 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
+        current_repair_is_drop_fallback = False
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
         compact_repair_tracker = (
-            CompactRepairStrategyTracker()
+            CompactRepairStrategyTracker(
+                max_repair_attempts=settings.validation_failure_max_repair_attempts
+            )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
         )
@@ -1041,6 +1044,7 @@ class WidgetGenerationService:
         ) -> str | None:
             from services.prompt_builder import PromptBuilder
 
+            nonlocal current_repair_is_drop_fallback
             nonlocal model_call_phase, quality_repair_attempt_count
             trace_phase("repair")
             quality_error_payloads = [
@@ -1051,6 +1055,7 @@ class WidgetGenerationService:
                 raise RuntimeError("repair quality issue state is inconsistent")
             quality_error_stages = sorted({item["stage"] for item in quality_error_payloads})
             repair_strategy = None
+            current_repair_is_drop_fallback = False
             if compact_repair_tracker is not None:
                 directive = compact_repair_tracker.next_directive(
                     invalid_source_dsl,
@@ -1059,6 +1064,9 @@ class WidgetGenerationService:
                     task_spec=task_spec.model_dump(mode="json", exclude_none=True),
                 )
                 repair_strategy = directive.to_prompt_payload()
+                current_repair_is_drop_fallback = (
+                    directive.repair_strategy == "drop_optional_component"
+                )
                 trace_step(
                     "repair.strategy.selected",
                     stage="repair.strategy",
@@ -1410,6 +1418,9 @@ class WidgetGenerationService:
                 retry_on_quality_failure=retry_on_validation_failure,
                 max_repair_attempts=settings.validation_failure_max_repair_attempts,
                 repair=repair_source_dsl,
+                exclude_no_progress_from_retry_budget=(
+                    lambda: current_repair_is_drop_fallback
+                ),
             )
         except A2UIModelGenerationError as exc:
             quality_repair_count = quality_repair_attempt_count

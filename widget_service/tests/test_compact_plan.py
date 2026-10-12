@@ -9,6 +9,7 @@ from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
     compact_plan_coverage_errors,
+    compact_plan_coverage_warnings,
     compact_plan_data_paths,
     compact_plan_omitted_facts,
     compact_plan_optional_drop_candidate,
@@ -574,6 +575,40 @@ def test_optional_drop_candidate_prefers_should_only_component() -> None:
     assert [fact["requirement"] for fact in omitted] == ["会议开始时间"]
 
 
+def test_optional_drop_candidate_prefers_the_component_with_fewer_facts() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/title",
+            },
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+            },
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["event","time"]]',
+            '["event","EventCard",{"items":[{"title":{"path":'
+            '"/data/calendar/events/0/title"},"time":{"path":'
+            '"/data/calendar/events/0/start"}}]}]',
+            '["time","SecondaryBody",{"role":"metadata","items":'
+            '[{"value":{"path":"/data/calendar/events/0/start"}}]}]',
+        ]
+    )
+
+    candidate = compact_plan_optional_drop_candidate(source, plan, spec)
+
+    assert candidate is not None
+    assert candidate.component_id == "time"
+    assert candidate.fact_indexes == (1,)
+
+
 def test_optional_drop_candidate_can_select_component_that_carries_must_fact() -> None:
     spec = task_spec()
     plan = {
@@ -686,6 +721,31 @@ def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
     assert compact_plan_coverage_errors(header_source, plan, spec) == ()
 
 
+def test_static_title_plan_fact_keeps_hard_title_placement_validation() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "卡片标题",
+                "text": "设计评审",
+                "componentHints": ["SingleLineTitle"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","SecondaryBody",{"role":"body","items":'
+            '[{"value":"设计评审"}],"fontSize":14}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, spec) == (
+        "Plan title fact must be visible in a SingleLineTitle.title: 卡片标题.",
+    )
+    assert compact_plan_coverage_warnings(source, plan, spec) == ()
+
+
 def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
     spec = {
         "size": "2x2",
@@ -725,7 +785,7 @@ def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
     assert compact_plan_coverage_errors(source, plan, spec) == ()
 
 
-def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
+def test_processor_reports_missing_static_plan_text_as_warning() -> None:
     plan = {
         "info_required": [
             {
@@ -735,10 +795,12 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
             }
         ]
     }
+    spec = task_spec()
+    spec["appVersion"] = "12.0.0.1"
     context = DslProcessingContext(
         size="2x2",
         card_spec={},
-        task_spec=task_spec(),
+        task_spec=spec,
         protocol_profile={},
         compact_plan=plan,
     )
@@ -749,10 +811,12 @@ def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
         context,
     )
 
-    assert result.standard_dsl == ""
-    assert len(result.errors) == 1
-    assert result.errors[0].code == "COMPACT_PLAN_COVERAGE_FAILED"
-    assert "卡片标题" in result.errors[0].message
+    assert result.standard_dsl
+    assert result.errors == ()
+    warnings = tuple(issue for issue in result.issues if issue.severity == "warning")
+    assert len(warnings) == 1
+    assert warnings[0].code == "COMPACT_PLAN_COVERAGE_WARNING"
+    assert "卡片标题" in warnings[0].message
 
 
 def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
@@ -772,5 +836,32 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
     )
 
     errors = compact_plan_coverage_errors(source, plan, task_spec())
+    warnings = compact_plan_coverage_warnings(source, plan, task_spec())
 
-    assert errors == ("Plan static text is missing from visible DSL: 卡片标题.",)
+    assert errors == ()
+    assert warnings == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+
+
+def test_shortened_static_plan_text_is_warning_only() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "展示提醒文字“每天带孩子出去运动两次”",
+                "text": "每天带孩子出去运动两次",
+                "componentHints": ["SecondaryBody"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["reminder"]]',
+            '["reminder","SecondaryBody",{"role":"body","items":'
+            '[{"value":"每天带孩子运动","maxLines":1}],"fontSize":14}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, task_spec()) == ()
+    assert compact_plan_coverage_warnings(source, plan, task_spec()) == (
+        "Plan static text is not fully visible in DSL: "
+        "展示提醒文字“每天带孩子出去运动两次”.",
+    )

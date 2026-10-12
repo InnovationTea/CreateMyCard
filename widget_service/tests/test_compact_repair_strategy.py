@@ -19,7 +19,7 @@ def test_component_contract_gets_only_one_targeted_attempt() -> None:
     second = tracker.next_directive("dsl-v2", errors)
     exhausted = tracker.next_directive("dsl-v2", errors)
 
-    assert first.repair_strategy == "targeted"
+    assert first.repair_strategy == "component_contract_repair"
     assert first.scope == "component"
     assert first.retry_target == "dsl_local_repair"
     assert second.repair_strategy == "plan_guided_recompose"
@@ -28,6 +28,42 @@ def test_component_contract_gets_only_one_targeted_attempt() -> None:
     assert exhausted.repair_strategy == "exhausted"
     assert exhausted.retry_target == "stop"
     assert exhausted.retryable is False
+
+
+def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "battery: InfoBlock.primaryText must be a finite number or "
+            "complete numeric percentage."
+        )
+    ]
+
+    directive = tracker.next_directive("dsl-v1", errors)
+
+    assert directive.repair_strategy == "component_contract_repair"
+    assert directive.scope == "component"
+    assert "保留 visual、icon、fillColor" in directive.instruction
+    assert 'unit:"%"' in directive.instruction
+    assert "不得删除 visual" in directive.instruction
+
+
+def test_secondary_body_font_size_error_gets_recipe_aware_repair() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "weather_line: SecondaryBody.fontSize must be the fixed Recipe value 14. "
+            "Current SecondaryBody has role=supporting with 2 items."
+        )
+    ]
+
+    directive = tracker.next_directive("dsl-v1", errors)
+
+    assert directive.repair_strategy == "component_contract_repair"
+    assert "1–2 项 supporting 固定为 14" in directive.instruction
+    assert "3–4 项 supporting 固定为 12" in directive.instruction
+    assert "按最终 role 和项目数重新选择字号" in directive.instruction
+    assert "不得仅为缩小字号伪装成 metadata" in directive.instruction
 
 
 def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None:
@@ -55,7 +91,7 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert first.category == "layout_capacity"
     assert first.repair_strategy == "rebudget"
     assert first.scope == "sublayout"
-    assert second.repair_strategy == "structural"
+    assert second.repair_strategy == "parent_layout_recompose"
     assert second.scope == "parent_layout"
     assert second.consecutive_failures == 1
     assert third.repair_strategy == "plan_guided_recompose"
@@ -75,21 +111,82 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert exhausted.retryable is False
 
 
-def test_compact_component_fallback_stays_active_for_non_layout_regression() -> None:
+def test_root_layout_mismatch_takes_priority_over_capacity_error() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "component root: vertical layout requires at least 174vp within 126vp; "
+            "it overflows by 48vp."
+        ),
+        _issue(
+            "Compact layout does not match scope W-plan-guided: "
+            "slot root must have 2 children, got 3."
+        ),
+    ]
+
+    directive = tracker.next_directive("dsl-v1", errors)
+
+    assert directive.category == "layout_structure"
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert directive.scope == "parent_layout"
+
+
+def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:
     tracker = CompactRepairStrategyTracker()
     layout_errors = [
         _issue("component body: vertical layout requires at least 142vp within 126vp")
     ]
-    contract_errors = [_issue("component summary: unsupported prop density")]
+    contract_errors = [
+        _issue(
+            "component day0.props.items[].label: SecondaryBody.items[].label "
+            "only accepts a static value."
+        )
+    ]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"calendar": {"start": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    source = (
+        '["root","Column",{},["time"]]\n'
+        '["time","SecondaryBody",{"role":"metadata","items":'
+        '[{"value":{"path":"/data/calendar/start"}}]}]'
+    )
 
     tracker.next_directive("dsl-v1", layout_errors)
     tracker.next_directive("dsl-v2", layout_errors)
     first_fallback = tracker.next_directive("dsl-v3", layout_errors)
-    second_fallback = tracker.next_directive("dsl-v4", contract_errors)
+    second_fallback = tracker.next_directive("dsl-v4", layout_errors)
+    component_repair = tracker.next_directive("dsl-v5", contract_errors)
+    resumed_drop = tracker.next_directive(
+        source,
+        layout_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
 
     assert first_fallback.repair_strategy == "compact_component"
     assert second_fallback.repair_strategy == "compact_component"
     assert second_fallback.fallback_attempt == 1
+    assert component_repair.category == "component_contract"
+    assert component_repair.repair_strategy == "component_contract_repair"
+    assert component_repair.scope == "component"
+    assert component_repair.retry_target == "dsl_local_repair"
+    assert component_repair.retryable is True
+    assert "动态 label" in component_repair.instruction
+    assert "items[].value Expression" in component_repair.instruction
+    assert resumed_drop.repair_strategy == "drop_optional_component"
+    assert resumed_drop.optional_drop is not None
+    assert resumed_drop.optional_drop.component_id == "time"
 
 
 def test_compact_fallback_can_drop_one_program_selected_should_component() -> None:
@@ -192,6 +289,154 @@ def test_compact_fallback_can_drop_one_program_selected_must_component() -> None
     assert drop.to_prompt_payload()["optionalDrop"]["containsMustFacts"] is True
 
 
+def test_drop_no_progress_is_free_and_stops_after_three_attempts() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=10)
+    contract_errors = [_issue("component battery: unsupported prop unitText")]
+    layout_errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"calendar": {"start": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    source = (
+        '["root","Column",{},["time"]]\n'
+        '["time","SecondaryBody",{"role":"metadata","items":'
+        '[{"value":{"path":"/data/calendar/start"}}]}]'
+    )
+
+    tracker.next_directive("dsl-contract", contract_errors)
+    tracker.next_directive("dsl-layout-1", layout_errors)
+    tracker.next_directive("dsl-layout-2", layout_errors)
+    tracker.next_directive("dsl-layout-3", layout_errors)
+    tracker.next_directive("dsl-layout-4", layout_errors)
+
+    drop_directives = []
+    for _ in range(3):
+        drop_directives.append(
+            tracker.next_directive(
+                source,
+                layout_errors,
+                compact_plan=plan,
+                task_spec=task_spec,
+            )
+        )
+    exhausted = tracker.next_directive(
+        source,
+        layout_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert [item.repair_strategy for item in drop_directives] == [
+        "drop_optional_component"
+    ] * 3
+    assert [item.fallback_attempt for item in drop_directives] == [0, 0, 0]
+    assert [item.fallback_attempt_limit for item in drop_directives] == [5] * 3
+    assert [item.fallback_remaining_attempts for item in drop_directives] == [5] * 3
+    assert drop_directives[0].no_progress is False
+    assert drop_directives[1].no_progress is True
+    assert "上一轮没有执行 Drop" in drop_directives[1].instruction
+    assert "从直接父组件 children 中移除该 ID" in drop_directives[1].instruction
+    assert "禁止原样返回 invalidSourceDsl" in drop_directives[1].instruction
+    assert exhausted.repair_strategy == "exhausted"
+    assert exhausted.retryable is False
+    assert exhausted.no_progress is True
+    assert exhausted.fallback_attempt == 0
+    assert exhausted.fallback_attempt_limit == 5
+
+
+def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=10)
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            },
+            {
+                "requirement": "补充标题",
+                "priority": "should",
+                "dataId": "/data/calendar/title",
+            },
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "calendar": {
+                    "start": {"type": "string"},
+                    "title": {"type": "string"},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["time","title"]]',
+            '["time","SecondaryBody",{"role":"metadata","items":'
+            '[{"value":{"path":"/data/calendar/start"}}]}]',
+            '["title","SingleLineTitle",{"title":{"path":"/data/calendar/title"}}]',
+        ]
+    )
+
+    first_drop = None
+    for attempt in range(1, 7):
+        first_drop = tracker.next_directive(
+            source if attempt >= 5 else f"dsl-v{attempt}",
+            errors,
+            compact_plan=plan,
+            task_spec=task_spec,
+        )
+        if first_drop.repair_strategy == "drop_optional_component":
+            break
+
+    assert first_drop is not None
+    assert first_drop.optional_drop is not None
+    assert first_drop.optional_drop.component_id == "time"
+
+    source_after_first_drop = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","SingleLineTitle",{"title":{"path":"/data/calendar/title"}}]',
+        ]
+    )
+    second_drop = tracker.next_directive(
+        source_after_first_drop,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert second_drop.repair_strategy == "drop_optional_component"
+    assert second_drop.optional_drop is not None
+    assert second_drop.optional_drop.component_id == "title"
+    assert tracker.allowed_omitted_fact_indexes == (0, 1)
+
+    exhausted = tracker.next_directive(
+        '["root","Column",{},[]]',
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert exhausted.repair_strategy == "exhausted"
+    assert exhausted.retryable is False
+    assert tracker.allowed_omitted_fact_indexes == (0, 1)
+
+
 def test_unchanged_dsl_is_reported_as_no_progress_and_escalated() -> None:
     tracker = CompactRepairStrategyTracker()
     errors = [_issue("component metric: unsupported prop unitText")]
@@ -233,5 +478,5 @@ def test_layout_structure_starts_at_parent_layout_scope() -> None:
     directive = tracker.next_directive("dsl-v1", errors)
 
     assert directive.category == "layout_structure"
-    assert directive.repair_strategy == "structural"
+    assert directive.repair_strategy == "parent_layout_recompose"
     assert directive.scope == "parent_layout"

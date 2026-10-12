@@ -19,8 +19,13 @@ def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> Non
     assert "无损紧凑组件替换阶段" in REPAIR_SYSTEM_PROMPT
     assert "本阶段最多提交两次完整 Compact DSL" in REPAIR_SYSTEM_PROMPT
     assert "不启用可选信息删除" in REPAIR_SYSTEM_PROMPT
+    assert "body 或 1–2 项 supporting 使用 14" in REPAIR_SYSTEM_PROMPT
+    assert "metadata 或 3–4 项 supporting 使用 12" in REPAIR_SYSTEM_PROMPT
     assert "drop_optional_component" in REPAIR_SYSTEM_PROMPT
     assert "唯一可删的非 Action 业务展示组件" in REPAIR_SYSTEM_PROMPT
+    assert "等待微服务根据剩余 DSL" in REPAIR_SYSTEM_PROMPT
+    assert "必须删除指定组件行及其直接父级 children 引用" in REPAIR_SYSTEM_PROMPT
+    assert "禁止原样返回" in REPAIR_SYSTEM_PROMPT
     assert "没有 repairStrategy 的兼容调用才以 invalidSourceDsl 为直接修复对象" in (
         REPAIR_SYSTEM_PROMPT
     )
@@ -91,7 +96,7 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
         repair_strategy={
             "category": "layout_capacity",
             "scope": "parent_layout",
-            "repairStrategy": "structural",
+            "repairStrategy": "parent_layout_recompose",
             "retryTarget": "dsl_recompose",
             "instruction": "重新选择父布局变体。",
         },

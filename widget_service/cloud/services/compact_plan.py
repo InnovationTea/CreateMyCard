@@ -714,6 +714,14 @@ class _CompactVisibleState:
     handlers: tuple[dict[str, Any], ...]
 
 
+@dataclass(frozen=True)
+class CompactPlanCoverageResult:
+    """区分阻断生成的 Plan 覆盖错误与仅供观察的静态文案告警。"""
+
+    errors: tuple[str, ...]
+    warnings: tuple[str, ...]
+
+
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
     visible_paths: set[str] = set()
     visible_literals: list[str] = []
@@ -745,43 +753,97 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
     )
 
 
-def _compact_fact_coverage_error(
+def _compact_fact_coverage_result(
     fact: dict[str, Any],
     state: _CompactVisibleState,
     event_handlers: dict[str, dict[str, Any]],
-) -> str | None:
+) -> CompactPlanCoverageResult:
     requirement = fact.get("requirement")
     label = requirement if isinstance(requirement, str) else "unknown requirement"
     hints = fact.get("componentHints")
     requires_single_line_title = isinstance(hints, list) and "SingleLineTitle" in hints
     data_id = fact.get("dataId")
     if isinstance(data_id, str) and data_id not in state.paths:
-        return f"Plan fact is missing from visible DSL: {label} ({data_id})."
+        return CompactPlanCoverageResult(
+            errors=(f"Plan fact is missing from visible DSL: {label} ({data_id}).",),
+            warnings=(),
+        )
     if (
         isinstance(data_id, str)
         and requires_single_line_title
         and data_id not in state.title_paths
     ):
-        return (
-            "Plan title fact must be visible in a SingleLineTitle.title: "
-            f"{label} ({data_id})."
+        return CompactPlanCoverageResult(
+            errors=(
+                "Plan title fact must be visible in a SingleLineTitle.title: "
+                f"{label} ({data_id}).",
+            ),
+            warnings=(),
         )
     action_id = fact.get("actionId")
     if isinstance(action_id, str):
         expected = event_handlers.get(action_id)
         if expected is None or expected not in state.handlers:
-            return f"Plan action is missing from visible DSL: {label} ({action_id})."
-        return None
+            return CompactPlanCoverageResult(
+                errors=(
+                    f"Plan action is missing from visible DSL: {label} ({action_id}).",
+                ),
+                warnings=(),
+            )
+        return CompactPlanCoverageResult(errors=(), warnings=())
     text = fact.get("text")
     if isinstance(text, str):
         expected_text = _normalize_text(text)
-        if not expected_text or not any(expected_text in actual for actual in state.literals):
-            return f"Plan static text is missing from visible DSL: {label}."
         if requires_single_line_title and not any(
             expected_text in actual for actual in state.title_literals
         ):
-            return f"Plan title fact must be visible in a SingleLineTitle.title: {label}."
-    return None
+            return CompactPlanCoverageResult(
+                errors=(
+                    "Plan title fact must be visible in a SingleLineTitle.title: "
+                    f"{label}.",
+                ),
+                warnings=(),
+            )
+        if not expected_text or not any(expected_text in actual for actual in state.literals):
+            return CompactPlanCoverageResult(
+                errors=(),
+                warnings=(f"Plan static text is not fully visible in DSL: {label}.",),
+            )
+    return CompactPlanCoverageResult(errors=(), warnings=())
+
+
+def evaluate_compact_plan_coverage(
+    compact_dsl: str,
+    plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+    *,
+    allowed_omitted_fact_indexes: tuple[int, ...] = (),
+) -> CompactPlanCoverageResult:
+    """检查 Plan 覆盖，并将普通静态文案的非完整命中降级为告警。"""
+    if not plan:
+        return CompactPlanCoverageResult(errors=(), warnings=())
+    rows = parse_compact_dsl_rows(compact_dsl)
+    components = [row for row in rows if isinstance(row, ComponentRow)]
+    state = _compact_visible_state(components)
+    event_handlers = _event_handlers_by_id(task_spec)
+    allowed = set(allowed_omitted_fact_indexes)
+    errors: list[str] = []
+    warnings: list[str] = []
+    facts = plan.get("info_required")
+    if not isinstance(facts, list):
+        return CompactPlanCoverageResult(
+            errors=("Accepted Compact Plan has no info_required facts.",),
+            warnings=(),
+        )
+    for index, fact in enumerate(facts):
+        if not isinstance(fact, dict):
+            continue
+        result = _compact_fact_coverage_result(fact, state, event_handlers)
+        if index in allowed and "actionId" not in fact:
+            continue
+        errors.extend(result.errors)
+        warnings.extend(result.warnings)
+    return CompactPlanCoverageResult(errors=tuple(errors), warnings=tuple(warnings))
 
 
 def compact_plan_coverage_errors(
@@ -791,28 +853,29 @@ def compact_plan_coverage_errors(
     *,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> tuple[str, ...]:
-    """检查 Compact DSL 覆盖；仅允许最终兜底明确指定的非 Action 事实缺失。"""
-    if not plan:
-        return ()
-    rows = parse_compact_dsl_rows(compact_dsl)
-    components = [row for row in rows if isinstance(row, ComponentRow)]
-    state = _compact_visible_state(components)
-    event_handlers = _event_handlers_by_id(task_spec)
-    allowed = set(allowed_omitted_fact_indexes)
-    errors: list[str] = []
-    facts = plan.get("info_required")
-    if not isinstance(facts, list):
-        return ("Accepted Compact Plan has no info_required facts.",)
-    for index, fact in enumerate(facts):
-        if not isinstance(fact, dict):
-            continue
-        error = _compact_fact_coverage_error(fact, state, event_handlers)
-        if error is None:
-            continue
-        if index in allowed and "actionId" not in fact:
-            continue
-        errors.append(error)
-    return tuple(errors)
+    """返回会阻断 Compact DSL 发布的 Plan 覆盖错误。"""
+    return evaluate_compact_plan_coverage(
+        compact_dsl,
+        plan,
+        task_spec,
+        allowed_omitted_fact_indexes=allowed_omitted_fact_indexes,
+    ).errors
+
+
+def compact_plan_coverage_warnings(
+    compact_dsl: str,
+    plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+    *,
+    allowed_omitted_fact_indexes: tuple[int, ...] = (),
+) -> tuple[str, ...]:
+    """返回不阻断发布的普通静态文案覆盖告警。"""
+    return evaluate_compact_plan_coverage(
+        compact_dsl,
+        plan,
+        task_spec,
+        allowed_omitted_fact_indexes=allowed_omitted_fact_indexes,
+    ).warnings
 
 
 def compact_plan_omitted_facts(
@@ -838,7 +901,8 @@ def compact_plan_omitted_facts(
         fact = facts[index]
         if not isinstance(fact, dict) or "actionId" in fact:
             continue
-        if _compact_fact_coverage_error(fact, state, event_handlers) is not None:
+        result = _compact_fact_coverage_result(fact, state, event_handlers)
+        if result.errors or result.warnings:
             omitted.append(fact)
     return tuple(omitted)
 
@@ -848,7 +912,7 @@ def compact_plan_optional_drop_candidate(
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
 ) -> CompactOptionalDropCandidate | None:
-    """优先选 should-only 组件；没有时选唯一非 Action 内容组件。"""
+    """优先选 should-only 组件，并在同类候选中最小化事实损失。"""
     if not plan:
         return None
     facts = plan.get("info_required")
@@ -877,7 +941,8 @@ def compact_plan_optional_drop_candidate(
         for index, fact in enumerate(facts):
             if not isinstance(fact, dict):
                 continue
-            if _compact_fact_coverage_error(fact, state, event_handlers) is not None:
+            result = _compact_fact_coverage_result(fact, state, event_handlers)
+            if result.errors or result.warnings:
                 continue
             if "actionId" in fact:
                 has_action_fact = True
@@ -901,7 +966,7 @@ def compact_plan_optional_drop_candidate(
     candidates = should_only_candidates or fallback_candidates
     if not candidates:
         return None
-    return max(candidates, key=lambda item: (max(item.fact_indexes), item.component_id))
+    return min(candidates, key=lambda item: len(item.fact_indexes))
 
 
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:

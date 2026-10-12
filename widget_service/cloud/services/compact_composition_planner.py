@@ -546,7 +546,12 @@ def _declared_event_group(
         root_gap = parts.get("root", {}).get("styles", {}).get("itemMargin", 0)
         widths.append(max(line_widths) + rail_width + root_gap)
         height += recipe.get("metrics", {}).get("height", 0)
-    height += _part(size, "EventCard", "multiRoot").get("itemMargin", 0) * (len(items) - 1)
+    if density == "compact":
+        gap_recipe = component_visual_recipe("EventCard", size=size, variant="compact")
+        item_margin = gap_recipe.get("metrics", {}).get("itemMargin", 0)
+    else:
+        item_margin = _part(size, "EventCard", "multiRoot").get("itemMargin", 0)
+    height += item_margin * (len(items) - 1)
     if height <= 0:
         return None
     identity = "/".join(sources[0].split("/")[:-1]) if sources else None

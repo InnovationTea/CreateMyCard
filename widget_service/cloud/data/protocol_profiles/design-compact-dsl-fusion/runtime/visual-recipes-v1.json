@@ -1551,7 +1551,8 @@
         "compact": {
           "metrics": {
             "height": 32,
-            "lineHeight": 16
+            "lineHeight": 16,
+            "itemMargin": 4
           },
           "parts": {
             "rail": {

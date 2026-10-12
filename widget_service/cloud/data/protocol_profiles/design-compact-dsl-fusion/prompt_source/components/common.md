@@ -36,7 +36,7 @@
 | 标题附属 | `Badge` | 标题关联数量 | 标题旁显示同一集合的真实数量 | 只能与标题组成标题单元 |
 | 核心信息 | `EmphasizedData` | 核心数值 + 可选单位 | 突出唯一量化主值 | 一个核心值；不吸收辅助信息 |
 | 核心信息 | `EmphasisText` | 主文本 + 可选次文本 | 突出文本结论、类别或状态 | 两行必须属于同一核心语义 |
-| 正文与补充 | `SecondaryBody` | 1–4 个正文、metadata 或短说明项 | 普通正文、时间、弱提示和同区补充信息 | 用 `role` 决定语义与行数，不开放任意文字样式 |
+| 正文与补充 | `SecondaryBody` | 1–4 个正文、metadata 或短说明项 | 普通正文、时间、弱提示和同区补充信息 | 同组多项放入一个实例；用 `role` 决定语义与行数 |
 | 核心信息 | `DataDisplay` | 标签 + 主值 + 支撑文本 | 2x2 完整单焦点 | 三项各一行；不吸收动作、第二指标或独立补充 |
 | 紧凑信息 | `InfoBlock` | 主信息 + 辅助信息 + 可选图标或占比圆环 | 固定小槽中的完整主辅信息 | 每槽一个；不支持事件 |
 | 多项属性 | `TableText` | 多行标签—值 | 同一主题的 2–3 项属性 | 两种尺寸共用；进入连续内容槽 |
@@ -58,7 +58,7 @@
 1. 每个语义分区最多使用一个 `SingleLineTitle`；2x4 左右独立分区可分别使用。标题加次信息使用 `DoubleLineTitle`，标题关联真实数量才使用 `Badge`；标题不用正文组件代替。
 2. 先按信息语义和字段关系保留可行组件，再结合尺寸文件的槽位与容量确定最终组件；不为使用组件补造字段。
 3. 有唯一核心值时使用一个强调或进度组件；没有真实主次时保持并列，不把普通数字强行放大为核心。
-4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`；只有无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
+4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`，同一对象或同一集合的 2–4 个短补充字段合并到该实例的 `items`，不拆成多个单项实例。只有无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
 5. 单占比使用 `ProgressCircleSingle`；两个或四个同级占比使用多个 `ProgressCircle`；三个图标可区分的同级占比使用 `NumericRatioStack`；明确目标差距使用 `ProgressLine2`；2–3 个对象同指标比较使用 `H_BarChart`。
 6. 一个或多个按时间排列的事件使用一个 `EventCard`；普通时间属性使用 `SecondaryBody role="metadata"`。同一事实只展示一次，事件数量不设固定上限但必须通过实际容量预算。
 7. 动作按槽位选择 `PillButton`、`CircleButton` 或 `CardButton`，只能绑定当前事件候选，不伪造操作。
@@ -252,8 +252,9 @@
 #### 选择条件
 
 用于普通正文、普通时间、来源、更新时间、弱提示，或补充同一分区的核心信息。单项通过 `role` 表达正文或
-metadata；多个短字段使用 supporting。只有无核心且用户明确要求逐项查看、对比或等权汇总的标签—值表才
-使用 `TableText`；事件、比较和进度不使用它代替。
+metadata；同一对象或同一集合的多个短字段使用一个 supporting 实例承载，按原顺序写入 `items`。不得按日期、
+对象索引或字段逐项拆成多个单项 `SecondaryBody`，也不得为使用较小字号或规避容量校验而拆分。只有无核心且
+用户明确要求逐项查看、对比或等权汇总的标签—值表才使用 `TableText`；事件、比较和进度不使用它代替。
 
 #### 组件属性
 
@@ -270,6 +271,8 @@ metadata；多个短字段使用 supporting。只有无核心且用户明确要�
 
 `role:"body"` 恰好一项，不写 label；`role:"metadata"` 恰好一项；各角色每项 `maxLines` 可为 `1|2`。
 `role:"supporting"` 支持 1–4 项；`columns:1` 每项独占一行，`columns:2` 每行最多两项。
+同组有 2–4 项时必须使用一个 supporting 实例；项目数量参与固定 Recipe 选择，1–2 项使用 `14`，3–4 项使用
+`12`。不得把三项拆成三个单项后再给每项声明 `12`。
 标签保持自然宽度，值承接剩余宽度；标签也很长时使用无标签 body 展示完整句子，不挤压值。
 单行角色高度沿用 Recipe：body/一至两项 supporting 为20，metadata/三至四项 supporting 为18；
 每行高度取该行最大 maxLines × 行高，行间距2。两行不是免费空间，必须计入正文预算。
@@ -282,6 +285,7 @@ metadata；多个短字段使用 supporting。只有无核心且用户明确要�
 ["description","SecondaryBody",{"role":"body","items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontSize":14}]
 ["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}","maxLines":2}],"fontSize":12}]
 ["sleep_detail","SecondaryBody",{"role":"supporting","columns":1,"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"},"maxLines":2},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"fontSize":14}]
+["forecast_days","SecondaryBody",{"role":"supporting","columns":1,"items":[{"value":"{{ ${/data/weather/daily/0/date} + ' ' + ${/data/weather/daily/0/condition} }}"},{"value":"{{ ${/data/weather/daily/1/date} + ' ' + ${/data/weather/daily/1/condition} }}"},{"value":"{{ ${/data/weather/daily/2/date} + ' ' + ${/data/weather/daily/2/condition} }}"}],"fontSize":12}]
 ```
 
 ### 4.7 `DataDisplay`
@@ -582,8 +586,8 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 槽位与容量
 
 两种尺寸共用，进入尺寸文件允许的连续内容槽；一个组件承载全部同组事件，所属动作放在独立操作组件中。
-多项普通模式总高为各项实际高度之和加 `8vp × (items 数量 - 1)`；compact 总高为
-`32vp × items 数量 + 8vp × (items 数量 - 1)`。数量放开不豁免父槽与整卡容量校验。
+多项普通模式总高为各项实际高度之和加 `8vp × (items 数量 - 1)`；compact 将相邻项间距收紧为
+`4vp`，总高为 `32vp × items 数量 + 4vp × (items 数量 - 1)`。数量放开不豁免父槽与整卡容量校验。
 
 #### 示例
 

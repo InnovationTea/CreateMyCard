@@ -3899,7 +3899,10 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     assert len(validated_genui) == 3
     first_repair = json_module.loads(model_prompts[1][1]["content"])
     second_repair = json_module.loads(model_prompts[2][1]["content"])
-    assert first_repair["repairStrategy"]["repairStrategy"] == "targeted"
+    assert (
+        first_repair["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
     assert second_repair["repairStrategy"]["repairStrategy"] == (
         "plan_guided_recompose"
     )
@@ -4263,7 +4266,10 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         payload["qualityErrors"][0]["stage"] == "validation"
         for payload in repair_payloads
     )
-    assert repair_payloads[0]["repairStrategy"]["repairStrategy"] == "targeted"
+    assert (
+        repair_payloads[0]["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
     assert repair_payloads[0]["repairStrategy"]["scope"] == "component"
     assert repair_payloads[1]["repairStrategy"]["repairStrategy"] == (
         "plan_guided_recompose"
@@ -4592,6 +4598,31 @@ async def test_retry_controller_stops_when_repair_reports_no_progress():
     assert retry_result.retryCount == 0
     assert retry_result.errors == ["bad"]
     assert retry_result.repairAttempted is False
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_excludes_selected_unchanged_results_from_budget():
+    repair_calls = 0
+
+    def repair(value: str, _errors: list[str]) -> str:
+        nonlocal repair_calls
+        repair_calls += 1
+        return value
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=1,
+        repair=repair,
+        exclude_no_progress_from_retry_budget=lambda: True,
+    )
+
+    assert repair_calls == 3
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 0
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is True
 
 
 @pytest.mark.asyncio

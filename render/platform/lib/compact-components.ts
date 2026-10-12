@@ -7,6 +7,8 @@ export type CardSize = "2x2" | "2x4";
 export type ExpansionDataContext = {
   get: (path: string) => unknown;
   setDerived: (path: string, value: unknown) => void;
+  previewMode?: boolean;
+  warn?: (message: string) => void;
 };
 type RecordValue = Record<string, unknown>;
 type RecipePart = { component: string; styles: RecordValue };
@@ -363,7 +365,26 @@ function normalizedProgressBinding(
     data?.setDerived(derivedPath, numeric);
     return { path: derivedPath };
   }
-  return normalizedProgressValue(id, type, prop, value, total);
+  try {
+    return normalizedProgressValue(id, type, prop, value, total);
+  } catch (error) {
+    if (!data?.previewMode) throw error;
+    const paths = typeof value === "string"
+      ? [...value.matchAll(/\$\{(\/[^{}]+)\}/g)].map(match => match[1])
+      : [];
+    const resolved = paths.reduce(
+      (text, path) => text.replaceAll("${" + path + "}", String(data.get(path) ?? "")),
+      String(value),
+    );
+    const numeric = resolved.match(/[+-]?(?:\d+(?:\.\d*)?|\.\d+)/);
+    const candidate = numeric ? Number(numeric[0]) : 0;
+    const fallback = Number.isFinite(candidate)
+      ? Math.min(total, Math.max(0, candidate))
+      : 0;
+    const detail = error instanceof Error ? error.message : String(error);
+    data.warn?.(`${detail} 宽松预览已使用 ${fallback} 作为进度值。`);
+    return fallback;
+  }
 }
 
 function progressCircleValues(
@@ -1321,10 +1342,12 @@ function expandHighLevel(
     const itemIds: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
     let totalHeight = 0;
+    let itemMargin = 8;
     items.forEach((item, index) => {
       const itemId = items.length === 1 ? id : `${id}_item${index}`;
       const variant = compact ? "compact" : (item.location === undefined ? "withoutLocation" : "withLocation");
       const metrics = recipe(type, size, variant).metrics!;
+      if (compact) itemMargin = Number(metrics.itemMargin);
       const rail = `${itemId}_rail`;
       const dot = `${rail}_dot`;
       const line = `${rail}_line`;
@@ -1387,8 +1410,15 @@ function expandHighLevel(
       }
     });
     if (items.length === 1) return rows;
-    totalHeight += 8 * (items.length - 1);
-    return [row(id, type, "multiRoot", size, { height: totalHeight }, itemIds), ...rows];
+    totalHeight += itemMargin * (items.length - 1);
+    return [row(
+      id,
+      type,
+      "multiRoot",
+      size,
+      { height: totalHeight, itemMargin },
+      itemIds,
+    ), ...rows];
   }
 
   if (type === "DataDisplay") {

@@ -1,7 +1,18 @@
-import { compileA2uiJsonl } from "./mini-renderer";
+import { compileA2uiJsonl, compileMiniDsl } from "./mini-renderer";
 import type { CardSize } from "./compact-components";
 
 export type PreviewConverter = "python" | "typescript";
+
+export class PythonConversionError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(message);
+    this.name = "PythonConversionError";
+  }
+}
 
 type FetchLike = typeof fetch;
 
@@ -59,10 +70,29 @@ export async function compileCompactDslWithPython(
     throw new Error(`正式 Python 转换器返回了非 JSON 响应（HTTP ${response.status}）。`);
   }
   if (!response.ok) {
-    throw new Error(`正式 Python 转换失败：${conversionErrorDetail(payload)}（HTTP ${response.status}）。`);
+    const detail = conversionErrorDetail(payload);
+    throw new PythonConversionError(
+      `正式 Python 转换失败：${detail}（HTTP ${response.status}）。`,
+      response.status,
+      detail,
+    );
   }
   if (!isPythonConversionResponse(payload)) {
     throw new Error("正式 Python 转换器返回了无效结果。");
   }
   return compileA2uiJsonl(payload.genui, { size: payload.size });
+}
+
+export async function compileCompactDslForPreview(
+  source: string,
+  options: Parameters<typeof compileCompactDslWithPython>[1],
+) {
+  try {
+    return await compileCompactDslWithPython(source, options);
+  } catch (error) {
+    if (!(error instanceof PythonConversionError) || error.status !== 422) throw error;
+    const result = compileMiniDsl(source, { size: options.size, previewMode: true });
+    result.warnings.unshift(`正式 Python 转换器拒绝该 DSL：${error.detail} 已切换为宽松预览。`);
+    return result;
+  }
 }

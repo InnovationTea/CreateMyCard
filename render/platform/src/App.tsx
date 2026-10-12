@@ -3,7 +3,7 @@ import { Component, useEffect, useState, type ReactNode } from "react";
 import { defaultRegistry, renderTree } from "@genui-sdk/renderer";
 import { compileMiniDsl } from "@/lib/mini-renderer";
 import {
-  compileCompactDslWithPython,
+  compileCompactDslForPreview,
   type PreviewConverter,
 } from "@/lib/python-converter";
 import { previewDimensionsFor, type PreviewCardSize } from "@/lib/card-size";
@@ -39,7 +39,7 @@ export function App() {
     const controller = new AbortController();
     setResult({ value: null, error: "", loading: true });
     const compile = converter === "python"
-      ? compileCompactDslWithPython(source, { size: cardSize, signal: controller.signal })
+      ? compileCompactDslForPreview(source, { size: cardSize, signal: controller.signal })
       : Promise.resolve().then(() => compileMiniDsl(source, { size: cardSize }));
     compile.then(value => {
       if (!controller.signal.aborted) setResult({ value, error: "", loading: false });
@@ -76,7 +76,7 @@ export function App() {
       <div><span className="brand-mark">[ ]</span><h1>DSL 渲染器</h1><span className="header-description">粘贴协议，即刻预览</span></div>
       <div className="header-actions">
         <a className="gallery-link" href="/components">组件总览</a>
-        <span className="local-badge"><i />{converter === "python" ? "正式 Python 转换" : "本地 TS 转换"}</span>
+        <span className="local-badge"><i />{converter === "python" ? "正式转换 · 宽松预览" : "本地 TS 转换"}</span>
       </div>
     </header>
     <div className="workspace">
@@ -107,8 +107,8 @@ export function App() {
                 type="button"
                 aria-pressed={converter === "python"}
                 onClick={() => setConverter("python")}
-                title="调用正式 Python Compact DSL 转换器"
-              >正式 Python</button>
+                title="优先调用正式 Python 转换器；校验拒绝时仅在本页面宽松预览"
+              >正式优先</button>
               <button
                 type="button"
                 aria-pressed={converter === "typescript"}
@@ -133,7 +133,7 @@ export function App() {
             <div className="dimensions"><label>宽<input aria-label="预览宽度" type="number" min={80} max={1200} value={width} onChange={e => setWidth(Math.max(80, Math.min(1200, Number(e.target.value) || 80)))} /></label><span>×</span><label>高<input aria-label="预览高度" type="number" min={80} max={1200} value={height} onChange={e => setHeight(Math.max(80, Math.min(1200, Number(e.target.value) || 80)))} /></label></div>
           </div>
         </div>
-        {result.loading ? <div className="empty-state" role="status">正在通过{converter === "python" ? "正式 Python" : "本地 TS"}转换器生成 A2UI…</div>
+        {result.loading ? <div className="empty-state" role="status">正在通过{converter === "python" ? "正式优先" : "本地 TS"}转换器生成 A2UI…</div>
           : result.error ? <div className="empty-state error" role="alert">{result.error}</div> : result.value && <>
           {tab === "preview" ? <div className="preview-stage"><div className="preview-group">
             <div className="card-viewport" style={{ width, height }} data-testid="card-preview">
@@ -145,7 +145,7 @@ export function App() {
               </PreviewBoundary>
             </div><span className="canvas-caption">{cardSize} · {width} × {height} px</span>
           </div></div> : <pre className="a2ui-output" aria-label="A2UI 输出">{result.value.jsonl}</pre>}
-          <div className="preview-status" role="status"><span className="status-dot" />{converter === "python" ? "正式 Python" : "本地 TS"} · 已渲染 {result.value.count} 个组件{draft !== source && <span> · 输入已修改，点击渲染更新</span>}</div>
+          <div className="preview-status" role="status"><span className="status-dot" />{converter === "python" ? "正式优先 · 校验失败时宽松预览" : "本地 TS"} · 已渲染 {result.value.count} 个组件{draft !== source && <span> · 输入已修改，点击渲染更新</span>}</div>
           {result.value.warnings.length > 0 && <div className="warnings">{result.value.warnings.map(w => <p key={w}>{w}</p>)}</div>}
         </>}
         {event && <div className="event-panel"><div><strong>点击事件</strong><button onClick={() => setEvent("")}>清除</button></div><pre>{event}</pre><p>仅展示解析后的事件参数，不执行外部跳转。</p></div>}
