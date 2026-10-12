@@ -137,7 +137,7 @@
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
 | `icon` | string | 仅静态 | 可选；仅使用 `assetCandidates` 中与标题对象严格匹配的装饰性主题图标，不可点击、不可承担状态或动作语义 |
-| `fillColor` | color | 仅静态 | 仅 SVG `icon` 必填；位图图标不得填写，颜色使用 `#AARRGGBB` |
+| `fillColor` | color | 仅静态 | 仅候选描述未标注保留原色的可染色 SVG `icon` 必填；原色 SVG 和位图不填写，颜色使用 `#AARRGGBB` |
 | `fontSize` | number | 仅静态 | 新生成必填；固定 `12`，不允许修改 |
 
 #### 槽位与容量
@@ -209,6 +209,8 @@
 #### 选择条件
 
 用于一个内容区中唯一需要突出的核心数值或单一测量读数。多个同级指标和普通文本结论不使用。
+普通状态、名称、日期等明确非量化内容使用文本组件；数字字符串、单一带单位测量读数和合法绑定、
+Expression 仍按原合同使用，不根据字段类型为 string 就改写或截取内容。
 完整多段时长（如“7小时1分”）包含多个数量与单位，属于文本读数：作为主信息使用
 `EmphasisText.mainText` 的固定18fp规格，作为辅助信息使用原正文角色，不把整串放入30fp的value。
 保留完整原绑定，不截取样例数字、不伪造分段字段、不重复或删除单位。纯数字主值规格不变。
@@ -343,8 +345,8 @@ metadata；同一对象或同一集合的多个短字段使用一个 supporting 
 | `unit` | string | 仅静态 | 可选；主信息未包含单位时使用 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `variant` | string | 仅静态 | 按尺寸文件填写；2x2 可省略，2x4 必填 |
-| `visual` | object | 仅静态 | 可选；`{type:"icon",icon}` 或 `{type:"progressCircle",icon}` |
-| `fillColor` | `#AARRGGBB` | 仅静态 | visual 使用 SVG 时必填；使用位图时禁止填写 |
+| `visual` | object | 仅静态 | 可选；`{type:"icon",icon,color?:"native"}` 或 `{type:"progressCircle",icon}` |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 可选；用于可染色 visual 图标 |
 
 #### 槽位与容量
 
@@ -354,7 +356,7 @@ metadata；同一对象或同一集合的多个短字段使用一个 supporting 
 #### 示例
 
 ```genui
-["battery","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/phoneBattery/batterySOC"},"unit":"%","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"visual":{"type":"progressCircle","icon":"resources/base/media/battery_leaf_fill.svg"},"fillColor":"#991F4799","backgroundColor":"#99FFFFFF"}]
+["battery","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/phoneBattery/batterySOC"},"unit":"%","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"visual":{"type":"progressCircle","icon":"resources/base/media/battery_leaf_fill.svg"},"backgroundColor":"#99FFFFFF"}]
 ```
 
 #### 注意事项
@@ -445,7 +447,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `width`、`height` | number | 仅静态 | 必填；按当前槽位填写正数 vp |
 | `color` | `#AARRGGBB` | 仅静态 | 必填；完成轨道颜色 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填；未完成轨道颜色 |
-| `fillColor` | `#AARRGGBB` | 仅静态 | SVG 环心图标必填；位图环心图标禁止填写 |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 使用默认可染色 SVG 时必填；原色 SVG 或 PNG 不填写 |
 
 #### 槽位与容量
 
@@ -526,7 +528,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 注意事项
 
 `value`、`displayValue` 与 `secondaryLabel` 必须属于同一对象；图标只标识对象，不代替可见读数。
-环心 icon 只使用 SVG，其 `fillColor` 由转换器根据当前卡片语义色板自动写入，DSL 不提供图标颜色。
 
 ### 5.4 `H_BarChart`
 
@@ -561,7 +562,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `items` | Array | 数组结构仅静态 | 必填；恰好三项 |
-| `items[].icon` | string | 仅静态 | 必填；只使用 SVG，逐字采用当前素材候选路径 |
+| `items[].icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
 | `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见数值 |
 | `items[].unit` | string | 仅静态 | 可选；完整值已含单位时不得重复 |
 | `direction` | `row` / `column` | 仅静态 | 可选；默认 `column` |
@@ -623,7 +624,7 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 |---|---|---|---|
 | `label` | string | 仅静态 | 必填；非空动作文字 |
 | `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
-| `icon` | string | 仅静态 | 可选；只使用 SVG，逐字采用当前素材候选路径 |
+| `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
 
 #### 槽位与容量
 
@@ -638,8 +639,8 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 
 #### 注意事项
 
-一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 SVG icon 时由
-Recipe 生成图标与文字并自动写入 `fillColor`，不手写相同按钮皮肤；
+一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 icon 时由 Recipe
+生成图标与文字，不手写相同按钮皮肤；
 完整标签放不下时更换布局，不裁切、不缩小 Recipe，也不回退为基础 `Button`。
 
 ## 8. 选择检查

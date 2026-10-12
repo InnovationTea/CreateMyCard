@@ -7,6 +7,7 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
@@ -1940,7 +1941,7 @@ class PromptBuilder:
         payload: dict[str, Any] = {
             "originalUserContent": initial_prompt[1]["content"],
             "invalidSourceDsl": invalid_source_dsl,
-            "qualityErrors": quality_errors,
+            "qualityErrors": [compact_issue_for_model(item) for item in quality_errors],
             "dslFormat": dsl_format,
             "instruction": (
                 f"{target_instruction}先从 originalUserContent 恢复"

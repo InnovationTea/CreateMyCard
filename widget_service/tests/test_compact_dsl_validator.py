@@ -123,36 +123,6 @@ def test_accepts_progress_circle_free_box_geometry() -> None:
     )
 
 
-def test_rejects_svg_icon_without_fill_color() -> None:
-    source = _progress_circle_dsl(width=72, height=76).replace(
-        '"fillColor":"#991F4799",',
-        "",
-    )
-
-    with pytest.raises(CompactDslValidationError, match="SVG icon.*must set fillColor"):
-        validate_compact_dsl(
-            source,
-            task_spec=_progress_circle_task_spec(),
-            card_spec={"suggestSize": "2x4", "dataBindings": []},
-        )
-
-
-def test_rejects_fill_color_on_bitmap_icon() -> None:
-    source = _progress_circle_dsl(width=72, height=76).replace(
-        "resources/battery.svg",
-        "resources/battery.png",
-    )
-    task_spec = _progress_circle_task_spec()
-    task_spec["assetCandidates"][0]["src"] = "resources/battery.png"
-
-    with pytest.raises(CompactDslValidationError, match="bitmap icon.*must not set fillColor"):
-        validate_compact_dsl(
-            source,
-            task_spec=task_spec,
-            card_spec={"suggestSize": "2x4", "dataBindings": []},
-        )
-
-
 def test_accepts_bitmap_icon_without_fill_color() -> None:
     source = _progress_circle_dsl(width=72, height=76).replace(
         "resources/battery.svg",
@@ -166,7 +136,6 @@ def test_accepts_bitmap_icon_without_fill_color() -> None:
         task_spec=task_spec,
         card_spec={"suggestSize": "2x4", "dataBindings": []},
     )
-
 
 def test_accepts_svg_icon_auto_tinted_by_pill_button() -> None:
     handler = {

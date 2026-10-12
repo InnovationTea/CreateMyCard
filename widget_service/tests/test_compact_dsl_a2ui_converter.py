@@ -484,37 +484,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ ${/battery} + '%' }}",
         )
 
-    def test_converter_rejects_svg_icon_without_fill_color(self) -> None:
-        compact_dsl = _serialize(
-            [
-                ["root", "Column", {}, ["circle"]],
-                [
-                    "circle",
-                    "ProgressCircle",
-                    {
-                        "externalText": 68,
-                        "icon": "resources/base/media/battery.svg",
-                        "accessibility": {"label": "手机电量百分比"},
-                        "width": 72,
-                        "height": 76,
-                        "fontColor": "#FF1F4799",
-                        "color": "#FF1F4799",
-                        "backgroundColor": "#331F4799",
-                    },
-                ],
-            ]
-        )
-
-        with self.assertRaisesRegex(
-            CompactDslConversionError,
-            "SVG icon.*must set fillColor",
-        ):
-            convert_compact_dsl_to_a2ui(
-                compact_dsl,
-                size="2x4",
-                protocol_profile=self.profile,
-            )
-
     def test_single_line_title_with_icon_rejects_wrong_height_override(self) -> None:
         compact_dsl = _serialize(
             [
@@ -535,64 +504,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         with self.assertRaisesRegex(
             CompactDslConversionError,
             "SingleLineTitle.height must be 20",
-        ):
-            convert_compact_dsl_to_a2ui(
-                compact_dsl,
-                size="2x4",
-                protocol_profile=self.profile,
-            )
-
-    def test_single_line_title_svg_icon_requires_fill_color(self) -> None:
-        compact_dsl = _serialize(
-            [
-                ["root", "Column", {}, ["header"]],
-                [
-                    "header",
-                    "SingleLineTitle",
-                    {
-                        "title": "分区标题",
-                        "icon": "resources/base/media/weather.svg",
-                        "fontColor": "#FF1F4799",
-                    },
-                ],
-            ]
-        )
-
-        with self.assertRaisesRegex(
-            CompactDslConversionError,
-            "SVG icon requires fillColor",
-        ):
-            convert_compact_dsl_to_a2ui(
-                compact_dsl,
-                size="2x4",
-                protocol_profile=self.profile,
-            )
-
-    def test_converter_rejects_fill_color_on_bitmap_icon(self) -> None:
-        compact_dsl = _serialize(
-            [
-                ["root", "Column", {}, ["circle"]],
-                [
-                    "circle",
-                    "ProgressCircle",
-                    {
-                        "externalText": 68,
-                        "icon": "resources/base/media/battery.png",
-                        "accessibility": {"label": "手机电量百分比"},
-                        "width": 72,
-                        "height": 76,
-                        "fontColor": "#FF1F4799",
-                        "fillColor": "#991F4799",
-                        "color": "#FF1F4799",
-                        "backgroundColor": "#331F4799",
-                    },
-                ],
-            ]
-        )
-
-        with self.assertRaisesRegex(
-            CompactDslConversionError,
-            "bitmap icon.*must not set fillColor",
         ):
             convert_compact_dsl_to_a2ui(
                 compact_dsl,

@@ -1,2 +1,2 @@
-["root","Column",{"width":"matchParent","height":"matchParent"},["icon"]]
-["icon","ProgressCircle",{"externalText":50,"icon":"resources/heart.svg","accessibility":{"label":"完成进度"},"width":72,"height":76,"fontColor":"#FF1F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["root","Column",{"width":"matchParent"},["icon"]]
+["icon","Image",{"src":"resources/heart.svg","width":20,"height":20,"objectFit":"contain"}]

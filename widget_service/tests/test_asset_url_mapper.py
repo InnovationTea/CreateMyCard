@@ -214,6 +214,48 @@ def test_restore_ambiguous_or_unknown_url_fails_without_guessing():
         mapper.rewrite_standard(standard_dsl(URL + "unknown"), restore=True)
 
 
+@pytest.mark.parametrize("kind", ["InfoBlock", "NumericRatioStack"])
+def test_restore_nested_model_assets_preserves_other_content(kind: str) -> None:
+    mapper = AssetUrlMapper({SRC: URL}, {SRC})
+    props = {
+        "visual": {"type": "icon", "icon": URL},
+        "items": [{"icon": URL, "value": URL}],
+        "primaryText": URL,
+        "onClick": [{"call": "test", "args": {"icon": URL}}],
+    }
+    rows = [["visual", kind, props], ["/data/source", {"icon": URL}]]
+    token = "\n".join(json.dumps(row) for row in rows)
+    restored = mapper.restore_design_token(token)
+    parsed = [json.loads(line) for line in restored.splitlines()]
+    result = parsed[0][2]
+    visual = result.get("visual")
+    items = result.get("items")
+    assert isinstance(visual, dict) and isinstance(items, list)
+    assert visual.get("icon") == (SRC if kind == "InfoBlock" else URL)
+    assert items[0].get("icon") == (SRC if kind == "NumericRatioStack" else URL)
+    assert items[0].get("value") == URL
+    assert result.get("primaryText") == URL
+    assert result.get("onClick") == props.get("onClick")
+    assert parsed[1] == rows[1]
+    assert props.get("visual", {}).get("icon") == URL
+    assert mapper.restore_design_token(restored) == restored
+
+
+@pytest.mark.parametrize("kind", ["InfoBlock", "NumericRatioStack"])
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_restore_nested_assets_rejects_unknown_or_ambiguous_urls(
+    kind: str, ambiguous: bool,
+) -> None:
+    mapping = {SRC: URL, LOCAL: URL} if ambiguous else {SRC: URL}
+    mapper = AssetUrlMapper(mapping, {SRC, LOCAL})
+    address = URL if ambiguous else URL + "unknown"
+    props = {"visual": {"icon": address}, "items": [{"icon": address}]}
+    token = json.dumps(["visual", kind, props])
+    message = "multiple" if ambiguous else "cannot be restored"
+    with pytest.raises(ValueError, match=message):
+        mapper.restore_design_token(token)
+
+
 def test_repair_diagnostics_use_original_asset_paths():
     mapper = AssetUrlMapper({SRC: URL}, {SRC})
     original = {"actual": URL, "expected": [URL], "code": "TEST"}

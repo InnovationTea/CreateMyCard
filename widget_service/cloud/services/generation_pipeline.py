@@ -10,6 +10,8 @@ from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
 )
+from services.card_validation.compact_validation.diagnostics import DiagnosticGroup
+from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
 from services.card_validation.display_unit_rules import repair_repeated_display_units
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -76,6 +78,7 @@ class DslProcessingContext:
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
+    repair_context: RepairGuidanceContext | None = None
 
 
 @dataclass(frozen=True)
@@ -290,6 +293,8 @@ class DesignCompactProcessor:
                     protocol_profile=design_protocol,
                     layout_scope=context.layout_scope,
                     enforce_model_component_types=True,
+                    original_source=original_source_dsl,
+                    repair_context=context.repair_context,
                 )
             except CompactDslValidationError as exc:
                 trace_step(
@@ -297,11 +302,16 @@ class DesignCompactProcessor:
                     stage="dsl.compactValidation",
                     status="failed",
                     duration_ms=_elapsed_ms(compact_validation_started_at),
-                    json_artifacts={"compact_validation_errors": list(exc.errors)},
+                    json_artifacts={
+                        "compact_validation_errors": list(exc.errors),
+                        "compact_diagnostics": [item.to_payload() for item in exc.diagnostics],
+                    },
                     text_artifacts={"compact_validation_input": source_dsl},
                     artifact_roles={"compact_validation_input": "input"},
                 )
-                compact_issues = self._validation_failure(source_dsl, exc.errors).issues
+                compact_issues = self._validation_failure(
+                    source_dsl, exc.errors, groups=exc.groups,
+                ).issues
                 return DslProcessingResult(
                     source_dsl=source_dsl,
                     issues=(
@@ -435,14 +445,18 @@ class DesignCompactProcessor:
         errors: tuple[str, ...],
         *,
         code: str = "COMPACT_DSL_VALIDATION_FAILED",
+        groups: tuple[DiagnosticGroup, ...] | None = None,
     ) -> DslProcessingResult:
+        if groups is None:
+            groups = tuple(DiagnosticGroup(message, has_legacy_record=True) for message in errors)
         issues = tuple(
             QualityIssue(
                 stage="validation",
                 code=code,
-                message=message,
+                message=group.legacy_message,
+                prompt_context=group.prompt_context(),
             )
-            for message in errors
+            for group in groups
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
 

@@ -44,6 +44,7 @@ from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
+from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -755,6 +756,7 @@ class WidgetGenerationService:
             design_profile_id=policy.design_profile_id,
             data_capabilities=effective_data_capabilities,
             event_candidates=effective_events,
+            repair_context=RepairGuidanceContext(mode="edit" if source_load_result else "create"),
             layout_scope=(
                 PromptBuilder.layout_scope(task_spec)
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT

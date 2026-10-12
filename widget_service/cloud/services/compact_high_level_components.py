@@ -292,25 +292,6 @@ def expand_high_level_component_rows(
                 )
             generated_ids.add(row.component_id)
             expanded.append(row)
-    bitmap_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
-    for component in expanded:
-        if component.component_type != "Image":
-            continue
-        src = component.props.get("src")
-        if not isinstance(src, str) or src.strip().startswith("{{"):
-            continue
-        normalized_src = src.lower()
-        has_fill_color = "fillColor" in component.props
-        if normalized_src.endswith(".svg") and not has_fill_color:
-            raise CompactDslConversionError(
-                f"component {component.component_id}: SVG icon {src} must set fillColor; "
-                "all SVG icons are treated as tintable."
-            )
-        if normalized_src.endswith(bitmap_suffixes) and has_fill_color:
-            raise CompactDslConversionError(
-                f"component {component.component_id}: bitmap icon {src} must not set "
-                "fillColor; bitmap assets keep their original colors."
-            )
     return expanded
 
 
@@ -409,14 +390,12 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
     fill_color = header.props.get("fillColor")
     if fill_color is not None and not has_icon:
         raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
-    if fill_color is not None and not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
-        raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
+    if "fillColor" in header.props:
+        if not isinstance(fill_color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
+            raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
     if has_icon:
         normalized_icon = icon.lower()
-        is_svg = normalized_icon.endswith(".svg")
         is_bitmap = normalized_icon.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"))
-        if is_svg and fill_color is None:
-            raise CompactDslConversionError("SingleLineTitle SVG icon requires fillColor.")
         if is_bitmap and fill_color is not None:
             raise CompactDslConversionError("SingleLineTitle bitmap icon must not set fillColor.")
     height = header.props.get("height")
@@ -1814,8 +1793,11 @@ def _expand_info_block(
         )
     if visual_type == "icon":
         image_props: dict[str, Any] = {"src": visual_icon}
-        if "fillColor" in component.props and visual.get("color") != "native":
-            image_props["fillColor"] = component.props["fillColor"]
+        if visual.get("color") != "native":
+            image_props["fillColor"] = component.props.get(
+                "fillColor",
+                component.props["fontColor"],
+            )
         rows.append(
             _visual_row(
                 visual_id,
@@ -1828,9 +1810,6 @@ def _expand_info_block(
     elif visual_type == "progressCircle":
         progress_id = f"{visual_id}_progress"
         icon_id = f"{visual_id}_icon"
-        progress_icon_props: dict[str, Any] = {"src": visual_icon}
-        if "fillColor" in component.props:
-            progress_icon_props["fillColor"] = component.props["fillColor"]
         progress_value = _normalized_progress_binding(
             component,
             "primaryText",
@@ -1868,7 +1847,13 @@ def _expand_info_block(
                     "InfoBlock",
                     "progressIcon",
                     size=size,
-                    props=progress_icon_props,
+                    props={
+                        "src": visual_icon,
+                        "fillColor": component.props.get(
+                            "fillColor",
+                            _color_with_alpha(component.props["fontColor"], 0.6),
+                        ),
+                    },
                 ),
             ]
         )

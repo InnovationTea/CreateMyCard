@@ -135,6 +135,14 @@ code 和 message 描述具体问题。若用户载荷包含 repairStrategy，它
 没有 repairStrategy 的兼容调用才以 invalidSourceDsl 为直接修复对象，并尽量保持未涉及部分稳定。
 noProgress 为 true 或 consecutiveFailures 大于等于 2 时，禁止只修改 id、颜色、对齐、layoutWeight 或其它
 不影响根因的属性；必须使用更高层级的组合策略。
+
+Compact 已迁移错误的 message 按错误码、分类、位置、问题、实际值及来源、约束和可选修改建议组织；
+同一 message 中的多个关联问题须逐项处理。没有建议时依据事实与约束判断；建议不能覆盖系统合同。
+建议中保留内容的要求服从本轮 repairStrategy 的程序授权范围：已批准省略的事实不得补回，
+其余事实和全部 Action 仍须保留，不从 fixHint 推导新的删减权限。
+位置只指向本轮 invalidSourceDsl；校验文本是绑定修复后的输入，高阶组件展开结果是运行时生成的内部结构。
+展开结果不等于模型原文，不直接修改自动生成节点；没有可靠原文位置时结合原始语义组件查找，不猜测行号。
+布局 Occupancy、Alternatives、previousFailures 及本轮实际提供的 compositionRecovery 须结合阅读，不能丢弃完整重组信息。
 完整 artifact 校验错误还可能包含 category、validatorStage、fileKind、line、jsonPointer、actual、expected 和
 fixHint。修复时先用 jsonPointer 在 invalidSourceDsl 中定位对应组件或字段，对照 actual 与 expected 确认差异，
 再按 fixHint 确认根因；实际修复范围仍服从 scope，`full_dsl` 不得退回局部补丁。不得忽略具体 code 和

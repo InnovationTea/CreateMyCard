@@ -293,12 +293,7 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "fontColor" not in catalog
     assert "组件不声明文字颜色" in catalog
     assert "进度组件默认不生成" in catalog
-    assert "所有作为组件图标使用的 SVG 均视为可染色图标" in core_fragments.get(
-        "input-candidates",
-        "",
-    )
-    assert "不读取或要求 `description`" in core_fragments.get("input-candidates", "")
-    assert "位图保留原色，禁止写 `fillColor`" in core_fragments.get(
+    assert "SVG 默认视为可通过 `fillColor` 染色" in core_fragments.get(
         "input-candidates",
         "",
     )
