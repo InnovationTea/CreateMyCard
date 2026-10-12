@@ -633,7 +633,8 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
         row_children: list[str] = []
-        row_items = items[start : start + columns]
+        row_end = start + columns
+        row_items = items[start:row_end]
         row_height = line_height * max(item.get("maxLines", 1) for item in row_items)
         for item_index, item in enumerate(row_items, start=start):
             max_lines = item.get("maxLines", 1)
