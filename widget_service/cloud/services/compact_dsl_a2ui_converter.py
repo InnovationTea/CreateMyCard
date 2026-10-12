@@ -1691,7 +1691,7 @@ def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRo
 
 def _positive_static_number(value: Any) -> float | None:
     result = None
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, int | float) and not isinstance(value, bool):
         if math.isfinite(value) and value > 0:
             result = float(value)
     return result
@@ -1717,7 +1717,7 @@ def _is_numeric_unit_pair(
             found, value = _json_pointer_value(data_model, path)
             if not found:
                 return False
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, int | float) and not isinstance(value, bool):
         return math.isfinite(value)
     return isinstance(value, str) and re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value.strip()) is not None
 
@@ -1765,7 +1765,7 @@ def _can_calibrate_unit_bottom(
 
 def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int | float) -> None:
     padding = props.get("padding", 0)
-    if isinstance(padding, (int, float)) and not isinstance(padding, bool):
+    if isinstance(padding, int | float) and not isinstance(padding, bool):
         padding = {side: padding for side in ("top", "right", "bottom", "left")}
     elif isinstance(padding, dict):
         padding = dict(padding)
@@ -1775,7 +1775,7 @@ def _compensate_text_bottom(props: dict[str, Any], font: float, offset: int | fl
     top = padding.get("top", 0)
     previous = props.get("_glyphBottomOffset", 0)
     for value in (bottom, top, previous):
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
+        if not isinstance(value, int | float) or isinstance(value, bool):
             return
         if not math.isfinite(value) or value < 0:
             return

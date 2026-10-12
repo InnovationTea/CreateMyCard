@@ -91,6 +91,20 @@ def test_trusted_template_can_still_run_compact_validation() -> None:
     assert '"Divider"' in result.standard_dsl
 
 
+def test_trusted_template_preserves_compiled_layout(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unexpected_recomposition(*_args, **_kwargs):
+        pytest.fail("模板直接使用编译后的布局。")
+
+    monkeypatch.setattr(
+        "services.generation_pipeline.recompose_small_card", unexpected_recomposition,
+    )
+    result = DesignCompactProcessor().process(
+        _source("Divider", {"height": 1}),
+        replace(_context(), trusted_template_source=True, layout_scope="all"),
+    )
+    assert not result.errors
+
+
 def test_trusted_template_processor_still_rejects_overflow() -> None:
     result = DesignCompactProcessor().process(
         _source("Divider", {"height": 200}),
