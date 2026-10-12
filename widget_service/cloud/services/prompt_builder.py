@@ -59,6 +59,33 @@ def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
         "以 invalidSourceDsl 为直接修复对象；",
     )
 
+
+def _approved_omissions(
+    compact_plan: dict[str, Any] | None,
+    repair_strategy: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """将累计获准省略的事实索引解析为模型可读的稳定状态。"""
+    if compact_plan is None or repair_strategy is None:
+        return []
+    facts = compact_plan.get("info_required")
+    indexes = repair_strategy.get("approvedOmittedFactIndexes")
+    if not isinstance(facts, list) or not isinstance(indexes, list):
+        return []
+    omissions: list[dict[str, Any]] = []
+    for fact_index in indexes:
+        if not isinstance(fact_index, int) or not 0 <= fact_index < len(facts):
+            continue
+        fact = facts[fact_index]
+        if not isinstance(fact, dict):
+            continue
+        omission: dict[str, Any] = {"factIndex": fact_index}
+        for key in ("requirement", "dataId", "text", "priority"):
+            value = fact.get(key)
+            if value is not None:
+                omission[key] = value
+        omissions.append(omission)
+    return omissions
+
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
 REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(
@@ -1898,6 +1925,7 @@ class PromptBuilder:
         *,
         dsl_format: str = "a2ui-form",
         previous_failures: list[list[dict[str, Any]]] | None = None,
+        repair_history: list[dict[str, Any]] | None = None,
         task_spec: TaskSpec | None = None,
         compact_plan: dict[str, Any] | None = None,
         repair_strategy: dict[str, Any] | None = None,
@@ -1923,6 +1951,13 @@ class PromptBuilder:
         }
         if previous_failures is not None:
             payload["previousFailures"] = history
+        if repair_history is not None:
+            payload["repairHistory"] = copy.deepcopy(repair_history)
+            payload["instruction"] += (
+                " repairHistory 按时间保存此前被拒绝的完整 Compact DSL、错误和所选策略；"
+                "它只用于比较已尝试方案，当前唯一待处理候选仍是 invalidSourceDsl。"
+                "不得恢复历史候选已经删除的事实或组件。"
+            )
         recompose_requested = False
         if repair_strategy is not None:
             strategy = copy.deepcopy(repair_strategy)
@@ -1932,6 +1967,15 @@ class PromptBuilder:
             if isinstance(strategy_instruction, str) and strategy_instruction.strip():
                 payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if dsl_format == DESIGN_COMPACT_PROFILE_ID:
+            omissions = _approved_omissions(compact_plan, repair_strategy)
+            if omissions:
+                payload["approvedOmissions"] = omissions
+                payload["instruction"] += (
+                    " approvedOmissions 是本请求累计、只增不减的省略授权；"
+                    "其中事实必须在当前及后续结果中保持不可见，不得换用其他组件、"
+                    "静态文字或 Expression 重新引入。"
+                    "本轮 optionalDrop 仍须按 repairStrategy 删除，所有 Action 始终保留。"
+                )
             try:
                 original_payload = json.loads(initial_prompt[1]["content"])
             except json.JSONDecodeError:

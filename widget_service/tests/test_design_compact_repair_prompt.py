@@ -17,7 +17,7 @@ def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> Non
     assert "已经包含单位的" in REPAIR_SYSTEM_PROMPT
     assert "不得追加或拆出单位" in REPAIR_SYSTEM_PROMPT
     assert "无损紧凑组件替换阶段" in REPAIR_SYSTEM_PROMPT
-    assert "本阶段最多提交两次完整 Compact DSL" in REPAIR_SYSTEM_PROMPT
+    assert "本阶段最多连续提交两次完整 Compact DSL" in REPAIR_SYSTEM_PROMPT
     assert "不启用可选信息删除" in REPAIR_SYSTEM_PROMPT
     assert "body 或 1–2 项 supporting 使用 14" in REPAIR_SYSTEM_PROMPT
     assert "metadata 或 3–4 项 supporting 使用 12" in REPAIR_SYSTEM_PROMPT
@@ -173,7 +173,33 @@ def test_build_repair_exposes_the_only_allowed_optional_drop() -> None:
                 "message": "vertical layout requires at least 142vp within 126vp",
             }
         ],
-        dsl_format="compact-dsl",
+        dsl_format="design-compact-dsl",
+        repair_history=[
+            {
+                "repairAttempt": 1,
+                "sourceDsl": "older invalid source",
+                "qualityErrors": [{"code": "COMPACT_DSL_VALIDATION_FAILED"}],
+            }
+        ],
+        compact_plan={
+            "info_required": [
+                {
+                    "requirement": "主信息",
+                    "priority": "must",
+                    "dataId": "/data/main",
+                },
+                {
+                    "requirement": "按钮",
+                    "priority": "must",
+                    "actionId": "open",
+                },
+                {
+                    "requirement": "补充时间",
+                    "priority": "should",
+                    "dataId": "/data/time",
+                },
+            ]
+        },
         repair_strategy={
             "category": "layout_capacity",
             "scope": "full_dsl",
@@ -183,6 +209,7 @@ def test_build_repair_exposes_the_only_allowed_optional_drop() -> None:
             "fallbackAttempt": 0,
             "fallbackAttemptLimit": 3,
             "fallbackRemainingAttempts": 3,
+            "approvedOmittedFactIndexes": [2],
             "optionalDrop": {
                 "componentId": "support",
                 "componentType": "SecondaryBody",
@@ -197,4 +224,15 @@ def test_build_repair_exposes_the_only_allowed_optional_drop() -> None:
     optional_drop = payload["repairStrategy"]["optionalDrop"]
     assert optional_drop["componentId"] == "support"
     assert optional_drop["allowedOmittedFactIndexes"] == [2]
+    assert payload["repairHistory"][0]["sourceDsl"] == "older invalid source"
+    assert payload["approvedOmissions"] == [
+        {
+            "factIndex": 2,
+            "requirement": "补充时间",
+            "dataId": "/data/time",
+            "priority": "should",
+        }
+    ]
+    assert "当前唯一待处理候选仍是 invalidSourceDsl" in payload["instruction"]
+    assert "累计、只增不减" in payload["instruction"]
     assert "invalidSourceDsl 只作为失败诊断" in payload["instruction"]

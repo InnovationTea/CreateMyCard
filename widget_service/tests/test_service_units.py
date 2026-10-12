@@ -3885,6 +3885,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -3906,6 +3907,11 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     assert second_repair["repairStrategy"]["repairStrategy"] == (
         "plan_guided_recompose"
     )
+    assert first_repair["repairHistory"] == []
+    assert len(second_repair["repairHistory"]) == 1
+    assert second_repair["repairHistory"][0]["sourceDsl"] == design_dsl
+    assert second_repair["repairHistory"][0]["repairAttempt"] == 1
+    assert second_repair["repairHistory"][0]["qualityErrors"]
     assert '"createSurface"' in validated_genui[0]
 
 
@@ -4601,7 +4607,7 @@ async def test_retry_controller_stops_when_repair_reports_no_progress():
 
 
 @pytest.mark.asyncio
-async def test_retry_controller_excludes_selected_unchanged_results_from_budget():
+async def test_retry_controller_counts_unchanged_results_toward_global_budget():
     repair_calls = 0
 
     def repair(value: str, _errors: list[str]) -> str:
@@ -4613,14 +4619,13 @@ async def test_retry_controller_excludes_selected_unchanged_results_from_budget(
         lambda: "first",
         evaluate=lambda _value: ["bad"],
         retry_on_quality_failure=True,
-        max_repair_attempts=1,
+        max_repair_attempts=10,
         repair=repair,
-        exclude_no_progress_from_retry_budget=lambda: True,
     )
 
-    assert repair_calls == 3
+    assert repair_calls == 10
     assert retry_result.result == "first"
-    assert retry_result.retryCount == 0
+    assert retry_result.retryCount == 10
     assert retry_result.errors == ["bad"]
     assert retry_result.repairAttempted is True
 

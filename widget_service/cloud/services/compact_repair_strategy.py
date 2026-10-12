@@ -5,7 +5,7 @@
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
@@ -44,7 +44,6 @@ _SECONDARY_BODY_FONT_SIZE_MARKERS = (
     "secondarybody.fontsize must be the fixed recipe value",
 )
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
-DROP_NO_PROGRESS_MAX_ATTEMPTS = 3
 
 
 @dataclass(frozen=True)
@@ -66,6 +65,8 @@ class CompactRepairDirective:
     fallback_attempt_limit: int | None = None
     fallback_remaining_attempts: int | None = None
     optional_drop: CompactOptionalDropCandidate | None = None
+    approved_omitted_fact_indexes: tuple[int, ...] = ()
+    stop_reason: str | None = None
 
     def to_prompt_payload(self) -> dict[str, Any]:
         """转换成可进入修复提示词和 Trace 的稳定字段。"""
@@ -98,6 +99,12 @@ class CompactRepairDirective:
                 "requirements": list(self.optional_drop.requirements),
                 "containsMustFacts": self.optional_drop.contains_must_facts,
             }
+        if self.approved_omitted_fact_indexes:
+            payload["approvedOmittedFactIndexes"] = list(
+                self.approved_omitted_fact_indexes
+            )
+        if self.stop_reason is not None:
+            payload["stopReason"] = self.stop_reason
         return payload
 
 
@@ -321,13 +328,48 @@ def _exhausted_directive(
         no_progress=no_progress,
         retryable=False,
         instruction=(
-            "完整 DSL 重组后仍出现同一根因或原样返回；"
-            "停止重复调用模型，保留当前诊断并按校验失败处理。"
+            "本次请求已经达到全局最大修复次数；停止调用模型，"
+            "保留当前诊断并按校验失败处理。"
         ),
         fallback_stage=fallback_stage,
         fallback_attempt=fallback_attempt,
         fallback_attempt_limit=fallback_attempt_limit,
         fallback_remaining_attempts=(0 if fallback_stage is not None else None),
+        stop_reason="global_attempt_limit",
+    )
+
+
+def _full_dsl_transition_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    instruction: str,
+    fallback_stage: str | None = None,
+    fallback_attempt: int | None = None,
+    fallback_attempt_limit: int | None = None,
+) -> CompactRepairDirective:
+    """局部阶段达到迁移阈值后回到完整 DSL 重组，而不是提前停止。"""
+    remaining_attempts = None
+    if fallback_attempt is not None and fallback_attempt_limit is not None:
+        remaining_attempts = max(0, fallback_attempt_limit - fallback_attempt)
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="plan_guided_recompose",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+        fallback_stage=fallback_stage,
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=fallback_attempt_limit,
+        fallback_remaining_attempts=remaining_attempts,
     )
 
 
@@ -448,8 +490,6 @@ class CompactRepairStrategyTracker:
         self._fallback_submission_limit = 0
         self._optional_drop_candidate: CompactOptionalDropCandidate | None = None
         self._allowed_omitted_fact_indexes: list[int] = []
-        self._fallback_bridge_used = False
-        self._drop_no_progress_count = 0
 
     @property
     def allowed_omitted_fact_indexes(self) -> tuple[int, ...]:
@@ -508,6 +548,33 @@ class CompactRepairStrategyTracker:
         self._previous_fingerprint = fingerprint
         self._previous_source = normalized_source
 
+        if self._repair_submission_count >= self._max_repair_attempts:
+            directive = _exhausted_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                fallback_stage=self._active_fallback,
+                fallback_attempt=self._fallback_submission_count,
+                fallback_attempt_limit=(
+                    self._fallback_submission_limit
+                    if self._active_fallback == "drop_optional_component"
+                    else COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS
+                    if self._active_fallback == "compact_component"
+                    else None
+                ),
+            )
+            if self._allowed_omitted_fact_indexes:
+                directive = replace(
+                    directive,
+                    approved_omitted_fact_indexes=tuple(
+                        sorted(self._allowed_omitted_fact_indexes)
+                    ),
+                )
+            self._previous_strategy = directive.repair_strategy
+            return directive
+
         repeated_root_cause = self._consecutive_failures >= 2 or no_progress
         is_layout_failure = category in {"layout_capacity", "layout_structure"}
         if self._active_fallback == "drop_optional_component":
@@ -517,65 +584,15 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 self._optional_drop_candidate,
             )
-            previous_drop_made_no_progress = (
-                no_progress and self._previous_strategy == "drop_optional_component"
-            )
-            if previous_drop_made_no_progress:
-                self._drop_no_progress_count += 1
-                self._fallback_submission_count = max(
-                    0,
-                    self._fallback_submission_count - 1,
-                )
-                self._repair_submission_count = max(
-                    0,
-                    self._repair_submission_count - 1,
-                )
-            else:
-                self._drop_no_progress_count = 0
             if candidate_was_removed and not is_layout_failure:
-                if self._fallback_bridge_used:
-                    directive = _exhausted_directive(
-                        category=category,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        fallback_stage=self._active_fallback,
-                        fallback_attempt=self._fallback_submission_count,
-                        fallback_attempt_limit=self._fallback_submission_limit,
-                    )
-                else:
-                    self._fallback_bridge_used = True
-                    directive = _non_layout_directive(
-                        category=category,
-                        quality_errors=quality_errors,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        force_targeted=True,
-                    )
-            elif self._drop_no_progress_count >= DROP_NO_PROGRESS_MAX_ATTEMPTS:
-                directive = _exhausted_directive(
+                directive = _non_layout_directive(
                     category=category,
+                    quality_errors=quality_errors,
                     fingerprint=fingerprint,
                     consecutive_failures=self._consecutive_failures,
                     category_attempt=category_attempt,
                     no_progress=no_progress,
-                    fallback_stage=self._active_fallback,
-                    fallback_attempt=self._fallback_submission_count,
-                    fallback_attempt_limit=self._fallback_submission_limit,
-                )
-            elif self._fallback_submission_count >= self._fallback_submission_limit:
-                directive = _exhausted_directive(
-                    category=category,
-                    fingerprint=fingerprint,
-                    consecutive_failures=self._consecutive_failures,
-                    category_attempt=category_attempt,
-                    no_progress=no_progress,
-                    fallback_stage=self._active_fallback,
-                    fallback_attempt=self._fallback_submission_count,
-                    fallback_attempt_limit=self._fallback_submission_limit,
+                    force_targeted=True,
                 )
             elif candidate_was_removed:
                 candidate = None
@@ -586,7 +603,7 @@ class CompactRepairStrategyTracker:
                         task_spec,
                     )
                 if candidate is None:
-                    directive = _exhausted_directive(
+                    directive = _full_dsl_transition_directive(
                         category=category,
                         fingerprint=fingerprint,
                         consecutive_failures=self._consecutive_failures,
@@ -595,9 +612,14 @@ class CompactRepairStrategyTracker:
                         fallback_stage=self._active_fallback,
                         fallback_attempt=self._fallback_submission_count,
                         fallback_attempt_limit=self._fallback_submission_limit,
+                        instruction=(
+                            "当前 Drop 候选已经移除且没有新的合法非 Action 候选；"
+                            "保留程序累计批准的省略结果，从已接受 Plan、剩余事实和动作"
+                            "重新构造完整 DSL。"
+                            "不得恢复已批准删除的组件，不得删除新的未授权事实或任何 Action。"
+                        ),
                     )
                 else:
-                    self._fallback_bridge_used = False
                     directive = _drop_optional_component_fallback_directive(
                         category=category,
                         fingerprint=fingerprint,
@@ -623,30 +645,17 @@ class CompactRepairStrategyTracker:
                 self._fallback_submission_count += 1
         elif self._active_fallback == "compact_component":
             if not is_layout_failure:
-                if self._fallback_bridge_used:
-                    directive = _exhausted_directive(
-                        category=category,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        fallback_stage=self._active_fallback,
-                        fallback_attempt=self._fallback_submission_count,
-                        fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
-                    )
-                else:
-                    # 紧凑布局已闭合但引入了新的属性错误时，保留布局兜底状态，
-                    # 只桥接一轮定向修复；若随后重新出现布局错误，可继续进入 Drop。
-                    self._fallback_bridge_used = True
-                    directive = _non_layout_directive(
-                        category=category,
-                        quality_errors=quality_errors,
-                        fingerprint=fingerprint,
-                        consecutive_failures=self._consecutive_failures,
-                        category_attempt=category_attempt,
-                        no_progress=no_progress,
-                        force_targeted=True,
-                    )
+                # 紧凑布局消除布局错误后，持续按新错误类别迁移到定向修复；
+                # 后续若重新出现布局错误，再继续 Drop 或完整 DSL 重组。
+                directive = _non_layout_directive(
+                    category=category,
+                    quality_errors=quality_errors,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    force_targeted=True,
+                )
             elif self._fallback_submission_count >= COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS:
                 candidate = None
                 if is_layout_failure and task_spec is not None:
@@ -656,48 +665,42 @@ class CompactRepairStrategyTracker:
                         task_spec,
                     )
                 if candidate is None:
-                    directive = _exhausted_directive(
+                    self._active_fallback = None
+                    self._fallback_submission_count = 0
+                    directive = _full_dsl_transition_directive(
                         category=category,
                         fingerprint=fingerprint,
                         consecutive_failures=self._consecutive_failures,
                         category_attempt=category_attempt,
                         no_progress=no_progress,
-                        fallback_stage=self._active_fallback,
-                        fallback_attempt=self._fallback_submission_count,
+                        fallback_stage="compact_component",
+                        fallback_attempt=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
                         fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+                        instruction=(
+                            "无损紧凑组件阶段已达到迁移阈值，但当前没有合法 Drop 候选；"
+                            "不要停止修复，改为根据已接受 Plan、完整失败历史和当前合同"
+                            "重新构造完整 DSL，"
+                            "重新选择合法布局与信息合组，并保留全部事实、绑定和 Action。"
+                        ),
                     )
                 else:
                     self._active_fallback = "drop_optional_component"
-                    self._drop_no_progress_count = 0
-                    self._fallback_bridge_used = False
                     self._fallback_submission_count = 0
                     self._fallback_submission_limit = max(
                         0,
                         self._max_repair_attempts - self._repair_submission_count,
                     )
-                    if self._fallback_submission_limit == 0:
-                        directive = _exhausted_directive(
-                            category=category,
-                            fingerprint=fingerprint,
-                            consecutive_failures=self._consecutive_failures,
-                            category_attempt=category_attempt,
-                            no_progress=no_progress,
-                            fallback_stage=self._active_fallback,
-                            fallback_attempt=0,
-                            fallback_attempt_limit=0,
-                        )
-                    else:
-                        directive = _drop_optional_component_fallback_directive(
-                            category=category,
-                            fingerprint=fingerprint,
-                            consecutive_failures=self._consecutive_failures,
-                            category_attempt=category_attempt,
-                            no_progress=no_progress,
-                            fallback_attempt=self._fallback_submission_count,
-                            fallback_attempt_limit=self._fallback_submission_limit,
-                            candidate=candidate,
-                        )
-                        self._fallback_submission_count += 1
+                    directive = _drop_optional_component_fallback_directive(
+                        category=category,
+                        fingerprint=fingerprint,
+                        consecutive_failures=self._consecutive_failures,
+                        category_attempt=category_attempt,
+                        no_progress=no_progress,
+                        fallback_attempt=self._fallback_submission_count,
+                        fallback_attempt_limit=self._fallback_submission_limit,
+                        candidate=candidate,
+                    )
+                    self._fallback_submission_count += 1
             else:
                 directive = _compact_component_fallback_directive(
                     category=category,
@@ -710,7 +713,6 @@ class CompactRepairStrategyTracker:
                 self._fallback_submission_count += 1
         elif is_layout_failure and self._previous_strategy == "plan_guided_recompose":
             self._active_fallback = "compact_component"
-            self._fallback_bridge_used = False
             directive = _compact_component_fallback_directive(
                 category=category,
                 fingerprint=fingerprint,
@@ -721,12 +723,14 @@ class CompactRepairStrategyTracker:
             )
             self._fallback_submission_count += 1
         elif repeated_root_cause and self._previous_strategy == "plan_guided_recompose":
-            directive = _exhausted_directive(
+            directive = _non_layout_directive(
                 category=category,
+                quality_errors=quality_errors,
                 fingerprint=fingerprint,
                 consecutive_failures=self._consecutive_failures,
                 category_attempt=category_attempt,
                 no_progress=no_progress,
+                force_targeted=True,
             )
         elif is_layout_failure:
             directive = _layout_directive(
@@ -747,5 +751,12 @@ class CompactRepairStrategyTracker:
             )
         if directive.retryable:
             self._repair_submission_count += 1
+        if self._allowed_omitted_fact_indexes:
+            directive = replace(
+                directive,
+                approved_omitted_fact_indexes=tuple(
+                    sorted(self._allowed_omitted_fact_indexes)
+                ),
+            )
         self._previous_strategy = directive.repair_strategy
         return directive

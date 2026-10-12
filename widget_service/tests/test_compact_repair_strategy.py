@@ -11,13 +11,13 @@ def _issue(message: str, *, code: str = "COMPACT_DSL_VALIDATION_FAILED") -> dict
     }
 
 
-def test_component_contract_gets_only_one_targeted_attempt() -> None:
-    tracker = CompactRepairStrategyTracker()
+def test_component_contract_migrates_without_stopping_before_global_limit() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=4)
     errors = [_issue("component metric: unsupported prop unitText")]
 
     first = tracker.next_directive("dsl-v1", errors)
     second = tracker.next_directive("dsl-v2", errors)
-    exhausted = tracker.next_directive("dsl-v2", errors)
+    resumed_targeted = tracker.next_directive("dsl-v2", errors)
 
     assert first.repair_strategy == "component_contract_repair"
     assert first.scope == "component"
@@ -25,9 +25,9 @@ def test_component_contract_gets_only_one_targeted_attempt() -> None:
     assert second.repair_strategy == "plan_guided_recompose"
     assert second.scope == "full_dsl"
     assert second.retry_target == "dsl_recompose"
-    assert exhausted.repair_strategy == "exhausted"
-    assert exhausted.retry_target == "stop"
-    assert exhausted.retryable is False
+    assert resumed_targeted.repair_strategy == "component_contract_repair"
+    assert resumed_targeted.retry_target == "dsl_local_repair"
+    assert resumed_targeted.retryable is True
 
 
 def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> None:
@@ -86,7 +86,7 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     third = tracker.next_directive("dsl-v3", second_errors)
     fallback_first = tracker.next_directive("dsl-v4", second_errors)
     fallback_second = tracker.next_directive("dsl-v5", second_errors)
-    exhausted = tracker.next_directive("dsl-v6", second_errors)
+    transition = tracker.next_directive("dsl-v6", second_errors)
 
     assert first.category == "layout_capacity"
     assert first.repair_strategy == "rebudget"
@@ -105,10 +105,10 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert fallback_second.repair_strategy == "compact_component"
     assert fallback_second.fallback_attempt == 1
     assert fallback_second.fallback_remaining_attempts == 1
-    assert exhausted.repair_strategy == "exhausted"
-    assert exhausted.fallback_attempt == 2
-    assert exhausted.fallback_remaining_attempts == 0
-    assert exhausted.retryable is False
+    assert transition.repair_strategy == "plan_guided_recompose"
+    assert transition.fallback_attempt == 2
+    assert transition.fallback_remaining_attempts == 0
+    assert transition.retryable is True
 
 
 def test_root_layout_mismatch_takes_priority_over_capacity_error() -> None:
@@ -289,7 +289,7 @@ def test_compact_fallback_can_drop_one_program_selected_must_component() -> None
     assert drop.to_prompt_payload()["optionalDrop"]["containsMustFacts"] is True
 
 
-def test_drop_no_progress_is_free_and_stops_after_three_attempts() -> None:
+def test_drop_no_progress_counts_toward_global_limit_without_early_stop() -> None:
     tracker = CompactRepairStrategyTracker(max_repair_attempts=10)
     contract_errors = [_issue("component battery: unsupported prop unitText")]
     layout_errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
@@ -320,7 +320,7 @@ def test_drop_no_progress_is_free_and_stops_after_three_attempts() -> None:
     tracker.next_directive("dsl-layout-4", layout_errors)
 
     drop_directives = []
-    for _ in range(3):
+    for _ in range(5):
         drop_directives.append(
             tracker.next_directive(
                 source,
@@ -338,10 +338,16 @@ def test_drop_no_progress_is_free_and_stops_after_three_attempts() -> None:
 
     assert [item.repair_strategy for item in drop_directives] == [
         "drop_optional_component"
-    ] * 3
-    assert [item.fallback_attempt for item in drop_directives] == [0, 0, 0]
-    assert [item.fallback_attempt_limit for item in drop_directives] == [5] * 3
-    assert [item.fallback_remaining_attempts for item in drop_directives] == [5] * 3
+    ] * 5
+    assert [item.fallback_attempt for item in drop_directives] == [0, 1, 2, 3, 4]
+    assert [item.fallback_attempt_limit for item in drop_directives] == [5] * 5
+    assert [item.fallback_remaining_attempts for item in drop_directives] == [
+        5,
+        4,
+        3,
+        2,
+        1,
+    ]
     assert drop_directives[0].no_progress is False
     assert drop_directives[1].no_progress is True
     assert "上一轮没有执行 Drop" in drop_directives[1].instruction
@@ -350,8 +356,9 @@ def test_drop_no_progress_is_free_and_stops_after_three_attempts() -> None:
     assert exhausted.repair_strategy == "exhausted"
     assert exhausted.retryable is False
     assert exhausted.no_progress is True
-    assert exhausted.fallback_attempt == 0
+    assert exhausted.fallback_attempt == 5
     assert exhausted.fallback_attempt_limit == 5
+    assert exhausted.to_prompt_payload()["stopReason"] == "global_attempt_limit"
 
 
 def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> None:
@@ -424,17 +431,70 @@ def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> No
     assert second_drop.optional_drop is not None
     assert second_drop.optional_drop.component_id == "title"
     assert tracker.allowed_omitted_fact_indexes == (0, 1)
+    assert second_drop.to_prompt_payload()["approvedOmittedFactIndexes"] == [0, 1]
 
-    exhausted = tracker.next_directive(
+    transition = tracker.next_directive(
         '["root","Column",{},[]]',
         errors,
         compact_plan=plan,
         task_spec=task_spec,
     )
 
-    assert exhausted.repair_strategy == "exhausted"
-    assert exhausted.retryable is False
+    assert transition.repair_strategy == "plan_guided_recompose"
+    assert transition.retryable is True
     assert tracker.allowed_omitted_fact_indexes == (0, 1)
+
+
+def test_compact_component_plan_coverage_bridge_does_not_stop_early() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=10)
+    layout_errors = [
+        _issue("component body: vertical layout requires at least 142vp within 126vp")
+    ]
+    coverage_errors = [
+        _issue(
+            "Plan fact is missing from visible DSL: /data/healthSport/heartRate",
+            code="COMPACT_PLAN_COVERAGE_FAILED",
+        )
+    ]
+
+    assert tracker.next_directive("dsl-v1", layout_errors).repair_strategy == "rebudget"
+    assert (
+        tracker.next_directive("dsl-v2", layout_errors).repair_strategy
+        == "plan_guided_recompose"
+    )
+    assert (
+        tracker.next_directive("dsl-v3", layout_errors).repair_strategy
+        == "compact_component"
+    )
+    assert (
+        tracker.next_directive("dsl-v4", coverage_errors).repair_strategy
+        == "coverage_restore"
+    )
+    assert (
+        tracker.next_directive("dsl-v5", layout_errors).repair_strategy
+        == "compact_component"
+    )
+
+    second_coverage_restore = tracker.next_directive("dsl-v6", coverage_errors)
+
+    assert second_coverage_restore.repair_strategy == "coverage_restore"
+    assert second_coverage_restore.retry_target == "dsl_local_repair"
+    assert second_coverage_restore.retryable is True
+
+
+def test_global_limit_is_the_only_exhausted_route() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=2)
+    errors = [_issue("component metric: unsupported prop unitText")]
+
+    assert tracker.next_directive("dsl-v1", errors).retryable is True
+    assert tracker.next_directive("dsl-v2", errors).retryable is True
+
+    exhausted = tracker.next_directive("dsl-v3", errors)
+
+    assert exhausted.repair_strategy == "exhausted"
+    assert exhausted.retry_target == "stop"
+    assert exhausted.retryable is False
+    assert exhausted.to_prompt_payload()["stopReason"] == "global_attempt_limit"
 
 
 def test_unchanged_dsl_is_reported_as_no_progress_and_escalated() -> None:
