@@ -1514,7 +1514,7 @@ def _split_component_rows(
 def normalize_mixed_font_text_rows(
     components: list[ComponentRow], *, data_model: dict[str, Any] | None = None,
 ) -> list[ComponentRow]:
-    """同一Row的直接单行文字字底补偿；不改字号、内容、跨区关系或多行文本。"""
+    """同行字底补偿与单项正文槽底对齐；保留字号、内容和两行容量。"""
     by_id = {component.component_id: component for component in components}
     replacements: dict[str, ComponentRow] = {}
     for row in components:
@@ -1560,6 +1560,104 @@ def normalize_mixed_font_text_rows(
                 _compensate_text_bottom(props, font, offset)
             replacements[child.component_id] = ComponentRow(
                 child.component_id, child.component_type, props, child.children,
+            )
+    output = [replacements.get(item.component_id, item) for item in components]
+    return _align_inline_body_slots(output)
+
+
+def _inline_text_fonts(
+    component: ComponentRow, by_id: dict[str, ComponentRow], visiting: frozenset[str],
+) -> list[float]:
+    if component.component_id in visiting:
+        return []
+    if component.component_type == "Text":
+        font = _positive_static_number(component.props.get("fontSize"))
+        if font is None or component.props.get("maxLines", 1) not in (1, 2):
+            return []
+        return [font]
+    if component.component_type not in {"Row", "Column"} or not component.children:
+        return []
+    if component.component_type == "Column" and len(component.children) != 1:
+        return []
+    fonts: list[float] = []
+    trail = visiting | {component.component_id}
+    for identifier in component.children:
+        child = by_id.get(identifier)
+        if child is None:
+            return []
+        child_fonts = _inline_text_fonts(child, by_id, trail)
+        if not child_fonts:
+            return []
+        fonts.extend(child_fonts)
+    return fonts
+
+
+def _single_body_slot(
+    component: ComponentRow, by_id: dict[str, ComponentRow],
+) -> tuple[list[ComponentRow], ComponentRow] | None:
+    prefix = f"{VISUAL_RECIPE_VERSION}:SecondaryBody."
+    if component.props.get("_visualRecipe") != prefix + "root":
+        return None
+    wrappers: list[ComponentRow] = []
+    seen: set[str] = set()
+    current = component
+    while current.component_type in {"Row", "Column"}:
+        if current.component_id in seen or len(current.children) != 1:
+            return None
+        marker = current.props.get("_visualRecipe")
+        if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
+            return None
+        seen.add(current.component_id)
+        wrappers.append(current)
+        child = by_id.get(current.children[0])
+        if child is None:
+            return None
+        current = child
+    if current.component_type != "Text" or current.props.get("_visualRecipe") != prefix + "text":
+        return None
+    if _positive_static_number(current.props.get("height")) is None:
+        return None
+    constraints = current.props.get("constraintSize")
+    if isinstance(constraints, dict) and constraints.get("minHeight", 0) != 0:
+        return None
+    return wrappers, current
+
+
+def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRow]:
+    """只穿透单项正文Recipe包装；原40vp两行槽和横向分配不变。"""
+    by_id = {component.component_id: component for component in components}
+    replacements: dict[str, ComponentRow] = {}
+    for row in components:
+        if row.component_type != "Row" or len(row.children) < 2:
+            continue
+        slots: list[tuple[list[ComponentRow], ComponentRow]] = []
+        pure_text_line = True
+        for identifier in row.children:
+            child = by_id.get(identifier)
+            if child is None or not _inline_text_fonts(child, by_id, frozenset()):
+                pure_text_line = False
+                break
+            slot = _single_body_slot(child, by_id)
+            if slot is not None:
+                slots.append(slot)
+        if not pure_text_line or not slots:
+            continue
+        replacements[row.component_id] = ComponentRow(
+            row.component_id, row.component_type, {**row.props, "alignItems": "bottom"},
+            row.children,
+        )
+        for wrappers, text in slots:
+            for wrapper in wrappers:
+                props = copy.deepcopy(wrapper.props)
+                alignment = "alignItems" if wrapper.component_type == "Row" else "justifyContent"
+                props[alignment] = "bottom" if wrapper.component_type == "Row" else "end"
+                replacements[wrapper.component_id] = ComponentRow(
+                    wrapper.component_id, wrapper.component_type, props, wrapper.children,
+                )
+            props = copy.deepcopy(text.props)
+            props.pop("height", None)
+            replacements[text.component_id] = ComponentRow(
+                text.component_id, text.component_type, props, text.children,
             )
     return [replacements.get(item.component_id, item) for item in components]
 
