@@ -197,6 +197,15 @@ class ProviderTemplateEntry(StrictModel):
         default_factory=dict, alias="assetParameterSemanticTags"
     )
     supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
+    # Most business-template sizes are derived from the template suffix.  A
+    # small number of legacy templates have a `Full`/`Compact` suffix but are
+    # authored for a wide 2x4 slot (for example a three-day forecast).  These
+    # entries may explicitly override the suffix-derived size without
+    # changing the public template id.
+    declared_supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] | None = Field(
+        default=None,
+        alias="supportedCardSizes",
+    )
     size_scoped_hidden_parameters: dict[str, tuple[str, ...]] = Field(
         default_factory=dict,
         alias="sizeScopedHiddenParameters",
@@ -219,6 +228,19 @@ class ProviderTemplateEntry(StrictModel):
                     raise ValueError(
                         f"Provider sizeScopedHiddenParameters name is invalid: {name}"
                     )
+        return self
+
+    @model_validator(mode="after")
+    def declared_sizes_are_valid(self) -> ProviderTemplateEntry:
+        sizes = self.declared_supported_card_sizes
+        if sizes is not None and (not sizes or len(sizes) != len(set(sizes))):
+            raise ValueError(
+                "Provider supportedCardSizes must be non-empty and contain unique sizes"
+            )
+        if sizes is not None and self.capability_id is None:
+            raise ValueError(
+                "Provider supportedCardSizes is only valid for business Templates"
+            )
         return self
 
     @model_validator(mode="after")
@@ -281,6 +303,8 @@ class ProviderTemplateEntry(StrictModel):
     def supported_card_sizes(self) -> tuple[Literal["2x2", "2x4"], ...]:
         if self.capability_id is None:
             return ()
+        if self.declared_supported_card_sizes is not None:
+            return self.declared_supported_card_sizes
         layout_kind = _provider_template_layout_kind(self.template_id)
         return (
             ("2x4",)
