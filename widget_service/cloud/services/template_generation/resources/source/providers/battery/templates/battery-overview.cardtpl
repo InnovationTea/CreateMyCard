@@ -1878,7 +1878,7 @@ Column(
             ),
             Image(props.temperatureIcon,
                 {
-                    "fillColor": $theme('primaryColor'),
+                    "fillColor": $theme('supportContentColor'),
                     "width": 20,
                     "height": 20,
                     "objectFit": "contain",

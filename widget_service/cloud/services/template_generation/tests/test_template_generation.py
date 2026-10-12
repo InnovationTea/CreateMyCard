@@ -3145,11 +3145,11 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     expected_themed_assets[("WorkoutOverviewTypeDurationCompact@1", "sourceIcon")] = (
         "primaryColor"
     )
-    # 原来由编译器补齐的运动图标主色现由源模板显式声明。
+    # 本次补齐的运动图标统一采用辅助内容色。
     for template_id in (
         "WorkoutOverviewCompact@1", "WorkoutOverviewHero@1", "WorkoutOverviewTrainingRecordHero@1",
     ):
-        expected_themed_assets[(template_id, "sourceIcon")] = "primaryColor"
+        expected_themed_assets[(template_id, "sourceIcon")] = "supportContentColor"
     # 耳机三电量/成对 Full 深色画布固定白色前景：图标与同级兜底文字同为 #99FFFFFF。
     expected_white_artwork_assets = {
         ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
@@ -3201,7 +3201,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     assert white_artwork_assets == expected_white_artwork_assets
 
 
-def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
+def test_calendar_monochrome_source_icons_use_the_theme_support_content_color() -> None:
     registry = get_cardplan_registry()
     themed_source_icons: list[str] = []
 
@@ -3217,7 +3217,7 @@ def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
             assert options.kind == "object"
             fill_color = options.properties["fillColor"]
             assert fill_color.kind == "theme"
-            assert fill_color.name == "primaryColor"
+            assert fill_color.name == "supportContentColor"
             assert "_preserveOriginalColor" not in options.properties
             themed_source_icons.append(template_id)
 
@@ -8712,3 +8712,27 @@ async def test_template_source_generator_uses_task_spec_app_version_gate(monkeyp
         == "template-source"
     )
     assert observed_flags == [False, True]
+
+
+@pytest.mark.parametrize("template_id", [
+    "BatteryOverviewTemperatureFull@1",
+    "ScheduleOverviewMeetingWideFull@1", "ScheduleOverviewMeetingSourceWideFull@1",
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
+    "BluetoothDeviceOverviewEarbudsDynamicWideFull@1",
+    "BluetoothDeviceOverviewCompleteWideFull@1",
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1",
+    "ActivityOverviewHero@1", "ActivityOverviewWideHero@1",
+    "ActivityOverviewExerciseWideHero@1", "ActivityOverviewFull@1", "ActivityOverviewWideFull@1",
+    "WorkoutOverviewCompact@1", "WorkoutOverviewHero@1", "WorkoutOverviewTrainingRecordHero@1",
+])
+def test_repaired_svg_icons_use_support_content_color(template_id: str) -> None:
+    root = get_cardplan_registry().require_variant(template_id, "default").root
+    icons = _template_nodes(root, "Image")
+    assert icons
+    for icon in icons:
+        options = icon.values[-1]
+        assert options.kind == "object"
+        fill_color = options.properties.get("fillColor")
+        assert fill_color is not None, template_id
+        assert fill_color.kind == "theme", template_id
+        assert fill_color.name == "supportContentColor", template_id
