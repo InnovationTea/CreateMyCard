@@ -252,7 +252,8 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
 
 
 @pytest.mark.asyncio
-async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
+@pytest.mark.parametrize("rain_probability", [0, 12.5, 60, 100])
+async def test_q026_binds_alarm_action_to_travel_capsule(rain_probability: int | float) -> None:
     weather_fields = (
         "/daily/4/condition",
         "/daily/4/temperatureRangeText",
@@ -272,7 +273,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
                         {
                             "condition": _field("string", "小雨"),
                             "temperatureRangeText": _field("string", "20℃ / 28℃"),
-                            "rainProbabilityPercent": _field("string", "60%"),
+                            "rainProbabilityPercent": _field("number", rain_probability),
                         },
                     )
                 },
@@ -325,7 +326,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     )
     rain_probability = _component_for_content(
         output.a2ui,
-        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} }}",
+        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} + '%' }}",
     )
     # 基底布局以温度范围为主行、天气现象与降雨概率为副行。
     assert temperature.get("styles", {}).get("fontSize") == 14
