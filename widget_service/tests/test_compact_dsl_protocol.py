@@ -354,7 +354,7 @@ class CompactDslFormParityTest(unittest.TestCase):
                 '["rain_value","Text",{"width":68,"height":20,'
                 '"content":{"path":"/data/weather/daily/0/rainProbabilityPercent"},'
                 '"fontSize":20,"fontWeight":700,"fontColor":"#E5000000","maxLines":1}]',
-                '["/data/weather/daily/0/rainProbabilityPercent","73%"]',
+                '["/data/weather/daily/0/rainProbabilityPercent",73]',
                 '["action","Button",{"width":116,"height":32,"label":"打车去公司",'
                 '"fontSize":12,"fontWeight":600,"fontColor":"#FFFFFFFF",'
                 '"backgroundColor":"#FF0A59F7","borderRadius":16,'
@@ -952,7 +952,7 @@ class CompactDslFormParityTest(unittest.TestCase):
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "rainProbabilityPercent": {"type": "string"}
+                                    "rainProbabilityPercent": {"type": "number"}
                                 },
                             },
                         },
@@ -984,7 +984,7 @@ class CompactDslFormParityTest(unittest.TestCase):
         report = validate_compact_dsl(normalized, cardspec)
 
         self.assertEqual(data_rows["/data/weather/current/condition"], "小雨")
-        self.assertEqual(data_rows["/data/weather/daily/0/rainProbabilityPercent"], "72%")
+        self.assertEqual(data_rows["/data/weather/daily/0/rainProbabilityPercent"], 72)
         self.assertEqual(data_rows["/data/weather/current/temperatureText"], "26°C")
         self.assertEqual(report.errors, [])
 
