@@ -27,12 +27,14 @@ from services.template_generation.engine.cardplan.retrieval_index import (
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
+    TemplateSearchIntent,
     _component_templates_for_capability,
     _limit_component_templates,
     _required_field_template_groups,
     build_template_retrieval_prompt,
     restrict_query_to_preferred_templates,
     retrieve_template_variants,
+    search_template_variants,
 )
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     convert_a2ui_to_compact_dsl,
@@ -2713,3 +2715,32 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
     assert not battery_plugged_ids
     assert earphone_status_ids <= descendant_ids(row_children[0])
     assert battery_percent_ids <= descendant_ids(row_children[1])
+
+
+def test_required_current_date_must_not_be_silently_dropped() -> None:
+    """模板未承载的用户必选能力必须整体拒绝，禁止静默丢弃成单业务。"""
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureText",),
+            "GetCurrentTime": ("/currentDate",),
+        },
+    )
+    task = _task()
+    task.dataModelSchema["data"]["time"] = {"currentDate": _field("2026-10-12")}
+    time_binding = CandidateDataBinding(
+        capabilityId="GetCurrentTime",
+        writeResultTo="/data/time",
+        candidateOutputFields=["/currentDate"],
+    )
+    card_spec = _card_spec()
+    card_spec["dataBindings"].append(
+        {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/time"},
+    )
+
+    with pytest.raises(
+        TemplateRetrievalMiss,
+        match="no provider template covers capability GetCurrentTime",
+    ):
+        search_template_variants(
+            intent, task, get_cardplan_registry(), (_binding(), time_binding), card_spec,
+        )
