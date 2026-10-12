@@ -613,8 +613,33 @@ def compact_plan_context(
     if conflicts:
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
+    small_conflict = False
+    if conflicts:
+        for layout_hint in plan.get("layoutHints", []):
+            if isinstance(layout_hint, str) and layout_hint.startswith("S-"):
+                small_conflict = True
+                break
+    preference_instruction = (
+        "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
+        "具体条件不成立才改选合法备选或组件组合。"
+    )
+    intent_context = _component_intent_context(plan)
+    if small_conflict:
+        preference_instruction = (
+            "当前小卡compositionNotes已证明原合组或容量有冲突，原候选首项不再是实例清单。"
+            "先重算完整信息组与动作的合法承载，再选匹配组件；不要按旧候选逐事实实例化，"
+            "普通辅助状态不新增强调焦点。候选与全部硬事实保留，不靠降字或删事实过关。"
+        )
+        intent_context = ""
     payload = json.dumps(context_plan, ensure_ascii=False, separators=(",", ":"))
     if execution_selected:
+        conflict_instruction = ""
+        if small_conflict:
+            conflict_instruction = (
+                "本轮小卡旧分区已有明确合组或容量冲突，不能继续保留失效的body包装或"
+                "按候选首项逐事实新增实例。按当前完整布局变体重新核算全部事实和动作，"
+                "普通辅助状态不叠加强调焦点；只交接诊断与文字指导，不提供恢复蓝图。"
+            )
         return (
             "# 已接受的 Compact Info Plan\n\n"
             "info_required 冻结全部必须可见的事实与真实动作。组件候选不是新增实例清单；"
@@ -622,6 +647,7 @@ def compact_plan_context(
             "重做选型，也不照抄已经诊断为冲突的旧 composition。"
             "没有恢复参考时，合法composition保持原分区和合组；没有完整composition时"
             "按对象信息关系和当前尺寸完整案例组织，不能把候选第一项当作逐事实实例清单。"
+            f"{conflict_instruction}"
             "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
             "局部修复保持待修树的合法结构，只处理明确错误。"
             "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
@@ -634,8 +660,7 @@ def compact_plan_context(
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 只冻结必须可见的信息、静态正文和操作；除标题组件职责外，"
         "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
-        "componentHints 第一项是首选：语义、类型、素材、事件和容量成立时应落实；"
-        "具体条件不成立才改选合法备选或组件组合。先按对象和信息关系合组，再映射可见 Prop。"
+        f"{preference_instruction}先按对象和信息关系合组，再映射可见 Prop。"
         "不能因为完整案例使用了其它组件就将匹配的信息组拆成逐字段的单文字组件。"
         "每项事实必须在最终 Compact DSL 中有完整可读的落点；"
         "同组图形与对应读数允许共用绑定，禁止跨组无意义重复。"
@@ -672,7 +697,7 @@ def compact_plan_context(
         "动作先留足高度，环、状态、标题的总高度不能超出剩余正文；layoutWeight 不会让"
         "文字或环缩小。时间段、日期时间和带长单位的指标使用普通字号或分行，不套用大数字。\n\n"
         f"```json\n{payload}\n```"
-        f"{_component_intent_context(plan)}"
+        f"{intent_context}"
     )
 
 
