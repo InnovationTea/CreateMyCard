@@ -259,7 +259,7 @@ def validate_compact_dsl(
     _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(components, task_spec, errors)
-    _collect_semantic_text_errors(components, task_spec, errors)
+    _collect_semantic_text_errors(components, task_spec, errors, parse_context=parse_context)
     _collect_raw_boolean_text_errors(components, task_spec, errors)
     _collect_progress_value_errors(components, task_spec, errors)
     _collect_progress_readout_object_errors(components, task_spec, errors)
@@ -1134,6 +1134,8 @@ def _collect_semantic_text_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
     errors: list[str],
+    *,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}
@@ -1160,7 +1162,8 @@ def _collect_semantic_text_errors(
             parent_by_child,
             components_by_id,
         )
-        if any(path.endswith("/eventcount") for path in normalized_paths):
+        has_event_count = any(path.endswith("/eventcount") for path in normalized_paths)
+        if has_event_count and not parse_context.is_template:
             has_range_context = any(
                 marker in own_text for marker in ("未来", "接下来", "近", "今天", "明天", "本周")
             )

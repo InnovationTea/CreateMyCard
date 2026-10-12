@@ -125,9 +125,23 @@ data = {
 
 Column(
   {"_advancedComponent": "ScheduleOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-    Expr('近期 ' + data.eventCount + '项日程安排'),
-    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(
+      "日程安排",
+      {"height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+    Stack(
+      {"width": 14, "height": 14, "borderRadius": 7, "alignContent": "center", "flexShrink": 0, "clip": true},
+      Stack(
+        {"width": 14, "height": 14, "borderRadius": 7, "backgroundColor": $theme('actionStyle.backgroundColor'), "alignContent": "center"},
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": $theme('actionStyle.backgroundColor')})
+      ),
+      Text(
+        data.eventCount,
+        {"height": 14, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('actionStyle.contentColor'), "maxLines": 1, "textOverflow": "ellipsis", "width": 14, "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+    )
   ),
   Column(
     {"width": "matchParent", "height": 106, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -267,9 +281,23 @@ data = {
 
 Column(
   {"_advancedComponent": "ScheduleOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 10, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-    Expr('近期 ' + data.eventCount + '项日程安排'),
-    {"width": "matchParent", "height": 20, "fontSize": 14, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+  Row(
+    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(
+      "日程安排",
+      {"height": 20, "fontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+    Stack(
+      {"width": 14, "height": 14, "borderRadius": 7, "alignContent": "center", "flexShrink": 0, "clip": true},
+      Stack(
+        {"width": 14, "height": 14, "borderRadius": 7, "backgroundColor": $theme('actionStyle.backgroundColor'), "alignContent": "center"},
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": $theme('actionStyle.backgroundColor')})
+      ),
+      Text(
+        data.eventCount,
+        {"height": 14, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('actionStyle.contentColor'), "maxLines": 1, "textOverflow": "ellipsis", "width": 14, "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+    )
   ),
   Column(
     {"width": "matchParent", "height": 96, "itemMargin": 0, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
