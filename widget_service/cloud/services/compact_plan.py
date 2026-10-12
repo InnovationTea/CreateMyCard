@@ -389,12 +389,16 @@ def _small_content_region(
                     if rule.get("eventPolicy") == "require"]
     if not any(len(action) > len(path) and action[:len(path)] == path for action in action_paths):
         return region, None
-    slots = [rule.get("path") for rule in rules
-             if len(rule.get("path", [])) == len(path) + 1
-             and tuple(rule.get("path", []))[:len(path)] == path
-             and rule.get("types") == ["Column"]
-             and not any(action[:len(rule.get("path", []))] == tuple(rule.get("path", []))
-                         for action in action_paths)]
+    slots = []
+    for rule in rules:
+        slot = rule.get("path", [])
+        if len(slot) != len(path) + 1 or tuple(slot)[:len(path)] != path:
+            continue
+        if rule.get("types") != ["Column"]:
+            continue
+        if any(action[:len(slot)] == tuple(slot) for action in action_paths):
+            continue
+        slots.append(slot)
     if len(slots) != 1:
         return region, None
     return {**region, "path": slots[0]}, (
@@ -489,13 +493,15 @@ def _composition_group(
     height = composition_group_minimum_height(size, value)
     planned_height = value.get("referenceHeight")
     if height is not None:
-        planned_height = max(height, planned_height)
+        exact_small_readout = size == "2x2" and component in {"EmphasizedData", "EmphasisText"}
+        planned_height = height if exact_small_readout else max(height, planned_height)
     group = {**value, "factIndexes": remapped, "referenceHeight": planned_height}
     if size == "2x2" and component == "TableText":
-        item_indexes = {
-            int(match.group(1)) for placement in placements
-            if (match := re.fullmatch(r"items\[(\d+)\]\.(?:label|value)", placement))
-        }
+        item_indexes = set()
+        for placement in placements:
+            match = re.fullmatch(r"items\[(\d+)\]\.(?:label|value)", placement)
+            if match is not None:
+                item_indexes.add(int(match.group(1)))
         if item_indexes and (len(item_indexes) not in (2, 3)
                              or item_indexes != set(range(len(item_indexes)))):
             group["implementationConflict"] = (

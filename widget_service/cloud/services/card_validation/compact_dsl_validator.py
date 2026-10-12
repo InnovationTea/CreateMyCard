@@ -1555,7 +1555,7 @@ def small_card_text_pressure(source: str, task_spec: dict[str, Any]) -> list[str
             include_label_pressure=True,
         )
         return messages
-    except (CompactDslConversionError, ValueError):
+    except ValueError:
         return []
 
 

@@ -14,6 +14,7 @@ from services.compact_composition_planner import (
     composition_structure_blueprint,
     composition_text_width_conflicts,
     compound_duration_bindings,
+    is_compound_duration_text,
     quantitative_main_bindings,
 )
 from services.compact_layout_runtime import load_layout_contract
@@ -167,14 +168,17 @@ def composition_implementation_conflicts(plan: dict[str, Any]) -> list[str]:
         if total > capacity + tolerance:
             action_paths = [tuple(rule.get("path", [])) for rule in rules
                             if rule.get("eventPolicy") == "require"]
-            content_paths = [
-                list(rule.get("path", [])) for rule in rules
-                if tuple(rule.get("path", []))[:len(path)] == path
-                and len(rule.get("path", [])) == len(path) + 1
-                and rule.get("types") == ["Column"]
-                and not any(action[:len(rule.get("path", []))] == tuple(rule.get("path", []))
-                            for action in action_paths)
-            ] if composition.get("layout", "").startswith("S-") else []
+            content_paths = []
+            if composition.get("layout", "").startswith("S-"):
+                for rule in rules:
+                    child_path = tuple(rule.get("path", []))
+                    if len(child_path) != len(path) + 1 or child_path[:len(path)] != path:
+                        continue
+                    if rule.get("types") != ["Column"]:
+                        continue
+                    if any(action[:len(child_path)] == child_path for action in action_paths):
+                        continue
+                    content_paths.append(list(child_path))
             conflicts.append(
                 f"region {list(path)} including nested assignments requires {total:g}vp "
                 f"within {capacity:g}vp; old grouping is not executable"
@@ -395,6 +399,19 @@ def repair_display_roles(source: str, *, size: str | None = None) -> dict[str, d
                         if isinstance(item, dict) and item.get("value") == value:
                             roles[paths[0]]["displayLabel"] = item.get("label")
     return roles
+
+
+def retain_original_small_display_roles(
+    reference: dict[str, dict[str, Any]], source: str, task: dict[str, Any] | None = None,
+) -> None:
+    """逐路径保留首次可读规格；不以中途失败输出覆盖原字号。"""
+    for path, role in repair_display_roles(source, size="2x2").items():
+        if role.get("component") == "EmphasizedData" and task is not None:
+            displayed = _literal_display_sample(role.get("displayExpression"), task)
+            if displayed is not None and is_compound_duration_text(displayed[1]):
+                continue  # 此选型本来不合法，不把错误30fp冻结成必须保留的规格。
+        if path not in reference:
+            reference[path] = copy.deepcopy(role)
 
 
 def literal_display_parts(value: Any, task: dict[str, Any]) -> list[dict[str, str]]:
@@ -707,6 +724,20 @@ def composition_group_minimum_height(size: str, group: dict[str, Any]) -> float 
     if name in {"SingleLineTitle", "PillButton", "CardButton", "CircleButton"}:
         recipe = component_visual_recipe(name, size=size)
         return float(recipe.get("parts", {}).get("root", {}).get("styles", {}).get("height"))
+    if size == "2x2" and name in {"EmphasizedData", "EmphasisText"}:
+        recipe = component_visual_recipe(name, size=size)
+        parts = recipe.get("parts", {})
+        main = "value" if name == "EmphasizedData" else "main"
+        height = parts.get(main, {}).get("styles", {}).get("height")
+        if not isinstance(height, (int, float)):
+            return None
+        if name == "EmphasisText" and "secondaryText" in group.get("placements", []):
+            secondary = parts.get("secondary", {}).get("styles", {}).get("height")
+            gap = parts.get("root", {}).get("styles", {}).get("itemMargin", 0)
+            if not isinstance(secondary, (int, float)):
+                return None
+            height += secondary + gap
+        return float(height)
     if name not in {"SecondaryBody", "TableText"}:
         return None
     indexes: set[int] = set()
