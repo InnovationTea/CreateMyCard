@@ -834,6 +834,26 @@
         "/location/prefectureName",
         "/location/districtName"
       ]
+    },
+    {
+      "templateId": "WeatherOverviewTemperatureHumiditySupport@1",
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "湿度天气 Support：主行展示温度和天气现象，辅助行展示湿度与空气质量（可选，缺失时省略）；纯文本形态，可绑定根节点事件；用于双业务 Support 组合布局。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/current/humidityPercent",
+        "/current/airQuality"
+      ]
     }
   ],
   "compatibility": {

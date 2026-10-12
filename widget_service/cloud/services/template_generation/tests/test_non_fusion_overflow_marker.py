@@ -280,6 +280,22 @@ async def test_two_support_compilation_marks_one_shared_skeleton() -> None:
     assert skeleton is not None
     assert skeleton.get("component") == "Column"
     assert len(skeleton.get("children", [])) == 2
+    root = by_id.get("root")
+    assert root is not None
+    root_styles = root.get("styles")
+    assert isinstance(root_styles, dict)
+    assert root_styles.get("linearGradient") == {
+        "direction": "RightBottom",
+        "colors": [["#FFCBDDFE", 0], ["#FFF1F6FE", 1]],
+    }
+    support_children = skeleton.get("children")
+    assert isinstance(support_children, list)
+    for child_id in support_children:
+        support = by_id.get(child_id)
+        assert support is not None
+        styles = support.get("styles")
+        assert isinstance(styles, dict)
+        assert styles.get("backgroundColor") == "#CCFFFFFF"
     for field in (
         "/data/healthSport/dailySteps", "/data/phoneBattery/batterySOC",
         "/data/phoneBattery/chargingStatusDesc",

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component root.props.onClick[0]: handler must exactly match a TaskSpec eventCandidate."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "0f56ee1610d203cf1cec906e7b70f7eeba81abe254f8904c8faab4929dc1bbb5",
+    "sample_task_spec.json": "9d029af60201e81a7601506fc31b11b2f3996ab205f7d86befa590d984262636",
+    "sample_card_spec.json": "5e58d75376b3f287aa6a1e6ff33e041a0d6795f4704c9fadcf5cafd2dd6cab73"
+  }
+}

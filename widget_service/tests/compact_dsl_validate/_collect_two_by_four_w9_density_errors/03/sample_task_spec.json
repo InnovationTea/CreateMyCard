@@ -1,0 +1,39 @@
+{
+  "userQuery": "做张横向卡片，主要看手机剩余电量，也看看耳机是否连接和充电盒电量。",
+  "size": "2x4",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batterySOCText": {
+          "type": "string",
+          "description": "当前手机剩余电量文本，已包含%单位",
+          "sampleValue": "68%"
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "手机当前充电状态",
+          "sampleValue": "未充电"
+        }
+      },
+      "earphone": {
+        "earphoneName": {
+          "type": "string",
+          "description": "耳机设备名称",
+          "sampleValue": "FreeBuds Pro"
+        },
+        "isConnected": {
+          "type": "boolean",
+          "description": "耳机当前是否连接",
+          "sampleValue": true
+        },
+        "batteryLevel": {
+          "type": "integer",
+          "description": "充电盒电量百分比0到100，展示时追加%",
+          "sampleValue": 80
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

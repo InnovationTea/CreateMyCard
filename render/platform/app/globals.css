@@ -1,0 +1,60 @@
+@font-face { font-family: "Concert One"; src: url("/fonts/ConcertOne-Regular.ttf") format("truetype"); font-display: swap; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif; color: #223047; background: #f5f6f8; }
+button, input, textarea, select { font: inherit; }
+.example-picker { display: flex; align-items: center; gap: 10px; margin: 0 16px 12px; font-size: 12px; color: #768296; }
+.example-picker select { flex: 1; min-width: 0; padding: 8px; border: 1px solid #dfe3ea; border-radius: 7px; background: #fff; color: #48566b; }
+.example-note { margin: 0 16px 12px; color: #9a6b2d; font-size: 11px; line-height: 1.6; }
+.card-viewport [role="button"] { cursor: pointer; }
+.card-viewport [role="button"]:focus-visible { outline: 2px solid #4167dc; outline-offset: -2px; }
+button { cursor: pointer; border: 1px solid #dfe3ea; border-radius: 8px; background: white; color: #48566b; padding: 8px 13px; font-size: 12px; }
+button:hover { background: #f1f4f9; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #668bfa; outline-offset: 2px; }
+.app-header { height: 78px; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; background: white; border-bottom: 1px solid #e3e7ee; }
+.app-header > div { display: flex; align-items: center; gap: 14px; }
+.brand-mark { background: #eef2ff; color: #4167dc; border-radius: 10px; padding: 9px; font-weight: 700; }
+h1 { font-size: 19px; margin: 0; letter-spacing: -.5px; }
+.header-description { color: #929bac; font-size: 12px; padding-left: 14px; border-left: 1px solid #e3e7ee; }
+.local-badge { font-size: 11px; color: #768296; }
+.header-actions { display: flex; align-items: center; gap: 18px; }
+.gallery-link { padding: 8px 12px; border: 1px solid #dfe3ea; border-radius: 8px; color: #4167dc; font-size: 11px; font-weight: 600; text-decoration: none; }
+.gallery-link:hover { border-color: #c6d0ed; background: #f3f6ff; }
+.local-badge i, .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #36a481; margin-right: 8px; }
+.workspace { display: grid; grid-template-columns: minmax(350px, 1fr) minmax(340px, 1fr); gap: 20px; padding: 24px 32px; min-height: calc(100dvh - 78px); }
+.editor-panel, .preview-panel { background: white; border: 1px solid #e0e5ec; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.panel-heading { display: flex; justify-content: space-between; align-items: center; padding: 20px; }
+h2 { font-size: 14px; margin: 0 0 6px; }
+.panel-heading p { margin: 0; font-size: 11px; color: #929bac; }
+textarea { flex: 1; min-height: 430px; width: calc(100% - 32px); margin: 0 16px; resize: vertical; border: 1px solid #e7eaf0; border-radius: 8px; background: #fafbfc; padding: 16px; font-family: Consolas, monospace; font-size: 12px; line-height: 1.85; color: #46546b; tab-size: 2; }
+.editor-footer { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.editor-footer > span { font-size: 10px; color: #929bac; }
+.primary { background: #4167dc; border-color: #4167dc; color: white; padding: 10px 17px; }
+.primary:hover { background: #3456c4; }
+.preview-toolbar { padding: 16px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf0f4; gap: 12px; }
+.tabs { display: flex; gap: 4px; background: #f2f4f7; padding: 3px; border-radius: 8px; }
+.tabs button { border: 0; background: transparent; padding: 7px 15px; }
+.tabs button[aria-selected="true"] { background: white; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
+.preview-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
+.size-presets { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: #f2f4f7; }
+.size-presets button { display: flex; align-items: baseline; gap: 5px; padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: #6e7b90; }
+.size-presets button strong { font-size: 11px; font-weight: 700; }
+.size-presets button span { font-size: 9px; color: #929bac; }
+.size-presets button[aria-pressed="true"] { background: #fff; color: #4167dc; box-shadow: 0 1px 4px #22304715; }
+.size-presets button[aria-pressed="true"] span { color: #6d84c8; }
+.dimensions { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #929bac; }
+.dimensions label { display: flex; align-items: center; gap: 5px; }
+.dimensions input { width: 58px; padding: 6px; border: 1px solid #e3e7ee; border-radius: 5px; font-size: 11px; color: #48566b; }
+.preview-stage { flex: 1; min-height: 410px; display: grid; overflow: auto; padding: 40px; background-color: #fafbfc; background-image: radial-gradient(#dce1e9 .8px, transparent .8px); background-size: 18px 18px; }
+.preview-group { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.card-viewport { flex-shrink: 0; background: white; box-shadow: 0 12px 36px #22304712; border-radius: 20px; overflow: hidden; isolation: isolate; }
+.canvas-caption { color: #a0a9b7; font-family: Consolas, monospace; font-size: 11px; }
+.preview-status { padding: 14px 20px; color: #819084; font-size: 11px; border-top: 1px solid #edf0f4; }
+.empty-state { padding: 40px 24px; }
+.error { color: #bc3434; overflow-wrap: anywhere; }
+.warnings { padding: 0 20px; color: #a06a21; font-size: 12px; }
+.a2ui-output { flex: 1; padding: 20px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; max-height: 70vh; overflow: auto; }
+.event-panel { border-top: 1px solid #edf0f4; padding: 14px 20px; font-size: 12px; }
+.event-panel > div { display: flex; justify-content: space-between; align-items: center; }
+.event-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #52647d; }
+.event-panel p { color: #929bac; font-size: 11px; }
+@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; padding: 16px; } .app-header { padding: 0 18px; height: 65px; } .header-description, .local-badge { display: none; } .header-actions { gap: 0; } .preview-controls { justify-content: flex-start; } textarea { min-height: 320px; } }

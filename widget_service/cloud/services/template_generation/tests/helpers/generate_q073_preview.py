@@ -27,7 +27,12 @@ from services.template_generation.engine.cardplan.wide_full_planner import plan_
 TEMPLATE_ID = "BluetoothDeviceOverviewEarbudsChargingWideFull@1"
 
 
-def generate(source: Path, output: Path) -> None:
+def generate(
+    source: Path,
+    output: Path,
+    *,
+    earphone_sample: dict[str, object] | None = None,
+) -> None:
     payload = json.loads(source.read_text(encoding="utf-8"))
     content = payload.get("content", payload)
     registry = CardPlanRegistry()
@@ -43,10 +48,21 @@ def generate(source: Path, output: Path) -> None:
     )
     catalog = json.loads(asset_file.read_text(encoding="utf-8"))
     assets = [item for item in catalog if item.get("id") in content.get("candidateAssetIds", [])]
+    data_schema = _build_data_schema(definition)
+    if earphone_sample is not None:
+        data_fields = data_schema.get("data")
+        assert isinstance(data_fields, dict)
+        earphone_fields = data_fields.get("earphone")
+        assert isinstance(earphone_fields, dict)
+        for name, value in earphone_sample.items():
+            field = earphone_fields.get(name)
+            if not isinstance(field, dict):
+                raise ValueError(f"Unknown earphone preview field: {name}")
+            field["sampleValue"] = value
     task = TaskSpec(
         userQuery=content.get("userQuery"),
         size=content.get("size"),
-        dataModelSchema=_build_data_schema(definition),
+        dataModelSchema=data_schema,
         eventCandidates=[EventAction(id="event.open.music.daily", **action)],
         assetCandidates=assets,
     )
@@ -101,4 +117,4 @@ def generate(source: Path, output: Path) -> None:
     messages = [json.loads(line) for line in result.a2ui.splitlines() if line.strip()]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(messages, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print("Q073 matched; WideFullOnlyLayout + embedded favorite action compiled")
+    print("耳机完整横版模板与每日歌单动作编译成功")

@@ -1,0 +1,12 @@
+{
+  "name": "@genui-sdk/components",
+  "version": "0.1.0-debug",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}

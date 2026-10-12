@@ -55,6 +55,11 @@ def _task(extra_earbuds: bool) -> TaskSpec:
     return TaskSpec(
         userQuery="查看耳机盒电量及充电状态",
         size="2x2",
+        assetCandidates=[{
+            "src": "resources/base/media/earphone_case_16644.svg",
+            "description": "耳机充电盒图标",
+            "sceneTags": ["earphone-case"],
+        }],
         dataModelSchema={"data": {"earphone": fields}},
         eventCandidates=[
             EventAction(
@@ -100,7 +105,8 @@ class _CaseModel:
         self.body_calls += 1
         return (
             'Template("HeroActionLayout@1",{},'
-            'Template("BluetoothDeviceOverviewEarphoneCaseHero@1",{}),'
+            'Template("BluetoothDeviceOverviewEarphoneCaseHero@1",'
+            '{"deviceIcon":"resources/base/media/earphone_case_16644.svg"}),'
             'Template("PillAction@1",'
             '{"actionId":"event.open.settings.bluetooth","label":"蓝牙设置"}));'
         )
@@ -108,7 +114,7 @@ class _CaseModel:
 
 @pytest.mark.parametrize("extra_earbuds", [False, True])
 @pytest.mark.asyncio
-async def test_case_requires_action_and_compiles_without_losing_core_fields(
+async def test_case_supports_full_and_action_hero_without_losing_core_fields(
     extra_earbuds: bool,
 ) -> None:
     task = _task(extra_earbuds)
@@ -118,15 +124,15 @@ async def test_case_requires_action_and_compiles_without_losing_core_fields(
         requiredOutputFieldsByCapability={"GetEarphoneInfo": _CASE_FIELDS}, action=[]
     )
     search = search_template_variants(intent, task, registry, bindings, _card())
-    if extra_earbuds:
-        full_plans = plan_template_candidates(intent, search, task, registry)
-        assert full_plans
-        selected_template = full_plans[0].business_slots[0].template_id
-        assert selected_template == "BluetoothDeviceOverviewEarbudPairFull@1"
-        assert not full_plans[0].action_assignments
-    else:
-        with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
-            plan_template_candidates(intent, search, task, registry)
+    full_plans = plan_template_candidates(intent, search, task, registry)
+    assert full_plans
+    selected_template = full_plans[0].business_slots[0].template_id
+    expected_template = (
+        "BluetoothDeviceOverviewEarbudPairFull@1"
+        if extra_earbuds else "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1"
+    )
+    assert selected_template == expected_template
+    assert not full_plans[0].action_assignments
 
     selected = intent.model_copy(update={"action_ids": (_ACTION,)})
     plans = plan_template_candidates(selected, search, task, registry)
@@ -238,6 +244,67 @@ def test_explicit_action_and_other_businesses_are_not_rewritten():
         },
     })
     assert resolve_earphone_candidate_actions(mixed, search, task, registry) == mixed
+
+
+@pytest.mark.parametrize("action_id", [_ACTION, "event.open.music.favorite"])
+@pytest.mark.parametrize("focus", [None, "/batteryLevel"])
+@pytest.mark.parametrize("has_name", [False, True])
+def test_explicit_single_action_prefers_hero_before_field_score(action_id, focus, has_name):
+    task = _task(True)
+    fields = fields_of(task)
+    if not has_name:
+        fields.pop("earphoneName")
+        fields["isConnected"] = {"type": "boolean", "sampleValue": False}
+    event = task.eventCandidates[0].model_copy(update={"id": action_id})
+    task = task.model_copy(update={
+        "eventCandidates": [event],
+        "assetCandidates": [{
+            "src": "resources/base/media/music_fill.svg",
+            "description": "操作入口图标",
+            "sceneTags": ["action"],
+        }],
+    })
+    required = ("/batteryLevel", "/leftBatteryLevel", "/rightBatteryLevel")
+    primary = {"GetEarphoneInfo": focus} if focus is not None else {}
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetEarphoneInfo": required},
+        primaryOutputFieldByCapability=primary,
+        action=[action_id],
+    )
+    registry = get_cardplan_registry()
+    search = search_template_variants(intent, task, registry, (_binding(task),), _card())
+    plans = plan_template_candidates(intent, search, task, registry)
+    expected_role = "Hero" if has_name else "Full"
+    assert plans
+    for plan in plans:
+        slot = plan.business_slots[0]
+        assert slot.layout_role == expected_role
+        assert set(slot.covered_explicit_fields) == set(required)
+        assert len(plan.action_assignments) == 1
+        assert plan.action_assignments[0].action_id == action_id
+    if has_name:
+        assert plans[0].business_slots[0].template_id == "BluetoothDeviceOverviewEarbudTripleHero@1"
+
+
+def test_explicit_two_actions_select_compact_without_dropping_actions():
+    task = _task(True)
+    ids = (_ACTION, "event.open.music.favorite")
+    event = task.eventCandidates[0]
+    task = task.model_copy(update={
+        "eventCandidates": [event.model_copy(update={"id": action_id}) for action_id in ids],
+    })
+    required = ("/earphoneName", "/leftBatteryLevel", "/rightBatteryLevel")
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetEarphoneInfo": required}, action=ids,
+    )
+    registry = get_cardplan_registry()
+    search = search_template_variants(intent, task, registry, (_binding(task),), _card())
+    plans = plan_template_candidates(intent, search, task, registry)
+    assert plans
+    for plan in plans:
+        assert plan.business_slots[0].layout_role == "Compact"
+        assert tuple(item.action_id for item in plan.action_assignments) == ids
+        assert set(plan.business_slots[0].covered_explicit_fields) == set(required)
 
 
 def test_all_input_candidates_reach_planning_without_two_action_limit(monkeypatch):

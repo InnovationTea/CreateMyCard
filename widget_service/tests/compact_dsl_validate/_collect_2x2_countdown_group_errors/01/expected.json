@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 countdown must display the day unit exactly once; do not place '天' beside the value and repeat it again in a second metadata row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "eb96e1c2d64ce27c05c206216fd76f311d25bbb39a857fbd70c957200cbc9acf",
+    "sample_task_spec.json": "024d0ff49e69645dee34bec4f57a55586d00510e35ca0c06e432f86ed84ee9fd",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

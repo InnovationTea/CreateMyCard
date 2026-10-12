@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone content must use layoutWeight 1 so the Button stays at the bottom."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "7908f34c95cd28713766ae189b7ca0183b997e0b5c973b8c858b653b4e3fa052",
+    "sample_task_spec.json": "070e3c2c86d472d8e8932e173ee96827ea3fd90fba80b490493a4f160e0d324e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

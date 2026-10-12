@@ -1,0 +1,1720 @@
+{
+  "version": "visual-recipes-v1",
+  "palettes": {
+    "blue": {
+      "backgrounds": ["#FFE5EDFE", "#FFCBDDFE", "#FFF1F6FE"],
+      "gradients": [["#FFCBDDFE", "#FFF1F6FE"]],
+      "roles": {
+        "primary": "#FF1F4799",
+        "secondary": "#991F4799",
+        "tertiary": "#661F4799",
+        "graphicPrimary": "#FF1F4799",
+        "graphicSecondary": "#991F4799",
+        "graphicTertiary": "#661F4799",
+        "componentSecondary": "#331F4799",
+        "componentTertiary": "#1A1F4799"
+      }
+    },
+    "purple": {
+      "backgrounds": ["#FFDBCCFF", "#FFF6F2FF"],
+      "gradients": [["#FFDBCCFF", "#FFF6F2FF"]],
+      "roles": {
+        "primary": "#FF563D99",
+        "secondary": "#99563D99",
+        "tertiary": "#66563D99",
+        "graphicPrimary": "#FF563D99",
+        "graphicSecondary": "#99563D99",
+        "graphicTertiary": "#66563D99",
+        "componentSecondary": "#33563D99",
+        "componentTertiary": "#1A563D99"
+      }
+    },
+    "warm": {
+      "backgrounds": ["#FFFFE0CC", "#FFFFF7F2"],
+      "gradients": [["#FFFFE0CC", "#FFFFF7F2"]],
+      "roles": {
+        "primary": "#FF8C4B1C",
+        "secondary": "#998C4B1C",
+        "tertiary": "#668C4B1C",
+        "graphicPrimary": "#FF8C4B1C",
+        "graphicSecondary": "#998C4B1C",
+        "graphicTertiary": "#668C4B1C",
+        "componentSecondary": "#338C4B1C",
+        "componentTertiary": "#1A8C4B1C"
+      }
+    },
+    "fusionDark": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FFFFFFFF",
+        "secondary": "#CCFFFFFF",
+        "tertiary": "#99FFFFFF",
+        "graphicPrimary": "#FFFFFFFF",
+        "graphicSecondary": "#CCFFFFFF",
+        "graphicTertiary": "#99FFFFFF",
+        "componentSecondary": "#33FFFFFF",
+        "componentTertiary": "#1AFFFFFF"
+      }
+    },
+    "neutralLight": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FF1A1A1A",
+        "secondary": "#991A1A1A",
+        "tertiary": "#661A1A1A",
+        "graphicPrimary": "#FF1A1A1A",
+        "graphicSecondary": "#991A1A1A",
+        "graphicTertiary": "#661A1A1A",
+        "componentSecondary": "#331A1A1A",
+        "componentTertiary": "#1A1A1A1A"
+      }
+    },
+    "neutralDark": {
+      "backgrounds": [],
+      "gradients": [],
+      "roles": {
+        "primary": "#FFFFFFFF",
+        "secondary": "#CCFFFFFF",
+        "tertiary": "#99FFFFFF",
+        "graphicPrimary": "#FFFFFFFF",
+        "graphicSecondary": "#CCFFFFFF",
+        "graphicTertiary": "#99FFFFFF",
+        "componentSecondary": "#33FFFFFF",
+        "componentTertiary": "#1AFFFFFF"
+      }
+    }
+  },
+  "components": {
+    "SingleLineTitle": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 12,
+            "itemMargin": 0,
+            "flexShrink": 0,
+            "justifyContent": "start",
+            "alignItems": "center"
+          }
+        },
+        "title": {
+          "component": "Text",
+          "styles": {
+            "fontSize": 12,
+            "fontWeight": 400,
+            "lineHeight": 1,
+            "textAlign": "start",
+            "maxLines": 1,
+            "flexShrink": 0,
+            "width": "matchParent"
+          }
+        }
+      }
+    },
+    "DoubleLineTitle": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "title": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 12,
+            "fontWeight": 500,
+            "maxLines": 2,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minHeight": 18,
+              "maxHeight": 36
+            }
+          }
+        }
+      }
+    },
+    "Badge": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "padding": {
+              "left": 6,
+              "right": 6
+            },
+            "borderRadius": 8,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "EmphasisText": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 2,
+            "alignItems": "start",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "width": "matchParent"
+          }
+        },
+        "main": {
+          "component": "Text",
+          "styles": {
+            "height": 24,
+            "fontSize": 18,
+            "fontWeight": 700,
+            "lineHeight": 1.3333333333333333,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "width": "matchParent"
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "lineHeight": 1.3333333333333333,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "width": "matchParent"
+          }
+        }
+      }
+    },
+    "SecondaryBody": {
+      "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 1,
+        "maximumItems": 4
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 2,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "row": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 20,
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "height": 20,
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            }
+          }
+        },
+        "text": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        },
+        "separator": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "body": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 20
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 20
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 20,
+                "fontSize": 14,
+                "fontWeight": 400,
+                "maxLines": 1
+              }
+            }
+          }
+        },
+        "bodyMultiline": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 40,
+                "alignItems": "top"
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 40,
+                "alignItems": "top"
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 40,
+                "fontSize": 14,
+                "fontWeight": 400,
+                "maxLines": 2
+              }
+            }
+          }
+        },
+        "metadata": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1
+              }
+            }
+          }
+        },
+        "multiline": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "item": {
+              "styles": {
+                "height": 18
+              }
+            },
+            "text": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12
+              }
+            },
+            "separator": {
+              "styles": {
+                "height": 18,
+                "fontSize": 12
+              }
+            }
+          }
+        }
+      }
+    },
+    "H_BarChart": {
+      "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 2,
+        "maximumItems": 3
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 11,
+            "alignItems": "start",
+            "flexShrink": 1
+          }
+        },
+        "item": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 0
+          }
+        },
+        "meta": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 20,
+            "itemMargin": 8,
+            "alignItems": "bottom",
+            "justifyContent": "spaceBetween",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "layoutWeight": 1
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "textAlign": "end",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "bar": {
+          "component": "Progress",
+          "styles": {
+            "width": "matchParent",
+            "height": 6,
+            "strokeWidth": 6,
+            "borderRadius": 2,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "threeItems": {
+          "parts": {
+            "root": {
+              "styles": {
+                "itemMargin": 7
+              }
+            },
+            "bar": {
+              "styles": {
+                "height": 4,
+                "strokeWidth": 4
+              }
+            }
+          }
+        }
+      }
+    },
+    "NumericRatioStack": {
+      "alignment": "aligned",
+      "metrics": {
+        "items": 3
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 4,
+            "alignItems": "start",
+            "flexShrink": 0
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "height": 16,
+            "itemMargin": 4,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "iconSlot": {
+          "component": "Stack",
+          "styles": {
+            "width": 16,
+            "height": 16,
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 12,
+            "height": 12,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "valueGroup": {
+          "component": "Row",
+          "styles": {
+            "height": 16,
+            "itemMargin": 0,
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "row": {
+          "parts": {
+            "root": {
+              "component": "Row",
+              "styles": {
+                "width": "matchParent",
+                "itemMargin": 0,
+                "alignItems": "center",
+                "justifyContent": "spaceBetween"
+              }
+            },
+            "item": {
+              "styles": {
+                "itemMargin": 2
+              }
+            },
+            "iconSlot": {
+              "styles": {
+                "width": 12
+              }
+            }
+          }
+        }
+      }
+    },
+    "PillButton": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Button",
+          "styles": {
+            "height": 36,
+            "borderRadius": 30,
+            "padding": 0,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "flexShrink": 0,
+            "width": "matchParent"
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "maxWidth": 96,
+            "height": 17,
+            "fontSize": 14,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "sizes": {
+        "2x2": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent"
+              }
+            }
+          }
+        },
+        "2x4": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent"
+              }
+            }
+          }
+        }
+      }
+    },
+    "CircleButton": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Stack",
+          "styles": {
+            "width": 40,
+            "height": 40,
+            "borderRadius": 20,
+            "padding": 0,
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain"
+          }
+        }
+      }
+    },
+    "EmphasizedData": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "itemMargin": 2,
+            "justifyContent": "start",
+            "alignItems": "baseline",
+            "flexShrink": 0,
+            "width": "matchParent"
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 30,
+            "fontSize": 30,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "height": 12,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "lineHeight": 1,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "sizes": {
+        "2x2": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent"
+              }
+            }
+          }
+        },
+        "2x4": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent"
+              }
+            }
+          }
+        }
+      }
+    },
+    "InfoBlock": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "padding": {
+              "left": 8,
+              "right": 8
+            },
+            "borderRadius": 16,
+            "alignItems": "center",
+            "justifyContent": "spaceBetween",
+            "clip": true,
+            "flexShrink": 0,
+            "width": "matchParent"
+          }
+        },
+        "rootNoVisual": {
+          "component": "Column",
+          "styles": {
+            "padding": {
+              "left": 8,
+              "right": 8
+            },
+            "borderRadius": 16,
+            "itemMargin": 0,
+            "alignItems": "start",
+            "justifyContent": "center",
+            "clip": true,
+            "flexShrink": 0,
+            "width": "matchParent"
+          }
+        },
+        "copy": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 0,
+            "alignItems": "start",
+            "justifyContent": "center",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            }
+          }
+        },
+        "primary": {
+          "component": "Text",
+          "styles": {
+            "height": 22,
+            "fontSize": 16,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "width": "matchParent"
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "width": "matchParent"
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 24,
+            "height": 24,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "primaryRow": {
+          "component": "Row",
+          "styles": {
+            "height": 22,
+            "itemMargin": 2,
+            "alignItems": "bottom",
+            "flexShrink": 0
+          }
+        },
+        "primaryValue": {
+          "component": "Text",
+          "styles": {
+            "height": 22,
+            "fontSize": 16,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "flexShrink": 1
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "progressStack": {
+          "component": "Stack",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "progress": {
+          "component": "Progress",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "progressIcon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        }
+      },
+      "sizes": {
+        "2x2": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent",
+                "height": 63,
+                "itemMargin": 4
+              }
+            },
+            "rootNoVisual": {
+              "styles": {
+                "width": "matchParent",
+                "height": 63
+              }
+            }
+          }
+        },
+        "2x4": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "matchParent",
+                "height": 57,
+                "itemMargin": 4
+              }
+            },
+            "rootNoVisual": {
+              "styles": {
+                "width": "matchParent",
+                "height": 57
+              }
+            },
+            "primary": {
+              "styles": {
+                "fontSize": 14
+              }
+            }
+          }
+        }
+      }
+    },
+    "ProgressCircle": {
+      "alignment": "aligned",
+      "metrics": {
+        "externalTextHeight": 14,
+        "itemMargin": 2,
+        "minimumRingDiameter": 40,
+        "strokeWidth": 6
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 2,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "ringStack": {
+          "component": "Stack",
+          "styles": {
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "ring": {
+          "component": "Progress",
+          "styles": {
+            "type": "ring",
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "externalText": {
+          "component": "Text",
+          "styles": {
+            "height": 14,
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "ProgressLine2": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "height": 50,
+            "padding": {
+              "bottom": 4
+            },
+            "itemMargin": 4,
+            "justifyContent": "start",
+            "alignItems": "start",
+            "flexShrink": 0
+          }
+        },
+        "readout": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 30,
+            "itemMargin": 2,
+            "alignItems": "baseline",
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 30,
+            "fontSize": 30,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "height": 12,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "lineHeight": 1,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "bar": {
+          "component": "Progress",
+          "styles": {
+            "width": "matchParent",
+            "height": 8,
+            "strokeWidth": 8,
+            "borderRadius": 4,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "TableText": {
+      "alignment": "aligned",
+      "metrics": {
+        "twoRowGap": 2,
+        "threeRowGap": 2
+      },
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "layoutWeight": 1,
+            "alignItems": "start",
+            "justifyContent": "center",
+            "flexShrink": 1
+          }
+        },
+        "row": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "itemMargin": 8,
+            "alignItems": "bottom",
+            "justifyContent": "spaceBetween",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "textAlign": "end",
+            "maxLines": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "layoutWeight": 1
+          }
+        }
+      },
+      "variants": {
+        "compact": {
+          "parts": {
+            "row": {
+              "styles": {
+                "height": 16,
+                "alignItems": "top"
+              }
+            },
+            "label": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10
+              }
+            },
+            "value": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10
+              }
+            }
+          }
+        }
+      }
+    },
+    "TextBlock": {
+      "alignment": "aligned",
+      "metrics": {
+        "minimumItems": 2,
+        "maximumItems": 4
+      },
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": "matchParent",
+            "itemMargin": 8,
+            "alignItems": "stretch",
+            "justifyContent": "start",
+            "layoutWeight": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minHeight": 48
+            }
+          }
+        },
+        "item": {
+          "component": "Column",
+          "styles": {
+            "height": "matchParent",
+            "backgroundColor": "#99FFFFFF",
+            "padding": {
+              "left": 8,
+              "right": 8
+            },
+            "borderRadius": 16,
+            "itemMargin": 2,
+            "alignItems": "start",
+            "justifyContent": "center",
+            "layoutWeight": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 64,
+              "minHeight": 0
+            }
+          }
+        },
+        "labelSlot": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 12,
+            "fontWeight": 700,
+            "textAlign": "start",
+            "maxLines": 1,
+            "textOverflow": "ellipsis"
+          }
+        },
+        "valueSlot": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 16,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 10,
+            "fontWeight": 500,
+            "textAlign": "start",
+            "maxLines": 1,
+            "textOverflow": "ellipsis"
+          }
+        }
+      }
+    },
+    "CardButton": {
+      "alignment": "aligned",
+      "variants": {
+        "multilineLabel": {
+          "parts": {
+            "label": {
+              "styles": {
+                "height": 40,
+                "maxLines": 2
+              }
+            }
+          }
+        }
+      },
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 57,
+            "padding": {
+              "left": 12,
+              "right": 12,
+              "top": 7,
+              "bottom": 7
+            },
+            "borderRadius": 16,
+            "backgroundColor": "#99FFFFFF",
+            "itemMargin": 8,
+            "alignItems": "center",
+            "justifyContent": "spaceBetween",
+            "flexShrink": 0,
+            "constraintSize": {
+              "minWidth": 0,
+              "minHeight": 48,
+              "maxHeight": 64
+            }
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "textAlign": "start",
+            "maxLines": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "layoutWeight": 1
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 24,
+            "height": 24,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "placeholder": {
+          "component": "Divider",
+          "styles": {
+            "width": 24,
+            "height": 24,
+            "borderRadius": 12,
+            "strokeWidth": 0,
+            "color": "#00FFFFFF",
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "ProgressCircleSingle": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 44,
+            "itemMargin": 8,
+            "alignItems": "center",
+            "justifyContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "ringStack": {
+          "component": "Stack",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "alignContent": "center",
+            "flexShrink": 0
+          }
+        },
+        "ring": {
+          "component": "Progress",
+          "styles": {
+            "width": 44,
+            "height": 44,
+            "strokeWidth": 6,
+            "flexShrink": 0
+          }
+        },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 20,
+            "height": 20,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
+        "labels": {
+          "component": "Column",
+          "styles": {
+            "height": 44,
+            "itemMargin": 0,
+            "alignItems": "start",
+            "justifyContent": "center",
+            "flexShrink": 1,
+            "layoutWeight": 1
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "maxLines": 1,
+            "textOverflow": "clip"
+          }
+        },
+        "display": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "maxLines": 1,
+            "textOverflow": "clip"
+          }
+        },
+        "secondary": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 10,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "textOverflow": "clip"
+          }
+        }
+      },
+      "variants": {
+        "withSecondary": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 46
+              }
+            },
+            "labels": {
+              "styles": {
+                "height": 46
+              }
+            },
+            "display": {
+              "styles": {
+                "height": 14,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            },
+            "secondary": {
+              "styles": {
+                "height": 14
+              }
+            }
+          }
+        },
+        "twoByTwo": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "height": 52
+              }
+            }
+          }
+        },
+        "twoByTwoWithSecondary": {
+          "parts": {
+            "root": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "ringStack": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "ring": {
+              "styles": {
+                "width": 52,
+                "height": 52
+              }
+            },
+            "labels": {
+              "styles": {
+                "height": 52
+              }
+            },
+            "display": {
+              "styles": {
+                "height": 16,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            },
+            "secondary": {
+              "styles": {
+                "height": 16
+              }
+            }
+          }
+        }
+      }
+    },
+    "EventCard": {
+      "alignment": "aligned",
+      "parts": {
+        "multiRoot": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 8,
+            "alignItems": "start",
+            "justifyContent": "start",
+            "flexShrink": 1,
+            "clip": true
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 7,
+            "alignItems": "top",
+            "flexShrink": 0,
+            "clip": true
+          }
+        },
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "itemMargin": 7,
+            "alignItems": "top",
+            "flexShrink": 1,
+            "clip": true
+          }
+        },
+        "rail": {
+          "component": "Column",
+          "styles": {
+            "width": 8,
+            "padding": {
+              "top": 5,
+              "bottom": 0
+            },
+            "itemMargin": 5,
+            "alignItems": "center",
+            "justifyContent": "start",
+            "flexShrink": 0
+          }
+        },
+        "dot": {
+          "component": "Divider",
+          "styles": {
+            "width": 8,
+            "height": 8,
+            "borderRadius": 4,
+            "borderWidth": 1.5,
+            "strokeWidth": 0,
+            "color": "#00FFFFFF",
+            "flexShrink": 0
+          }
+        },
+        "line": {
+          "component": "Divider",
+          "styles": {
+            "width": 1,
+            "strokeWidth": 1,
+            "vertical": true,
+            "flexShrink": 0
+          }
+        },
+        "copy": {
+          "component": "Column",
+          "styles": {
+            "itemMargin": 0,
+            "alignItems": "start",
+            "justifyContent": "start",
+            "flexShrink": 1,
+            "constraintSize": {
+              "minWidth": 0
+            },
+            "layoutWeight": 1
+          }
+        },
+        "title": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 14,
+            "fontWeight": 700,
+            "maxLines": 2,
+            "flexShrink": 0,
+            "constraintSize": {
+              "minWidth": 0,
+              "minHeight": 18
+            }
+          }
+        },
+        "meta": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 0,
+            "constraintSize": {
+              "minWidth": 0
+            }
+          }
+        },
+        "metaRow": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 14,
+            "itemMargin": 4,
+            "alignItems": "center",
+            "flexShrink": 0,
+            "clip": true
+          }
+        },
+        "separator": {
+          "component": "Text",
+          "styles": {
+            "height": 14,
+            "fontSize": 10,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        }
+      },
+      "variants": {
+        "withoutLocation": {
+          "metrics": {
+            "height": 34,
+            "lineHeight": 16
+          }
+        },
+        "withLocation": {
+          "metrics": {
+            "height": 50,
+            "lineHeight": 32
+          }
+        },
+        "compact": {
+          "metrics": {
+            "height": 32,
+            "lineHeight": 16
+          },
+          "parts": {
+            "rail": {
+              "styles": {
+                "padding": {
+                  "top": 4,
+                  "bottom": 0
+                },
+                "itemMargin": 4
+              }
+            },
+            "copy": {
+              "styles": {
+                "itemMargin": 2
+              }
+            },
+            "title": {
+              "styles": {
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 700,
+                "maxLines": 1,
+                "constraintSize": {
+                  "minHeight": 16
+                }
+              }
+            },
+            "meta": {
+              "styles": {
+                "height": 14,
+                "fontSize": 10,
+                "fontWeight": 400
+              }
+            }
+          }
+        }
+      }
+    },
+    "DataDisplay": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "height": 114,
+            "itemMargin": 8,
+            "alignItems": "center",
+            "justifyContent": "center",
+            "flexShrink": 1
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "height": 60,
+            "fontSize": 56,
+            "fontWeight": 700,
+            "textAlign": "center",
+            "maxLines": 1,
+            "width": "matchParent"
+          }
+        },
+        "supporting": {
+          "component": "Text",
+          "styles": {
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 400,
+            "textAlign": "center",
+            "maxLines": 1,
+            "width": "matchParent"
+          }
+        }
+      }
+    },
+    "TopTextBottomValue": {
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 68,
+            "alignItems": "center",
+            "justifyContent": "spaceBetween",
+            "flexShrink": 0,
+            "itemMargin": 1
+          }
+        },
+        "item": {
+          "component": "Column",
+          "styles": {
+            "height": "matchParent",
+            "itemMargin": 0,
+            "alignItems": "center",
+            "justifyContent": "center",
+            "flexShrink": 0,
+            "layoutWeight": 1
+          }
+        },
+        "label": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "value": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 32,
+            "fontSize": 24,
+            "fontWeight": 700,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "unit": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "height": 18,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "textAlign": "center",
+            "maxLines": 1,
+            "flexShrink": 0
+          }
+        },
+        "divider": {
+          "component": "Divider",
+          "styles": {
+            "width": 1,
+            "height": 62,
+            "strokeWidth": 1,
+            "vertical": true,
+            "flexShrink": 0
+          }
+        }
+      }
+    },
+    "SummaryList": {
+      "alignment": "native",
+      "parts": {}
+    }
+  }
+}

@@ -1,3 +1,4 @@
-["root","Column",{"width":320,"height":160,"padding":8,"borderRadius":16,"clip":true,"itemMargin":8,"backgroundColor":"comp_background_primary"},["title"]]
-["title","Text",{"content":"Design Compact Mock","design":"heading-primary-sm","fontColor":"font_primary"}]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"comp_background_primary"},["foreground"]]
+["foreground","Column",{"width":"matchParent","height":"matchParent","padding":12,"alignItems":"start","justifyContent":"start"},["title"]]
+["title","SecondaryBody",{"role":"body","items":[{"value":"Design Compact Mock","maxLines":1}],"fontColor":"#FF1F4799"}]
 ["/ui/state","ready"]

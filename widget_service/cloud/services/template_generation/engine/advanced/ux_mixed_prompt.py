@@ -586,6 +586,8 @@ def build_ux_mixed_prompt(
     user = "\n".join(
         (
             "themeId=" + json.dumps(base.theme_id, ensure_ascii=False),
+            "cardComposition="
+            + json.dumps({"businessTitleCandidate": card_spec.get("title")}, ensure_ascii=False),
             "trustedStringLiterals=" + json.dumps(contract.trusted_literals, ensure_ascii=False),
             "trustedAssetSources=" + json.dumps(contract.allowed_asset_sources, ensure_ascii=False),
             "trustedAssetCandidates=" + json.dumps(asset_candidates, ensure_ascii=False),
@@ -650,6 +652,13 @@ def build_ux_mixed_prompt(
                     "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"
                     " Template，按完整签名设置 Props，并使用一个与业务后缀及动作形态匹配的布局根。"
                 )
+            ),
+            (
+                "单手机电量方案已按实际可展示候选字段数量降序排列，"
+                "均已满足必选覆盖及输入与动作约束。优先选择 planCandidates 第一项；"
+                "不要因其它方案字段更少或布局更简单而跳过首项，不得自行增加字段。"
+                if template_plans and scope.advanced_component_ids == ("BatteryOverview",)
+                else ""
             ),
             layout_consistency_instruction,
             "只输出一棵以分号结束的类 Tersel Template 调用树，不输出说明。",

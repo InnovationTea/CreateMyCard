@@ -1,26 +1,30 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 
+import json
 import re
 from pathlib import Path
 
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.compact_prompt_loader import assemble_prompts
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
     get_dsl_processor,
 )
 
-_DESIGN_PROMPT_PATH = (
+_DESIGN_PROMPT_SOURCE = (
     Path(__file__).resolve().parents[1]
     / "cloud"
     / "data"
     / "protocol_profiles"
-    / "design-compact-dsl"
-    / "PROMPT.md"
+    / "design-compact-dsl-fusion"
+    / "prompt_source"
 )
+_DESIGN_PROMPT = assemble_prompts(_DESIGN_PROMPT_SOURCE).get("create")
+assert isinstance(_DESIGN_PROMPT, str)
 
 _INVALID_COMPACT_DSL = "\n".join(
     [
@@ -31,127 +35,347 @@ _INVALID_COMPACT_DSL = "\n".join(
     ]
 )
 
-_NARROW_GRAPHICAL_ACTION_DSL = "\n".join(
-    [
-        '["root","Column",{"width":"matchParent","height":"matchParent"},["action_area"]]',
-        '["action_area","Column",{"width":136,"height":36},["action"]]',
-        '["action","Row",{"width":96,"height":36,"padding":8,"borderRadius":18,'
-        '"itemMargin":8,"justifyContent":"center","alignItems":"center",'
-        '"onClick":[{"call":"clickToIntent","args":{"intentName":"Open"}}]},'
-        '["icon","label"]]',
-        '["icon","Image",{"src":"resources/icon.svg","width":20,"height":20,'
-        '"objectFit":"contain","fillColor":"#FF1F4799"}]',
-        '["label","Text",{"content":"打开","fontSize":14,"maxLines":1}]',
-    ]
-)
+def _single_line_title_dsl(extra_props: str = "") -> str:
+    return "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent"},'
+            '["header"]]',
+            '["header","SingleLineTitle",{"title":"主题","fontColor":"#FF563D99"'
+            f'{extra_props}}}]',
+        ]
+    )
 
 
-def _narrow_graphical_action_task_spec() -> dict:
-    return {
-        "size": "2x2",
-        "eventCandidates": [
-            {
-                "call": "clickToIntent",
-                "args": {"intentName": "Open"},
-            }
-        ],
-        "dataModelSchema": {"data": {}},
-        "assetCandidates": [{"src": "resources/icon.svg"}],
-    }
+def _progress_circle_dsl(*, width: int, height: int, extra: str = "") -> str:
+    return "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent"},'
+            '["ring"]]',
+            '["ring","ProgressCircle",{"externalText":68,'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"电量百分比"},'
+            f'"width":{width},"height":{height},'
+            '"fontColor":"#FF1F4799","fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"'
+            f'{extra}}}]',
+        ]
+    )
 
 
-def _asset_color_task_spec(source: str, description: str) -> dict:
+def _progress_circle_task_spec() -> dict:
     return {
         "size": "2x4",
         "eventCandidates": [],
         "dataModelSchema": {"data": {}},
-        "assetCandidates": [{"src": source, "description": description}],
+        "assetCandidates": [
+            {
+                "src": "resources/battery.svg",
+                "description": "可染色的电量单色图标",
+            }
+        ],
     }
 
 
-def _image_asset_dsl(source: str, *, fill_color: str | None = None) -> str:
-    fill_property = f',"fillColor":"{fill_color}"' if fill_color else ""
-    return "\n".join(
+def test_model_output_rejects_direct_text_but_accepts_secondary_body() -> None:
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [],
+    }
+    card_spec = {"suggestSize": "2x2", "dataBindings": []}
+    direct_text = "\n".join(
         [
-            '["root","Column",{"width":"matchParent","height":"matchParent"},'
-            '["icon"]]',
-            f'["icon","Image",{{"src":"{source}","width":20,"height":20,'
-            f'"objectFit":"contain"{fill_property}}}]',
+            '["root","Column",{},["body"]]',
+            '["body","Text",{"content":"普通正文","fontSize":14,'
+            '"fontColor":"#FF1F4799"}]',
         ]
     )
 
-
-def test_rejects_tintable_svg_image_without_fill_color() -> None:
-    source = "resources/heart.svg"
-    with pytest.raises(
-        CompactDslValidationError,
-        match=r"tintable SVG resources/heart\.svg must set fillColor explicitly",
-    ):
+    with pytest.raises(CompactDslValidationError, match="converter-internal"):
         validate_compact_dsl(
-            _image_asset_dsl(source),
-            task_spec=_asset_color_task_spec(
-                source,
-                "默认黑色的单色心形图标，适用于心率监测。",
-            ),
+            direct_text,
+            task_spec=task_spec,
+            card_spec=card_spec,
+            enforce_model_component_types=True,
+        )
+
+    semantic_body = "\n".join(
+        [
+            '["root","Column",{},["body"]]',
+            '["body","SecondaryBody",{"role":"body","items":['
+            '{"value":"普通正文","maxLines":1}],"fontColor":"#FF1F4799"}]',
+        ]
+    )
+    validate_compact_dsl(
+        semantic_body,
+        task_spec=task_spec,
+        card_spec=card_spec,
+        enforce_model_component_types=True,
+    )
+
+
+def test_accepts_progress_circle_free_box_geometry() -> None:
+    validate_compact_dsl(
+        _progress_circle_dsl(width=72, height=76),
+        task_spec=_progress_circle_task_spec(),
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
+def test_rejects_svg_icon_without_fill_color() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        '"fillColor":"#991F4799",',
+        "",
+    )
+
+    with pytest.raises(CompactDslValidationError, match="SVG icon.*must set fillColor"):
+        validate_compact_dsl(
+            source,
+            task_spec=_progress_circle_task_spec(),
             card_spec={"suggestSize": "2x4", "dataBindings": []},
         )
 
 
-def test_accepts_tintable_svg_image_with_fill_color() -> None:
-    source = "resources/heart.svg"
-    validate_compact_dsl(
-        _image_asset_dsl(source, fill_color="#FF563D99"),
-        task_spec=_asset_color_task_spec(
+def test_rejects_fill_color_on_bitmap_icon() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        "resources/battery.svg",
+        "resources/battery.png",
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["assetCandidates"][0]["src"] = "resources/battery.png"
+
+    with pytest.raises(CompactDslValidationError, match="bitmap icon.*must not set fillColor"):
+        validate_compact_dsl(
             source,
-            "默认黑色的单色心形图标，适用于心率监测。",
-        ),
-        card_spec={"suggestSize": "2x4", "dataBindings": []},
-    )
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
 
 
-@pytest.mark.parametrize(
-    ("source", "description"),
-    [
-        ("resources/weather.svg", "多色天气图标，建议保留原色。"),
-        ("resources/brand.svg", "品牌色 Logo，禁止染色。"),
-        ("resources/runner.png", "透明背景彩色跑步素材。"),
-    ],
-)
-def test_accepts_original_color_or_bitmap_asset_without_fill_color(
-    source: str,
-    description: str,
-) -> None:
+def test_accepts_bitmap_icon_without_fill_color() -> None:
+    source = _progress_circle_dsl(width=72, height=76).replace(
+        "resources/battery.svg",
+        "resources/battery.png",
+    ).replace('"fillColor":"#991F4799",', "")
+    task_spec = _progress_circle_task_spec()
+    task_spec["assetCandidates"][0]["src"] = "resources/battery.png"
+
     validate_compact_dsl(
-        _image_asset_dsl(source),
-        task_spec=_asset_color_task_spec(source, description),
+        source,
+        task_spec=task_spec,
         card_spec={"suggestSize": "2x4", "dataBindings": []},
     )
 
 
-def test_rejects_tintable_card_header_svg_without_fill_color() -> None:
-    source = "resources/moon.svg"
-    dsl = "\n".join(
+def test_accepts_svg_icon_auto_tinted_by_pill_button() -> None:
+    handler = {
+        "call": "clickToDeeplink",
+        "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry",
+        },
+    }
+    source = "\n".join(
         [
-            '["root","Column",{"width":"matchParent","height":"matchParent",'
-            '"padding":12,"justifyContent":"start"},["title_area"]]',
-            '["title_area","CardHeader",{"title":"昨晚睡眠",'
-            f'"fontColor":"#FF563D99","icon":"{source}"}}]',
+            '["root","Column",{},["cta"]]',
+            '["cta","PillButton",{"label":"蓝牙设置",'
+            '"icon":"resources/settings.svg",'
+            f'"onClick":[{json.dumps(handler, ensure_ascii=False)}]' + "}]",
         ]
     )
-    task_spec = _asset_color_task_spec(
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [handler],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [{"src": "resources/settings.svg"}],
+    }
+
+    validate_compact_dsl(
         source,
-        "默认黑色的单色月亮图标，支持通过 fillColor 与卡片配色统一。",
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
     )
-    task_spec["size"] = "2x2"
+
+
+def test_accepts_progress_circle_bound_to_complete_percentage_text() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{},["ring"]]',
+            '["ring","ProgressCircle",'
+            '{"externalText":{"path":"/data/weather/rainProbability"},'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"降雨概率"},'
+            '"width":72,"height":76,"fontColor":"#FF1F4799",'
+            '"fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+            '["/data/weather/rainProbability","20%"]',
+        ]
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["dataModelSchema"] = {
+        "data": {
+            "weather": {
+                "rainProbability": {
+                    "type": "string",
+                    "description": "可直接显示的降雨概率百分比",
+                    "sampleValue": "20%",
+                }
+            }
+        }
+    }
+
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={
+            "suggestSize": "2x4",
+            "dataBindings": [
+                {
+                    "capabilityId": "ViewWeather",
+                    "arguments": {},
+                    "writeResultTo": "/data/weather",
+                }
+            ],
+        },
+    )
+
+
+def test_accepts_progress_circle_percentage_expression() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{},["ring"]]',
+            '["ring","ProgressCircle",'
+            '{"externalText":"{{ ${/data/battery/percent} + \'%\' }}",'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"电量百分比"},'
+            '"width":72,"height":76,"fontColor":"#FF1F4799",'
+            '"fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+            '["/data/battery/percent",68]',
+        ]
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["dataModelSchema"] = {
+        "data": {
+            "battery": {
+                "percent": {
+                    "type": "number",
+                    "description": "0 到 100 的电量百分比",
+                    "sampleValue": 68,
+                }
+            }
+        }
+    }
+
+    validate_compact_dsl(
+        source,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+        enforce_model_component_types=True,
+    )
+
+
+def test_rejects_progress_circle_bound_to_business_copy_with_percentage() -> None:
+    source = "\n".join(
+        [
+            '["root","Column",{},["ring"]]',
+            '["ring","ProgressCircle",'
+            '{"externalText":{"path":"/data/weather/rainProbability"},'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"降雨概率"},'
+            '"width":72,"height":76,"fontColor":"#FF1F4799",'
+            '"fillColor":"#991F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+            '["/data/weather/rainProbability","降雨概率 20%"]',
+        ]
+    )
+    task_spec = _progress_circle_task_spec()
+    task_spec["dataModelSchema"] = {
+        "data": {
+            "weather": {
+                "rainProbability": {
+                    "type": "string",
+                    "description": "带业务标签的降雨概率文案",
+                    "sampleValue": "降雨概率 20%",
+                }
+            }
+        }
+    }
 
     with pytest.raises(
         CompactDslValidationError,
-        match=r"component title_area: tintable SVG .* must set fillColor explicitly",
+        match="complete numeric percentage",
     ):
         validate_compact_dsl(
-            dsl,
+            source,
             task_spec=task_spec,
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+@pytest.mark.parametrize(
+    ("width", "height", "extra", "message"),
+    [
+        (44, 30, "", "leave less than 40vp for the ring"),
+        (44, 60, ',"value":68', "ProgressCircle does not allow value"),
+    ],
+)
+def test_rejects_invalid_progress_circle_contract(
+    width: int,
+    height: int,
+    extra: str,
+    message: str,
+) -> None:
+    with pytest.raises(CompactDslValidationError, match=message):
+        validate_compact_dsl(
+            _progress_circle_dsl(width=width, height=height, extra=extra),
+            task_spec=_progress_circle_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+@pytest.mark.parametrize("component_type", ["Divider", "Image", "Progress"])
+def test_rejects_removed_direct_compact_input(component_type: str) -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match=rf"unsupported component type {component_type}",
+    ):
+        validate_compact_dsl(
+            '\n'.join(
+                [
+                    '["root","Column",{},["item"]]',
+                    f'["item","{component_type}",{{}}]',
+                ]
+            ),
+            task_spec=_progress_circle_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+@pytest.mark.parametrize(
+    "extra_props",
+    [
+        ',"icon":"resources/heart.svg"',
+        ',"fillColor":"#FF563D99"',
+    ],
+)
+def test_rejects_single_line_title_visual_props(extra_props: str) -> None:
+    with pytest.raises(
+        CompactDslValidationError,
+        match=r"SingleLineTitle",
+    ):
+        validate_compact_dsl(
+            _single_line_title_dsl(extra_props),
+            task_spec={
+                "size": "2x4",
+                "eventCandidates": [],
+                "dataModelSchema": {"data": {}},
+                "assetCandidates": [{"src": "resources/heart.svg"}],
+            },
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
         )
 
 
@@ -176,15 +400,16 @@ def test_design_processor_reports_compact_contract_as_validation() -> None:
     )
 
     assert result.standard_dsl == ""
-    assert len(result.errors) == 2
+    assert len(result.errors) == 1
     assert all(item.stage == "validation" for item in result.errors)
     assert all(
         item.code == "COMPACT_DSL_VALIDATION_FAILED"
         for item in result.errors
     )
+    assert "Text is converter-internal" in result.errors[0].message
 
 
-@pytest.mark.parametrize("component_type", ["Row", "Column", "List", "Stack"])
+@pytest.mark.parametrize("component_type", ["Row", "Column", "Stack"])
 def test_rejects_empty_container_before_a2ui_conversion(
     component_type: str,
 ) -> None:
@@ -211,35 +436,6 @@ def test_rejects_empty_container_before_a2ui_conversion(
             },
             card_spec={"dataBindings": []},
         )
-
-
-def test_rejects_narrow_2x2_graphical_action_without_parent_centering() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match=(
-            r"2x2 narrow graphical action Row action must be centered by parent "
-            r"Column action_area"
-        ),
-    ):
-        validate_compact_dsl(
-            _NARROW_GRAPHICAL_ACTION_DSL,
-            task_spec=_narrow_graphical_action_task_spec(),
-            card_spec={"dataBindings": []},
-        )
-
-
-def test_accepts_narrow_2x2_graphical_action_with_parent_centering() -> None:
-    dsl = _NARROW_GRAPHICAL_ACTION_DSL.replace(
-        '"width":136,"height":36',
-        '"width":136,"height":36,"alignItems":"center"',
-        1,
-    )
-
-    validate_compact_dsl(
-        dsl,
-        task_spec=_narrow_graphical_action_task_spec(),
-        card_spec={"dataBindings": []},
-    )
 
 
 def _w9_sparse_task_spec() -> dict:
@@ -281,7 +477,7 @@ def _w9_sparse_task_spec() -> dict:
 
 def _w9_sparse_dsl(*, centered: bool) -> str:
     content_props = {
-        "width": 114,
+        "width": 116,
         "layoutWeight": 1,
         "itemMargin": 4,
     }
@@ -289,23 +485,23 @@ def _w9_sparse_dsl(*, centered: bool) -> str:
         content_props["justifyContent"] = "center"
     rows = [
         '["root","Row",{"width":"matchParent","height":"matchParent",'
-        '"padding":8,"itemMargin":8},["leftZone","rightZone"]]',
-        '["leftZone","Column",{"width":138,"height":134,"padding":12},'
+        '"padding":12,"itemMargin":12},["leftZone","rightZone"]]',
+        '["leftZone","Column",{"width":132,"height":126,"padding":8},'
         '["leftContent"]]',
         f'["leftContent","Column",{content_props!r}'.replace("'", '"')
         + ',["leftName","leftStatus"]]',
         '["leftName","Text",{"content":{"path":"/data/left/name"},'
-        '"width":120,"fontSize":12,"maxLines":1}]',
+        '"width":116,"fontSize":12,"maxLines":1}]',
         '["leftStatus","Text",{"content":{"path":"/data/left/status"},'
-        '"width":120,"fontSize":18,"fontWeight":700,"maxLines":1}]',
-        '["rightZone","Column",{"width":138,"height":134,"padding":12},'
+        '"width":116,"fontSize":18,"fontWeight":700,"maxLines":1}]',
+        '["rightZone","Column",{"width":132,"height":126,"padding":8},'
         '["rightContent"]]',
         f'["rightContent","Column",{content_props!r}'.replace("'", '"')
         + ',["rightName","rightStatus"]]',
         '["rightName","Text",{"content":{"path":"/data/right/name"},'
-        '"width":120,"fontSize":12,"maxLines":1}]',
+        '"width":116,"fontSize":12,"maxLines":1}]',
         '["rightStatus","Text",{"content":{"path":"/data/right/status"},'
-        '"width":120,"fontSize":18,"fontWeight":700,"maxLines":1}]',
+        '"width":116,"fontSize":18,"fontWeight":700,"maxLines":1}]',
         '["/data/left/name","项目"]',
         '["/data/left/status","进行中"]',
         '["/data/right/name","同步"]',
@@ -337,42 +533,107 @@ def test_accepts_sparse_w9_with_vertical_center_and_layout_weight() -> None:
     )
 
 
+def test_rejects_sparse_w9_with_legacy_backboard_geometry() -> None:
+    legacy = _w9_sparse_dsl(centered=True)
+    legacy = legacy.replace(
+        '"padding":12,"itemMargin":12',
+        '"padding":8,"itemMargin":8',
+    )
+    legacy = legacy.replace(
+        '"width":132,"height":126,"padding":8',
+        '"width":138,"height":134,"padding":12',
+    )
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match=r"must use W9.*padding 12.*132x126",
+    ):
+        validate_compact_dsl(
+            legacy,
+            task_spec=_w9_sparse_task_spec(),
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
 def _fusion_overloaded_dsl() -> str:
     return "\n".join(
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
             '"padding":12,"design":"fusion-ball-battery-teal"},'
             '["title","main","status1","status2","action"]]',
-            '["title","Row",{"width":136,"height":20},["titleText","titleIcon"]]',
-            '["titleText","Text",{"content":"手机电池","fontSize":12}]',
-            '["titleIcon","Image",{"src":"resources/battery.svg",'
-            '"width":20,"height":20,"objectFit":"contain"}]',
-            '["main","Stack",{"width":52,"height":52},["ring"]]',
-            '["ring","Progress",{"type":"ring","width":52,"height":52,'
-            '"value":68,"total":100}]',
+            '["title","SingleLineTitle",{"title":"手机电池",'
+            '"fontColor":"#FF1F4799"}]',
+            '["main","ProgressCircle",{"externalText":68,'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"手机电量百分比"},'
+            '"width":52,"height":68,"fontColor":"#FF1F4799",'
+            '"fillColor":"#FF1F4799","color":"#FF1F4799",'
+            '"backgroundColor":"#331F4799"}]',
             '["status1","Text",{"content":"未充电","fontSize":12}]',
             '["status2","Text",{"content":"健康正常","fontSize":12}]',
-            '["action","Button",{"label":"电池设置","width":120,"height":36,',
+            '["action","PillButton",{"label":"电池设置",'
             '"onClick":[{"call":"openBattery","args":{}}]}]',
         ]
     )
 
 
-def test_rejects_overloaded_fusion_composition() -> None:
-    with pytest.raises(
-        CompactDslValidationError,
-        match="must not combine a title/auxiliary icon",
-    ):
-        validate_compact_dsl(
-            _fusion_overloaded_dsl(),
-            task_spec={
-                "size": "2x2",
-                "eventCandidates":[{"call":"openBattery","args":{}}],
-                "dataModelSchema": {"data": {}},
-                "assetCandidates": [{"src": "resources/battery.svg"}],
+def test_accepts_registered_progress_circle_in_fusion_composition() -> None:
+    validate_compact_dsl(
+        _fusion_overloaded_dsl(),
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [{"call": "openBattery", "args": {}}],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [
+                {
+                    "src": "resources/battery.svg",
+                    "description": "可染色的电量单色图标",
+                }
+            ],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+
+@pytest.mark.parametrize("label_component", ["SingleLineTitle", "SecondaryBody"])
+def test_accepts_adjacent_semantic_metric_label(label_component: str) -> None:
+    label_props = {"fontColor": "#FF563D99"}
+    if label_component == "SingleLineTitle":
+        label_props["title"] = "睡眠得分"
+    else:
+        label_props["role"] = "metadata"
+        label_props["items"] = [{"value": "睡眠得分"}]
+    rows = [
+        ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["label", "value"]],
+        ["label", label_component, label_props],
+        [
+            "value",
+            "EmphasizedData",
+            {"value": {"path": "/data/sleep/score"}, "unit": "分", "fontColor": "#FF563D99"},
+        ],
+        ["/data/sleep/score", 82],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    validate_compact_dsl(
+        source,
+        task_spec={
+            "size": "2x4",
+            "eventCandidates": [],
+            "assetCandidates": [],
+            "dataModelSchema": {
+                "data": {
+                    "sleep": {
+                        "score": {
+                            "type": "integer",
+                            "description": "睡眠得分",
+                            "sampleValue": 82,
+                        }
+                    }
+                }
             },
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+        },
+        card_spec={"suggestSize": "2x4"},
+    )
 
 
 def test_rejects_ambiguous_index_value_without_metric_label() -> None:
@@ -491,9 +752,9 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
 
 
 def test_design_prompt_contains_no_empty_container_examples() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = _DESIGN_PROMPT
     empty_container_lines = re.findall(
-        r'^\["[^"]+","(?:Row|Column|List|Stack)",\{.*\},\[\]\]$',
+        r'^\["[^"]+","(?:Row|Column|Stack)",\{.*\},\[\]\]$',
         prompt,
         flags=re.MULTILINE,
     )
@@ -502,11 +763,11 @@ def test_design_prompt_contains_no_empty_container_examples() -> None:
 
 
 def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = _DESIGN_PROMPT
 
     assert "## 3.1 一级高度算账硬门禁" in prompt
-    assert "20 + 59 + 59 + 8 × 2 = 154 > 134" in prompt
-    assert "20 + 66 + 36 + 36 = 158 > 126" in prompt
+    assert "63 + 8 + 63 = 134vp" in prompt
+    assert "59 + 40 + 36 + 8 × 2 = 151vp" in prompt
     assert "itemMargin 不生效" not in prompt
     assert "两者可以同时设置" in prompt
 
@@ -543,7 +804,7 @@ def _centered_single_value_hero_dsl(
         '["root","Column",{"width":"matchParent","height":"matchParent",'
         '"padding":12,"itemMargin":4,"justifyContent":"start",'
         '"alignItems":"center"},["title_area","content_area","action_area"]]',
-        '["title_area","CardHeader",{"title":"广州马拉松",'
+        '["title_area","SingleLineTitle",{"title":"广州马拉松",'
         '"fontColor":"#FF9A4F19"}]',
         '["content_area","Column",{"width":126,"layoutWeight":1,'
         '"justifyContent":"center","alignItems":"center"},'
@@ -566,8 +827,8 @@ def _centered_single_value_hero_dsl(
             f'"fontSize":{unit_font},"fontWeight":400,'
             '"padding":{"bottom":4},"maxLines":1}]',
             '["action_area","Column",{"width":126,"height":36},["action"]]',
-            '["action","ActionUnit",{"state":"capsule","label":"打开闹钟",'
-            '"fontSize":14,"fontWeight":400,"onClick":'
+            '["action","PillButton",{"label":"打开闹钟",'
+            '"onClick":'
             '[{"call":"openAlarm","args":{}}]}]',
             '["/data/countdown/days",30]',
         ]
@@ -575,12 +836,13 @@ def _centered_single_value_hero_dsl(
     return "\n".join(rows)
 
 
-def test_design_prompt_defines_centered_single_value_hero_safe_box() -> None:
-    prompt = _DESIGN_PROMPT_PATH.read_text(encoding="utf-8")
+def test_design_prompt_routes_single_core_value_to_center_layout() -> None:
+    prompt = _DESIGN_PROMPT
 
-    assert "2x2 单数值 Hero 安全盒前置约束" in prompt
-    assert "`width:106`、`height:58`" in prompt
-    assert "38/16fp -> 30/14fp -> 24/12fp -> 20/12fp" in prompt
+    assert "## 11.5 2x2 组合落地" in prompt
+    assert "| `S-center` | 单一核心内容 |" in prompt
+    assert "只承载一个无需标题即可理解的 `DataDisplay`" in prompt
+    assert "2x2 单数值 Hero 安全盒前置约束" not in prompt
 
 
 def test_accepts_centered_single_value_hero_inside_106_by_58_safe_box() -> None:
@@ -709,14 +971,9 @@ def test_accepts_compact_auxiliary_metrics_with_graphical_action() -> None:
             '"fontSize":12,"fontWeight":400,"maxLines":1}]',
             '["action_area","Column",{"width":136,"height":36,'
             '"alignItems":"center"},["action"]]',
-            '["action","Row",{"width":126,"height":36,"padding":8,'
-            '"itemMargin":8,"justifyContent":"center","alignItems":"center",'
-            '"onClick":[{"call":"openMusic","args":{}}]},["icon","label"]]',
-            '["icon","Image",{"src":"resources/base/media/music_fill.svg",'
-            '"width":20,"height":20,"objectFit":"contain",'
-            '"fillColor":"#FF1F4799"}]',
-            '["label","Text",{"content":"打开歌单","fontSize":14,'
-            '"fontWeight":400,"maxLines":1}]',
+            '["action","PillButton",{"label":"打开歌单",'
+            '"icon":"resources/base/media/music_fill.svg",'
+            '"onClick":[{"call":"openMusic","args":{}}]}]',
             '["/data/healthSport/steps",2319]',
             '["/data/healthSport/calorieText","260 千卡"]',
             '["/data/healthSport/heartRateText","135次/分钟"]',

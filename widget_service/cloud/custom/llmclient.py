@@ -16,6 +16,7 @@ import websockets
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
+from services.generation_trace_recorder import trace_record
 from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[LLMClient]"
@@ -48,8 +49,8 @@ class LLMClientOptions:
 
 
 async def stream_genui(
-        options: LLMClientOptions,
-        messages: list[dict],
+    options: LLMClientOptions,
+    messages: list[dict],
 ) -> AsyncGenerator[str, None]:
     """流式调用 LLM，逐 token yield content。"""
     if not options.api_key:
@@ -81,17 +82,20 @@ async def stream_genui(
 
     logger.info(
         f"{_MODULE} stream_started ws_url={options.ws_url} "
-        f"model={options.model} body_preview={json_for_log(json.dumps(body, ensure_ascii=False)[:500])}"
+        f"model={options.model} "
+        "body_preview="
+        f"{json_for_log(json.dumps(body, ensure_ascii=False)[:500])}"
     )
 
     usage = None
     start = time.perf_counter()
     first_token_at: float | None = None
+    finish_reason: str | None = None
     try:
         async with websockets.connect(
-                options.ws_url,
-                additional_headers=headers,
-                open_timeout=options.recv_timeout,
+            options.ws_url,
+            additional_headers=headers,
+            open_timeout=options.recv_timeout,
         ) as websocket:
             await websocket.send(json.dumps(body, ensure_ascii=False))
 
@@ -124,7 +128,8 @@ async def stream_genui(
                     yield content_text
 
                 if choice.get("finish_reason"):
-                    logger.info(f"{_MODULE} stream_finished reason={choice['finish_reason']}")
+                    finish_reason = str(choice.get("finish_reason"))
+                    logger.info(f"{_MODULE} stream_finished reason={finish_reason}")
                     break
 
     except websockets.exceptions.ConnectionClosedOK:
@@ -141,9 +146,7 @@ async def stream_genui(
     finally:
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
         first_token_latency_ms = (
-            round((first_token_at - start) * 1000, 2)
-            if first_token_at is not None
-            else None
+            round((first_token_at - start) * 1000, 2) if first_token_at is not None else None
         )
         input_tokens = usage.get("prompt_tokens") if usage else None
         completion_tokens = usage.get("completion_tokens") if usage else None
@@ -160,15 +163,31 @@ async def stream_genui(
             f"completion_tokens={completion_tokens} "
             f"tokens_per_sec={speed_str} token/s"
         )
+        trace_record(
+            "model.transport_metrics",
+            stage="model.transport",
+            status="completed" if finish_reason else "incomplete",
+            duration_ms=duration_ms,
+            details={"finishReason": finish_reason},
+            metrics={
+                "firstTokenLatencyMs": first_token_latency_ms,
+                "inferenceDurationMs": (
+                    duration_ms - first_token_latency_ms
+                    if first_token_latency_ms is not None
+                    else None
+                ),
+                "inputTokens": input_tokens,
+                "completionTokens": completion_tokens,
+                "tokensPerSecond": speed_str,
+            },
+        )
 
         report_ops_metrics(
             body={
                 "modelInputTokens": int(input_tokens) if input_tokens else 0,
                 "modelOutputTokens": int(completion_tokens) if completion_tokens else 0,
                 "modelTotalTime": duration_ms if duration_ms else 0.0,
-                "modelFirstTokenTime": (
-                    first_token_latency_ms if first_token_latency_ms else 0.0
-                ),
+                "modelFirstTokenTime": (first_token_latency_ms if first_token_latency_ms else 0.0),
                 "modelInferenceTime": (
                     duration_ms - first_token_latency_ms
                     if duration_ms and first_token_latency_ms

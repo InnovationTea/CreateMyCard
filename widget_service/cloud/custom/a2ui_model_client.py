@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import json
 import sys
+import time
 import traceback
 import uuid
 from pathlib import Path
@@ -28,6 +29,7 @@ from services.compact_dsl_a2ui_converter import (
     ThemeMode,
     convert_compact_dsl_to_a2ui,
 )
+from services.generation_trace_recorder import trace_record, trace_step
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -98,9 +100,7 @@ class A2UIModelClient:
             raise ValueError(f"Unsupported A2UI model backend: {backend}")
         settings = get_settings()
         self.settings = settings
-        self.use_mock = (
-            settings.enable_a2ui_model_mock if use_mock is None else use_mock
-        )
+        self.use_mock = settings.enable_a2ui_model_mock if use_mock is None else use_mock
         self.backend = backend
         self.transport = transport
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
@@ -162,7 +162,7 @@ class A2UIModelClient:
 
         try:
             if self.use_mock:
-                result = self._load_mock_data(protocol_profile, prompt)
+                raw_output = self._load_mock_data(protocol_profile, prompt)
             else:
                 profile = protocol_profile or {}
                 raw_output = await self._call_transport(
@@ -170,11 +170,64 @@ class A2UIModelClient:
                     profile,
                     phase=phase,
                 )
-                result = self._process_model_output(raw_output, profile)
+            if self.use_mock:
+                trace_record(
+                    "model.assistant.received",
+                    stage=f"{phase}.modelResponse",
+                    status="success",
+                    details={"backend": self.backend, "phase": phase},
+                    text_artifacts={f"{phase}_assistant_raw": raw_output},
+                    artifact_roles={f"{phase}_assistant_raw": "output"},
+                )
+            processing_started_at = time.perf_counter()
+            result = (
+                raw_output
+                if self.use_mock
+                else self._process_model_output(raw_output, protocol_profile or {})
+            )
+            extract_stage = "dsl.extract" if phase in {"initial", "repair"} else f"{phase}.extract"
+            trace_step(
+                "model.output.processed",
+                stage=extract_stage,
+                status="success",
+                duration_ms=round(
+                    (time.perf_counter() - processing_started_at) * 1000,
+                    2,
+                ),
+                details={"phase": phase, "outputChars": len(result)},
+                text_artifacts={
+                    f"{phase}_extraction_input": raw_output,
+                    f"{phase}_extracted_output": result,
+                },
+                artifact_roles={
+                    f"{phase}_extraction_input": "input",
+                    f"{phase}_extracted_output": "output",
+                },
+            )
             return require_generated_dsl(result)
-        except A2UIModelGenerationError:
+        except A2UIModelGenerationError as exc:
+            trace_record(
+                "model.output.failed",
+                stage=f"{phase}.model",
+                status="failed",
+                details={
+                    "phase": phase,
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
             raise
         except Exception as exc:
+            trace_record(
+                "model.output.failed",
+                stage=f"{phase}.model",
+                status="failed",
+                details={
+                    "phase": phase,
+                    "exceptionType": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
             logger.error(
                 f"{_MODULE} generation_failed exception_type={type(exc).__name__} "
                 f"exception={exc!r} traceback={traceback.format_exc()}"
@@ -221,9 +274,7 @@ class A2UIModelClient:
                 )
         if self.unified_client is None:
             raise A2UIModelGenerationError("model runtime is not initialized")
-        allow_partial_abort = (
-            protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
-        )
+        allow_partial_abort = protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
         return await self.unified_client.generate(
             self.backend,
             prompt,
@@ -256,14 +307,11 @@ class A2UIModelClient:
                 f"output_length={len(dsl_text)} raw_output={json_text_for_log(raw_output)}"
             )
             return dsl_text
-        is_design_compact = (
-            protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
-        )
+        is_design_compact = protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
         if not is_design_compact:
             dsl_text = self.convert_dsl(dsl_text)
         logger.info(
-            f"{_MODULE} dsl_processed backend={self.backend} "
-            f"dsl_content={json_for_log(dsl_text)}"
+            f"{_MODULE} dsl_processed backend={self.backend} dsl_content={json_for_log(dsl_text)}"
         )
         return dsl_text
 
@@ -302,9 +350,7 @@ class A2UIModelClient:
             raise FileNotFoundError(f"A2UI mock 数据文件不存在: {mock_data_path}")
 
         mock_data = mock_data_path.read_text(encoding="utf-8")
-        logger.info(
-            f"{_MODULE} generate_completed mode=mock path={mock_data_path}"
-        )
+        logger.info(f"{_MODULE} generate_completed mode=mock path={mock_data_path}")
         return mock_data
 
     @staticmethod
@@ -342,9 +388,9 @@ class A2UIModelClient:
         否则原样返回。
         """
         text = text.strip()
-        if text.startswith('```genui'):
-            content = text[len('```genui'):].strip()
-            if content.endswith('```'):
+        if text.startswith("```genui"):
+            content = text[len("```genui") :].strip()
+            if content.endswith("```"):
                 content = content[:-3].strip()
             return content
         else:
@@ -362,9 +408,7 @@ class A2UIModelClient:
         """使用 Design profile 自带的协议文件把 Design Compact DSL 转为标准 A2UI。"""
         compact_dsl = self.extract_genui_payload(design_dsl)
         try:
-            protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-                design_profile_id
-            )
+            protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
             converted_dsl = convert_compact_dsl_to_a2ui(
                 compact_dsl,
                 size=size,
@@ -432,9 +476,7 @@ class A2UIModelClient:
                         styles["height"] = "matchParent"
                         break
 
-            output_lines.append(
-                json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-            )
+            output_lines.append(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 
         return "\n".join(output_lines)
 
@@ -564,12 +606,9 @@ def _build_design_test_task_spec() -> dict:
     }
 
 
-
 async def _run_main() -> int:
     """临时验证 Design Compact DSL 生成及标准 A2UI DSL 转换链路。"""
-    system_prompt = A2UIProtocolRegistry.read_design_prompt(
-        DESIGN_COMPACT_PROFILE_ID
-    )
+    system_prompt = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
     task_spec = _build_design_test_task_spec()
     messages = [
         {"role": "system", "content": system_prompt},

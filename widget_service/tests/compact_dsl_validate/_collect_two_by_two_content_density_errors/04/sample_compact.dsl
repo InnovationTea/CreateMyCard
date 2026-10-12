@@ -1,0 +1,6 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main","new","new2"]]
+["main","Column",{"width":136,"height":54,"padding":0},["rain"]]
+["rain","Text",{"content":{"path":"/data/weather/daily/1/rainProbabilityPercent"},"fontSize":38,"maxLines":1}]
+["/data/weather/daily/1/rainProbabilityPercent","20%"]
+["new","Text",{"content":"辅助","fontSize":12,"fontWeight":400,"maxLines":1}]
+["new2","Text",{"content":"辅助","fontSize":12,"fontWeight":400,"maxLines":1}]

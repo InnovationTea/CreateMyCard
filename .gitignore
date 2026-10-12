@@ -30,10 +30,14 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.uv-cache/
+.uv-cache-local/
 .venv/
 venv/
 env/
 dist/
+!debug_tools/dist/
+!debug_tools/dist/**
 build/
 *.egg-info/
 
@@ -56,6 +60,9 @@ coverage/
 *.rar
 
 output/
+debug_tools/batch_output/
+widget_service/workspace
+debug_tools/package-lock.json
 
 重构文档.md
 card-design-share/
@@ -66,3 +73,9 @@ tempelate.jpg
 SVG图标素材库清单.md
 test/
 test.jsonl
+/widget_service/cloud/compact-dsl-renderer/
+/widget_service/cloud/a2ui-renderer/
+/widget_service/cloud/fusion-runner/
+/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/
+artifact_*.md
+/widget_service/cloud/workspace

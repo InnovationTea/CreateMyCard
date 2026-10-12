@@ -1,0 +1,7 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"design":"fusion-ball-sport-orange"},["title_area","value_group"]]
+["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"天","width":102,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","textAlign":"center","maxLines":1}]
+["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
+["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["/data/countdown/countdownDays",32]

@@ -5,14 +5,19 @@ import time
 import traceback
 from collections.abc import Awaitable
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from functools import partial
 
 from app.logger import logger
 from config.config import Settings, get_settings
+from custom.deepseek_official_http_transport import DeepSeekOfficialHttpTransport
 from custom.deepseek_platform_client import DeepSeekPlatformClient
 from custom.llmclient import LLMClientOptions, stream_genui
 from custom.mep_model_transport import MepModelTransport
 from custom.model_transport import ModelProvider, ModelTransport, ModelTransportError
+from custom.official_http_client import request_official_http
 from models.generation import ModelRequestContext
+from services.generation_trace_recorder import trace_step
 from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[Model Runtime]"
@@ -20,8 +25,24 @@ _MODULE = "[Model Runtime]"
 
 def _generate_with_llmclient(messages: list[dict[str, str]]) -> str:
     """在线程内聚合原有 llmclient 的异步 Token 流。"""
+
     async def collect_stream() -> str:
         options = LLMClientOptions()
+        settings = get_settings()
+        if settings.deepseek_http_url.strip().startswith(("http://", "https://")):
+            completion = await request_official_http(
+                url=settings.deepseek_http_url,
+                api_key=options.api_key,
+                model=options.model,
+                messages=messages,
+                user=options.user,
+                temperature=options.temperature,
+                top_p=options.top_p,
+                max_tokens=options.max_tokens,
+                stop=options.stop if options.stop is not None else ["DeepSeek"],
+                timeout=options.recv_timeout,
+            )
+            return completion.content
         chunks = [chunk async for chunk in stream_genui(options, messages)]
         return "".join(chunks)
 
@@ -33,10 +54,9 @@ def _generate_with_llmclient(messages: list[dict[str, str]]) -> str:
         raise
     except Exception as exc:
         logger.error(
-            f"{_MODULE} llmclient_generation_failed "
-            f"error_type={type(exc).__name__} error={exc!r}"
+            f"{_MODULE} llmclient_generation_failed error_type={type(exc).__name__} error={exc!r}"
         )
-        raise ModelTransportError("llmclient model generation failed") from exc
+        raise ModelTransportError(f"llmclient model generation failed: {exc}") from exc
 
 
 class ModelExecutionRuntime:
@@ -49,13 +69,16 @@ class ModelExecutionRuntime:
         mep_transport: MepModelTransport | None = None,
         deepseek_platform_transport: ModelTransport | None = None,
         llmclient_transport: ModelTransport | None = None,
+        deepseek_official_http_transport: DeepSeekOfficialHttpTransport | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self._semaphore = asyncio.Semaphore(self.settings.model_max_concurrency)
         self._mep_transport = mep_transport or MepModelTransport(self.settings)
-        self._deepseek_platform_transport = (
-            deepseek_platform_transport
-            or DeepSeekPlatformClient(self.settings)
+        self._deepseek_platform_transport = deepseek_platform_transport or DeepSeekPlatformClient(
+            self.settings
+        )
+        self._deepseek_official_http_transport = (
+            deepseek_official_http_transport or DeepSeekOfficialHttpTransport(self.settings)
         )
         self._llmclient_generate = (
             llmclient_transport.generate
@@ -70,6 +93,7 @@ class ModelExecutionRuntime:
     async def aclose(self) -> None:
         """关闭共享 HTTP 连接池并停止接收新的 llmclient 线程任务。"""
         await self._mep_transport.aclose()
+        await self._deepseek_official_http_transport.aclose()
         self._llmclient_executor.shutdown(wait=False, cancel_futures=False)
 
     async def generate_once(
@@ -85,6 +109,17 @@ class ModelExecutionRuntime:
             async with asyncio.timeout(queue_timeout):
                 await self._semaphore.acquire()
         except TimeoutError as exc:
+            queue_duration_ms = round(
+                (time.perf_counter() - queue_started_at) * 1000,
+                2,
+            )
+            trace_step(
+                "model.queue",
+                stage="model.queue",
+                status="timeout",
+                duration_ms=queue_duration_ms,
+                details={"provider": provider, "timeoutSeconds": queue_timeout},
+            )
             report_ops_metrics(body={"taskFailModelCrash": 1})
             logger.error(
                 f"{_MODULE} queue_timeout provider={provider} "
@@ -97,15 +132,25 @@ class ModelExecutionRuntime:
 
         queue_duration_ms = round((time.perf_counter() - queue_started_at) * 1000, 2)
         logger.info(
-            f"{_MODULE} permit_acquired provider={provider} "
-            f"queue_duration_ms={queue_duration_ms}"
+            f"{_MODULE} permit_acquired provider={provider} queue_duration_ms={queue_duration_ms}"
+        )
+        trace_step(
+            "model.queue",
+            stage="model.queue",
+            status="success",
+            duration_ms=queue_duration_ms,
+            details={"provider": provider},
         )
         execution_started_at = time.perf_counter()
         execution_status = "failed"
+        execution_error: Exception | None = None
         try:
             result = await self._execute_provider(provider, messages, request_context)
             execution_status = "success"
             return result
+        except Exception as exc:
+            execution_error = exc
+            raise
         finally:
             self._semaphore.release()
             execution_duration_ms = round(
@@ -116,6 +161,22 @@ class ModelExecutionRuntime:
                 f"{_MODULE} permit_released provider={provider} "
                 f"execution_status={execution_status} "
                 f"execution_duration_ms={execution_duration_ms}"
+            )
+            execution_details = {"provider": provider}
+            if execution_error is not None:
+                execution_details.update(
+                    {
+                        "exceptionType": type(execution_error).__name__,
+                        "message": str(execution_error),
+                        "errorCode": getattr(execution_error, "code", ""),
+                    }
+                )
+            trace_step(
+                "model.provider_execution",
+                stage="model.providerExecution",
+                status=execution_status,
+                duration_ms=execution_duration_ms,
+                details=execution_details,
             )
 
     async def generate(
@@ -140,6 +201,12 @@ class ModelExecutionRuntime:
             if request_context is None:
                 raise ModelTransportError("DeepSeek Platform request context is missing")
             operation = self._deepseek_platform_transport.generate(
+                messages,
+                request_context,
+            )
+            return await self._await_async_provider(provider, operation)
+        if provider == "deepseek_official_http":
+            operation = self._deepseek_official_http_transport.generate(
                 messages,
                 request_context,
             )
@@ -175,10 +242,10 @@ class ModelExecutionRuntime:
     async def _generate_llmclient(self, messages: list[dict[str, str]]) -> str:
         """在线程中运行同步适配器；超时后持有令牌直至真实调用结束。"""
         loop = asyncio.get_running_loop()
+        context = copy_context()
         future = loop.run_in_executor(
             self._llmclient_executor,
-            self._llmclient_generate,
-            messages,
+            partial(context.run, self._llmclient_generate, messages),
         )
         timeout = self.settings.model_request_timeout_seconds
         try:
@@ -195,8 +262,7 @@ class ModelExecutionRuntime:
             ) from exc
         except asyncio.CancelledError:
             logger.warning(
-                f"{_MODULE} llmclient_wait_cancelled "
-                "waiting_for_physical_completion=true"
+                f"{_MODULE} llmclient_wait_cancelled waiting_for_physical_completion=true"
             )
             await self._finish_cancelled_llmclient(future)
             raise

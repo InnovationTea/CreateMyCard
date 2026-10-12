@@ -1,0 +1,65 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "x": {
+          "type": "string",
+          "sampleValue": "甲"
+        },
+        "y": {
+          "type": "string",
+          "sampleValue": "乙"
+        },
+        "z": {
+          "type": "string",
+          "sampleValue": "丙"
+        },
+        "daily": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "weekday": {
+                "type": "string"
+              },
+              "temperature": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "other": {
+        "x": {
+          "type": "string",
+          "sampleValue": "甲"
+        },
+        "y": {
+          "type": "string",
+          "sampleValue": "乙"
+        },
+        "z": {
+          "type": "string",
+          "sampleValue": "丙"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

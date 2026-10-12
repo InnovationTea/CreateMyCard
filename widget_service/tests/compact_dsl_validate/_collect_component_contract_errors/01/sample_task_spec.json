@@ -1,0 +1,13 @@
+{
+  "size": "2x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/moon.svg",
+      "description": "默认黑色的单色月亮图标，支持通过 fillColor 与卡片配色统一。"
+    }
+  ]
+}

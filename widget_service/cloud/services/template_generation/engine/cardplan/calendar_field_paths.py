@@ -80,3 +80,25 @@ def normalize_calendar_reminder_bindings(
         else:
             normalized.append(binding.model_copy(update={"candidateOutputFields": fields}))
     return tuple(normalized)
+
+
+def calendar_wide_fallback_reminder_aliases(
+    task_spec: TaskSpec,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    requested_paths: tuple[str, ...],
+) -> dict[str, str]:
+    """Only normalize requested, approved reminder parents during a wide-card retry."""
+    if task_spec.size != "2x4" or len(coverage_bindings) != 1:
+        return {}
+    binding = coverage_bindings[0]
+    if binding.capabilityId != CALENDAR_CAPABILITY_ID:
+        return {}
+    aliases: dict[str, str] = {}
+    for path in requested_paths:
+        if path not in binding.candidateOutputFields:
+            continue
+        if _REMINDER_PARENT.fullmatch(path) is None:
+            continue
+        if _has_scalar_array(task_spec, binding.writeResultTo, path):
+            aliases[path] = f"{path}/0"
+    return aliases

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux left focus may contain at most four Text nodes. Use at most three visual layers for value-led content, merge a closely related pair, or move one necessary fact to an auxiliary cell instead of filling the left zone with a dense list."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "4af015e7a5462ed6275e73f32fc02b988b914fb473316359ff29533166d7e1c8",
+    "sample_task_spec.json": "0154f5d423ee4fb93a8c943171eb2cdfe73710b7cbf1c4a963a7a543a0c01c7e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -109,7 +109,8 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 
 - **进入条件：** 本轮最终数据集合已确定；读取运行指南“权限结果判定”。create 取最终候选，
   数据类 edit 取替换后的完整列表，纯视觉 edit 从真实有效编辑链恢复继承集合。
-- **用户回复：** 正常通过不播报；拒绝按明细使用 R11/R12 或无明细 R13；非法结果 R14。invoke 级失败静默继续。
+- **用户回复：** 正常通过不播报；拒绝按明细使用 R11/R12 或无明细 R13；首次调用的其它非法结果使用 R14。
+  精确的空能力 ID 错误按下方规则无声重试；invoke 级失败静默继续。
 - **调用示例：** 延续上述模拟计划，只检查实际保留的 ViewWeather；多能力时传完整去重集合。
 
 ```text
@@ -122,8 +123,23 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **返回检查：** 正常结果必须 stateOfPermission:true、没有任何 authorized:false、nonAuthStatus 缺失或 []，
   且所有结构/类型合法。模拟通过结果为 {"result":{"stateOfPermission":true,"nonAuthStatus":[]}}。
   非空待授权明细也阻断；字段缺失或非法不属于 invoke 失败。
-- **继续或停止：** 明确通过或本次 invoke 级失败才进入步骤 5；集合为空跳过此工具，不传空数组。
-  invoke 异常只限工具不可用、抛错、超时、传输失败或工具层失败且无正常权限结果，不重试、不伪造成功。
+  如果正常返回 `result.errorMessage` 且精确等于“不能传入空的dataCapabilityIds，请重新调用工具”，
+  先保留本轮已确定的非空能力 ID 集合并重新调用一次；不得从错误文本猜测 ID。
+- **重试示例：** 首次返回参数错误时，不发送用户回复，使用同一份完整集合再次调用：
+
+```text
+返回:{"result":{"errorMessage":"不能传入空的dataCapabilityIds，请重新调用工具"}}
+重试 invoke(functionName:"RequestDataPermission", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  dataCapabilityIds:["ViewWeather"]
+},"skillName":"harmony-card-generation-online")
+```
+
+- **继续或停止：** 明确通过才按权限通过进入步骤 5；集合为空跳过此工具，不传空数组。
+  精确缺少 ID 错误最多重试一次。重试后若得到合法的明确拒绝或待授权结果，仍按 R11/R12/R13 停止；
+  若重试调用失败、再次返回该错误或未得到合法权限结果，使用 R14 实际回复并立即停止，不进入步骤 5，
+  不调用外部来源或生成工具，也不伪造 `stateOfPermission:true`。首次调用的其它正常非法结果仍使用 R14；
+  仅首次调用的 invoke 级异常继续按既有默认放行规则处理。
 
 ### 5. 检查已有外部来源结果，按需补查
 

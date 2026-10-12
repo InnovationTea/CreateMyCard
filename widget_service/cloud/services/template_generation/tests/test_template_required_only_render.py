@@ -116,11 +116,22 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
     )
     assert paths, f"{template_id} declares no required data"
 
+    parameters: dict[str, str] = {}
+    asset_candidates: list[dict[str, object]] = []
+    if template_id == "BluetoothDeviceOverviewMusicFull@1":
+        icon_path = "resources/base/media/earphone_case_16644.svg"
+        parameters["deviceIcon"] = icon_path
+        asset_candidates.append({
+            "src": icon_path,
+            "description": "耳机充电盒图标",
+            "sceneTags": ["earphone-case"],
+        })
     task = TaskSpec(
         userQuery=f"仅必需字段渲染 {template_id}",
         size="2x2",
         appVersion="11.7.7.343",
         dataModelSchema=schema,
+        assetCandidates=asset_candidates,
     )
     binding = CandidateDataBinding(
         capabilityId=definition.capability_id,
@@ -141,7 +152,10 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
         "primaryOutputFieldByCapability": {},
         "action": [],
     }
-    body = f'Template("SingleFocusLayout@1",{{}},Template("{template_id}",{{}}));'
+    body = (
+        'Template("SingleFocusLayout@1",{},'
+        f'Template("{template_id}",{json.dumps(parameters)}));'
+    )
 
     output = asyncio.run(
         generate_template_a2ui(

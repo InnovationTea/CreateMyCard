@@ -36,6 +36,25 @@ _NamedCapability = TypeVar(
     BusinessTemplateGroup,
     UxLayoutComponentCapability,
 )
+CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS = frozenset(
+    {
+        "ScheduleOverviewSourceReminderFull@1",
+        "ScheduleOverviewTimezoneWideFull@1",
+        "ScheduleOverviewEventCountDetailsWideFull@1",
+        "ScheduleOverviewReminderWideFull@1",
+        "ScheduleOverviewTimezoneThreeEventsWideFull@1",
+        "ScheduleOverviewEventCountFourDetailsWideFull@1",
+        "ScheduleOverviewEventCountThreeNotesWideFull@1",
+        "ScheduleOverviewTitleStartFull@1",
+        "ScheduleOverviewReminderStartFull@1",
+        "ScheduleOverviewDateAllDayFull@1",
+        "ScheduleOverviewDateEndFull@1",
+        "ScheduleOverviewAllDayLocationFull@1",
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewReminderDetailsWideFull@1",
+        "ScheduleOverviewDatedMeetingWideFull@1",
+    }
+)
 
 
 class CardPlanRegistry:
@@ -48,6 +67,7 @@ class CardPlanRegistry:
         disabled_provider_ids: tuple[str, ...] = (),
         disabled_template_ids: tuple[str, ...] = (),
         enable_fusion_ball: bool = False,
+        enabled_calendar_fallback_template_ids: tuple[str, ...] = (),
     ) -> None:
         if not isinstance(enable_fusion_ball, bool):
             raise ValueError("enable_fusion_ball must be boolean")
@@ -55,6 +75,13 @@ class CardPlanRegistry:
         self.source_root = source_root or bundled_source_root
         self.disabled_provider_ids = frozenset(disabled_provider_ids)
         self.disabled_template_ids = frozenset(disabled_template_ids)
+        self.enabled_calendar_fallback_template_ids = frozenset(
+            enabled_calendar_fallback_template_ids
+        )
+        if not self.enabled_calendar_fallback_template_ids.issubset(
+            CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS
+        ):
+            raise ValueError("Only calendar fallback Templates can be explicitly enabled")
         generated_root = Path(__file__).with_name("generated")
         self.manifest_path = generated_root / "prompt-manifest.json"
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
@@ -218,7 +245,11 @@ class CardPlanRegistry:
         definition = self.require_template(wire_id)
         provider_disabled = definition.provider_id in self.disabled_provider_ids
         template_disabled = wire_id in self.disabled_template_ids
-        return not provider_disabled and not template_disabled
+        fallback_hidden = (
+            wire_id in CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS
+            and wire_id not in self.enabled_calendar_fallback_template_ids
+        )
+        return not provider_disabled and not template_disabled and not fallback_hidden
 
     def enabled_template_ids(self, wire_ids: tuple[str, ...]) -> tuple[str, ...]:
         """Filter trusted Template IDs while preserving their declared order."""
@@ -452,11 +483,20 @@ class CardPlanRegistry:
         bundle: LoadedProviderBundle,
         content: str,
     ) -> str:
-        disabled_ids = tuple(
-            definition.wire_id
-            for definition in bundle.templates
-            if not self.template_is_enabled(definition.wire_id)
-        )
+        disabled_ids: list[str] = []
+        for definition in bundle.templates:
+            wire_id = definition.wire_id
+            if self.template_is_enabled(wire_id):
+                continue
+            fallback_only = wire_id in CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS
+            explicitly_disabled = (
+                wire_id in self.disabled_template_ids
+                or definition.provider_id in self.disabled_provider_ids
+            )
+            # 隐藏新增模板不应重排、裁剪原先没有引用它们的首层提示词。
+            if fallback_only and not explicitly_disabled and wire_id not in content:
+                continue
+            disabled_ids.append(wire_id)
         if not disabled_ids:
             return content
         visible_lines = (
@@ -582,8 +622,7 @@ class CardPlanRegistry:
                 definition = self.require_template(wire_id)
                 if definition.business_id != capability.name:
                     raise ValueError(
-                        "Provider Template businessId does not match its derived group: "
-                        f"{wire_id}"
+                        f"Provider Template businessId does not match its derived group: {wire_id}"
                     )
                 if definition.provider_id != provider_id:
                     raise ValueError(f"Provider Template is outside its business owner: {wire_id}")

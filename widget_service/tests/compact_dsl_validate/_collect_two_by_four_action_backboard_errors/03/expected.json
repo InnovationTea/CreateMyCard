@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone with a Button must have exactly [content, Button] as direct children."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9a970bee4c2f46ee5d77dbbb9c64036521b2c9cffa62a9f1b70c574a093aba56",
+    "sample_task_spec.json": "f7e60a8ce807c8d3756c466b659d048f6a9f773f1319d4ba7458ac2a130c2bab",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

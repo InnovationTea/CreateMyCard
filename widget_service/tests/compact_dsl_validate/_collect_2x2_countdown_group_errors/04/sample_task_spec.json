@@ -1,0 +1,40 @@
+{
+  "userQuery": "帮我做张运动会倒计时卡片，看看离运动会还有多少天。",
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Music",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+      }
+    },
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "countdownDays": {
+          "type": "integer",
+          "description": "距离目标日期的自然日天数",
+          "sampleValue": 32
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/base/media/music_fill.svg",
+      "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。"
+    },
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ]
+}

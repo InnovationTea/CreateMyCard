@@ -380,7 +380,10 @@ def _system_prompt(
             card_spec,
         ):
             is_action_template = wire_id in _ACTION_TEMPLATE_IDS
-            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
+            requires_root_action = (
+                _variant_requires_action(variant) and not definition.supported_event_ids
+            )
+            if ux_layout_root and requires_root_action and not is_action_template:
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
@@ -552,7 +555,10 @@ def build_template_prompt_contracts(
             variants = tuple(admitted_variants)
         for variant in variants:
             is_action_template = wire_id in _ACTION_TEMPLATE_IDS
-            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
+            requires_root_action = (
+                _variant_requires_action(variant) and not definition.supported_event_ids
+            )
+            if ux_layout_root and requires_root_action and not is_action_template:
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
@@ -1052,12 +1058,19 @@ def _provider_variant_matches_trusted_state(
             "compact",
             "chargingDiagnosticsHero",
             "chargingDiagnosticsWideFull",
+
+            "statusSummaryHero",
+            "statusLevelSummaryHero",
+            "chargingLevelSummaryHero",
             "chargingProgressFull",
             "chargingProgressHero",
             "chargingRingHero",
             "full",
             "hero",
             "healthLevelHero",
+            "healthTemperatureHero",
+            "percentTextFull",
+            "percentDetailsFull",
             "percentLevelHero",
             "percentRingCompact",
             "percentRingHero",

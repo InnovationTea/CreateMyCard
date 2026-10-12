@@ -162,9 +162,42 @@ def wide_plan_compositions(
                     for assignments in _action_assignments(
                         layout, ordered, actions, registry, task, embedded
                     ):
+                        if not _required_business_actions_are_assigned(
+                            ordered, assignments, registry
+                        ):
+                            continue
                         yield WidePlanComposition(
                             f"{layout.layout_id}@1", ordered, assignments, layout_rank
                         )
+
+
+def _required_business_actions_are_assigned(
+    slots: tuple[TemplatePlanBusinessSlot, ...],
+    assignments: tuple[TemplatePlanActionAssignment, ...],
+    registry: CardPlanRegistry,
+) -> bool:
+    """必填动作必须分配到业务模板本身，不能以根动作替代。"""
+    assigned_positions: set[int] = set()
+    for assignment in assignments:
+        if assignment.consumer == "business-template":
+            position = assignment.business_position
+            if position is not None:
+                assigned_positions.add(position)
+    for slot in slots:
+        definition = registry.require_template(slot.template_id)
+        variants = [
+            variant for variant in definition.variants if "2x4" in variant.supported_card_sizes
+        ]
+        if not variants:
+            variants = list(definition.variants)
+        permits_no_action = False
+        for variant in variants:
+            if "actionId" not in variant.parameters_schema.get("required", ()):
+                permits_no_action = True
+                break
+        if not permits_no_action and slot.position not in assigned_positions:
+            return False
+    return True
 
 
 def _companion_action_slots(

@@ -14,7 +14,12 @@ from services.template_generation.engine.cardplan.preview_dataset import (
 )
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.tersel_converter import Nested2Node
-from services.template_generation.tests.test_calendar_requested_case_templates import _walk
+from services.template_generation.tests.test_calendar_requested_case_templates import (
+    _expanded,
+    _walk,
+)
+
+_COUNT_DETAIL_TEMPLATE = "ScheduleOverviewEventCountDetailsFull@1"
 
 _DETAIL_TEMPLATES = (
     "ScheduleOverviewLocationDescriptionEndFull@1",
@@ -37,9 +42,6 @@ _TIMEZONE_TEMPLATES = frozenset({
     "ScheduleOverviewTimezoneDateEndFull@1",
     "ScheduleOverviewTimezoneAllDayFull@1",
 })
-# EventCountDetailsFull 的时间轴内容列在“时间 · 全天”之后还有一行可选备注
-# （$optionalPath /events/0/description），比其他非时区模板多一个 Text。
-_DESCRIPTION_TEMPLATES = frozenset({"ScheduleOverviewEventCountDetailsFull@1"})
 
 
 def _options(node: Nested2Node) -> dict[str, Any]:
@@ -116,10 +118,7 @@ def _assert_timeline(row: Nested2Node, template_id: str) -> None:
     assert "layoutWeight" not in content_options
     texts = _texts(content)
     timezone = template_id in _TIMEZONE_TEMPLATES
-    expected_texts = 3 + (1 if timezone else 0) + (
-        1 if template_id in _DESCRIPTION_TEMPLATES else 0
-    )
-    assert len(texts) == expected_texts
+    assert len(texts) == (4 if timezone else 3)
     assert _options(texts[0]).get("height") == 20
     assert _options(texts[0]).get("fontSize") == 14
     reminder = template_id == "ScheduleOverviewReminderHero@1"
@@ -150,6 +149,63 @@ def _assert_timeline(row: Nested2Node, template_id: str) -> None:
         assert "width" not in _options(row)
 
 
+def _assert_count_detail_geometry(root: Nested2Node, *, with_description: bool) -> None:
+    assert root.component_type == "Column"
+    assert _options(root).get("justifyContent") == "spaceBetween"
+    assert _options(root).get("itemMargin") == 2
+    assert len(root.children) == 2
+    top, bottom = root.children
+    assert top.component_type == bottom.component_type == "Column"
+    assert _options(top).get("itemMargin") == 4
+    assert _options(bottom).get("itemMargin") == 4
+    assert len(top.children) == len(bottom.children) == 2
+    header, title = top.children
+    assert header.component_type == "Row"
+    assert _options(header).get("height") == 24
+    assert _options(header).get("alignItems") == "top"
+    assert len(header.children) == 2
+    assert header.children[1].component_type == "Stack"
+    assert _options(title).get("fontSize") == 20
+    assert _options(title).get("fontWeight") == 700
+    assert _options(title).get("height") == 28
+    auxiliary = _texts(bottom)
+    assert len(auxiliary) == (3 if with_description else 2)
+    assert bottom.children[0].component_type == ("Row" if with_description else "Text")
+    for text in auxiliary:
+        options = _options(text)
+        assert options.get("fontSize") == 12
+        assert options.get("fontWeight") == 400
+        assert options.get("height") == 16
+    for text in _texts(root):
+        assert _options(text).get("maxLines") == 1
+        assert _options(text).get("textOverflow") == "ellipsis"
+    for node in _walk(root):
+        if node.component_type == "Divider":
+            assert _options(node).get("width") == _options(node).get("height") == 0
+
+
+@pytest.mark.parametrize("with_description", [False, True])
+@pytest.mark.parametrize("header", ["近期日程安排", "跨时区联合项目日程安排"])
+def test_count_detail_preserves_fields_when_description_is_optional(
+    with_description: bool, header: str,
+) -> None:
+    omitted = frozenset() if with_description else frozenset({"description"})
+    root = _expanded(_COUNT_DETAIL_TEMPLATE, omitted=omitted, props={"headerLabel": header})
+    _assert_count_detail_geometry(root, with_description=with_description)
+    assert root.children[0].children[0].children[0].values[0] == header
+    values: list[str] = []
+    for text in _texts(root):
+        content = text.values[0]
+        assert isinstance(content, str)
+        values.append(content)
+    contents = " ".join(values)
+    for field in ("eventCount", "events.0.title", "events.0.dtStart"):
+        assert "${data.calendar." + field + "}" in values
+    assert "/data/calendar/events/0/isAllDay" in contents
+    assert "'全天' : '非全天'" in contents
+    assert ("${data.calendar.events.0.description}" in values) is with_description
+
+
 @pytest.mark.parametrize("template_id", _TEMPLATES)
 @pytest.mark.parametrize("with_props", (False, True))
 def test_calendar_keeps_user_geometry(template_id: str, with_props: bool) -> None:
@@ -173,6 +229,8 @@ def test_calendar_keeps_user_geometry(template_id: str, with_props: bool) -> Non
     )
     if template_id in _DETAIL_TEMPLATES:
         _assert_detail_geometry(root, with_icon=with_props)
+    elif template_id == _COUNT_DETAIL_TEMPLATE:
+        _assert_count_detail_geometry(root, with_description=True)
     else:
         _assert_timeline(root.children[-1], template_id)
 
@@ -234,6 +292,9 @@ def test_calendar_final_a2ui_keeps_geometry(
     messages = preview_messages.get(template_id)
     assert isinstance(messages, list)
     by_id = _components_by_id(messages)
+    if template_id == _COUNT_DETAIL_TEMPLATE:
+        _assert_count_detail_geometry(_detail_content(by_id), with_description=True)
+        return
     if template_id in _DETAIL_TEMPLATES:
         content = _detail_content(by_id)
         header = content.children[0].children[0]

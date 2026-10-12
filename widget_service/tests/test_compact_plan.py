@@ -1,0 +1,496 @@
+"""Compact Info Plan 合同、标准化与 DSL 覆盖回归。"""
+
+import json
+
+import pytest
+
+from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
+from services.compact_plan import (
+    CompactPlanValidationError,
+    build_compact_plan_tool,
+    compact_plan_coverage_errors,
+    compact_plan_data_paths,
+    parse_compact_plan_call,
+)
+from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
+
+
+def task_spec() -> dict:
+    return {
+        "userQuery": "制作会议卡片，显示设计评审、开始时间，并提供打开日历按钮",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": {
+                                "type": "string",
+                                "description": "会议标题",
+                                "sampleValue": "设计评审",
+                            },
+                            "start": {
+                                "type": "string",
+                                "description": "开始时间",
+                                "sampleValue": "10:00",
+                            },
+                        }
+                    ]
+                }
+            }
+        },
+        "eventCandidates": [
+            {
+                "id": "event.open.calendar",
+                "description": "打开日历",
+                "call": "clickToDeeplink",
+                "args": {"uri": "hww://calendar"},
+            }
+        ],
+    }
+
+
+def plan_call() -> str:
+    return json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "会议标题",
+                        "dataId": "/data/calendar/events/0/title",
+                        "componentHints": ["EventCard"],
+                    },
+                    {
+                        "requirement": "会议开始时间",
+                        "dataId": "/data/calendar/events/0/start",
+                        "componentHints": ["EventCard", "Unknown", "EventCard"],
+                    },
+                    {
+                        "requirement": "打开日历",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["PillButton"],
+                    },
+                ],
+                "layoutHints": ["S-title-content-action"],
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
+def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
+    spec = task_spec()
+    assert compact_plan_data_paths(spec) == (
+        "/data/calendar/events/0/title",
+        "/data/calendar/events/0/start",
+    )
+    tool = build_compact_plan_tool(spec)
+    properties = tool["function"]["parameters"]["properties"]
+    fact_properties = properties["info_required"]["items"]["properties"]
+    assert fact_properties["dataId"]["enum"] == list(compact_plan_data_paths(spec))
+    assert fact_properties["actionId"]["enum"] == ["event.open.calendar"]
+    assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
+    assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
+    assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "Button" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
+
+
+@pytest.mark.parametrize(
+    ("size", "expected", "actions"),
+    [
+        (
+            "2x2",
+            (
+                "SingleLineTitle",
+                "DoubleLineTitle",
+                "Badge",
+                "EmphasizedData",
+                "EmphasisText",
+                "SecondaryBody",
+                "InfoBlock",
+                "H_BarChart",
+                "NumericRatioStack",
+                "ProgressCircleSingle",
+                "ProgressCircle",
+                "TableText",
+                "EventCard",
+                "PillButton",
+                "DataDisplay",
+                "CircleButton",
+            ),
+            {"PillButton", "CircleButton"},
+        ),
+        (
+            "2x4",
+            (
+                "SingleLineTitle",
+                "DoubleLineTitle",
+                "Badge",
+                "EmphasizedData",
+                "EmphasisText",
+                "SecondaryBody",
+                "InfoBlock",
+                "H_BarChart",
+                "NumericRatioStack",
+                "ProgressCircleSingle",
+                "ProgressCircle",
+                "TableText",
+                "EventCard",
+                "PillButton",
+                "ProgressLine2",
+                "TextBlock",
+                "CardButton",
+                "TopTextBottomValue",
+                "SummaryList",
+            ),
+            {"PillButton", "CardButton"},
+        ),
+    ],
+)
+def test_plan_component_hints_match_registered_compact_inputs_by_size(
+    size: str,
+    expected: tuple[str, ...],
+    actions: set[str],
+) -> None:
+    spec = task_spec()
+    spec["size"] = size
+    tool = build_compact_plan_tool(spec)
+    properties = tool["function"]["parameters"]["properties"]
+    fact_properties = properties["info_required"]["items"]["properties"]
+    candidates = fact_properties["componentHints"]["items"]["enum"]
+    candidate_set = set(candidates)
+
+    assert candidates == list(expected)
+    assert candidate_set <= MODEL_COMPACT_INPUT_COMPONENT_TYPES
+    assert "Text" not in candidate_set
+    assert "Button" not in candidate_set
+    assert "Image" not in candidate_set
+    assert "Divider" not in candidate_set
+    assert actions <= candidate_set
+
+
+@pytest.mark.parametrize(
+    ("size", "valid_action"),
+    [("2x2", "CircleButton"), ("2x4", "CardButton")],
+)
+def test_plan_normalization_removes_button_for_each_size(
+    size: str,
+    valid_action: str,
+) -> None:
+    spec = task_spec()
+    spec["size"] = size
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "打开日历",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["Button", valid_action],
+                    }
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, spec)
+
+    assert result.plan["info_required"][0]["componentHints"] == [valid_action]
+    assert result.warnings == (
+        "info_required[0].componentHints removed unsupported or duplicate values.",
+    )
+
+
+def test_plan_normalization_removes_target_incompatible_component_hints() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "会议标题",
+                        "dataId": "/data/calendar/events/0/title",
+                        "componentHints": ["PillButton", "EventCard"],
+                    },
+                    {
+                        "requirement": "打开日历",
+                        "actionId": "event.open.calendar",
+                        "componentHints": ["InfoBlock", "PillButton"],
+                    },
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    facts = result.plan["info_required"]
+    assert facts[0]["componentHints"] == ["EventCard"]
+    assert facts[1]["componentHints"] == ["PillButton"]
+    assert result.warnings == (
+        "info_required[0].componentHints removed unsupported, "
+        "target-incompatible or duplicate values.",
+        "info_required[1].componentHints removed unsupported, "
+        "target-incompatible or duplicate values.",
+    )
+
+
+def test_plan_normalization_makes_single_line_title_an_exclusive_title_hint() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "会议标题",
+                        "dataId": "/data/calendar/events/0/title",
+                        "componentHints": ["Text", "SingleLineTitle", "EventCard"],
+                    }
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    assert result.plan["info_required"][0]["componentHints"] == ["SingleLineTitle"]
+    assert result.warnings == (
+        "info_required[0].componentHints removed alternatives because SingleLineTitle "
+        "is the exclusive title component.",
+    )
+
+
+def test_plan_keeps_progress_hint_for_complete_percentage_text() -> None:
+    spec = task_spec()
+    spec["dataModelSchema"]["data"]["weather"] = {
+        "rainProbability": {
+            "type": "string",
+            "description": "可直接显示的降雨概率百分比",
+            "sampleValue": "20%",
+        },
+        "condition": {
+            "type": "string",
+            "description": "天气现象",
+            "sampleValue": "多云",
+        },
+    }
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "降雨概率",
+                        "dataId": "/data/weather/rainProbability",
+                        "componentHints": ["ProgressCircleSingle"],
+                    },
+                    {
+                        "requirement": "天气现象",
+                        "dataId": "/data/weather/condition",
+                        "componentHints": ["ProgressCircleSingle", "SecondaryBody"],
+                    },
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, spec)
+
+    facts = result.plan["info_required"]
+    assert facts[0]["componentHints"] == ["ProgressCircleSingle"]
+    assert facts[1]["componentHints"] == ["SecondaryBody"]
+    assert result.warnings == (
+        "info_required[1].componentHints removed unsupported, "
+        "type-incompatible or duplicate values.",
+    )
+
+
+def test_plan_call_is_normalized_without_freezing_components() -> None:
+    result = parse_compact_plan_call(plan_call(), task_spec())
+    facts = result.plan["info_required"]
+    assert len(facts) == 3
+    assert facts[1]["componentHints"] == ["EventCard"]
+    assert result.plan["layoutHints"] == ["S-title-content-action"]
+    assert result.warnings == (
+        "info_required[1].componentHints removed unsupported or duplicate values.",
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("dataId", "/data/calendar/events/0/missing", "not present in TaskSpec"),
+        ("actionId", "event.missing", "not present in TaskSpec"),
+        ("text", "模型自行增加的文案", "must be copied from userQuery"),
+    ],
+)
+def test_plan_rejects_invented_targets(field: str, value: str, message: str) -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {"requirement": "非法事实", field: value},
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+    with pytest.raises(CompactPlanValidationError, match=message):
+        parse_compact_plan_call(raw, task_spec())
+
+
+def test_compact_dsl_must_cover_plan_data_and_action() -> None:
+    plan = parse_compact_plan_call(plan_call(), task_spec()).plan
+    complete = "\n".join(
+        [
+            '["root","Column",{},["title","start","button"]]',
+            '["title","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+            '["start","Text",{"content":"{{ ${/data/calendar/events/0/start} }}"}]',
+            '["button","PillButton",{"label":"打开日历","onClick":'
+            '[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]}]',
+            '["/data/calendar/events/0/title","设计评审"]',
+            '["/data/calendar/events/0/start","10:00"]',
+        ]
+    )
+    assert compact_plan_coverage_errors(complete, plan, task_spec()) == ()
+
+    incomplete = complete.replace(
+        '{"path":"/data/calendar/events/0/title"}',
+        '"会议"',
+    ).replace(
+        '[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]',
+        "[]",
+    )
+    errors = compact_plan_coverage_errors(incomplete, plan, task_spec())
+    assert any("会议标题" in item for item in errors)
+    assert any("打开日历" in item for item in errors)
+
+
+def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["SingleLineTitle"],
+            }
+        ]
+    }
+    text_source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+        ]
+    )
+    header_source = "\n".join(
+        [
+            '["root","Column",{},["title"]]',
+            '["title","SingleLineTitle",{"title":{"path":'
+            '"/data/calendar/events/0/title"},"fontColor":"#FF1F4799"}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(text_source, plan, spec) == (
+        "Plan title fact must be visible in a SingleLineTitle.title: "
+        "会议标题 (/data/calendar/events/0/title).",
+    )
+    assert compact_plan_coverage_errors(header_source, plan, spec) == ()
+
+
+def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
+    spec = {
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "device": {
+                    "battery": {
+                        "type": "integer",
+                        "description": "设备电量百分比0到100",
+                    }
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "设备电量",
+                "dataId": "/data/device/battery",
+                "componentHints": ["ProgressCircle"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["battery"]]',
+            '["battery","ProgressCircle",'
+            '{"externalText":{"path":"/data/device/battery"},'
+            '"icon":"resources/battery.svg",'
+            '"accessibility":{"label":"设备电量百分比"},'
+            '"width":52,"height":68,"fontColor":"#FF1F4799",'
+            '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, spec) == ()
+
+
+def test_processor_reports_missing_plan_fact_with_dedicated_code() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "卡片标题",
+                "text": "静态卡片",
+                "componentHints": ["SecondaryBody"],
+            }
+        ]
+    }
+    context = DslProcessingContext(
+        size="2x2",
+        card_spec={},
+        task_spec=task_spec(),
+        protocol_profile={},
+        compact_plan=plan,
+    )
+    result = DesignCompactProcessor().process(
+        '["root","Column",{},["title"]]\n'
+        '["title","Text",{"content":"其他文字"}]',
+        context,
+    )
+
+    assert result.standard_dsl == ""
+    assert len(result.errors) == 1
+    assert result.errors[0].code == "COMPACT_PLAN_COVERAGE_FAILED"
+    assert "卡片标题" in result.errors[0].message
+
+
+def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "卡片标题",
+                "text": "center",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{"justifyContent":"center"},["title"]]',
+            '["title","Text",{"content":"其他文字"}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(source, plan, task_spec())
+
+    assert errors == ("Plan static text is missing from visible DSL: 卡片标题.",)

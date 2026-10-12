@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@genui-sdk/prompt": ["../prompt/dist/index.d.mts"],
+      "@genui-sdk/parser": ["../parser/src/index.ts"],
+      "@genui-sdk/graph": ["../graph/src/index.ts"],
+      "@genui-sdk/llm-client": ["./llm-client/src/index.ts"],
+      "@genui-sdk/components": ["../components/src/index.ts"],
+      "@genui-sdk/renderer": ["../renderer/src/index.ts"]
+    }
+  },
+  "include": ["src", "test.ts"],
+  "exclude": ["node_modules", "dist"]
+}

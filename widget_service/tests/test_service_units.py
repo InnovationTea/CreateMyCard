@@ -90,7 +90,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.artifact_store import ArtifactStore, RepairArtifactRecord, _remove_extrainfo
+from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
@@ -232,7 +232,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
     assert Settings(_env_file=None).model_failure_retry_jitter_ratio == 0.2
     assert Settings(_env_file=None).model_prompt_log_preview_chars == 30
-    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
+    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 5
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -242,6 +242,12 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
+
+
+def test_settings_keeps_inline_multiline_prompt_without_path_probe() -> None:
+    prompt = "第一行\n第二行"
+
+    assert Settings.load_prompt_file_alias(prompt) == prompt
 
 
 def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
@@ -511,11 +517,11 @@ def test_ids_mock_is_enabled_by_default():
     }
 
 
-def test_validation_failure_retry_is_disabled_by_default(monkeypatch):
+def test_validation_failure_retry_is_enabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", raising=False)
     settings = Settings(_env_file=None)
 
-    assert settings.enable_validation_failure_retry is False
+    assert settings.enable_validation_failure_retry is True
 
 
 def test_model_failure_retry_is_disabled_by_default(monkeypatch):
@@ -528,6 +534,28 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS", raising=False)
 
     assert Settings(_env_file=None).enable_widget_directive_commands is False
+
+
+def test_design_compact_few_shots_are_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_few_shots is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_few_shots is True
+
+
+def test_design_compact_runtime_prompt_context_is_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_RUNTIME_PROMPT_CONTEXT"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is True
 
 
 def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
@@ -1067,30 +1095,22 @@ def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
     assert "machineRecoveredCandidate" not in repair_input
     target_structure = repair_input.get("targetStructure")
     assert isinstance(target_structure, dict)
-    assert target_structure.get("extrainfo") == ["non-empty string, optional"]
+    assert set(target_structure) == {
+        "bundleName",
+        "romVersion",
+        "userQuery",
+        "sourceArtifactUrl",
+        "size",
+        "title",
+        "description",
+        "candidateAssetIds",
+        "candidateDataBindings",
+        "candidateEventCandidates",
+        "options",
+    }
     assert isinstance(target_structure.get("candidateDataBindings"), list)
     assert isinstance(target_structure.get("candidateEventCandidates"), list)
     assert "array 的字段即使只有一项也必须输出 array" in system_content
-
-
-def test_artifact_request_block_does_not_persist_extrainfo():
-    body = {
-        "content": {
-            "userQuery": "制作卡片",
-            "extrainfo": ["只供本轮模型使用的事实"],
-        },
-        "arguments": json_module.dumps(
-            {"userQuery": "制作卡片", "extrainfo": ["嵌套事实"]},
-            ensure_ascii=False,
-        ),
-    }
-
-    request_block = ArtifactStore(request_body=body)._request_block_body()
-
-    assert "extrainfo" not in request_block
-    assert "只供本轮模型使用的事实" not in request_block
-    assert "嵌套事实" not in request_block
-    assert _remove_extrainfo({"extrainfo": ["事实"], "value": 1}) == {"value": 1}
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
@@ -2893,68 +2913,6 @@ def test_design_compact_create_prompt_is_plain_task_spec_json(
     ]
 
 
-def test_design_compact_prompt_carries_extrainfo_without_extending_task_spec(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    monkeypatch.setattr(
-        get_settings(),
-        "CONFIG",
-        {"fusion_ball_min_prd_version": APP_VERSION},
-    )
-    task_spec = TaskSpecBuilder().build(
-        user_query="把前文答案做成卡片",
-        size="2x2",
-        effective_bindings=[],
-        effective_data_capabilities=[],
-        event_candidates=[],
-        asset_candidates=[],
-    )
-    facts = ["演出时间为今晚 19:30。", "地点是上海大剧院。"]
-
-    prompt = PromptBuilder().build_design_compact(
-        task_spec,
-        "design rules",
-        extrainfo=facts,
-    )
-    payload = json_module.loads(prompt[1]["content"])
-
-    assert payload["userQuery"] == "把前文答案做成卡片"
-    assert "extrainfo=" in prompt[0]["content"]
-    assert all(fact in prompt[0]["content"] for fact in facts)
-    assert "不属于 TaskSpec" in prompt[0]["content"]
-
-    generic_prompt = PromptBuilder().build(task_spec, extrainfo=facts)
-    generic_payload = json_module.loads(generic_prompt[1]["content"])
-    assert generic_payload["userQuery"] == "把前文答案做成卡片"
-    assert all(fact in generic_prompt[0]["content"] for fact in facts)
-
-
-def test_design_compact_edit_prompt_does_not_inherit_extrainfo(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    monkeypatch.setattr(
-        get_settings(),
-        "CONFIG",
-        {"fusion_ball_min_prd_version": APP_VERSION},
-    )
-    task_spec = TaskSpecBuilder().build(
-        user_query="改成蓝色",
-        size="2x2",
-        effective_bindings=[],
-        effective_data_capabilities=[],
-        event_candidates=[],
-        asset_candidates=[],
-    )
-    prompt = PromptBuilder().build_design_compact(
-        task_spec,
-        "design rules",
-        previous_design_token="token",
-    )
-    payload = json_module.loads(prompt[1]["content"])
-
-    assert "extrainfo" not in payload
-
-
 @pytest.mark.asyncio
 async def test_a2ui_model_client_returns_mock_dat_without_processing():
     """验证 mock A2UI 直接返回 mock.dat 原始内容。
@@ -2977,13 +2935,13 @@ async def test_a2ui_model_client_returns_mock_dat_without_processing():
 
 
 @pytest.mark.parametrize(
-    ("size", "expected_width"),
-    [("2x2", 160), ("2x4", 320)],
+    ("size", "expected_component"),
+    [("2x2", "Column"), ("2x4", "Stack")],
 )
 @pytest.mark.asyncio
 async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     size,
-    expected_width,
+    expected_component,
 ):
     """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
     prompt = [
@@ -3008,9 +2966,9 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     )
     converted_rows = [json_module.loads(line) for line in converted.splitlines()]
 
-    assert root[0:2] == ["root", "Column"]
-    assert root[2]["width"] == expected_width
-    assert root[2]["height"] == 160
+    assert root[0:2] == ["root", expected_component]
+    assert root[2]["width"] == "matchParent"
+    assert root[2]["height"] == "matchParent"
     assert len(converted_rows) == 3
     assert "width" not in converted_rows[0]["createSurface"]
     assert "height" not in converted_rows[0]["createSurface"]
@@ -3218,8 +3176,8 @@ def test_design_converter_expands_latest_design_tokens():
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
     assert component_by_id["title"]["styles"]["fontSize"] == 36
-    assert component_by_id["button"]["styles"]["width"] == 30
-    assert component_by_id["button"]["styles"]["borderRadius"] == 15
+    assert component_by_id["button"]["styles"]["width"] == 36
+    assert component_by_id["button"]["styles"]["borderRadius"] == 18
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
@@ -3937,8 +3895,14 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
-    assert len(model_prompts) == 2
-    assert len(validated_genui) == 2
+    assert len(model_prompts) == 3
+    assert len(validated_genui) == 3
+    first_repair = json_module.loads(model_prompts[1][1]["content"])
+    second_repair = json_module.loads(model_prompts[2][1]["content"])
+    assert first_repair["repairStrategy"]["repairStrategy"] == "targeted"
+    assert second_repair["repairStrategy"]["repairStrategy"] == (
+        "plan_guided_recompose"
+    )
     assert '"createSurface"' in validated_genui[0]
 
 
@@ -4299,6 +4263,13 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         payload["qualityErrors"][0]["stage"] == "validation"
         for payload in repair_payloads
     )
+    assert repair_payloads[0]["repairStrategy"]["repairStrategy"] == "targeted"
+    assert repair_payloads[0]["repairStrategy"]["scope"] == "component"
+    assert repair_payloads[1]["repairStrategy"]["repairStrategy"] == (
+        "plan_guided_recompose"
+    )
+    assert repair_payloads[1]["repairStrategy"]["scope"] == "full_dsl"
+    assert repair_payloads[1]["repairStrategy"]["noProgress"] is True
 
 
 @pytest.mark.asyncio
@@ -4588,6 +4559,30 @@ async def test_retry_controller_saves_second_failure_without_third_call():
     assert repair_calls == 1
     assert retry_result.result == "second"
     assert retry_result.errors == ["bad-second"]
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_stops_when_repair_reports_no_progress():
+    repair_calls = 0
+
+    def repair(_value: str, _errors: list[str]) -> None:
+        nonlocal repair_calls
+        repair_calls += 1
+        return None
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=5,
+        repair=repair,
+    )
+
+    assert repair_calls == 1
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 0
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is False
 
 
 @pytest.mark.asyncio
