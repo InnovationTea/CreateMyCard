@@ -15,6 +15,10 @@ from typing import Any, Literal
 
 from services.compact_component_bindings import collect_compact_component_binding_errors
 from services.compact_component_runtime import VISUAL_RECIPE_VERSION, resolve_card_color_palette
+from services.compact_dsl_parse_context import (
+    MODEL_PARSE_CONTEXT,
+    CompactDslParseContext,
+)
 from services.compact_high_level_components import (
     CompactDslConversionError as CompactDslConversionError,
 )
@@ -382,11 +386,11 @@ _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
 
 def parse_compact_dsl_rows(
-    compact_dsl: str, *, allow_internal_components: bool = False,
+    compact_dsl: str, *, parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
     return tuple(_parse_compact_rows(
-        compact_dsl, allow_internal_components=allow_internal_components,
+        compact_dsl, parse_context=parse_context,
     ))
 
 
@@ -415,20 +419,20 @@ def normalize_compact_dsl_design_tokens(
 
 
 def repair_compact_dsl_safe_structure(
-    compact_dsl: str, *, size: str, allow_internal_components: bool = False,
+    compact_dsl: str, *, size: str, parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> str:
     """Apply only deterministic tree and formal split-panel repairs."""
     changed = False
     try:
         rows = _parse_compact_rows(
-            compact_dsl, allow_internal_components=allow_internal_components,
+            compact_dsl, parse_context=parse_context,
         )
     except CompactDslConversionError as exc:
         if "Unreachable component(s):" not in str(exc):
             raise
         rows = _parse_compact_rows(
             compact_dsl, drop_unreachable=True,
-            allow_internal_components=allow_internal_components,
+            parse_context=parse_context,
         )
         changed = True
 
@@ -496,11 +500,11 @@ def repair_compact_dsl_binding_paths(
     *,
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
-    allow_internal_components: bool = False,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> str:
     """Repair unique data roots or safely inline unbacked local values."""
     rows = _parse_compact_rows(
-        compact_dsl, allow_internal_components=allow_internal_components,
+        compact_dsl, parse_context=parse_context,
     )
     components, data_rows = _split_component_rows(rows)
     event_replacements = _event_handler_replacements(components, task_spec)
@@ -601,7 +605,7 @@ def convert_compact_dsl_to_a2ui(
     protocol_profile: dict[str, Any] | None = None,
     theme: ThemeMode = "light",
     surface_id: str = "surface_card",
-    allow_internal_components: bool = False,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
     # 布局运行时复用本模块的行类型，延迟导入避免模块初始化循环。
@@ -609,7 +613,7 @@ def convert_compact_dsl_to_a2ui(
 
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(
-        compact_dsl, allow_internal_components=allow_internal_components,
+        compact_dsl, parse_context=parse_context,
     )
     components, data_rows = _split_component_rows(rows)
     _validate_compact_component_bindings(components)
@@ -1066,7 +1070,7 @@ def _parse_compact_rows(
     compact_dsl: str,
     *,
     drop_unreachable: bool = False,
-    allow_internal_components: bool = False,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> list[CompactRow]:
     body = _repair_compact_json_rows(compact_dsl)
     rows: list[CompactRow] = []
@@ -1077,7 +1081,7 @@ def _parse_compact_rows(
             continue
         value = _parse_json_line(line, line_number)
         rows.append(_parse_row(
-            value, line_number, allow_internal_components=allow_internal_components,
+            value, line_number, parse_context=parse_context,
         ))
 
     if not rows:
@@ -1216,7 +1220,8 @@ def _repair_unbalanced_json_brackets(text: str) -> str:
 
 
 def _parse_row(
-    value: list[Any], line_number: int, *, allow_internal_components: bool = False,
+    value: list[Any], line_number: int, *,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> CompactRow:
     if _looks_like_data_row(value):
         path = value[0]
@@ -1228,7 +1233,7 @@ def _parse_row(
         _decode_json_pointer(path)
         return DataRow(path=path, value=copy.deepcopy(props["value"]))
     return _parse_component_row(
-        value, line_number, allow_internal_components=allow_internal_components,
+        value, line_number, parse_context=parse_context,
     )
 
 
@@ -1248,7 +1253,8 @@ def _looks_like_data_def_row(value: list[Any]) -> bool:
 
 
 def _parse_component_row(
-    value: list[Any], line_number: int, *, allow_internal_components: bool = False,
+    value: list[Any], line_number: int, *,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> ComponentRow:
     value = _repair_legacy_component_row(value)
     if len(value) not in {3, 4}:
@@ -1266,7 +1272,7 @@ def _parse_component_row(
         component_type,
         props,
         line_number,
-        allow_internal_components=allow_internal_components,
+        parse_context=parse_context,
     )
     if "_visualRecipe" in props:
         raise CompactDslConversionError("_visualRecipe is reserved for internal expansion.")
@@ -1505,7 +1511,7 @@ def _parse_component_header(
     props: Any,
     line_number: int,
     *,
-    allow_internal_components: bool = False,
+    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> tuple[str, str, dict[str, Any]]:
     if not isinstance(component_id, str) or not component_id:
         raise CompactDslConversionError(
@@ -1516,7 +1522,7 @@ def _parse_component_header(
             f"{component_id}: component type must be a non-empty string."
         )
     allowed_types = COMPACT_INPUT_COMPONENT_TYPES
-    if allow_internal_components:
+    if parse_context.is_template:
         allowed_types = allowed_types | _INTERNAL_COMPONENT_TYPES
     if component_type not in allowed_types:
         raise CompactDslConversionError(

@@ -10,6 +10,9 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_safe_structure,
 )
+from services.compact_dsl_parse_context import (
+    TEMPLATE_PARSE_CONTEXT,
+)
 from services.template_generation.engine.cardplan.preview_dataset import (
     TemplatePreviewCase,
     build_template_preview_cases,
@@ -38,10 +41,10 @@ def test_template_preview_svg_colors_survive_public_conversion(case: TemplatePre
     a2ui = "\n".join(json.dumps(message) for message in case.messages)
     compact = convert_a2ui_to_compact_dsl(a2ui, size=case.size)
     repaired = repair_compact_dsl_safe_structure(
-        compact, size=case.size, allow_internal_components=True,
+        compact, size=case.size, parse_context=TEMPLATE_PARSE_CONTEXT,
     )
     converted = convert_compact_dsl_to_a2ui(
-        repaired, size=case.size, allow_internal_components=True,
+        repaired, size=case.size, parse_context=TEMPLATE_PARSE_CONTEXT,
     )
     converted_colors: dict[str, str] = {}
     for line in converted.splitlines():

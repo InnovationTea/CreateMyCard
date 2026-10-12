@@ -44,6 +44,10 @@ from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
+from services.compact_dsl_parse_context import (
+    MODEL_PARSE_CONTEXT,
+    TEMPLATE_PARSE_CONTEXT,
+)
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -763,7 +767,7 @@ class WidgetGenerationService:
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
-        source_generated_by_template = False
+        parse_context = MODEL_PARSE_CONTEXT
         accepted_compact_plan: dict | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
@@ -915,9 +919,9 @@ class WidgetGenerationService:
             nonlocal accepted_compact_plan
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
-            nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal source_generated_by_jsx, parse_context
             source_generated_by_jsx = False
-            source_generated_by_template = False
+            parse_context = MODEL_PARSE_CONTEXT
             original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
@@ -936,7 +940,7 @@ class WidgetGenerationService:
                     )
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
-                    source_generated_by_template = True
+                    parse_context = TEMPLATE_PARSE_CONTEXT
                     return generated_dsl
                 except Exception as exc:
                     fallback = (
@@ -1048,9 +1052,9 @@ class WidgetGenerationService:
             from services.prompt_builder import PromptBuilder
 
             nonlocal model_call_phase, quality_repair_attempt_count
-            nonlocal source_generated_by_template
+            nonlocal parse_context
             # 模型修复阶段切换回模型组件规则。
-            source_generated_by_template = False
+            parse_context = MODEL_PARSE_CONTEXT
             trace_phase("repair")
             quality_error_payloads = [
                 asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
@@ -1214,7 +1218,7 @@ class WidgetGenerationService:
                 return []
             processing_context_for_source = replace(
                 processing_context,
-                trusted_template_source=source_generated_by_template,
+                parse_context=parse_context,
                 compact_plan=accepted_compact_plan,
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.allowed_omitted_fact_indexes

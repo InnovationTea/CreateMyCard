@@ -6,6 +6,9 @@ import pytest
 
 from models.generation import CandidateDataBinding
 from services.card_validation.compact_dsl_validator import validate_compact_dsl
+from services.compact_dsl_parse_context import (
+    TEMPLATE_PARSE_CONTEXT,
+)
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     convert_a2ui_to_compact_dsl,
 )
@@ -203,7 +206,7 @@ async def test_pair_ring_full_renders_independent_optional_status(mask: int, fus
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
     )
     assert template_id in result.template_ids
@@ -288,7 +291,7 @@ async def test_earphone_percent_text_full_renders_without_actions(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
     )
     assert template_id in result.template_ids
@@ -372,7 +375,7 @@ async def test_case_percent_full_renders_optional_name_and_required_status(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
     )
     assert template_id in result.template_ids
@@ -455,7 +458,7 @@ async def test_connection_text_full_renders_both_boolean_states(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
     )
     assert template_id in result.template_ids

@@ -8363,7 +8363,7 @@ async def test_template_exception_obeys_route_failure_policy(
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             generated_sources.append(source_dsl)
-            source_permissions.append(_context.trusted_template_source)
+            source_permissions.append(_context.parse_context.is_template)
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl="valid-a2ui",
@@ -8475,7 +8475,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             processed_sources.append(source_dsl)
             source_permissions.append((
-                _context.trusted_template_source, _context.skip_compact_dsl_validation,
+                _context.parse_context.is_template, _context.skip_compact_dsl_validation,
             ))
             if source_dsl == "template-invalid-source":
                 return DslProcessingResult(

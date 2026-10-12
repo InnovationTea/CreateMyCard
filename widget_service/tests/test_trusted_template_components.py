@@ -13,6 +13,12 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
 )
+from services.compact_dsl_parse_context import (
+    MODEL_PARSE_CONTEXT,
+    TEMPLATE_PARSE_CONTEXT,
+    CompactDslParseContext,
+    CompactDslSource,
+)
 from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
 
 
@@ -55,16 +61,16 @@ def test_internal_components_require_explicit_permission(component_type: str, pr
         parse_compact_dsl_rows(source)
     repaired = repair_compact_dsl_binding_paths(
         source, task_spec=context.task_spec, card_spec=context.card_spec,
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
     )
     standard = convert_compact_dsl_to_a2ui(
-        repaired, size=context.size, allow_internal_components=True,
+        repaired, size=context.size, parse_context=TEMPLATE_PARSE_CONTEXT,
     )
     assert component_type in standard
     with pytest.raises(CompactDslValidationError, match="converter-internal"):
         validate_compact_dsl(
             source, task_spec=context.task_spec, card_spec=context.card_spec,
-            allow_internal_components=True, enforce_model_component_types=True,
+            parse_context=TEMPLATE_PARSE_CONTEXT, enforce_model_component_types=True,
         )
 
 
@@ -77,7 +83,7 @@ def test_skipping_validation_does_not_grant_template_permission() -> None:
     assert "unsupported component type Image" in denied.errors[0].message
     # 模板来源由处理上下文提供。
     allowed = DesignCompactProcessor().process(
-        source, replace(context, trusted_template_source=True),
+        source, replace(context, parse_context=TEMPLATE_PARSE_CONTEXT),
     )
     assert not allowed.errors
     assert '"Image"' in allowed.standard_dsl
@@ -86,7 +92,7 @@ def test_skipping_validation_does_not_grant_template_permission() -> None:
 def test_trusted_template_can_still_run_compact_validation() -> None:
     source = _source("Divider", {"height": 1})
     result = DesignCompactProcessor().process(
-        source, replace(_context(), trusted_template_source=True),
+        source, replace(_context(), parse_context=TEMPLATE_PARSE_CONTEXT),
     )
     assert not result.errors
     assert '"Divider"' in result.standard_dsl
@@ -101,7 +107,7 @@ def test_trusted_template_preserves_compiled_layout(monkeypatch: pytest.MonkeyPa
     )
     result = DesignCompactProcessor().process(
         _source("Divider", {"height": 1}),
-        replace(_context(), trusted_template_source=True, layout_scope="all"),
+        replace(_context(), parse_context=TEMPLATE_PARSE_CONTEXT, layout_scope="all"),
     )
     assert not result.errors
 
@@ -109,7 +115,7 @@ def test_trusted_template_preserves_compiled_layout(monkeypatch: pytest.MonkeyPa
 def test_trusted_template_processor_still_rejects_overflow() -> None:
     result = DesignCompactProcessor().process(
         _source("Divider", {"height": 200}),
-        replace(_context(), trusted_template_source=True, layout_scope="all"),
+        replace(_context(), parse_context=TEMPLATE_PARSE_CONTEXT, layout_scope="all"),
     )
     assert result.errors
     assert any("overflows" in error.message for error in result.errors)
@@ -123,7 +129,7 @@ def test_trusted_permission_does_not_bypass_parser_guards(
     component_type: str, props: dict, error: str,
 ) -> None:
     with pytest.raises(CompactDslConversionError, match=error):
-        parse_compact_dsl_rows(_source(component_type, props), allow_internal_components=True)
+        parse_compact_dsl_rows(_source(component_type, props), parse_context=TEMPLATE_PARSE_CONTEXT)
 
 
 def test_trusted_permission_does_not_disable_height_budget() -> None:
@@ -131,7 +137,7 @@ def test_trusted_permission_does_not_disable_height_budget() -> None:
         validate_compact_dsl(
             _source("Divider", {"height": 200}),
             task_spec=_context().task_spec, card_spec=_context().card_spec,
-            allow_internal_components=True,
+            parse_context=TEMPLATE_PARSE_CONTEXT,
         )
 
 
@@ -140,7 +146,7 @@ def test_trusted_permission_does_not_disable_background_asset_allowlist() -> Non
         validate_compact_dsl(
             _source("Divider", {"backgroundImage": "resources/undeclared.svg"}),
             task_spec=_context().task_spec, card_spec=_context().card_spec,
-            allow_internal_components=True,
+            parse_context=TEMPLATE_PARSE_CONTEXT,
         )
 
 
@@ -161,14 +167,14 @@ def test_safe_structure_keeps_template_permission_during_orphan_repair(
     with pytest.raises(CompactDslConversionError, match="unsupported component type"):
         repair_compact_dsl_safe_structure(source, size="2x2")
     repaired = repair_compact_dsl_safe_structure(
-        source, size="2x2", allow_internal_components=True,
+        source, size="2x2", parse_context=TEMPLATE_PARSE_CONTEXT,
     )
     if not with_orphan:
         assert repaired == source
-    rows = parse_compact_dsl_rows(repaired, allow_internal_components=True)
+    rows = parse_compact_dsl_rows(repaired, parse_context=TEMPLATE_PARSE_CONTEXT)
     assert [row.component_id for row in rows] == ["root", "template_root", "body"]
     result = DesignCompactProcessor().process(
-        source, replace(_context(), trusted_template_source=True),
+        source, replace(_context(), parse_context=TEMPLATE_PARSE_CONTEXT),
     )
     assert not result.errors
     assert "orphan" not in result.standard_dsl
@@ -178,5 +184,45 @@ def test_safe_structure_keeps_template_permission_during_orphan_repair(
 def test_safe_structure_template_permission_preserves_unknown_component_error() -> None:
     with pytest.raises(CompactDslConversionError, match="unsupported component type"):
         repair_compact_dsl_safe_structure(
-            _source("UnknownWidget", {}), size="2x2", allow_internal_components=True,
+            _source("UnknownWidget", {}), size="2x2", parse_context=TEMPLATE_PARSE_CONTEXT,
         )
+
+
+@pytest.mark.parametrize("template_id", [
+    "template_root", "__genui_render_component__template_root", "ordinary_node",
+])
+def test_template_context_does_not_leak_into_later_model_parse(template_id: str) -> None:
+    source = _source("Divider", {"height": 1}).replace("template_root", template_id)
+    parse_compact_dsl_rows(source, parse_context=TEMPLATE_PARSE_CONTEXT)
+    for parse_context in (MODEL_PARSE_CONTEXT, CompactDslParseContext()):
+        with pytest.raises(CompactDslConversionError, match="unsupported component type Divider"):
+            parse_compact_dsl_rows(source, parse_context=parse_context)
+    with pytest.raises(CompactDslConversionError, match="unsupported component type Divider"):
+        parse_compact_dsl_rows(source)
+
+
+def test_processor_reuses_parse_context_across_all_stages(monkeypatch: pytest.MonkeyPatch) -> None:
+    from services import generation_pipeline
+
+    parse_context = CompactDslParseContext(source=CompactDslSource.TEMPLATE)
+    observed = []
+
+    def record_context(original):
+        def wrapped(*args, **kwargs):
+            observed.append(kwargs.get("parse_context"))
+            return original(*args, **kwargs)
+        return wrapped
+
+    for name in (
+        "repair_compact_dsl_safe_structure", "repair_compact_dsl_binding_paths",
+        "validate_compact_dsl", "convert_compact_dsl_to_a2ui",
+    ):
+        original = getattr(generation_pipeline, name)
+        monkeypatch.setattr(generation_pipeline, name, record_context(original))
+
+    result = DesignCompactProcessor().process(
+        _source("Divider", {"height": 1}), replace(_context(), parse_context=parse_context),
+    )
+    assert not result.errors
+    assert len(observed) == 4
+    assert all(context is parse_context for context in observed)

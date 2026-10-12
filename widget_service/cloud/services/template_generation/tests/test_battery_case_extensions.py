@@ -10,6 +10,9 @@ import pytest
 
 from models.generation import EventAction
 from services.card_validation.compact_dsl_validator import validate_compact_dsl
+from services.compact_dsl_parse_context import (
+    TEMPLATE_PARSE_CONTEXT,
+)
 from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
 from services.template_generation.controls import TemplateControls
 from services.template_generation.engine import pipeline
@@ -47,7 +50,7 @@ def _assert_public_template_processing(a2ui: str, task_spec: dict, card_spec: di
         convert_a2ui_to_compact_dsl(a2ui, size="2x2"),
         DslProcessingContext(
             size="2x2", task_spec=task_spec, card_spec=card_spec,
-            protocol_profile={"version": "v0.9"}, trusted_template_source=True,
+            protocol_profile={"version": "v0.9"}, parse_context=TEMPLATE_PARSE_CONTEXT,
             layout_scope="all",
         ),
     )
@@ -93,7 +96,7 @@ async def test_diagnostics_full_renders_without_actions(fusion: bool, with_asset
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -187,7 +190,7 @@ async def test_level_full_templates_without_actions_or_assets(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -265,7 +268,7 @@ async def test_current_voltage_full_displays_available_fields(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -490,7 +493,7 @@ async def test_cases_compile_and_pass_the_production_font_validator(
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         # Production validates against the original TaskSpec, without internal selectors.
         task_spec=task.model_dump(mode="json"),
         card_spec=case.card,
@@ -611,7 +614,7 @@ async def test_q231_status_summary_hero_uses_only_four_text_fields(fusion: bool)
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -651,7 +654,7 @@ async def test_percent_details_full_displays_four_fields(fusion: bool) -> None:
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -710,7 +713,7 @@ async def test_status_level_summary_hero_uses_only_four_text_fields(fusion: bool
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
@@ -752,7 +755,7 @@ async def test_charging_level_summary_hero_uses_only_four_text_fields(fusion: bo
     )
     validate_compact_dsl(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        allow_internal_components=True,
+        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
