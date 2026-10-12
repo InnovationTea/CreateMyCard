@@ -543,6 +543,9 @@
     },
     {
       "templateId": "WeatherOverviewThreeDayForecastFull@1",
+      "supportedCardSizes": [
+        "2x4"
+      ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "三日天气预报 Full，按三个双行条目展示 daily[0..2] 每天的完整日期、星期、天气现象、降雨概率和完整温度范围。适合与倒计时 Hero 及天气详情操作组成 2x4 卡片。",
