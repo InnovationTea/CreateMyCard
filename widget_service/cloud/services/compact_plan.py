@@ -943,6 +943,12 @@ def _validate_facts(
                     if hint not in accepted_hints:
                         accepted_hints.append(hint)
                 removed_single_line_title_alternatives = False
+                removed_single_line_title_backup = False
+                if task_spec.get("size") == "2x2" and accepted_hints:
+                    title_is_backup = accepted_hints[0] != "SingleLineTitle"
+                    if title_is_backup and "SingleLineTitle" in accepted_hints:
+                        accepted_hints.remove("SingleLineTitle")
+                        removed_single_line_title_backup = True
                 if "SingleLineTitle" in accepted_hints and accepted_hints != ["SingleLineTitle"]:
                     accepted_hints = ["SingleLineTitle"]
                     removed_single_line_title_alternatives = True
@@ -950,7 +956,12 @@ def _validate_facts(
                     fact["componentHints"] = accepted_hints[:3]
                 if accepted_hints != hints:
                     reason = "unsupported or duplicate values."
-                    if removed_single_line_title_alternatives:
+                    if removed_single_line_title_backup:
+                        reason = (
+                            "a fallback SingleLineTitle cannot override the preferred "
+                            "body component or create a new mandatory title role."
+                        )
+                    elif removed_single_line_title_alternatives:
                         reason = (
                             "alternatives because SingleLineTitle is the exclusive "
                             "title component."
