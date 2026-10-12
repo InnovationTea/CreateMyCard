@@ -847,8 +847,7 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
     )
     result = DesignCompactProcessor().process(
         '["root","Column",{},["title"]]\n'
-        '["title","SecondaryBody",{"role":"metadata",'
-        '"items":[{"value":"其他文字"}]}]',
+        '["title","SecondaryBody",{"role":"body","items":[{"value":"其他文字"}]}]',
         context,
     )
 

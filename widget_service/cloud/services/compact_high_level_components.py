@@ -249,6 +249,7 @@ def expand_high_level_component_rows(
         elif component.component_type in {"PillButton", "CircleButton"}:
             rows = expander(component, size, color_palette=color_palette)
         elif component.component_type in {
+            "EmphasizedData",
             "InfoBlock",
             "NumericRatioStack",
             "ProgressCircle",
@@ -684,7 +685,8 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
         row_children: list[str] = []
-        row_items = items[start : start + columns]
+        row_end = start + columns
+        row_items = items[start:row_end]
         row_height = line_height * max(item.get("maxLines", 1) for item in row_items)
         for item_index, item in enumerate(row_items, start=start):
             max_lines = item.get("maxLines", 1)
@@ -1554,9 +1556,44 @@ def _expand_circle_button(
     ]
 
 
-def _expand_emphasized_data(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _small_numeric_unit_props(
+    component: ComponentRow, data_model: dict[str, Any] | None,
+) -> ComponentRow:
+    """单数值路径的短单位回到原Recipe单位位，不切分格式化字符串或猜表达式。"""
+    props = component.props
+    if "unit" in props or not isinstance(data_model, dict):
+        return component
+    value = props.get("value")
+    if not isinstance(value, str):
+        return component
+    match = re.fullmatch(
+        r"\s*\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*\+\s*"
+        r"(?P<quote>['\"])(?P<unit>\s*(?:%|％|℃|°C|°)\s*)(?P=quote)\s*\}\}\s*",
+        value,
+    )
+    if match is None:
+        return component
+    present, sample = _json_pointer_value(data_model, match.group("path"))
+    is_numeric = isinstance(sample, (int, float)) and not isinstance(sample, bool)
+    if not present or not is_numeric:
+        return component
+    if isinstance(sample, float) and not math.isfinite(sample):
+        return component
+    updated = copy.deepcopy(props)
+    updated["value"] = {"path": match.group("path")}
+    updated["unit"] = match.group("unit")
+    return ComponentRow(
+        component.component_id, component.component_type, updated, component.children,
+    )
+
+
+def _expand_emphasized_data(
+    component: ComponentRow, size: str, *, data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("EmphasizedData requires a 2x2 or 2x4 card.")
+    if size == "2x2":
+        component = _small_numeric_unit_props(component, data_model)
     allowed = {"value", "unit", "fontColor", "fontSize"}
     _validate_high_level_props(
         component,

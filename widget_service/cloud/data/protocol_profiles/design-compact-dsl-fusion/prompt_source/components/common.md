@@ -104,6 +104,8 @@
 子组件宽度、padding 与最小间距之和必须不超过父宽；分布式对齐不能修复负剩余空间。
 `justifyContent` 使用 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍是必须保留的最小间距；
 两者可以同时设置，但只能把扣除最小间距后的非负剩余空间交给分布式对齐。
+同一行不同字号的文字采用`Row alignItems="bottom"`底部对齐，2x2与2x4都遵守；语义组件内部由转换器统一执行，
+不手写Text或覆盖组件内部padding。数值与真实单位保留各自固定字号并紧邻，不把单位居中悬在大字旁。
 
 ### 3.2 `Column`
 

@@ -175,10 +175,10 @@ def compound_duration_bindings(plan: dict[str, Any], task: dict[str, Any]) -> li
         path = fact.get("dataId")
         if not isinstance(path, str):
             continue
-        field = _schema_value(task, path)
-        if field.get("type") != "string":
+        schema_field = _schema_value(task, path)
+        if schema_field.get("type") != "string":
             continue
-        if is_compound_duration_text(field.get("sampleValue")) and path not in paths:
+        if is_compound_duration_text(schema_field.get("sampleValue")) and path not in paths:
             paths.append(path)
     return paths
 
@@ -307,8 +307,8 @@ def _group_choices(
             if "EmphasizedData" in hints:
                 first = "EmphasizedData"
             elif first == "InfoBlock" and "ProgressCircleSingle" in hints:
-                field = _schema_value(task, fact.get("dataId", ""))
-                if field.get("type") not in {"number", "integer"}:
+                schema_field = _schema_value(task, fact.get("dataId", ""))
+                if schema_field.get("type") not in {"number", "integer"}:
                     unresolved.append(f"fact {index}: quantitative main needs numeric contract")
                     continue
                 # 数字比例主值不与状态合成小字辅文；完整数值与真实单位沿用主值规格。
@@ -333,8 +333,8 @@ def _group_choices(
                 unresolved.append(f"fact {index}: structured props cannot be reconstructed")
                 continue
             first = "SecondaryBody"
-        field = _schema_value(task, fact.get("dataId")) if fact.get("dataId") else {}
-        value = field.get("sampleValue") if field else fact.get("text")
+        schema_field = _schema_value(task, fact.get("dataId")) if fact.get("dataId") else {}
+        value = schema_field.get("sampleValue") if schema_field else fact.get("text")
         if first == "EmphasizedData" and is_compound_duration_text(value):
             # 修正错误数值选型，不把普通数值缩小，也不将完整文本拆成样例数字。
             first = "EmphasisText"
@@ -957,12 +957,13 @@ def _allocations(
         )
     if any(not pool for pool in pools):
         return
+    action_start = len(remaining)
     destinations_to_try = itertools.islice(itertools.product(*pools), _SEARCH_LIMIT)
     if len(unused_actions) > 1 and len(body_zones) > 1:
         # 等价完整分配优先均衡独立动作，避免最先把多个按钮堆进一个窄内容区。
         destinations_to_try = sorted(
             destinations_to_try,
-            key=lambda targets: _action_distribution_cost(targets[len(remaining):], allocation),
+            key=lambda targets: _action_distribution_cost(targets[action_start:], allocation),
         )
     for destinations in destinations_to_try:
         belonging: dict[str, int] = {}
@@ -978,7 +979,7 @@ def _allocations(
         if split:
             yield None
             continue
-        action_destinations = destinations[len(remaining) :]
+        action_destinations = destinations[action_start:]
         for action, destination in zip(unused_actions, action_destinations, strict=True):
             owners = action.get("ownerRoots", [])
             matching_destinations = set()

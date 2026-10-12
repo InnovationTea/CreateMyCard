@@ -765,6 +765,7 @@ class WidgetGenerationService:
         source_generated_by_jsx = False
         source_generated_by_template = False
         accepted_compact_plan: dict | None = None
+        original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
 
         async def generate_compact_plan() -> dict:
@@ -917,6 +918,7 @@ class WidgetGenerationService:
             nonlocal source_generated_by_jsx, source_generated_by_template
             source_generated_by_jsx = False
             source_generated_by_template = False
+            original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
                 trace_phase("dsl")
@@ -1108,6 +1110,9 @@ class WidgetGenerationService:
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
                     ),
                     repair_strategy=repair_strategy,
+                    **({"original_display_roles": original_small_display_roles}
+                       if task_spec.size == "2x2"
+                       and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else {}),
                 )
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
@@ -1182,6 +1187,12 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
+            if task_spec.size == "2x2" and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                from services.compact_composition_context import retain_original_small_display_roles
+
+                retain_original_small_display_roles(
+                    original_small_display_roles, source_dsl, processing_context.task_spec,
+                )
             evaluation_attempt = quality_repair_attempt_count + 1
             trace_increment_attempt("validationEvaluations")
             validation_attempts = {"validation": evaluation_attempt}
