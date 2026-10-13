@@ -35,7 +35,7 @@
     "candidateAssetIds": [
       "asset.bolt_fill",
       "asset.battery_leaf_fill",
-      "asset.icon_phone"
+      "asset.phone_fill"
     ]
   },
   "deviceInfo": {
@@ -102,6 +102,6 @@
   "candidateAssetIds": [
     "asset.bolt_fill",
     "asset.battery_leaf_fill",
-    "asset.icon_phone"
+    "asset.phone_fill"
   ]
 }
