@@ -34,6 +34,7 @@ from custom.a2ui_model_client import (
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
+from models.capability import AssetCapabilityOverview
 from models.generation import (
     DEFAULT_WIDGET_SIZE,
     ModelRequestContext,
@@ -209,7 +210,13 @@ class WidgetGenerationService:
                 for item in data_capabilities
             ],
             eventCapabilities=event_capabilities,
-            assetCandidates=asset_capabilities,
+            assetCandidates=[
+                AssetCapabilityOverview(
+                    id=item.id,
+                    description=item.overviewDescription or item.description,
+                )
+                for item in asset_capabilities
+            ],
             unavailableCapabilities=[item.id for item in removed],
         )
         logger.info(
