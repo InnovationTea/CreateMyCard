@@ -146,6 +146,7 @@ def test_create_prompt_uses_unified_component_terms() -> None:
 def test_secondary_body_contract_groups_related_items() -> None:
     prompt = read_prompt(DEFAULT_SOURCE, "create", size="2x4")
 
+    assert "组件不区分 role" in prompt
     assert "多个短字段按原顺序放入一个实例" in prompt
     assert "两项同行用 14；两项 `columns:1` 分行用 12" in prompt
     assert "标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件" in prompt

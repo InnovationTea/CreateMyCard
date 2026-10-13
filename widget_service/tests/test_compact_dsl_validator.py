@@ -184,7 +184,7 @@ def test_model_output_rejects_direct_text_and_isolated_secondary_body() -> None:
     semantic_body = "\n".join(
         [
             '["root","Column",{},["body"]]',
-            '["body","SecondaryBody",{"role":"body","items":['
+            '["body","SecondaryBody",{"items":['
             '{"value":"普通正文","maxLines":1}],"fontColor":"#FF1F4799"}]',
         ]
     )

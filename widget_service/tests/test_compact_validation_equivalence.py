@@ -30,23 +30,6 @@ SECONDARY_BODY_ONLY_CASES = {
     111: "title",
 }
 
-# SecondaryBody 改为按行布局定字号；冻结样本仍保留旧 role 和 12fp 单行输入。
-SECONDARY_BODY_FONT_CASES = {
-    98: "start_time",
-    99: "status",
-    101: "battery",
-    102: "battery_row",
-    103: "score_title",
-    108: "condition",
-}
-SECONDARY_BODY_HEIGHT_ERROR = (
-    "component condition: vertical layout requires at least 19vp within 18vp; "
-    "it overflows by 1vp. Regroup facts or choose a layout with enough body space; "
-    "preserve required text, actions, font sizes and fixed design heights. "
-    "Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. "
-    "Occupancy: condition_row0=19vp+margin(0vp), gaps=0vp."
-)
-
 # #506 将 compact EventCard 项间距从 8vp 改为 4vp；三项从 112vp 降到 104vp。
 # 仅登记这条冻结样本的已确认主线行为变化，不改快照或放宽其它高度错误。
 OLD_COMPACT_EVENT_HEIGHT_ERROR = (
@@ -57,29 +40,58 @@ OLD_COMPACT_EVENT_HEIGHT_ERROR = (
     "Occupancy: events=112vp+margin(0vp), gaps=0vp."
 )
 
+# #512 将 SecondaryBody 规格改为按实际行布局选择，不再依赖历史 role。
+# 冻结样本不重生成，显式登记旧 metadata 12fp 在单行模式下的新错误。
+SECONDARY_BODY_FONT_CASES = {
+    98: "start_time",
+    99: "status",
+    101: "battery",
+    102: "battery_row",
+    103: "score_title",
+    108: "condition",
+}
+
+SECONDARY_BODY_OLD_HEIGHT_CASES = {76: "condition"}
+
+
+def _secondary_body_font_error(component_id: str) -> dict:
+    message = (
+        f"{component_id}: SecondaryBody.fontSize must be the fixed Recipe value 14. "
+        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
+        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
+        "changing columns, items or maxLines; do not change bindings or delete facts."
+    )
+    return {
+        "exception": "CompactDslValidationError",
+        "message": f"Compact DSL validation failed:\n- {message}",
+        "errors": [message],
+        "cause_type": "CompactDslConversionError",
+        "cause_text": message,
+    }
+
+
+def _secondary_body_height_error(component_id: str) -> dict:
+    message = (
+        f"component {component_id}: vertical layout requires at least 19vp within 18vp; "
+        "it overflows by 1vp. Regroup facts or choose a layout with enough body space; "
+        "preserve required text, actions, font sizes and fixed design heights. Weight, "
+        "clipping, flex shrink and distributed alignment cannot eliminate content height. "
+        f"Occupancy: {component_id}_row0=19vp+margin(0vp), gaps=0vp."
+    )
+    return {
+        "exception": "CompactDslValidationError",
+        "message": f"Compact DSL validation failed:\n- {message}",
+        "errors": [message],
+    }
+
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
-    component_id = SECONDARY_BODY_FONT_CASES.get(case_index)
-    if component_id is not None:
-        message = (
-            f"{component_id}: SecondaryBody.fontSize must be the fixed Recipe value 14. "
-            "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
-            "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
-            "changing columns, items or maxLines; do not change bindings or delete facts."
-        )
-        return {
-            "exception": "CompactDslValidationError",
-            "message": f"Compact DSL validation failed:\n- {message}",
-            "errors": [message],
-            "cause_type": "CompactDslConversionError",
-            "cause_text": message,
-        }
-    if case_index == 76:
-        return {
-            "exception": "CompactDslValidationError",
-            "message": f"Compact DSL validation failed:\n- {SECONDARY_BODY_HEIGHT_ERROR}",
-            "errors": [SECONDARY_BODY_HEIGHT_ERROR],
-        }
+    font_component_id = SECONDARY_BODY_FONT_CASES.get(case_index)
+    if font_component_id is not None:
+        return _secondary_body_font_error(font_component_id)
+    height_component_id = SECONDARY_BODY_OLD_HEIGHT_CASES.get(case_index)
+    if height_component_id is not None:
+        return _secondary_body_height_error(height_component_id)
     secondary_body_id = SECONDARY_BODY_ONLY_CASES.get(case_index)
     if secondary_body_id is not None:
         message = (
