@@ -1779,7 +1779,7 @@ def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRo
 
 def _positive_static_number(value: Any) -> float | None:
     result = None
-    if isinstance(value, int | float) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
         if math.isfinite(value) and value > 0:
             result = float(value)
     return result
