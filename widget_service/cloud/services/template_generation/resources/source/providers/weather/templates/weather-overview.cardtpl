@@ -1970,6 +1970,7 @@ Column(
     {"width": "matchParent", "height": 48, "layoutWeight": 1, "itemMargin": 0, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Row(
       {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text("风力 ", {"fontSize": 12, "fontColor": $theme('supportContentColor'), "maxLines": 1}),
       Text(data.windLevel, {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
       Text("级", {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1})
     ),
@@ -4199,6 +4200,8 @@ Row(
           "width": "matchParent",
           "height": 16,
           "fontSize": 12,
+          "maxFontSize": 12,
+          "minFontSize": 10,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,

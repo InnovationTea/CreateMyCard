@@ -68,6 +68,18 @@ def test_maps_only_declared_static_asset_properties():
     assert result[4].get("onClick") == [{"call": "test", "args": {"src": SRC}}]
 
 
+def test_restore_archived_template_image_does_not_grant_generation_permission():
+    mapper = AssetUrlMapper({SRC: URL}, {SRC})
+    token = "\n".join(json.dumps(row) for row in [
+        ["root", "Column", {}, ["image"]],
+        ["image", "Image", {"src": URL, "fillColor": "#FF1F4799"}],
+    ])
+    restored = mapper.restore_design_token(token)
+    assert json.loads(restored.splitlines()[1])[2].get("src") == SRC
+    with pytest.raises(ValueError, match="unsupported component type Image"):
+        convert_compact_dsl_to_a2ui(restored, size="2x2")
+
+
 @pytest.mark.parametrize("mapping", [{}, {LOCAL: URL}])
 def test_no_mapping_preserves_original_bytes(mapping):
     text = standard_dsl() + "\r\n"

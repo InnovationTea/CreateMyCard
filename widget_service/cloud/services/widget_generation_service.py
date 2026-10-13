@@ -1077,6 +1077,9 @@ class WidgetGenerationService:
             nonlocal compact_agent_messages
             nonlocal effective_generation_prompt
             nonlocal model_call_phase, quality_repair_attempt_count
+            nonlocal source_generated_by_template
+            # 模型修复阶段切换回模型组件规则。
+            source_generated_by_template = False
             trace_phase("repair")
             quality_error_payloads = [
                 asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
