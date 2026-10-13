@@ -65,6 +65,15 @@ def test_data_display_registers_text_conclusion_recipe() -> None:
     assert recipe["parts"]["value"]["styles"]["fontSize"] == 18
 
 
+def test_single_line_title_with_icon_recipe_reserves_header_height() -> None:
+    recipe = component_visual_recipe("SingleLineTitle", variant="withIcon")
+
+    assert recipe["parts"]["root"]["styles"]["height"] == 20
+    assert recipe["parts"]["root"]["styles"]["justifyContent"] == "spaceBetween"
+    assert recipe["parts"]["icon"]["styles"]["width"] == 20
+    assert recipe["parts"]["icon"]["styles"]["height"] == 20
+
+
 def test_runtime_resolves_registered_palette_from_root_gradient() -> None:
     palette = resolve_card_color_palette(
         {
@@ -124,14 +133,14 @@ def test_two_by_four_fixed_slot_recipes_share_height_and_shrink_policy() -> None
     ]["fontSize"] == 16
 
 
-def test_single_line_title_visual_recipe_is_text_only() -> None:
+def test_single_line_title_visual_recipe_keeps_default_title_only() -> None:
     recipe = component_visual_recipe("SingleLineTitle", size="2x2")
 
     assert recipe["parts"]["root"]["styles"]["itemMargin"] == 0
     assert recipe["parts"]["root"]["styles"]["height"] == 12
     assert recipe["parts"]["title"]["styles"]["lineHeight"] == 1
-    assert set(recipe["parts"]) == {"root", "title"}
-    assert "variants" not in recipe
+    assert set(recipe["parts"]) == {"root", "title", "icon"}
+    assert "withIcon" in recipe["variants"]
 
 
 def test_emphasized_data_visual_recipe_aligns_value_and_unit_baselines() -> None:
@@ -274,7 +283,12 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
         "objectFit": "contain",
         "flexShrink": 0,
     }
-    assert "icon" not in components["SingleLineTitle"]["parts"]
+    assert components["SingleLineTitle"]["parts"]["icon"]["styles"] == {
+        "width": 20,
+        "height": 20,
+        "objectFit": "contain",
+        "flexShrink": 0,
+    }
     assert components["CardButton"]["parts"]["icon"]["styles"]["width"] == 24
     assert components["CardButton"]["parts"]["icon"]["styles"]["height"] == 24
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["width"] == 24

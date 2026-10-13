@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+# Debug Tools 始终是本地开发入口。在任何调试应用导入云侧模块前设置默认值，
+# 确保正式 Compact 转换器不会把日志写到云环境的 /opt/huawei。
+os.environ.setdefault("WIDGET_SERVICE_LOCAL_FLAG", "true")
 
 DEBUG_TOOLS_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = DEBUG_TOOLS_ROOT.parent

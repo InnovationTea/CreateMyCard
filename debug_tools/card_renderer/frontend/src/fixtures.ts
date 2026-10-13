@@ -14,7 +14,7 @@ export const SAMPLE_COMPACT = [
   '["title","Text",{"width":116,"height":20,"content":"青浦天气","fontSize":16,"fontWeight":700,"fontColor":"#E5000000"}]',
   '["main","Text",{"width":116,"height":48,"content":{"path":"/data/weather/current/temperatureText"},"fontSize":32,"fontWeight":700,"fontColor":"#E5000000"}]',
   '["/data/weather/current/temperatureText","29°C"]',
-  '["action","PillButton",{"label":"看天气","actionInk":"#FF1F4799","actionSurface":"#331F4799","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
+  '["action","PillButton",{"label":"看天气","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
 ].join('\n');
 
 export const SAMPLE_DESIGN = [
@@ -22,6 +22,5 @@ export const SAMPLE_DESIGN = [
   '["title","Text",{"width":126,"height":20,"content":"青浦天气","fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]',
   '["main","Text",{"width":126,"height":44,"content":{"path":"/data/weather/current/temperatureText"},"fontSize":32,"fontColor":"#FFFFFFFF"}]',
   '["/data/weather/current/temperatureText","28°C"]',
-  '["action","PillButton",{"label":"看天气","actionInk":"#FFFFFFFF","actionSurface":"#33FFFFFF","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
+  '["action","PillButton",{"label":"看天气","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode=101020100"}}]}]',
 ].join('\n');
-

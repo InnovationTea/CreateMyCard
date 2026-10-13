@@ -3885,6 +3885,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -3899,10 +3900,18 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     assert len(validated_genui) == 3
     first_repair = json_module.loads(model_prompts[1][1]["content"])
     second_repair = json_module.loads(model_prompts[2][1]["content"])
-    assert first_repair["repairStrategy"]["repairStrategy"] == "targeted"
+    assert (
+        first_repair["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
     assert second_repair["repairStrategy"]["repairStrategy"] == (
         "plan_guided_recompose"
     )
+    assert first_repair["repairHistory"] == []
+    assert len(second_repair["repairHistory"]) == 1
+    assert second_repair["repairHistory"][0]["sourceDsl"] == design_dsl
+    assert second_repair["repairHistory"][0]["repairAttempt"] == 1
+    assert second_repair["repairHistory"][0]["qualityErrors"]
     assert '"createSurface"' in validated_genui[0]
 
 
@@ -4263,7 +4272,10 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         payload["qualityErrors"][0]["stage"] == "validation"
         for payload in repair_payloads
     )
-    assert repair_payloads[0]["repairStrategy"]["repairStrategy"] == "targeted"
+    assert (
+        repair_payloads[0]["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
     assert repair_payloads[0]["repairStrategy"]["scope"] == "component"
     assert repair_payloads[1]["repairStrategy"]["repairStrategy"] == (
         "plan_guided_recompose"
@@ -4477,11 +4489,20 @@ def test_response_planner_returns_structured_status():
         ],
         has_artifact=True,
     )
+    optional_omission_plan = ResponsePlanner().plan(
+        requested_count=1,
+        effective_count=1,
+        removed=[],
+        has_artifact=True,
+        omitted_requirements=["补充时间"],
+    )
 
     assert success_plan.status == GenerationStatus.SUCCESS
     assert success_plan.errorCode == ""
     assert degraded_plan.status == GenerationStatus.DEGRADED
     assert "能力未注册" in degraded_plan.message
+    assert optional_omission_plan.status == GenerationStatus.DEGRADED
+    assert "部分信息" in optional_omission_plan.message
 
 
 @pytest.mark.asyncio
@@ -4583,6 +4604,30 @@ async def test_retry_controller_stops_when_repair_reports_no_progress():
     assert retry_result.retryCount == 0
     assert retry_result.errors == ["bad"]
     assert retry_result.repairAttempted is False
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_counts_unchanged_results_toward_global_budget():
+    repair_calls = 0
+
+    def repair(value: str, _errors: list[str]) -> str:
+        nonlocal repair_calls
+        repair_calls += 1
+        return value
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=10,
+        repair=repair,
+    )
+
+    assert repair_calls == 10
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 10
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is True
 
 
 @pytest.mark.asyncio

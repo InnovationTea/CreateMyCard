@@ -1,8 +1,9 @@
 "use client";
 
-import { Component, useMemo, useState, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { defaultRegistry, renderTree } from "@genui-sdk/renderer";
 import { compileMiniDsl } from "@/lib/mini-renderer";
+import { compileCompactDslWithPython } from "@/lib/python-converter";
 import {
   COMPONENT_GALLERY,
   GALLERY_GROUPS,
@@ -37,19 +38,33 @@ class SpecimenBoundary extends Component<
 }
 
 function ComponentPreview({ component }: { component: GalleryComponent }) {
-  const result = useMemo(() => {
-    try {
-      return {
-        compiled: compileMiniDsl(component.source, { size: component.size }),
-        error: "",
-      };
-    } catch (error) {
-      return {
+  const [result, setResult] = useState<{
+    compiled: ReturnType<typeof compileMiniDsl> | null;
+    error: string;
+    loading: boolean;
+  }>({ compiled: null, error: "", loading: true });
+  useEffect(() => {
+    const controller = new AbortController();
+    setResult({ compiled: null, error: "", loading: true });
+    compileCompactDslWithPython(component.source, {
+      size: component.size,
+      signal: controller.signal,
+    }).then(compiled => {
+      if (!controller.signal.aborted) setResult({ compiled, error: "", loading: false });
+    }).catch(error => {
+      if (controller.signal.aborted) return;
+      setResult({
         compiled: null,
         error: error instanceof Error ? error.message : String(error),
-      };
-    }
+        loading: false,
+      });
+    });
+    return () => controller.abort();
   }, [component]);
+
+  if (result.loading) {
+    return <p className={styles.renderLoading} role="status">正在使用正式 Python 转换器生成 A2UI…</p>;
+  }
 
   if (result.error || !result.compiled) {
     return (
@@ -79,7 +94,7 @@ function ComponentPreview({ component }: { component: GalleryComponent }) {
         </SpecimenBoundary>
       </div>
       <span className={styles.previewMeta}>
-        {component.width} × {component.height} · {result.compiled.expandedCount} 个运行时节点
+        {component.width} × {component.height} · Python · {result.compiled.expandedCount} 个运行时节点
       </span>
     </div>
   );

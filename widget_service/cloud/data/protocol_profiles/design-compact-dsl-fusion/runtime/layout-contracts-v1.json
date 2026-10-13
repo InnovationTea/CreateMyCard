@@ -35,6 +35,13 @@
       "W-content-side-slots"
     ]
   },
+  "componentPlacementRules": {
+    "TextBlock": {
+      "size": "2x4",
+      "allowedLayouts": ["W-top-bottom"],
+      "region": "W-top-bottom.details"
+    }
+  },
   "layouts": {
     "S-center": {
       "size": "2x2",

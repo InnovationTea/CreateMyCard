@@ -8,3 +8,4 @@ export {
   type ComponentRegistry,
   type RegistryComponentProps,
 } from "./registry.js";
+export { adaptCloudEventProps } from "./cloud-a2ui.js";

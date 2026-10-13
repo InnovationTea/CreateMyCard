@@ -7,6 +7,7 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
@@ -58,6 +59,33 @@ def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
         raw_scope,
         "以 invalidSourceDsl 为直接修复对象；",
     )
+
+
+def _approved_omissions(
+    compact_plan: dict[str, Any] | None,
+    repair_strategy: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """将累计获准省略的事实索引解析为模型可读的稳定状态。"""
+    if compact_plan is None or repair_strategy is None:
+        return []
+    facts = compact_plan.get("info_required")
+    indexes = repair_strategy.get("approvedOmittedFactIndexes")
+    if not isinstance(facts, list) or not isinstance(indexes, list):
+        return []
+    omissions: list[dict[str, Any]] = []
+    for fact_index in indexes:
+        if not isinstance(fact_index, int) or not 0 <= fact_index < len(facts):
+            continue
+        fact = facts[fact_index]
+        if not isinstance(fact, dict):
+            continue
+        omission: dict[str, Any] = {"factIndex": fact_index}
+        for key in ("requirement", "dataId", "text", "priority"):
+            value = fact.get(key)
+            if value is not None:
+                omission[key] = value
+        omissions.append(omission)
+    return omissions
 
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
@@ -1711,10 +1739,16 @@ class PromptBuilder:
             exclude_none=True,
             exclude={"appVersion"},
         )
-        tool = build_compact_plan_tool(task_spec_value)
+        runtime_prompt_context_enabled = (
+            get_settings().enable_design_compact_runtime_prompt_context
+        )
+        tool = build_compact_plan_tool(
+            task_spec_value,
+            include_composition=runtime_prompt_context_enabled,
+        )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         capacity_context = ""
-        if get_settings().enable_design_compact_runtime_prompt_context:
+        if runtime_prompt_context_enabled:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}\n\n"
@@ -1892,9 +1926,11 @@ class PromptBuilder:
         *,
         dsl_format: str = "a2ui-form",
         previous_failures: list[list[dict[str, Any]]] | None = None,
+        repair_history: list[dict[str, Any]] | None = None,
         task_spec: TaskSpec | None = None,
         compact_plan: dict[str, Any] | None = None,
         repair_strategy: dict[str, Any] | None = None,
+        original_display_roles: dict[str, dict[str, Any]] | None = None,
     ) -> list[dict[str, str]]:
         """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
         if len(initial_prompt) != 2:
@@ -1905,7 +1941,7 @@ class PromptBuilder:
         payload: dict[str, Any] = {
             "originalUserContent": initial_prompt[1]["content"],
             "invalidSourceDsl": invalid_source_dsl,
-            "qualityErrors": quality_errors,
+            "qualityErrors": [compact_issue_for_model(item) for item in quality_errors],
             "dslFormat": dsl_format,
             "instruction": (
                 f"{target_instruction}先从 originalUserContent 恢复"
@@ -1917,6 +1953,13 @@ class PromptBuilder:
         }
         if previous_failures is not None:
             payload["previousFailures"] = history
+        if repair_history is not None:
+            payload["repairHistory"] = copy.deepcopy(repair_history)
+            payload["instruction"] += (
+                " repairHistory 按时间保存此前被拒绝的完整 Compact DSL、错误和所选策略；"
+                "它只用于比较已尝试方案，当前唯一待处理候选仍是 invalidSourceDsl。"
+                "不得恢复历史候选已经删除的事实或组件。"
+            )
         recompose_requested = False
         if repair_strategy is not None:
             strategy = copy.deepcopy(repair_strategy)
@@ -1926,6 +1969,15 @@ class PromptBuilder:
             if isinstance(strategy_instruction, str) and strategy_instruction.strip():
                 payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if dsl_format == DESIGN_COMPACT_PROFILE_ID:
+            omissions = _approved_omissions(compact_plan, repair_strategy)
+            if omissions:
+                payload["approvedOmissions"] = omissions
+                payload["instruction"] += (
+                    " approvedOmissions 是本请求累计、只增不减的省略授权；"
+                    "其中事实必须在当前及后续结果中保持不可见，不得换用其他组件、"
+                    "静态文字或 Expression 重新引入。"
+                    "本轮 optionalDrop 仍须按 repairStrategy 删除，所有 Action 始终保留。"
+                )
             try:
                 original_payload = json.loads(initial_prompt[1]["content"])
             except json.JSONDecodeError:
@@ -1986,6 +2038,37 @@ class PromptBuilder:
                     "本次没有布局或容量错误，不重做组合选型；"
                     "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"
                 )
+            if task_spec is not None and task_spec.size == "2x2" and capacity_errors:
+                from services.card_validation.compact_dsl_validator import small_card_text_pressure
+
+                pressure = small_card_text_pressure(
+                    invalid_source_dsl, task_spec.model_dump(mode="json"),
+                )
+                if pressure:
+                    payload["smallCardTextPressure"] = pressure
+                    payload["instruction"] += (
+                        "smallCardTextPressure是完整标签和值的压力估计，不是精确字体测量。"
+                        "已报高度溢出的信息组，先在同字号全宽同行合并短辅助字段；"
+                        "这些长标签/值改为合法同字号分行，整体核算行高和底部动作，不堆独立强调块。"
+                    )
+            if task_spec is not None and task_spec.size == "2x2":
+                if original_display_roles is not None:
+                    roles = copy.deepcopy(original_display_roles)
+                else:
+                    roles = repair_display_roles(invalid_source_dsl, size="2x2")
+                if roles:
+                    payload["originalDisplayRoles"] = roles
+                    payload["instruction"] += (
+                        "originalDisplayRoles是各路径首次可读输出的原规格，不是上轮失败输出的新规格，"
+                        "也不是新组件清单；不能因为中途降字就把较小字号当成基准。"
+                        "按fontSize保留实际Recipe规格，supporting多条时可能为12fp，不能只按role猜字号。"
+                        "容量修复保留对应正文/metadata和主值字号；先在全宽同行合并短辅助属性，"
+                        "长文案按原字号合法分行并预留行高，再换可承载的完整布局变体。"
+                        "不要将14fp supporting改成12fp TableText/metadata，也不要把30fp主读数"
+                        "降为18fp EmphasisText以消除溢出；重复主值只去重，不删独有事实。"
+                        "只固定合法文字规格，不照搬原错误布局、绑定或重复单位；类型/单位"
+                        "本来不合法时仍按原字段合同纠正，不能把容量错误当作降字理由。"
+                    )
         user_content = json.dumps(
             payload,
             ensure_ascii=False,

@@ -591,7 +591,7 @@ def _weather_earphone_case():
             "data": {
                 "weather": {
                     "current": {"windLevel": _field(4, "integer")},
-                    "daily": [{"rainProbabilityPercent": _field("60%")}],
+                    "daily": [{"rainProbabilityPercent": _field(60, "number")}],
                 },
                 "earphone": {
                     "isConnected": _field(True, "boolean"),

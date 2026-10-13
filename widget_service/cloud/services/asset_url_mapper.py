@@ -92,6 +92,7 @@ class AssetUrlMapper:
             props = deepcopy(row.props)
             for key in ("src", "icon", "backgroundImage"):
                 changed |= self._rewrite_property(props, key, True)
+            changed |= self._restore_nested_icons(row.component_type, props)
             styles = props.get("styles")
             if isinstance(styles, dict):
                 changed |= self._rewrite_property(styles, "backgroundImage", True)
@@ -99,6 +100,21 @@ class AssetUrlMapper:
         if not changed:
             return token
         return "\n".join(json.dumps(row, ensure_ascii=False) for row in restored_rows)
+
+    def _restore_nested_icons(self, component_type: str, props: dict[str, Any]) -> bool:
+        """只还原登记组件的嵌套素材位，保留正文、事件及数据中的同名字段。"""
+        changed = False
+        if component_type == "InfoBlock":
+            visual = props.get("visual")
+            if isinstance(visual, dict):
+                changed |= self._rewrite_property(visual, "icon", True)
+        if component_type == "NumericRatioStack":
+            items = props.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        changed |= self._rewrite_property(item, "icon", True)
+        return changed
 
     def restore_diagnostic_values(self, value: Any) -> Any:
         """修复提示中的结构化 actual/expected 使用原始路径，避免回灌长 URL。"""

@@ -189,6 +189,18 @@ test("ProgressCircle 将百分号 Expression 拆成数值驱动和可见读数",
   );
 });
 
+test("宽松预览允许 InfoBlock 用带标签的百分比表达式驱动圆环", () => {
+  const source = [
+    '["root","Column",{},["battery"]]',
+    '["battery","InfoBlock",{"primaryText":"{{ \'手机电量 \' + ${/data/battery} + \'%\' }}","secondaryText":"未充电","backgroundColor":"#99FFFFFF","visual":{"type":"progressCircle","icon":"resources/base/media/battery.svg"}}]',
+    '["/data/battery",68]',
+  ].join("\n");
+  const result = compileMiniDsl(source, { size: "2x2", previewMode: true });
+
+  assert.equal(result.graph.getNode("battery_visual_progress")?.props.value, 68);
+  assert.ok(result.warnings.some(message => message.includes("宽松预览已使用 68")));
+});
+
 test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基线", () => {
   const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
   const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
@@ -216,7 +228,9 @@ test("EventCard 允许三项并按全部相邻间距计算总高", () => {
     "events_item1",
     "events_item2",
   ]);
-  assert.equal((graph.getNode("events")?.props.styles as Record<string, unknown>).height, 112);
+  const styles = graph.getNode("events")?.props.styles as Record<string, unknown>;
+  assert.equal(styles.height, 104);
+  assert.equal(styles.itemMargin, 4);
 });
 
 test("EmphasisText 使用与 claw-widget 一致的行盒与文本间距", () => {

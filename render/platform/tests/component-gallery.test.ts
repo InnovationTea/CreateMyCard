@@ -12,9 +12,6 @@ const expectedFusionComponents = [
   "Row",
   "Column",
   "Stack",
-  "Text",
-  "Image",
-  "Divider",
   "SingleLineTitle",
   "DoubleLineTitle",
   "Badge",
@@ -55,7 +52,7 @@ test("组件总览遵循最新的共享与尺寸专属边界", () => {
     .map(component => component.name);
   assert.deepEqual(
     namesForCategory("基础结构"),
-    ["Row", "Column", "Stack", "Text", "Image", "Divider"],
+    ["Row", "Column", "Stack"],
   );
   assert.deepEqual(
     namesForCategory("共享组件"),

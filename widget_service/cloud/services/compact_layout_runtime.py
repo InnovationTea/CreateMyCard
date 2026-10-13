@@ -131,14 +131,23 @@ def match_compact_layout(
             continue
         best_variant: tuple[tuple[int, int, int], int, list[str]] | None = None
         action_errors = _action_count_mismatches(layout, components)
+        placement_errors = _component_placement_mismatches(
+            contract,
+            components,
+            size=size,
+            layout_id=layout_id,
+        )
         for pattern_index, pattern in enumerate(patterns):
-            mismatches = _pattern_mismatches(
+            structural_mismatches = _pattern_mismatches(
                 pattern,
                 root,
                 components_by_id,
                 size=size,
             )
+            mismatches = [*structural_mismatches]
             mismatches.extend(action_errors)
+            if not structural_mismatches:
+                mismatches.extend(placement_errors)
             if not mismatches:
                 return CompactLayoutMatch(layout_id=layout_id)
             root_errors: list[str] = []
@@ -165,6 +174,37 @@ def match_compact_layout(
         f"Compact layout does not match scope {layout_scope} ({allowed}): {detail}. "
         f"Alternatives (choose one complete variant): {' | '.join(alternatives)}."
     )
+
+
+def _component_placement_mismatches(
+    contract: dict[str, Any],
+    components: list[ComponentRow],
+    *,
+    size: str,
+    layout_id: str,
+) -> list[str]:
+    rules = contract.get("componentPlacementRules")
+    if not isinstance(rules, dict):
+        return []
+
+    mismatches: list[str] = []
+    for component in components:
+        rule = rules.get(component.component_type)
+        if not isinstance(rule, dict) or rule.get("size") != size:
+            continue
+        allowed_layouts = rule.get("allowedLayouts")
+        if not isinstance(allowed_layouts, list) or layout_id in allowed_layouts:
+            continue
+        region = rule.get("region")
+        allowed = ", ".join(allowed_layouts)
+        placement = region if isinstance(region, str) and region else allowed
+        mismatches.append(
+            f"component {component.component_id}: {component.component_type} is only allowed "
+            f"in {placement} for {size}, but the current structure matches {layout_id}; "
+            f"switch the complete layout to {allowed} or replace {component.component_type} "
+            f"with a component allowed by {layout_id}"
+        )
+    return mismatches
 
 
 def adaptive_slot_ids(components: list[ComponentRow], *, size: str) -> frozenset[str]:
@@ -463,6 +503,7 @@ def _validate_contract(payload: Any) -> None:
         raise CompactLayoutRuntimeError("Compact layout contract must declare layouts.")
     for layout_id, layout in layouts.items():
         _validate_layout(layout_id, layout)
+    _validate_component_placement_rules(payload, layouts)
     scopes = payload.get("scopes")
     if not isinstance(scopes, dict):
         raise CompactLayoutRuntimeError("Compact layout contract scopes must be an object.")
@@ -472,6 +513,41 @@ def _validate_contract(payload: Any) -> None:
         if not identifiers or any(identifier not in layouts for identifier in identifiers):
             raise CompactLayoutRuntimeError(
                 f"Compact layout scope {scope} references an unknown layout."
+            )
+
+
+def _validate_component_placement_rules(
+    payload: dict[str, Any],
+    layouts: dict[str, Any],
+) -> None:
+    rules = payload.get("componentPlacementRules", {})
+    if not isinstance(rules, dict):
+        raise CompactLayoutRuntimeError(
+            "Compact component placement rules must be an object."
+        )
+    for component_type, rule in rules.items():
+        valid_component_type = isinstance(component_type, str) and bool(component_type)
+        if not valid_component_type or not isinstance(rule, dict):
+            raise CompactLayoutRuntimeError(
+                "Compact component placement rules must be named objects."
+            )
+        size = rule.get("size")
+        allowed_layouts = rule.get("allowedLayouts")
+        valid_layouts = isinstance(allowed_layouts, list) and bool(allowed_layouts)
+        if size not in {"2x2", "2x4"} or not valid_layouts:
+            raise CompactLayoutRuntimeError(
+                f"Component placement rule {component_type} is invalid."
+            )
+        for layout_id in allowed_layouts:
+            layout = layouts.get(layout_id) if isinstance(layout_id, str) else None
+            if not isinstance(layout, dict) or layout.get("size") != size:
+                raise CompactLayoutRuntimeError(
+                    f"Component placement rule {component_type} references an invalid layout."
+                )
+        region = rule.get("region")
+        if region is not None and (not isinstance(region, str) or not region):
+            raise CompactLayoutRuntimeError(
+                f"Component placement rule {component_type} has an invalid region."
             )
 
 

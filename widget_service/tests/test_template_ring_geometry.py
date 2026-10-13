@@ -10,9 +10,7 @@ from typing import Any
 import pytest
 
 from services.compact_dsl_a2ui_converter import (
-    CompactDslConversionError,
     ComponentRow,
-    convert_compact_dsl_to_a2ui,
 )
 from services.generation_pipeline import DslProcessorKind
 from services.template_generation.engine.cardplan.compiler import (
@@ -28,6 +26,10 @@ from services.template_generation.engine.cardplan.fusion_ball_background import 
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
+    CompactDslConversionError,
+    convert_compact_dsl_to_a2ui,
+)
 from services.template_generation.engine.tersel_converter import convert_tersel_to_a2ui
 from services.template_generation.source_adapter import prepare_template_source_dsl
 
@@ -55,13 +57,19 @@ def _ring_rows() -> list[ComponentRow]:
 def _convert(rows: list[ComponentRow], size: str = "2x2") -> list[dict[str, Any]]:
     values: list[list[Any]] = []
     for row in rows:
-        value: list[Any] = [row.component_id, row.component_type, row.props]
+        props = dict(row.props)
+        if row.component_id == "root":
+            props["width"] = 160 if size == "2x2" else 300
+            props["height"] = 160 if size == "2x2" else 150
+        value: list[Any] = [row.component_id, row.component_type, props]
         if row.children:
             value.append(list(row.children))
         values.append(value)
     values.append(["/data/batterySOC", 68])
     compact = "\n".join(json.dumps(value) for value in values)
-    return _components(convert_compact_dsl_to_a2ui(compact, size=size))
+    return _components(convert_compact_dsl_to_a2ui(
+        compact, size=size, protocol_profile={"version": "v0.9"},
+    ))
 
 
 def _components(a2ui: str) -> list[dict[str, Any]]:
@@ -132,17 +140,19 @@ def test_invalid_template_marker_does_not_rewrite_ring_geometry(marker_state: st
     elif marker_state == "dangling":
         rows[0] = ComponentRow("root", "Stack", {}, ("template_root", "row", "outside"))
         rows.pop(1)
+        expected_error = "missing components: template_root"
     elif marker_state == "unreferenced":
         rows[0] = ComponentRow("root", "Stack", {}, ("row", "outside"))
-        expected_error = "Unreachable component"
+        expected_error = "component must be declared by an earlier parent"
     elif marker_state == "nested":
         rows[0] = ComponentRow("root", "Stack", {}, ("wrapper", "outside"))
         rows.append(ComponentRow("wrapper", "Column", {}, ("template_root",)))
     elif marker_state == "duplicate":
         rows.append(rows[1])
+        expected_error = "Duplicate Compact DSL component id"
     else:
         rows.pop(0)
-        expected_error = "root component is missing"
+        expected_error = "root Row/Column component is missing"
     if expected_error:
         with pytest.raises(CompactDslConversionError, match=expected_error):
             _convert(rows)

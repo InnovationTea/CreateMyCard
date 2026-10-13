@@ -1,3 +1,5 @@
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"center","backgroundColor":"comp_background_primary"},["title"]]
-["title","Text",{"content":"Design Compact Mock","design":"heading-primary-sm","fontColor":"font_primary"}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"itemMargin":6,"alignItems":"start","justifyContent":"start","backgroundColor":"comp_background_primary"},["title","body"]]
+["title","SingleLineTitle",{"title":"Design Compact Mock"}]
+["body","Column",{"width":"matchParent","layoutWeight":1},["content"]]
+["content","SecondaryBody",{"role":"body","items":[{"value":"Mock ready"}]}]
 ["/ui/state","ready"]
