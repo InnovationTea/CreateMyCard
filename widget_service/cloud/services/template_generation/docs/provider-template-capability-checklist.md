@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 179 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
+- [x] 213 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
 - [x] 业务模板尺寸和动作组合默认由后缀推导；历史上仅为 2x4 槽位设计、但后缀无法表达尺寸的模板可在
   `provider.json` 中用 `supportedCardSizes` 显式覆盖。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
@@ -37,19 +37,19 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 36 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 37 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 51 | 启用 |
-| countdown | `GetCountdownDays` | `/data/countdown` | 11 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 27 | 启用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 38 | 启用 |
-| system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
-| weather | `ViewWeather` | `/data/weather` | 42 | 启用 |
+| countdown | `GetCountdownDays` | `/data/countdown` | 10 | 启用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 32 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 39 | 启用 |
+| weather | `ViewWeather` | `/data/weather` | 44 | 启用 |
 
 下方列出主要形态及本轮调整的 Support；非 Support 条目保留原有摘要，
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
 双业务布局与 Action 消费位置统一由 Planner 决定。
 
-应用使用时长能力已下线，其 6 个模板和专属主题已移出运行目录；历史设计见 Git 历史。
+指定应用使用时长模板及专属主题已下线；系统内存三个模板及专属主题也已移出运行目录。
+正式业务 schema 引用 `app-11.7.7.300_rom-7.0`；新增三个数据业务暂不提供模板。历史设计见 Git 历史。
 
 ## BatteryOverview
 
@@ -215,16 +215,6 @@
 | ✅ | `SleepOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/nightSleepDurationText` | 无 | `/sleepStatus`<br>`/sleepScore`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` |
 | ✅ | `SleepOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
 | ✅ | `SleepOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/nightSleepDurationText` | 无 | 无 |
-
-## ResourceUsageOverview
-
-- Provider：`com.huawei.system-memory.cli`；运行状态：启用。
-- 数据能力：`GetSystemMemInfo`；模板数：3。
-
-| 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
-| --- | --- | --- | --- | --- | --- |
-| ✅ | `ResourceUsageOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/usagePercent` | `/availableMemText`<br>`/totalMemText` | 无 |
-| ✅ | `ResourceUsageOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/usagePercent` | `/availableMemText`<br>`/totalMemText` | 无 |
 
 ## WeatherOverview
 

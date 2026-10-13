@@ -34,3 +34,9 @@
 - `targetDate` 只能原样使用当前 `GetCountdownDays.arguments.targetDate` 的可信 `YYYY-MM-DD` 字符串；
   不得从天数计算、改写格式或补造日期。
 - 选择模板前必须确认 `/countdownDays` 可用；0 天合法。
+
+## 出行闹钟动作
+
+`CountdownOverviewTravelSupport@1` 可按用户明确要求消费 `event.open.clock.alarm` 或
+`event.open.clock.alarmTab`，仅表示打开闹钟首页或闹钟 Tab，不表示设置闹钟或创建提醒。
+通用目标日倒计时不扩展闹钟、秒表或定时器事件。
