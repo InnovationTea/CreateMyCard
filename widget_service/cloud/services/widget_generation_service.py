@@ -763,7 +763,7 @@ class WidgetGenerationService:
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
-        skip_compact_dsl_validation = False
+        source_generated_by_template = False
         accepted_compact_plan: dict | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
@@ -915,9 +915,9 @@ class WidgetGenerationService:
             nonlocal accepted_compact_plan
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
-            nonlocal source_generated_by_jsx, skip_compact_dsl_validation
+            nonlocal source_generated_by_jsx, source_generated_by_template
             source_generated_by_jsx = False
-            skip_compact_dsl_validation = False
+            source_generated_by_template = False
             original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
@@ -936,7 +936,7 @@ class WidgetGenerationService:
                     )
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
-                    skip_compact_dsl_validation = True
+                    source_generated_by_template = True
                     return generated_dsl
                 except Exception as exc:
                     fallback = (
@@ -1048,9 +1048,9 @@ class WidgetGenerationService:
             from services.prompt_builder import PromptBuilder
 
             nonlocal model_call_phase, quality_repair_attempt_count
-            nonlocal skip_compact_dsl_validation
+            nonlocal source_generated_by_template
             # 模型修复阶段切换回模型组件规则。
-            skip_compact_dsl_validation = False
+            source_generated_by_template = False
             trace_phase("repair")
             quality_error_payloads = [
                 asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
@@ -1214,7 +1214,7 @@ class WidgetGenerationService:
                 return []
             processing_context_for_source = replace(
                 processing_context,
-                skip_compact_dsl_validation=skip_compact_dsl_validation,
+                skip_compact_dsl_validation=source_generated_by_template,
                 compact_plan=accepted_compact_plan,
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.allowed_omitted_fact_indexes

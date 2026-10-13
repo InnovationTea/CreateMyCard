@@ -199,10 +199,7 @@ class DesignCompactProcessor:
         design_profile_id = context.design_profile_id or "design-compact-dsl"
         design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         outer_applied = False
-        if (
-            context.size == "2x2"
-            and not context.skip_compact_dsl_validation
-        ):
+        if context.size == "2x2" and not context.skip_compact_dsl_validation:
             outer_started_at = time.perf_counter()
             outer_input = source_dsl
             outer_result = recompose_small_card(
