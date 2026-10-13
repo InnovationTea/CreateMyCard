@@ -47,6 +47,10 @@ from services.card_validation.compact_validation.semantic.layout.text_width impo
 from services.card_validation.compact_validation.semantic.numeric_display import (
     _collect_numeric_component_errors,
 )
+from services.card_validation.compact_validation.semantic.plan_contracts import (
+    collect_plan_contract_errors,
+    collect_secondary_body_context_errors,
+)
 from services.card_validation.compact_validation.syntax.expressions import _collect_binding_context
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -71,6 +75,7 @@ def validate_compact_dsl(
     *,
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
+    compact_plan: dict[str, Any] | None = None,
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
     enforce_model_component_types: bool = False,
@@ -113,6 +118,14 @@ def validate_compact_dsl(
     binding_contract_errors = _compact_component_binding_errors(
         components, task_spec.get("dataModelSchema")
     )
+    collect_plan_contract_errors(
+        components,
+        task_spec,
+        compact_plan,
+        binding_contract_errors,
+    )
+    if enforce_model_component_types:
+        collect_secondary_body_context_errors(components, binding_contract_errors)
     _collect_compound_duration_component_errors(components, task_spec, binding_contract_errors)
     if binding_contract_errors:
         raise CompactDslValidationError([*layout_errors, *binding_contract_errors])

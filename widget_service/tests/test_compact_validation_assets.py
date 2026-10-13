@@ -144,7 +144,7 @@ def test_background_asset_rule_keeps_legacy_message_and_scope() -> None:
     assert diagnostic.actual == {"property": "backgroundImage", "src": "background.svg"}
 
 
-@pytest.mark.parametrize("kind", ["ProgressCircle", "CardButton", "SingleLineTitle"])
+@pytest.mark.parametrize("kind", ["ProgressCircle", "CardButton"])
 @pytest.mark.parametrize("description", [None, "", "默认黑色单色 SVG", "可染色图标"])
 def test_explicit_tint_contract_reports_missing_fill_color(kind: str, description: Any) -> None:
     errors = DiagnosticCollector()
@@ -162,17 +162,19 @@ def test_explicit_tint_contract_reports_missing_fill_color(kind: str, descriptio
     assert issue.fix_hint is None
 
 
-@pytest.mark.parametrize(
-    "description",
-    ["不可染色", "禁止染色", "保留原色", "多色", "渐变", "品牌色", "品牌原色", "插画原色"],
-)
-@pytest.mark.parametrize("kind", ["ProgressCircle", "CardButton", "SingleLineTitle"])
-def test_native_color_exceptions_do_not_require_tint(kind: str, description: str) -> None:
-    errors: list[str] = []
+@pytest.mark.parametrize("description", ["不可染色", "保留原色", "多色", "品牌原色"])
+@pytest.mark.parametrize("kind", ["ProgressCircle", "CardButton"])
+def test_svg_description_does_not_disable_explicit_tint_contract(
+    kind: str,
+    description: str,
+) -> None:
+    errors = DiagnosticCollector()
     _collect_asset_color_errors(
         [_row(kind, {"icon": ICON})], _task([{"src": ICON, "description": description}]), errors
     )
-    assert errors == []
+    diagnostics = _diagnostics(errors)
+    assert len(diagnostics) == 1
+    assert diagnostics[0].code == "COMPACT_SVG_FILL_COLOR_MISSING"
 
 
 @pytest.mark.parametrize("source", ["resources/picture.png", "resources/photo.PNG"])
@@ -201,6 +203,7 @@ def test_present_fill_color_is_validated_by_component_contract(fill_color: Any) 
         ("ProgressCircleSingle", {"icon": ICON}),
         ("PillButton", {"icon": ICON}),
         ("CircleButton", {"icon": ICON}),
+        ("SingleLineTitle", {"icon": ICON}),
         ("InfoBlock", {"icon": ICON}),
         ("InfoBlock", {"visual": {"type": "icon", "icon": ICON, "color": "native"}}),
         ("NumericRatioStack", {"items": [{"icon": ICON}]}),

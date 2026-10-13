@@ -19,6 +19,10 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
 )
+from services.compact_high_level_components import (
+    ComponentRow,
+    validate_single_line_title_layout,
+)
 
 
 def _serialize(rows: list[list[object]]) -> str:
@@ -235,6 +239,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["header_icon"]["src"], "resources/base/media/weather.png")
         self.assertEqual(components["header_icon"]["styles"]["width"], 20)
         self.assertEqual(components["header_icon"]["styles"]["height"], 20)
+        self.assertNotIn("fillColor", components["header_icon"]["styles"])
 
     def test_runtime_injects_component_font_roles_from_root_palette(self) -> None:
         compact_dsl = _serialize(
@@ -504,6 +509,128 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         with self.assertRaisesRegex(
             CompactDslConversionError,
             "SingleLineTitle.height must be 20",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_runtime_injects_primary_graphic_color_for_title_svg(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "linearGradient": {
+                            "direction": "RightBottom",
+                            "colors": [["#FFDBCCFF", 0], ["#FFF6F2FF", 1]],
+                        }
+                    },
+                    ["header"],
+                ],
+                [
+                    "header",
+                    "SingleLineTitle",
+                    {
+                        "title": "分区标题",
+                        "icon": "resources/base/media/weather.svg",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["header_title"]["styles"]["fontColor"], "#99563D99")
+        self.assertEqual(components["header_icon"]["styles"]["fillColor"], "#FF563D99")
+
+    def test_title_layout_accepts_svg_before_runtime_color_injection(self) -> None:
+        components = [
+            ComponentRow("root", "Column", {}, ("header",)),
+            ComponentRow(
+                "header",
+                "SingleLineTitle",
+                {
+                    "title": "分区标题",
+                    "icon": "resources/base/media/weather.svg",
+                    "fontColor": "#99563D99",
+                },
+                (),
+            ),
+        ]
+
+        validate_single_line_title_layout(components, size="2x2")
+
+    def test_runtime_overrides_legacy_title_svg_alpha(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "linearGradient": {
+                            "direction": "RightBottom",
+                            "colors": [["#FFCBDDFE", 0], ["#FFF1F6FE", 1]],
+                        }
+                    },
+                    ["header"],
+                ],
+                [
+                    "header",
+                    "SingleLineTitle",
+                    {
+                        "title": "天气",
+                        "icon": "resources/base/media/weather.svg",
+                        "fillColor": "#991F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["header_title"]["styles"]["fontColor"], "#991F4799")
+        self.assertEqual(components["header_icon"]["styles"]["fillColor"], "#FF1F4799")
+
+    def test_converter_rejects_fill_color_on_bitmap_icon(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["circle"]],
+                [
+                    "circle",
+                    "ProgressCircle",
+                    {
+                        "externalText": 68,
+                        "icon": "resources/base/media/battery.png",
+                        "accessibility": {"label": "手机电量百分比"},
+                        "width": 72,
+                        "height": 76,
+                        "fontColor": "#FF1F4799",
+                        "fillColor": "#991F4799",
+                        "color": "#FF1F4799",
+                        "backgroundColor": "#331F4799",
+                    },
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "bitmap icon.*must not set fillColor",
         ):
             convert_compact_dsl_to_a2ui(
                 compact_dsl,

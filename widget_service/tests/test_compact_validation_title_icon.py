@@ -64,7 +64,7 @@ def _nodes(source: str, size: str) -> dict[str, dict[str, Any]]:
         ({"icon": "resources/weather.png"}, "天气图标"),
     ],
 )
-def test_title_icon_validates_and_renders_with_original_color_policy(
+def test_title_icon_validates_and_renders_with_runtime_color_policy(
     size: str, props: dict[str, Any], description: str,
 ) -> None:
     source = _source(props)
@@ -83,18 +83,15 @@ def test_title_icon_validates_and_renders_with_original_color_policy(
     assert image_styles.get("width") == image_styles.get("height") == 20
     assert image.get("src") == icon
     assert "onClick" not in image
-    if "fillColor" in props:
-        assert image_styles.get("fillColor") == COLOR
+    if icon.lower().endswith(".svg"):
+        assert image_styles.get("fillColor") == "#FF1F4799"
     else:
         assert "fillColor" not in image_styles
 
 
 @pytest.mark.parametrize(
     ("candidates", "code", "category"),
-    [
-        ([], "COMPACT_ASSET_NOT_ALLOWED", "effective"),
-        ([{"src": SVG}], "COMPACT_SVG_FILL_COLOR_MISSING", "layout"),
-    ],
+    [([], "COMPACT_ASSET_NOT_ALLOWED", "effective")],
 )
 def test_title_icon_failure_has_original_location_and_model_repair_text(
     candidates: list[dict[str, Any]], code: str, category: str,

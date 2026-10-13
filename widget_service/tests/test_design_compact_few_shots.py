@@ -79,6 +79,7 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V06",
         "2x2-V02",
         "2x2-V08",
+        "2x2-V14",
         "2x2-V03",
         "2x2-V07",
     ),
@@ -107,6 +108,7 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V06": "S-title-primary-secondary-action",
     "2x2-V02": "S-title-anchor",
     "2x2-V08": "S-title-anchor",
+    "2x2-V14": "S-title-anchor",
     "2x2-V03": "S-content-dual-action",
     "2x2-V07": "S-dual-info",
     "2x4-V03": "W-top-bottom",
@@ -202,6 +204,7 @@ def test_few_shot_validates_and_converts(
         source,
         task_spec=task,
         card_spec={"suggestSize": size},
+        enforce_model_component_types=True,
     )
     assert not result.warnings, identifier
 
@@ -344,12 +347,20 @@ def test_examples_use_only_declared_actions_and_assets(
     assert actual_assets.issubset(expected_assets), identifier
 
 
+def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> None:
+    _, source = _example("2x2-V14")
+    rows = {row[0]: row for row in _rows(source)}
+
+    assert rows["title_area"][2].get("icon") == "resources/base/media/calendar_fill.svg"
+    assert rows["meeting_action"][2].get("icon") == "resources/base/media/icon_meeting.svg"
+
+
 @pytest.mark.parametrize(
     ("identifier", "required"),
     (
         ("2x2-V01", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
-        ("2x2-V03", {"SecondaryBody", "PillButton"}),
+        ("2x2-V03", {"TableText", "PillButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
         ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
         ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
@@ -360,6 +371,10 @@ def test_examples_use_only_declared_actions_and_assets(
         ("2x2-V11", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
         ("2x2-V12", {"ProgressCircle"}),
         ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
+        (
+            "2x2-V14",
+            {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
+        ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
     ),
 )
@@ -412,9 +427,13 @@ def test_text_component_examples_declare_fixed_recipe_font_size(
         props = row[2]
         expected = fixed_sizes.get(component_type)
         if component_type == "SecondaryBody":
-            role = props.get("role")
             items = props.get("items", [])
-            expected = 12 if role == "metadata" or len(items) > 2 else 14
+            columns = props.get("columns", 2)
+            multiline = len(items) > columns
+            for item in items:
+                if item.get("maxLines", 1) == 2:
+                    multiline = True
+            expected = 12 if multiline else 14
         elif component_type == "TableText":
             expected = 10 if len(props.get("items", [])) == 3 else 12
         if expected is not None:

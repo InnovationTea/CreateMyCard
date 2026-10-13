@@ -68,23 +68,32 @@ _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "TextBlock": "primary",
     "CardButton": "primary",
 }
+_SYSTEM_ICON_ROLE_BY_COMPONENT = {
+    "SingleLineTitle": "graphicPrimary",
+}
 
 
 def apply_system_component_colors(
     components: list[ComponentRow],
     palette: dict[str, str],
 ) -> list[ComponentRow]:
-    """Inject runtime-owned font roles before validating and expanding components."""
+    """Inject runtime-owned color roles before validating and expanding components."""
     resolved: list[ComponentRow] = []
     for component in components:
-        role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
-        if role is None:
+        font_role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
+        icon_role = _SYSTEM_ICON_ROLE_BY_COMPONENT.get(component.component_type)
+        if font_role is None and icon_role is None:
             resolved.append(component)
             continue
-        color = _system_palette_color(palette, role)
         props = copy.deepcopy(component.props)
-        # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
-        props.setdefault("fontColor", color)
+        if font_role is not None:
+            font_color = _system_palette_color(palette, font_role)
+            # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
+            props.setdefault("fontColor", font_color)
+        icon = props.get("icon")
+        if icon_role is not None and isinstance(icon, str) and icon.lower().endswith(".svg"):
+            # 标题 SVG 的语义角色由运行时确定，并纠正历史 DSL 中的自由透明度。
+            props["fillColor"] = _system_palette_color(palette, icon_role)
         resolved.append(
             ComponentRow(
                 component.component_id,
@@ -3072,6 +3081,13 @@ def _validate_optional_icon(component: ComponentRow) -> None:
         )
     if "fillColor" in component.props:
         _require_color(component, "fillColor")
+        if isinstance(icon, str):
+            normalized_icon = icon.lower()
+            bitmap_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+            if normalized_icon.endswith(bitmap_suffixes):
+                raise CompactDslConversionError(
+                    f"{component.component_type} bitmap icon must not set fillColor."
+                )
 
 
 def _validate_high_level_on_click(component: ComponentRow) -> None:

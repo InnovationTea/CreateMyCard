@@ -1,5 +1,5 @@
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"itemMargin":6,"alignItems":"start","justifyContent":"start","backgroundColor":"comp_background_primary"},["title","body"]]
 ["title","SingleLineTitle",{"title":"Design Compact Mock"}]
 ["body","Column",{"width":"matchParent","layoutWeight":1},["content"]]
-["content","SecondaryBody",{"role":"body","items":[{"value":"Mock ready"}]}]
+["content","EmphasisText",{"mainText":"Mock ready"}]
 ["/ui/state","ready"]

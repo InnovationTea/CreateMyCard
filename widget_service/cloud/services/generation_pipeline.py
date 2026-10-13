@@ -290,6 +290,7 @@ class DesignCompactProcessor:
                     source_dsl,
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
+                    compact_plan=context.compact_plan,
                     protocol_profile=design_protocol,
                     layout_scope=context.layout_scope,
                     enforce_model_component_types=True,

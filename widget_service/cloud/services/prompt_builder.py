@@ -898,7 +898,7 @@ class PromptBuilder:
                 task_spec.eventCandidates
             ) and PromptBuilder._query_requests_action(task_spec)
             if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
-                return ("2x2-V02", "2x2-V04")
+                return ("2x2-V14",)
             if normalized_roots == {"phonebattery", "earphone"}:
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             if PromptBuilder._query_mentions_weather(task_spec):
@@ -943,6 +943,15 @@ class PromptBuilder:
             return "W-four-slots"
         block_count = PromptBuilder._data_block_count(task_spec)
         if task_spec.size == "2x2":
+            normalized_roots = {
+                root.casefold() for root in PromptBuilder._data_roots(task_spec)
+            }
+            has_meeting_action = (
+                bool(task_spec.eventCandidates)
+                and PromptBuilder._query_requests_action(task_spec)
+            )
+            if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
+                return "S-title-anchor"
             if block_count >= 4:
                 return "S-quad-content"
             if block_count >= 2:

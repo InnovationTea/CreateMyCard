@@ -12,24 +12,6 @@ from services.card_validation.compact_validation.semantic.asset_references impor
 )
 from services.compact_dsl_a2ui_converter import ComponentRow
 
-_NATIVE_COLOR_MARKERS = (
-    "不可染色",
-    "禁止染色",
-    "保留原色",
-    "多色",
-    "渐变",
-    "品牌色",
-    "品牌原色",
-    "插画原色",
-)
-
-
-def _preserves_native_color(candidate: dict[str, Any]) -> bool:
-    description = candidate.get("description")
-    if not isinstance(description, str):
-        return False
-    return any(marker in description for marker in _NATIVE_COLOR_MARKERS)
-
 
 def _collect_asset_color_errors(
     components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str]
@@ -39,12 +21,12 @@ def _collect_asset_color_errors(
         return
     for reference in model_asset_references(components):
         component = reference.component
-        if component.component_type not in {"ProgressCircle", "CardButton", "SingleLineTitle"}:
+        if component.component_type not in {"ProgressCircle", "CardButton"}:
             continue
         if not reference.source.lower().endswith(".svg"):
             continue
         candidate = candidates.get(reference.source)
-        if candidate is None or _preserves_native_color(candidate):
+        if candidate is None:
             continue
         if "fillColor" in component.props:
             continue

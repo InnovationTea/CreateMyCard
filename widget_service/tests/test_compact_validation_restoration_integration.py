@@ -218,8 +218,8 @@ def _icon_task(native: bool = False) -> dict[str, Any]:
     [
         ("PillButton", False), ("CircleButton", False), ("ProgressCircleSingle", False),
         ("InfoBlock", False), ("InfoBlock", True), ("NumericRatioStack", False),
-        ("ProgressCircle", False), ("ProgressCircle", True),
-        ("CardButton", False), ("CardButton", True),
+        ("ProgressCircle", False),
+        ("CardButton", False),
     ],
 )
 def test_validated_components_keep_automatic_explicit_and_native_colors(

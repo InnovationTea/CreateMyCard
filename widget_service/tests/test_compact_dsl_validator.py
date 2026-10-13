@@ -76,7 +76,88 @@ def _progress_circle_task_spec() -> dict:
     }
 
 
-def test_model_output_rejects_direct_text_but_accepts_secondary_body() -> None:
+def test_rejects_anchor_support_with_only_an_invented_static_label() -> None:
+    handler = {
+        "call": "clickToDeeplink",
+        "args": {"intentName": "Weather", "uri": "hww://weather"},
+    }
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{"width":"matchParent","height":"matchParent",'
+            '"padding":12,"itemMargin":6},["title","body"]]',
+            '["title","SingleLineTitle",{"title":"西湖天气","fontSize":12,'
+            '"width":"matchParent"}]',
+            '["body","Column",{"width":"matchParent","itemMargin":8,'
+            '"layoutWeight":1},["content","bottom"]]',
+            '["content","Column",{"width":"matchParent","layoutWeight":1},'
+            '["condition"]]',
+            '["condition","EmphasisText",{"mainText":'
+            '{"path":"/data/weather/current/condition"},"fontSize":18,'
+            '"width":"matchParent"}]',
+            '["bottom","Row",{"width":"matchParent","height":40,'
+            '"itemMargin":8},["support","action_slot"]]',
+            '["support","SecondaryBody",{"role":"metadata","items":['
+            '{"value":"当前天气"}],"fontSize":12,"width":78}]',
+            '["action_slot","Stack",{"width":40,"height":40,'
+            '"alignContent":"center"},["action"]]',
+            '["action","CircleButton",{"icon":"resources/base/media/sun_max.svg",'
+            '"accessibility":{"label":"查看天气详情"},'
+            f'"onClick":[{json.dumps(handler, ensure_ascii=False)}]' + "}]",
+            '["/data/weather/current/condition","多云"]',
+        ]
+    )
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [{"id": "event.open.weather", **handler}],
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "condition": {
+                            "type": "string",
+                            "description": "当前天气现象",
+                            "sampleValue": "多云",
+                        }
+                    }
+                }
+            }
+        },
+        "assetCandidates": [
+            {
+                "src": "resources/base/media/sun_max.svg",
+                "description": "晴天或天气详情图标",
+            }
+        ],
+    }
+    compact_plan = {
+        "info_required": [
+            {
+                "requirement": "当前天气现象",
+                "dataId": "/data/weather/current/condition",
+                "componentHints": ["EmphasisText"],
+            },
+            {
+                "requirement": "查看天气详情",
+                "actionId": "event.open.weather",
+                "componentHints": ["CircleButton", "PillButton"],
+            },
+        ],
+        "layoutHints": ["S-title-anchor", "S-title-content-action"],
+    }
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match="static category label such as '当前天气'",
+    ):
+        validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+            compact_plan=compact_plan,
+        )
+
+
+def test_model_output_rejects_direct_text_and_isolated_secondary_body() -> None:
     task_spec = {
         "size": "2x2",
         "eventCandidates": [],
@@ -107,12 +188,77 @@ def test_model_output_rejects_direct_text_but_accepts_secondary_body() -> None:
             '{"value":"普通正文","maxLines":1}],"fontColor":"#FF1F4799"}]',
         ]
     )
+    with pytest.raises(
+        CompactDslValidationError,
+        match="SecondaryBody is auxiliary",
+    ):
+        validate_compact_dsl(
+            semantic_body,
+            task_spec=task_spec,
+            card_spec=card_spec,
+            enforce_model_component_types=True,
+        )
+
+
+def test_model_output_accepts_secondary_body_with_core_sibling() -> None:
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["content"]]',
+            '["content","Column",{"itemMargin":2},["primary","support"]]',
+            '["primary","EmphasisText",{"mainText":"已连接","fontSize":18}]',
+            '["support","SecondaryBody",{"items":'
+            '[{"value":"更新于 10:00"}],"fontSize":14}]',
+        ]
+    )
     validate_compact_dsl(
-        semantic_body,
-        task_spec=task_spec,
-        card_spec=card_spec,
+        compact_dsl,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
         enforce_model_component_types=True,
     )
+
+
+@pytest.mark.parametrize("companion", ["PillButton", "SecondaryBody"])
+def test_model_output_rejects_secondary_body_without_core_companion(
+    companion: str,
+) -> None:
+    if companion == "PillButton":
+        companion_row = (
+            '["companion","PillButton",{"label":"查看",'
+            '"onClick":[{"call":"open","args":{}}]}]'
+        )
+        event_candidates = [{"call": "open", "args": {}}]
+    else:
+        companion_row = (
+            '["companion","SecondaryBody",{"role":"metadata","items":['
+            '{"value":"另一条辅助信息"}],"fontSize":12}]'
+        )
+        event_candidates = []
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["support","companion"]]',
+            '["support","SecondaryBody",{"role":"body","items":['
+            '{"value":"辅助信息"}],"fontSize":14}]',
+            companion_row,
+        ]
+    )
+    with pytest.raises(CompactDslValidationError, match="SecondaryBody is auxiliary"):
+        validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x2",
+                "eventCandidates": event_candidates,
+                "dataModelSchema": {"data": {}},
+                "assetCandidates": [],
+            },
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+            enforce_model_component_types=True,
+        )
 
 
 def test_accepts_progress_circle_free_box_geometry() -> None:
@@ -360,6 +506,19 @@ def test_accepts_single_line_title_with_task_spec_icon() -> None:
     )
 
 
+def test_accepts_single_line_title_svg_without_authored_fill_color() -> None:
+    validate_compact_dsl(
+        _single_line_title_dsl(',"icon":"resources/weather.svg"'),
+        task_spec={
+            "size": "2x4",
+            "eventCandidates": [],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [{"src": "resources/weather.svg"}],
+        },
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+    )
+
+
 def test_rejects_single_line_title_icon_outside_task_spec_assets() -> None:
     with pytest.raises(CompactDslValidationError, match="asset must use an original src"):
         validate_compact_dsl(
@@ -371,6 +530,154 @@ def test_rejects_single_line_title_icon_outside_task_spec_assets() -> None:
                 "assetCandidates": [],
             },
             card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+
+@pytest.mark.parametrize("button_type", ["PillButton", "CircleButton"])
+def test_rejects_title_and_action_button_reusing_same_icon(button_type: str) -> None:
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["header","action"]]',
+            '["header","SingleLineTitle",{"title":"天气",'
+            '"icon":"resources/weather.svg","fillColor":"#FF563D99"}]',
+            f'["action","{button_type}",{{"icon":"resources/weather.svg"}}]',
+        ]
+    )
+
+    with pytest.raises(
+        CompactDslValidationError,
+        match="replace the title icon with another unused matching asset",
+    ):
+        validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x2",
+                "eventCandidates": [],
+                "dataModelSchema": {"data": {}},
+                "assetCandidates": [{"src": "resources/weather.svg"}],
+            },
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+
+def test_allows_title_and_button_to_use_distinct_icons() -> None:
+    handler = {"call": "openWeather", "args": {}}
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["header","action"]]',
+            '["header","SingleLineTitle",{"title":"天气",'
+            '"icon":"resources/weather.svg","fillColor":"#FF563D99"}]',
+            '["action","PillButton",{"label":"打开天气",'
+            '"icon":"resources/action.svg",'
+            f'"onClick":[{json.dumps(handler, ensure_ascii=False)}]' + "}]",
+        ]
+    )
+
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [handler],
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [
+                {"src": "resources/weather.svg"},
+                {"src": "resources/action.svg"},
+            ],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+
+def test_accepts_icons_matching_plan_asset_assignments() -> None:
+    handler = {"call": "openWeather", "args": {}}
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [{"id": "event.open.weather", **handler}],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [
+            {"id": "asset.weather", "src": "resources/weather.svg"},
+            {"id": "asset.action", "src": "resources/action.svg"},
+        ],
+    }
+    compact_plan = {
+        "assetAssignments": {
+            "actions": [
+                {
+                    "actionId": "event.open.weather",
+                    "assetId": "asset.action",
+                }
+            ],
+            "title": {"assetId": "asset.weather"},
+        }
+    }
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["header","action"]]',
+            '["header","SingleLineTitle",{"title":"天气",'
+            '"icon":"resources/weather.svg"}]',
+            '["action","PillButton",{"label":"打开天气",'
+            '"icon":"resources/action.svg",'
+            f'"onClick":[{json.dumps(handler)}]' + "}]",
+        ]
+    )
+
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+        compact_plan=compact_plan,
+    )
+
+
+@pytest.mark.parametrize(
+    ("missing_fragment", "expected_error"),
+    [
+        (',"icon":"resources/weather.svg"', "primary SingleLineTitle must use"),
+        (',"icon":"resources/action.svg"', "button for action 'event.open.weather' must use"),
+    ],
+)
+def test_rejects_missing_plan_asset_assignment(
+    missing_fragment: str,
+    expected_error: str,
+) -> None:
+    handler = {"call": "openWeather", "args": {}}
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["header","action"]]',
+            '["header","SingleLineTitle",{"title":"天气",'
+            '"icon":"resources/weather.svg"}]',
+            '["action","PillButton",{"label":"打开天气",'
+            '"icon":"resources/action.svg",'
+            f'"onClick":[{json.dumps(handler)}]' + "}]",
+        ]
+    ).replace(missing_fragment, "")
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [{"id": "event.open.weather", **handler}],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [
+            {"id": "asset.weather", "src": "resources/weather.svg"},
+            {"id": "asset.action", "src": "resources/action.svg"},
+        ],
+    }
+    compact_plan = {
+        "assetAssignments": {
+            "actions": [
+                {
+                    "actionId": "event.open.weather",
+                    "assetId": "asset.action",
+                }
+            ],
+            "title": {"assetId": "asset.weather"},
+        }
+    }
+
+    with pytest.raises(CompactDslValidationError, match=re.escape(expected_error)):
+        validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+            compact_plan=compact_plan,
         )
 
 
