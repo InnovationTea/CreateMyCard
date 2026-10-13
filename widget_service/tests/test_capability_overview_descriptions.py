@@ -52,6 +52,7 @@ def test_overview_uses_short_assets_and_keeps_event_contract(overview_request):
     for row, event in zip(event_rows, events, strict=True):
         assert set(row) == {"id", "description", "actionTemplate", "dynamicArguments"}
         assert row.get("id") == event.id
+        assert row.get("description") == event.description
         assert row.get("actionTemplate") == event.actionTemplate.model_dump(mode="json")
         expected_arguments = []
         for argument in event.dynamicArguments:
