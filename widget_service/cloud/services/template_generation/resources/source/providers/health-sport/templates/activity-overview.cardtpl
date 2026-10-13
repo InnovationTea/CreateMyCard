@@ -214,10 +214,6 @@ Row(
                       Text(
                           data.calories,
                           {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                      ),
-                      Text(
-                          "千卡",
-                          {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1}
                       )
                   ),
                   Text(
@@ -259,10 +255,6 @@ Row(
                       Text(
                           data.distance,
                           {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                      ),
-                      Text(
-                          "千里",
-                          {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1}
                       )
                   ),
                   Text(
@@ -889,10 +881,6 @@ Row(
                       Text(
                           data.calories,
                           {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                      ),
-                      Text(
-                          "千卡",
-                          {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1}
                       )
                   ),
                   Text(
@@ -934,10 +922,6 @@ Row(
                       Text(
                           data.distance,
                           {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                      ),
-                      Text(
-                          "千里",
-                          {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1}
                       )
                   ),
                   Text(
