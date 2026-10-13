@@ -2087,10 +2087,10 @@ class PromptBuilder:
         if repair_history is not None and not is_design_compact:
             payload["repairHistory"] = copy.deepcopy(repair_history)
             payload["instruction"] += (
-                " repairHistory 保存此前的修复记录；"
-                "当前唯一待处理候选是 invalidSourceDsl。"
-                "不得恢复历史候选已经删除的事实或组件。"
+                " repairHistory 保存此前的修复记录；当前唯一待处理候选是 invalidSourceDsl。"
             )
+        if repair_history is not None:
+            payload["instruction"] += "仅程序批准省略的内容不得恢复；误删的必要事实和动作必须恢复。"
         recompose_requested = False
         if repair_strategy is not None:
             strategy = copy.deepcopy(repair_strategy)

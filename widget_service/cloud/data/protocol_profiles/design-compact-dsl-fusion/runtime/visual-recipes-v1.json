@@ -602,7 +602,7 @@
           "styles": {
             "itemMargin": 2,
             "justifyContent": "start",
-            "alignItems": "baseline",
+            "alignItems": "bottom",
             "flexShrink": 0,
             "width": "matchParent"
           }
@@ -911,7 +911,7 @@
             "width": "matchParent",
             "height": 30,
             "itemMargin": 2,
-            "alignItems": "baseline",
+            "alignItems": "bottom",
             "flexShrink": 0
           }
         },
@@ -1041,7 +1041,7 @@
             "width": "matchParent",
             "height": "matchParent",
             "itemMargin": 8,
-            "alignItems": "stretch",
+            "alignItems": "start",
             "justifyContent": "start",
             "layoutWeight": 1,
             "flexShrink": 1,

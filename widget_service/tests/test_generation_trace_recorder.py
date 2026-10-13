@@ -19,6 +19,7 @@ from services import artifact_store
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.compact_dsl_a2ui_converter import _strip_optional_genui_fence
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.compact_repair_candidate import CompactRepairSelection
 from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
@@ -721,3 +722,300 @@ async def test_quality_repair_records_prompt_model_and_revalidation(
     assert repair_events["repair.prompt.built"]["attempts"]["qualityRepair"] == 1
     assert repair_events["repair.model.completed"]["status"] == "success"
     assert any(record.get("stage") == "repair.revalidate" for record in records)
+
+
+@pytest.mark.asyncio
+async def test_wide_repair_retains_previous_candidate_and_records_rejected_history(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from services import widget_generation_service
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_generation_trace_recording", True)
+    monkeypatch.setattr(settings, "generation_trace_root", tmp_path / "traces")
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: False)
+    processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
+    processed: list[str] = []
+    repair_payloads: list[dict] = []
+    repair_messages: list[list[dict[str, str]]] = []
+    selected: list[tuple[str, str]] = []
+
+    def process(source, _context):
+        processed.append(source)
+        result = DslProcessingResult(
+            source_dsl=source, standard_dsl='{"createSurface":{"surfaceId":"surface_card"}}'
+        )
+        if source != "valid-repair":
+            result = DslProcessingResult(
+                source_dsl=source,
+                issues=(
+                    QualityIssue(
+                        stage="validation",
+                        code="COMPACT_DSL_VALIDATION_FAILED",
+                        message=(
+                            "component body: vertical layout requires at least 140vp within 126vp"
+                        ),
+                    ),
+                ),
+            )
+        return result
+
+    def select(previous, candidate, context):
+        assert context.size == "2x4"
+        selected.append((previous, candidate))
+        result = CompactRepairSelection(
+            candidate,
+            candidate,
+            corrections=("wide_layout_recomposition",),
+            layout_candidate_count=2,
+            layout_search_reasons=("parent_axis_reflow",),
+        )
+        if candidate == "lost-action":
+            result = CompactRepairSelection(
+                previous,
+                candidate,
+                rejection_issues=(
+                    {
+                        "stage": "validation",
+                        "code": "COMPACT_PLAN_COVERAGE_FAILED",
+                        "message": "Plan action is missing from visible DSL: 蓝牙设置 (blue).",
+                    },
+                ),
+            )
+        return result
+
+    async def repair(_client, prompt, _profile=None):
+        repair_messages.append([dict(message) for message in prompt])
+        payload = json.loads(prompt[-1].get("content"))
+        repair_payloads.append(payload)
+        return "lost-action" if len(repair_payloads) == 1 else "valid-repair"
+
+    monkeypatch.setattr(A2UIModelClient, "generate", lambda *_args, **_kwargs: "initial-source")
+    monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)
+    monkeypatch.setattr(processor, "process", process)
+    monkeypatch.setattr(widget_generation_service, "select_compact_repair_candidate", select)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda *_args: SimpleNamespace(
+            artifactUrl="https://test.invalid/repair-selection.md", artifactDigest="sha256:selected"
+        ),
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid=_UID,
+            prdVer="11.7.7.332",
+            device={"romVersion": "7.0"},
+            size="2x4",
+            userQuery="生成天气卡片",
+            title="天气",
+            description="修复选择",
+        )
+    )
+    assert response.status == GenerationStatus.SUCCESS
+    assert processed == ["initial-source", "initial-source", "valid-repair"]
+    assert selected == [("initial-source", "lost-action"), ("initial-source", "valid-repair")]
+    assert "repairHistory" not in repair_payloads[1]
+    second_messages = repair_messages[1]
+    rejected_message = next(
+        message
+        for message in second_messages
+        if '"name":"select_compact_repair_candidate"' in message.get("content", "")
+    )
+    rejected_payload = json.loads(rejected_message.get("content"))
+    result = rejected_payload.get("toolResult")
+    assert isinstance(result, dict)
+    assert result.get("retainedPrevious") is True
+    assert result.get("ok") is False
+    assert second_messages[-2] == {"role": "assistant", "content": "initial-source"}
+    assert any(
+        message == {"role": "assistant", "content": "lost-action"} for message in second_messages
+    )
+    assert sum(message.get("role") == "system" for message in second_messages) == 1
+    issues = rejected_payload.get("qualityErrors")
+    assert isinstance(issues, list) and len(issues) == 1
+    assert issues[0].get("code") == "COMPACT_PLAN_COVERAGE_FAILED"
+    records = _read_records(tmp_path / "traces")
+    selections = [
+        record for record in records if record.get("event") == "repair.candidate.selected"
+    ]
+    assert len(selections) == 2
+    assert selections[0].get("status") == "rejected"
+    assert selections[1].get("status") == "success"
+    selection_details = selections[1].get("details")
+    assert isinstance(selection_details, dict)
+    assert selection_details.get("layoutCandidateCount") == 2
+    assert selection_details.get("layoutSearchReasons") == ["parent_axis_reflow"]
+    details = records[-1].get("details")
+    assert isinstance(details, dict)
+    counts = details.get("attemptCounts")
+    assert isinstance(counts, dict)
+    assert counts.get("qualityRepairAttempts") == 2
+    assert counts.get("validationEvaluations") == 3
+
+
+@pytest.mark.asyncio
+async def test_successful_initial_generation_does_not_enter_wide_repair_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from services import widget_generation_service
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: False)
+    processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
+    sources: list[str] = []
+
+    def process(source, _context):
+        sources.append(source)
+        return DslProcessingResult(
+            source_dsl=source, standard_dsl='{"createSurface":{"surfaceId":"surface_card"}}'
+        )
+
+    def unexpected_selection(*_args):
+        pytest.fail("首次生成不能进入修复候选选择")
+
+    monkeypatch.setattr(processor, "process", process)
+    monkeypatch.setattr(A2UIModelClient, "generate", lambda *_args, **_kwargs: "initial-source")
+    monkeypatch.setattr(
+        widget_generation_service, "select_compact_repair_candidate", unexpected_selection
+    )
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda *_args: SimpleNamespace(
+            artifactUrl="https://test.invalid/initial.md", artifactDigest="sha256:initial"
+        ),
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid=_UID,
+            prdVer="11.7.7.332",
+            device={"romVersion": "7.0"},
+            size="2x4",
+            userQuery="生成天气卡片",
+            title="天气",
+            description="首次生成隔离",
+        )
+    )
+    assert response.status == GenerationStatus.SUCCESS
+    assert sources == ["initial-source"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reject_local", [False, True])
+async def test_initial_wide_failure_tries_deterministic_repair_before_model(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    reject_local: bool,
+) -> None:
+    from services import widget_generation_service
+    from services.compact_outer_recomposition import OuterRecompositionResult
+    from services.validator import ArtifactValidator
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_generation_trace_recording", True)
+    monkeypatch.setattr(settings, "generation_trace_root", tmp_path / "traces")
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: False)
+    processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
+    processed = []
+    repaired_prompts = []
+    recompose_inputs = []
+
+    def process(source, _context):
+        processed.append(source)
+        if source == "initial-source":
+            return DslProcessingResult(
+                source_dsl=source,
+                issues=(
+                    QualityIssue(
+                        stage="validation",
+                        code="COMPACT_DSL_VALIDATION_FAILED",
+                        message="vertical layout requires at least 140vp within 126vp",
+                    ),
+                ),
+            )
+        return DslProcessingResult(
+            source_dsl=source,
+            standard_dsl=json.dumps({"createSurface": {"surfaceId": source}}),
+        )
+
+    def recompose(source, **_kwargs):
+        recompose_inputs.append(source)
+        return OuterRecompositionResult(
+            "local-candidate", ("component_simplification", "lightweight_actions"), 3, True
+        )
+
+    async def model_repair(_client, prompt, _profile=None):
+        repaired_prompts.append([dict(message) for message in prompt])
+        return "model-fixed"
+
+    def validate(_self, artifact, _profile):
+        if reject_local and "local-candidate" in artifact.genui:
+            return ["STYLE_ENUM_INVALID: local candidate failed final protocol validation"]
+        return []
+
+    monkeypatch.setattr(processor, "process", process)
+    monkeypatch.setattr(widget_generation_service, "recompose_wide_card", recompose)
+    monkeypatch.setattr(
+        widget_generation_service,
+        "select_compact_repair_candidate",
+        lambda previous, candidate, context: CompactRepairSelection(candidate, candidate),
+    )
+    monkeypatch.setattr(A2UIModelClient, "generate", lambda *_args, **_kwargs: "initial-source")
+    monkeypatch.setattr(A2UIModelClient, "generate_repair", model_repair)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda *_args: SimpleNamespace(
+            artifactUrl="https://test.invalid/local-repair.md",
+            artifactDigest="sha256:local",
+        ),
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid=_UID,
+            prdVer="11.7.7.332",
+            device={"romVersion": "7.0"},
+            size="2x4",
+            userQuery="生成天气卡片",
+            title="天气",
+            description="先确定性重排，再简化，最后才模型修复",
+        )
+    )
+    assert response.status == GenerationStatus.SUCCESS
+    assert recompose_inputs == ["initial-source"]
+    assert processed == (
+        ["initial-source", "local-candidate", "model-fixed"]
+        if reject_local
+        else ["initial-source", "local-candidate"]
+    )
+    assert len(repaired_prompts) == int(reject_local)
+    if reject_local:
+        payload = json.loads(repaired_prompts[0][-1].get("content"))
+        issues = payload.get("qualityErrors")
+        assert isinstance(issues, list)
+        assert "vertical layout requires" in issues[0].get("message", "")
+        assert any(message.get("content") == "initial-source" for message in repaired_prompts[0])
+    records = _read_records(tmp_path / "traces")
+    repair = next(
+        record for record in records if record.get("event") == "repair.deterministic.completed"
+    )
+    assert repair.get("status") == ("rejected" if reject_local else "success")
+    counts = records[-1].get("details", {}).get("attemptCounts", {})
+    assert counts.get("qualityRepairAttempts", 0) == int(reject_local)
+    assert counts.get("validationEvaluations") == (3 if reject_local else 2)

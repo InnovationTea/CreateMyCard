@@ -6,6 +6,8 @@ import json
 import unittest
 from unittest.mock import patch
 
+import pytest
+
 from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
@@ -3894,3 +3896,111 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _assert_static_wide_artifact_valid(genui: str) -> None:
+    from models.artifact import WidgetArtifact
+    from services.capability_registry import CapabilityRegistry
+    from services.protocol_registry import A2UIProtocolRegistry
+    from services.validator import ArtifactValidator
+
+    registry = CapabilityRegistry(app_version="11.7.8.341", device_rom_version="7.0")
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    artifact = WidgetArtifact(
+        genui=genui,
+        cardSpec={"title": "读数", "description": "静态读数", "suggestSize": "2x4"},
+        taskSpec={
+            "userQuery": "显示读数",
+            "size": "2x4",
+            "dataModelSchema": {"data": {}},
+            "eventCandidates": [],
+            "assetCandidates": [],
+        },
+        effectiveCapabilities={"data": [], "event": [], "asset": []},
+        meta={
+            "protocolProfileId": profile.get("id"),
+            "capabilityRegistryVersion": registry.version,
+            "createdAt": 0,
+        },
+    )
+    assert ArtifactValidator({}).validate(artifact, profile) == []
+
+
+def test_text_block_recipe_preserves_fill_and_passes_full_artifact_protocol() -> None:
+    source = _serialize(
+        [
+            [
+                "root",
+                "Column",
+                {
+                    "width": "matchParent",
+                    "height": "matchParent",
+                    "padding": 12,
+                    "borderRadius": 20,
+                    "clip": True,
+                },
+                ["details"],
+            ],
+            [
+                "details",
+                "TextBlock",
+                {
+                    "items": [
+                        {"label": "温度", "value": "21℃"},
+                        {"label": "湿度", "value": "60%"},
+                    ]
+                },
+            ],
+        ]
+    )
+    genui = convert_compact_dsl_to_a2ui(source, size="2x4")
+    commands = [json.loads(line) for line in genui.splitlines()]
+    update = next(
+        command.get("updateComponents") for command in commands if command.get("updateComponents")
+    )
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    block = next(component for component in components if component.get("id") == "details")
+    assert block.get("styles", {}).get("alignItems") == "start"
+    for component in components:
+        if component.get("id") in ("details_item0", "details_item1"):
+            assert component.get("styles", {}).get("height") == "matchParent"
+    _assert_static_wide_artifact_valid(genui)
+
+
+@pytest.mark.parametrize("kind", ["EmphasizedData", "ProgressLine2"])
+@pytest.mark.parametrize("unit", [None, "%"])
+def test_numeric_recipe_optional_unit_passes_full_artifact_protocol(kind, unit) -> None:
+    props = {"value": 80}
+    if kind == "ProgressLine2":
+        props.update(
+            {
+                "total": 100,
+                "displayValue": 80,
+                "color": "#FF1F4799",
+                "backgroundColor": "#331F4799",
+            }
+        )
+    if unit is not None:
+        props["unit"] = unit
+    source = _serialize(
+        [
+            [
+                "root",
+                "Column",
+                {"width": "matchParent", "height": "matchParent", "padding": 12},
+                ["reading"],
+            ],
+            ["reading", kind, props],
+        ]
+    )
+    genui = convert_compact_dsl_to_a2ui(source, size="2x4")
+    for line in genui.splitlines():
+        update = json.loads(line).get("updateComponents", {})
+        for component in update.get("components", []):
+            if component.get("component") == "Row":
+                assert component.get("styles", {}).get("alignItems") == "bottom"
+            if component.get("id") == "reading_unit":
+                assert component.get("styles", {}).get("padding", {}).get("bottom", 0) > 0
+    _assert_static_wide_artifact_valid(genui)

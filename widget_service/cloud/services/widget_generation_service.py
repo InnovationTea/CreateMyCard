@@ -51,7 +51,9 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     parse_compact_plan_call,
 )
+from services.compact_repair_candidate import select_compact_repair_candidate
 from services.compact_repair_strategy import CompactRepairStrategyTracker
+from services.compact_wide_recomposition import recompose_wide_card
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -1224,7 +1226,82 @@ class WidgetGenerationService:
                     duration_ms=self._elapsed_ms(repair_model_started_at),
                     text_artifacts={"repair_extracted_output": result},
                 )
-                return require_generated_dsl(result)
+                result = require_generated_dsl(result)
+                wide_compact_repair = (
+                    policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                    and task_spec.size == "2x4"
+                    and not source_generated_by_template
+                )
+                if wide_compact_repair:
+                    repair_context = replace(
+                        processing_context,
+                        compact_plan=accepted_compact_plan,
+                        allowed_omitted_plan_fact_indexes=(
+                            compact_repair_tracker.allowed_omitted_fact_indexes
+                            if compact_repair_tracker is not None
+                            else ()
+                        ),
+                    )
+                    selection_started_at = time.perf_counter()
+                    selection = await to_thread.run_sync(
+                        select_compact_repair_candidate,
+                        invalid_source_dsl,
+                        result,
+                        repair_context,
+                    )
+                    rejected = bool(selection.rejection_issues)
+                    trace_step(
+                        "repair.candidate.selected",
+                        stage="repair.candidateSelection",
+                        status="rejected" if rejected else "success",
+                        duration_ms=self._elapsed_ms(selection_started_at),
+                        details={
+                            "retainedPrevious": rejected,
+                            "corrections": list(selection.corrections),
+                            "layoutCandidateCount": selection.layout_candidate_count,
+                            "layoutSearchReasons": list(selection.layout_search_reasons),
+                        },
+                        text_artifacts={
+                            "repair_candidate_input": result,
+                            "repair_candidate_prepared": selection.candidate_dsl,
+                            "repair_selected_source": selection.source_dsl,
+                        },
+                        json_artifacts={
+                            "repair_candidate_rejection_issues": list(selection.rejection_issues),
+                        },
+                        artifact_roles={
+                            "repair_candidate_input": "input",
+                            "repair_candidate_prepared": "output",
+                            "repair_selected_source": "output",
+                            "repair_candidate_rejection_issues": "diagnostic",
+                        },
+                    )
+                    if rejected:
+                        history_entry["sourceDsl"] = selection.candidate_dsl
+                        history_entry["qualityErrors"] = list(selection.rejection_issues)
+                        if compact_agent_messages is None:
+                            raise RuntimeError("Compact Agent conversation is missing after Repair")
+                        compact_agent_messages.append(
+                            {
+                                "role": "user",
+                                "content": json.dumps(
+                                    {
+                                        "toolResult": {
+                                            "name": "select_compact_repair_candidate",
+                                            "ok": False,
+                                            "retainedPrevious": True,
+                                        },
+                                        "qualityErrors": list(selection.rejection_issues),
+                                        "instruction": "本次候选未被接受，继续修复上一版；"
+                                        "误删的必要事实和动作必须恢复。",
+                                    },
+                                    ensure_ascii=False,
+                                    separators=(",", ":"),
+                                ),
+                            }
+                        )
+                    result = selection.source_dsl
+                return result
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
@@ -1467,6 +1544,7 @@ class WidgetGenerationService:
             return [item.repair_message() for item in validation_issues]
 
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            nonlocal latest_processing_result
             if quality_repair_attempt_count == 0:
                 trace_phase("validation")
             with (
@@ -1478,6 +1556,61 @@ class WidgetGenerationService:
                 ) as evaluation_span,
             ):
                 errors = await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
+                wide_compact = (
+                    policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                    and task_spec.size == "2x4"
+                )
+                repair_allowed = (
+                    settings.enable_validation_failure_retry
+                    and not source_generated_by_template
+                    and not source_generated_by_jsx
+                )
+                initial_wide_failure = (
+                    bool(errors) and wide_compact and quality_repair_attempt_count == 0
+                )
+                if initial_wide_failure and repair_allowed:
+                    previous_result = latest_processing_result
+                    repaired = await to_thread.run_sync(
+                        partial(
+                            recompose_wide_card,
+                            previous_result.source_dsl,
+                            task_spec=processing_context.task_spec,
+                            card_spec=processing_context.card_spec,
+                            protocol_profile=A2UIProtocolRegistry.read_design_protocol_profile(
+                                processing_context.design_profile_id or "design-compact-dsl"
+                            ),
+                            layout_scope=processing_context.layout_scope,
+                            compact_plan=accepted_compact_plan,
+                        )
+                    )
+                    accepted = False
+                    repaired_errors = []
+                    if repaired.applied:
+                        repaired_errors = await to_thread.run_sync(
+                            evaluate_source_dsl_sync, repaired.source_dsl
+                        )
+                        if repaired_errors:
+                            latest_processing_result = previous_result
+                        else:
+                            accepted = True
+                            errors = []
+                    repair_status = "success" if accepted else "skipped"
+                    if repaired_errors:
+                        repair_status = "rejected"
+                    trace_step(
+                        "repair.deterministic.completed",
+                        stage="repair.deterministic",
+                        status=repair_status,
+                        details={
+                            "layoutCandidateCount": repaired.candidate_count,
+                            "layoutSearchReasons": list(repaired.reasons),
+                        },
+                        text_artifacts={
+                            "deterministic_candidate_source": repaired.source_dsl,
+                            "deterministic_selected_source": latest_processing_result.source_dsl,
+                        },
+                        json_artifacts={"deterministic_revalidation_errors": repaired_errors},
+                    )
                 evaluation_span.outcome("failed" if errors else "success", errorCount=len(errors))
                 trace_phase_outcome("failed" if errors else "success", errorCount=len(errors))
                 return errors
