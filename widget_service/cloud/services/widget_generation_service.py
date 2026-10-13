@@ -1219,6 +1219,7 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 parse_context=parse_context,
+                skip_compact_dsl_validation=parse_context.is_template,
                 compact_plan=accepted_compact_plan,
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.allowed_omitted_fact_indexes

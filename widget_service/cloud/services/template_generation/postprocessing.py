@@ -6,9 +6,11 @@ import json
 from typing import Any
 from urllib.parse import urlsplit
 
+_BITMAP_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
 
-def remove_png_fill_colors(a2ui: str) -> str:
-    """遍历模板组件，移除 PNG Image 染色；保留 SVG、数据和其它节点属性。"""
+
+def remove_bitmap_fill_colors(a2ui: str) -> str:
+    """遍历模板组件，移除 位图 Image 染色；保留 SVG、数据和其它节点属性。"""
     messages = [json.loads(line) for line in a2ui.splitlines() if line.strip()]
     changed = False
     for message in messages:
@@ -30,7 +32,7 @@ def remove_png_fill_colors(a2ui: str) -> str:
             source = node.get("src")
             if node.get("component") != "Image" or not isinstance(source, str):
                 continue
-            if not urlsplit(source).path.lower().endswith(".png"):
+            if not urlsplit(source).path.lower().endswith(_BITMAP_SUFFIXES):
                 continue
             styles = node.get("styles")
             for properties in (node, styles):

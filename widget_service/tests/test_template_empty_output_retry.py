@@ -44,6 +44,8 @@ def make_client(monkeypatch, responses, *, global_retry=False):
     async def record_sleep(seconds):
         delays.append(seconds)
 
+    client._sleep = record_sleep
+    client._random_uniform = lambda lower, upper: (lower + upper) / 2
     client._client._sleep = record_sleep
     client._client._random_uniform = lambda lower, upper: (lower + upper) / 2
     return client, runtime, delays
@@ -71,8 +73,8 @@ async def test_second_layer_recovers_once_with_backoff(monkeypatch, tmp_path, ph
         records.append(json.loads(line))
     summary = records[-1].get("details")
     assert summary is not None
-    assert summary.get("attemptCounts") == {"modelLogicalCalls": 1, "modelPhysicalAttempts": 2}
-    assert summary.get("retryCounts") == {"modelTransportRetries": 1}
+    assert summary.get("attemptCounts") == {"modelLogicalCalls": 2, "modelPhysicalAttempts": 2}
+    assert summary.get("retryCounts") == {"templateEmptyOutputRetries": 1}
 
 
 @pytest.mark.asyncio
@@ -110,6 +112,16 @@ async def test_other_failures_keep_original_budget(monkeypatch, code):
     assert error.value.code == code
     assert runtime.calls == 1
     assert not delays
+
+
+@pytest.mark.asyncio
+async def test_first_layer_keeps_existing_global_retry_policy(monkeypatch):
+    client, runtime, delays = make_client(monkeypatch, [""] * 6, global_retry=True)
+    with pytest.raises(ModelTransportError) as error:
+        await client.generate_json([], phase="business-decision")
+    assert error.value.code == "MODEL_EMPTY_OUTPUT"
+    assert runtime.calls == 6
+    assert len(delays) == 5
 
 
 @pytest.mark.asyncio

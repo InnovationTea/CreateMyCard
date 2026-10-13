@@ -40,13 +40,8 @@ def _generate_with_llmclient(messages: list[dict[str, str]]) -> str:
                 top_p=options.top_p,
                 max_tokens=options.max_tokens,
                 stop=options.stop if options.stop is not None else ["DeepSeek"],
-                thinking_enabled=options.enable_thinking,
                 timeout=options.recv_timeout,
             )
-            if completion.finish_reason == "length":
-                raise ModelTransportError(
-                    "model output was truncated", code="MODEL_OUTPUT_TRUNCATED",
-                )
             return completion.content
         chunks = [chunk async for chunk in stream_genui(options, messages)]
         return "".join(chunks)

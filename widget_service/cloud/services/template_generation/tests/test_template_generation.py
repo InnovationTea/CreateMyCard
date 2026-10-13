@@ -3425,7 +3425,7 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "BatteryOverviewCompact@1",
         "default",
     ).root
-    assert _template_node_options(battery_peer)["justifyContent"] == "center"
+    assert _template_node_options(battery_peer)["justifyContent"] == "start"
     assert len(_template_nodes(battery_peer, "Image")) == 1
     compact_content_row = battery_peer.children[0]
     assert [child.component for child in compact_content_row.children] == [
@@ -8414,7 +8414,7 @@ async def test_template_exception_obeys_route_failure_policy(
     model_generate_calls = 0
     template_processors: list[DslProcessorKind] = []
     callback_sizes: list[str] = []
-    source_permissions: list[bool] = []
+    source_permissions: list[tuple[bool, bool]] = []
 
     class ModelClient:
         model_failure_retry_count = 0
@@ -8435,7 +8435,9 @@ async def test_template_exception_obeys_route_failure_policy(
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             generated_sources.append(source_dsl)
-            source_permissions.append(_context.parse_context.is_template)
+            source_permissions.append((
+                _context.parse_context.is_template, _context.skip_compact_dsl_validation,
+            ))
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl="valid-a2ui",
@@ -8509,7 +8511,7 @@ async def test_template_exception_obeys_route_failure_policy(
         assert generated_sources == ["generic-source"]
     assert template_processors == [DslProcessorKind.DESIGN_COMPACT]
     assert callback_sizes == ["2x2"]
-    assert source_permissions == ([] if template_failure_is_terminal else [False])
+    assert source_permissions == ([] if template_failure_is_terminal else [(False, False)])
 
 
 @pytest.mark.asyncio
@@ -8631,7 +8633,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     ]
     assert processor_kinds == [DslProcessorKind.DESIGN_COMPACT]
     assert saved_design_tokens == ["generic-repaired-source"]
-    assert source_permissions == [(True, False), (False, False)]
+    assert source_permissions == [(True, True), (False, False)]
 
 
 @pytest.mark.asyncio

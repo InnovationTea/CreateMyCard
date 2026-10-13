@@ -61,11 +61,8 @@ class UnifiedModelClient:
         *,
         phase: str,
         allow_mep_partial_abort: bool = False,
-        empty_output_max_retries: int | None = None,
     ) -> str:
         """执行一次逻辑模型调用；每轮 repair 会重新调用并从 master 开始。"""
-        if empty_output_max_retries is not None and empty_output_max_retries < 0:
-            raise ValueError("empty output retry budget must be non-negative")
         logical_attempt = trace_next_attempt("modelLogicalCalls")
         plans = self._provider_plans(backend)
         last_error: Exception | None = None
@@ -95,7 +92,6 @@ class UnifiedModelClient:
                         request_context,
                         phase,
                         allow_mep_partial_abort,
-                        empty_output_max_retries,
                     )
                 except Exception as exc:
                     last_error = exc
@@ -150,9 +146,8 @@ class UnifiedModelClient:
         request_context: ModelRequestContext | None,
         phase: str,
         allow_mep_partial_abort: bool,
-        empty_output_max_retries: int | None,
     ) -> str:
-        max_attempts = max(plan.max_retry_attempts, empty_output_max_retries or 0) + 1
+        max_attempts = plan.max_retry_attempts + 1
         with trace_details(modelPhase=phase, provider=plan.provider, role=plan.role):
             for provider_attempt in range(1, max_attempts + 1):
                 physical_attempt = trace_next_attempt("modelPhysicalAttempts")
@@ -216,14 +211,7 @@ class UnifiedModelClient:
                                 },
                             )
                             return recovered
-                        retry_budget = plan.max_retry_attempts
-                        if (
-                            empty_output_max_retries is not None
-                            and isinstance(exc, ModelTransportError)
-                            and exc.code == "MODEL_EMPTY_OUTPUT"
-                        ):
-                            retry_budget = empty_output_max_retries
-                        should_retry = provider_attempt <= retry_budget
+                        should_retry = provider_attempt < max_attempts
                         physical_span.outcome(
                             "failed",
                             exceptionType=type(exc).__name__,

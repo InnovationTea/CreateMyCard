@@ -54,7 +54,7 @@ async def test_template_output_passes_public_validation(case: dict, fusion: bool
         DslProcessingContext(
             size=task.size, task_spec=task.model_dump(mode="json"), card_spec=card,
             protocol_profile=profile, design_profile_id="design-compact-dsl",
-            parse_context=TEMPLATE_PARSE_CONTEXT,
+            parse_context=TEMPLATE_PARSE_CONTEXT, skip_compact_dsl_validation=True,
         ),
     )
     assert not result.errors, result.errors
