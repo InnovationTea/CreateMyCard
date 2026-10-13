@@ -318,6 +318,7 @@ class AssetCapabilityOverview(BaseModel):
 class AssetCapability(AssetCapabilityOverview):
     type: Literal["asset"] = "asset"
     src: str
+    overviewDescription: str | None = Field(default=None, min_length=1, pattern=r"\S")
     sceneTags: list[str] = Field(default_factory=list)
     minXiaoyiVersion: str | None = None
 

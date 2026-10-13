@@ -36,7 +36,7 @@
     "candidateAssetIds": [
       "asset.moon_z_fill_1",
       "asset.clock_fill",
-      "asset.icon_phone"
+      "asset.phone_fill"
     ]
   },
   "deviceInfo": {
@@ -104,6 +104,6 @@
   "candidateAssetIds": [
     "asset.moon_z_fill_1",
     "asset.clock_fill",
-    "asset.icon_phone"
+    "asset.phone_fill"
   ]
 }

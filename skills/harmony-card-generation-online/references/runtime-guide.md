@@ -17,6 +17,9 @@
 概述读取 dataCapabilities、可选 unavailableCapabilities、eventCapabilities 和 assetCandidates。
 unavailableCapabilities 缺失或空数组视为空；存在时必须为字符串数组，不能选择其中 ID 或加载其 schema。
 事件读取 id、description、actionTemplate、dynamicArguments；素材只读 id/description，不要求素材路径、版本或标签。
+素材 description 是选择说明，保留语义、适用业务及必要限制；详细外观和渲染规则由微服务维护，
+不再请求素材详情。事件描述沿用原文，参数仍按 actionTemplate 和 dynamicArguments 填写。
+素材存在不代表对应数据或动作可用；共性使用范围仍遵循本文候选规则，单项明确的禁用范围优先。
 
 只为概述中选中的可用数据 ID 加载 schema，不传空数组。结果读取 dataCapabilities 和 missingCapabilityIds；
 移除 missing 后立即重新判断核心目标，不能先调用权限或生成。数据类 edit 校验编辑后保留的完整集合。
