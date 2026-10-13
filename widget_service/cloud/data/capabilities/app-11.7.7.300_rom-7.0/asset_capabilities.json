@@ -1781,5 +1781,363 @@
       "air-quality"
     ],
     "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_call_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_call_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "sceneTags": [
+      "phone",
+      "call",
+      "contact"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_bule.svg",
+    "description": "样式：蓝色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_purple.svg",
+    "description": "样式：紫色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_ring_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_ring_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "alarm",
+      "notification",
+      "reminder"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_bule.svg",
+    "description": "样式：蓝色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_purple.svg",
+    "description": "样式：紫色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sportsHealth_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_sportsHealth_yellow.svg",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "exercise"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_bule",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_bule.svg",
+    "description": "样式：蓝色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_purple",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_purple.svg",
+    "description": "样式：紫色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_storage_yellow",
+    "type": "asset",
+    "src": "resources/base/media/ic_storage_yellow.svg",
+    "description": "样式：黄色到橙色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "sceneTags": [
+      "storage",
+      "settings",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ic_sun",
+    "type": "asset",
+    "src": "resources/base/media/ic_sun.svg",
+    "description": "样式：黄色到橙色纵向渐变的太阳图标，由圆形日面和八向光线组成，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气或紫外线信息卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示晴朗、日照或紫外线主题，不表示具体天气现象、温度或紫外线等级。",
+    "sceneTags": [
+      "weather",
+      "sun",
+      "uv"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_air_quality_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_air_quality_blue.png",
+    "description": "样式：亮蓝色圆形底上的绿色渐变叶片图标，叶片带浅色叶脉，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的空气质量指标，可结合 ViewWeather 的 current.airQuality 或 daily.airQuality 展示，也可与 event.open.weather 组成天气详情入口。蓝色和绿色仅为视觉配色，不表示具体空气质量等级或污染程度。",
+    "sceneTags": [
+      "weather",
+      "air-quality"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_bluetooth_earbuds_black",
+    "type": "asset",
+    "src": "resources/base/media/emoji_bluetooth_earbuds_black.png",
+    "description": "样式：深灰到黑色渐变的一对分体式入耳蓝牙耳机，带立体高光与透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：蓝牙耳机连接状态、名称或左右耳电量卡片，可结合 GetEarphoneInfo 的 isConnected、earphoneName、leftBatteryLevel 和 rightBatteryLevel 展示，也可作为 event.open.settings.bluetooth 的蓝牙设置入口。图标不表示耳机当前已连接、正在充电或具有特定电量。",
+    "sceneTags": [
+      "bluetooth",
+      "earphone",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_calories_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_calories_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色渐变火焰图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：运动健康卡片中的日常或单次运动热量，可结合 GetHealthAndSportSummary 的 dailyTotalCaloriesText 或 exerciseCalorieText 展示，也可作为 event.open.health.activityRecord、event.open.health.sportsRecord 或 event.open.health.workoutDuration 的辅助入口图标。蓝色仅为视觉配色，不表示热量高低、目标完成或用户正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "calories"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_calories_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_calories_orange.png",
+    "description": "样式：橙色圆形底上的米白色渐变火焰图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：运动健康卡片中的日常或单次运动热量，可结合 GetHealthAndSportSummary 的 dailyTotalCaloriesText 或 exerciseCalorieText 展示，也可作为 event.open.health.activityRecord、event.open.health.sportsRecord 或 event.open.health.workoutDuration 的辅助入口图标。橙色仅为视觉配色，不表示热量高低、目标完成或用户正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "calories"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_default_weather_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_default_weather_blue.png",
+    "description": "样式：蓝灰色圆形底上的白色渐变云朵图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：通用天气概览或未匹配到更具体天气素材的卡片，可结合 ViewWeather 的 current.condition 或 daily.condition 展示，也可与 event.open.weather 组成天气详情入口。云朵图形仅表示天气主题，不可据此推断实际为多云、阴天或存在降水。",
+    "sceneTags": [
+      "weather",
+      "condition"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_earbud_case_black",
+    "type": "asset",
+    "src": "resources/base/media/emoji_earbud_case_black.png",
+    "description": "样式：深灰到黑色渐变的封闭式蓝牙耳机充电盒，盒体呈圆润横向椭圆并带高光，透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：蓝牙耳机盒或整体电量与充电状态卡片，可结合 GetEarphoneInfo 的 batteryLevel 和 chargingStatusDesc 展示，也可作为 event.open.settings.bluetooth 的蓝牙设置入口。图标不表示耳机盒当前正在充电、已经打开或具有特定电量。",
+    "sceneTags": [
+      "bluetooth",
+      "earphone",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_high_temperature_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_high_temperature_orange.png",
+    "description": "样式：橙色温度计与带短光芒的橙色太阳组成的高温图标，带浅色高光和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的高温天气主题或气象高温预警，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在需求或数据明确表达高温时使用，不得凭橙色配色推断温度或预警等级。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "high-temperature",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_humidity_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_humidity_blue.png",
+    "description": "样式：一大一小两枚蓝色渐变水滴组成的湿度图标，带立体高光和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的当前相对湿度，可结合 ViewWeather 的 current.humidityPercent 展示，也可与 event.open.weather 组成天气详情入口。水滴仅表示湿度主题，不表示正在降雨、湿度高低或具体湿度数值。",
+    "sceneTags": [
+      "weather",
+      "humidity"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色定位标记与浅蓝色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。蓝色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_orange.png",
+    "description": "样式：橙色圆形底上的米白色定位标记与浅橙色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。橙色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_purple",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_purple.png",
+    "description": "样式：紫色圆形底上的白色定位标记与浅紫色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。紫色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_reminder_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_reminder_orange.png",
+    "description": "样式：橙色渐变的实心铃铛图标，带圆润铃体、独立铃舌和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：带提醒设置的日历日程或闹钟入口卡片，可结合 GetCalendarEvents 的 events[i].remindTime 展示，并可作为 event.viewCalendarEvent、event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "sceneTags": [
+      "calendar",
+      "reminder",
+      "alarm"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_temperature_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_temperature_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色温度计图标，温度计内部带蓝色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。蓝色仅为视觉配色，不表示低温、具体温度等级或电池健康状态。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_temperature_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_temperature_orange.png",
+    "description": "样式：橙色圆形底上的米白色温度计图标，温度计内部带橙色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。橙色仅为视觉配色，不表示高温、具体预警等级或电池健康状态。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_typhoon_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_typhoon_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色台风旋涡图标，旋涡中心为蓝色圆点，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的台风天气现象或台风预警卡片，可结合 ViewWeather 的 current.condition 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在字段明确表示台风时使用；蓝色仅为视觉配色，不代表蓝色预警或具体台风等级。",
+    "sceneTags": [
+      "weather",
+      "typhoon",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_typhoon_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_typhoon_orange.png",
+    "description": "样式：橙色圆形底上的米白色台风旋涡图标，旋涡中心为橙色圆点，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的台风天气现象或台风预警卡片，可结合 ViewWeather 的 current.condition 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在字段明确表示台风时使用；橙色仅为视觉配色，不代表橙色预警或具体台风等级。",
+    "sceneTags": [
+      "weather",
+      "typhoon",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_warning",
+    "type": "asset",
+    "src": "resources/base/media/emoji_warning.png",
+    "description": "样式：浅蓝灰色云朵前叠加亮蓝色圆形感叹号的天气预警图标，带渐变高光和透明背景，原始尺寸为 63×63，PNG 位图需保留原色；适用：天气卡片中的通用气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；图标颜色不代表任何具体预警等级。",
+    "sceneTags": [
+      "weather",
+      "warning",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
   }
 ]
