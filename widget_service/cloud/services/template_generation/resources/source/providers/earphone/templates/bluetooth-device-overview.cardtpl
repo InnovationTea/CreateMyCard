@@ -439,10 +439,10 @@ Column(
                 #if props.leftEarIcon
                 Image(props.leftEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -493,10 +493,10 @@ Column(
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -551,10 +551,10 @@ Column(
                 #if props.sourceIcon
                 Image(props.sourceIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -623,11 +623,11 @@ Column(
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
+                "fillColor": $theme('supportContentColor'),
                 "width": 20,
                 "height": 20,
                 "borderRadius": 4,
                 "objectFit": "contain",
-                "_preserveOriginalColor": true,
                 "flexShrink": 0
             }
         )
@@ -674,10 +674,10 @@ Column(
                 #if props.leftEarIcon
                 Image(props.leftEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -728,10 +728,10 @@ Column(
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -786,10 +786,10 @@ Column(
                 #if props.sourceIcon
                 Image(props.sourceIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -1815,11 +1815,11 @@ Column(
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
+                "fillColor": $theme('supportContentColor'),
                 "width": 20,
                 "height": 20,
                 "borderRadius": 4,
                 "objectFit": "contain",
-                "_preserveOriginalColor": true,
                 "flexShrink": 0
             }
         )
@@ -1865,10 +1865,10 @@ Column(
                 #if props.leftEarIcon
                 Image(props.leftEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -1917,10 +1917,10 @@ Column(
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -2209,10 +2209,10 @@ Column(
                 #if props.leftEarIcon
                 Image(props.leftEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif
@@ -2261,10 +2261,10 @@ Column(
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 18,
                         "height": 18,
-                        "objectFit": "contain",
-                        "_preserveOriginalColor": true
+                        "objectFit": "contain"
                     }
                 )
                 #endif

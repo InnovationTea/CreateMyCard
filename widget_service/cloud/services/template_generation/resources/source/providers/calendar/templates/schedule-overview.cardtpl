@@ -3412,6 +3412,7 @@ Row(
             },
             Image(props.timeIcon,
                 {
+                    "fillColor": $theme('supportContentColor'),
                     "width": 12,
                     "height": 12,
                     "objectFit": "contain"
@@ -3457,6 +3458,7 @@ Row(
             },
             Image(props.locationIcon,
                 {
+                    "fillColor": $theme('supportContentColor'),
                     "width": 12,
                     "height": 12,
                     "objectFit": "contain"
@@ -3539,7 +3541,7 @@ Column(
                 "width": 12,
                 "height": 12,
                 "objectFit": "contain",
-                "fillColor": $theme('primaryColor')
+                "fillColor": $theme('supportContentColor')
             }
         )
     ),
@@ -3629,6 +3631,7 @@ Column(
                 },
                 Image(props.timeIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 12,
                         "height": 12,
                         "objectFit": "contain"
@@ -3674,6 +3677,7 @@ Column(
                 },
                 Image(props.locationIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 12,
                         "height": 12,
                         "objectFit": "contain"
