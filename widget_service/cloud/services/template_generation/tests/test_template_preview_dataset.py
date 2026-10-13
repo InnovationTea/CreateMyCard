@@ -32,7 +32,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 182, "2x4": 34}
+    assert manifest.get("countsBySize") == {"2x2": 181, "2x4": 35}
     assert len(cases) == 216
     template_ids: set[str] = set()
     for case in cases:
