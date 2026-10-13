@@ -33,7 +33,7 @@
       "asset.icon_weather_thermometer",
       "asset.battery_leaf_fill",
       "asset.heat_generation",
-      "asset.icon_phone"
+      "asset.phone_fill"
     ]
   },
   "deviceInfo": {
@@ -98,6 +98,6 @@
     "asset.icon_weather_thermometer",
     "asset.battery_leaf_fill",
     "asset.heat_generation",
-    "asset.icon_phone"
+    "asset.phone_fill"
   ]
 }

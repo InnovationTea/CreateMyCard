@@ -40,7 +40,7 @@
     "description": "手机和耳机充电",
     "candidateAssetIds": [
       "asset.bolt_fill",
-      "asset.icon_phone",
+      "asset.phone_fill",
       "asset.earphone_case_16644"
     ]
   },
@@ -113,7 +113,7 @@
   "description": "手机和耳机充电",
   "candidateAssetIds": [
     "asset.bolt_fill",
-    "asset.icon_phone",
+    "asset.phone_fill",
     "asset.earphone_case_16644"
   ]
 }
