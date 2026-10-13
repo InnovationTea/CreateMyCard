@@ -107,6 +107,7 @@ _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
     "Progress": frozenset({"value", "total"}),
+    # 模板和高阶组件展开后的基础按钮。
     "Button": frozenset({"label", "enabled"}),
     "ActionUnit": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
@@ -571,9 +572,13 @@ class DataRow:
 CompactRow = ComponentRow | DataRow
 
 
-def parse_compact_dsl_rows(compact_dsl: str) -> tuple[CompactRow, ...]:
+def parse_compact_dsl_rows(
+    compact_dsl: str, *, skip_compact_dsl_validation: bool = False,
+) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
-    return tuple(_parse_compact_rows(compact_dsl))
+    return tuple(_parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    ))
 
 
 def build_compact_data_model(data_rows: list[DataRow]) -> dict[str, Any]:
@@ -600,14 +605,94 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
+def repair_compact_dsl_safe_structure(
+    compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
+) -> str:
+    """Apply only deterministic tree and formal split-panel repairs."""
+    changed = False
+    try:
+        rows = _parse_compact_rows(
+            compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+        )
+    except CompactDslConversionError as exc:
+        if "Unreachable component(s):" not in str(exc):
+            raise
+        rows = _parse_compact_rows(
+            compact_dsl, drop_unreachable=True,
+            skip_compact_dsl_validation=skip_compact_dsl_validation,
+        )
+        changed = True
+
+    components, _data_rows = _split_component_rows(rows)
+    components_by_id = {item.component_id: item for item in components}
+    root = components_by_id.get("root")
+    if size == "2x4" and _is_formal_split_panel_root(root, components_by_id):
+        repaired_rows: list[CompactRow] = []
+        panel_ids = set(root.children) if root is not None else set()
+        for row in rows:
+            if not isinstance(row, ComponentRow) or row.component_id not in panel_ids:
+                repaired_rows.append(row)
+                continue
+            if "padding" in row.props:
+                repaired_rows.append(row)
+                continue
+            props = copy.deepcopy(row.props)
+            props["padding"] = 8
+            repaired_rows.append(
+                ComponentRow(row.component_id, row.component_type, props, row.children)
+            )
+            changed = True
+        rows = repaired_rows
+
+    if not changed:
+        return compact_dsl
+    serialized_rows: list[list[Any]] = []
+    for row in rows:
+        if isinstance(row, DataRow):
+            serialized_rows.append([row.path, copy.deepcopy(row.value)])
+        else:
+            serialized_rows.append(_component_to_tuple(row))
+    return _serialize_rows(serialized_rows)
+
+
+def _is_formal_split_panel_root(
+    root: ComponentRow | None,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    if root is None or root.component_type != "Row" or len(root.children) != 2:
+        return False
+    if root.props.get("padding") != 12 or root.props.get("itemMargin") != 12:
+        return False
+    for child_id in root.children:
+        panel = components_by_id.get(child_id)
+        if panel is None or panel.component_type != "Column":
+            return False
+        props = panel.props
+        padding = props.get("padding")
+        if padding is not None and padding != 8:
+            return False
+        if props.get("width") != "matchParent" or props.get("height") != "matchParent":
+            return False
+        if props.get("layoutWeight") != 1:
+            return False
+        if props.get("borderRadius") != 16 or props.get("clip") is not True:
+            return False
+        if props.get("backgroundColor") != "#99FFFFFF":
+            return False
+    return True
+
+
 def repair_compact_dsl_binding_paths(
     compact_dsl: str,
     *,
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
+    skip_compact_dsl_validation: bool = False,
 ) -> str:
     """Repair unique data roots or safely inline unbacked local values."""
-    rows = _parse_compact_rows(compact_dsl)
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
     components, data_rows = _split_component_rows(rows)
     event_replacements = _event_handler_replacements(components, task_spec)
     schema = task_spec.get("dataModelSchema")
@@ -707,10 +792,13 @@ def convert_compact_dsl_to_a2ui(
     protocol_profile: dict[str, Any] | None = None,
     theme: ThemeMode = "light",
     surface_id: str = "surface_card",
+    skip_compact_dsl_validation: bool = False,
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
     profile = protocol_profile or {"version": "v0.9"}
-    rows = _parse_compact_rows(compact_dsl)
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
     components, data_rows = _split_component_rows(rows)
     validate_card_header_layout(components, size=size)
     validate_timeline_unit_scope(components)
@@ -1823,7 +1911,12 @@ def _next_non_whitespace_is_closer(text: str, start: int) -> bool:
     return False
 
 
-def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
+def _parse_compact_rows(
+    compact_dsl: str,
+    *,
+    drop_unreachable: bool = False,
+    skip_compact_dsl_validation: bool = False,
+) -> list[CompactRow]:
     body = _repair_compact_json_rows(compact_dsl)
     rows: list[CompactRow] = []
 
@@ -1832,14 +1925,20 @@ def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
         if not line:
             continue
         value = _parse_json_line(line, line_number)
-        rows.append(_parse_row(value, line_number))
+        rows.append(_parse_row(
+            value, line_number, skip_compact_dsl_validation=skip_compact_dsl_validation,
+        ))
 
     if not rows:
         raise CompactDslConversionError("Compact DSL output is empty.")
-    return _canonicalize_component_order(rows)
+    return _canonicalize_component_order(rows, drop_unreachable=drop_unreachable)
 
 
-def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
+def _canonicalize_component_order(
+    rows: list[CompactRow],
+    *,
+    drop_unreachable: bool = False,
+) -> list[CompactRow]:
     components_by_id: dict[str, ComponentRow] = {}
     data_rows: list[DataRow] = []
     duplicate_ids: set[str] = set()
@@ -1874,6 +1973,8 @@ def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
         return rows
     unreachable_ids = sorted(set(components_by_id) - visited)
     if unreachable_ids:
+        if drop_unreachable:
+            return [*ordered_components, *data_rows]
         unreachable_text = ", ".join(unreachable_ids)
         raise CompactDslConversionError(
             "Component rows must form one tree rooted at root. "
@@ -1965,7 +2066,10 @@ def _repair_unbalanced_json_brackets(text: str) -> str:
     return "".join(output)
 
 
-def _parse_row(value: list[Any], line_number: int) -> CompactRow:
+def _parse_row(
+    value: list[Any], line_number: int, *,
+    skip_compact_dsl_validation: bool = False,
+) -> CompactRow:
     if _looks_like_data_row(value):
         path = value[0]
         _decode_json_pointer(path)
@@ -1975,7 +2079,9 @@ def _parse_row(value: list[Any], line_number: int) -> CompactRow:
         path = props.get("path", "/")
         _decode_json_pointer(path)
         return DataRow(path=path, value=copy.deepcopy(props["value"]))
-    return _parse_component_row(value, line_number)
+    return _parse_component_row(
+        value, line_number, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
 
 
 def _looks_like_data_row(value: list[Any]) -> bool:
@@ -1993,7 +2099,10 @@ def _looks_like_data_def_row(value: list[Any]) -> bool:
     return isinstance(path, str) and "value" in value[2]
 
 
-def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
+def _parse_component_row(
+    value: list[Any], line_number: int, *,
+    skip_compact_dsl_validation: bool = False,
+) -> ComponentRow:
     value = _repair_legacy_component_row(value)
     if len(value) not in {3, 4}:
         raise CompactDslConversionError(
@@ -2010,6 +2119,7 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         component_type,
         props,
         line_number,
+        skip_compact_dsl_validation=skip_compact_dsl_validation,
     )
     children = _parse_children(value, component_id, component_type)
     return ComponentRow(
@@ -2257,6 +2367,8 @@ def _parse_component_header(
     component_type: Any,
     props: Any,
     line_number: int,
+    *,
+    skip_compact_dsl_validation: bool = False,
 ) -> tuple[str, str, dict[str, Any]]:
     if not isinstance(component_id, str) or not component_id:
         raise CompactDslConversionError(

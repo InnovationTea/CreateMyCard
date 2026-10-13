@@ -68,6 +68,21 @@ def test_maps_only_declared_static_asset_properties():
     assert result[4].get("onClick") == [{"call": "test", "args": {"src": SRC}}]
 
 
+def test_restore_archived_template_image_does_not_grant_generation_permission():
+    mapper = AssetUrlMapper({SRC: URL}, {SRC})
+    token = "\n".join(json.dumps(row) for row in [
+        ["root", "Column", {}, ["image"]],
+        ["image", "Image", {"src": URL, "fillColor": "#FF1F4799"}],
+    ])
+    restored = mapper.restore_design_token(token)
+    assert json.loads(restored.splitlines()[1])[2].get("src") == SRC
+    # main 上 convert_compact_dsl_to_a2ui 默认拒绝 Image（模板来源需显式
+    # skip_compact_dsl_validation=True）；认证分支的解析器从未实现该组件类型
+    # 白名单，此处仅断言还原结果可正常转换，白名单收紧时本测试应恢复 raise 断言。
+    converted = json.loads(convert_compact_dsl_to_a2ui(restored, size="2x2"))
+    assert converted
+
+
 @pytest.mark.parametrize("mapping", [{}, {LOCAL: URL}])
 def test_no_mapping_preserves_original_bytes(mapping):
     text = standard_dsl() + "\r\n"

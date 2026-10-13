@@ -3203,6 +3203,17 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewNapFull@1", "sourceIcon"),
         ("SleepOverviewNapHero@1", "sourceIcon"),
         ("WorkoutOverviewSupport@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsPhoneWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsDynamicWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "sourceIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewCompleteWideFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewCompletePhoneWideFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewCompletePhoneWideFull@1", "rightEarIcon"),
     }
     expected_themed_assets = {
         (template_id, prop): "supportContentColor"
@@ -3212,6 +3223,11 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
     expected_themed_assets[("WorkoutOverviewTypeDurationCompact@1", "sourceIcon")] = (
         "primaryColor"
     )
+    # 本次补齐的运动图标统一采用辅助内容色。
+    for template_id in (
+        "WorkoutOverviewCompact@1", "WorkoutOverviewHero@1", "WorkoutOverviewTrainingRecordHero@1",
+    ):
+        expected_themed_assets[(template_id, "sourceIcon")] = "supportContentColor"
     # 耳机三电量/成对 Full 深色画布固定白色前景：图标与同级兜底文字同为 #99FFFFFF。
     expected_white_artwork_assets = {
         ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
@@ -3221,14 +3237,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
     }
-    expected_inherited_assets = {
-        ("WorkoutOverviewCompact@1", "sourceIcon"),
-        ("WorkoutOverviewHero@1", "sourceIcon"),
-        ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
-    }
     themed_assets: set[tuple[str, str]] = set()
     white_artwork_assets: set[tuple[str, str]] = set()
-    inherited_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
         asset_props = original_color_props.get(definition.business_id or "")
@@ -3258,33 +3268,18 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
                 white_artwork_assets.add(asset_key)
                 continue
             assert "fillColor" not in options.properties
-            if asset_key in expected_inherited_assets:
-                assert "_preserveOriginalColor" not in options.properties
-                icon = Nested2Node(
-                    "Image", ("resources/workout.svg", _template_node_options(image)), (),
-                )
-                contract = HybridBodyContract.model_construct(
-                    theme_profile_id="race-sunrise-action"
-                )
-                styled = _apply_theme_content_color(icon, contract, registry)
-                styled_options = styled.values[-1]
-                assert isinstance(styled_options, dict)
-                assert styled_options.get("fillColor") == "#FF99521F"
-                inherited_assets.add(asset_key)
-                continue
             preserve_original = options.properties.get("_preserveOriginalColor")
             assert preserve_original is not None, asset_key
             assert preserve_original.kind == "literal"
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 12
+    assert not preserved_assets
     assert themed_assets == set(expected_themed_assets)
     assert white_artwork_assets == expected_white_artwork_assets
-    assert inherited_assets == expected_inherited_assets
 
 
-def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
+def test_calendar_monochrome_source_icons_use_the_theme_support_content_color() -> None:
     registry = get_cardplan_registry()
     themed_source_icons: list[str] = []
 
@@ -3300,7 +3295,7 @@ def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
             assert options.kind == "object"
             fill_color = options.properties["fillColor"]
             assert fill_color.kind == "theme"
-            assert fill_color.name == "primaryColor"
+            assert fill_color.name == "supportContentColor"
             assert "_preserveOriginalColor" not in options.properties
             themed_source_icons.append(template_id)
 
@@ -3430,6 +3425,8 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "BatteryOverviewCompact@1",
         "default",
     ).root
+    # 认证分支的 BatteryOverviewCompact 仍为 height 36 / center（main 侧改为
+    # matchParent / start 的模板提交不在 PR #509 内），期望随本分支模板保持。
     assert _template_node_options(battery_peer)["justifyContent"] == "center"
     assert len(_template_nodes(battery_peer, "Image")) == 1
     compact_content_row = battery_peer.children[0]
@@ -8419,9 +8416,11 @@ async def test_template_exception_obeys_route_failure_policy(
     model_generate_calls = 0
     template_processors: list[DslProcessorKind] = []
     callback_sizes: list[str] = []
+    source_permissions: list[bool] = []
 
     class ModelClient:
         model_failure_retry_count = 0
+        use_mock = True
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls
@@ -8438,6 +8437,7 @@ async def test_template_exception_obeys_route_failure_policy(
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             generated_sources.append(source_dsl)
+            source_permissions.append(_context.skip_compact_dsl_validation)
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl="valid-a2ui",
@@ -8511,6 +8511,7 @@ async def test_template_exception_obeys_route_failure_policy(
         assert generated_sources == ["generic-source"]
     assert template_processors == [DslProcessorKind.DESIGN_COMPACT]
     assert callback_sizes == ["2x2"]
+    assert source_permissions == ([] if template_failure_is_terminal else [False])
 
 
 @pytest.mark.asyncio
@@ -8525,6 +8526,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     model_generate_calls = 0
     model_repair_calls = 0
     saved_design_tokens: list[str | None] = []
+    source_permissions: list[bool] = []
 
     class ModelClient:
         model_failure_retry_count = 0
@@ -8546,6 +8548,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     class Processor:
         def process(self, source_dsl: str, _context: Any) -> DslProcessingResult:
             processed_sources.append(source_dsl)
+            source_permissions.append(_context.skip_compact_dsl_validation)
             if source_dsl == "template-invalid-source":
                 return DslProcessingResult(
                     source_dsl=source_dsl,
@@ -8628,6 +8631,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
     ]
     assert processor_kinds == [DslProcessorKind.DESIGN_COMPACT]
     assert saved_design_tokens == ["generic-repaired-source"]
+    assert source_permissions == [True, False]
 
 
 @pytest.mark.asyncio
@@ -8780,3 +8784,27 @@ async def test_template_source_generator_uses_task_spec_app_version_gate(monkeyp
         == "template-source"
     )
     assert observed_flags == [False, True]
+
+
+@pytest.mark.parametrize("template_id", [
+    "BatteryOverviewTemperatureFull@1",
+    "ScheduleOverviewMeetingWideFull@1", "ScheduleOverviewMeetingSourceWideFull@1",
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
+    "BluetoothDeviceOverviewEarbudsDynamicWideFull@1",
+    "BluetoothDeviceOverviewCompleteWideFull@1",
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1",
+    "ActivityOverviewHero@1", "ActivityOverviewWideHero@1",
+    "ActivityOverviewExerciseWideHero@1", "ActivityOverviewFull@1", "ActivityOverviewWideFull@1",
+    "WorkoutOverviewCompact@1", "WorkoutOverviewHero@1", "WorkoutOverviewTrainingRecordHero@1",
+])
+def test_repaired_svg_icons_use_support_content_color(template_id: str) -> None:
+    root = get_cardplan_registry().require_variant(template_id, "default").root
+    icons = _template_nodes(root, "Image")
+    assert icons
+    for icon in icons:
+        options = icon.values[-1]
+        assert options.kind == "object"
+        fill_color = options.properties.get("fillColor")
+        assert fill_color is not None, template_id
+        assert fill_color.kind == "theme", template_id
+        assert fill_color.name == "supportContentColor", template_id

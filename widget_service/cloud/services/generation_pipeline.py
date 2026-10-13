@@ -133,6 +133,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 task_spec=context.task_spec,
                 card_spec=context.card_spec,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
         except CompactDslConversionError as exc:
             report_ops_metrics(body={"taskFailValidation": 1})
@@ -148,9 +149,7 @@ class DesignCompactProcessor:
             except CompactDslValidationError as exc:
                 return self._validation_failure(source_dsl, exc.errors)
         else:
-            # Template output intentionally bypasses the general Compact DSL
-            # semantic rules. The converter keeps structural checks, and the
-            # generated artifact is still checked by ArtifactValidator.
+            # 跳过 Compact 专项校验，后续转换与 artifact 校验按原流程执行。
             validation_result = None
 
         try:
@@ -163,6 +162,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,
