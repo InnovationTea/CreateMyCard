@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 245
+    assert len(registry.provider_template_ids) == 246
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -490,9 +490,9 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
             "WeatherOverviewDailyDateFull@1",
             ("/daily/1/condition",),
             ("/daily/1/date", "/daily/1/weekday"),
-            ("/location/districtName",),
+            ("/location/districtName", "/daily/1/temperatureRangeText"),
             ("date", "weekday", "condition"),
-            ("district",),
+            ("district", "temperatureRange"),
         ),
         (
             "WeatherOverviewDailyRainFull@1",
@@ -541,6 +541,70 @@ def test_weather_daily_templates_declare_exact_item_contracts(
     assert definition.optional_data == optional_data
     assert variant.required_bindings == required_bindings
     assert variant.optional_bindings == optional_bindings
+
+
+def test_weather_daily_item_word_labels_match_bound_daily_index() -> None:
+    """ViewWeather daily 从今天开始按日期升序：daily[0]=今天、daily[1]=明天。
+
+    可见文案中的日期词必须与模板实际绑定的 daily 下标一致，
+    防止今日数据被标注成明日（如 WeatherOverviewNextDayHealthFull）。
+    """
+    day_word_to_index = {"今天": 0, "今日": 0, "明天": 1, "明日": 1, "后天": 2}
+
+    def iter_nodes(node):
+        yield node
+        for child in node.children:
+            yield from iter_nodes(child)
+
+    def value_strings(value):
+        if isinstance(value.value, str):
+            yield value.value
+        for item in value.items:
+            yield from value_strings(item)
+        for prop in value.properties.values():
+            yield from value_strings(prop)
+
+    def visible_text(node) -> str:
+        return " ".join(s for value in node.values for s in value_strings(value))
+
+    registry = get_cardplan_registry()
+    for template_id in sorted(registry.provider_template_ids):
+        if not template_id.startswith("WeatherOverview"):
+            continue
+        definition = registry.require_template(template_id)
+        paths = (
+            *definition.primary_data,
+            *definition.secondary_data,
+            *definition.optional_data,
+        )
+        daily_indices = {
+            int(match.group(1))
+            for path in paths
+            if (match := re.match(r"^/daily/(\d+)/", path))
+        }
+        texts = tuple(
+            visible_text(node)
+            for node in iter_nodes(definition.variants[0].root)
+            if node.component == "Text"
+        )
+
+        if 0 in daily_indices:
+            for text in texts:
+                assert "明日" not in text, (
+                    f"{template_id} binds daily[0] (today) but label says 明日: {text!r}"
+                )
+        elif 1 in daily_indices:
+            for text in texts:
+                assert "今日" not in text, (
+                    f"{template_id} binds daily[1] (tomorrow) but label says 今日: {text!r}"
+                )
+        for text in texts:
+            for word, index in day_word_to_index.items():
+                if word in text:
+                    assert index in daily_indices, (
+                        f"{template_id} label {word!r} requires daily[{index}], "
+                        f"bound daily indices {sorted(daily_indices)}: {text!r}"
+                    )
 
 
 def test_weather_daily_item_binding_uses_the_exact_array_index() -> None:
@@ -695,21 +759,20 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
         "/current/windDirection",
         "/current/windLevel",
     )
-    assert definition.secondary_data == (
-        "/location/prefectureName",
-    )
+    assert definition.secondary_data == ()
     assert definition.optional_data == (
         "/updatedAt",
         "/current/temperatureText",
         "/current/condition",
         "/location/cityCode",
+        "/location/prefectureName",
     )
     assert variant.required_bindings == (
-        "city",
         "windDirection",
         "windLevel",
     )
     assert variant.optional_bindings == (
+        "city",
         "updatedAt",
         "temperatureText",
         "condition",
@@ -7425,7 +7488,6 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     weather_full_candidates = [
         "WeatherOverviewFull@1",
         "WeatherOverviewAlertInfoFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
