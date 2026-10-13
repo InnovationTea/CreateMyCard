@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 # ruff: noqa: E402
 import asyncio
+import copy
 import importlib
 import json
 import sys
@@ -163,9 +164,9 @@ async def test_create_then_visual_edit_inherits_generation_plan(editable_artifac
     )
     assert source.artifact.schemaVersion == "widget-artifact-v2"
     assert source.artifact.meta.generationMode == "create"
-    assert source.artifact.generationPlan.candidateDataBindings[
-        0
-    ].candidateOutputFields == ["/current/condition"]
+    assert source.artifact.generationPlan.candidateDataBindings[0].candidateOutputFields == [
+        "/current/condition"
+    ]
 
     edited = await service.generate_widget_card_a2ui_form(
         GenerateWidgetCardRequest(
@@ -186,12 +187,13 @@ async def test_create_then_visual_edit_inherits_generation_plan(editable_artifac
     assert updated.artifact.meta.generationMode == "edit"
     assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
     assert updated.artifact.cardSpec["title"] == "天气"
-    assert updated.artifact.generationPlan.candidateDataBindings[
-        0
-    ].candidateOutputFields == ["/current/condition"]
-    assert updated.artifact.generationPlan.candidateEventCandidates[0][
-        "capabilityId"
-    ] == "event.open.weather"
+    assert updated.artifact.generationPlan.candidateDataBindings[0].candidateOutputFields == [
+        "/current/condition"
+    ]
+    assert (
+        updated.artifact.generationPlan.candidateEventCandidates[0]["capabilityId"]
+        == "event.open.weather"
+    )
     assert updated.artifact.generationPlan.candidateAssetIds == ["asset.drop_1"]
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
@@ -311,7 +313,7 @@ async def test_design_edit_repair_saves_final_design_token(
     prompts: list[list[dict[str, str]]] = []
 
     def generate_edit(_client, prompt, _profile=None, **_kwargs):
-        prompts.append(prompt)
+        prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
@@ -335,10 +337,11 @@ async def test_design_edit_repair_saves_final_design_token(
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert len(prompts) == 2
     assert updated.design_token.replace("\r", "") == source.design_token.replace("\r", "")
-    repair_payload = json.loads(prompts[1][1]["content"])
-    original_user = json.loads(repair_payload["originalUserContent"])
-    assert original_user["previousDesignToken"]["content"] == source.design_token
-    assert repair_payload["invalidSourceDsl"] == "invalid-design-token"
+    original_input = json.loads(prompts[1][1]["content"])
+    assert original_input["previousDesignToken"]["content"] == source.design_token
+    assert {"role": "assistant", "content": "invalid-design-token"} in prompts[1]
+    repair_payload = json.loads(prompts[1][-1]["content"])
+    assert "invalidSourceDsl" not in repair_payload
     assert repair_payload["qualityErrors"][0]["stage"] == "validation"
 
 
@@ -349,9 +352,7 @@ async def test_source_artifact_remote_mode_uses_shared_download_utility(
 ):
     """验证关闭 mock 后由公共 URL 下载方法读取来源 artifact。"""
     settings = get_settings()
-    created = await WidgetGenerationService().generate_widget_card_a2ui_form(
-        _base_request()
-    )
+    created = await WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
     source_file = editable_artifact_storage / created.artifactUrl.rsplit("/", 1)[-1]
     source_content = source_file.read_bytes()
     requested: dict = {}
@@ -412,9 +413,7 @@ async def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage
 async def test_source_artifact_load_does_not_validate_url_storage(
     editable_artifact_storage,
 ):
-    created = await WidgetGenerationService().generate_widget_card_a2ui_form(
-        _base_request()
-    )
+    created = await WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
     source_name = created.artifactUrl.rsplit("/", 1)[-1]
     loaded = await asyncio.to_thread(
         SourceArtifactRepository().load,
@@ -433,7 +432,7 @@ def test_missing_source_artifact_is_structured(editable_artifact_storage):
 
 
 def test_v1_artifact_is_reported_as_unsupported():
-    content = "```schema\n{\"schemaVersion\":\"widget-artifact-v1\"}\n```\n"
+    content = '```schema\n{"schemaVersion":"widget-artifact-v1"}\n```\n'
 
     with pytest.raises(SourceArtifactError) as exc_info:
         SourceArtifactRepository()._parse(content)

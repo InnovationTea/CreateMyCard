@@ -79,6 +79,70 @@ def test_allows_registered_nested_path_bindings(
     assert errors == []
 
 
+def test_emphasis_text_secondary_accepts_ordered_path_bindings() -> None:
+    secondary_text = [
+        {"path": "/data/weather/location/prefectureName"},
+        {"path": "/data/weather/location/districtName"},
+    ]
+    errors = collect_compact_component_binding_errors(
+        "weather",
+        "EmphasisText",
+        {"secondaryText": secondary_text},
+    )
+
+    assert errors == []
+
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["weather"]],
+            [
+                "weather",
+                "EmphasisText",
+                {
+                    "mainText": {"path": "/data/weather/current/condition"},
+                    "secondaryText": secondary_text,
+                },
+            ],
+            ["/data/weather/current/condition", "多云"],
+            ["/data/weather/location/prefectureName", "上海市"],
+            ["/data/weather/location/districtName", "青浦区"],
+        ]
+    )
+    converted = convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
+    update = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {item["id"]: item for item in update["components"]}
+
+    assert components["weather_secondary"]["content"] == (
+        "{{ ${/data/weather/location/prefectureName} + ' | ' + "
+        "${/data/weather/location/districtName} }}"
+    )
+
+
+@pytest.mark.parametrize(
+    "secondary_text",
+    [
+        [{"path": "/data/only"}],
+        [{"path": "/data/left"}, "静态值"],
+    ],
+)
+def test_emphasis_text_secondary_rejects_invalid_binding_arrays(
+    secondary_text: list[object],
+) -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["status"]],
+            [
+                "status",
+                "EmphasisText",
+                {"mainText": "状态", "secondaryText": secondary_text},
+            ],
+        ]
+    )
+
+    with pytest.raises(CompactDslConversionError, match="EmphasisText.secondaryText"):
+        convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
+
+
 @pytest.mark.parametrize(
     ("component_type", "props", "prop_path"),
     [

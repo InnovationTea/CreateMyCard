@@ -136,7 +136,7 @@ def test_structured_height_feedback_keeps_repair_scope_escalation(
         dsl_format="design-compact-dsl",
         repair_strategy=strategy,
     )
-    content = prompt[1].get("content")
+    content = prompt[-1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
     assert payload.get("repairStrategy") == strategy

@@ -190,7 +190,7 @@ class A2UIProtocolRegistry:
         *,
         size: str | None = None,
     ) -> str:
-        """读取 Compact 两阶段生成的 Info Plan 系统提示词。"""
+        """读取追加到当前创建上下文的 Compact Info Plan 增量合同。"""
         return cls._read_design_text(
             design_profile_id,
             profiles_root,

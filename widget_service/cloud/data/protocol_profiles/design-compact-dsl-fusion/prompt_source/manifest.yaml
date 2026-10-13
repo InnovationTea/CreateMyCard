@@ -146,7 +146,6 @@
       "core.md#binding-events",
       "core.md#typography",
       "core.md#palette",
-      "core.md#prohibitions-checks",
       "information/common.md#contract",
       "information/2x2.md#capacity",
       "information/2x4.md#capacity",
@@ -195,6 +194,7 @@
       "fewshots/2x2.md#example-v06",
       "fewshots/2x2.md#example-v02",
       "fewshots/2x2.md#example-v08",
+      "fewshots/2x2.md#example-v14",
       "fewshots/2x2.md#example-v03",
       "fewshots/2x2.md#example-v07"
     ],
@@ -212,41 +212,6 @@
       "fewshots/2x4.md#example-v38"
     ],
     "plan": [
-      "core.md#identity",
-      "core.md#goal",
-      "core.md#taskspec",
-      "core.md#input-candidates",
-      "core.md#output",
-      "core.md#jsonl",
-      "core.md#binding-events",
-      "core.md#typography",
-      "core.md#palette",
-      "core.md#prohibitions-checks",
-      "information/common.md#contract",
-      "information/2x2.md#capacity",
-      "information/2x4.md#capacity",
-      "components/common.md#selection",
-      "components/common.md#catalog",
-      "components/2x2.md#selection",
-      "components/2x2.md#icon-gate",
-      "components/2x2.md#size-components",
-      "components/2x4.md#selection",
-      "components/2x4.md#wide-components",
-      "components/2x4.md#backboard-alpha",
-      "combinations/common.md#selection",
-      "combinations/common.md#contract",
-      "combinations/2x2.md#mapping",
-      "combinations/2x4.md#mapping",
-      "composition.md#precedence",
-      "composition.md#single-call-decisions",
-      "layouts/common.md#height-gate",
-      "layouts/common.md#canvas-heading",
-      "layouts/common.md#canvas-budget",
-      "layouts/common.md#surface-budget",
-      "layouts/common.md#routing",
-      "layouts/common.md#layout-check",
-      "layouts/2x2.md#s-layouts",
-      "layouts/2x4.md#w-layouts",
       "plan.md#contract"
     ]
   },
@@ -296,6 +261,10 @@
       {
         "id": "2x2-V08",
         "source": "fewshots/2x2.md#example-v08"
+      },
+      {
+        "id": "2x2-V14",
+        "source": "fewshots/2x2.md#example-v14"
       },
       {
         "id": "2x2-V03",

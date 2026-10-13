@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from services.compact_component_semantics import CORE_INFORMATION_COMPONENT_TYPES
 from services.compact_composition_context import (
     composition_group_minimum_height,
     composition_implementation_conflicts,
@@ -151,6 +152,7 @@ def build_compact_plan_tool(
     size = task_spec.get("size")
     data_paths = list(compact_plan_data_paths(task_spec))
     action_ids = list(compact_plan_action_ids(task_spec))
+    asset_ids = list(compact_plan_asset_ids(task_spec))
     target_variants: list[dict[str, Any]] = []
     if data_paths:
         target_variants.append({"required": ["dataId"]})
@@ -235,6 +237,54 @@ def build_compact_plan_tool(
     }
     required = ["info_required"]
     description = "提交卡片信息与操作的优先级；组件和布局只提供软候选。"
+    if asset_ids:
+        assignment_properties = {
+            "assetId": {
+                "type": ["string", "null"],
+                "enum": [*asset_ids, None],
+                "description": "选择候选素材 ID；没有语义匹配素材时为 null。",
+            },
+            "reason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "assetId 为 null 时说明没有选择图标的具体原因。",
+            },
+        }
+        plan_properties["assetAssignments"] = {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "actionId": {
+                                "type": "string",
+                                "enum": action_ids,
+                            },
+                            **assignment_properties,
+                        },
+                        "required": ["actionId", "assetId"],
+                        "additionalProperties": False,
+                    },
+                    "maxItems": len(action_ids),
+                    "description": "按 info_required 中的动作顺序逐项决定按钮图标。",
+                },
+                "title": {
+                    "type": "object",
+                    "properties": assignment_properties,
+                    "required": ["assetId"],
+                    "additionalProperties": False,
+                    "description": (
+                        "先完成动作图标分配，再从未使用素材中决定主 SingleLineTitle 图标。"
+                    ),
+                },
+            },
+            "required": ["actions", "title"],
+            "additionalProperties": False,
+        }
+        required.append("assetAssignments")
+        description += "存在素材候选时，同时提交按钮优先、标题随后且不复用的素材分配。"
     if include_composition:
         plan_properties["composition"] = _composition_tool_schema(size)
         required.append("composition")
@@ -273,7 +323,6 @@ def _composition_tool_schema(size: Any) -> dict[str, Any]:
             "referenceHeight": {**extent, "description": "完整组件按实际条数/行数合计占高。"},
             "variant": {"type": "string"},
             "density": {"type": "string", "enum": ["compact"]},
-            "role": {"type": "string", "enum": ["body", "supporting", "metadata"]},
             "columns": {"type": "integer", "enum": [1, 2]},
             "lines": {"type": "array", "items": {"type": "integer", "enum": [1, 2]},
                       "description": "依每个实际文本 item 顺序记录行数，不一律设两行。"},
@@ -403,6 +452,89 @@ def _normalize_composition(
     return {"layout": value.get("layout"), "variant": variant, "regions": normalized}, notes
 
 
+def _anchor_plan_errors(
+    facts: list[dict[str, Any]],
+    layout_hints: list[str],
+    composition: dict[str, Any] | None,
+) -> list[str]:
+    """阻止没有独立左下支撑事实的 Anchor 进入生成阶段。"""
+    composition_is_anchor = (
+        isinstance(composition, dict) and composition.get("layout") == "S-title-anchor"
+    )
+    if not composition_is_anchor and "S-title-anchor" not in layout_hints:
+        return []
+    if not composition_is_anchor:
+        body_facts = [
+            fact
+            for fact in facts
+            if "actionId" not in fact
+            and fact.get("componentHints") != ["SingleLineTitle"]
+        ]
+        if len(body_facts) >= 2:
+            return []
+        return [
+            "S-title-anchor requires one primary body fact and at least one independent "
+            "support fact; title-only context and actions do not count. Remove the Anchor "
+            "hint and choose a text-action layout when support is empty."
+        ]
+
+    support_indexes: set[int] = set()
+    other_visible_indexes: set[int] = set()
+    for region in composition.get("regions", []):
+        path = tuple(region.get("path", []))
+        indexes: set[int] = set()
+        for group in region.get("groups", []):
+            for index in group.get("factIndexes", []):
+                if not isinstance(index, int) or not 0 <= index < len(facts):
+                    continue
+                if "actionId" not in facts[index]:
+                    indexes.add(index)
+        if path[:3] == (1, 1, 0):
+            support_indexes.update(indexes)
+        elif path[:1] == (0,) or path[:2] == (1, 0):
+            other_visible_indexes.update(indexes)
+    independent_support = support_indexes - other_visible_indexes
+    if independent_support:
+        return []
+    return [
+        "S-title-anchor composition must assign at least one independent non-action fact "
+        "to support path [1, 1, 0]; a title fact, duplicated primary fact, empty group or "
+        "invented label cannot fill the left support region. Choose a text-action layout."
+    ]
+
+
+def _secondary_body_composition_errors(
+    composition: dict[str, Any] | None,
+) -> list[str]:
+    """Require every planned SecondaryBody group to support a core group in its region."""
+    if not isinstance(composition, dict):
+        return []
+    errors: list[str] = []
+    for region in composition.get("regions", []):
+        if not isinstance(region, dict):
+            continue
+        groups = region.get("groups", [])
+        if not isinstance(groups, list):
+            continue
+        components: set[str] = set()
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            component = group.get("component")
+            if isinstance(component, str):
+                components.add(component)
+        if "SecondaryBody" not in components:
+            continue
+        if components & CORE_INFORMATION_COMPONENT_TYPES:
+            continue
+        errors.append(
+            f"composition region {region.get('id')} uses SecondaryBody without a core "
+            "information component in the same region; titles, buttons, layout containers "
+            "and other SecondaryBody groups do not count."
+        )
+    return errors
+
+
 def _small_content_region(
     region: dict[str, Any], layout: dict[str, Any], variant: int,
 ) -> tuple[dict[str, Any], str | None]:
@@ -515,7 +647,7 @@ def _composition_group(
         for line in lines:
             if type(line) is not int or line not in (1, 2):
                 return None
-    for key in ("variant", "density", "role"):
+    for key in ("variant", "density"):
         if key in value and not isinstance(value.get(key), str):
             return None
         allowed = schema.get("properties", {}).get(key, {}).get("enum")
@@ -538,7 +670,7 @@ def _composition_group(
             group["implementationConflict"] = (
                 "TableText only supports two or three contiguous items, not "
                 f"{len(item_indexes)}. Keep every fact; regroup ordinary information in "
-                "SecondaryBody at its original role/font, combining short same-object "
+                "SecondaryBody at its legal single-row/multiline font, combining short same-object "
                 "attributes into full-width labelled lines when they fit. Do not copy "
                 "the invalid table or shrink text to create a smaller table."
             )
@@ -570,7 +702,10 @@ def parse_compact_plan_call(
         arguments = _parse_json_object(arguments, syntax_warnings)
     if not isinstance(arguments, dict):
         raise CompactPlanValidationError(["submit_card_plan.arguments must be an object."])
+    asset_ids = compact_plan_asset_ids(task_spec)
     allowed_arguments = {"info_required", "layoutHints"}
+    if asset_ids:
+        allowed_arguments.add("assetAssignments")
     if require_composition:
         allowed_arguments.add("composition")
     unknown_arguments = set(arguments) - allowed_arguments
@@ -584,6 +719,16 @@ def parse_compact_plan_call(
     )
     warnings[:0] = syntax_warnings
     plan: dict[str, Any] = {"info_required": facts}
+    if asset_ids:
+        if "assetAssignments" not in arguments:
+            raise CompactPlanValidationError(
+                ["assetAssignments is required when TaskSpec provides asset candidates."]
+            )
+        plan["assetAssignments"] = _normalize_asset_assignments(
+            arguments.get("assetAssignments"),
+            facts,
+            task_spec,
+        )
     layout_hints, layout_warnings = _normalize_layout_hints(
         arguments.get("layoutHints"),
         task_spec.get("size"),
@@ -615,6 +760,12 @@ def parse_compact_plan_call(
                 )
         if overflow_errors:
             raise CompactPlanValidationError(overflow_errors)
+    anchor_errors = _anchor_plan_errors(facts, layout_hints, composition)
+    if anchor_errors:
+        raise CompactPlanValidationError(anchor_errors)
+    secondary_body_errors = _secondary_body_composition_errors(composition)
+    if secondary_body_errors:
+        raise CompactPlanValidationError(secondary_body_errors)
     warnings.extend(composition_warnings)
     duration_paths = set(compound_duration_bindings(plan, task_spec))
     for fact in facts:
@@ -669,6 +820,14 @@ def compact_plan_context(
     if conflicts:
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
+    asset_instruction = ""
+    if "assetAssignments" in context_plan:
+        asset_instruction = (
+            "assetAssignments 冻结素材消费顺序与结果：先按 actionId 将分配落实到对应"
+            "动作组件，再将 title 中的非空素材落实到主 SingleLineTitle.icon；"
+            "assetId 为 null 时保持无图标。不得复用、互换或跳过已分配素材，也不得用"
+            "未分配素材覆盖明确的空分配。"
+        )
     small_conflict = False
     if conflicts:
         for layout_hint in plan.get("layoutHints", []):
@@ -707,6 +866,7 @@ def compact_plan_context(
             f"{conflict_instruction}"
             "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
             "局部修复保持待修树的合法结构，只处理明确错误。"
+            f"{asset_instruction}"
             "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
             "索引从0开始，不能把索引或压力样值写入最终 DSL。标题绑定保留指定标题职责。"
             "核对必要的对象标签、完整单位与全部动作，原字号不变，不能裁切或删信息。"
@@ -728,6 +888,7 @@ def compact_plan_context(
         "同组图形与对应读数允许共用绑定，禁止跨组无意义重复。"
         "不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
+        f"{asset_instruction}\n"
         "若有 composition，按它的 layout/variant、region.path 与顺序 groups 实现，"
         "factIndexes 引用下面去重后的 info_required，placements 指明每条事实的可见 Prop。"
         "空映射 SingleLineTitle 只是装饰标题的容量预留，不是遗漏事实；"
@@ -1113,6 +1274,129 @@ def compact_plan_action_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
         if isinstance(identifier, str) and identifier.strip():
             identifiers.append(identifier.strip())
     return tuple(dict.fromkeys(identifiers))
+
+
+def compact_plan_asset_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
+    """按 TaskSpec 顺序列出具有稳定 ID 和静态路径的素材候选。"""
+    candidates = task_spec.get("assetCandidates")
+    if not isinstance(candidates, list):
+        return ()
+    identifiers: list[str] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        identifier = candidate.get("id")
+        source = candidate.get("src")
+        if not isinstance(identifier, str) or not identifier.strip():
+            continue
+        if not isinstance(source, str) or not source.strip():
+            continue
+        identifiers.append(identifier.strip())
+    return tuple(dict.fromkeys(identifiers))
+
+
+def _normalize_asset_assignments(
+    value: Any,
+    facts: list[dict[str, Any]],
+    task_spec: dict[str, Any],
+) -> dict[str, Any]:
+    """校验按钮优先、标题随后且不复用素材的显式分配。"""
+    if not isinstance(value, dict) or set(value) != {"actions", "title"}:
+        raise CompactPlanValidationError(
+            ["assetAssignments must contain only actions and title."]
+        )
+    asset_ids = set(compact_plan_asset_ids(task_spec))
+    selected_action_ids = [
+        fact.get("actionId")
+        for fact in facts
+        if isinstance(fact.get("actionId"), str)
+    ]
+    actions = value.get("actions")
+    if not isinstance(actions, list):
+        raise CompactPlanValidationError(["assetAssignments.actions must be an array."])
+    normalized_actions: dict[str, dict[str, Any]] = {}
+    used_assets: set[str] = set()
+    errors: list[str] = []
+    for index, assignment in enumerate(actions):
+        location = f"assetAssignments.actions[{index}]"
+        if not isinstance(assignment, dict):
+            errors.append(f"{location} must be an object.")
+            continue
+        unknown_keys = set(assignment) - {"actionId", "assetId", "reason"}
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            errors.append(f"{location} contains unsupported fields: {names}.")
+            continue
+        action_id = assignment.get("actionId")
+        if action_id not in selected_action_ids:
+            errors.append(f"{location}.actionId is not selected by info_required.")
+            continue
+        if action_id in normalized_actions:
+            errors.append(f"{location}.actionId is duplicated: {action_id}.")
+            continue
+        normalized = _normalize_single_asset_assignment(
+            assignment,
+            asset_ids,
+            location=location,
+            used_assets=used_assets,
+            errors=errors,
+        )
+        normalized["actionId"] = action_id
+        normalized_actions[action_id] = normalized
+    missing_actions = [
+        action_id for action_id in selected_action_ids if action_id not in normalized_actions
+    ]
+    if missing_actions:
+        errors.append(
+            "assetAssignments.actions must decide every selected action: "
+            + ", ".join(missing_actions)
+            + "."
+        )
+    title = value.get("title")
+    if not isinstance(title, dict):
+        errors.append("assetAssignments.title must be an object.")
+        normalized_title: dict[str, Any] = {"assetId": None, "reason": "invalid"}
+    else:
+        unknown_keys = set(title) - {"assetId", "reason"}
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            errors.append(f"assetAssignments.title contains unsupported fields: {names}.")
+        normalized_title = _normalize_single_asset_assignment(
+            title,
+            asset_ids,
+            location="assetAssignments.title",
+            used_assets=used_assets,
+            errors=errors,
+        )
+    if errors:
+        raise CompactPlanValidationError(errors)
+    ordered_actions = [normalized_actions[action_id] for action_id in selected_action_ids]
+    return {"actions": ordered_actions, "title": normalized_title}
+
+
+def _normalize_single_asset_assignment(
+    value: dict[str, Any],
+    asset_ids: set[str],
+    *,
+    location: str,
+    used_assets: set[str],
+    errors: list[str],
+) -> dict[str, Any]:
+    """标准化单个按钮或标题的素材决定。"""
+    asset_id = value.get("assetId")
+    reason = value.get("reason")
+    if asset_id is None:
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append(f"{location}.reason is required when assetId is null.")
+            return {"assetId": None, "reason": "invalid"}
+        return {"assetId": None, "reason": reason.strip()}
+    if not isinstance(asset_id, str) or asset_id not in asset_ids:
+        errors.append(f"{location}.assetId is not present in TaskSpec asset candidates.")
+        return {"assetId": None, "reason": "invalid"}
+    if asset_id in used_assets:
+        errors.append(f"{location}.assetId reuses an already assigned asset: {asset_id}.")
+    used_assets.add(asset_id)
+    return {"assetId": asset_id}
 
 
 def _validate_facts(

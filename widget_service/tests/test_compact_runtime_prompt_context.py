@@ -45,11 +45,9 @@ def _compact_plan() -> dict[str, Any]:
 
 def _plan_tool_from_prompt(prompt: list[dict[str, str]]) -> dict[str, Any]:
     system = prompt[0]["content"]
-    payload = system.split("# 可用工具合同\n\n", 1)[1].split(
-        "\n\n只输出一个 JSON 工具调用包",
-        1,
-    )[0]
-    return json.loads(payload)
+    payload = system.split("# 可用工具合同\n\n", 1)[1]
+    tool, _ = json.JSONDecoder().raw_decode(payload)
+    return tool
 
 
 def test_disabled_runtime_prompt_context_omits_plan_dsl_and_recovery(

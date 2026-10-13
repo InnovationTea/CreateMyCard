@@ -767,6 +767,8 @@ class WidgetGenerationService:
         source_generated_by_jsx = False
         source_generated_by_template = False
         accepted_compact_plan: dict | None = None
+        accepted_compact_plan_warnings: tuple[str, ...] = ()
+        compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
 
@@ -774,12 +776,15 @@ class WidgetGenerationService:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
             from services.prompt_builder import PromptBuilder
 
+            nonlocal accepted_compact_plan_warnings
+            nonlocal compact_agent_messages
             nonlocal model_call_phase
             trace_phase("plan")
-            plan_system_prompt = A2UIProtocolRegistry.read_design_plan_prompt(
+            plan_contract = A2UIProtocolRegistry.read_design_plan_prompt(
                 policy.model_profile_id,
                 size=task_spec.size,
             )
+            plan_system_prompt = f"{prompt[0]['content']}\n\n{plan_contract.strip()}"
             plan_prompt_started_at = time.perf_counter()
             plan_prompt = PromptBuilder().build_compact_plan(
                 task_spec,
@@ -822,6 +827,7 @@ class WidgetGenerationService:
                             phase="plan",
                         )
                     )
+                    plan_prompt.append({"role": "assistant", "content": raw_plan})
                     trace_record(
                         "plan.model.completed",
                         stage="plan.model",
@@ -910,11 +916,14 @@ class WidgetGenerationService:
                             f"{_MODULE} compact_plan_warnings "
                             f"warnings={json_for_log(validation.warnings)}"
                         )
+                    accepted_compact_plan_warnings = tuple(validation.warnings)
+                    compact_agent_messages = plan_prompt
                     return validation.plan
             raise AssertionError("Compact Plan retry loop exited unexpectedly")
 
         async def generate_source_dsl() -> str:
             nonlocal accepted_compact_plan
+            nonlocal compact_agent_messages
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
@@ -992,13 +1001,15 @@ class WidgetGenerationService:
                     trace_phase_outcome("degraded", reason="fallback_to_model")
                 accepted_compact_plan = await generate_compact_plan()
                 trace_phase("dsl")
-                effective_generation_prompt = PromptBuilder().build_design_token(
+                if compact_agent_messages is None:
+                    raise RuntimeError("Compact Agent conversation is missing after Plan")
+                compact_agent_messages = PromptBuilder.build_compact_dsl_continuation(
+                    compact_agent_messages,
                     task_spec,
-                    design_system_prompt,
-                    policy.source_format,
-                    previous_design_token=previous_design_token,
-                    compact_plan=accepted_compact_plan,
+                    accepted_compact_plan,
+                    plan_warnings=accepted_compact_plan_warnings,
                 )
+                effective_generation_prompt = compact_agent_messages
                 trace_record(
                     "dsl.prompt.finalized",
                     stage="promptBuild",
@@ -1041,6 +1052,11 @@ class WidgetGenerationService:
                 duration_ms=self._elapsed_ms(dsl_model_started_at),
                 text_artifacts={"dsl_extracted_output": result},
             )
+            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                if compact_agent_messages is None:
+                    compact_agent_messages = copy.deepcopy(effective_generation_prompt)
+                compact_agent_messages.append({"role": "assistant", "content": result})
+                effective_generation_prompt = compact_agent_messages
             return require_generated_dsl(result)
 
         async def repair_source_dsl(
@@ -1049,6 +1065,8 @@ class WidgetGenerationService:
         ) -> str | None:
             from services.prompt_builder import PromptBuilder
 
+            nonlocal compact_agent_messages
+            nonlocal effective_generation_prompt
             nonlocal model_call_phase, quality_repair_attempt_count
             trace_phase("repair")
             quality_error_payloads = [
@@ -1096,8 +1114,14 @@ class WidgetGenerationService:
                 ),
             ):
                 repair_prompt_started_at = time.perf_counter()
+                active_prompt = (
+                    compact_agent_messages
+                    if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                    and compact_agent_messages is not None
+                    else effective_generation_prompt
+                )
                 repair_prompt = PromptBuilder().build_repair(
-                    effective_generation_prompt,
+                    active_prompt,
                     invalid_source_dsl,
                     quality_error_payloads,
                     dsl_format=policy.source_format,
@@ -1105,16 +1129,21 @@ class WidgetGenerationService:
                     compact_plan=accepted_compact_plan,
                     previous_failures=(
                         quality_repair_failure_history
-                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else None
                     ),
                     repair_history=(
                         compact_repair_context_history
-                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else None
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else None
                     ),
                     repair_strategy=repair_strategy,
-                    **({"original_display_roles": original_small_display_roles}
-                       if task_spec.size == "2x2"
-                       and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT else {}),
+                    **(
+                        {"original_display_roles": original_small_display_roles}
+                        if task_spec.size == "2x2"
+                        and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else {}
+                    ),
                 )
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
@@ -1124,9 +1153,7 @@ class WidgetGenerationService:
                         "qualityErrors": copy.deepcopy(quality_error_payloads),
                     }
                     if repair_strategy is not None:
-                        history_entry["selectedRepairStrategy"] = copy.deepcopy(
-                            repair_strategy
-                        )
+                        history_entry["selectedRepairStrategy"] = copy.deepcopy(repair_strategy)
                     compact_repair_context_history.append(history_entry)
                 trace_step(
                     "repair.prompt.built",
@@ -1147,7 +1174,8 @@ class WidgetGenerationService:
                         ),
                         **(
                             {"repair_strategy": repair_strategy}
-                            if repair_strategy is not None else {}
+                            if repair_strategy is not None
+                            else {}
                         ),
                     },
                     text_artifacts={"repair_invalid_source_dsl": invalid_source_dsl},
@@ -1178,6 +1206,10 @@ class WidgetGenerationService:
                             model_protocol_profile,
                         )
                     )
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                    compact_agent_messages = repair_prompt
+                    compact_agent_messages.append({"role": "assistant", "content": result})
+                    effective_generation_prompt = compact_agent_messages
                 trace_record(
                     "repair.model.completed",
                     stage="repair.model",
@@ -1193,7 +1225,9 @@ class WidgetGenerationService:
                 from services.compact_composition_context import retain_original_small_display_roles
 
                 retain_original_small_display_roles(
-                    original_small_display_roles, source_dsl, processing_context.task_spec,
+                    original_small_display_roles,
+                    source_dsl,
+                    processing_context.task_spec,
                 )
             evaluation_attempt = quality_repair_attempt_count + 1
             trace_increment_attempt("validationEvaluations")
@@ -1217,7 +1251,8 @@ class WidgetGenerationService:
                 compact_plan=accepted_compact_plan,
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.allowed_omitted_fact_indexes
-                    if compact_repair_tracker is not None else ()
+                    if compact_repair_tracker is not None
+                    else ()
                 ),
             )
             with trace_attempt(**validation_attempts):
@@ -1637,9 +1672,7 @@ class WidgetGenerationService:
                 compact_repair_tracker.allowed_omitted_fact_indexes,
             )
         omitted_requirements = [
-            str(fact.get("requirement") or "")
-            for fact in omitted_facts
-            if fact.get("requirement")
+            str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
         ]
         if omitted_requirements:
             trace_step(

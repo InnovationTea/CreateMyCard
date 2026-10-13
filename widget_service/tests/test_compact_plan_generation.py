@@ -1,5 +1,6 @@
 """Fusion 真实模型路径的 Plan → Compact DSL 两阶段编排回归。"""
 
+import copy
 import json
 from types import SimpleNamespace
 
@@ -33,7 +34,7 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
         **_kwargs,
     ) -> str:
         model_format = str((profile or {}).get("format"))
-        calls.append((model_format, prompt))
+        calls.append((model_format, copy.deepcopy(prompt)))
         if model_format == "raw-json":
             return json.dumps(
                 {
@@ -96,22 +97,30 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
         title="静态卡片",
         description="两阶段生成测试",
     )
-    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
-        request
-    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
 
     assert response.status == GenerationStatus.SUCCESS
     assert [item[0] for item in calls] == ["raw-json", "compact-dsl"]
     plan_system = calls[0][1][0]["content"]
     assert "submit_card_plan" in plan_system
+    assert "你是 HarmonyOS 桌面卡片生成 Agent" in plan_system
+    assert "`<agent_stage>plan</agent_stage>`：只按本轮工具 Schema 提交" in plan_system
     assert "# 2. Compact DSL 组件合同" in plan_system
     assert "### 6.1 `EventCard`" in plan_system
     assert "### `S-title-content-action`" in plan_system
     assert "FEWSHOT" not in plan_system
     assert '"composition"' not in plan_system.split("# 可用工具合同", 1)[1]
-    dsl_system = calls[1][1][0]["content"]
-    assert "已接受的 Compact Info Plan" in dsl_system
-    assert '"layoutHints":["S-center"]' in dsl_system
+    plan_messages = calls[0][1]
+    dsl_messages = calls[1][1]
+    plan_context = "\n".join(message["content"] for message in plan_messages)
+    assert "<agent_stage>plan</agent_stage>" in plan_context
+    assert dsl_messages[: len(plan_messages)] == plan_messages
+    assert sum(message["role"] == "system" for message in dsl_messages) == 1
+    assert any(message["role"] == "assistant" for message in dsl_messages)
+    dsl_context = "\n".join(message["content"] for message in dsl_messages)
+    assert "已接受的 Compact Info Plan" in dsl_context
+    assert '"layoutHints":["S-center"]' in dsl_context
+    assert "<agent_stage>compact_dsl</agent_stage>" in dsl_context
 
 
 @pytest.mark.asyncio
@@ -119,12 +128,12 @@ async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
     monkeypatch,
 ) -> None:
     settings = get_settings()
-    calls: list[str] = []
+    calls: list[tuple[str, list[dict[str, str]]]] = []
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
 
     async def generate(_client, _prompt, profile=None, **_kwargs) -> str:
         model_format = str((profile or {}).get("format"))
-        calls.append(model_format)
+        calls.append((model_format, copy.deepcopy(_prompt)))
         if model_format != "raw-json":
             return "source-compact-dsl"
         arguments = {
@@ -138,7 +147,8 @@ async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
             ],
             "layoutHints": ["S-center"],
         }
-        if calls.count("raw-json") > 1:
+        plan_call_count = sum(item[0] == "raw-json" for item in calls)
+        if plan_call_count > 1:
             arguments["composition"] = {
                 "layout": "S-center",
                 "variant": 1,
@@ -210,4 +220,9 @@ async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
 
     assert response.status == GenerationStatus.SUCCESS
-    assert calls == ["raw-json", "raw-json", "compact-dsl"]
+    assert [item[0] for item in calls] == ["raw-json", "raw-json", "compact-dsl"]
+    repaired_plan_messages = calls[1][1]
+    assert any(message["role"] == "assistant" for message in repaired_plan_messages)
+    plan_feedback = json.loads(repaired_plan_messages[-1]["content"])
+    assert plan_feedback["toolResult"]["name"] == "submit_card_plan"
+    assert plan_feedback["toolResult"]["ok"] is False

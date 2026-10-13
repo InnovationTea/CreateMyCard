@@ -33,7 +33,7 @@ def design_source():
             ["title", "SingleLineTitle", {"title": "天气", "icon": SRC,
              "fillColor": "#FF1F4799"}],
             ["body", "Column", {"width": "matchParent", "layoutWeight": 1}, ["content"]],
-            ["content", "SecondaryBody", {"role": "body", "items": [{"value": "天气"}]}],
+            ["content", "EmphasisText", {"mainText": "天气"}],
             ["/ui/state", "ready"],
         ]
     )

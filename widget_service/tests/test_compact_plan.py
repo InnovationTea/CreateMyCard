@@ -8,6 +8,7 @@ from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TY
 from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
+    compact_plan_asset_ids,
     compact_plan_coverage_errors,
     compact_plan_coverage_warnings,
     compact_plan_data_paths,
@@ -82,6 +83,29 @@ def plan_call() -> str:
     )
 
 
+def test_anchor_hint_rejects_title_plus_single_body_fact() -> None:
+    payload = json.loads(plan_call())
+    payload["arguments"]["info_required"][0]["componentHints"] = ["SingleLineTitle"]
+    payload["arguments"]["info_required"][1]["componentHints"] = ["EmphasisText"]
+    payload["arguments"]["info_required"][2]["componentHints"] = [
+        "CircleButton",
+        "PillButton",
+    ]
+    payload["arguments"]["layoutHints"] = [
+        "S-title-anchor",
+        "S-title-content-action",
+    ]
+
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="at least one independent support fact",
+    ):
+        parse_compact_plan_call(
+            json.dumps(payload, ensure_ascii=False),
+            task_spec(),
+        )
+
+
 def plan_call_with_composition(*, content_height: int = 34) -> str:
     payload = json.loads(plan_call())
     for fact in payload["arguments"]["info_required"]:
@@ -140,6 +164,112 @@ def plan_call_with_composition(*, content_height: int = 34) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def test_plan_composition_rejects_isolated_secondary_body_region() -> None:
+    payload = json.loads(plan_call_with_composition())
+    arguments = payload.get("arguments")
+    assert isinstance(arguments, dict)
+    composition = arguments.get("composition")
+    assert isinstance(composition, dict)
+    regions = composition.get("regions")
+    assert isinstance(regions, list)
+    content = regions[1]
+    assert isinstance(content, dict)
+    content["groups"] = [
+        {
+            "component": "SecondaryBody",
+            "factIndexes": [0, 1],
+            "placements": ["items[0].value", "items[1].value"],
+            "referenceHeight": 38,
+        }
+    ]
+
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="SecondaryBody without a core information component",
+    ):
+        parse_compact_plan_call(
+            json.dumps(payload, ensure_ascii=False),
+            task_spec(),
+            require_composition=True,
+        )
+
+
+def test_plan_composition_accepts_secondary_body_with_core_group() -> None:
+    payload = json.loads(plan_call_with_composition())
+    arguments = payload.get("arguments")
+    assert isinstance(arguments, dict)
+    composition = arguments.get("composition")
+    assert isinstance(composition, dict)
+    regions = composition.get("regions")
+    assert isinstance(regions, list)
+    content = regions[1]
+    assert isinstance(content, dict)
+    content["gap"] = 2
+    content["groups"] = [
+        {
+            "component": "EmphasisText",
+            "factIndexes": [0],
+            "placements": ["mainText"],
+            "referenceHeight": 24,
+        },
+        {
+            "component": "SecondaryBody",
+            "factIndexes": [1],
+            "placements": ["items[0].value"],
+            "referenceHeight": 18,
+        },
+    ]
+
+    result = parse_compact_plan_call(
+        json.dumps(payload, ensure_ascii=False),
+        task_spec(),
+        require_composition=True,
+    )
+
+    normalized_composition = result.plan.get("composition")
+    assert isinstance(normalized_composition, dict)
+    normalized_regions = normalized_composition.get("regions")
+    assert isinstance(normalized_regions, list)
+    normalized_content = normalized_regions[1]
+    assert isinstance(normalized_content, dict)
+    groups = normalized_content.get("groups")
+    assert isinstance(groups, list)
+    secondary = groups[1]
+    assert isinstance(secondary, dict)
+    assert secondary.get("component") == "SecondaryBody"
+
+
+def asset_task_spec() -> dict:
+    spec = task_spec()
+    spec["assetCandidates"] = [
+        {
+            "id": "asset.calendar_fill",
+            "src": "resources/base/media/calendar_fill.svg",
+            "description": "打开日历的日历图标",
+        },
+        {
+            "id": "asset.icon_meeting",
+            "src": "resources/base/media/icon_meeting.svg",
+            "description": "会议主题图标",
+        },
+    ]
+    return spec
+
+
+def asset_plan_call() -> str:
+    payload = json.loads(plan_call())
+    payload["arguments"]["assetAssignments"] = {
+        "actions": [
+            {
+                "actionId": "event.open.calendar",
+                "assetId": "asset.calendar_fill",
+            }
+        ],
+        "title": {"assetId": "asset.icon_meeting"},
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
 def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     spec = task_spec()
     assert compact_plan_data_paths(spec) == (
@@ -164,6 +294,57 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "priority" in properties["info_required"]["items"]["required"]
     assert "composition" not in properties
     assert tool["function"]["parameters"]["required"] == ["info_required"]
+
+
+def test_plan_tool_requires_explicit_asset_assignments_for_candidates() -> None:
+    spec = asset_task_spec()
+    tool = build_compact_plan_tool(spec)
+    parameters = tool["function"]["parameters"]
+    assignments = parameters["properties"]["assetAssignments"]
+
+    assert compact_plan_asset_ids(spec) == (
+        "asset.calendar_fill",
+        "asset.icon_meeting",
+    )
+    assert parameters["required"] == ["info_required", "assetAssignments"]
+    assert assignments["required"] == ["actions", "title"]
+
+
+def test_plan_parser_preserves_button_first_asset_assignments() -> None:
+    result = parse_compact_plan_call(asset_plan_call(), asset_task_spec())
+
+    assert result.plan["assetAssignments"] == {
+        "actions": [
+            {
+                "actionId": "event.open.calendar",
+                "assetId": "asset.calendar_fill",
+            }
+        ],
+        "title": {"assetId": "asset.icon_meeting"},
+    }
+
+
+def test_plan_parser_rejects_missing_asset_assignments() -> None:
+    with pytest.raises(CompactPlanValidationError, match="assetAssignments is required"):
+        parse_compact_plan_call(plan_call(), asset_task_spec())
+
+
+def test_plan_parser_rejects_asset_reuse_between_button_and_title() -> None:
+    payload = json.loads(asset_plan_call())
+    payload["arguments"]["assetAssignments"]["title"] = {
+        "assetId": "asset.calendar_fill"
+    }
+
+    with pytest.raises(CompactPlanValidationError, match="reuses an already assigned asset"):
+        parse_compact_plan_call(json.dumps(payload), asset_task_spec())
+
+
+def test_plan_parser_requires_reason_for_unassigned_icon() -> None:
+    payload = json.loads(asset_plan_call())
+    payload["arguments"]["assetAssignments"]["title"] = {"assetId": None}
+
+    with pytest.raises(CompactPlanValidationError, match="reason is required"):
+        parse_compact_plan_call(json.dumps(payload), asset_task_spec())
 
 
 def test_plan_tool_requires_composition_only_with_runtime_context() -> None:
@@ -832,7 +1013,7 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
             {
                 "requirement": "卡片标题",
                 "text": "静态卡片",
-                "componentHints": ["SecondaryBody"],
+                "componentHints": ["EmphasisText"],
             }
         ]
     }
@@ -847,7 +1028,7 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
     )
     result = DesignCompactProcessor().process(
         '["root","Column",{},["title"]]\n'
-        '["title","SecondaryBody",{"role":"body","items":[{"value":"其他文字"}]}]',
+        '["title","EmphasisText",{"mainText":"其他文字","fontSize":18}]',
         context,
     )
 

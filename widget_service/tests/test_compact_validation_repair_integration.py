@@ -65,10 +65,12 @@ def _source() -> CompactDslArtifactSource:
 
 
 def _quality_errors(prompt: list[dict[str, str]]) -> list[dict[str, Any]]:
-    content = prompt[1].get("content")
+    content = prompt[-1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
-    assert payload.get("invalidSourceDsl") == INVALID
+    assert "invalidSourceDsl" not in payload
+    assert {"role": "assistant", "content": INVALID} in prompt
+    assert payload.get("toolResult") == {"name": "validate_compact_dsl", "ok": False}
     errors = payload.get("qualityErrors")
     assert isinstance(errors, list)
     assert len(errors) == 1
@@ -94,7 +96,7 @@ async def test_standalone_fixed_rounds_preserve_result_and_exception(
     closed: list[bool] = []
 
     async def generate(_client: Any, prompt: list[dict[str, str]], _profile: Any) -> str:
-        prompts.append(prompt)
+        prompts.append(deepcopy(prompt))
         return next(outputs)
 
     async def close(_client: Any) -> None:
@@ -165,7 +167,7 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
     saved_records: list[RepairArtifactRecord] = []
 
     def generate(_client: Any, prompt: list[dict[str, str]], *_args: Any, **_kw: Any) -> str:
-        prompts.append(prompt)
+        prompts.append(deepcopy(prompt))
         return next(outputs)
 
     def save(store: ArtifactStore, _artifact: WidgetArtifact) -> ArtifactSaveResult:

@@ -267,7 +267,7 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 20,
+            "height": 19,
             "itemMargin": 0,
             "alignItems": "center",
             "flexShrink": 0
@@ -276,7 +276,7 @@
         "item": {
           "component": "Row",
           "styles": {
-            "height": 20,
+            "height": 19,
             "itemMargin": 0,
             "alignItems": "center",
             "flexShrink": 1,
@@ -288,115 +288,51 @@
         "text": {
           "component": "Text",
           "styles": {
-            "height": 20,
+            "height": 19,
             "fontSize": 14,
-            "fontWeight": 500,
+            "fontWeight": 400,
             "maxLines": 1,
-            "flexShrink": 1
+            "flexShrink": 1,
+            "lineHeight": 1.3571428571428572
           }
         },
         "separator": {
           "component": "Text",
           "styles": {
-            "height": 20,
+            "height": 19,
             "fontSize": 14,
-            "fontWeight": 500,
+            "fontWeight": 400,
             "maxLines": 1,
-            "flexShrink": 0
+            "flexShrink": 0,
+            "lineHeight": 1.3571428571428572
           }
         }
       },
       "variants": {
-        "body": {
-          "parts": {
-            "row": {
-              "styles": {
-                "height": 20
-              }
-            },
-            "item": {
-              "styles": {
-                "height": 20
-              }
-            },
-            "text": {
-              "styles": {
-                "height": 20,
-                "fontSize": 14,
-                "fontWeight": 400,
-                "maxLines": 1
-              }
-            }
-          }
-        },
-        "bodyMultiline": {
-          "parts": {
-            "row": {
-              "styles": {
-                "height": 40,
-                "alignItems": "top"
-              }
-            },
-            "item": {
-              "styles": {
-                "height": 40,
-                "alignItems": "top"
-              }
-            },
-            "text": {
-              "styles": {
-                "height": 40,
-                "fontSize": 14,
-                "fontWeight": 400,
-                "maxLines": 2
-              }
-            }
-          }
-        },
-        "metadata": {
-          "parts": {
-            "row": {
-              "styles": {
-                "height": 18
-              }
-            },
-            "item": {
-              "styles": {
-                "height": 18
-              }
-            },
-            "text": {
-              "styles": {
-                "height": 18,
-                "fontSize": 12,
-                "fontWeight": 400,
-                "maxLines": 1
-              }
-            }
-          }
-        },
         "multiline": {
           "parts": {
             "row": {
               "styles": {
-                "height": 18
+                "height": 16
               }
             },
             "item": {
               "styles": {
-                "height": 18
+                "height": 16
               }
             },
             "text": {
               "styles": {
-                "height": 18,
-                "fontSize": 12
+                "height": 16,
+                "fontSize": 12,
+                "lineHeight": 1.3333333333333333
               }
             },
             "separator": {
               "styles": {
-                "height": 18,
-                "fontSize": 12
+                "height": 16,
+                "fontSize": 12,
+                "lineHeight": 1.3333333333333333
               }
             }
           }

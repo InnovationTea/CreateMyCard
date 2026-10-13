@@ -122,6 +122,15 @@ def component_visual_recipe(
     return resolved
 
 
+def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str | None:
+    """按实际声明的行布局选择字号，不按内容角色或字段数量区分。"""
+    multiline = len(items) > columns
+    for item in items:
+        if item.get("maxLines", 1) == 2:
+            multiline = True
+    return "multiline" if multiline else None
+
+
 def visual_recipe_part(
     component_name: str,
     part_name: str,

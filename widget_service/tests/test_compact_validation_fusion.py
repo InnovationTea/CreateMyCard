@@ -255,6 +255,7 @@ def test_repair_keeps_history_recovery_and_internal_record(
     initial = [
         {"role": "system", "content": "system"},
         {"role": "user", "content": json.dumps({"compositionRecovery": recovery})},
+        {"role": "user", "content": json.dumps({"qualityErrors": history[0]})},
     ]
     before = deepcopy(quality_errors)
     prompt = PromptBuilder().build_repair(
@@ -264,17 +265,18 @@ def test_repair_keeps_history_recovery_and_internal_record(
         dsl_format="design-compact-dsl",
         previous_failures=history,
     )
-    content = prompt[1].get("content")
+    content = prompt[-1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
-    assert payload.get("previousFailures") == history
+    assert prompt[:len(initial)] == initial
+    assert "previousFailures" not in payload
     if runtime_context:
         assert payload.get("compositionRecovery") == recovery
     else:
         assert "compositionRecovery" not in payload
-    original = json.loads(payload.get("originalUserContent"))
-    assert "compositionRecovery" not in original
-    assert payload.get("invalidSourceDsl") == TALL
+    assert "originalUserContent" not in payload
+    assert "invalidSourceDsl" not in payload
+    assert {"role": "assistant", "content": TALL} in prompt
     assert quality_errors == before
     assert "Occupancy:" in content
     assert "compactDiagnostics" not in content

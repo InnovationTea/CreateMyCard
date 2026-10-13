@@ -7,7 +7,11 @@ import math
 import re
 from typing import Any
 
-from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
+from services.compact_component_runtime import (
+    component_visual_recipe,
+    load_visual_recipe_contract,
+    secondary_body_variant,
+)
 from services.compact_composition_planner import (
     _schema_value,
     _text_width,
@@ -228,7 +232,7 @@ def composition_recovery_context(
             "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
             "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
             "或换完整合法组合；不删必要语义，不替换必需标题。"
-            "保留参考组 role 与原 Recipe 字号，不能为闭合改成较小 metadata。"
+            "SecondaryBody 按最终行布局使用单行14/19或多行12/16，核心组件字号保持原 Recipe。"
         ),
     }
     if candidates:
@@ -378,17 +382,13 @@ def repair_display_roles(source: str, *, size: str | None = None) -> dict[str, d
                     continue
                 roles[paths[0]] = {
                     "component": row.component_type,
-                    "role": row.props.get("role", "supporting"),
                     "displayExpression": value,
                 }
                 if size == "2x2":
                     variant = None
                     part = "main" if row.component_type == "EmphasisText" else "value"
                     if row.component_type == "SecondaryBody":
-                        role = row.props.get("role", "supporting")
-                        variant = role if role in {"body", "metadata"} else (
-                            "multiline" if len(items) > 2 else None
-                        )
+                        variant = secondary_body_variant(items, row.props.get("columns", 2))
                         part = "text"
                     recipe = component_visual_recipe(row.component_type, size=size, variant=variant)
                     roles[paths[0]]["fontSize"] = recipe.get("parts", {}).get(part, {}).get(
@@ -679,17 +679,17 @@ def _fact_packing(
 def _packing_options(size: str, count: int) -> list[dict[str, Any]]:
     options: list[dict[str, Any]] = []
     if 1 <= count <= 4:
-        variant = "multiline" if count > 2 else None
-        recipe = component_visual_recipe("SecondaryBody", size=size, variant=variant)
-        text = recipe.get("parts", {}).get("text", {}).get("styles", {})
-        root = recipe.get("parts", {}).get("root", {}).get("styles", {})
-        height = text.get("height", 0) / text.get("maxLines", 1)
-        gap = root.get("itemMargin", 0)
         for columns in (1, 2):
             rows = math.ceil(count / columns)
             for lines in (1, 2):
+                variant = secondary_body_variant([{"maxLines": lines}] * count, columns)
+                recipe = component_visual_recipe("SecondaryBody", size=size, variant=variant)
+                text = recipe.get("parts", {}).get("text", {}).get("styles", {})
+                root = recipe.get("parts", {}).get("root", {}).get("styles", {})
+                height = text.get("height", 0)
+                gap = root.get("itemMargin", 0)
                 options.append({
-                    "component": "SecondaryBody", "role": "supporting",
+                    "component": "SecondaryBody",
                     "items": count, "columns": columns, "maxLinesPerValue": lines,
                     "rows": rows, "requiredHeight": rows * height * lines + (rows - 1) * gap,
                     "fontSizeUnchanged": text.get("fontSize"),
@@ -768,15 +768,12 @@ def composition_group_minimum_height(size: str, group: dict[str, Any]) -> float 
         height = recipe.get("parts", {}).get("row", {}).get("styles", {}).get("height", 0)
         gap_key = "threeRowGap" if count == 3 else "twoRowGap"
         return float(count * height + (count - 1) * recipe.get("metrics", {}).get(gap_key, 0))
-    role = group.get("role", "supporting")
-    variant = "body" if role == "body" else "metadata" if role == "metadata" else None
-    if role == "supporting" and count > 2:
-        variant = "multiline"
+    columns = group.get("columns", 2)
+    lines = group.get("lines", [1] * count)
+    variant = secondary_body_variant([{"maxLines": line} for line in lines], columns)
     recipe = component_visual_recipe(name, size=size, variant=variant)
     styles = recipe.get("parts", {}).get("text", {}).get("styles", {})
     line_height = styles.get("height", 0) / styles.get("maxLines", 1)
-    columns = group.get("columns", 2)
-    lines = group.get("lines", [1] * count)
     if len(lines) != count:
         return None
     height = 0.0

@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from services.compact_component_runtime import component_visual_recipe
+from services.compact_component_runtime import component_visual_recipe, secondary_body_variant
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
 
@@ -323,7 +323,7 @@ def _group_choices(
                     unresolved.append(f"fact {index}: numeric InfoBlock needs exact unit recipe")
                     continue
                 first = "SecondaryBody"
-                declared_group = {"role": "supporting"}
+                declared_group = {}
             else:
                 unresolved.append(f"fact {index}: unsupported exact recipe occupancy {first}")
                 continue
@@ -367,7 +367,7 @@ def _group_choices(
                 alternatives.append([_nested_group("Column", wrapped, gap)])
         ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
         if len(ordinary) >= 2:
-            # 两项合组不触发 supporting 三/四项的较小字体，保留原字号。
+            # 两项同行保留14fp；两项分行按12fp/16vp核算。
             for pair in itertools.combinations(ordinary, 2):
                 for columns in (1, 2):
                     packed = _ordinary_pair(size, pair, columns)
@@ -424,8 +424,6 @@ def _two_line_group(group: dict[str, Any]) -> dict[str, Any]:
     result = copy.deepcopy(group)
     if group.get("component") != "SecondaryBody" or group.get("columns") != 1:
         return result
-    if group.get("role") == "metadata":
-        return result  # 弱信息合同只允许单行，不构造非法两行变体。
     sample = group.get("pressureOnly")
     font = group.get("fontSize")
     if not isinstance(sample, str) or not isinstance(font, (int, float)):
@@ -433,11 +431,15 @@ def _two_line_group(group: dict[str, Any]) -> dict[str, Any]:
     minimum = group.get("minimumWidth")
     if not isinstance(minimum, (int, float)) or minimum <= 0:
         return result
+    recipe = component_visual_recipe("SecondaryBody", variant="multiline")
+    styles = recipe.get("parts", {}).get("text", {}).get("styles", {})
+    font = styles.get("fontSize")
     for width in range(max(1, math.ceil(minimum / 2)), math.ceil(minimum) + 1):
         if _wrapped_lines(sample, font, width) <= 2:
             result.update({
                 "minimumWidth": width, "lines": [2],
-                "requiredHeight": group.get("requiredHeight") * 2,
+                "requiredHeight": styles.get("height") * 2,
+                "fontSize": font,
             })
             break
     return result
@@ -461,7 +463,7 @@ def _group_text_fits(group: dict[str, Any], width: float) -> bool:
         return group.get("minimumWidth", 0) <= width
     columns = group.get("columns", 1)
     font = group.get("fontSize")
-    separator = _text_width(" ｜ ", font) if columns == 2 else 0
+    separator = _text_width(" | ", font) if columns == 2 else 0
     available = (width - separator) / columns
     lines = group.get("lines", [])
     for sample, limit in zip(samples, lines, strict=True):
@@ -631,9 +633,6 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
         "ProgressLine2": "value",
     }.get(name)
     styles = _part(size, name, part)
-    role = item.get("declared", {}).get("role", "supporting")
-    if name == "SecondaryBody" and role == "metadata":
-        styles = _part(size, name, "text", "metadata")
     unit = _declared_unit(item)
     sample = item.get("sample")
     if unit is not None and name not in {"EmphasizedData", "ProgressLine2"}:
@@ -664,7 +663,7 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
         "meaning": item.get("meaning"),
     }
     if name == "SecondaryBody":
-        output.update({"role": role, "columns": 1, "lines": [1], "labelAllowance": 0})
+        output.update({"columns": 1, "lines": [1], "labelAllowance": 0})
     if name in {"EmphasisText", "EmphasizedData"}:
         output["splitDisplayParts"] = item.get("declared", {}).get("displayParts", [])
     if unit is not None:
@@ -700,17 +699,17 @@ def _single_group(size: str, item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _ordinary_pair(size: str, pair: tuple[dict[str, Any], ...], columns: int) -> dict[str, Any]:
-    styles = _part(size, "SecondaryBody", "text")
+    variant = secondary_body_variant([{"maxLines": 1}] * len(pair), columns)
+    styles = _part(size, "SecondaryBody", "text", variant)
     height = styles.get("height")
     gap = _part(size, "SecondaryBody", "root").get("itemMargin", 0)
     samples = []
     for item in pair:
         samples.append(_sample_with_unit(item))
     widths = [_text_width(sample, styles.get("fontSize")) for sample in samples]
-    separator = _text_width(" ｜ ", styles.get("fontSize")) if columns == 2 else 0
+    separator = _text_width(" | ", styles.get("fontSize")) if columns == 2 else 0
     return {
         "component": "SecondaryBody",
-        "role": "supporting",
         "columns": columns,
         "factIndexes": [item.get("index") for item in pair],
         "placements": ["items[0].value", "items[1].value"],
@@ -1433,7 +1432,7 @@ def composition_structure_blueprint(size: str, candidate: dict[str, Any]) -> lis
         if "originalValue" in group:
             props["value"] = group.get("originalValue")
         for key in (
-            "role", "columns", "lines", "variant", "density", "labelLines",
+            "columns", "lines", "variant", "density", "labelLines",
             "unitFromFieldContract", "accessibilityLabel", "requiresAccurateIcon",
         ):
             if key in group:
