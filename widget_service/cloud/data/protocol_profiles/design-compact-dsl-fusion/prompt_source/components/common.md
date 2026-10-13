@@ -344,7 +344,7 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 
 #### 选择条件
 
-用于固定小槽中属于同一对象或指标的一组“主信息 + 辅助信息”。尾部可显示语义图标，或由主信息驱动的
+用于固定或有明确高度的小槽中属于同一对象或指标的一组“主信息 + 辅助信息”。尾部可显示语义图标，或由主信息驱动的
 真实占比圆环，但不承载动作；
 完整业务区、两个同级指标和无主辅关系的字段不使用。
 
@@ -362,7 +362,7 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 
 #### 槽位与容量
 
-每个合法固定槽只放一个 `InfoBlock`，两行文字必须保持单行。尺寸、variant 和文字区宽度由尺寸文件规定；
+每个合法小槽只放一个 `InfoBlock`，两行文字必须保持单行。尺寸、variant 和文字区宽度由尺寸文件规定；
 必要值放不下时先取消可选图标，仍不成立则改用其它组件组合。
 
 #### 示例
@@ -371,6 +371,13 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 
 ```genui
 ["weather","InfoBlock",{"primaryText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/weather/current/condition"},"backgroundColor":"#CCFFFFFF"}]
+```
+
+2x2 保留卡级标题并展示两个同级子对象时，可在 `S-title-dual-content` 的两个 `126×50vp` 槽中各放一个
+无 visual 的紧凑 `InfoBlock`。短静态对象标签可以和一个动态值组成完整 Expression，用来区分同级对象：
+
+```genui
+["tomorrow","InfoBlock",{"variant":"stacked","width":"matchParent","height":50,"primaryText":"{{ '明天 ' + ${/data/weather/daily/1/condition} }}","secondaryText":"{{ '空气质量 ' + ${/data/weather/daily/1/airQuality} }}","backgroundColor":"#CCFFFFFF"}]
 ```
 
 有准确语义图标时使用 `visual.type:"icon"`。Compact DSL 直接绑定真实路径，不使用 `dataIds` 或
@@ -389,7 +396,9 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 #### 注意事项
 
 visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。没有准确 visual 时不生成尾部空槽；
-每行只承载一个业务值，不把对象名、指标名或第二个动态字段拼入 `primaryText`；外层和内部均不得写 `onClick`。
+每行只承载一个动态业务值，不把第二个动态字段拼入 `primaryText`；同级对象需要区分时允许添加一个简短
+静态对象标签，指标名需要帮助理解时允许添加一个简短静态标签。`visual.type:"progressCircle"` 的
+`primaryText` 仍必须是原始有限数值或完整百分比，不得添加标签。外层和内部均不得写 `onClick`。
 
 ### 4.9 `TableText`
 

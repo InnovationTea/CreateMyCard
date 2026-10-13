@@ -91,6 +91,9 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert icon_example in create_prompt
     assert progress_example in create_prompt
     assert "不使用 `dataIds` 或" in create_prompt
+    assert "`S-title-dual-content` 的两个 `126×50vp` 槽" in create_prompt
+    assert '"height":50,"primaryText":"{{ \'明天 \' +' in create_prompt
+    assert "每行只承载一个动态业务值" in create_prompt
 
 
 def test_single_line_title_icon_uses_semantic_match_and_button_priority() -> None:
