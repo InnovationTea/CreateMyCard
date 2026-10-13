@@ -4198,11 +4198,13 @@ Row(
         Expr("湿度 " + data.humidity + "% · 空气质量" + data.airQuality),
         {
           "width": "matchParent",
-          "height": 32,
+          "height": 16,
           "fontSize": 12,
+          "maxFontSize": 12,
+          "minFontSize": 10,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
-          "maxLines": 2,
+          "maxLines": 1,
           "textOverflow": "ellipsis",
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
