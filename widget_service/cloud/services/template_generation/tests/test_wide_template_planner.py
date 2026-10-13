@@ -223,17 +223,21 @@ def test_wide_two_hero_action_keeps_a_small_hero_candidate() -> None:
 def test_wide_two_focus_two_action_rejects_the_taller_schedule_hero() -> None:
     registry = get_cardplan_registry()
     layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoFocusTwoActionLayout")
-    slots = tuple(
+    slots = (
         TemplatePlanBusinessSlot(
-            position=index,
+            position=0,
             businessId="test-business",
             capabilityId="test-capability",
-            templateId=template_id,
+            templateId="ScheduleOverviewMeetingEntryHero@1",
             layoutRole="Hero",
-        )
-        for index, template_id in enumerate(
-            ("ScheduleOverviewMeetingEntryHero@1", "CountdownOverviewEventHero@1")
-        )
+        ),
+        TemplatePlanBusinessSlot(
+            position=1,
+            businessId="test-business",
+            capabilityId="test-capability",
+            templateId="CountdownOverviewEventHero@1",
+            layoutRole="Hero",
+        ),
     )
     assert layout.slot_height_budgets == (66, 66)
     assert not _layout_geometry_fits(layout, slots, registry)
