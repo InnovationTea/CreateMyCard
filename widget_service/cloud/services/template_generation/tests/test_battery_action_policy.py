@@ -10,10 +10,6 @@ import pytest
 from pydantic import ValidationError
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
-from services.card_validation.compact_dsl_validator import validate_compact_dsl
-from services.compact_dsl_parse_context import (
-    TEMPLATE_PARSE_CONTEXT,
-)
 from services.template_generation.controls import TemplateControls
 from services.template_generation.engine import pipeline
 from services.template_generation.engine.cardplan.battery_action_policy import (
@@ -33,6 +29,9 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 )
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     convert_a2ui_to_compact_dsl,
+)
+from services.template_generation.tests.public_processing import (
+    assert_template_compact_processing,
 )
 
 _CAPABILITY = "GetPhoneBatteryInfo"
@@ -489,9 +488,8 @@ async def test_percent_text_full_without_actions(
     output = await pipeline.generate_template_a2ui(
         task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
     )
-    validate_compact_dsl(
+    assert_template_compact_processing(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert not output.projected_task_spec.eventCandidates
@@ -562,9 +560,8 @@ async def test_q144_full_and_hero_compete_by_candidate_coverage(
                     'Template("BatteryOverviewPercentTextFull@1",{}));')
 
     output = await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
-    validate_compact_dsl(
+    assert_template_compact_processing(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert len(output.projected_task_spec.eventCandidates) == int(allow_action)
@@ -660,9 +657,8 @@ async def test_review_constraints_survive_planning_and_generation(
     output = await pipeline.generate_template_a2ui(
         case.task, case.card, (case.binding,), Model(), enable_fusion_ball=fusion,
     )
-    validate_compact_dsl(
+    assert_template_compact_processing(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        parse_context=TEMPLATE_PARSE_CONTEXT,
         task_spec=case.task.model_dump(mode="json"), card_spec=case.card,
     )
     component_text = ""

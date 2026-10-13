@@ -22,10 +22,6 @@ from services.compact_dsl_a2ui_converter import (
     parse_compact_dsl_rows,
     validate_single_line_title_layout,
 )
-from services.compact_dsl_parse_context import (
-    MODEL_PARSE_CONTEXT,
-    CompactDslParseContext,
-)
 from services.compact_layout_runtime import (
     CompactLayoutRuntimeError,
     match_compact_layout,
@@ -194,13 +190,10 @@ def validate_compact_dsl(
     protocol_profile: dict[str, Any] | None = None,
     layout_scope: str | None = None,
     enforce_model_component_types: bool = False,
-    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
-        rows = parse_compact_dsl_rows(
-            compact_dsl, parse_context=parse_context,
-        )
+        rows = parse_compact_dsl_rows(compact_dsl)
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
 

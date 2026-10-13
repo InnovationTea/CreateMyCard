@@ -7,9 +7,6 @@ from copy import deepcopy
 from typing import Any
 
 from services.compact_dsl_a2ui_converter import DataRow, parse_compact_dsl_rows
-from services.compact_dsl_parse_context import (
-    TEMPLATE_PARSE_CONTEXT,
-)
 
 
 class AssetUrlMapper:
@@ -86,7 +83,7 @@ class AssetUrlMapper:
         if "https://" not in token and "http://" not in token:
             return token
         # 按归档组件结构还原模板素材地址。
-        rows = parse_compact_dsl_rows(token, parse_context=TEMPLATE_PARSE_CONTEXT)
+        rows = parse_compact_dsl_rows(token, skip_compact_dsl_validation=True)
         restored_rows: list[list[Any]] = []
         changed = False
         for row in rows:

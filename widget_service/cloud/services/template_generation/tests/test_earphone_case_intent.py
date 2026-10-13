@@ -7,9 +7,6 @@ from typing import Any
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
-from services.compact_dsl_parse_context import (
-    TEMPLATE_PARSE_CONTEXT,
-)
 from services.generation_pipeline import (
     DesignCompactProcessor,
     DslProcessingContext,
@@ -526,7 +523,6 @@ async def test_partial_exclusions_reach_generated_actions():
         size="2x2", card_spec=_card(),
         task_spec=result.projected_task_spec.model_dump(mode="json"),
         protocol_profile=profile, skip_compact_dsl_validation=True,
-        parse_context=TEMPLATE_PARSE_CONTEXT,
     ))
     assert not processed.errors
     assert "bluetooth_entry" in processed.standard_dsl
@@ -581,7 +577,6 @@ async def test_complete_status_group_survives_public_processor(template):
         size="2x2", card_spec=_card(),
         task_spec=result.projected_task_spec.model_dump(mode="json"),
         protocol_profile=profile, skip_compact_dsl_validation=True,
-        parse_context=TEMPLATE_PARSE_CONTEXT,
     ))
     assert not processed.errors
     for output in (result.a2ui, processed.standard_dsl):

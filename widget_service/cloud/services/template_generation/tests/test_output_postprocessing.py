@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import pytest
 
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
-from services.compact_dsl_parse_context import TEMPLATE_PARSE_CONTEXT
 from services.protocol_registry import A2UIProtocolRegistry
 from services.template_generation.engine.cardplan import preview_dataset
 from services.template_generation.engine.cardplan.compiler import _normalize_template_asset_params
@@ -84,7 +83,7 @@ def test_wide_earphone_bitmap_survives_real_template_and_public_conversion(monke
     a2ui = "\n".join(json.dumps(message) for message in case.messages)
     compact = convert_a2ui_to_compact_dsl(remove_bitmap_fill_colors(a2ui), size=case.size)
     standard = convert_compact_dsl_to_a2ui(
-        compact, size=case.size, parse_context=TEMPLATE_PARSE_CONTEXT,
+        compact, size=case.size, skip_compact_dsl_validation=True,
     )
     images = []
     for line in standard.splitlines():

@@ -17,10 +17,6 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
 )
-from services.compact_dsl_parse_context import (
-    MODEL_PARSE_CONTEXT,
-    CompactDslParseContext,
-)
 from services.compact_outer_recomposition import recompose_small_card
 from services.compact_plan import (
     compact_plan_omitted_facts,
@@ -77,7 +73,6 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
-    parse_context: CompactDslParseContext = MODEL_PARSE_CONTEXT
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
@@ -166,14 +161,14 @@ class DesignCompactProcessor:
             source_dsl = repair_compact_dsl_safe_structure(
                 source_dsl,
                 size=context.size,
-                parse_context=context.parse_context,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             safe_structure_repaired = source_dsl != original_source_dsl
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
                 task_spec=context.task_spec,
                 card_spec=context.card_spec,
-                parse_context=context.parse_context,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
         except CompactDslConversionError as exc:
             trace_step(
@@ -207,7 +202,6 @@ class DesignCompactProcessor:
         if (
             context.size == "2x2"
             and not context.skip_compact_dsl_validation
-            and not context.parse_context.is_template
         ):
             outer_started_at = time.perf_counter()
             outer_input = source_dsl
@@ -299,11 +293,8 @@ class DesignCompactProcessor:
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
                     protocol_profile=design_protocol,
-                    layout_scope=(
-                        None if context.parse_context.is_template else context.layout_scope
-                    ),
-                    enforce_model_component_types=not context.parse_context.is_template,
-                    parse_context=context.parse_context,
+                    layout_scope=context.layout_scope,
+                    enforce_model_component_types=True,
                 )
             except CompactDslValidationError as exc:
                 trace_step(
@@ -366,7 +357,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
-                parse_context=context.parse_context,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             trace_step(
                 "dsl.conversion.completed",
