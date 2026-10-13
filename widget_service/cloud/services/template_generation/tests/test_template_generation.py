@@ -3430,7 +3430,7 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "BatteryOverviewCompact@1",
         "default",
     ).root
-    assert _template_node_options(battery_peer)["justifyContent"] == "start"
+    assert _template_node_options(battery_peer)["justifyContent"] == "center"
     assert len(_template_nodes(battery_peer, "Image")) == 1
     compact_content_row = battery_peer.children[0]
     assert [child.component for child in compact_content_row.children] == [
@@ -3651,11 +3651,6 @@ def test_new_support_templates_follow_two_line_contract(
     root_options = root.values[-1].properties
 
     assert root.component == "Row"
-    padding = root_options.get("padding")
-    assert padding is not None
-    left_padding = padding.properties.get("left")
-    assert left_padding is not None
-    assert left_padding.value == 8
     action = root_options.get("onClick")
     assert action is not None
     assert action.kind == "event-action"

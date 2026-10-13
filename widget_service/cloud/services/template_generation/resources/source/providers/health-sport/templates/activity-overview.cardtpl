@@ -7,9 +7,9 @@ Column(
   {
     "_advancedComponent": "ActivityOverview",
     "width": "matchParent",
-    "height": "matchParent",
+    "height": 36,
     "itemMargin": 4,
-    "justifyContent": "spaceBetween",
+    "justifyContent": "center",
     "alignItems": "start",
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
@@ -427,7 +427,6 @@ Row(
         "height": "matchParent",
         "justifyContent": "spaceBetween",
         "alignItems": "center",
-        "padding": { "left": 8, "right": 8 },
         "onClick": EventAction(props?.actionId)
     },
     Column(
@@ -1067,9 +1066,6 @@ Column(
     "itemMargin": 4,
     "justifyContent": "center",
     "alignItems": "start",
-    "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-    "backgroundColor": $theme('progressBackgroundColor'),
-    "borderRadius": 16,
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },

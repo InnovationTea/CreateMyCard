@@ -89,7 +89,6 @@ Row(
         "_advancedComponent": "BatteryOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -214,7 +213,6 @@ Row(
         "_advancedComponent": "BatteryOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -276,7 +274,6 @@ Row(
         "_advancedComponent": "BatteryOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -661,9 +658,9 @@ Column(
     {
         "_advancedComponent": "BatteryOverview",
         "width": "matchParent",
-        "height": "matchParent",
+        "height": 36,
         "itemMargin": 0,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "start",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -2715,9 +2712,6 @@ Row(
         "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius")
     },
     Column(
         {
@@ -2769,11 +2763,8 @@ Row(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
-        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
-        "borderRadius": $theme('supportContentStyle.borderRadius'),
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
@@ -2921,7 +2912,6 @@ Row(
     "_advancedComponent": "BatteryOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
