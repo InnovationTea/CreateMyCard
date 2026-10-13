@@ -5,7 +5,8 @@
 ## 整改总览
 
 - [x] 179 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
-- [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
+- [x] 业务模板尺寸和动作组合默认由后缀推导；历史上仅为 2x4 槽位设计、但后缀无法表达尺寸的模板可在
+  `provider.json` 中用 `supportedCardSizes` 显式覆盖。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
 - [x] Search 按数据覆盖返回 Support 等全部尺寸可用模板；Planner 可选择双 Support，并把 Action 分配给
@@ -24,10 +25,13 @@
 | Support | 约 2x1；由 Planner 组成双 Support，可在业务内部消费 Action | 2x2 |
 | Compact | 约 2x1；单 Compact + 2 个 PillAction | 2x2 |
 | Hero | 约 2x1.7；Hero + 1 个 PillAction；2x4 双焦点布局中可在根节点内嵌底板事件 | 2x2 |
-| Full | 完整 2x2；无 Action，或 Full + 1 个 IconAction | 2x2 |
+| Full | 默认完整 2x2；无 Action，或 Full + 1 个 IconAction；历史宽卡例外由 `supportedCardSizes` 显式声明 | 2x2（默认） |
 | WideHero | 约 4x1.7；WideHero + 1 个 PillAction | 2x4 |
 | WideFull | 完整 4x2；单 WideFull | 2x4 |
 | WideHalf | 约 4x1；用于 2x4 半高组合布局 | 2x4 |
+
+当前显式声明 `supportedCardSizes: ["2x4"]` 的历史宽卡模板为
+`WeatherOverviewThreeDayForecastFull@1`，因此不会进入 2x2 的业务模板候选。
 
 ## 业务与运行状态
 

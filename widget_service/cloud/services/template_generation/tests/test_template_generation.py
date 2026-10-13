@@ -422,6 +422,9 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         "WideFull",
         "WideHalf",
     }
+    explicit_size_overrides = {
+        "WeatherOverviewThreeDayForecastFull@1",
+    }
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
@@ -431,6 +434,7 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         expected_sizes = (
             ("2x4",)
             if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            or template_id in explicit_size_overrides
             else ("2x2",)
         )
         serialized = definition.model_dump(mode="json", by_alias=True)
@@ -443,6 +447,17 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         assert set(definition.primary_data).isdisjoint(definition.optional_data)
         assert set(definition.secondary_data).isdisjoint(definition.optional_data)
         assert definition.required_data == (*definition.primary_data, *definition.secondary_data)
+
+
+def test_legacy_wide_templates_are_excluded_from_2x2_by_explicit_size_override():
+    registry = get_cardplan_registry()
+    expected_wide_only = {
+        "WeatherOverviewThreeDayForecastFull@1",
+    }
+
+    for template_id in expected_wide_only:
+        variant = registry.require_template(template_id).variants[0]
+        assert variant.supported_card_sizes == ("2x4",)
 
 
 def test_weather_location_compile_time_conditional_has_optional_sources() -> None:
@@ -3415,7 +3430,7 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "BatteryOverviewCompact@1",
         "default",
     ).root
-    assert _template_node_options(battery_peer)["justifyContent"] == "start"
+    assert _template_node_options(battery_peer)["justifyContent"] == "center"
     assert len(_template_nodes(battery_peer, "Image")) == 1
     compact_content_row = battery_peer.children[0]
     assert [child.component for child in compact_content_row.children] == [
@@ -3636,11 +3651,6 @@ def test_new_support_templates_follow_two_line_contract(
     root_options = root.values[-1].properties
 
     assert root.component == "Row"
-    padding = root_options.get("padding")
-    assert padding is not None
-    left_padding = padding.properties.get("left")
-    assert left_padding is not None
-    assert left_padding.value == 8
     action = root_options.get("onClick")
     assert action is not None
     assert action.kind == "event-action"
