@@ -1,0 +1,31 @@
+{
+  "userQuery": "看明日降雨概率",
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "daily": [
+          {
+            "rainProbabilityPercent": {
+              "type": "string",
+              "description": "降雨概率百分比",
+              "sampleValue": "20%"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ]
+}

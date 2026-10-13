@@ -20,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 190
+    assert manifest.get("templateCount") == 216
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 24,
+        "Support": 29,
         "Compact": 22,
         "Hero": 52,
-        "Full": 64,
+        "Full": 77,
         "WideHero": 5,
-        "WideFull": 18,
+        "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 162, "2x4": 28}
-    assert len(cases) == 190
+    assert manifest.get("countsBySize") == {"2x2": 180, "2x4": 36}
+    assert len(cases) == 216
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 190
+    assert len(template_ids) == 216
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -148,12 +148,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/current/condition",
             )
         elif case.template_id == "HeartRateOverviewMinMaxFull@1":
+            # 平均心率与运动类型为可选数据：存在时平均心率为大字、类型为标签，区间退为辅行。
             assert case.primary_data == (
                 "/exerciseHeartRateMax",
                 "/exerciseHeartRateMin",
             )
             assert case.secondary_data == ()
-            assert case.optional_data == ("/updatedAt",)
+            assert case.optional_data == (
+                "/exerciseHeartRateAvg", "/exerciseTypeName", "/updatedAt",
+            )
         elif case.template_id == "BatteryOverviewSupport@1":
             # 充电状态与电池温度为可选数据：辅行充电优先、温度回退，电量环仍由数值电量驱动。
             assert case.primary_data == ("/batterySOC",)
@@ -346,3 +349,51 @@ def test_battery_wide_and_support_icons_remain_optional():
     ):
         variant = registry.require_variant(template_id, "default")
         assert "batteryIcon" not in variant.parameters_schema.get("required", [])
+
+
+def test_weather_rain_previews_keep_numbers_and_format_text_units():
+    registry = get_cardplan_registry()
+    covered: set[str] = set()
+    for case in build_template_preview_cases():
+        if case.business_id != "WeatherOverview":
+            continue
+        definition = registry.require_template(case.template_id)
+        rain_bindings = []
+        for binding in definition.bindings.values():
+            if binding.path.endswith("/rainProbabilityPercent"):
+                assert binding.data_type == "number"
+                rain_bindings.append(binding)
+        if not rain_bindings:
+            continue
+        covered.add(case.template_id)
+        data_message = case.messages[2].get("updateDataModel")
+        assert isinstance(data_message, dict)
+        data = data_message.get("value")
+        assert isinstance(data, dict)
+        weather = data.get("data", {}).get("weather", {})
+        daily = weather.get("daily")
+        assert isinstance(daily, list)
+        for item in daily:
+            if not isinstance(item, dict) or "rainProbabilityPercent" not in item:
+                continue
+            probability = item.get("rainProbabilityPercent")
+            assert isinstance(probability, (int, float))
+            assert not isinstance(probability, bool)
+        component_message = case.messages[1].get("updateComponents")
+        assert isinstance(component_message, dict)
+        components = component_message.get("components")
+        assert isinstance(components, list)
+        rain_text_count = 0
+        for component in components:
+            if component.get("component") == "Progress":
+                value = component.get("value")
+                if isinstance(value, str) and "rainProbabilityPercent" in value:
+                    assert "%" not in value
+            content = component.get("content")
+            if not isinstance(content, str) or "rainProbabilityPercent" not in content:
+                continue
+            assert component.get("component") == "Text"
+            assert content.count("%") == 1
+            rain_text_count += 1
+        assert rain_text_count > 0
+    assert len(covered) == 9

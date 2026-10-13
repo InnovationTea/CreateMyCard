@@ -1,5 +1,9 @@
 # 第二层业务模板使用规则
 
+- `WeatherOverviewConditionSupport@1`：双业务天气现象信息块，仅必需 `/current/condition`，
+  不依赖温度和城市。`conditionIcon` 必填且仅接受与实际天气匹配的状态图标；没有匹配素材时不选择该模板，
+  不用温度计替代。可选 `actionId` 只消费已分配的天气详情事件。
+
 - Provider：`com.huawei.weather.cli`；业务领域为 `WeatherOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
@@ -19,6 +23,10 @@
     基础 Support 以天气现象为必需数据，温度、体感、城市和区县可选；另两种 Support 仍以温度为主数据，
     天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
+  - `WeatherOverviewTemperatureHumiditySupport@1`：温度、天气现象、湿度和空气质量；纯文本，
+    不接收图标；可选内部事件 `actionId`。温度为主数据，天气现象为次要数据，
+    湿度为纯数值（展示时拼接“%”），湿度与空气质量均为可选辅行：同时存在时合并一行，
+    只有一个时单独展示，都缺失时省略辅助行；仅用于双业务 Support 组合布局。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选空气质量、感冒指数与 `conditionIcon`。
     空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
     体感温度可选，可用时在温度下方以 12vp「体感 N°」子行展示；天气预警与风级可选，
@@ -63,6 +71,7 @@
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
   - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
   - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
+  - `WeatherOverviewNextDayHealthFull@1`：当日（daily[0]）健康指数 Full，与 DailyHealthFull 同构，突出紫外线等级，并展示空气质量、感冒指数，可选补充天气现象与气温范围。
   - `WeatherOverviewTargetDayHealthFull@1`：当日健康指数 Full（daily[4]），上组突出 20vp 紫外线等级，
     下组以 12vp 展示空气质量和感冒指数；城市区县可选，缺失时显示「当前城市」；可选紫外线图标。
   - `WeatherOverviewAlertInfoFull@1`：完整温度天气摘要，空气质量行下追加预警信息行；无预警时显示“无预警信息”。可选 `conditionIcon`。

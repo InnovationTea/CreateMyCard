@@ -243,7 +243,8 @@ class _SequenceRuntime:
 
 @pytest.mark.asyncio
 async def test_unified_model_client_master_success_does_not_call_fallback():
-    settings = Settings(_env_file=None, enable_model_failure_retry=True)
+    settings = Settings(_env_file=None, enable_model_failure_retry=True,
+                        openai_master_client="deepseek_platform")
     runtime = _SequenceRuntime({"deepseek_platform": ["master-result"]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
 
@@ -260,8 +261,30 @@ async def test_unified_model_client_master_success_does_not_call_fallback():
 
 
 @pytest.mark.asyncio
+async def test_unified_model_client_can_select_official_http_master():
+    settings = Settings(
+        _env_file=None,
+        openai_master_client="deepseek_official_http",
+        enable_model_failure_retry=True,
+    )
+    runtime = _SequenceRuntime({"deepseek_official_http": ["official-result"]})
+    client = UnifiedModelClient(settings, runtime, operation_name="compact")
+
+    result = await client.generate(
+        "openai",
+        [],
+        _request_context(),
+        phase="initial",
+    )
+
+    assert result == "official-result"
+    assert runtime.calls == [("deepseek_official_http", _request_context())]
+
+
+@pytest.mark.asyncio
 async def test_unified_model_client_does_not_treat_quality_candidate_as_fallback_error():
-    settings = Settings(_env_file=None, enable_model_failure_retry=True)
+    settings = Settings(_env_file=None, enable_model_failure_retry=True,
+                        openai_master_client="deepseek_platform")
     runtime = _SequenceRuntime({"deepseek_platform": ["invalid-design-token"]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
 
@@ -280,7 +303,8 @@ async def test_unified_model_client_does_not_treat_quality_candidate_as_fallback
 
 @pytest.mark.asyncio
 async def test_unified_model_client_retry_disabled_never_calls_fallback():
-    settings = Settings(_env_file=None, enable_model_failure_retry=False)
+    settings = Settings(_env_file=None, enable_model_failure_retry=False,
+                        openai_master_client="deepseek_platform")
     error = ModelTransportError("master unavailable", code="MODEL_UNAVAILABLE")
     runtime = _SequenceRuntime({"deepseek_platform": [error]})
     client = UnifiedModelClient(settings, runtime, operation_name="compact")
@@ -301,6 +325,7 @@ async def test_unified_model_client_retry_disabled_never_calls_fallback():
 async def test_unified_model_client_fallback_disabled_retries_only_master():
     settings = Settings(
         _env_file=None,
+        openai_master_client="deepseek_platform",
         enable_model_failure_retry=True,
         enable_openai_fallback=False,
         model_failure_max_retry_attempts=1,
@@ -335,6 +360,7 @@ async def test_unified_model_client_fallback_disabled_retries_only_master():
 async def test_unified_model_client_exhausts_master_then_uses_fallback_retries():
     settings = Settings(
         _env_file=None,
+        openai_master_client="deepseek_platform",
         enable_model_failure_retry=True,
         model_failure_max_retry_attempts=2,
         fallback_model_failure_max_retry_attempts=1,
@@ -493,20 +519,41 @@ async def test_all_physical_model_clients_share_one_concurrency_limit():
             finally:
                 leave_call()
 
+    class FakeOfficialHttpTransport:
+        @staticmethod
+        async def generate(_messages, _request_context):
+            enter_call()
+            try:
+                await asyncio.sleep(0.01)
+                return "deepseek-official-http"
+            finally:
+                leave_call()
+
+        @staticmethod
+        async def aclose():
+            return None
+
     runtime = ModelExecutionRuntime(
         settings,
         mep_transport=FakeMepTransport(),
         deepseek_platform_transport=FakeDeepSeekPlatformTransport(),
         llmclient_transport=FakeLlmClientTransport(),
+        deepseek_official_http_transport=FakeOfficialHttpTransport(),
     )
     try:
         results = await asyncio.gather(
             runtime.generate_once("mep", [], _request_context()),
             runtime.generate_once("deepseek_platform", [], _request_context()),
             runtime.generate_once("llmclient", [], _request_context()),
+            runtime.generate_once("deepseek_official_http", [], _request_context()),
         )
     finally:
         await runtime.aclose()
 
-    assert results == ["mep", "deepseek-platform", "llmclient"]
+    assert results == [
+        "mep",
+        "deepseek-platform",
+        "llmclient",
+        "deepseek-official-http",
+    ]
     assert max_active_calls == 1

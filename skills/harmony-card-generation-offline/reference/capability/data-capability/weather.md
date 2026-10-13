@@ -124,8 +124,8 @@
               "description": "适合直接显示的温度范围，例如“24° / 32°”。"
             },
             "rainProbabilityPercent": {
-              "type": "string",
-              "description": "白天降雨概率百分比。如：73%"
+              "type": "number",
+              "description": "白天降雨概率的百分数数值，不带单位；例如 73 表示 73%，文本展示需追加一个 %，进度组件直接使用数值。"
             },
             "airQuality": {
               "type": "string",
@@ -194,7 +194,7 @@
           "weekday": "星期四",
           "condition": "多云",
           "temperatureRangeText": "25° / 32°",
-          "rainProbabilityPercent": "20%",
+          "rainProbabilityPercent": 20,
           "airQuality": "良",
           "uvIndex": "中等",
           "coldLevel": "低"

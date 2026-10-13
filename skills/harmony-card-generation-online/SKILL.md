@@ -94,7 +94,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 - **工具调用示例：** 本步无调用；不能为缺失参数猜值，也不在此发起新的外部调用。当前任务既有外部来源结果
   或已发现来源可补齐客观事实且不影响能力集合选择时暂留待补；权限阶段后先处理已有结果，不足再补查。
 - **来源与检查：** 数据 ID/参数名/类型/路径来自本轮定义，事件完整复制 actionTemplate，仅替换声明的动态参数，素材只传 ID。
-  素材候选按返回的 `description` 做主题精确匹配：只有描述明确覆盖用户主业务、且注明可用于本规则的彩色 PNG，才最多选择 1 个 `asset.*` PNG 候选；不因有日期、时间、按钮或任意状态字段而泛化匹配，也不为凑视觉效果传候选。该类 PNG 优先由微服务在 2x2 单业务的标准 CardHeader 右上角以现有 20vp 图标位使用，其他尺寸、正文、按钮、环中心和双业务分区仍不主动传此类候选；布局与最终是否采用仍由微服务裁决。
+  素材候选按返回的 `description` 做主题精确匹配：只有描述明确覆盖用户主业务、且注明适合作为标题主题图标的彩色 PNG 或可染色 SVG，才最多选择 1 个对应的 `asset.*` 候选；不因有日期、时间、按钮或任意状态字段而泛化匹配，也不为凑视觉效果传候选。该素材可由微服务在 `SingleLineTitle.icon` 合同允许、容量成立时作为右上角 20vp 不可点击装饰图标使用；SVG 须提供 `fillColor`，PNG 保留原色。它不承载状态或动作语义，正文、按钮、环中心和双业务分区仍不主动传此类候选；布局与最终是否采用仍由微服务裁决。
   对于 outputSchema 中的 array 字段，字段投影必须使用明确的非负整数下标；
   同一数组的多个展示项可点击时，各事件动态参数必须引用对应展示项下标。
   具体路径、相对 writeResultTo 的关系及 actionTemplate 动态参数规则按运行指南执行。
@@ -109,7 +109,8 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 
 - **进入条件：** 本轮最终数据集合已确定；读取运行指南“权限结果判定”。create 取最终候选，
   数据类 edit 取替换后的完整列表，纯视觉 edit 从真实有效编辑链恢复继承集合。
-- **用户回复：** 正常通过不播报；拒绝按明细使用 R11/R12 或无明细 R13；非法结果 R14。invoke 级失败静默继续。
+- **用户回复：** 正常通过不播报；拒绝按明细使用 R11/R12 或无明细 R13；首次调用的其它非法结果使用 R14。
+  精确的空能力 ID 错误按下方规则无声重试；invoke 级失败静默继续。
 - **调用示例：** 延续上述模拟计划，只检查实际保留的 ViewWeather；多能力时传完整去重集合。
 
 ```text
@@ -122,8 +123,23 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **返回检查：** 正常结果必须 stateOfPermission:true、没有任何 authorized:false、nonAuthStatus 缺失或 []，
   且所有结构/类型合法。模拟通过结果为 {"result":{"stateOfPermission":true,"nonAuthStatus":[]}}。
   非空待授权明细也阻断；字段缺失或非法不属于 invoke 失败。
-- **继续或停止：** 明确通过或本次 invoke 级失败才进入步骤 5；集合为空跳过此工具，不传空数组。
-  invoke 异常只限工具不可用、抛错、超时、传输失败或工具层失败且无正常权限结果，不重试、不伪造成功。
+  如果正常返回 `result.errorMessage` 且精确等于“不能传入空的dataCapabilityIds，请重新调用工具”，
+  先保留本轮已确定的非空能力 ID 集合并重新调用一次；不得从错误文本猜测 ID。
+- **重试示例：** 首次返回参数错误时，不发送用户回复，使用同一份完整集合再次调用：
+
+```text
+返回:{"result":{"errorMessage":"不能传入空的dataCapabilityIds，请重新调用工具"}}
+重试 invoke(functionName:"RequestDataPermission", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  dataCapabilityIds:["ViewWeather"]
+},"skillName":"harmony-card-generation-online")
+```
+
+- **继续或停止：** 明确通过才按权限通过进入步骤 5；集合为空跳过此工具，不传空数组。
+  精确缺少 ID 错误最多重试一次。重试后若得到合法的明确拒绝或待授权结果，仍按 R11/R12/R13 停止；
+  若重试调用失败、再次返回该错误或未得到合法权限结果，使用 R14 实际回复并立即停止，不进入步骤 5，
+  不调用外部来源或生成工具，也不伪造 `stateOfPermission:true`。首次调用的其它正常非法结果仍使用 R14；
+  仅首次调用的 invoke 级异常继续按既有默认放行规则处理。
 
 ### 5. 检查已有外部来源结果，按需补查
 

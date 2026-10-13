@@ -57,20 +57,16 @@ def _is_valid_full_template(wire_id: str, definition) -> bool:
     """判断单个模版是否为有效的 Full 类型"""
     # BatteryOverview 依赖专属的 selector/variant 准入机制（电量数值-文本配对），
     # 仅必需字段意图无法表达其真实准入条件，由 battery 专项测试覆盖。
-    # WeatherOverviewRainWindFull@1（上游 #404 引入）的必需字段只有
-    # /daily/0/rainProbabilityPercent + 风况字段，天气 content selector
-    # 需要天气现象/温度类上下文才能投影出可渲染 facts，仅必需字段意图
-    # 会报 "no renderable provider facts"——master 090adcc9 原生即失败
-    # （A/B 工作树已验证），属上游引擎缺口，待上游补齐后移除本排除。
-
     if definition.binding_count != 1:
         return False
     if provider_template_layout_kind(wire_id) != "Full":
         return False
     if wire_id.startswith("BatteryOverview"):
         return False
-    if wire_id == "WeatherOverviewRainWindFull@1":
-        return False
+    # WeatherOverviewWindFull@1 的 secondaryData 已清空（prefectureName 转可选，
+    # Q103 风况意图不再强制城市字段），仅必需字段意图下数据只剩风况对，
+    # 天气 content selector 投影不出可渲染 facts（与 RainWindFull 同类缺口），
+    # 完整字段请求（Q103 实测）渲染正常；待上游补齐 content selector 后移除。
     return True
 
 
@@ -118,6 +114,7 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
 
     parameters: dict[str, str] = {}
     asset_candidates: list[dict[str, object]] = []
+    card_spec_title: str | None = None
     if template_id == "BluetoothDeviceOverviewMusicFull@1":
         icon_path = "resources/base/media/earphone_case_16644.svg"
         parameters["deviceIcon"] = icon_path
@@ -126,6 +123,12 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
             "description": "耳机充电盒图标",
             "sceneTags": ["earphone-case"],
         })
+    if template_id == "ScheduleOverviewMeetingSenderFull@1":
+        # 该模板的 title 是必填 prop，但来源是可信 CardSpec 文案而非运行时数据
+        # （provider_bundle 的绑定准入硬性要求 card_spec.title 非空；
+        # 编译器校验字面量逐字复用，准入/桩 Plan 体须携带同一字面量）。
+        card_spec_title = "UI需求评审会"
+        parameters["title"] = card_spec_title
     task = TaskSpec(
         userQuery=f"仅必需字段渲染 {template_id}",
         size="2x2",
@@ -138,7 +141,7 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
         writeResultTo=definition.data_domain,
         candidateOutputFields=paths,
     )
-    card_spec = {
+    card_spec: dict[str, object] = {
         "suggestSize": "2x2",
         "dataBindings": [
             {
@@ -147,6 +150,8 @@ def test_full_template_renders_with_required_fields_only(template_id: str) -> No
             }
         ],
     }
+    if card_spec_title is not None:
+        card_spec["title"] = card_spec_title
     intent = {
         "requiredOutputFieldsByCapability": {definition.capability_id: paths},
         "primaryOutputFieldByCapability": {},

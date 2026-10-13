@@ -1,0 +1,56 @@
+{
+  "userQuery": "显示数据",
+  "size": "2x4",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "earphone": {
+        "isConnected": {
+          "type": "boolean",
+          "description": "当前是否处于耳机连接活跃状态",
+          "sampleValue": true
+        },
+        "earphoneName": {
+          "type": "string",
+          "description": "耳机广播名称",
+          "sampleValue": "FreeBuds Pro 3"
+        },
+        "leftBatteryLevel": {
+          "type": "integer",
+          "description": "左耳电量百分比0到100",
+          "sampleValue": 76
+        },
+        "rightBatteryLevel": {
+          "type": "integer",
+          "description": "右耳电量百分比0到100",
+          "sampleValue": 78
+        },
+        "extra0": {
+          "type": "string",
+          "sampleValue": "辅助"
+        },
+        "extra1": {
+          "type": "string",
+          "sampleValue": "辅助"
+        },
+        "extra2": {
+          "type": "string",
+          "sampleValue": "辅助"
+        },
+        "extra3": {
+          "type": "string",
+          "sampleValue": "辅助"
+        },
+        "extra4": {
+          "type": "string",
+          "sampleValue": "辅助"
+        },
+        "extra5": {
+          "type": "string",
+          "sampleValue": "辅助"
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

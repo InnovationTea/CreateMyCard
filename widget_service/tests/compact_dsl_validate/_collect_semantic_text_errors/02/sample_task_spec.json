@@ -1,0 +1,16 @@
+{
+  "size": "4x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "calendar": {
+        "eventCount": {
+          "type": "integer",
+          "description": "日程数量",
+          "sampleValue": 2
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

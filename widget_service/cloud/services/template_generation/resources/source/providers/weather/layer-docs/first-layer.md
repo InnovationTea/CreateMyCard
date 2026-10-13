@@ -46,9 +46,17 @@
 - 用户只要求天气概览时，若本轮提供 `temperatureText` 则优先以温度为主焦点；仅提供 `condition` 时，
   使用天气现象 Hero。用户明确要求湿度、紫外线或空气质量时，切换到对应主数据模板。
 - 用户明确要求天气预警和更新时间，且 `alertLevel`、`updatedAt` 均可用时，使用天气预警 Full。
+- 用户请求的日期信息可由天气 `daily` 字段承载（如“明天日期/星期”对应 `daily[1]/date`、
+  `daily[1]/weekday`）时，`GetCurrentTime` 不纳入 `requiredOutputFieldsByCapability`——
+  “今天/当前日期星期”未被用户明确要求时同样不纳入。仅当用户明确要求“今天/当前”的日期、
+  星期或时间且本轮提供 `GetCurrentTime` 候选时才纳入其字段；否则不得因该能力存在而增加
+  必选业务，也不得为其编造展示字段。
 - 用户要求城市、风向和风力，且对应字段均可用时，可使用风况天气 Hero；更新时间为可选展示字段。
   用户显式要求更新时间时仍须保证该字段可用并被覆盖，不得以可选声明为由静默省略。
 - 2x2 请求同时包含 `ViewWeather` 与其他数据能力，且 `userQuery`、`title` 或 `description` 明确要求展示天气、温度、天气现象、紫外线或空气质量时，必须保留 `WeatherOverview`，不得因为另一个业务组件可单独成卡而丢弃天气。
+- `2x2` 多业务场景中，用户要求展示温度、天气现象及湿度或空气质量，且温度与现象均可用时，
+  可以选择 `WeatherOverviewTemperatureHumiditySupport@1`；该模板只占 `TwoSupportLayout@1` 的
+  一个业务槽位，湿度和空气质量为可选辅行，缺失时省略，不得补造。
 - 2x2 恰好包含两个数据业务和一个显式 Action 时，天气可使用 `WeatherOverviewHeroTitle@1`，
   并固定作为第一个业务位置；不得用 Hero 或 Full 冒充。此标题模板的城市、区县、温度及天气现象均可选，
   不要求温度字段必须存在；用户仅要求展示天气现象时，不得额外把温度加入必须展示字段。

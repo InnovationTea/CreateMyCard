@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""模板进度环经过公共转换后保留尺寸，普通卡片沿用尺寸规则。"""
+"""公共转换保留显式进度环几何和层级，不再按布局猜测并重写。"""
 
 from __future__ import annotations
 
@@ -11,8 +11,6 @@ import pytest
 
 from services.compact_dsl_a2ui_converter import (
     ComponentRow,
-    _normalize_ring_stack_children,
-    convert_compact_dsl_to_a2ui,
 )
 from services.generation_pipeline import DslProcessorKind
 from services.template_generation.engine.cardplan.compiler import (
@@ -28,6 +26,10 @@ from services.template_generation.engine.cardplan.fusion_ball_background import 
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
+    CompactDslConversionError,
+    convert_compact_dsl_to_a2ui,
+)
 from services.template_generation.engine.tersel_converter import convert_tersel_to_a2ui
 from services.template_generation.source_adapter import prepare_template_source_dsl
 
@@ -55,13 +57,19 @@ def _ring_rows() -> list[ComponentRow]:
 def _convert(rows: list[ComponentRow], size: str = "2x2") -> list[dict[str, Any]]:
     values: list[list[Any]] = []
     for row in rows:
-        value: list[Any] = [row.component_id, row.component_type, row.props]
+        props = dict(row.props)
+        if row.component_id == "root":
+            props["width"] = 160 if size == "2x2" else 300
+            props["height"] = 160 if size == "2x2" else 150
+        value: list[Any] = [row.component_id, row.component_type, props]
         if row.children:
             value.append(list(row.children))
         values.append(value)
     values.append(["/data/batterySOC", 68])
     compact = "\n".join(json.dumps(value) for value in values)
-    return _components(convert_compact_dsl_to_a2ui(compact, size=size))
+    return _components(convert_compact_dsl_to_a2ui(
+        compact, size=size, protocol_profile={"version": "v0.9"},
+    ))
 
 
 def _components(a2ui: str) -> list[dict[str, Any]]:
@@ -101,12 +109,12 @@ def test_template_ring_retains_explicit_geometry_and_layer_order(
     stack = _component(components, "ring_stack")
     assert _styles(stack).get("width") == width
     assert _styles(stack).get("height") == height
-    assert stack.get("children") == ["icon", "ring"]
+    assert stack.get("children") == ["ring", "icon"]
     assert _styles(_component(components, "row")).get("height") == 36
     assert _styles(_component(components, "icon")).get("width") == 12
     outside_styles = _styles(_component(components, "outside"))
-    assert outside_styles.get("width") == (52 if size == "2x2" else 36)
-    assert outside_styles.get("strokeWidth") == (6 if size == "2x2" else 4)
+    assert outside_styles.get("width") == 36
+    assert outside_styles.get("strokeWidth") == 4
 
 
 def test_template_ring_does_not_gain_undeclared_geometry() -> None:
@@ -123,33 +131,40 @@ def test_template_ring_does_not_gain_undeclared_geometry() -> None:
 @pytest.mark.parametrize("marker_state", [
     "missing", "dangling", "unreferenced", "nested", "duplicate", "no-root",
 ])
-def test_invalid_template_marker_keeps_ring_size_policy(marker_state: str) -> None:
+def test_invalid_template_marker_does_not_rewrite_ring_geometry(marker_state: str) -> None:
     rows = _ring_rows()
+    expected_error = ""
     if marker_state == "missing":
         rows[0] = ComponentRow("root", "Stack", {}, ("row", "outside"))
         rows.pop(1)
     elif marker_state == "dangling":
         rows[0] = ComponentRow("root", "Stack", {}, ("template_root", "row", "outside"))
         rows.pop(1)
+        expected_error = "missing components: template_root"
     elif marker_state == "unreferenced":
         rows[0] = ComponentRow("root", "Stack", {}, ("row", "outside"))
+        expected_error = "component must be declared by an earlier parent"
     elif marker_state == "nested":
         rows[0] = ComponentRow("root", "Stack", {}, ("wrapper", "outside"))
         rows.append(ComponentRow("wrapper", "Column", {}, ("template_root",)))
     elif marker_state == "duplicate":
         rows.append(rows[1])
+        expected_error = "Duplicate Compact DSL component id"
     else:
         rows.pop(0)
-    # 在归一化入口验证无效标记；公共解析器另有既有去重/修复策略。
-    normalized = _normalize_ring_stack_children(rows, size="2x2")
-    for row in normalized:
-        if row.component_id in {"ring_stack", "ring"}:
-            assert row.props.get("width") == row.props.get("height") == 52
-        if row.component_id == "ring":
-            assert row.props.get("strokeWidth") == 6
+        expected_error = "root Row/Column component is missing"
+    if expected_error:
+        with pytest.raises(CompactDslConversionError, match=expected_error):
+            _convert(rows)
+        return
+    components = _convert(rows)
+    for component_id in ("ring_stack", "ring"):
+        styles = _styles(_component(components, component_id))
+        assert styles.get("width") == styles.get("height") == 36
+    assert _styles(_component(components, "ring")).get("strokeWidth") == 4
 
 
-def test_unmarked_dual_zone_ring_keeps_44vp_policy() -> None:
+def test_unmarked_dual_zone_ring_keeps_explicit_geometry() -> None:
     rows = _ring_rows()
     rows[0] = ComponentRow("root", "Column", {}, ("zone", "other_zone"))
     rows[1] = ComponentRow("zone", "Column", {"width": 136, "height": 64}, ("row",))
@@ -157,8 +172,8 @@ def test_unmarked_dual_zone_ring_keeps_44vp_policy() -> None:
     components = _convert(rows)
     for component_id in ("ring_stack", "ring", "outside"):
         styles = _styles(_component(components, component_id))
-        assert styles.get("width") == styles.get("height") == 44
-    assert _styles(_component(components, "ring")).get("strokeWidth") == 6
+        assert styles.get("width") == styles.get("height") == 36
+    assert _styles(_component(components, "ring")).get("strokeWidth") == 4
 
 
 def test_linear_progress_and_events_remain_unchanged() -> None:

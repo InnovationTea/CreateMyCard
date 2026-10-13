@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 150vp single-business content with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line. Merge auxiliary fields into that line with ' | '."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "6e2ed1552be50d8651b90ccdd1b63559528ddfa2515e57cc5b4b38a45d2a4de6",
+    "sample_task_spec.json": "0cb8729dc552fd24bb1c96138ed0f931ab7d706e42e53b9ee371b44513991a4f",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

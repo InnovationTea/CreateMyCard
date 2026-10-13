@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 card has one dominant focus and at most two auxiliary slots and must use W1-focus-aux: root Row padding 12/itemMargin 10, a left 136x126 focus zone without a backboard, and a right 130x126 Column containing two 130x59 backboards separated by itemMargin 8."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "1c22fcb68dc64a5c3268ccd9bfe460099a1a3f6e3ae5b90f8f328cff7db2e8ec",
+    "sample_task_spec.json": "4e92578b640f4b38b7659a7366554534df60aabd3a30991e982a0fcc6acf6b1e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

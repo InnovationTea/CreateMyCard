@@ -282,7 +282,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 220
+    assert len(registry.provider_template_ids) == 246
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -497,9 +497,9 @@ def test_weather_condition_hero_matches_q001_data_contract() -> None:
             "WeatherOverviewDailyDateFull@1",
             ("/daily/1/condition",),
             ("/daily/1/date", "/daily/1/weekday"),
-            ("/location/districtName",),
+            ("/location/districtName", "/daily/1/temperatureRangeText"),
             ("date", "weekday", "condition"),
-            ("district",),
+            ("district", "temperatureRange"),
         ),
         (
             "WeatherOverviewDailyRainFull@1",
@@ -548,6 +548,70 @@ def test_weather_daily_templates_declare_exact_item_contracts(
     assert definition.optional_data == optional_data
     assert variant.required_bindings == required_bindings
     assert variant.optional_bindings == optional_bindings
+
+
+def test_weather_daily_item_word_labels_match_bound_daily_index() -> None:
+    """ViewWeather daily 从今天开始按日期升序：daily[0]=今天、daily[1]=明天。
+
+    可见文案中的日期词必须与模板实际绑定的 daily 下标一致，
+    防止今日数据被标注成明日（如 WeatherOverviewNextDayHealthFull）。
+    """
+    day_word_to_index = {"今天": 0, "今日": 0, "明天": 1, "明日": 1, "后天": 2}
+
+    def iter_nodes(node):
+        yield node
+        for child in node.children:
+            yield from iter_nodes(child)
+
+    def value_strings(value):
+        if isinstance(value.value, str):
+            yield value.value
+        for item in value.items:
+            yield from value_strings(item)
+        for prop in value.properties.values():
+            yield from value_strings(prop)
+
+    def visible_text(node) -> str:
+        return " ".join(s for value in node.values for s in value_strings(value))
+
+    registry = get_cardplan_registry()
+    for template_id in sorted(registry.provider_template_ids):
+        if not template_id.startswith("WeatherOverview"):
+            continue
+        definition = registry.require_template(template_id)
+        paths = (
+            *definition.primary_data,
+            *definition.secondary_data,
+            *definition.optional_data,
+        )
+        daily_indices = {
+            int(match.group(1))
+            for path in paths
+            if (match := re.match(r"^/daily/(\d+)/", path))
+        }
+        texts = tuple(
+            visible_text(node)
+            for node in iter_nodes(definition.variants[0].root)
+            if node.component == "Text"
+        )
+
+        if 0 in daily_indices:
+            for text in texts:
+                assert "明日" not in text, (
+                    f"{template_id} binds daily[0] (today) but label says 明日: {text!r}"
+                )
+        elif 1 in daily_indices:
+            for text in texts:
+                assert "今日" not in text, (
+                    f"{template_id} binds daily[1] (tomorrow) but label says 今日: {text!r}"
+                )
+        for text in texts:
+            for word, index in day_word_to_index.items():
+                if word in text:
+                    assert index in daily_indices, (
+                        f"{template_id} label {word!r} requires daily[{index}], "
+                        f"bound daily indices {sorted(daily_indices)}: {text!r}"
+                    )
 
 
 def test_weather_daily_item_binding_uses_the_exact_array_index() -> None:
@@ -702,21 +766,20 @@ def test_weather_wind_hero_matches_q025_data_contract() -> None:
         "/current/windDirection",
         "/current/windLevel",
     )
-    assert definition.secondary_data == (
-        "/location/prefectureName",
-    )
+    assert definition.secondary_data == ()
     assert definition.optional_data == (
         "/updatedAt",
         "/current/temperatureText",
         "/current/condition",
         "/location/cityCode",
+        "/location/prefectureName",
     )
     assert variant.required_bindings == (
-        "city",
         "windDirection",
         "windLevel",
     )
     assert variant.optional_bindings == (
+        "city",
         "updatedAt",
         "temperatureText",
         "condition",
@@ -1207,7 +1270,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 51
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -1282,13 +1345,13 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
         ("GetHealthAndSportSummary",),
     ) == "2x2-two-support"
     assert registry.theme_reference_values("2x2-two-support") == {
-        "primaryColor": "#E61F4595",
-        "supportContentColor": "#991F4595",
-        "progressColor": "#E61F4595",
-        "progressBackgroundColor": "#330A59F7",
-        "actionStyle.backgroundColor": "#330A59F7",
+        "primaryColor": "#E61F4799",
+        "supportContentColor": "#991F4799",
+        "progressColor": "#E61F4799",
+        "progressBackgroundColor": "#CCFFFFFF",
+        "actionStyle.backgroundColor": "#CCFFFFFF",
         "actionStyle.contentColor": "#E61F4799",
-        "supportContentStyle.backgroundColor": "#1A2E529E",
+        "supportContentStyle.backgroundColor": "#CCFFFFFF",
         "supportContentStyle.borderRadius": 16,
     }
 
@@ -2356,14 +2419,25 @@ def test_activity_full_renders_metric_rows_only_when_fields_are_advertised():
     assert any(node.component_type == "Progress" for node in walk(complete))
 
 
-def test_workout_template_requires_one_complete_training_session():
+def test_workout_template_full_tiers_and_latest_session_facts():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverviewFull@1")
 
+    # 时长为唯一必选主字段：仅查“运动了多久”的请求也能落地 Full 形态；
+    # 热量、起止时间、运动类型与当日步数/热量全部可选，缺失时按条件分支省略。
+    # Full 形态不带图标：标题/主数据/详情三行纯文本居中（sourceIcon 仅保留在
+    # Hero/Compact/Support 变体上）。
     assert definition.primary_data == ("/exerciseDurationText",)
-    assert definition.secondary_data == ("/exerciseCalorieText",)
-    assert definition.optional_data == ("/exerciseEndTimeText", "/exerciseTypeName")
-    assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
+    assert definition.secondary_data == ()
+    assert definition.optional_data == (
+        "/exerciseCalorieText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/exerciseEndTimeText",
+        "/exerciseStartTimeText",
+        "/exerciseTypeName",
+    )
+    assert set(definition.variants[0].parameters_schema["properties"]) == set()
 
     hero = registry.require_template("WorkoutOverviewHero@1")
     assert hero.primary_data == ("/exerciseDurationText",)
@@ -2489,7 +2563,6 @@ def test_first_layer_receives_workout_session_routing_rules_and_required_paths()
     )
     assert template["requiredTaskSpecPaths"] == [
         "/data/healthSport/exerciseDurationText",
-        "/data/healthSport/exerciseCalorieText",
     ]
     provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
     assert "最近一次特定运动训练会话" in provider_rules
@@ -2829,16 +2902,19 @@ def test_sleep_templates_bind_progress_color_to_dedicated_theme_tokens() -> None
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties.get("color")
-        assert color is not None
-        assert color.kind == "theme"
-        assert color.name == "progressColor"
-        background = options.properties["backgroundColor"]
-        assert background.kind == "theme"
-        assert background.name == "progressBackgroundColor"
+        # SleepOverviewFull 的富/简双布局各含一份 Progress（#if 分支互斥，运行时只
+        # 渲染一份）；Hero 恒为一份。断言所有副本都绑定专属主题 token。
+        assert progress
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties.get("color")
+            assert color is not None
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
+            background = options.properties["backgroundColor"]
+            assert background.kind == "theme"
+            assert background.name == "progressBackgroundColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -3111,7 +3187,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("HeartRateOverviewIconHero@1", "sourceIcon"),
         ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
         ("HeartRateOverviewSupport@1", "heartIcon"),
-        ("SleepOverviewFull@1", "sourceIcon"),
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
         ("SleepOverviewScoreCompact@1", "sourceIcon"),
@@ -3139,7 +3214,6 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudTripleHero@1", "caseIcon"),
     }
     expected_inherited_assets = {
-        ("WorkoutOverviewFull@1", "sourceIcon"),
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
         ("WorkoutOverviewTrainingRecordHero@1", "sourceIcon"),
@@ -3379,10 +3453,17 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 31
+    assert len(calendar.local_template_ids) == 51
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
+    assert "ScheduleOverviewReminderSourceFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewDateLocationTimeFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewAllDayLocationFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewEventCountDatedLocationFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewTitleTimeFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewReminderFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewDatedMeetingWideFull@1" in calendar.local_template_ids
     assert [
         template_id
         for template_id in calendar.local_template_ids
@@ -3487,9 +3568,11 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewSupport@1",
         "BatteryOverviewSupportHero@1",
         "BatteryOverviewStatusSupport@1",
+        "BatteryOverviewPluggedTypeSupport@1",
         "BatteryOverviewStatusHero@1",
         "BatteryOverviewChargeStatusHero@1",
         "BatteryOverviewPhoneTextCompact@1",
+        "BatteryOverviewPhoneTextSupport@1",
         "BatteryOverviewStatusWideFull@1",
         "BatteryOverviewTemperatureHero@1",
         "BatteryOverviewTemperatureRingHero@1",
@@ -3530,7 +3613,7 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
-        "CountdownOverview": "CountdownOverviewSupport@1",
+        "CountdownOverview": "CountdownOverviewTravelSupport@1",
         "HeartRateOverview": "HeartRateOverviewSupport@1",
         "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
         "SleepOverview": "SleepOverviewSupport@1",
@@ -3547,7 +3630,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
     ("template_id", "params"),
     (
         ("ScheduleOverviewTimeSupport@1", {}),
-        ("CountdownOverviewSupport@1", {"title": "高考倒计时"}),
     ),
 )
 def test_new_support_templates_follow_two_line_contract(
@@ -3599,27 +3681,17 @@ def test_new_support_templates_follow_two_line_contract(
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    expected_item_margin = 2 if template_id == "ScheduleOverviewTimeSupport@1" else 4
-    assert content_options.get("itemMargin") == expected_item_margin
+    assert content_options.get("itemMargin") == 2
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    if template_id == "ScheduleOverviewTimeSupport@1":
-        # 时间 Support 主辅行有固定行高。
-        assert primary_options.get("height") == 20
-        assert support_options.get("height") == 16
-    else:
-        assert primary_options.get("height") is None
-        assert support_options.get("height") is None
+    assert primary_options.get("height") == 20
+    assert support_options.get("height") == 16
     assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    if template_id == "CountdownOverviewSupport@1":
-        # 双业务 Support 主标题 14vp、副标题 10vp。
-        assert support_options.get("fontSize") == 10
-    else:
-        assert support_options.get("fontSize") == 12
+    assert support_options.get("fontSize") == 12
     assert support_options.get("fontWeight") == 400
 
 
@@ -3795,7 +3867,12 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
     value, unit = value_row.children
     assert _template_node_options(value)["height"] == 48
     assert unit.values[0].value == "天"
-    assert _template_node_options(unit)["height"] == 16
+    # 单位与 WideHalf/TargetCompact 的旁数单位一致：fontSize 14、无固定高度
+    # （固定 height:16 曾把 12fp 字形压进 9vp 内容盒）、flexShrink 0 防横向挤压。
+    unit_options = _template_node_options(unit)
+    assert unit_options["fontSize"] == 14
+    assert "height" not in unit_options
+    assert unit_options["flexShrink"] == 0
     unit_margin = unit.values[-1].properties["margin"]
     assert unit_margin.kind == "object"
     assert unit_margin.properties["bottom"].value == 6
@@ -4993,6 +5070,27 @@ def test_state_independent_battery_compact_accepts_normal_battery_facts() -> Non
     )
 
 
+def test_state_independent_battery_phone_text_support_accepts_text_only_facts() -> None:
+    task = TaskSpec(
+        userQuery="显示电量文本与充电状态",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "phoneBattery": {
+                    "batterySOCText": _provider_field("74%", "string"),
+                    "chargingStatusDesc": _provider_field("正在充电", "string"),
+                }
+            }
+        },
+    )
+    _validate_provider_template_state(
+        "BatteryOverviewPhoneTextSupport@1",
+        "default",
+        task,
+        business_names={"BatteryOverview"},
+    )
+
+
 def test_support_provider_family_identity_preserves_support_shape() -> None:
     assert provider_template_family_identity(
         "BluetoothDeviceOverviewEarbudsSupport@1"
@@ -5392,7 +5490,11 @@ async def test_bluetooth_hero_supports_connection_action() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bluetooth_music_action_can_use_full_with_icon_action():
+@pytest.mark.parametrize("request_title", [None, "耳机与音乐"])
+@pytest.mark.parametrize("has_connection", [False, True])
+async def test_bluetooth_music_action_can_use_full_with_icon_action(
+    request_title: str | None, has_connection: bool,
+) -> None:
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
         writeResultTo="/data/earphone",
@@ -5425,22 +5527,34 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action():
             ],
         }
     )
+    card_spec = _bluetooth_card_spec()
+    props = {}
+    if request_title is not None:
+        card_spec["title"] = request_title
+        if not has_connection:
+            props["title"] = request_title
+    else:
+        card_spec.pop("title")
+    required_fields = list(binding.candidateOutputFields)
+    if not has_connection:
+        required_fields.remove("/isConnected")
+        binding = binding.model_copy(update={"candidateOutputFields": required_fields})
+        schema = task_spec.dataModelSchema
+        data = schema.get("data")
+        assert isinstance(data, dict)
+        earphone = data.get("earphone")
+        assert isinstance(earphone, dict)
+        earphone.pop("isConnected")
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
         available_template_ids=("BluetoothDeviceOverviewEarbudPairFull@1",),
         capability_id="GetEarphoneInfo",
-        required_fields=(
-            "/isConnected",
-            "/earphoneName",
-            "/batteryLevel",
-            "/leftBatteryLevel",
-            "/rightBatteryLevel",
-        ),
+        required_fields=tuple(required_fields),
         action_id="event.open.music.daily",
         body=(
             'Template("FullIconActionLayout@1",{},'
-            'Template("BluetoothDeviceOverviewEarbudPairFull@1",{}),'
+            f'Template("BluetoothDeviceOverviewEarbudPairFull@1",{json.dumps(props)}),'
             'Template("IconAction@1",{"actionId":"event.open.music.daily",'
             '"icon":"resources/base/media/icon_music.svg"}));'
         ),
@@ -5448,9 +5562,10 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action():
 
     output = await generate_template_a2ui(
         task_spec,
-        _bluetooth_card_spec(),
+        card_spec,
         (binding,),
         model,
+        trusted_template_candidate_ids=("BluetoothDeviceOverviewEarbudPairFull@1",),
     )
 
     assert output.template_ids == (
@@ -5460,6 +5575,27 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action():
     )
     assert "event.open.music.daily" in output.a2ui
     assert "resources/base/media/icon_music.svg" in output.a2ui
+    assert model.second_layer_prompt is not None
+    prompt_text = json.dumps(model.second_layer_prompt, ensure_ascii=False)
+    assert "businessTitleCandidate" in prompt_text
+    if request_title is not None:
+        assert request_title in prompt_text
+    texts = []
+    for line in output.a2ui.splitlines():
+        for component in json.loads(line).get("updateComponents", {}).get("components", []):
+            if component.get("component") == "Text":
+                texts.append(component)
+    assert texts
+    header = texts[0]
+    if has_connection:
+        assert "/earphoneName" in header.get("content", "")
+    else:
+        assert header.get("content") == (request_title or "蓝牙耳机")
+    styles = header.get("styles")
+    assert isinstance(styles, dict)
+    assert styles.get("fontSize") == 12
+    assert styles.get("height") == 18
+    assert "/earphoneName" in output.a2ui
 
 
 def test_bluetooth_identity_without_battery_is_a_complete_provider_fact():
@@ -7359,7 +7495,6 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     weather_full_candidates = [
         "WeatherOverviewFull@1",
         "WeatherOverviewAlertInfoFull@1",
-        "WeatherOverviewUpdatedAtFull@1",
     ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {

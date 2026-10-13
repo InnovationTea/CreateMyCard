@@ -1,0 +1,54 @@
+{
+  "userQuery": "帮我做张卡片，一起看看现在的气温、手机和耳机盒还剩多少电，还有下一场日程几点开始。",
+  "size": "2x4",
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "current": {
+          "temperatureText": {
+            "type": "string",
+            "description": "含单位的当前温度",
+            "sampleValue": "26°C"
+          }
+        }
+      },
+      "phoneBattery": {
+        "batterySOCText": {
+          "type": "string",
+          "description": "含单位的手机电量",
+          "sampleValue": "68%"
+        }
+      },
+      "earphone": {
+        "batteryLevel": {
+          "type": "integer",
+          "description": "耳机盒电量百分比0到100",
+          "sampleValue": 80
+        }
+      },
+      "calendar": {
+        "events": [
+          {
+            "dtStart": {
+              "type": "string",
+              "description": "开始时间",
+              "sampleValue": "14:00"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

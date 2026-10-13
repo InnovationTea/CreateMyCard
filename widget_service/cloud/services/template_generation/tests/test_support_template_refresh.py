@@ -25,6 +25,12 @@ _CALENDAR_SUPPORTS = (
 
 # 主数值与同排单位都属于主文本。
 _SUPPORT_PRIMARY_TEXT_INDEXES = {
+    "BatteryOverviewPluggedTypeSupport@1": (0,),
+    "BatteryOverviewPhoneTextSupport@1": (0,),
+    "WeatherOverviewTemperatureHumiditySupport@1": (0, 1),
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": (0,),
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": (0,),
+    "WeatherOverviewConditionSupport@1": (0,),
     "WeatherOverviewFeelsLikeWindSupport@1": (0,),
     "ActivityOverviewSupport@1": (0,),
     "BatteryOverviewSupport@1": (0,),
@@ -32,7 +38,6 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "BluetoothDeviceOverviewEarbudsSupport@1": (0,),
     "BluetoothDeviceOverviewChargeSupport@1": (0,),
     "BluetoothDeviceOverviewConnectionSupport@1": (0,),
-    "CountdownOverviewSupport@1": (0,),
     "CountdownOverviewTravelSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
     "ResourceUsageOverviewSupport@1": (0, 1),
@@ -49,8 +54,10 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WorkoutOverviewSupport@1": (0,),
 }
 
-# 电量缺失时只保留一行主文本的 Support：不要求存在辅助文本行。
+# 可选数据缺失时仅保留主文本的 Support：不要求存在辅助文本行。
 _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
+    "BatteryOverviewPhoneTextSupport@1",
+    "WeatherOverviewTemperatureHumiditySupport@1",
     "BatteryOverviewSupport@1",
     "BluetoothDeviceOverviewChargeSupport@1",
     "BluetoothDeviceOverviewConnectionSupport@1",
@@ -149,12 +156,18 @@ def test_support_ux_spacing_typography_and_right_icon(
         assert isinstance(styles, dict)
         primary = index in primary_indexes
         subtitle_size = 10 if template_id in {
-            "CountdownOverviewSupport@1",
             "CountdownOverviewTravelSupport@1",
             "WeatherOverviewDaily2TravelSupport@1",
             "WeatherOverviewTravelSupport@1",
         } else 12
         font_size = 14 if primary else subtitle_size
+        # 上游新增的纯文本电量和温湿度模板使用 16fp 主读数。
+        large_primary = template_id in {
+            "BatteryOverviewPhoneTextSupport@1",
+            "WeatherOverviewTemperatureHumiditySupport@1",
+        }
+        if large_primary and index == 0:
+            font_size = 16
         assert styles.get("fontSize") == font_size
         if primary:
             assert styles.get("fontWeight") == 700
@@ -163,10 +176,14 @@ def test_support_ux_spacing_typography_and_right_icon(
             assert styles.get("fontWeight") in (400, 500)
         assert styles.get("minFontSize", font_size) == font_size
 
-    for node in _standalone_images(root):
+    for index, node in enumerate(_standalone_images(root)):
         styles = node.values[-1]
         assert isinstance(styles, dict)
-        assert styles.get("width") == styles.get("height") == 24
+        inline_earbud_icon = (
+            template_id == "BluetoothDeviceOverviewEarbudsSupport@1" and index < 2
+        )
+        size = 16 if inline_earbud_icon else 24
+        assert styles.get("width") == styles.get("height") == size
         assert styles.get("flexShrink") == 0
     assert _serialize_node(root).count('"onClick":') == int(with_action)
 
@@ -192,17 +209,12 @@ def test_health_support_combines_numeric_value_and_unit_with_runtime_binding(
     assert texts[1].values[0] == caption
 
 
-@pytest.mark.parametrize("title", (None, "运动会倒计时", "倒计时与天气"))
-def test_countdown_support_prioritizes_remaining_days(title: str | None) -> None:
-    params = {"title": title} if title is not None else {}
-    root = _instantiate("CountdownOverviewSupport@1", {"days": "${data.countdown.days}"}, params)
-    texts = _nodes(root, "Text")
-    assert len(texts) == 2
-    assert texts[0].values[0] == "{{ '剩余' + ${/data/countdown/days} + '天' }}"
-    assert texts[1].values[0] == (title if title is not None else "倒计时")
-    # 显式主行容器隔离下一行标题，避免其中的“天”被误识别为数值单位。
-    assert root.children[0].children[0].component_type == "Row"
-    assert len(root.children[0].children[0].children) == 1
+def test_removed_countdown_support_is_not_registered_or_previewed() -> None:
+    registry = get_cardplan_registry()
+    assert "CountdownOverviewSupport@1" not in registry.templates
+    assert "CountdownOverviewTravelSupport@1" in registry.templates
+    cases = build_template_preview_cases()
+    assert all(case.template_id != "CountdownOverviewSupport@1" for case in cases)
 
 
 @pytest.mark.parametrize("template_id", (
@@ -255,8 +267,9 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 22
+    assert len(supports) == 27
     assert not supports.intersection({
+        "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
         "HeartRateOverviewIconSupport@1", "HeartRateOverviewUpdatedIconSupport@1",
     })
@@ -409,7 +422,13 @@ def test_two_support_layout_keeps_two_equal_row_slots() -> None:
 
 def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
     expected = {
-        "BluetoothDeviceOverviewEarbudsSupport@1": ["icon_earphone.svg"],
+        "BluetoothDeviceOverviewEarbudsSupport@1": [
+            "l_circle_fill.svg", "r_circle_fill.svg", "icon_earphone.svg",
+        ],
+        "BatteryOverviewPluggedTypeSupport@1": [],
+        "BluetoothDeviceOverviewNameAndConnectionSupport@1": ["icon_earphone.svg"],
+        "BluetoothDeviceOverviewNameAndChargeSupport@1": [],
+        "WeatherOverviewConditionSupport@1": ["sun_max.svg"],
         "BluetoothDeviceOverviewChargeSupport@1": ["earphone_case_16644.svg"],
         "BluetoothDeviceOverviewConnectionSupport@1": ["icon_earphone.svg"],
         "HeartRateOverviewSupport@1": ["heart_fill.svg"],

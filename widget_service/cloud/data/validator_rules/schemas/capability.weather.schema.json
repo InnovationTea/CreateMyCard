@@ -99,7 +99,7 @@
               "type": "string"
             },
             "rainProbabilityPercent": {
-              "type": "string"
+              "type": "number"
             },
             "airQuality": {
               "type": "string"

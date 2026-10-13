@@ -1,0 +1,5 @@
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"spaceBetween"},["title_area","content_area","action_area"]]
+["title_area","Text",{"content":"标题","height":20}]
+["content_area","Text",{"content":"1","height":40,"fontSize":20}]
+["action_area","Column",{},["cta"]]
+["cta","Button",{"label":"查看详情","height":36}]

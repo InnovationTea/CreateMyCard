@@ -232,7 +232,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
     assert Settings(_env_file=None).model_failure_retry_jitter_ratio == 0.2
     assert Settings(_env_file=None).model_prompt_log_preview_chars == 30
-    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
+    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 5
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -242,6 +242,12 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
+
+
+def test_settings_keeps_inline_multiline_prompt_without_path_probe() -> None:
+    prompt = "第一行\n第二行"
+
+    assert Settings.load_prompt_file_alias(prompt) == prompt
 
 
 def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
@@ -511,11 +517,11 @@ def test_ids_mock_is_enabled_by_default():
     }
 
 
-def test_validation_failure_retry_is_disabled_by_default(monkeypatch):
+def test_validation_failure_retry_is_enabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", raising=False)
     settings = Settings(_env_file=None)
 
-    assert settings.enable_validation_failure_retry is False
+    assert settings.enable_validation_failure_retry is True
 
 
 def test_model_failure_retry_is_disabled_by_default(monkeypatch):
@@ -528,6 +534,28 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS", raising=False)
 
     assert Settings(_env_file=None).enable_widget_directive_commands is False
+
+
+def test_design_compact_few_shots_are_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_few_shots is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_few_shots is True
+
+
+def test_design_compact_runtime_prompt_context_is_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_RUNTIME_PROMPT_CONTEXT"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is True
 
 
 def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
@@ -2907,13 +2935,13 @@ async def test_a2ui_model_client_returns_mock_dat_without_processing():
 
 
 @pytest.mark.parametrize(
-    ("size", "expected_width"),
-    [("2x2", 160), ("2x4", 320)],
+    ("size", "expected_component"),
+    [("2x2", "Column"), ("2x4", "Stack")],
 )
 @pytest.mark.asyncio
 async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     size,
-    expected_width,
+    expected_component,
 ):
     """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
     prompt = [
@@ -2938,9 +2966,9 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     )
     converted_rows = [json_module.loads(line) for line in converted.splitlines()]
 
-    assert root[0:2] == ["root", "Column"]
-    assert root[2]["width"] == expected_width
-    assert root[2]["height"] == 160
+    assert root[0:2] == ["root", expected_component]
+    assert root[2]["width"] == "matchParent"
+    assert root[2]["height"] == "matchParent"
     assert len(converted_rows) == 3
     assert "width" not in converted_rows[0]["createSurface"]
     assert "height" not in converted_rows[0]["createSurface"]
@@ -3148,8 +3176,8 @@ def test_design_converter_expands_latest_design_tokens():
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
     assert component_by_id["title"]["styles"]["fontSize"] == 36
-    assert component_by_id["button"]["styles"]["width"] == 30
-    assert component_by_id["button"]["styles"]["borderRadius"] == 15
+    assert component_by_id["button"]["styles"]["width"] == 36
+    assert component_by_id["button"]["styles"]["borderRadius"] == 18
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
@@ -3857,6 +3885,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -3867,8 +3896,22 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
-    assert len(model_prompts) == 2
-    assert len(validated_genui) == 2
+    assert len(model_prompts) == 3
+    assert len(validated_genui) == 3
+    first_repair = json_module.loads(model_prompts[1][1]["content"])
+    second_repair = json_module.loads(model_prompts[2][1]["content"])
+    assert (
+        first_repair["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
+    assert second_repair["repairStrategy"]["repairStrategy"] == (
+        "plan_guided_recompose"
+    )
+    assert first_repair["repairHistory"] == []
+    assert len(second_repair["repairHistory"]) == 1
+    assert second_repair["repairHistory"][0]["sourceDsl"] == design_dsl
+    assert second_repair["repairHistory"][0]["repairAttempt"] == 1
+    assert second_repair["repairHistory"][0]["qualityErrors"]
     assert '"createSurface"' in validated_genui[0]
 
 
@@ -4229,6 +4272,16 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         payload["qualityErrors"][0]["stage"] == "validation"
         for payload in repair_payloads
     )
+    assert (
+        repair_payloads[0]["repairStrategy"]["repairStrategy"]
+        == "component_contract_repair"
+    )
+    assert repair_payloads[0]["repairStrategy"]["scope"] == "component"
+    assert repair_payloads[1]["repairStrategy"]["repairStrategy"] == (
+        "plan_guided_recompose"
+    )
+    assert repair_payloads[1]["repairStrategy"]["scope"] == "full_dsl"
+    assert repair_payloads[1]["repairStrategy"]["noProgress"] is True
 
 
 @pytest.mark.asyncio
@@ -4436,11 +4489,20 @@ def test_response_planner_returns_structured_status():
         ],
         has_artifact=True,
     )
+    optional_omission_plan = ResponsePlanner().plan(
+        requested_count=1,
+        effective_count=1,
+        removed=[],
+        has_artifact=True,
+        omitted_requirements=["补充时间"],
+    )
 
     assert success_plan.status == GenerationStatus.SUCCESS
     assert success_plan.errorCode == ""
     assert degraded_plan.status == GenerationStatus.DEGRADED
     assert "能力未注册" in degraded_plan.message
+    assert optional_omission_plan.status == GenerationStatus.DEGRADED
+    assert "部分信息" in optional_omission_plan.message
 
 
 @pytest.mark.asyncio
@@ -4518,6 +4580,54 @@ async def test_retry_controller_saves_second_failure_without_third_call():
     assert repair_calls == 1
     assert retry_result.result == "second"
     assert retry_result.errors == ["bad-second"]
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_stops_when_repair_reports_no_progress():
+    repair_calls = 0
+
+    def repair(_value: str, _errors: list[str]) -> None:
+        nonlocal repair_calls
+        repair_calls += 1
+        return None
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=5,
+        repair=repair,
+    )
+
+    assert repair_calls == 1
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 0
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is False
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_counts_unchanged_results_toward_global_budget():
+    repair_calls = 0
+
+    def repair(value: str, _errors: list[str]) -> str:
+        nonlocal repair_calls
+        repair_calls += 1
+        return value
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=10,
+        repair=repair,
+    )
+
+    assert repair_calls == 10
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 10
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is True
 
 
 @pytest.mark.asyncio

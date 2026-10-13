@@ -1,4 +1,4 @@
-#Template BluetoothDeviceOverviewEarbudsChargingWideFull@1(props: { actionId?: string, leftEarIcon?: asset, rightEarIcon?: asset, deviceIcon?: asset, musicIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsChargingWideFull@1(props: { actionId: string, leftEarIcon?: asset, rightEarIcon?: asset, deviceIcon?: asset, musicIcon?: asset })
 data = {
   name: $path("/earphoneName"), connected: $path("/isConnected"),
   battery: $path("/batteryLevel"), chargingStatus: $path("/chargingStatusDesc"),
@@ -10,7 +10,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
     "padding": {"left": 8, "right": 8, "top": 8, "bottom": 12}, "borderRadius": 16,
     "justifyContent": "spaceBetween", "itemMargin": 2,
     "backgroundColor": $theme('supportContentStyle.backgroundColor')},
-    Text(Expr((data.connected ? '已连接 ' : '未连接 ') + data.name),
+    Text(Expr(data.connected ? '已连接 ' + data.name : '未连接'),
       {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
         "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
     Row({"width": "matchParent", "itemMargin": 12, "justifyContent": "spaceBetween"},
@@ -79,6 +79,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
       #endif
     ),
     Stack({"width": "matchParent", "layoutWeight": 1, "borderRadius": 16,
+      "onClick": EventAction(props.actionId),
       "backgroundColor": $theme('supportContentStyle.backgroundColor')},
       Row({"width": "matchParent", "height": "matchParent", "padding": 8, "itemMargin": 8,
         "alignItems": "center"},
@@ -92,12 +93,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
           Image(props.musicIcon, {"width": 24, "height": 24, "objectFit": "contain",
             "flexShrink": 0, "fillColor": $theme('supportContentColor')})
         #endif
-      ),
-      #if props.actionId
-        Stack({"width": "matchParent", "height": "matchParent", "onClick": EventAction(props.actionId)},
-          Text("", {"width": "matchParent", "height": "matchParent"})
-        )
-      #endif
+      )
     )
   )
 )

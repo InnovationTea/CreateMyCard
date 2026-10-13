@@ -217,7 +217,7 @@ def _three_day_weather_case() -> _WideCase:
                 "weekday": _field(f"星期{index + 1}"),
                 "condition": _field("多云"),
                 "temperatureRangeText": _field("20~28℃"),
-                "rainProbabilityPercent": _field("30%"),
+                "rainProbabilityPercent": _field(30, "number"),
             }
         )
     candidate_weather_fields = (*weather_fields, "/location/cityCode")
@@ -274,7 +274,7 @@ def _destination_weather_case() -> _WideCase:
         daily.append(
             {
                 "temperatureRangeText": _field("18~27℃"),
-                "rainProbabilityPercent": _field("20%"),
+                "rainProbabilityPercent": _field(20, "number"),
                 "airQuality": _field("优"),
             }
         )

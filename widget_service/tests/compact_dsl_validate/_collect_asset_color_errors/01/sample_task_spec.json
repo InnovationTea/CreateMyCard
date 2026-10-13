@@ -1,0 +1,13 @@
+{
+  "size": "2x4",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/heart.svg",
+      "description": "默认黑色的单色心形图标，适用于心率监测。"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.content: expression wraps quoted JSON Pointer \"/data/x\"; use ${/data/x} for a dynamic binding, or use a plain static value without {{ }}."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "deeab246ddf900ec94dec34607d339a6b60b1a0a28838253a1cbf2a3adf47ef8",
+    "sample_task_spec.json": "8f9863fda7541f81cce95d691453d8661a4a0048b9666eb10bdee2780394b01c",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

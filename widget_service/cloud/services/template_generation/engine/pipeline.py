@@ -40,6 +40,12 @@ from services.template_generation.engine.cardplan.battery_action_policy import (
 from services.template_generation.engine.cardplan.calendar_action_policy import (
     resolve_calendar_view_fallback,
 )
+from services.template_generation.engine.cardplan.calendar_list_no_action_policy import (
+    plan_calendar_list_no_action_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_no_action_policy import (
+    plan_calendar_no_action_fallback,
+)
 from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
 from services.template_generation.engine.cardplan.earphone_action_policy import (
     resolve_earphone_candidate_actions,
@@ -110,8 +116,7 @@ async def generate_template_a2ui(
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
     logger.info(
-        f"{_MODULE} task_spec_received "
-        f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
+        f"{_MODULE} task_spec_received summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
     try:
         selected_task_spec = _with_trusted_sample_overrides(
@@ -172,6 +177,7 @@ async def generate_template_a2ui(
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
             intent = TemplateSearchIntent.model_validate(raw_query)
+            original_intent = intent
             intent = normalize_calendar_reminder_intent(
                 intent, selected_task_spec, coverage_bindings,
             )
@@ -189,54 +195,99 @@ async def generate_template_a2ui(
                 f"{_MODULE} template_retrieval_intent "
                 f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
             )
-            validate_earphone_action_exclusions(intent, selected_task_spec)
-            search_result = search_template_variants(
-                intent,
-                selected_task_spec,
-                registry,
-                coverage_bindings,
-                card_spec,
-                preferred_template_ids=trusted_template_candidate_ids,
-            )
-            resolved_intent = resolve_calendar_view_fallback(
-                intent, search_result, selected_task_spec, registry,
-            )
-            if resolved_intent.action_ids != intent.action_ids:
-                logger.info(
-                    f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
+            battery_action_is_optional = False
+            try:
+                validate_earphone_action_exclusions(intent, selected_task_spec)
+                search_result = search_template_variants(
+                    intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    preferred_template_ids=trusted_template_candidate_ids,
                 )
-            intent = resolved_intent
-            battery_action_is_optional = (
-                selected_task_spec.size == "2x2"
-                and tuple(intent.required_output_fields_by_capability) == ("GetPhoneBatteryInfo",)
-                and not intent.action_ids
-            )
-            resolved_intent = resolve_battery_settings_fallback(
-                intent, search_result, selected_task_spec,
-            )
-            if resolved_intent.action_ids != intent.action_ids:
-                logger.info(
-                    f"{_MODULE} battery_settings_fallback selected=True "
-                    "reason=legal_hero_action_candidate"
+                resolved_intent = resolve_calendar_view_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
                 )
-            intent = resolved_intent
-            if not trusted_template_action_ids:
-                resolved_earphone_intent = resolve_earphone_candidate_actions(
-                    intent, search_result, selected_task_spec, registry,
-                )
-                if resolved_earphone_intent.action_ids != intent.action_ids:
-                    search_result = restrict_earphone_action_role(
-                        search_result, len(resolved_earphone_intent.action_ids),
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
                     )
-                intent = resolved_earphone_intent
-            template_plans = plan_template_candidates(
-                intent,
-                search_result,
-                selected_task_spec,
-                registry,
-                candidate_bindings=coverage_bindings,
-                allow_battery_no_action_plan=battery_action_is_optional,
-            )
+                intent = resolved_intent
+                battery_action_is_optional = (
+                    selected_task_spec.size == "2x2"
+                    and tuple(intent.required_output_fields_by_capability) == (
+                        "GetPhoneBatteryInfo",
+                    )
+                    and not intent.action_ids
+                )
+                resolved_intent = resolve_battery_settings_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                )
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} battery_settings_fallback selected=True "
+                        "reason=legal_hero_action_candidate"
+                    )
+                intent = resolved_intent
+                if not trusted_template_action_ids:
+                    resolved_earphone_intent = resolve_earphone_candidate_actions(
+                        intent,
+                        search_result,
+                        selected_task_spec,
+                        registry,
+                    )
+                    if resolved_earphone_intent.action_ids != intent.action_ids:
+                        search_result = restrict_earphone_action_role(
+                            search_result,
+                            len(resolved_earphone_intent.action_ids),
+                        )
+                    intent = resolved_earphone_intent
+                template_plans = plan_template_candidates(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
+                    candidate_bindings=coverage_bindings,
+                    allow_battery_no_action_plan=battery_action_is_optional,
+                )
+            except TemplateRetrievalMiss:
+                fallback = plan_calendar_no_action_fallback(
+                    original_intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    enable_fusion_ball=enable_fusion_ball,
+                    trusted_template_candidate_ids=trusted_template_candidate_ids,
+                    trusted_template_action_ids=trusted_template_action_ids,
+                )
+                if fallback is None:
+                    fallback = plan_calendar_list_no_action_fallback(
+                        original_intent,
+                        selected_task_spec,
+                        registry,
+                        coverage_bindings,
+                        card_spec,
+                        enable_fusion_ball=enable_fusion_ball,
+                        trusted_template_candidate_ids=trusted_template_candidate_ids,
+                        trusted_template_action_ids=trusted_template_action_ids,
+                    )
+                if fallback is None:
+                    raise
+                intent = fallback.intent
+                registry = fallback.registry
+                search_result = fallback.search_result
+                template_plans = fallback.plans
+                logger.info(
+                    f"{_MODULE} calendar_no_action_fallback selected=True "
+                    "reason=original_search_or_planner_miss"
+                )
             selection = TemplateRouteSelection(
                 scope=planner_scope(template_plans),
                 componentCandidates=planner_component_candidates(template_plans),
@@ -397,13 +448,18 @@ async def _generate_selected_templates(
             for path in slot.field_bindings.values():
                 if path not in generic_paths:
                     generic_paths.append(path)
-    projected_task_spec = project_content_component_facts(
-        source_task_spec,
-        effective_capability_ids,
-        scope.advanced_component_ids,
-        required_output_fields_by_capability=required_output_fields_by_capability,
-        generic_output_fields=tuple(generic_paths) if template_plans else None,
-    )
+    if registry.enabled_calendar_fallback_template_ids:
+        # 补充 Full 的最小字段不依赖旧日程投影形态。下方仍按已检索模板的
+        # required/optional 路径复制真实源字段，并由正式编译器验证绑定。
+        projected_task_spec = source_task_spec.model_copy(update={"dataModelSchema": {"data": {}}})
+    else:
+        projected_task_spec = project_content_component_facts(
+            source_task_spec,
+            effective_capability_ids,
+            scope.advanced_component_ids,
+            required_output_fields_by_capability=required_output_fields_by_capability,
+            generic_output_fields=tuple(generic_paths) if template_plans else None,
+        )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
         projected_task_spec,

@@ -33,7 +33,6 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | ScheduleOverviewLocationSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewStartTimeSupport@1 | event.viewCalendarEvent、event.enter.meeting |
 | ScheduleOverviewDateSupport@1 | event.viewCalendarEvent、event.enter.meeting |
-| CountdownOverviewSupport@1 | 空 |
 | CountdownOverviewTravelSupport@1 | event.open.clock.alarm |
 | BluetoothDeviceOverviewEarbudsSupport@1 | event.open.settings.bluetooth |
 | BluetoothDeviceOverviewChargeSupport@1 | event.open.settings.bluetooth |

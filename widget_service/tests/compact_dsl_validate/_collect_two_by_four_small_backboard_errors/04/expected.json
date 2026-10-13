@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 small backboard weather without a visual must vertically center its one or two Text lines."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "f03c1519cba1f94e2ec8c970f1cc045ea75af0af9be30ea81c90869b63a5d15b",
+    "sample_task_spec.json": "1144e5d3f449c2c3cc72ca4e3c72dc0d17b09e791f82a36a08e7ef1748eb5667",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -57,8 +57,12 @@ description: 规定两种尺寸共同使用的 JSX 输出、语义布局接口�
 
 - `icon`、`src` 和 `checkIcon` 必须逐字使用当前 `assetCandidates[].src`，并根据候选 `description` 选择。无匹配候选时省略可选 Icon；Icon 必选的组件不可选用。
 - 不根据本地文件、示例或业务语义猜测资源名，不补路径或扩展名。
-- 标题组件为纯文本。多个应用来源的信息不选择单个应用 Icon 代表整卡，也不堆叠多个应用 Icon。
-- `Card.appearance` 负责卡片背景与语义调色板；业务组件不硬编码背景、字体、按钮或 Icon 颜色。
+- `SingleLineTitle` 可在存在严格匹配的静态主题素材且容量成立时使用一个右侧 `icon`；它不可点击，
+  不承载状态或动作语义。`DoubleLineTitle` 仍为纯文本。多个应用或业务对象的信息不选择单个 Icon
+  代表整卡，也不堆叠多个应用 Icon。
+- `Card.appearance` 负责卡片背景与语义调色板；业务组件不硬编码背景、字体或按钮颜色。
+  Icon 颜色只在对应组件合同明确要求时填写；`SingleLineTitle` 的 SVG `icon` 必须填写合法
+  `fillColor`，PNG 不填写并保留原色。
 
 可用单色背景为 `solid-blue`、`solid-orange`、`solid-green`、`solid-cyan`、`solid-purple`。通用／天气／出行／办公／系统优先蓝色，日程优先橙色，电量／通话／运动健康优先绿色，耳机优先青色，睡眠／冥想优先紫色；无法确定时使用 `solid-blue`。其他背景以当前尺寸补充协议为准。
 

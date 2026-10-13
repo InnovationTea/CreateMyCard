@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 fusion-ball cards must not combine a title/auxiliary icon, a ring Progress, multiple status texts, and a button. Keep one primary visual focus: remove the icon or ring, merge status text, or fall back to a non-fusion layout."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "c4ad94827c17d840dd6ba6aac922049a40978f5260b352f8b9084253523dbc07",
+    "sample_task_spec.json": "d6424ae08c3dcba2e791df083d22cd2a64be92fc6683346b61ba715712bbf23e",
+    "sample_card_spec.json": "d17f83d749e7ef6dd906c72470af20c0b3b34d24aca0c4aaaaaf8bf72b6c999e"
+  }
+}

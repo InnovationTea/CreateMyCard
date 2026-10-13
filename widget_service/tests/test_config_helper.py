@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 import pytest
+from cloud.config.config import Settings
 from cloud.config.config_helper import ConfigHelper
 
 
@@ -83,3 +84,36 @@ def test_default_config_covers_all_runtime_config_keys(
             missing_keys.append(key)
 
     assert not missing_keys
+
+
+def test_settings_prefixed_environment_wins_over_bare_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("OPENAI_MASTER_CLIENT", "llmclient")
+    monkeypatch.setenv(
+        "WIDGET_SERVICE_OPENAI_MASTER_CLIENT",
+        "deepseek_official_http",
+    )
+
+    settings = Settings(_env_file=tmp_path / "missing.env")
+
+    assert settings.openai_master_client == "deepseek_official_http"
+
+
+def test_settings_reads_prompt_file_alias_from_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    prompt_file = tmp_path / "prompt.txt"
+    prompt_file.write_text("prompt from env file", encoding="utf-8")
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        f"WIDGET_SERVICE_SYSTEM_PROMPT_FILE={prompt_file}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("WIDGET_SERVICE_SYSTEM_PROMPT_FILE", raising=False)
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.system_prompt == "prompt from env file"

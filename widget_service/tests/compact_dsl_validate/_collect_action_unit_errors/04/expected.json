@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value: icon-round ActionUnit must not declare label."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "bb23d37d2ea1027c79b293b4e479cd679abb8c8e0d8efa5662bdb72c7794328c",
+    "sample_task_spec.json": "c9b64440706735ca7476a46aba48f1a6bc91d29067d8943a301b327ee633b69c",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

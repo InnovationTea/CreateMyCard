@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw 日志分析 · Web</title>
+  <link rel="stylesheet" href="/styles.css?v=2">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>OpenClaw 日志分析</h1>
+      <p>上传 JSONL · 生成报告 · 双屏对比 · Query PK</p>
+    </div>
+    <div class="topbar-actions">
+      <label class="btn btn-primary upload-btn">
+        上传 JSONL
+        <input type="file" id="fileInput" accept=".jsonl,.json,.txt" hidden>
+      </label>
+      <button type="button" class="btn" id="pkToggleBtn" disabled>进入 PK 对比</button>
+    </div>
+  </header>
+
+  <div class="status-bar" id="statusBar">请上传第一个 JSONL 文件</div>
+
+  <main class="workspace" id="workspace">
+    <section class="panel panel-empty" id="leftPanel" data-side="left">
+      <div class="panel-toolbar">
+        <span class="panel-label">左屏</span>
+        <span class="panel-title" id="leftTitle">暂无报告</span>
+        <div class="panel-actions">
+          <button type="button" class="btn btn-sm" id="leftDownload" disabled>下载 HTML</button>
+          <button type="button" class="btn btn-sm btn-danger" id="leftDelete" disabled>删除</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="empty-state" id="leftEmpty">
+          <p>上传第一个 JSONL 后在此显示 HTML 报告</p>
+        </div>
+        <iframe class="report-frame" id="leftFrame" title="左屏报告" hidden></iframe>
+      </div>
+    </section>
+
+    <section class="panel panel-empty panel-hidden" id="rightPanel" data-side="right">
+      <div class="panel-toolbar">
+        <span class="panel-label">右屏</span>
+        <span class="panel-title" id="rightTitle">暂无报告</span>
+        <div class="panel-actions">
+          <button type="button" class="btn btn-sm" id="rightDownload" disabled>下载 HTML</button>
+          <button type="button" class="btn btn-sm btn-danger" id="rightDelete" disabled>删除</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="empty-state" id="rightEmpty">
+          <p>上传第二个 JSONL 后在此显示，可与左屏对比</p>
+        </div>
+        <iframe class="report-frame" id="rightFrame" title="右屏报告" hidden></iframe>
+      </div>
+    </section>
+  </main>
+
+  <section class="pk-drawer" id="pkDrawer" hidden>
+    <div class="pk-header">
+      <div>
+        <h2>Query PK · 步骤对比</h2>
+        <p id="pkHint">选择两个 Query 进行逐步对比（可来自同一报告或不同报告）</p>
+      </div>
+      <button type="button" class="btn" id="pkCloseBtn">关闭 PK</button>
+    </div>
+
+    <div class="pk-selectors">
+      <div class="pk-select-group">
+        <label for="pkLeftReport">A 侧报告</label>
+        <select id="pkLeftReport"></select>
+      </div>
+      <div class="pk-select-group">
+        <label for="pkLeftQuery">A 侧 Query</label>
+        <select id="pkLeftQuery"></select>
+      </div>
+      <div class="pk-select-group">
+        <label for="pkRightReport">B 侧报告</label>
+        <select id="pkRightReport"></select>
+      </div>
+      <div class="pk-select-group">
+        <label for="pkRightQuery">B 侧 Query</label>
+        <select id="pkRightQuery"></select>
+      </div>
+      <button type="button" class="btn btn-primary" id="pkRunBtn">开始对比</button>
+    </div>
+
+    <div class="pk-summary" id="pkSummary" hidden></div>
+    <div class="pk-steps" id="pkSteps"></div>
+  </section>
+
+  <div class="loading-overlay" id="loadingOverlay" hidden>
+    <div class="spinner"></div>
+    <p>正在解析 JSONL 并生成报告…</p>
+  </div>
+
+  <script src="/app.js?v=2"></script>
+</body>
+</html>

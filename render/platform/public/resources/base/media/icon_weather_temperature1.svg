@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>soft thermometer icon</title>
+
+  <path d="M64 14C55.72 14 49 20.72 49 29V73.5C43.13 78.15 40 86.1 40 94C40 107.25 50.75 118 64 118C77.25 118 88 107.25 88 94C88 86.1 84.87 78.15 79 73.5V29C79 20.72 72.28 14 64 14Z" fill="#F3EFB8"/>
+
+  <path d="M64 28C57.92 28 53 32.92 53 39V74.5C48.6 77.5 46 83.33 46 90C46 99.39 54.06 107 64 107C73.94 107 82 99.39 82 90C82 83.33 79.4 77.5 75 74.5V39C75 32.92 70.08 28 64 28Z" fill="#EFA7AD"/>
+
+  <path d="M69 40H75V44H69V40ZM69 49H75V53H69V49ZM69 58H75V62H69V58Z" fill="#F3EFB8"/>
+
+  <path d="M40.85 94.5C41.72 107.95 51.7 117.2 64 117.2C76.3 117.2 86.28 107.95 87.15 94.5" stroke="#88876D" stroke-width="1.2" stroke-linecap="round" opacity="0.62"/>
+</svg>

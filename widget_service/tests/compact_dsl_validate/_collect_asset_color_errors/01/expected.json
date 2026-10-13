@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component icon_icon: SVG icon resources/heart.svg must set fillColor; all SVG icons are treated as tintable."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "37a416cbc3941404d04f10a16788dd16a35afe377bfe7e9849d9a0c18bb51bc2",
+    "sample_task_spec.json": "6e8db729229255e02ab287e8b5fde0b6caed9c721012f834e2c2c78d63ca1bda",
+    "sample_card_spec.json": "aff56f20553ea10833d1552aa4ac7334626a944702fb92777f67f9cf7f18555d"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 card has one data root and must use a full-width single-business layout; do not generate an isolated 134x63 S4 backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "e2c5bc9074a7c675f454d7c2bb7bfab5a977c6bad38c5b64005d1a7f338a4324",
+    "sample_task_spec.json": "b0034b08739b0eaef1cfd391b9ffdab19edcbd4d1108add623dce56b3c0fce24",
+    "sample_card_spec.json": "0a0c321f9ba7a8e0083efdb9a703fb0206027cdd3eb496540f4ad015b18199f4"
+  }
+}

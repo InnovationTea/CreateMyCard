@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux actions must occupy a right auxiliary cell; do not bind actions inside the left focus zone."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "47034dc77022d29650c9ee4e870967ca0ff9d7e49c5045379ef44dc3753865cc",
+    "sample_task_spec.json": "0154f5d423ee4fb93a8c943171eb2cdfe73710b7cbf1c4a963a7a543a0c01c7e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "sampleValue": 68
+        }
+      },
+      "earphone": {
+        "a": {
+          "type": "string",
+          "sampleValue": "甲"
+        },
+        "b": {
+          "type": "string",
+          "sampleValue": "乙"
+        },
+        "c": {
+          "type": "string",
+          "sampleValue": "丙"
+        },
+        "d": {
+          "type": "string",
+          "sampleValue": "丁"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示电量进度环"
+}

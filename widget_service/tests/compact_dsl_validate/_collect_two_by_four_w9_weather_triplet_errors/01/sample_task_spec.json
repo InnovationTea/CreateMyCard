@@ -1,0 +1,48 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "temperatureRangeText": {
+          "type": "string",
+          "sampleValue": "18~26℃"
+        },
+        "rainProbabilityPercent": {
+          "type": "integer",
+          "sampleValue": 20
+        },
+        "airQuality": {
+          "type": "string",
+          "sampleValue": "优"
+        }
+      },
+      "other": {
+        "a": {
+          "type": "string",
+          "sampleValue": "甲"
+        },
+        "b": {
+          "type": "string",
+          "sampleValue": "乙"
+        },
+        "c": {
+          "type": "string",
+          "sampleValue": "丙"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "userQuery": "显示数据"
+}

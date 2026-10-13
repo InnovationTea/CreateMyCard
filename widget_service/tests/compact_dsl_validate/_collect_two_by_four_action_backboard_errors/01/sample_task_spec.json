@@ -1,0 +1,78 @@
+{
+  "userQuery": "做张卡片，看看上海现在的天气和手机剩余电量，还能分别打开天气详情和电池设置。",
+  "size": "2x4",
+  "eventCandidates": [
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Weather_CityCode",
+        "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "battery"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Music",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "location": {
+          "cityCode": {
+            "type": "string",
+            "description": "城市编码",
+            "sampleValue": "101020100"
+          }
+        },
+        "current": {
+          "condition": {
+            "type": "string",
+            "description": "天气状况",
+            "sampleValue": "多云"
+          },
+          "temperatureC": {
+            "type": "integer",
+            "description": "当前温度",
+            "sampleValue": 29
+          }
+        }
+      },
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "手机电量百分比",
+          "sampleValue": 68
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "充电状态",
+          "sampleValue": "未充电"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/base/media/music_fill.svg",
+      "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。"
+    },
+    {
+      "src": "resources/base/media/alarm_fill_1.svg",
+      "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"
+    }
+  ]
+}

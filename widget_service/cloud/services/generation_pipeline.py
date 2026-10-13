@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
@@ -14,7 +15,14 @@ from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
+    repair_compact_dsl_safe_structure,
 )
+from services.compact_outer_recomposition import recompose_small_card
+from services.compact_plan import (
+    compact_plan_omitted_facts,
+    evaluate_compact_plan_coverage,
+)
+from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
 from utils.ops_metrics import report_ops_metrics
 
@@ -65,11 +73,14 @@ class DslProcessingContext:
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
     skip_compact_dsl_validation: bool = False
+    layout_scope: str | None = None
+    compact_plan: dict[str, Any] | None = None
+    allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
 class DslProcessingResult:
-    """保留模型源 DSL、标准 DSL 和转换阶段问题。"""
+    """保留实际编译源、标准 DSL 和转换问题；模型原源另存于Trace。"""
 
     source_dsl: str
     standard_dsl: str = ""
@@ -122,52 +133,262 @@ class StandardA2UIProcessor:
         return DslProcessingResult(source_dsl=source_dsl, standard_dsl=standard_dsl)
 
 
+def _capture_processing_result(span: TraceSpan, result: DslProcessingResult) -> None:
+    span.text_artifacts["dsl_processing_input"] = result.source_dsl
+    span.text_artifacts["dsl_processing_output"] = result.standard_dsl
+    span.json_artifacts["dsl_processing_issues"] = [
+        item.to_prompt_payload() for item in result.issues
+    ]
+    span.artifact_roles.update(
+        {
+            "dsl_processing_input": "input",
+            "dsl_processing_output": "output",
+            "dsl_processing_issues": "diagnostic",
+        }
+    )
+
+
 class DesignCompactProcessor:
+    @trace_operation("dsl.processing", kind="group", capture=_capture_processing_result)
     def process(
         self,
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        binding_repair_started_at = time.perf_counter()
+        original_source_dsl = source_dsl
         try:
+            source_dsl = repair_compact_dsl_safe_structure(
+                source_dsl,
+                size=context.size,
+            )
+            safe_structure_repaired = source_dsl != original_source_dsl
             source_dsl = repair_compact_dsl_binding_paths(
                 source_dsl,
                 task_spec=context.task_spec,
                 card_spec=context.card_spec,
             )
         except CompactDslConversionError as exc:
+            trace_step(
+                "dsl.binding_repair.completed",
+                stage="dsl.bindingRepair",
+                status="failed",
+                duration_ms=_elapsed_ms(binding_repair_started_at),
+                details={"message": str(exc)},
+            )
             report_ops_metrics(body={"taskFailValidation": 1})
             return self._validation_failure(source_dsl, (str(exc),))
+        trace_step(
+            "dsl.binding_repair.completed",
+            stage="dsl.bindingRepair",
+            status="success",
+            duration_ms=_elapsed_ms(binding_repair_started_at),
+            details={"safeStructureRepaired": safe_structure_repaired},
+            text_artifacts={
+                "binding_repair_input": original_source_dsl,
+                "compact_dsl_binding_repaired": source_dsl,
+            },
+            artifact_roles={
+                "binding_repair_input": "input",
+                "compact_dsl_binding_repaired": "output",
+            },
+        )
+
+        design_profile_id = context.design_profile_id or "design-compact-dsl"
+        design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
+        outer_applied = False
+        if context.size == "2x2" and not context.skip_compact_dsl_validation:
+            outer_started_at = time.perf_counter()
+            outer_input = source_dsl
+            outer_result = recompose_small_card(
+                source_dsl, task_spec=context.task_spec, card_spec=context.card_spec,
+                protocol_profile=design_protocol, layout_scope=context.layout_scope,
+                compact_plan=context.compact_plan,
+            )
+            source_dsl = outer_result.source_dsl
+            outer_applied = outer_result.applied
+            trace_step(
+                "dsl.outer_recomposition.completed",
+                stage="dsl.outerRecomposition", status="success",
+                duration_ms=_elapsed_ms(outer_started_at),
+                details={"applied": outer_applied, "reasons": list(outer_result.reasons),
+                         "candidateCount": outer_result.candidate_count},
+                text_artifacts={"outer_recomposition_input": outer_input,
+                                "outer_recomposition_output": source_dsl},
+                artifact_roles={"outer_recomposition_input": "input",
+                                "outer_recomposition_output": "output"},
+            )
+
+        plan_coverage_started_at = time.perf_counter()
+        plan_coverage = evaluate_compact_plan_coverage(
+            source_dsl,
+            context.compact_plan,
+            context.task_spec,
+            allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+        )
+        plan_errors = plan_coverage.errors
+        plan_warnings = plan_coverage.warnings
+        omitted_facts = compact_plan_omitted_facts(
+            source_dsl,
+            context.compact_plan,
+            context.task_spec,
+            context.allowed_omitted_plan_fact_indexes,
+        )
+        plan_issues = self._validation_failure(
+            source_dsl, plan_errors, code="COMPACT_PLAN_COVERAGE_FAILED",
+        ).issues
+        plan_warning_issues = tuple(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_COVERAGE_WARNING",
+                message=message,
+                severity="warning",
+            )
+            for message in plan_warnings
+        )
+        optional_omission_issues = tuple(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_FACT_OMITTED",
+                message=(
+                    "Plan fact was omitted by the bounded fallback: "
+                    f"{fact.get('requirement') or 'unknown requirement'}."
+                ),
+                severity="warning",
+            )
+            for fact in omitted_facts
+        )
+        trace_step(
+            "dsl.plan_coverage_validation.completed",
+            stage="dsl.planCoverageValidation",
+            status="failed" if plan_errors else "success",
+            duration_ms=_elapsed_ms(plan_coverage_started_at),
+            details={"warningCount": len(plan_warnings)},
+            text_artifacts={"coverage_validation_input": source_dsl},
+            json_artifacts={
+                "plan_coverage_result": {
+                    "errors": list(plan_errors),
+                    "warnings": list(plan_warnings),
+                    "omittedFacts": [
+                        fact.get("requirement") for fact in omitted_facts
+                    ],
+                }
+            },
+            artifact_roles={
+                "coverage_validation_input": "input",
+                "plan_coverage_result": "diagnostic",
+            },
+        )
 
         if not context.skip_compact_dsl_validation:
+            compact_validation_started_at = time.perf_counter()
             try:
                 validation_result = validate_compact_dsl(
                     source_dsl,
                     task_spec=context.task_spec,
                     card_spec=context.card_spec,
+                    protocol_profile=design_protocol,
+                    layout_scope=context.layout_scope,
+                    enforce_model_component_types=True,
                 )
             except CompactDslValidationError as exc:
-                return self._validation_failure(source_dsl, exc.errors)
+                trace_step(
+                    "dsl.compact_validation.completed",
+                    stage="dsl.compactValidation",
+                    status="failed",
+                    duration_ms=_elapsed_ms(compact_validation_started_at),
+                    json_artifacts={"compact_validation_errors": list(exc.errors)},
+                    text_artifacts={"compact_validation_input": source_dsl},
+                    artifact_roles={"compact_validation_input": "input"},
+                )
+                compact_issues = self._validation_failure(source_dsl, exc.errors).issues
+                return DslProcessingResult(
+                    source_dsl=source_dsl,
+                    issues=(
+                        *plan_issues,
+                        *plan_warning_issues,
+                        *optional_omission_issues,
+                        *compact_issues,
+                    ),
+                )
+            trace_step(
+                "dsl.compact_validation.completed",
+                stage="dsl.compactValidation",
+                status="success",
+                duration_ms=_elapsed_ms(compact_validation_started_at),
+                details={"warningCount": len(validation_result.warnings)},
+                json_artifacts={
+                    "compact_validation_result": {
+                        "errors": [],
+                        "warnings": list(validation_result.warnings),
+                    }
+                },
+                text_artifacts={"compact_validation_input": source_dsl},
+                artifact_roles={
+                    "compact_validation_input": "input",
+                    "compact_validation_result": "diagnostic",
+                },
+            )
         else:
             # Template output intentionally bypasses the general Compact DSL
             # semantic rules. The converter keeps structural checks, and the
             # generated artifact is still checked by ArtifactValidator.
             validation_result = None
+            trace_record(
+                "dsl.compact_validation.skipped",
+                stage="dsl.compactValidation",
+                status="skipped",
+                details={"reason": "template_source"},
+            )
+
+        if plan_issues:
+            return DslProcessingResult(
+                source_dsl=source_dsl,
+                issues=(*plan_issues, *plan_warning_issues, *optional_omission_issues),
+            )
 
         try:
-            design_profile_id = context.design_profile_id or "design-compact-dsl"
-            design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
-                design_profile_id
-            )
             design_protocol["appVersion"] = context.task_spec["appVersion"]
+            conversion_started_at = time.perf_counter()
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
             )
+            trace_step(
+                "dsl.conversion.completed",
+                stage="dsl.convert",
+                status="success",
+                duration_ms=_elapsed_ms(conversion_started_at),
+                text_artifacts={
+                    "conversion_input": source_dsl,
+                    "standard_a2ui_before_unit_repair": standard_dsl,
+                },
+                artifact_roles={
+                    "conversion_input": "input",
+                    "standard_a2ui_before_unit_repair": "output",
+                },
+            )
+            unit_repair_started_at = time.perf_counter()
+            unit_repair_input = standard_dsl
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,
                 context.card_spec,
                 context.data_capabilities,
+            )
+            trace_step(
+                "dsl.unit_repair.completed",
+                stage="dsl.unitRepair",
+                status="success",
+                duration_ms=_elapsed_ms(unit_repair_started_at),
+                text_artifacts={
+                    "unit_repair_input": unit_repair_input,
+                    "standard_a2ui_after_unit_repair": standard_dsl,
+                },
+                artifact_roles={
+                    "unit_repair_input": "input",
+                    "standard_a2ui_after_unit_repair": "output",
+                },
             )
             warnings = tuple(
                 QualityIssue(
@@ -178,12 +399,29 @@ class DesignCompactProcessor:
                 )
                 for message in (validation_result.warnings if validation_result else ())
             )
+            if outer_applied:
+                warnings += (QualityIssue(
+                    stage="conversion", code="COMPACT_OUTER_RECOMPOSITION_APPLIED",
+                    message="2x2 outer composition compiled without changing facts or font sizes.",
+                    severity="warning",
+                ),)
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl=standard_dsl,
-                issues=warnings,
+                issues=(
+                    *plan_warning_issues,
+                    *optional_omission_issues,
+                    *warnings,
+                ),
             )
         except CompactDslConversionError as exc:
+            trace_step(
+                "dsl.conversion.completed",
+                stage="dsl.convert",
+                status="failed",
+                duration_ms=_elapsed_ms(conversion_started_at),
+                details={"message": str(exc)},
+            )
             issue = QualityIssue(
                 stage="conversion",
                 code="DESIGN_CONVERSION_FAILED",
@@ -195,16 +433,23 @@ class DesignCompactProcessor:
     def _validation_failure(
         source_dsl: str,
         errors: tuple[str, ...],
+        *,
+        code: str = "COMPACT_DSL_VALIDATION_FAILED",
     ) -> DslProcessingResult:
         issues = tuple(
             QualityIssue(
                 stage="validation",
-                code="COMPACT_DSL_VALIDATION_FAILED",
+                code=code,
                 message=message,
             )
             for message in errors
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return round((time.perf_counter() - started_at) * 1000, 2)
+
 
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.STANDARD_A2UI: StandardA2UIProcessor(),

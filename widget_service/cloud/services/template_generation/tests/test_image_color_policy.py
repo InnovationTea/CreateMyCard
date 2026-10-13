@@ -105,7 +105,7 @@ def test_template_allows_inherited_original_color_with_explicit_fill(color: str)
         ({"_preserveOriginalColor": True}, None),
         ({"fillColor": _EXPLICIT}, _EXPLICIT),
         ({"_preserveOriginalColor": False, "fillColor": _EXPLICIT}, _EXPLICIT),
-        ({}, "#E61F4595"),
+        ({}, "#E61F4799"),
     ),
 )
 def test_image_uses_only_declared_color_policy(
@@ -242,7 +242,7 @@ def test_legacy_weather_entry_does_not_infer_image_color(
     assert len(images) == 1
     options = images[0].values[-1]
     assert isinstance(options, dict)
-    assert options.get("fillColor") == "#E61F4595"
+    assert options.get("fillColor") == "#E61F4799"
     assert "_preserveOriginalColor" not in options
 
 
@@ -373,7 +373,7 @@ def test_two_support_final_a2ui_preserves_weather_template_fill(
         assert image.get("src") == source
         styles = image.get("styles")
         assert isinstance(styles, dict)
-        assert styles.get("fillColor") == "#991F4595"
+        assert styles.get("fillColor") == "#991F4799"
         assert styles.get("width") == styles.get("height") == 24
     assert "_preserveOriginalColor" not in result.effective_output
     assert "_preserveOriginalColor" not in result.a2ui
