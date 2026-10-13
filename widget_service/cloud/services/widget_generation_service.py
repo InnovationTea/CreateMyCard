@@ -1677,7 +1677,7 @@ class WidgetGenerationService:
                 ),
             )
             return response
-        source_dsl = retry_result.result
+        source_dsl = latest_processing_result.source_dsl
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
         model_failure_retry_count = model_client.model_failure_retry_count

@@ -934,6 +934,7 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
     processed = []
     repaired_prompts = []
     recompose_inputs = []
+    saved_artifacts = []
 
     def process(source, _context):
         processed.append(source)
@@ -948,9 +949,10 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
                     ),
                 ),
             )
+        normalized_source = f"normalized-{source}"
         return DslProcessingResult(
-            source_dsl=source,
-            standard_dsl=json.dumps({"createSurface": {"surfaceId": source}}),
+            source_dsl=normalized_source,
+            standard_dsl=json.dumps({"createSurface": {"surfaceId": normalized_source}}),
         )
 
     def recompose(source, **_kwargs):
@@ -968,6 +970,13 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
             return ["STYLE_ENUM_INVALID: local candidate failed final protocol validation"]
         return []
 
+    def save(store, artifact):
+        saved_artifacts.append((store.design_token, artifact.genui))
+        return SimpleNamespace(
+            artifactUrl="https://test.invalid/local-repair.md",
+            artifactDigest="sha256:local",
+        )
+
     monkeypatch.setattr(processor, "process", process)
     monkeypatch.setattr(widget_generation_service, "recompose_wide_card", recompose)
     monkeypatch.setattr(
@@ -978,14 +987,7 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
     monkeypatch.setattr(A2UIModelClient, "generate", lambda *_args, **_kwargs: "initial-source")
     monkeypatch.setattr(A2UIModelClient, "generate_repair", model_repair)
     monkeypatch.setattr(ArtifactValidator, "validate", validate)
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda *_args: SimpleNamespace(
-            artifactUrl="https://test.invalid/local-repair.md",
-            artifactDigest="sha256:local",
-        ),
-    )
+    monkeypatch.setattr(ArtifactStore, "save", save)
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(
         GenerateWidgetCardRequest(
             uid=_UID,
@@ -999,6 +1001,10 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
     )
     assert response.status == GenerationStatus.SUCCESS
     assert recompose_inputs == ["initial-source"]
+    expected_source = "normalized-model-fixed" if reject_local else "normalized-local-candidate"
+    assert saved_artifacts == [
+        (expected_source, json.dumps({"createSurface": {"surfaceId": expected_source}}))
+    ]
     assert processed == (
         ["initial-source", "local-candidate", "model-fixed"]
         if reject_local
