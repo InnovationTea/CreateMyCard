@@ -51,6 +51,18 @@ _ADDITIONAL_MULTIPLE_EVENTS_QUERY = re.compile(
     r"[两二三四五六七八九十\d]+(?:条|项)"
     r"(?:日程|会议|活动|安排|都|的(?:日期|标题|时间|地点|提醒)|(?=[，。；、\s]|$))"
 )
+_EXCLUSIVE_CONTEXT_QUERY = re.compile(
+    r"(?:只|仅)(?:要|需|想)?(?:显示|展示|呈现|保留|看)|"
+    r"(?:只|仅)(?:要|需)|仅(?:日期|开始|时间|地点)|"
+    r"(?:不要|不需(?:要)?|无需|不显示|禁止|不允许).{0,12}(?:标题|名称|结束|额外|其他|其它)|"
+    r"\b(?:only|nothing\s+else|no\s+(?:title|end|extra))\b",
+    re.IGNORECASE,
+)
+_RICHENG3_FULL_TEXT_QUERY = re.compile(
+    r"全文|(?:不要|不能|不许|禁止|不得)(?:省略|截断|截字)|"
+    r"(?<![a-z])(?:full\s+text|without\s+(?:truncation|ellipsis))(?![a-z])",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -89,6 +101,26 @@ def plan_calendar_no_action_fallback(
         target = _additional_fallback_template(task_spec.size, frozenset(requested))
     if target is None or target not in registry.templates:
         return result
+    compact_targets = {
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewDateCountdownReminderFull@1",
+    }
+    if target in compact_targets and _RICHENG3_FULL_TEXT_QUERY.search(query):
+        return result
+    three_fields = frozenset(
+        f"{_EVENT}{field}" for field in ("startDate", "dtStart", "eventLocation")
+    )
+    if task_spec.size == "2x4" and frozenset(requested) == three_fields:
+        if _EXCLUSIVE_CONTEXT_QUERY.search(query):
+            return result
+    if target == "ScheduleOverviewDatedMeetingWideFull@1" and f"{_EVENT}title" not in requested:
+        # 四字段请求复用原五字段模板时，未列为硬需求的标题也必须已获候选授权。
+        required = {
+            f"{_EVENT}{field}"
+            for field in ("startDate", "title", "dtStart", "dtEnd", "eventLocation")
+        }
+        if not required.issubset(bindings[0].candidateOutputFields):
+            return result
     if trusted_template_candidate_ids and set(trusted_template_candidate_ids) != {target}:
         return result
     fallback_registry = CardPlanRegistry(
@@ -228,12 +260,27 @@ def _additional_fallback_template(size: str, requested: frozenset[str]) -> str |
         ("2x2", "AllDayLocationFull", {all_day, location}, {title}),
         ("2x2", "DateStartLocationFull", {date, start, location}, {title, end}),
         (
+            "2x2",
+            "EventCountNotesFull",
+            {"/eventCount", title, start, f"{_EVENT}description"},
+            set(),
+        ),
+        (
+            "2x2",
+            "DateCountdownReminderFull",
+            {title, start, date, f"{_EVENT}countdownDays", reminder},
+            set(),
+        ),
+        (
             "2x4",
             "ReminderDetailsWideFull",
             {f"{_EVENT}senderName", f"{_EVENT}importantEventType", reminder, "/updatedAt"},
             set(),
         ),
         ("2x4", "DatedMeetingWideFull", {date, title, start, end, location}, set()),
+        ("2x4", "DatedMeetingWideFull", {date, start, end, location}, set()),
+        ("2x4", "TitleTimeWideFull", {title, start}, set()),
+        ("2x4", "DatedMeetingWideFull", {date, start, location}, set()),
     )
     target: str | None = None
     for card_size, suffix, required, optional in variants:
