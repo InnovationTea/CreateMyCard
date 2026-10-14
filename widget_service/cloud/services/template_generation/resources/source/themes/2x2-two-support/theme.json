@@ -6,6 +6,7 @@
   "supportedCapabilityIds": [
     "GetCalendarEvents",
     "GetCountdownDays",
+    "GetCurrentTime",
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
     "GetPhoneBatteryInfo",
