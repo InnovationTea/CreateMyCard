@@ -1574,6 +1574,14 @@ class PromptBuilder:
         """构造 Plan 与 DSL 共享的本轮布局范围和动态字段提醒。"""
         layout_scope = PromptBuilder.layout_scope(task_spec)
         layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))
+        output_contract = (
+            "最终 DSL 只输出已注册的基础布局组件和组件，不输出布局 ID、Card 或 Region 节点。"
+        )
+        if task_spec.size == "2x4":
+            output_contract = (
+                "最终 DSL 使用 Layout 选择本尺寸登记的父布局，以 Region 选择内容变体、"
+                "Group 选择受控组合；不输出 Row/Column/Stack 或内部展开的几何参数。"
+            )
         prompt = (
             "# 本轮组件与布局选择\n\n"
             f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
@@ -1581,8 +1589,8 @@ class PromptBuilder:
             "组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
             "不能按业务名称、候选字段总数或示例强制构图。"
             "候选组件不适配时改选其它已注册组件或合法组件组合，不能改变内部 Recipe、"
-            "删事实或动作来提高使用率。最终 DSL 只输出已注册的基础布局组件和组件，"
-            "不输出布局 ID、Card 或 Region 节点。"
+            "删事实或动作来提高使用率。"
+            f"{output_contract}"
         )
         formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
         if formatted_percent_instruction:
@@ -2121,8 +2129,14 @@ class PromptBuilder:
             if runtime_prompt_context_enabled and isinstance(original_payload, dict):
                 recovery = original_payload.get("compositionRecovery")
             capacity_errors = []
+            missing_action = False
+            missing_fact = False
             for error in quality_errors:
                 message = error.get("message", "")
+                if message.startswith("Plan action is missing from visible DSL:"):
+                    missing_action = True
+                if message.startswith("Plan fact is missing from visible DSL:"):
+                    missing_fact = True
                 capacity_pattern = r"vertical layout requires|overflow|layout.*match|text width"
                 if re.search(capacity_pattern, message):
                     capacity_errors.append(message)
@@ -2164,6 +2178,21 @@ class PromptBuilder:
                     "有限搜索未给出完整解时仍按完整合同合组，不能沿用已失效的旧参考。"
                     "保留事实动作和字号，落实整个变体与横纵合组，"
                     "不要继续维持上一轮 Compact DSL 的超预算子树。"
+                )
+            elif task_spec is not None and task_spec.size == "2x4" and missing_action:
+                payload["instruction"] += (
+                    "动作覆盖失败时先核对按钮是否从 root 可达，不能仅新增孤立组件行。"
+                    "优先使用现有合法动作位；没有可用动作位时允许最小必要的 Region"
+                    "或父布局变更以保留全部 Action，不能冻结无法承载这些操作的布局。"
+                    "保留已正确的业务内容、绑定和对象归属，不因补按钮降级完整事件。"
+                )
+            elif task_spec is not None and task_spec.size == "2x4" and missing_fact:
+                payload["instruction"] += (
+                    "展示事实缺失时先恢复所属信息组，再核算补齐全部字段后的容量。"
+                    "原布局仅装入部分事实时合法，不代表补齐后仍合法；优先在原组合法合并"
+                    "短属性，必要时最小范围调整组件组合、Region或父布局。"
+                    "不把超过项目数的条目塞入单个辅助组件，不裁切、静态化或删除字段来补覆盖。"
+                    "已有正确事实、绑定和Action保持不变，不打散同级关系或混入无关对象。"
                 )
             elif not capacity_errors and not recompose_requested:
                 payload["instruction"] += (

@@ -38,9 +38,9 @@ function applyLocalAdaptations(packageName, relativePath, source) {
   }
 
   const content = source.toString('utf8');
-  const proxyDocumentationStart = content.indexOf(
-    '/**\n * Rewrites external http(s) image URLs',
-  );
+  const proxyDocumentationLine = content.indexOf(' * Rewrites external http(s) image URLs');
+  const proxyDocumentationStart = proxyDocumentationLine < 0
+    ? -1 : content.lastIndexOf('/**', proxyDocumentationLine);
   const imageFunctionStart = content.indexOf('export function ExtendedImage', proxyDocumentationStart);
   if (proxyDocumentationStart < 0 || imageFunctionStart < 0) {
     throw new Error('无法从上游 ExtendedMedia 定位 /img-proxy 适配块');

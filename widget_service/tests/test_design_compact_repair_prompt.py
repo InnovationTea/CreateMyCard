@@ -4,12 +4,61 @@ import json
 
 import pytest
 
+from models.generation import TaskSpec
 from services.prompt_builder import REPAIR_SYSTEM_PROMPT, PromptBuilder
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
 
 def _repair_feedback(messages: list[dict[str, str]]) -> dict:
     return json.loads(messages[-1]["content"])
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("missing_action", [False, True])
+def test_action_coverage_can_restore_legal_reachable_slot_without_global_freeze(
+    size: str, missing_action: bool,
+) -> None:
+    task = TaskSpec(userQuery="查看设备并打开设置", size=size, dataModelSchema={"data": {}})
+    message = "invalid binding"
+    code = "COMPACT_DSL_VALIDATION_FAILED"
+    if missing_action:
+        message = "Plan action is missing from visible DSL: 打开设置 (settings)."
+        code = "COMPACT_PLAN_COVERAGE_FAILED"
+    errors = [{"code": code, "stage": "validation", "message": message}]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source", errors, dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    if size == "2x4" and missing_action:
+        assert "不能仅新增孤立组件行" in instruction
+        assert "最小必要的 Region" in instruction
+        assert "本次没有布局或容量错误" not in instruction
+    else:
+        assert "保持待修树的合法布局" in instruction
+    assert feedback.get("qualityErrors") == errors
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_missing_display_fact_rechecks_completed_group_capacity(size: str) -> None:
+    task = TaskSpec(userQuery="查看设备信息", size=size, dataModelSchema={"data": {}})
+    errors = [{"code": "COMPACT_PLAN_COVERAGE_FAILED", "stage": "validation",
+               "message": "Plan fact is missing from visible DSL: 设备状态 (/data/status)."}]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source", errors, dsl_format=DESIGN_COMPACT_PROFILE_ID, task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    if size == "2x4":
+        assert "补齐全部字段后的容量" in instruction
+        assert "不把超过项目数的条目塞入单个辅助组件" in instruction
+        assert "本次没有布局或容量错误" not in instruction
+    else:
+        assert "保持待修树的合法布局" in instruction
+    assert feedback.get("qualityErrors") == errors
 
 
 def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> None:
