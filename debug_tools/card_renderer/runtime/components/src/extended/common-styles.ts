@@ -117,6 +117,7 @@ export function mergeCommonStyles(styles?: Record<string, unknown>): CSSProperti
   const h = styles.height;
   if (typeof w === "number") out.width = w;
   else if (w === "matchParent") out.width = "100%";
+  else if (w === "wrapContent") out.width = "max-content";
   else if (typeof w === "string" && /^\d+(?:\.\d+)?%$/.test(w)) out.width = w;
 
   if (typeof h === "number") out.height = h;

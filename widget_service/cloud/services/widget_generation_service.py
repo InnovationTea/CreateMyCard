@@ -46,6 +46,7 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -1746,6 +1747,16 @@ class WidgetGenerationService:
         design_token = None
         if policy.stores_design_token:
             design_token = model_client.extract_genui_payload(source_dsl)
+            preserve_compact_source = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and task_spec.size == "2x4"
+                and not source_generated_by_jsx
+            )
+            if preserve_compact_source:
+                design_token = serialize_compact_dsl_source(
+                    latest_processing_result.source_dsl,
+                    skip_compact_dsl_validation=source_generated_by_template,
+                )
         final_artifact_build_started_at = time.perf_counter()
         artifact = self._build_artifact(
             genui,

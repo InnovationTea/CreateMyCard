@@ -4267,11 +4267,15 @@ async def test_source_format_warning_does_not_trigger_repair(
     settings = get_settings()
     model_calls = 0
     processor = get_dsl_processor(processor_kind)
+    # 产物现在保存已解析的Compact源；本测试仍只隔离非阻断warning，不使用伪DSL。
+    valid_source = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
 
     def generate_source(_client, _prompt, _profile=None, **_kwargs):
         nonlocal model_calls
         model_calls += 1
-        return "source-dsl-with-warning"
+        return valid_source
 
     def process_with_warning(source_dsl, _context):
         issue = QualityIssue(

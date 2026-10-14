@@ -15,7 +15,7 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_safe_structure,
 )
 from services.compact_plan import evaluate_compact_plan_coverage
-from services.compact_wide_recomposition import recompose_wide_card
+from services.compact_wide_recomposition import MAX_WIDE_REPAIR_CANDIDATES, recompose_wide_card
 from services.generation_pipeline import DslProcessingContext
 from services.protocol_registry import A2UIProtocolRegistry
 
@@ -82,6 +82,7 @@ def _assess(source: str, context: DslProcessingContext) -> _Assessment:
             normalized,
             task_spec=context.task_spec,
             card_spec=context.card_spec,
+            compact_plan=context.compact_plan,
             protocol_profile=profile,
             layout_scope=context.layout_scope,
             enforce_model_component_types=True,
@@ -89,6 +90,15 @@ def _assess(source: str, context: DslProcessingContext) -> _Assessment:
     except CompactDslValidationError as exc:
         for message in exc.errors:
             issues.append(_issue("COMPACT_DSL_VALIDATION_FAILED", message))
+    except CompactDslConversionError as exc:
+        message = str(exc)
+        issues.append(_issue("COMPACT_DSL_VALIDATION_FAILED", message))
+        return _Assessment(
+            normalized,
+            parse_error=message,
+            coverage_errors=coverage.errors,
+            issues=tuple(issues),
+        )
     return _Assessment(normalized, coverage_errors=coverage.errors, issues=tuple(issues))
 
 
@@ -103,7 +113,7 @@ def _correct_fixed_fonts(assessment: _Assessment) -> tuple[str, tuple[str, ...]]
             fonts[match.group(1)] = int(match.group(2))
     if not fonts or assessment.parse_error is not None:
         return assessment.source_dsl, ()
-    rows = parse_compact_dsl_rows(assessment.source_dsl)
+    rows = parse_compact_dsl_rows(assessment.source_dsl, expand_layouts=False)
     serialized = []
     corrections = []
     for row in rows:
@@ -133,6 +143,17 @@ def _prepare(source: str, context: DslProcessingContext) -> tuple[_Assessment, t
     return assessment, corrections
 
 
+def _semantic_contract_error(assessment: _Assessment) -> bool:
+    marker = "layout does not match semantic contract"
+    if assessment.parse_error is not None and marker in assessment.parse_error:
+        return True
+    for issue in assessment.issues:
+        message = issue.get("message")
+        if isinstance(message, str) and marker in message:
+            return True
+    return False
+
+
 def _extract_unique_valid_source(
     source: str, context: DslProcessingContext
 ) -> tuple[_Assessment | None, tuple[str, ...]]:
@@ -159,12 +180,38 @@ def select_compact_repair_candidate(
         return CompactRepairSelection(candidate_source, candidate_source)
     previous = _assess(previous_source, context)
     candidate, corrections = _prepare(candidate_source, context)
+    profile = A2UIProtocolRegistry.read_design_protocol_profile(
+        context.design_profile_id or "design-compact-dsl"
+    )
+    semantic_candidate_count = 0
+    semantic_reasons = ()
+    if _semantic_contract_error(candidate):
+        semantic_candidate = recompose_wide_card(
+            candidate.source_dsl,
+            task_spec=context.task_spec,
+            card_spec=context.card_spec,
+            protocol_profile=profile,
+            layout_scope=context.layout_scope,
+            compact_plan=context.compact_plan,
+            allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+        )
+        semantic_candidate_count = semantic_candidate.candidate_count
+        semantic_reasons = semantic_candidate.reasons
+        if semantic_candidate.applied:
+            candidate, font_corrections = _prepare(semantic_candidate.source_dsl, context)
+            corrections += (
+                "wide_layout_recomposition",
+                *semantic_reasons,
+                *font_corrections,
+            )
     if candidate.parse_error is not None and "```" in candidate_source:
         extracted, extracted_corrections = _extract_unique_valid_source(candidate_source, context)
         if extracted is not None:
             candidate = extracted
             corrections = ("extract_unique_valid_dsl", *extracted_corrections)
-    regression = candidate.parse_error is not None and previous.parse_error is None
+    candidate_invalid = candidate.parse_error is not None or _semantic_contract_error(candidate)
+    previous_invalid = previous.parse_error is not None or _semantic_contract_error(previous)
+    regression = candidate_invalid and not previous_invalid
     if previous.parse_error is None and candidate.parse_error is None:
         previous_errors = set(previous.coverage_errors)
         for message in candidate.coverage_errors:
@@ -181,9 +228,6 @@ def select_compact_repair_candidate(
             corrections=corrections,
             rejection_issues=candidate.issues,
         )
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        context.design_profile_id or "design-compact-dsl"
-    )
     recomposed = recompose_wide_card(
         selection.source_dsl,
         task_spec=context.task_spec,
@@ -192,6 +236,7 @@ def select_compact_repair_candidate(
         layout_scope=context.layout_scope,
         compact_plan=context.compact_plan,
         allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+        candidate_limit=MAX_WIDE_REPAIR_CANDIDATES - semantic_candidate_count,
     )
     corrections = selection.corrections
     if recomposed.applied:
@@ -201,7 +246,7 @@ def select_compact_repair_candidate(
         selection.candidate_dsl,
         corrections=corrections,
         rejection_issues=selection.rejection_issues,
-        layout_candidate_count=recomposed.candidate_count,
-        layout_search_reasons=recomposed.reasons,
+        layout_candidate_count=semantic_candidate_count + recomposed.candidate_count,
+        layout_search_reasons=(*semantic_reasons, *recomposed.reasons),
     )
     return selection

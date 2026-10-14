@@ -91,6 +91,8 @@ def _supporting_items(row: ComponentRow) -> list[dict[str, Any]] | None:
         return result
     if set(row.props) - _SUPPORTING_PROPS:
         return result
+    if row.props.get("role", "supporting") != "supporting":
+        return result
     items = row.props.get("items")
     if isinstance(items, list) and items:
         if all(isinstance(item, dict) for item in items):

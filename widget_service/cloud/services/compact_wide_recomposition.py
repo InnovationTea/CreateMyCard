@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.compact_component_runtime import secondary_body_variant, visual_recipe_part
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -19,14 +20,17 @@ from services.compact_dsl_a2ui_converter import (
 from services.compact_outer_recomposition import OuterRecompositionResult
 from services.compact_plan import compact_plan_coverage_errors
 from services.compact_repair_simplification import simplification_variants
+from services.compact_semantic_layout import has_semantic_layout
+from services.compact_semantic_repair import semantic_detail_variants, semantic_layout_variants
 
-_LIMIT = 64
+MAX_WIDE_REPAIR_CANDIDATES = 64
 _GEOMETRY_MARKERS = (
     "vertical layout requires at least",
     "text width overflow",
     "pressure width",
     "Compact layout does not match scope",
     "SecondaryBody.columns must",
+    "layout does not match semantic contract",
 )
 _RELATION_PROPS = frozenset(
     {
@@ -56,17 +60,25 @@ class _Context:
 @dataclass
 class _Search:
     context: _Context
+    limit: int = MAX_WIDE_REPAIR_CANDIDATES
     seen: set[str] = field(default_factory=set)
     count: int = 0
+    invalid_contract_count: int = 0
 
     def accept(self, source: str) -> bool:
-        if source in self.seen or self.count >= _LIMIT:
+        if source in self.seen or self.count >= self.limit:
             return False
         self.seen.add(source)
         self.count += 1
-        if _coverage_errors(source, self.context):
+        try:
+            if _coverage_errors(source, self.context):
+                return False
+            accepted = not _errors(source, self.context)
+        except CompactDslConversionError:
+            # 非法语义候选只拒绝本候选；不能中断整次请求及后续模型修复。
+            self.invalid_contract_count += 1
             return False
-        return not _errors(source, self.context)
+        return accepted
 
 
 def _coverage_errors(source: str, context: _Context) -> tuple[str, ...]:
@@ -84,6 +96,7 @@ def _errors(source: str, context: _Context) -> tuple[str, ...]:
             source,
             task_spec=context.task_spec,
             card_spec=context.card_spec,
+            compact_plan=context.compact_plan,
             protocol_profile=context.protocol_profile,
             layout_scope=context.layout_scope,
             enforce_model_component_types=True,
@@ -134,6 +147,19 @@ def _text_variants(rows: _Rows) -> Iterator[tuple[str, _Rows]]:
                     for item in items:
                         if isinstance(item, dict):
                             item["maxLines"] = 2
+                items = props.get("items")
+                if "fontSize" in props and isinstance(items, list):
+                    variant = secondary_body_variant(items, columns)
+                    _, styles = visual_recipe_part(
+                        "SecondaryBody",
+                        "text",
+                        size="2x4",
+                        variant=variant,
+                    )
+                    font = styles.get("fontSize")
+                    if not isinstance(font, int) or isinstance(font, bool):
+                        raise ValueError("SecondaryBody Recipe must declare an integer fontSize")
+                    props["fontSize"] = font
                 replacement = ComponentRow(
                     row.component_id, row.component_type, props, row.children
                 )
@@ -258,6 +284,9 @@ def _partition_variants(rows: _Rows) -> Iterator[tuple[str, _Rows]]:
 
 def _layout_variants(rows: _Rows) -> Iterator[tuple[str, _Rows]]:
     yield "existing_layout", rows
+    if has_semantic_layout(rows):
+        yield from semantic_layout_variants(rows)
+        return
     panels = _panels(rows)
     if panels is not None:
         yield "formal_split_padding", panels
@@ -295,16 +324,17 @@ def _find_candidate(
 ) -> OuterRecompositionResult | None:
     started_at = search.count
     result: OuterRecompositionResult | None = None
-    while search.count - started_at < budget and search.count < _LIMIT:
+    while search.count - started_at < budget and search.count < search.limit:
         try:
             text_reason, layout_reason, rows = next(candidates)
         except StopIteration:
             break
         source = _serialize(rows)
         if search.accept(source):
-            result = OuterRecompositionResult(
-                source, (phase, text_reason, layout_reason), search.count, True
-            )
+            reasons = (phase, text_reason, layout_reason)
+            if search.invalid_contract_count:
+                reasons += (f"rejected_semantic_candidates={search.invalid_contract_count}",)
+            result = OuterRecompositionResult(source, reasons, search.count, True)
             break
     return result
 
@@ -318,9 +348,13 @@ def recompose_wide_card(
     layout_scope: str | None,
     compact_plan: dict[str, Any] | None,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
+    candidate_limit: int = MAX_WIDE_REPAIR_CANDIDATES,
 ) -> OuterRecompositionResult:
     """至多验证64个无损候选；只有原校验全部通过才返回替代源。"""
     unchanged = OuterRecompositionResult(source_dsl)
+    limit = min(MAX_WIDE_REPAIR_CANDIDATES, max(0, candidate_limit))
+    if limit == 0:
+        return unchanged
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size != "2x4" or layout_scope is None:
         return unchanged
@@ -333,26 +367,36 @@ def recompose_wide_card(
         allowed_omitted_fact_indexes,
     )
     try:
-        rows = list(parse_compact_dsl_rows(source_dsl))
+        rows = list(parse_compact_dsl_rows(source_dsl, expand_layouts=False))
         for row in rows:
             if isinstance(row, ComponentRow) and row.props.get("template_root"):
                 return unchanged
+    except CompactDslConversionError as exc:
+        return OuterRecompositionResult(source_dsl, ("unsupported_source: " + str(exc),))
+    try:
         if _coverage_errors(source_dsl, context):
             return unchanged
         errors = _errors(source_dsl, context)
     except CompactDslConversionError as exc:
-        return OuterRecompositionResult(source_dsl, ("unsupported_source: " + str(exc),))
+        semantic_contract_failure = has_semantic_layout(
+            rows
+        ) and "layout does not match semantic contract" in str(exc)
+        if not semantic_contract_failure:
+            return OuterRecompositionResult(source_dsl, ("unsupported_source: " + str(exc),))
+        errors = (str(exc),)
     if not errors:
         return unchanged
     for message in errors:
         if not any(marker in message for marker in _GEOMETRY_MARKERS):
             return unchanged
-    search = _Search(context)
+    search = _Search(context, limit=limit)
     layouts = _candidates((("existing_components", rows),))
-    result = _find_candidate(search, layouts, max(1, _LIMIT // 2), "deterministic_layout")
+    result = _find_candidate(search, layouts, max(1, limit // 2), "deterministic_layout")
     if result is not None:
         return result
     simplified = []
+    for reason, candidate in semantic_detail_variants(rows, task_spec):
+        simplified.append((reason, candidate))
     for reason, candidate in simplification_variants(rows, task_spec):
         if candidate != rows:
             simplified.append((reason, candidate))
@@ -361,9 +405,12 @@ def recompose_wide_card(
     if simplified:
         candidates = _candidates(simplified)
         phase = "component_simplification"
-    result = _find_candidate(search, candidates, _LIMIT - search.count, phase)
+    result = _find_candidate(search, candidates, limit - search.count, phase)
     if result is not None:
         return result
-    if search.count >= _LIMIT:
+    if search.count >= limit:
         return OuterRecompositionResult(source_dsl, ("search_limit",), search.count)
-    return OuterRecompositionResult(source_dsl, ("no_valid_candidate",), search.count)
+    reasons = ("no_valid_candidate",)
+    if search.invalid_contract_count:
+        reasons += (f"rejected_semantic_candidates={search.invalid_contract_count}",)
+    return OuterRecompositionResult(source_dsl, reasons, search.count)

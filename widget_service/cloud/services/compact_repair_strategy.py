@@ -157,11 +157,11 @@ def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str
         )
     if _contains_marker(messages, _SECONDARY_BODY_FONT_SIZE_MARKERS):
         return (
-            f"{base_instruction} SecondaryBody.fontSize 不是自由字号：保持当前合法的 role、"
+            f"{base_instruction} SecondaryBody.fontSize 不是自由字号：保持当前合法的"
             "items、绑定和事实不变，只把 fontSize 改为错误信息给出的固定 Recipe 值。"
-            "body 或 1–2 项 supporting 固定为 14；metadata 或 3–4 项 supporting 固定为 12。"
-            "若其它错误授权重新合组 items，必须在合组完成后按最终 role 和项目数重新选择字号；"
-            "不得仅为缩小字号伪装成 metadata、拆散信息组或删除事实。"
+            "按 items、columns、maxLines 的实际行数选择 Recipe：单行固定14，多行固定12。"
+            "其它错误授权合组或合法换行后，按最终列数与行数重算字号；旧 role 不参与判定。"
+            "不得填写自由字号、拆散信息组或删除事实来规避合同。"
         )
     return base_instruction
 

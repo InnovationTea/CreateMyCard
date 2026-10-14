@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from models.generation import TaskSpec
 from services.compact_repair_candidate import select_compact_repair_candidate
 from services.compact_repair_simplification import simplification_variants
 from services.compact_wide_recomposition import recompose_wide_card
@@ -17,6 +18,69 @@ from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRe
 
 def _repair_feedback(messages: list[dict[str, str]]) -> dict:
     return json.loads(messages[-1]["content"])
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("missing_action", [False, True])
+def test_action_coverage_can_restore_legal_reachable_slot_without_global_freeze(
+    size: str,
+    missing_action: bool,
+) -> None:
+    task = TaskSpec(userQuery="查看设备并打开设置", size=size, dataModelSchema={"data": {}})
+    message = "invalid binding"
+    code = "COMPACT_DSL_VALIDATION_FAILED"
+    if missing_action:
+        message = "Plan action is missing from visible DSL: 打开设置 (settings)."
+        code = "COMPACT_PLAN_COVERAGE_FAILED"
+    errors = [{"code": code, "stage": "validation", "message": message}]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source",
+        errors,
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    if size == "2x4" and missing_action:
+        assert "不能仅新增孤立组件行" in instruction
+        assert "最小必要的 Region" in instruction
+        assert "本次没有布局或容量错误" not in instruction
+    else:
+        assert "保持待修树的合法布局" in instruction
+    assert feedback.get("qualityErrors") == errors
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_missing_display_fact_rechecks_completed_group_capacity(size: str) -> None:
+    task = TaskSpec(userQuery="查看设备信息", size=size, dataModelSchema={"data": {}})
+    errors = [
+        {
+            "code": "COMPACT_PLAN_COVERAGE_FAILED",
+            "stage": "validation",
+            "message": "Plan fact is missing from visible DSL: 设备状态 (/data/status).",
+        }
+    ]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source",
+        errors,
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    if size == "2x4":
+        assert "补齐全部字段后的容量" in instruction
+        assert "不把超过项目数的条目塞入单个辅助组件" in instruction
+        assert "本次没有布局或容量错误" not in instruction
+    else:
+        assert "保持待修树的合法布局" in instruction
+    assert feedback.get("qualityErrors") == errors
 
 
 def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> None:
@@ -699,7 +763,7 @@ def test_wide_recomposition_retains_source_when_bounded_search_fails(monkeypatch
     from services import compact_wide_recomposition
 
     source, context = _wide_reflow_example()
-    monkeypatch.setattr(compact_wide_recomposition, "_LIMIT", 3)
+    monkeypatch.setattr(compact_wide_recomposition, "MAX_WIDE_REPAIR_CANDIDATES", 3)
     monkeypatch.setattr(
         compact_wide_recomposition, "_errors", lambda *_args: ("text width overflow",)
     )
@@ -743,7 +807,9 @@ def _wide_text_block_example():
                 "backgroundColor": "#99FFFFFF",
                 "clip": True,
             }
-            row[3] = panels.get(row[0])
+            row[3] = list(panels.get(row[0]))
+            if row[0] == "details":
+                row[3].insert(1, "support_anchor")
         if row[0] == "days":
             row[1] = "EmphasizedData"
             row[2] = {"value": {"path": "/data/days"}, "unit": "天", "fontSize": 30}
@@ -758,33 +824,20 @@ def _wide_text_block_example():
             }
     rows = [row for row in rows if row[0] != "body"]
     rows.insert(1, ["right_title", "SingleLineTitle", {"title": "训练数据", "fontSize": 12}])
+    rows.append(["support_anchor", "EmphasisText", {"mainText": "训练复盘"}])
     return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows), context
 
 
-def test_wide_text_block_replacement_retains_source_without_core_information() -> None:
-    from services.card_validation import CompactDslValidationError, validate_compact_dsl
+def test_wide_text_block_replacement_keeps_complete_items_bindings_and_colors() -> None:
     from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
-    from services.compact_wide_recomposition import _serialize
 
     source, context = _wide_text_block_example()
     original = [json.loads(line) for line in source.splitlines()]
     result = _recompose(source, context)
-    assert not result.applied and result.source_dsl == source
-    reason, candidate_rows = next(
-        variant for variant in _simplifications(source, context) if "vertical_details" in variant[0]
-    )
-    assert "vertical_details" in reason
-    candidate_source = _serialize(candidate_rows)
-    with pytest.raises(CompactDslValidationError, match="SecondaryBody is auxiliary"):
-        validate_compact_dsl(
-            candidate_source,
-            task_spec=context.task_spec,
-            card_spec=context.card_spec,
-            protocol_profile=A2UIProtocolRegistry.read_design_protocol_profile("design-compact-dsl"),
-            layout_scope=context.layout_scope,
-            enforce_model_component_types=True,
-        )
-    after = [json.loads(line) for line in candidate_source.splitlines()]
+    assert result.applied
+    assert result.reasons[0] == "component_simplification"
+    assert any("vertical_details" in reason for reason in result.reasons)
+    after = [json.loads(line) for line in result.source_dsl.splitlines()]
     for row in original:
         candidate = next(value for value in after if value[0] == row[0])
         if row[0] == "metrics":
@@ -797,7 +850,7 @@ def test_wide_text_block_replacement_retains_source_without_core_information() -
             assert candidate == row
     repeated = _recompose(result.source_dsl, context)
     assert not repeated.applied and repeated.source_dsl == result.source_dsl
-    genui = convert_compact_dsl_to_a2ui(candidate_source, size="2x4")
+    genui = convert_compact_dsl_to_a2ui(result.source_dsl, size="2x4")
     for line in genui.splitlines():
         components = json.loads(line).get("updateComponents", {}).get("components", [])
         for component in components:
@@ -922,8 +975,9 @@ def _wide_separate_supporting_example():
     assert isinstance(items, list)
     details = next(row for row in rows if row[0] == "details")
     identifiers = ["steps", "duration", "heart"]
-    details[2]["itemMargin"] = 6
-    details[3] = identifiers
+    details[2]["itemMargin"] = 0
+    details[3] = ["support_anchor", *identifiers]
+    rows.append(["support_anchor", "EmphasisText", {"mainText": "训练复盘"}])
     rows.remove(metrics)
     for identifier, item in zip(identifiers, items, strict=True):
         rows.append(
@@ -961,18 +1015,13 @@ def _wide_separate_supporting_example():
     return source, replace(context, task_spec=task, compact_plan=plan)
 
 
-def test_wide_supporting_merge_keeps_content_but_does_not_accept_orphan_body() -> None:
-    from services.compact_wide_recomposition import _serialize
-
+def test_wide_supporting_merge_keeps_order_bindings_roles_and_font() -> None:
     source, context = _wide_separate_supporting_example()
     result = _recompose(source, context)
-    assert not result.applied and result.source_dsl == source
-    reason, candidate_rows = next(
-        variant for variant in _simplifications(source, context) if "merge_supporting" in variant[0]
-    )
-    assert "merge_supporting" in reason
+    assert result.applied
+    assert any("merge_supporting" in reason for reason in result.reasons)
     before = [json.loads(line) for line in source.splitlines()]
-    after = [json.loads(line) for line in _serialize(candidate_rows).splitlines()]
+    after = [json.loads(line) for line in result.source_dsl.splitlines()]
     merged = next(row for row in after if row[0] == "steps")
     assert merged[2].get("role") == "supporting"
     assert merged[2].get("fontSize") == 14
@@ -1006,52 +1055,6 @@ def test_supporting_merge_does_not_mix_objects_or_lower_fixed_font() -> None:
     assert all(
         "merge_supporting" not in reason for reason, _rows in _simplifications(source, context)
     )
-
-
-@pytest.mark.parametrize("columns", [1, 2])
-def test_supporting_merge_uses_actual_wrapping_recipe_without_adding_role(columns) -> None:
-    source, context = _wide_separate_supporting_example()
-    rows = [json.loads(line) for line in source.splitlines()]
-    for identifier in ("steps", "duration"):
-        row = next(row for row in rows if row[0] == identifier)
-        row[2].pop("role", None)
-        row[2]["columns"] = columns
-        row[2]["fontSize"] = 12
-        items = row[2].get("items")
-        assert isinstance(items, list)
-        for item in items:
-            item["maxLines"] = 2
-    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    _reason, candidate = next(
-        variant for variant in _simplifications(source, context) if "merge_supporting" in variant[0]
-    )
-    merged = next(row for row in candidate if getattr(row, "component_id", None) == "steps")
-    assert merged.props.get("fontSize") == 12
-    assert "role" not in merged.props
-    assert len(merged.props.get("items", [])) == 2
-
-
-def test_supporting_deduplication_keeps_multiline_font_without_adding_role() -> None:
-    source, context = _wide_reflow_example()
-    rows = [json.loads(line) for line in source.splitlines()]
-    metrics = next(row for row in rows if row[0] == "metrics")
-    props = metrics[2]
-    props.pop("role", None)
-    items = props.get("items")
-    assert isinstance(items, list)
-    item = copy.deepcopy(items[0])
-    item["maxLines"] = 2
-    props["items"] = [item, copy.deepcopy(item)]
-    props["columns"] = 2
-    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    _reason, candidate = next(
-        variant for variant in _simplifications(source, context)
-        if "deduplicate_supporting" in variant[0]
-    )
-    deduplicated = next(row for row in candidate if getattr(row, "component_id", None) == "metrics")
-    assert deduplicated.props.get("fontSize") == 12
-    assert "role" not in deduplicated.props
-    assert deduplicated.props.get("items") == [item]
 
 
 @pytest.mark.parametrize("repeated", [False, True])
@@ -1146,8 +1149,7 @@ def test_repair_simplification_instructions_are_not_in_initial_prompt() -> None:
         "上述确定性处理由程序执行",
         "仅有属性或绑定错误时不启用这些容量简化",
         "两项 TextBlock 可改用合法 TableText",
-        "三项辅助明细可合组为 SecondaryBody",
-        "不能用标题、按钮或另一个 SecondaryBody 冒充核心",
+        "三项辅助明细可合组为合法 SecondaryBody",
         "替换后的标签和值字号均不得降低",
         "不得把多个指标\n拼入只接受单个数值的进度读数",
         "样例值相同不代表冗余",
@@ -1157,3 +1159,491 @@ def test_repair_simplification_instructions_are_not_in_initial_prompt() -> None:
     for rule in model_repair_rules:
         assert rule in REPAIR_SYSTEM_PROMPT
         assert rule not in create
+
+
+def _semantic_repair_example(kind: str = "SecondaryBody", font: int | None = None):
+    items = [
+        {"label": "步数", "value": "6200步"},
+        {"label": "时长", "value": "40分"},
+        {"label": "心率", "value": "135次/分钟"},
+    ]
+    props = {"items": items}
+    if font is not None:
+        props.update(fontSize=font, columns=1)
+    rows = [
+        ["root", "Layout", {"layout": "W-split-panels"}, ["left", "right"]],
+        ["left", "Region", {"variant": "title-primary-details"}, ["title", "core", "detail"]],
+        ["title", "SingleLineTitle", {"title": "训练"}],
+        ["core", "EmphasisText", {"mainText": "训练复盘"}],
+        ["detail", kind, props],
+        ["right", "Region", {"variant": "center"}, ["other"]],
+        ["other", "EmphasisText", {"mainText": "今日安排"}],
+    ]
+    context = replace(_candidate_context(), compact_plan=None, layout_scope="W-plan-guided")
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows), context
+
+
+def test_semantic_fixed_font_repair_keeps_unexpanded_source() -> None:
+    from services.generation_pipeline import DesignCompactProcessor
+
+    source, context = _semantic_repair_example(font=8)
+    selection = select_compact_repair_candidate(source, source, context)
+    rows = [json.loads(line) for line in selection.source_dsl.splitlines()]
+    assert rows[0][1] == "Layout"
+    assert not any(row[1] in {"Row", "Column", "Stack"} for row in rows)
+    detail = next(row for row in rows if row[0] == "detail")
+    assert detail[2].get("fontSize") == 12
+    assert "detail.fontSize=12" in selection.corrections
+    processor = DesignCompactProcessor()
+    processed = processor.process(selection.source_dsl, context)
+    assert not processed.issues
+    assert processed.standard_dsl
+    assert '"Layout"' in processed.source_dsl
+
+
+def test_semantic_component_simplification_preserves_template_owned_geometry() -> None:
+    from services.generation_pipeline import DesignCompactProcessor
+
+    source, context = _semantic_repair_example("TextBlock")
+    result = _recompose(source, context)
+    assert result.applied
+    rows = [json.loads(line) for line in result.source_dsl.splitlines()]
+    assert rows[0][1] == "Layout"
+    assert not any(row[1] in {"Row", "Column", "Stack"} for row in rows)
+    detail = next(row for row in rows if row[0] == "detail")
+    assert detail[1] == "SecondaryBody"
+    assert "role" not in detail[2]
+    original = [json.loads(line) for line in source.splitlines()]
+    old_detail = next(row for row in original if row[0] == "detail")
+    assert detail[2].get("items") == old_detail[2].get("items")
+    for row in rows:
+        assert "__layout__" not in row[0]
+        assert "layoutWeight" not in row[2]
+        assert "width" not in row[2]
+    processor = DesignCompactProcessor()
+    processed = processor.process(result.source_dsl, context)
+    assert not processed.issues
+    assert processed.standard_dsl
+
+
+def _assert_semantic_repair_complete(source, repaired, context) -> None:
+    from services.generation_pipeline import DesignCompactProcessor
+
+    before = [json.loads(line) for line in source.splitlines()]
+    after = [json.loads(line) for line in repaired.splitlines()]
+    assert [row for row in before if len(row) == 2] == [row for row in after if len(row) == 2]
+    semantic_types = {"Layout", "Region", "Group"}
+    for row in before:
+        if len(row) == 2 or row[1] in semantic_types:
+            continue
+        actual = next(item for item in after if item[0] == row[0])
+        if row[1] == "SecondaryBody":
+            expected_props = copy.deepcopy(row[2])
+            actual_props = copy.deepcopy(actual[2])
+            for props in (expected_props, actual_props):
+                props.pop("fontSize", None)
+                props.pop("columns", None)
+                for item in props.get("items", []):
+                    item.pop("maxLines", None)
+            assert expected_props == actual_props
+            continue
+        assert actual == row
+    for row in after:
+        if len(row) != 2:
+            assert row[1] not in {"Row", "Column", "Stack"}
+            assert "width" not in row[2]
+            assert "layoutWeight" not in row[2]
+    result = DesignCompactProcessor().process(repaired, context)
+    assert not result.errors
+    assert result.standard_dsl
+
+
+def test_semantic_peer_group_recovers_complete_long_text_without_geometry() -> None:
+    source, context = _semantic_repair_example()
+    rows = [json.loads(line) for line in source.splitlines()]
+    left = next(row for row in rows if row[0] == "left")
+    left[2] = {"variant": "title-content"}
+    left[3] = ["title", "pair"]
+    rows = [row for row in rows if row[0] != "detail"]
+    rows.append(["pair", "Group", {"variant": "peer-pair"}, ["core", "second"]])
+    core = next(row for row in rows if row[0] == "core")
+    core[2] = {"mainText": "训练状态良好"}
+    rows.append(["second", "EmphasisText", {"mainText": "恢复状态良好"}])
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    result = _recompose(source, context)
+    assert result.applied
+    assert any("semantic_" in reason for reason in result.reasons)
+    _assert_semantic_repair_complete(source, result.source_dsl, context)
+
+
+def test_semantic_regroup_can_repair_both_panels_in_one_candidate() -> None:
+    source, context = _semantic_repair_example(font=12)
+    rows = [json.loads(line) for line in source.splitlines()]
+    core = next(row for row in rows if row[0] == "core")
+    core[2]["mainText"] = "训练"
+    core[2]["secondaryText"] = "最近一次"
+    right = next(row for row in rows if row[0] == "right")
+    right[2] = {"variant": "title-primary-details"}
+    right[3] = ["other_title", "other", "other_detail"]
+    other = next(row for row in rows if row[0] == "other")
+    other[2]["mainText"] = "安排"
+    other[2]["secondaryText"] = "后续安排"
+    detail = next(row for row in rows if row[0] == "detail")
+    detail[2]["items"] = [
+        {"label": "甲", "value": "1"},
+        {"label": "乙", "value": "2"},
+        {"label": "丙", "value": "3"},
+    ]
+    rows.extend(
+        [
+            ["other_title", "SingleLineTitle", {"title": "安排"}],
+            ["other_detail", "SecondaryBody", copy.deepcopy(detail[2])],
+        ]
+    )
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    result = _recompose(source, context)
+    assert result.applied
+    assert "semantic_region_regroup" in result.reasons
+    _assert_semantic_repair_complete(source, result.source_dsl, context)
+
+
+@pytest.mark.parametrize("with_plan", [True, False])
+def test_invalid_compact_hero_variant_is_repaired_with_all_actions_visible(with_plan) -> None:
+    source, context = _semantic_repair_example(font=14)
+    rows = [json.loads(line) for line in source.splitlines()]
+    detail = next(row for row in rows if row[0] == "detail")
+    detail[2]["items"] = [{"label": "电量", "value": {"path": "/data/value"}}]
+    left = next(row for row in rows if row[0] == "left")
+    left[2] = {"variant": "title-hero-support-action"}
+    left[3].append("open")
+    rows.append(
+        [
+            "open",
+            "PillButton",
+            {
+                "label": "蓝牙设置",
+                "onClick": [
+                    {"call": "clickToDeeplink", "args": {"uri": "blue"}},
+                ],
+            },
+        ]
+    )
+    rows.append(["/data/value", 80])
+    plan = {
+        "info_required": [
+            {"priority": "must", "requirement": "电量", "dataId": "/data/value"},
+            {"priority": "must", "requirement": "设置", "actionId": "blue"},
+        ]
+    }
+    context = replace(context, compact_plan=plan if with_plan else None)
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    result = _recompose(source, context)
+    assert result.applied
+    _assert_semantic_repair_complete(source, result.source_dsl, context)
+    selected = select_compact_repair_candidate(result.source_dsl, source, context)
+    assert not selected.rejection_issues
+    assert "wide_layout_recomposition" in selected.corrections
+    _assert_semantic_repair_complete(source, selected.source_dsl, context)
+
+
+def test_invalid_semantic_candidate_is_rejected_without_stopping_search() -> None:
+    from services.compact_wide_recomposition import _Context, _Search
+
+    source, context = _semantic_repair_example()
+    rows = [json.loads(line) for line in source.splitlines()]
+    left = next(row for row in rows if row[0] == "left")
+    left[2]["variant"] = "title-hero-support-action"
+    invalid = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    search = _Search(
+        _Context(
+            context.task_spec,
+            context.card_spec,
+            None,
+            context.layout_scope,
+            {"info_required": []},
+            (),
+        )
+    )
+    assert not search.accept(invalid)
+    assert search.invalid_contract_count == 1
+    assert search.accept(source)
+    assert search.count == 2
+
+
+@pytest.mark.parametrize("layout", ["W-split-panels", "W-content-side-slots"])
+def test_repair_payload_reports_parent_specific_semantic_contracts(layout) -> None:
+    source, context = _semantic_repair_example()
+    rows = [json.loads(line) for line in source.splitlines()]
+    rows[0][2]["layout"] = layout
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    task = TaskSpec(userQuery="查看训练", size="2x4", dataModelSchema={"data": {}})
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        source,
+        [{"stage": "validation", "message": "layout does not match semantic contract"}],
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+    )
+    guidance = _repair_feedback(messages).get("semanticLayoutRepair")
+    assert isinstance(guidance, dict)
+    regions = guidance.get("regions")
+    assert isinstance(regions, list) and regions
+    assert len(regions) == (2 if layout == "W-split-panels" else 1)
+    for region in regions:
+        allowed = region.get("allowedVariants")
+        assert isinstance(allowed, dict)
+        assert ("title-hero-support-action" in allowed) is (layout == "W-content-side-slots")
+        action = allowed.get("title-content-action")
+        assert isinstance(action, dict)
+        assert action.get("childCounts") == [3]
+        assert action.get("childRoles") == "[title, content, PillButton]"
+
+
+def test_small_repair_does_not_receive_wide_semantic_guidance() -> None:
+    source, _context = _semantic_repair_example()
+    task = TaskSpec(userQuery="查看训练", size="2x2", dataModelSchema={"data": {}})
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        source,
+        [{"stage": "validation", "message": "invalid binding"}],
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+    )
+    assert "semanticLayoutRepair" not in _repair_feedback(messages)
+
+
+def _semantic_detail_capacity_example():
+    values = {
+        "steps": 6200,
+        "distance": "4.60 公里",
+        "calories": "420 千卡",
+        "updated": "2026-08-06 09:00",
+    }
+    schema = {}
+    for key, value in values.items():
+        schema[key] = {"type": "integer" if key == "steps" else "string", "sampleValue": value}
+    rows = [
+        [
+            "root",
+            "Layout",
+            {"layout": "W-top-bottom", "variant": "bottom-details"},
+            ["title", "primary", "details"],
+        ],
+        ["title", "SingleLineTitle", {"title": "今日活动"}],
+        ["primary", "Group", {"variant": "hero-support"}, ["steps", "goal"]],
+        ["steps", "EmphasizedData", {"value": {"path": "/data/activity/steps"}, "unit": "步"}],
+        ["goal", "SecondaryBody", {"items": [{"value": "目标 8000步"}]}],
+        [
+            "details",
+            "TextBlock",
+            {
+                "items": [
+                    {"label": "距离", "value": {"path": "/data/activity/distance"}},
+                    {"label": "热量", "value": {"path": "/data/activity/calories"}},
+                    {"label": "更新", "value": {"path": "/data/activity/updated"}},
+                ]
+            },
+        ],
+    ]
+    for key, value in values.items():
+        rows.append([f"/data/activity/{key}", value])
+    plan = {"info_required": []}
+    for key in values:
+        plan["info_required"].append({"priority": "must", "dataId": f"/data/activity/{key}"})
+    task = dict(_candidate_context().task_spec)
+    task["dataModelSchema"] = {"data": {"activity": schema}}
+    context = replace(
+        _candidate_context(), task_spec=task, compact_plan=plan, layout_scope="W-plan-guided"
+    )
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows), context
+
+
+def test_semantic_core_and_details_repair_preserves_all_formatted_fields() -> None:
+    from services.generation_pipeline import DesignCompactProcessor
+
+    source, context = _semantic_detail_capacity_example()
+    original = DesignCompactProcessor().process(source, context)
+    assert original.errors
+    result = _recompose(source, context)
+    assert result.applied and "component_simplification" in result.reasons
+    assert any("semantic_core_details" in reason for reason in result.reasons)
+    assert result.candidate_count <= 64
+    processed = DesignCompactProcessor().process(result.source_dsl, context)
+    assert not processed.errors and processed.standard_dsl
+    before = [json.loads(line) for line in source.splitlines()]
+    after = [json.loads(line) for line in result.source_dsl.splitlines()]
+    assert [row for row in before if len(row) == 2] == [row for row in after if len(row) == 2]
+    for identifier in ("title", "steps", "goal"):
+        expected = next(row for row in before if row[0] == identifier)
+        assert next(row for row in after if row[0] == identifier) == expected
+    expected_details = next(row for row in before if row[0] == "details")[2].get("items")
+    assert isinstance(expected_details, list)
+    for item in expected_details:
+        assert item.get("label") in result.source_dsl
+        assert item.get("value").get("path") in result.source_dsl
+    for row in after:
+        if len(row) != 2:
+            assert row[1] not in {"Row", "Column", "Stack"}
+            assert "width" not in row[2] and "height" not in row[2]
+
+
+@pytest.mark.parametrize(
+    "unsupported",
+    ["cross_object", "unknown_type", "numeric_text", "action", "style", "static_core"],
+)
+def test_semantic_details_do_not_guess_unsupported_relationships(unsupported) -> None:
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_semantic_repair import semantic_detail_variants
+
+    source, context = _semantic_detail_capacity_example()
+    rows = [json.loads(line) for line in source.splitlines()]
+    detail = next(row for row in rows if row[0] == "details")
+    if unsupported == "cross_object":
+        detail[2]["items"][0]["value"] = {"path": "/data/other/distance"}
+    elif unsupported == "unknown_type":
+        context = replace(context, task_spec={**context.task_spec, "dataModelSchema": {}})
+    elif unsupported == "numeric_text":
+        for row in rows:
+            if len(row) == 2 and isinstance(row[1], str):
+                row[1] = "80"
+    elif unsupported == "action":
+        detail[2]["onClick"] = [{"call": "clickToDeeplink", "args": {"uri": "blue"}}]
+    elif unsupported == "static_core":
+        primary = next(row for row in rows if row[0] == "steps")
+        primary[2]["value"] = 6200
+    else:
+        detail[2]["fontSize"] = 10
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    parsed = list(parse_compact_dsl_rows(source, expand_layouts=False))
+    assert not list(semantic_detail_variants(parsed, context.task_spec))
+
+
+def test_semantic_details_repair_supports_object_data_rows_without_rewriting_data() -> None:
+    from services.generation_pipeline import DesignCompactProcessor
+
+    source, context = _semantic_detail_capacity_example()
+    rows = [json.loads(line) for line in source.splitlines()]
+    data = {}
+    components = []
+    for row in rows:
+        if len(row) == 2:
+            data[row[0].rpartition("/")[2]] = row[1]
+        else:
+            components.append(row)
+    original_data = ["/data/activity", data]
+    components.append(original_data)
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in components)
+    result = _recompose(source, context)
+    assert result.applied
+    after = [json.loads(line) for line in result.source_dsl.splitlines()]
+    assert [row for row in after if len(row) == 2] == [original_data]
+    processed = DesignCompactProcessor().process(result.source_dsl, context)
+    assert not processed.errors and processed.standard_dsl
+
+
+def test_semantic_regroup_extracts_nested_final_action_preserving_callback() -> None:
+    source, context = _semantic_repair_example(font=14)
+    rows = [json.loads(line) for line in source.splitlines()]
+    rows = [row for row in rows if row[0] != "detail"]
+    left = next(row for row in rows if row[0] == "left")
+    left[2]["variant"] = "title-primary-details"
+    left[3] = ["title", "nested"]
+    action = [
+        "open",
+        "PillButton",
+        {
+            "label": "设置",
+            "onClick": [
+                {"call": "clickToDeeplink", "args": {"uri": "blue"}},
+            ],
+        },
+    ]
+    rows.append(action)
+    rows.append(["nested", "Group", {"variant": "hero-support"}, ["core", "open"]])
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    result = _recompose(source, context)
+    assert result.applied
+    after = [json.loads(line) for line in result.source_dsl.splitlines()]
+    assert next(row for row in after if row[0] == "open") == action
+    region = next(row for row in after if row[0] == "left")
+    assert region[2].get("variant") == "title-content-action"
+    assert region[3][-1] == "open"
+    _assert_semantic_repair_complete(source, result.source_dsl, context)
+
+
+@pytest.mark.parametrize("invalid_graph", ["cycle", "shared_chain"])
+def test_semantic_repair_rejects_invalid_graph_without_unbounded_expansion(invalid_graph) -> None:
+    source, context = _semantic_repair_example(font=12)
+    rows = [json.loads(line) for line in source.splitlines()]
+    left = next(row for row in rows if row[0] == "left")
+    left[2]["variant"] = "title-content"
+    left[3] = ["title", "bad"]
+    if invalid_graph == "cycle":
+        rows.append(["bad", "Group", {"variant": "hero-support"}, ["bad", "core"]])
+    else:
+        previous = "core"
+        for index in range(40):
+            identifier = "bad" if index == 39 else f"bad_{index}"
+            rows.append([identifier, "Group", {"variant": "peer-pair"}, [previous, previous]])
+            previous = identifier
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    result = _recompose(source, context)
+    assert not result.applied and result.source_dsl == source
+    assert result.candidate_count <= 64
+
+
+def test_semantic_details_reject_bad_data_model_without_interrupting_repair(monkeypatch) -> None:
+    from services import compact_semantic_repair
+    from services.compact_dsl_a2ui_converter import (
+        CompactDslConversionError,
+        parse_compact_dsl_rows,
+    )
+
+    source, context = _semantic_detail_capacity_example()
+    rows = list(parse_compact_dsl_rows(source, expand_layouts=False))
+
+    def invalid_model(_rows):
+        raise CompactDslConversionError("invalid object data row")
+
+    monkeypatch.setattr(compact_semantic_repair, "build_compact_data_model", invalid_model)
+    candidates = list(compact_semantic_repair.semantic_detail_variants(rows, context.task_spec))
+    assert not candidates
+
+
+@pytest.mark.parametrize("limit", [0, 1, 5])
+def test_semantic_repair_honors_remaining_candidate_budget(limit) -> None:
+    source, context = _semantic_detail_capacity_example()
+    result = recompose_wide_card(
+        source,
+        task_spec=context.task_spec,
+        card_spec=context.card_spec,
+        protocol_profile=context.protocol_profile,
+        compact_plan=context.compact_plan,
+        layout_scope=context.layout_scope,
+        candidate_limit=limit,
+    )
+    assert result.candidate_count <= limit
+
+
+def test_semantic_candidate_and_fallback_share_search_budget(monkeypatch) -> None:
+    from services import compact_repair_candidate
+    from services.compact_outer_recomposition import OuterRecompositionResult
+
+    source, context = _semantic_repair_example(font=12)
+    rows = [json.loads(line) for line in source.splitlines()]
+    left = next(row for row in rows if row[0] == "left")
+    left[2]["variant"] = "title-hero-support-action"
+    invalid = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    calls = []
+
+    def exhausted(candidate, **kwargs):
+        calls.append(kwargs)
+        count = 60 if len(calls) == 1 else 4
+        return OuterRecompositionResult(candidate, ("search_limit",), count)
+
+    monkeypatch.setattr(compact_repair_candidate, "recompose_wide_card", exhausted)
+    selected = select_compact_repair_candidate(source, invalid, context)
+    assert selected.source_dsl == source
+    assert len(calls) == 2
+    assert calls[-1].get("candidate_limit") == 4
+    assert selected.layout_candidate_count == 64

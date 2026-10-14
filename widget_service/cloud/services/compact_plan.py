@@ -1511,7 +1511,11 @@ def _validate_facts(
                         accepted_hints.append(hint)
                 removed_single_line_title_alternatives = False
                 removed_single_line_title_backup = False
-                if task_spec.get("size") == "2x2" and accepted_hints:
+                allow_title_backup_removal = task_spec.get("size") == "2x2"
+                if task_spec.get("size") == "2x4" and accepted_hints:
+                    if accepted_hints[0] == "Badge":
+                        allow_title_backup_removal = True
+                if allow_title_backup_removal and accepted_hints:
                     title_is_backup = accepted_hints[0] != "SingleLineTitle"
                     if title_is_backup and "SingleLineTitle" in accepted_hints:
                         accepted_hints.remove("SingleLineTitle")

@@ -186,10 +186,10 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 - 每行都是独立、严格、单行、可解析的 JSON；不得使用注释、尾逗号、单引号 JSON 或多行 JSON。
 - 组件行格式固定为 `[id, component, props]` 或 `[id, component, props, children]`。
 - 数据行格式固定为 `[path, value]`，其中 `path` 必须是以 `/` 开头的 JSON Pointer。
-- 第一个组件行必须是 `root`；2x2 使用 Row/Column，2x4 单业务及 `W-four-slots` 允许 Stack 外壳，内边距由满尺寸前景层承担一次；`W-split-panels`/`W-content-side-slots` 必须使用 Row。
+- 第一个组件行必须是 `root`；2x2 使用 Row/Column，2x4 使用 `Layout` 并选择本尺寸登记的父布局。2x4内容子布局用Region、受控组合用Group，不输出Row/Column/Stack或内部展开节点。
 - 只生成组件行和数据行；禁止输出 `createSurface`、`updateComponents`、`updateDataModel`、`surfaceId`、`catalogId` 或 A2UI 组件对象数组。
 - 组件行中的 `props` 是一个扁平对象：组件语义字段和样式字段都直接写在 `props` 中，不嵌套 `styles`。
-- 基础布局组件的 `children` 必须写在第 4 项，必须是非空的子组件 id 字符串数组；禁止输出对象形式的 children、模板描述、repeat 描述或 `[]`。其它组件不得有第 4 项。
+- 布局容器的children写在第4项，必须是非空组件ID数组；禁止对象形式children、repeat或空数组。2x4容器只用Layout/Region/Group，其他业务组件不得有第4项。
 - 凡是 UI 通过 PathBinding 或 Expression 访问的动态路径，都必须在后续数据行中初始化首帧值。
 
 以下是输出前必须全部通过的零容错门禁；任一项不成立都不得直接输出，必须在内部修复后重新检查：
@@ -198,7 +198,7 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 2. **组件闭环**：建立全部组件 id 的集合；`root` 和每个普通 `children` 项都必须在集合中恰好命中一个真实组件。除 `root` 外的每个组件只能被一个父容器引用一次，禁止同一语义组件或容器同时出现在内层 content 和外层背板的 children 中。每个 Row、Column、Stack 都必须包含至少一个真实子组件，禁止用空容器制造间距或弹性留白；间距改用父容器的 `itemMargin`、`padding` 或合法对齐方式。禁止引用未定义的文本或按钮子项，禁止孤立组件。
 3. **字段与表达式分层**：`content/src/label/value/itemMargin/onClick/accessibility` 等组件语义属性和样式属性都写在第三项 `props`；`children` 只能写在第 4 项；不得输出嵌套 `styles`。扫描所有字符串值：只要包含 `{{` 或 `}}`，整个字符串就必须是且只能是一个从首字符开始、到末字符结束的完整 `{{ ... }}`。
 4. **数据闭环**：每个 Expression 或 PathBinding 在首帧都必须可求值；凡是选中用于展示的动态字段，展示组件必须真实绑定该字段。逐项检查组件中的可见静态字面量：若字面量等于某个 `sampleValue`，或语义来源于其内容、格式、状态结论或单位组合，对应组件必须改为绑定该字段；`sampleValue` 及其等义改写只能出现在对应路径的数据行中，不能静态写入 `content`、`label`、`value` 或其它可见属性。
-5. **布局闭环**：从 root 开始递归计算每个 Row/Column 的横纵预算；任何一级出现负剩余空间、越界、被 root 裁切或依赖压缩才能成立，都必须先删减、合并或缩小次要内容再输出。
+5. **布局闭环**：从root开始核对横纵预算，2x4按所选语义模板及组件实际占用计算；负预算、越界或依赖压缩时改组件组合/布局，不修改固定模板几何或缩小Recipe。
 6. **文本闭环**：为每个受保护文本、格式化动态值和 CTA 构造压力字符串并计算所需宽度；分配宽度不足时必须缩短非核心静态文案、改为纵向布局、扩大槽位、降低到批准字号或删除次要字段，禁止使用 `clip/ellipsis` 交付残缺结果。
 7. **动作闭环**：PillButton、CardButton 或专用 clickable Row 的可见文案只表达动作本身，默认压缩为简短的“动词 + 对象”。任何含“导航、打开、查看、清理、开启、关闭、拨打”等动作语义的按钮外观都必须具有合法 `onClick`；否则删除动作措辞和按钮外观。`S-dual-info` 的信息背板不支持事件；存在必须保留的显式动作时改选可承载动作的布局。
 8. **状态闭环**：静态文案、颜色和图标不得与首帧动态值矛盾，也不得把某个可能变化的状态永久写死。无法由当前受控绑定安全表达的状态提示必须改为中性信息或删除。
@@ -222,8 +222,8 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 - 第 1 项是组件 id，必须唯一、稳定、语义化。
 - 第 2 项是组件名，只能使用本提示词允许的基础布局组件和组件。
 - 第 3 项是 props 扁平对象；不用的属性必须省略，不写 `null`。
-- 第 4 项只允许 Row、Column、Stack 使用，且必须是至少包含一个子组件 id 的字符串数组；禁止使用空数组或 `{ "componentId": ..., "path": ..., "itemVar": ... }` 这类模板对象；非容器组件不得拥有 children。
-- `space` 可作为 `itemMargin` 的简写；同一卡片优先统一使用 `itemMargin`。
+- 第4项允许2x2的Row/Column/Stack、2x4的Layout/Region/Group使用，必须是非空的真实组件ID数组；禁止空数组或模板对象；业务组件不得拥有children。
+- 2x2的`space`可作为`itemMargin`简写；2x4固定几何由语义模板决定，不输出宽高、间距、权重或对齐Props。
 - `onClick` 必须是非空数组且恰好一个 handler，并完整复用 eventCandidate 的 `call/args`。
 
 ## 4.2 动态绑定
@@ -243,7 +243,7 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 ### 4.2.2 标签、对象与数值不得分离
 
 - 风向不能代替风力标签。展示 `windLevel` 时写成完整的 `{{ '风力 ' + ${/data/weather/current/windLevel} + '级' }}`，或在同一父组放“风力”标签和数值；只写“东南风 / 2级”不成立。
-- `calendar.eventCount` 用一个 `SecondaryBody` 的显示值表达用户要求的时间范围、动态数量和日程语义，例如 `{{ '未来7天 ' + ${/data/calendar/eventCount} + '项安排' }}`；不得拆成孤立大数字与“件事”，也不得擅自把时间范围写成7天。
+- `calendar.eventCount` 必须与用户要求的统计范围、日程集合含义一起理解。2x4 同时展示集合数量与成员详情时，可用 `Group variant="title-count"`：SingleLineTitle 写真实统计范围与日程集合名称，Badge 只绑定数量，成员标题和时间放入内容区。不把数量作为孤立大数字，不从其它分区借说明，也不擅自把范围写成7天。其它形式仍用完整正文表达范围、动态数量和日程语义；2x2 保持一个 `SecondaryBody` 的完整显示值。
 - 左右耳、多设备、多个日期的值都要保留各自对象或时间标识。两个百分比的位置顺序不能代替“左耳/右耳”标签。
 - `ProgressCircle`、`ProgressLine2`、`ProgressCircleSingle` 与其读数必须使用同一对象、同一指标的数据。完整数值百分比字符串可原样驱动可见读数，并由转换器为内部进度换算 number；禁止从普通正文截取数字、借用另一对象的 number 字段、样例常量或改写数据类型来画环。缺少可验证比例时不能通过视觉伪装补齐。
 

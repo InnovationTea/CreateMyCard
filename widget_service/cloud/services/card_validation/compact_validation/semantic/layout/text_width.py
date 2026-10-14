@@ -23,7 +23,7 @@ def _collect_text_width_budget_errors(
     include_label_pressure: bool = False,
 ) -> None:
     """兜底明确单行超宽；自然宽度只用已知祖先内宽作上界，不猜实际尺寸。"""
-    from services.compact_composition_context import _literal_display_sample
+    from services.compact_composition_context import small_card_display_text
 
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size not in {"2x2", "2x4"}:
@@ -78,12 +78,8 @@ def _collect_text_width_budget_errors(
         if width is None:
             continue
         content = props.get("content") if row.component_type == "Text" else props.get("label")
-        displayed = _literal_display_sample(content, task_spec)
-        text = displayed[1] if displayed is not None else None
-        if size == "2x2":
-            from services.compact_composition_context import small_card_display_text
-
-            text = small_card_display_text(content, task_spec)
+        # 两种尺寸共用保守的完整文案解析；不运行表达式或猜测未知字段。
+        text = small_card_display_text(content, task_spec)
         if text is None and isinstance(content, str) and "{{" not in content:
             text = content
         if not isinstance(text, str) or not text or "\n" in text:
@@ -94,7 +90,7 @@ def _collect_text_width_budget_errors(
             by_id,
             parents,
             boxes,
-            include_regular_text=include_label_pressure and size == "2x2",
+            include_regular_text=include_label_pressure,
         )
         if duration_error is not None:
             errors.append(duration_error)

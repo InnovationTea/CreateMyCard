@@ -38,9 +38,9 @@ function applyLocalAdaptations(packageName, relativePath, source) {
   }
 
   const content = source.toString('utf8');
-  const proxyDocumentationStart = content.indexOf(
-    '/**\n * Rewrites external http(s) image URLs',
-  );
+  const proxyDocumentationLine = content.indexOf(' * Rewrites external http(s) image URLs');
+  const proxyDocumentationStart = proxyDocumentationLine < 0
+    ? -1 : content.lastIndexOf('/**', proxyDocumentationLine);
   const imageFunctionStart = content.indexOf('export function ExtendedImage', proxyDocumentationStart);
   if (proxyDocumentationStart < 0 || imageFunctionStart < 0) {
     throw new Error('无法从上游 ExtendedMedia 定位 /img-proxy 适配块');
@@ -49,11 +49,12 @@ function applyLocalAdaptations(packageName, relativePath, source) {
     content.slice(0, proxyDocumentationStart) + content.slice(imageFunctionStart);
   const upstreamSourceLine =
     '  const source = toProxyUrl(src.startsWith("resources/") ? `/${src}` : src);';
+  const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
   const debugSourceLines = [
     '  // Debug Tools deliberately does not expose the Next.js /img-proxy endpoint:',
     '  // external images remain browser-direct, while repository assets use /resources/.',
     '  const source = src.startsWith("resources/") ? `/${src}` : src;',
-  ].join('\n');
+  ].join(lineEnding);
   if (!withoutProxyFunction.includes(upstreamSourceLine)) {
     throw new Error('无法从上游 ExtendedMedia 定位 toProxyUrl 调用');
   }

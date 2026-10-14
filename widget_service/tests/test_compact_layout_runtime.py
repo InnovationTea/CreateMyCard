@@ -8,7 +8,11 @@ from types import SimpleNamespace
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
-from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+from services.compact_dsl_a2ui_converter import (
+    ComponentRow,
+    expand_compact_semantic_layout,
+    parse_compact_dsl_rows,
+)
 from services.compact_layout_runtime import (
     LAYOUT_CONTRACT_VERSION,
     CompactLayoutRuntimeError,
@@ -630,7 +634,10 @@ def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
 
 
 def test_w_content_side_slots_rejects_action_then_information() -> None:
-    source = _layout_fixture("W-content-side-slots")
+    # 此测试针对既有物理布局匹配；语义输入的角色错误会更早由编译器拒绝。
+    source, _origins = expand_compact_semantic_layout(
+        _layout_fixture("W-content-side-slots"), size="2x4",
+    )
 
     def mutate(row: list) -> None:
         if row[0] == "connection":

@@ -731,6 +731,13 @@ async def test_wide_repair_retains_previous_candidate_and_records_rejected_histo
 ) -> None:
     from services import widget_generation_service
 
+    # 本组隔离编排与 Trace；源序列化由真实转换回归覆盖。
+    monkeypatch.setattr(
+        widget_generation_service,
+        "serialize_compact_dsl_source",
+        lambda source, **_kwargs: source,
+    )
+
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_generation_trace_recording", True)
     monkeypatch.setattr(settings, "generation_trace_root", tmp_path / "traces")
@@ -866,6 +873,13 @@ async def test_successful_initial_generation_does_not_enter_wide_repair_selectio
 ) -> None:
     from services import widget_generation_service
 
+    # 本组隔离编排与 Trace；源序列化由真实转换回归覆盖。
+    monkeypatch.setattr(
+        widget_generation_service,
+        "serialize_compact_dsl_source",
+        lambda source, **_kwargs: source,
+    )
+
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
@@ -918,6 +932,13 @@ async def test_initial_wide_failure_tries_deterministic_repair_before_model(
     reject_local: bool,
 ) -> None:
     from services import widget_generation_service
+
+    # 本组隔离编排与 Trace；源序列化由真实转换回归覆盖。
+    monkeypatch.setattr(
+        widget_generation_service,
+        "serialize_compact_dsl_source",
+        lambda source, **_kwargs: source,
+    )
     from services.compact_outer_recomposition import OuterRecompositionResult
     from services.validator import ArtifactValidator
 

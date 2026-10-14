@@ -15,6 +15,31 @@
 正文保留原章节编号及引用，以保持生成后的章节裁剪行为。修改正文后运行构建与回归，禁止手改 generated。
 
 <!-- prompt:contract -->
+## 2x4语义布局修复
+
+2x4修复继续输出Layout/Region/Group及业务组件。反馈标为expanded的几何来自模板，不是模型填写的Props；
+根据定位的原语义节点修改内容组件、Group、Region.variant或Layout.layout，不输出内部生成节点，也不修改
+固定宽高、边距、间距、权重或对齐。每次更换变体同步修齐其必需角色；删除获授权事实后，也要重新选择能
+承载剩余内容和全部Action的合法结构，不能留下空Region或空Group。2x2仍沿用原修复表达。
+选择变体前先确认父区：W-split-panels 内只使用紧凑 Region；侧双槽内容区才使用宽版 Region。
+不能将 title-hero-support-action、title-two-ratios 或四格变体直接放进紧凑区；主辅加按钮可在
+同一对象内用 Group.hero-support 合组正文，再选择 title-content-action，逐项复核剩余高度。
+修复消息的 semanticLayoutRepair 来自公共编译合同，列出当前区合法变体和有序角色；它不扩大
+repairStrategy.scope。更换变体须同步调整 children，完整保留标题、所有正文、按钮与原顺序。
+W-top-bottom.details 只能保留登记的详情组件，不能把它替换成 SecondaryBody 或 Group。
+单区核心与同对象属性详情放不下时，可改合法双区：原数值核心保留，完整格式化详情值与标签
+使用 EmphasisText，其余标签和值合为同区 SecondaryBody；换行后再复核完整布局，不能裁切或删字段。
+
+Action 覆盖失败时，先检查对应按钮是否从 root 的 children 引用链可达；仅输出按钮行不等于显示入口。
+优先补到现有合法动作位。没有可用动作位时，最小范围改选 Region 或父布局来承载全部真实操作，
+不能给固定双槽添加第三槽、把 CardButton 放在 Region 外，或只保留不可达按钮。
+已有事件及其时间、地点仍作为同一完整内容，不因补按钮退化为狭窄信息槽；不复制动作或删除事实。
+
+展示事实缺失时，先恢复同一对象的完整信息组，再检查补齐后的容量。原布局只装入部分事实时合法，
+不代表补齐后仍合法。短属性可在同组的合法 item 中完整合并；长属性按真实行数表达，不能超过
+组件项目数，也不能因所有路径已绑定就接受可见截断。必要时最小范围调整组件组合或区域，
+保留已正确的事实和操作，不把不同对象混到同一辅助字段；纯绑定、语法错误不因此授权重排。
+
 
 修复已匹配的语义组件时，先修错误 Props、绑定形式、必要父容器与槽位预算，再考虑更换组件。
 不能因一次属性错误直接退化为逐字段文本；模型仍不得直接输出 Text。必要事实、动作和对象归属不变。
@@ -49,8 +74,8 @@ EmphasisText.mainText 的既有18fp文本规格，不是按宽度自动缩字；
 纯操作且无图标/自定义样式的 CardButton 可改选合法 PillButton，保留完整 label、所有 onClick，按新组件
 合同迁移属性；使用原生 36vp 点击尺寸和 14fp 字号，不自行缩按钮，不在固定 CardButton 槽内硬换。
 用户明确要求原按钮样式时不替换。
-两项 TextBlock 可改用合法 TableText；三项辅助明细可合组为 SecondaryBody，仍须辅助同区核心信息，
-不能用标题、按钮或另一个 SecondaryBody 冒充核心。按最终 columns/items/maxLines 选择合法行布局，不添加 role。
+两项 TextBlock 可改用合法 TableText；三项辅助明细可合组为合法 SecondaryBody，
+所在语义区域须已有核心信息组件，不新增旧 role 属性，不把独立核心信息退化为辅助正文。
 替换后的标签和值字号均不得降低。保留必要图标、核心数值与真实进度，不把它们退化为普通辅助文本。
 同对象、同语义组的辅助字段可在一个合法组件内按原顺序合并，完整保留标签、值、单位及绑定，
 合组后的字号不得小于原字号；不要跨对象、日期或事件混合，也不要把核心降为更小的辅助规格。
@@ -115,7 +140,7 @@ Drop、定向修复或完整 DSL 重组，不代表整条修复链路终止。�
 - 同组多个事件继续放在一个 `EventCard.items` 中；普通规格放不下时先使用合同已有的
   `density:"compact"`，完整保留每项 title、time、location 和绑定，再改选可承载它们的合法内容区。
 - 可合并同一对象中语义相近的辅助字段，并更换当前尺寸文档已经登记的合法布局骨架；Compact DSL
-  仍只使用 Row、Column、Stack 和已登记内容组件表达，不复制 claw-widget 的 Card、Region 或 JSX。
+  2×4 仍使用 Layout/Region/Group；2×2 仍使用 Row/Column/Stack，不复制 claw-widget 的 Card 或 JSX。
 - 禁止删除信息或 Action、把动态值改为静态文字、缩小固定字号、使用省略号、裁切或 overflow 隐藏问题。
   第二次兜底只修复第一次结果的剩余错误，不得改变这些保护边界。
 
