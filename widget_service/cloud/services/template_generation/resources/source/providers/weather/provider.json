@@ -359,6 +359,24 @@
       ]
     },
     {
+      "templateId": "WeatherOverviewAirQualitySummaryFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "空气质量摘要 Full：以空气质量为主值，同时展示可用的城市和当前温度；天气现象与感冒风险作为可选辅助信息。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/airQuality"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/coldLevel"
+      ]
+    },
+    {
       "templateId": "WeatherOverviewAlertFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
@@ -527,6 +545,29 @@
       "optionalData": []
     },
     {
+      "templateId": "WeatherOverviewTwoDayCompareWideFull@1",
+      "supportedCardSizes": [
+        "2x4"
+      ],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "今明天气对比 WideFull，并列展示 daily[0] 和 daily[1] 的日期、天气现象、温度范围和空气质量；用于 2x4 卡片中需要完整对比两天预报信息的场景。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/0/date",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/date",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText"
+      ],
+      "secondaryData": [
+        "/daily/0/airQuality",
+        "/daily/1/airQuality"
+      ],
+      "optionalData": []
+    },
+    {
       "templateId": "WeatherOverviewDailyHealthFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
@@ -540,6 +581,46 @@
         "/daily/1/coldLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "WeatherOverviewDailyConditionWeekdayFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "明日天气现象日期 Full：突出 daily[1] 天气现象，并展示星期；温度范围、降雨概率和日期可选。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/1/condition"
+      ],
+      "secondaryData": [
+        "/daily/1/weekday"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/daily/1/date",
+        "/daily/1/temperatureRangeText",
+        "/daily/1/rainProbabilityPercent"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewDailyUvColdFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "今日健康指数精简 Full：突出 daily[0] 紫外线等级，并展示感冒指数；空气质量、天气现象和温度范围可选。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/daily/0/uvIndex"
+      ],
+      "secondaryData": [
+        "/daily/0/coldLevel"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/daily/0/airQuality",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText"
+      ]
     },
     {
       "templateId": "WeatherOverviewThreeDayForecastFull@1",
@@ -609,6 +690,34 @@
         "/daily/0/temperatureRangeText",
         "/daily/0/rainProbabilityPercent"
       ]
+    },
+    {
+      "templateId": "WeatherOverviewCareWideFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气关怀 WideFull，左侧展示城市、当前温度和天气现象，右侧展示天气预警、紫外线和空气质量；用于需要同时呈现天气概览与健康提示的 2x4 卡片。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/alertLevel",
+        "/current/uvIndex",
+        "/current/airQuality"
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ],
+        "uvIcon": [
+          "weather-indicator"
+        ]
+      }
     },
     {
       "templateId": "WeatherOverviewWideHero@1",
@@ -759,6 +868,25 @@
           "weather-condition"
         ]
       }
+    },
+    {
+      "templateId": "WeatherOverviewUvOnlyFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "紫外线精简 Full：突出当前紫外线等级；城市、天气现象、空气质量和感冒风险可选。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/uvIndex"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/current/coldLevel"
+      ]
     },
     {
       "templateId": "WeatherOverviewFeelsLikeWindSupport@1",

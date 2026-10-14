@@ -10,7 +10,7 @@
     },
     {
       "templateId": "CompactAction@1",
-      "description": "单行文本 Compact 动作模板，左侧展示 label 与可选 subtitle 副标题（由服务端按 Action 绑定下发）；icon 为可选参数，本轮传入语义图标时才在右侧展示 24x24 图标，由第二层通过 actionId、label、可选 subtitle 和 icon Props 填充。",
+      "description": "单行文本 Compact 动作模板，左侧展示 label 与可选 subtitle 副标题、右侧可展示 24x24 icon；仅输出内容与点击事件，不生成底板、圆角或槽位 padding，由布局槽位统一提供。",
       "entry": "templates/action.cardtpl"
     },
     {
