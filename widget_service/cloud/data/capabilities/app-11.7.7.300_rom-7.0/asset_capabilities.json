@@ -1,5 +1,14 @@
 [
   {
+    "id": "asset.icon_phone",
+    "type": "asset",
+    "src": "resources/base/media/icon_phone.svg",
+    "description": "样式：单色实心手机外形图标，支持 fillColor 着色；适用：手机电量、充电状态与手机设备概览，不表示电话拨号操作。",
+    "overviewDescription": "手机设备单色图标；用于手机电量与设备状态。",
+    "sceneTags": ["phone-device", "battery"],
+    "minXiaoyiVersion": "11.7.7.330"
+  },
+  {
     "id": "asset.air_fill",
     "type": "asset",
     "src": "resources/base/media/air_fill.svg",

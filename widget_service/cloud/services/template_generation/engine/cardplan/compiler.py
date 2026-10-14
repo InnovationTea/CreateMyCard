@@ -1171,6 +1171,14 @@ def _validate_provider_template_state(
     *,
     business_names: set[str],
 ) -> None:
+    standalone_earphone_wide = (
+        wire_id in {
+            "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
+            "BluetoothDeviceOverviewCompletePhoneWideFull@1",
+        }
+        and task_spec.size == "2x4"
+        and business_names == {"BluetoothDeviceOverview"}
+    )
     identity = provider_template_family_identity(wire_id)
     if identity is not None:
         wire_id, variant_name = identity
@@ -1398,7 +1406,11 @@ def _validate_provider_template_state(
             "earbudsDynamicWideFull",
             "completeWideFull",
         }
-        if variant_name in phone_variants and not paired_with_phone:
+        if (
+            variant_name in phone_variants
+            and not paired_with_phone
+            and not standalone_earphone_wide
+        ):
             raise TerselConversionError(
                 "Bluetooth Provider Template variant does not match the phone-earphone layout."
             )

@@ -1616,6 +1616,8 @@ def project_content_component_facts(
             sleep_facts = extract_sleep_overview_facts(schema)
             if sleep_facts is not None:
                 selected = sleep_facts.as_selector()
+            else:
+                selected = _sleep_score_template_fields(schema)
         elif component_id == "GenericMetricOverview":
             # Generic compact supplements the primary business component. It
             # is intentionally data-agnostic: every requested scalar leaf from
@@ -3084,6 +3086,18 @@ def extract_sleep_overview_facts(
     return None
 
 
+def _sleep_score_template_fields(schema: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """保留仅分数模板的原始字段，不制造睡眠时长。"""
+    for candidate in _direct_field_objects(schema.get("data", {}), ("sleepScore",)):
+        field = candidate.get("sleepScore")
+        if not isinstance(field, dict) or field.get("type") != "integer":
+            continue
+        score = _trusted_nonnegative_integer(field)
+        if score is not None and score <= 100:
+            return {"sleepScore": deepcopy(field)}
+    return {}
+
+
 def _normalize_sleep_duration(duration: DurationSegments) -> DurationSegments:
     """Normalize an hour-minute pair while preserving its exact minute total."""
     if duration.primary_unit == "分钟":
@@ -3263,6 +3277,13 @@ def _schedule_template_variant_projection(
         selected = _schedule_date_location_fields(provider)
         if selected:
             variant_names.add("dateLocation")
+    if not selected:
+        field = _calendar_variant_schema_leaf(provider, "/events/0/remindTime/0")
+        if field is not None and _trusted_schedule_variant_field(
+            field, data_type="string", allow_empty=False,
+        ):
+            selected = {"remindTime": deepcopy(field)}
+            variant_names.add("reminderOnly")
     return selected, frozenset(variant_names)
 
 

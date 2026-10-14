@@ -1974,6 +1974,7 @@ class WidgetGenerationService:
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_layout_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
@@ -2013,6 +2014,7 @@ class WidgetGenerationService:
         template_source_generator = TemplateSourceGenerator(
             trusted_template_candidate_ids=trusted_template_candidate_ids,
             trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_layout_ids=trusted_template_layout_ids,
             trusted_template_sample_overrides=dict(trusted_template_sample_overrides or {}),
         )
         return await self._generate_widget_card_with_policy(

@@ -27,8 +27,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
 _SOURCE = "resources/base/media/"
 _SLOTS = (
-    # BatteryOverviewSupport@1 不在列：上游 #410 下架 icon_phone.svg 后，
-    # 其 batteryIcon 的 phone-device 语义已无在册素材（见下方专项用例）。
+    ("BatteryOverviewSupport@1", "batteryIcon", "icon_phone.svg"),
     ("BatteryOverviewStatusSupport@1", "batteryIcon", "bolt_fill.svg"),
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
@@ -107,21 +106,36 @@ def test_mixed_catalog_is_filtered_per_business_slot(
         assert _SOURCE + "l_circle_fill.svg" not in allowed
 
 
-def test_battery_support_phone_icon_slot_has_no_live_catalog_asset(
+def test_battery_support_phone_icon_slot_accepts_registered_device_only(
     definitions: dict[str, TemplateDefinition],
     catalog_contract: HybridBodyContract,
 ) -> None:
-    """上游 #410 下架 icon_phone.svg 后，phone-device 语义暂无在册素材。"""
+    """手机设备图标重新登记后，仍不能用液滴或闪电替代。"""
     definition = definitions.get("BatteryOverviewSupport@1")
     assert definition is not None
     assert definition.asset_parameter_semantic_tags.get("batteryIcon") == ("phone-device",)
-    assert _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract) == ()
+    assert _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract) == (
+        _SOURCE + "icon_phone.svg",
+    )
+    without_phone = catalog_contract.model_copy(update={
+        "allowed_asset_sources": tuple(
+            source for source in catalog_contract.allowed_asset_sources
+            if source != _SOURCE + "icon_phone.svg"
+        ),
+    })
     for probe in ("drop_1.svg", "bolt_fill.svg"):
+        normalized = _normalize_template_asset_params(
+            {"batteryIcon": _SOURCE + probe},
+            definition.asset_parameter_semantic_tags,
+            catalog_contract,
+            required_parameters=frozenset(),
+        )
+        assert normalized == {"batteryIcon": _SOURCE + "icon_phone.svg"}
         with pytest.raises(TerselConversionError, match="semantics"):
             _normalize_template_asset_params(
                 {"batteryIcon": _SOURCE + probe},
                 definition.asset_parameter_semantic_tags,
-                catalog_contract,
+                without_phone,
                 required_parameters=frozenset(),
             )
 
@@ -305,8 +319,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
     manifest = write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
-        # BatteryOverviewSupport@1 不贡献自身素材：icon_phone 已下架（上游 #410），
-        # 其用例仅携带 partner 的温度计素材。
+        "BatteryOverviewSupport@1": "asset.icon_phone",
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
         "WeatherOverviewConditionSupport@1": "asset.sun_max",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",

@@ -18,6 +18,7 @@ class TemplateSourceGenerator:
 
     trusted_template_candidate_ids: tuple[str, ...] = ()
     trusted_template_action_ids: tuple[str, ...] = ()
+    trusted_template_layout_ids: tuple[str, ...] = ()
     trusted_template_sample_overrides: dict[str, Any] = field(default_factory=dict)
     processor_kind: DslProcessorKind | None = field(default=None, init=False)
     protocol_profile: dict[str, Any] | None = field(default=None, init=False)
@@ -49,5 +50,6 @@ class TemplateSourceGenerator:
             enable_fusion_ball=enable_fusion_ball,
             trusted_template_candidate_ids=self.trusted_template_candidate_ids,
             trusted_template_action_ids=self.trusted_template_action_ids,
+            trusted_template_layout_ids=self.trusted_template_layout_ids,
             trusted_template_sample_overrides=self.trusted_template_sample_overrides,
         )
