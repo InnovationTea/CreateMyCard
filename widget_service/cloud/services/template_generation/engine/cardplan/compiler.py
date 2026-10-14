@@ -922,6 +922,10 @@ def _expand_call(
         raise TerselConversionError(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
+    if wire_id == "BatteryOverviewChargingTemperatureFull@1" and params.get("title") == "":
+        # 本模板将空标题视为未传；模板条件原本只判断参数是否存在。
+        params = dict(params)
+        params.pop("title", None)
     params = _normalize_template_asset_params(
         params,
         definition.asset_parameter_semantic_tags,
@@ -1195,6 +1199,12 @@ def _validate_provider_template_state(
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
+            "percentHealthDetailsFull",
+            "percentHealthCurrentDetailsFull",
+            "percentStatusFull",
+            "chargingTypePercentFull",
+            "temperatureStatusFull",
+            "chargingTemperatureFull",
             "percentLevelHero",
             "percentLevelFull",
             "percentRingCompact",
@@ -1355,6 +1365,13 @@ def _validate_provider_template_state(
             return
         if variant_name == "musicCompact":
             # 纯歌单入口：不渲染耳机数据，因此不设任何数据前提。
+            return
+        if variant_name == "earbudPairChargingFull":
+            has_three_batteries = has_case and has_left and has_right
+            if not has_three_batteries or facts.case_charging_status is None:
+                raise TerselConversionError(
+                    "Earbud charging Full requires three batteries and a case charging state."
+                )
             return
         if variant_name == "earbudPairFull":
             if facts.is_connected is None and facts.earphone_name is None:
@@ -6467,6 +6484,7 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "earbudsDynamicWideFull": "earbuds",
         "earbudsSupport": "earbuds",
         "earbudPairFull": "earbuds",
+        "earbudPairChargingFull": "earbuds",
         "completeWideFull": "earbuds",
         "earbudPairCompact": "earbuds",
         "completePhoneWideFull": "earbuds",

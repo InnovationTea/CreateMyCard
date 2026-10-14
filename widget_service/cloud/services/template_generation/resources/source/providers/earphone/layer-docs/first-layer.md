@@ -1,5 +1,8 @@
 # 蓝牙耳机第一层意图规则
 
+- `BluetoothDeviceOverviewEarbudPairChargingFull@1` 覆盖左耳、右耳、盒三处电量和整体/盒充电状态。
+  这四项输入齐全即可，不要求耳机名称、连接状态或左右耳充电状态；允许无动作2×2请求。
+
 ## BluetoothDeviceOverview
 
 本节只适用于 `GetEarphoneInfo`，不扩展到其它业务。以本轮实际 `userQuery` 为意图来源，

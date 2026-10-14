@@ -1,5 +1,10 @@
 # 第二层业务模板使用规则
 
+- `BluetoothDeviceOverviewEarbudPairChargingFull@1`：沿用EarbudPairFull的小标题、大字主状态和
+  左耳/右耳/盒三列电量。必需三处电量及chargingStatusDesc；不要补名称、连接状态或左右耳状态。
+  当cardComposition.businessTitleCandidate非空时逐字传入title；缺省省略，显示“蓝牙耳机”。
+  图标可选，无素材时显示左/右/盒；无动作2×2使用SingleFocusLayout，按下发计划组合。
+
 2×2 单耳机以动作适配优先于字段得分：单动作优先选择合法 Hero，仅在 Hero 不可用时使用 Full 图标动作；无动作使用 Full，双动作使用 Compact。显式动作与自动补选动作规则一致。第二层只在服务端提供的完整 Plan 中选择，不把 Hero 的动作搬到 Full，不因 Full 的主要字段匹配更多而跨角色选择；字段完整覆盖与输入准入要求保持。
 
 - Provider：`com.huawei.earphone.cli`；业务领域为 `BluetoothDeviceOverview`。

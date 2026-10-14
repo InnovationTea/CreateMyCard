@@ -280,6 +280,16 @@
       ]
     },
     {
+      "templateId": "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机三处电量与充电状态Full，沿用EarbudPairFull结构。顶部小标题使用请求title，无title则显示蓝牙耳机；下方18fp大字显示chargingStatusDesc，底部左耳、右耳、盒三列电量。只要求三处电量和整体/盒充电状态，不要求名称、连接状态或左右耳充电状态。图标可选，无独立按钮。",
+      "entry": "templates/earbud-pair-charging-full.cardtpl",
+      "primaryData": ["/batteryLevel", "/leftBatteryLevel", "/rightBatteryLevel"],
+      "secondaryData": ["/chargingStatusDesc"],
+      "optionalData": []
+    },
+    {
       "templateId": "BluetoothDeviceOverviewCompleteWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",

@@ -2,6 +2,20 @@
 
 ## BatteryOverview
 
+- `BatteryOverviewChargingTemperatureFull@1` 用于充电温度与电量三项文本的2x2无动作卡片：
+  参考HealthTemperature的状态与温度结构，标题使用传入title，缺省显示“手机电池”；
+  大字充电状态、下方温度、左下角电量。
+  三项均必需；无需电池健康、充电器类型、图标或数值电量。字段齐全时优先参考此完整模板，
+  仅有温度和电量的请求仍使用TemperatureStatusFull，不推断温度正常或快充。
+
+- `BatteryOverviewChargingTypePercentFull@1` 仅要求电量百分比文本、充电状态、充电器类型，
+  支持 2x2 单焦点和 2x4 与天气 Full 组合。不要因缺少数值电量、等级或健康状态排除它。
+
+- `BatteryOverviewTemperatureStatusFull@1` 是居中title/温度/电量三段2x2无动作Full：仅温度必需，
+  电量文本、充电状态与充电器类型可选，无素材要求。title缺省为“手机电池”，电量位于底行。
+- `BatteryOverviewPercentStatusFull@1` 是充电状态 Hero 的 2x2 无动作 Full：仅电量文本必需，
+  充电状态、健康、等级、温度和更新时间可选。两者的充电状态均放在左下角，沿用通用排序。
+
 - 支持的 TaskSpec 数据路径：
   - `{{dataRoot:GetPhoneBatteryInfo}}/batterySOC`
   - `{{dataRoot:GetPhoneBatteryInfo}}/batterySOCText`
@@ -17,6 +31,9 @@
 - 只表达手机本机电量、等级、充电状态、电池健康、充电器类型、电池温度、充电电流、充电电压、电池识别状态和更新时间，0% 合法。
 - 支持电池健康状态、充电器类型、充电电流、充电电压和电池识别状态；不支持续航、预计充满时间或外设电量。
 - 用户明确要求电池温度、充电器类型和更新时间，且三个字段均可用时，选择电池温度 Full 模板。
+- 电池温度 Full 的温度图标为可选项；没有温度素材时仍可选择，数据要求保持不变。
+- `BatteryOverviewFull@1` 的电池图标为可选项；四项电量数据齐全时，无素材也可选择，
+  保留进度环、百分比文本、充电状态和电量等级，环内默认显示字母“E”作为电量标识。
 - 用户明确要求充电电流、充电电压、电量等级和电池识别状态，且四个字段均可用并带一个动作时，选择充电诊断 Hero 模板。
 
 - 用户明确要求剩余电量、充电电流、充电电压和电池识别状态，且四个字段均可用时，选择充电诊断 WideFull 模板（2x4，无需动作）。
@@ -42,6 +59,14 @@
 
 ### 单电量 2x2 的字段筛选优先规则
 
+- `BatteryOverviewPercentHealthCurrentDetailsFull@1`：2x2 无动作的百分比、健康与电流详情 Full。
+  必需 /batterySOCText、/chargingStatusDesc、/healthStatusDesc、/nowCurrentText，完整展示四项文本。
+  无数值电量、素材或电压要求；当前电流保留原始文本及单位，沿用通用字段覆盖和候选排序。
+
+- `BatteryOverviewPercentHealthDetailsFull@1`：2x2 无动作的百分比与健康详情 Full。
+  必需 /batterySOCText、/chargingStatusDesc、/healthStatusDesc、/pluggedTypeDesc，完整展示四项文本。
+  不依赖数值电量、电量等级或素材；沿用通用字段覆盖和布局排序，不改变用户明确需求。
+
 - 先读取本轮 userQuery，区分明确要求与可选候选；标题、描述、样例值、输入候选齐全都不能扩大明确需求。
 - 明确要求的字段必须保留。非必选、且未被用户明确禁止的字段才作为候选，模板有且输入存在时可附带展示；不要将候选放入 requiredOutputFieldsByCapability，不新增协议字段。
 - 对“电池情况”“电池状态”等模糊概览，先以剩余电量为基本需求，结合明确提到的充电状态或健康等目标；不能自动展开为充电器类型、温度、电流、电压、更新时间等全部候选。
@@ -58,3 +83,8 @@
 - `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
 
 - `BatteryOverviewCurrentVoltageFull@1`：2×2 电流电压 Full，仅必需 /nowCurrentText、/voltageText，可选 /batterySOCText、/batteryTemperatureText、/healthStatusDesc。标题12fp，所有数值12fp/500，标签12fp/400，各详情行高16vp，左对齐；无需图标或动作，字段存在时显示对应行，沿用通用检索和候选字段排序。
+
+TemperatureStatusFull当前布局为居中三段式：顶部16fp title，缺省“手机电池”；
+中间30fp温度，底部12fp“电量: ”加 /batterySOCText，只有温度必需。
+电量、充电状态、充电器类型均可选；辅助信息存在时左侧展示，电量在右侧，
+仅有电量时底行居中。没有任何底行数据时省略；请求标题非空时逐字传入title。
