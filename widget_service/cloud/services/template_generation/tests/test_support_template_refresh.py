@@ -186,7 +186,8 @@ def test_support_ux_contract_covers_every_registered_support() -> None:
     supports = {
         name for name in get_cardplan_registry().templates if name.endswith("Support@1")
     }
-    assert supports == set(_SUPPORT_PRIMARY_TEXT_INDEXES)
+    # CurrentTimeOverviewSupport 无参数、无操作位，不参与排版与动作契约。
+    assert supports == set(_SUPPORT_PRIMARY_TEXT_INDEXES) | {"CurrentTimeOverviewSupport@1"}
 
 
 @pytest.mark.parametrize(("template_id", "binding", "unit", "caption"), (
@@ -260,7 +261,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 26
+    assert len(supports) == 27
     assert not supports.intersection({
         "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
@@ -381,9 +382,12 @@ def test_all_support_actions_are_optional_and_bound_to_root(with_action: bool) -
         legacy_overlays = {
             "BluetoothDeviceOverviewEarbudsSupport@1",
         }
+        # 当前时间 Support 按契约不接收操作位：无 actionId 参数，注入也不产生点击。
+        action_less_supports = {"CurrentTimeOverviewSupport@1"}
+        supports_action = with_action and template_id not in action_less_supports
         if template_id not in legacy_overlays:
-            assert bool(options.get("onClick")) == with_action, template_id
-        assert _serialize_node(root).count('"onClick":') == int(with_action), template_id
+            assert bool(options.get("onClick")) == supports_action, template_id
+        assert _serialize_node(root).count('"onClick":') == int(supports_action), template_id
         assert "onclick" not in options
 
 

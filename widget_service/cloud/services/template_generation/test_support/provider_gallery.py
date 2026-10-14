@@ -63,6 +63,7 @@ _PROVIDER_NAMES = {
     "battery": "设备电量",
     "calendar": "日历日程",
     "countdown": "倒计时",
+    "current-time": "当前时间",
     "earphone": "蓝牙耳机",
     "health-sport": "运动健康",
     "weather": "天气",
@@ -74,6 +75,7 @@ _BUSINESS_DESCRIPTIONS = {
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
     "CalendarOverview": ("日历日程", "展示下一项日程"),
     "CountdownOverview": ("倒计时", "展示距离元旦还有多少天"),
+    "CurrentTimeOverview": ("当前时间", "展示今天日期、星期、农历和端侧更新时间"),
     "HeartRateOverview": ("运动心率", "展示最近一次运动的平均心率"),
     "SleepOverview": ("睡眠情况", "展示昨晚睡眠情况的时长、得分和状态"),
     "WeatherOverview": ("天气", "展示上海青浦当前温度、天气和空气质量"),
@@ -83,6 +85,7 @@ _BUSINESS_DESCRIPTIONS = {
 _CAPABILITY_ARGUMENTS = {
     "GetCalendarEvents": {"futureDays": 7},
     "GetCountdownDays": {"targetDate": "2027-01-01"},
+    "GetCurrentTime": {},
     "GetEarphoneInfo": {},
     "GetHealthAndSportSummary": {"targetDayOffset": 0},
     "GetPhoneBatteryInfo": {},
@@ -105,6 +108,7 @@ _ACTION_IDS_BY_BUSINESS = {
     ),
     "CalendarOverview": ("event.viewCalendarEvent", "event.enter.meeting"),
     "CountdownOverview": ("event.open.clock.alarmTab", "event.open.settings.dnd"),
+    "CurrentTimeOverview": (),
     "HeartRateOverview": ("event.open.health.sportsRecord", "event.open.settings.dnd"),
     "SleepOverview": ("event.open.health.sleep", "event.open.settings.dnd"),
     "WeatherOverview": ("event.open.weather", "event.startNavigate"),
@@ -117,6 +121,7 @@ _ACTION_QUERIES_BY_BUSINESS = {
     "BluetoothDeviceOverview": ("开启蓝牙", "打开每日音乐"),
     "CalendarOverview": ("查看日程详情", "进入会议"),
     "CountdownOverview": ("打开闹钟", "打开免打扰设置"),
+    "CurrentTimeOverview": (),
     "HeartRateOverview": ("查看运动记录", "打开免打扰设置"),
     "SleepOverview": ("查看睡眠详情", "打开免打扰设置"),
     "WeatherOverview": ("打开当前城市天气详情", "导航回家"),
@@ -734,6 +739,12 @@ def _request_envelope(
         target_template.description if target_template is not None else business_description
     )
     data_bindings = _single_template_data_bindings(definition, target_template)
+    # 无注册动作的业务（如当前时间）没有动作场景文案，回退为无操作单内容场景。
+    if (
+        scenario_id in {"single-one-action", "single-two-actions"}
+        and not _ACTION_IDS_BY_BUSINESS.get(definition.business_id)
+    ):
+        scenario_id = "single-content"
     action_count = 0
     if scenario_id == "single-two-actions":
         action_count = 2
@@ -1078,7 +1089,12 @@ def _support_template_pairs(
             if template.suffix == "Support":
                 selections.append(GalleryTemplateSelection(definition, template))
     partners = sorted(
-        selections,
+        (
+            item
+            for item in selections
+            # 组合请求按内容业务取动作文案；无注册动作的业务只作首段。
+            if _ACTION_QUERIES_BY_BUSINESS.get(item.business.business_id)
+        ),
         key=lambda item: (
             item.business.capability_id != "ViewWeather",
             not item.template.supported_event_ids,
