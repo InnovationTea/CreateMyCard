@@ -344,3 +344,16 @@ cd widget_service
 PYTHONPATH=cloud .venv312/bin/pytest -q \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py
 ```
+
+## 2×4 垂域骨架组合
+
+使用 `--include-wide-compositions --composition-seed 20261014` 将组合追加到原有垂域，
+不增加独立组合分组。主槽来自当前垂域，其余业务槽位从其他垂域的兼容代表模板中随机选择；
+同一次组合不重复垂域。输入清单保存完整模板列表和目标骨架，选择审计保存随机种子及不适用项。
+再次执行相同种子替换生成器管理的组合，原有用例及输入保持不变。
+
+骨架覆盖测试经内部 Python 参数限制合法计划，再通过真实两层模型与正式生成入口得到 A2UI。
+它验证指定骨架能否生成和渲染，不代表该骨架在默认不限制候选时一定成为首选。
+输出记录 `actualLayout` 和 `actualTemplateIds`；目标骨架不一致视为失败。测试约束不进入公开请求字段。
+数据使用演示样例；使用当前融球版本，只保留一份效果，无融球实现的组合按正式现有样式展示。
+不折叠模板、骨架或操作变体。

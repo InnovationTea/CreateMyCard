@@ -91,6 +91,7 @@ def plan_template_candidates(
     *,
     candidate_bindings: tuple[CandidateDataBinding, ...] = (),
     allow_battery_no_action_plan: bool = False,
+    allowed_layout_ids: tuple[str, ...] = (),
 ) -> tuple[TemplatePlan, ...]:
     """Build at most three complete, atomic UI plans from Search candidates."""
     if search_result.card_size != task_spec.size:
@@ -105,6 +106,8 @@ def plan_template_candidates(
     group_options = tuple(groups_by_capability[item] for item in requested_capabilities)
     if task_spec.size == "2x4":
         for composition in wide_plan_compositions(intent, search_result, task_spec, registry):
+            if allowed_layout_ids and composition.layout_template_id not in allowed_layout_ids:
+                continue
             plan = _make_plan(
                 composition.layout_template_id,
                 composition.slots,
@@ -145,6 +148,8 @@ def plan_template_candidates(
         else:
             new_drafts = ()
         for plan, score in new_drafts:
+            if allowed_layout_ids and plan.layout_template_id not in allowed_layout_ids:
+                continue
             drafts.append(_PlanDraft(plan=plan, score=score, sequence=sequence))
             sequence += 1
     if not drafts:
@@ -204,7 +209,8 @@ def plan_template_candidates(
         if allow_battery_no_action_plan and actions != top_actions:
             continue
         same_theme.append(item)
-    selected = list(same_theme[:_MAX_PLANS])
+    plan_limit = 1 if allowed_layout_ids else _MAX_PLANS
+    selected = list(same_theme[:plan_limit])
     _verify_plans_cover_request(selected, intent)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})

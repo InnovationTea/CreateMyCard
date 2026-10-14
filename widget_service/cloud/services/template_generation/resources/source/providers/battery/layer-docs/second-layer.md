@@ -21,10 +21,11 @@
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
     数值电量必需且 0% 合法；不得用文本、异常提示或零值伪造缺失的数值电量。
     充电状态为可选辅行：存在时左侧双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行，电量环不受辅行影响。
-  - `BatteryOverviewSupportHero@1`：约 1.5x2 的竖版电量面板，内部元素与 `BatteryOverviewSupport@1` 一致；
+  - `BatteryOverviewSupportHero@1`：约 1.5x2 的竖版电量面板，文字布局与 `BatteryOverviewSupport@1` 一致；
     左侧展示电量主行，充电状态为可选辅行（存在时双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行），
-    右侧 40vp 电量环，环内必选 16vp 手机设备图标，可在根节点绑定事件。
+    右侧 40vp 电量环，环内必选 16vp 电池叶片图标 `battery_leaf_fill.svg`，可在根节点绑定事件。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
+    电池叶片素材仅表示电量，不表示省电模式已开启。
     数值电量必需且 0% 合法，不得伪造缺失的数值电量；预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不得选择。
   - `BatteryOverviewStatusSupport@1`：约 2x1 的双业务充电状态摘要；左侧两行文本展示充电状态和充电器类型，
     右侧可选 24vp 电池图标。
@@ -96,7 +97,7 @@
   `batteryIcon` 为必选参数，必须传入本轮匹配的电量素材。
   - `BatteryOverviewChargeStatusHero@1`：手机电量三段式 Hero，只表达单个焦点面板内容；顶部标题
     默认为“手机”，`/batteryTemperatureText` 可用时替换为“电池 + 电池温度”文本；中间为 44vp 电量圆环
-    （`/batterySOC` 驱动，环内必选 20vp 手机设备图标）加右侧 20vp 电量百分比大字和“手机电量”副标题，
+    （`/batterySOC` 驱动，环内必选 20vp 电池叶片图标 `battery_leaf_fill.svg`）加右侧 20vp 电量百分比大字和“手机电量”副标题，
     底部按钮由布局 PillAction 槽位提供，不展示 `/chargingStatusDesc` 与 `/pluggedTypeDesc`
     （两个字段为可选数据，仅进入数据契约以保证字段覆盖）。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /pluggedTypeDesc, /batteryTemperatureText。
@@ -104,7 +105,7 @@
   `WideTwoFocusTwoActionLayout@1` 左右双焦点布局，且用户显式要求手机电量、充电状态和充电器类型
   （`/batterySOC` 可用即可选择，`/chargingStatusDesc`、`/pluggedTypeDesc` 可用时进入可选数据契约）时，
   优先选择 `BatteryOverviewChargeStatusHero@1` 占据一个 Hero 槽位；`batteryIcon` 为必选参数，必须传入本轮
-  匹配的手机设备素材，用手机图标标识电量所属设备，不得用耳机或动作图标替代。
+  匹配的 `battery_leaf_fill.svg` 电池叶片素材，仅表示电量，不表示省电模式已开启；不得用耳机或动作图标替代。
   用户只显式要求手机电量（仅 `/batterySOC` 可用）时同样可以选择该模板，两个字段缺失不阻塞选择。
   `/batteryTemperatureText` 可用时替换顶部标题为电池温度文本，缺失时保留“手机”标题。
 - 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或

@@ -244,7 +244,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
         if not case.missingReason:
-            assert case.expectsFusionBall is (case.providerSlug != "two-support")
+            is_single_or_hero_pair = case.providerSlug != "two-support"
+            is_three_day_pair = case.targetTemplateId == "WeatherOverviewThreeDayForecastFull@1"
+            assert case.expectsFusionBall is (is_single_or_hero_pair and not is_three_day_pair)
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers

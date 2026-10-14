@@ -174,7 +174,7 @@
       ],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 SupportHero：约 1.5x2 竖版电量面板，内部元素与手机电量 Support 一致；左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内必选 16vp 手机设备图标；可在根节点绑定事件。预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不选择；batteryIcon 必填。",
+      "description": "手机电量 SupportHero：约 1.5x2 竖版电量面板，文字布局与手机电量 Support 一致；左侧展示电量主行，充电状态为可选辅行（缺失时回退展示可选电池温度，都缺失时只保留电量行），右侧 40vp 电量环，环内必选 16vp 电池叶片图标 battery_leaf_fill.svg；可在根节点绑定事件。预留给后续 1.5x2 槽位布局，当前布局没有对应槽位时不选择；batteryIcon 必填。",
       "optionalData": [
         "/chargingStatusDesc",
         "/batterySOCText",
@@ -187,7 +187,8 @@
       "secondaryData": [],
       "assetParameterSemanticTags": {
         "batteryIcon": [
-          "phone-device"
+          "battery",
+          "power-saving"
         ]
       }
     },
@@ -459,7 +460,7 @@
       "templateId": "BatteryOverviewChargeStatusHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内必选手机图标）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约；batteryIcon 必填。",
+      "description": "手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内必选电池叶片图标 battery_leaf_fill.svg）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约；batteryIcon 必填。",
       "optionalData": [
         "/chargingStatusDesc",
         "/pluggedTypeDesc",
@@ -472,7 +473,8 @@
       "secondaryData": [],
       "assetParameterSemanticTags": {
         "batteryIcon": [
-          "phone-device"
+          "battery",
+          "power-saving"
         ]
       }
     },

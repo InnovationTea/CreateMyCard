@@ -27,13 +27,22 @@ from models.artifact import WidgetArtifact
 from models.generation import ModelRequestContext
 from models.service import ArtifactSaveResult
 from services.artifact_store import ArtifactStore
+from services.template_generation import facade
 from services.template_generation.controls import TemplateControls, load_template_controls
+from services.template_generation.test_support.gallery_case_contracts import (
+    REQUIRED_ASSET_IDS,
+    THREE_DAY_COUNTDOWN_TEMPLATE,
+    THREE_DAY_LAYOUT,
+    THREE_DAY_WEATHER_TEMPLATE,
+    gallery_display_description,
+    three_day_weather_content,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 INPUT_SCHEMA_VERSION = "provider-template-gallery-input/4"
 OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/2"
-FUSION_PRD_VERSION = "11.7.5.206"
-DEFAULT_ROM_VERSION = "6.0"
+FUSION_PRD_VERSION = "11.7.7.330"
+DEFAULT_ROM_VERSION = "7.0"
 DEFAULT_BUNDLE_NAME = "com.huawei.genui.evaluation"
 
 _TEMPLATE_GENERATION_ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +52,7 @@ _CAPABILITY_ROOT = (
     Path(__file__).resolve().parents[3]
     / "data"
     / "capabilities"
-    / "app-11.7.5.205_rom-6.0"
+    / "app-11.7.7.300_rom-7.0"
 )
 _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_gallery_case_id", default="")
 
@@ -230,6 +239,9 @@ class GalleryInputCase(BaseModel):
     targetTemplateId: str = ""
     targetTemplateDescription: str = ""
     partnerTemplateId: str = ""
+    compositionTemplateIds: list[str] = Field(default_factory=list)
+    constrainLayout: bool = False
+    expectedActionCount: int | None = Field(default=None, ge=0, le=4)
     requestFile: str
     missingReason: str = ""
 
@@ -349,6 +361,7 @@ class GalleryGenerationService(Protocol):
         *,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_layout_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         ...
@@ -360,6 +373,7 @@ class _ArtifactCapture:
     def __init__(self) -> None:
         self.artifacts: dict[str, WidgetArtifact] = {}
         self.design_sources: dict[str, str] = {}
+        self.template_ids: dict[str, tuple[str, ...]] = {}
 
     async def save(
         self,
@@ -595,6 +609,13 @@ def _candidate_asset_ids(
     target_template: ProviderTemplateDefinition | None,
     asset_capabilities: dict[str, dict[str, Any]],
 ) -> list[str]:
+    if target_template is not None:
+        required_ids = REQUIRED_ASSET_IDS.get(target_template.template_id)
+        if required_ids is not None:
+            missing = set(required_ids).difference(asset_capabilities)
+            if missing:
+                raise ValueError(f"gallery required assets are not registered: {sorted(missing)}")
+            return list(required_ids)
     if target_template is not None and target_template.suffix == "Support":
         asset_ids = _SUPPORT_ASSET_IDS_BY_TEMPLATE.get(target_template.template_id, ())
         return [asset_id for asset_id in asset_ids if asset_id in asset_capabilities]
@@ -740,6 +761,7 @@ def _request_envelope(
     template_description = (
         target_template.description if target_template is not None else business_description
     )
+    template_description = gallery_display_description(template_description)
     data_bindings = _single_template_data_bindings(definition, target_template)
     action_count = 0
     if scenario_id == "single-two-actions":
@@ -783,6 +805,14 @@ def _request_envelope(
         "title": f"{definition.business_name}模板画廊",
         "userQuery": user_query,
     }
+    if target_template is not None:
+        if target_template.template_id == THREE_DAY_WEATHER_TEMPLATE:
+            content = three_day_weather_content(
+                content,
+                _event_candidate(event_capabilities, "event.open.weather"),
+                _CAPABILITY_ARGUMENTS["GetCountdownDays"],
+            )
+            user_query = content["userQuery"]
     target_name = (
         target_template.template_id.split("@", maxsplit=1)[0]
         if target_template is not None
@@ -881,6 +911,8 @@ def _expects_fusion_ball(
 ) -> bool:
     if not appearance.fusion_enabled or target_template is None:
         return False
+    if target_template.template_id == THREE_DAY_WEATHER_TEMPLATE:
+        return False
     eligible_layout = target_template.suffix in {"Compact", "Full", "Hero"}
     business_matches = definition.business_id in fusion_business_ids
     return eligible_layout and business_matches
@@ -975,14 +1007,24 @@ def write_gallery_input_dataset(
                         cases.append(
                             GalleryInputCase(
                                 caseId=case_id,
+                                cardSize=request_payload["content"]["size"],
                                 providerId=definition.provider_id,
                                 providerName=definition.provider_name,
                                 providerSlug=provider_slug,
                                 businessId=definition.business_id,
                                 businessName=definition.business_name,
-                                scenarioId=scenario_id,
+                                scenarioId=(
+                                    "single-one-action"
+                                    if target_template is not None
+                                    and target_template.template_id == THREE_DAY_WEATHER_TEMPLATE
+                                    else scenario_id
+                                ),
                                 scenarioName=(
-                                    f"{appearance.appearance_name} · {scenario_name}"
+                                    f"{appearance.appearance_name} · "
+                                    "三日天气 + 倒计时 + 天气详情操作"
+                                    if target_template is not None
+                                    and target_template.template_id == THREE_DAY_WEATHER_TEMPLATE
+                                    else f"{appearance.appearance_name} · {scenario_name}"
                                 ),
                                 appearanceId=appearance.appearance_id,
                                 appearanceName=appearance.appearance_name,
@@ -993,7 +1035,12 @@ def write_gallery_input_dataset(
                                     appearance,
                                     fusion_business_ids,
                                 ),
-                                expectedLayout=expected_layout,
+                                expectedLayout=(
+                                    THREE_DAY_LAYOUT
+                                    if target_template is not None
+                                    and target_template.template_id == THREE_DAY_WEATHER_TEMPLATE
+                                    else expected_layout
+                                ),
                                 expectedTemplateSuffix=expected_suffix,
                                 targetTemplateId=(
                                     target_template.template_id
@@ -1006,6 +1053,12 @@ def write_gallery_input_dataset(
                                     else ""
                                 ),
                                 requestFile=request_relative_path.as_posix(),
+                                partnerTemplateId=(
+                                    THREE_DAY_COUNTDOWN_TEMPLATE
+                                    if target_template is not None
+                                    and target_template.template_id == THREE_DAY_WEATHER_TEMPLATE
+                                    else ""
+                                ),
                                 missingReason=missing_reason,
                             )
                         )
@@ -1034,7 +1087,12 @@ def write_gallery_input_dataset(
     )
     if support_provider.cases:
         providers.append(support_provider)
-    manifest = GalleryInputManifest(providers=providers)
+    sizes: set[str] = set()
+    for provider in providers:
+        sizes.update(case.cardSize for case in provider.cases)
+    manifest = GalleryInputManifest(
+        providers=providers, cardSize="mixed" if len(sizes) > 1 else "2x2",
+    )
     output_root.mkdir(parents=True, exist_ok=True)
     manifest_path = output_root / "manifest.json"
     manifest_path.write_text(
@@ -1546,7 +1604,19 @@ class ProviderGalleryBatchRunner:
         ) -> ArtifactSaveResult:
             return await capture.save(store, artifact)
 
-        with patch.object(ArtifactStore, "save", new=capture_save):
+        original_engine = facade.generate_template_engine_a2ui
+
+        async def capture_engine(*args: Any, **kwargs: Any) -> Any:
+            output = await original_engine(*args, **kwargs)
+            case_id = _CURRENT_CASE_ID.get()
+            if case_id:
+                capture.template_ids[case_id] = output.template_ids
+            return output
+
+        with (
+            patch.object(ArtifactStore, "save", new=capture_save),
+            patch.object(facade, "generate_template_engine_a2ui", new=capture_engine),
+        ):
             for provider in selected_providers:
                 results = await asyncio.gather(
                     *(execute_case(case) for case in provider.cases)
@@ -1585,6 +1655,11 @@ class ProviderGalleryBatchRunner:
             for template_id in (case.targetTemplateId, case.partnerTemplateId)
             if template_id
         )
+        if case.compositionTemplateIds:
+            trusted_template_candidate_ids = tuple(case.compositionTemplateIds)
+        layout_options: dict[str, Any] = {}
+        if case.constrainLayout:
+            layout_options["trusted_template_layout_ids"] = (case.expectedLayout + "@1",)
         trusted_template_action_ids = tuple(
             candidate.capabilityId for candidate in request.candidateEventCandidates or []
         )
@@ -1598,6 +1673,7 @@ class ProviderGalleryBatchRunner:
                 trusted_template_candidate_ids=trusted_template_candidate_ids,
                 trusted_template_action_ids=trusted_template_action_ids,
                 trusted_template_sample_overrides=trusted_template_sample_overrides,
+                **layout_options,
             )
         except Exception as exc:
             return self._base_result(
@@ -1621,8 +1697,23 @@ class ProviderGalleryBatchRunner:
                 error_code=response.errorCode,
                 generation_status=response.status.value,
             )
+        template_ids = capture.template_ids.pop(case.caseId, ())
+        actual_layouts = []
+        for name in template_ids:
+            if name.endswith("Layout@1"):
+                actual_layouts.append(name.removesuffix("@1"))
+        actual_layout = actual_layouts[0] if len(actual_layouts) == 1 else ""
+        if case.constrainLayout and actual_layout != case.expectedLayout:
+            return self._base_result(case, "failed", f"骨架不匹配：{actual_layout}")
+        missing_templates = set(case.compositionTemplateIds).difference(template_ids)
+        if missing_templates:
+            return self._base_result(
+                case, "failed", f"组合缺少业务模板：{sorted(missing_templates)}",
+            )
         messages = _parse_genui_messages(artifact.genui)
-        expected_action_count = _expected_action_count(case.scenarioId)
+        expected_action_count = case.expectedActionCount
+        if expected_action_count is None:
+            expected_action_count = _expected_action_count(case.scenarioId)
         actual_action_count = _count_a2ui_actions(messages)
         if actual_action_count != expected_action_count:
             return self._base_result(
@@ -1676,6 +1767,8 @@ class ProviderGalleryBatchRunner:
         result["artifactDigest"] = response.artifactDigest
         result["messageCount"] = len(messages)
         result["fusionBallRendered"] = fusion_ball_rendered
+        result["actualLayout"] = actual_layout
+        result["actualTemplateIds"] = list(template_ids)
         return result
 
     @staticmethod
@@ -1707,6 +1800,9 @@ class ProviderGalleryBatchRunner:
             "targetTemplateId": case.targetTemplateId,
             "targetTemplateDescription": case.targetTemplateDescription,
             "partnerTemplateId": case.partnerTemplateId,
+            "compositionTemplateIds": case.compositionTemplateIds,
+            "constrainLayout": case.constrainLayout,
+            "expectedActionCount": case.expectedActionCount,
             "requestFile": case.requestFile,
             "status": status,
             "generationStatus": generation_status,

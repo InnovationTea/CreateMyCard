@@ -30,6 +30,8 @@ def parse_args() -> argparse.Namespace:
         help="只生成指定 Provider ID，可重复传入",
     )
     parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument("--include-wide-compositions", action="store_true")
+    parser.add_argument("--composition-seed", type=int, default=20261014)
     parser.add_argument(
         "--include-template-examples", action="store_true",
         help="追加模版场景示例页签的八个演示需求，不改变默认画廊矩阵",
@@ -82,6 +84,12 @@ async def run(args: argparse.Namespace) -> int:
             )
 
             append_template_examples(input_root)
+        if args.include_wide_compositions:
+            from services.template_generation.test_support.wide_compositions import (
+                append_wide_compositions,
+            )
+
+            append_wide_compositions(input_root, args.composition_seed)
         provider_ids = set(args.provider) or None
         summary = await generate_provider_gallery(
             input_root,
