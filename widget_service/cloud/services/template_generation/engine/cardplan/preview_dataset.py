@@ -75,6 +75,7 @@ _ASSET_BY_PARAMETER = {
     "alertIcon": "resources/base/media/bell_fill.svg",
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "bluetoothIconOrDeviceIcon": "resources/base/media/icon_earphone.svg",
     "bellIcon": "resources/base/media/bell_fill.svg",
     "calendarIcon": "resources/base/media/calendar_fill.svg",
     "caseIcon": "resources/base/media/earphone_case_16644.svg",
@@ -87,11 +88,13 @@ _ASSET_BY_PARAMETER = {
     "distanceIcon": "resources/base/media/location_north_up_right_fill.svg",
     "icon": "resources/base/media/externaldrive_fill.svg",
     "leftEarIcon": "resources/base/media/l_circle_fill.svg",
+    "leftIcon": "resources/base/media/l_circle_fill.svg",
     "locationIcon": "resources/base/media/location_north_up_right_fill.svg",
     "meetingIcon": "resources/base/media/icon_meeting.svg",
     "musicIcon": "resources/base/media/music_fill.svg",
     "rainIcon": "resources/base/media/drop_1.svg",
     "rightEarIcon": "resources/base/media/r_circle_fill.svg",
+    "rightIcon": "resources/base/media/r_circle_fill.svg",
     "stepsIcon": "resources/base/media/figure_run.svg",
     "temperatureIcon": "resources/base/media/heat_generation.svg",
     "timeIcon": "resources/base/media/clock_fill.svg",
@@ -130,6 +133,8 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
 }
 # 单业务多云样例没有匹配状态素材，省略图标；Support 可使用表达气温的温度计。
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
+    ("WeatherOverviewConditionSupport@1", "conditionIcon"):
+        "resources/base/media/sun_max.svg",
     ("BatteryOverviewSupportHero@1", "batteryIcon"):
         "resources/base/media/icon_phone.svg",
     ("BatteryOverviewChargeStatusHero@1", "batteryIcon"):
@@ -253,7 +258,7 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("WeatherOverview", "currentCondition"): "多云",
     ("WeatherOverview", "currentTemperature"): 29.0,
     ("WeatherOverview", "daily4Condition"): "小雨",
-    ("WeatherOverview", "daily4RainProbability"): "60%",
+    ("WeatherOverview", "daily4RainProbability"): 60,
     ("WeatherOverview", "daily4TemperatureRange"): "22° / 28°",
     ("WeatherOverview", "date"): "8月20日",
     ("WeatherOverview", "district"): "青浦区",
@@ -262,16 +267,16 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("WeatherOverview", "firstCity"): "成都市",
     ("WeatherOverview", "firstCondition"): "多云",
     ("WeatherOverview", "firstDate"): "8月19日",
-    ("WeatherOverview", "firstRainProbability"): "10%",
+    ("WeatherOverview", "firstRainProbability"): 10,
     ("WeatherOverview", "firstTemperature"): 29.0,
     ("WeatherOverview", "firstTemperatureRange"): "24° / 31°",
     ("WeatherOverview", "firstWeekday"): "周三",
     ("WeatherOverview", "humidity"): 70.0,
-    ("WeatherOverview", "rainProbability"): "30%",
+    ("WeatherOverview", "rainProbability"): 30,
     ("WeatherOverview", "secondCity"): "上海市",
     ("WeatherOverview", "secondCondition"): "晴",
     ("WeatherOverview", "secondDate"): "8月20日",
-    ("WeatherOverview", "secondRainProbability"): "30%",
+    ("WeatherOverview", "secondRainProbability"): 30,
     ("WeatherOverview", "secondTemperature"): 32.0,
     ("WeatherOverview", "secondTemperatureRange"): "25° / 33°",
     ("WeatherOverview", "secondWeekday"): "周四",
@@ -281,7 +286,7 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("WeatherOverview", "temperatureText"): "29°C",
     ("WeatherOverview", "thirdCondition"): "小雨",
     ("WeatherOverview", "thirdDate"): "8月21日",
-    ("WeatherOverview", "thirdRainProbability"): "40%",
+    ("WeatherOverview", "thirdRainProbability"): 40,
     ("WeatherOverview", "thirdTemperatureRange"): "25° / 32°",
     ("WeatherOverview", "thirdWeekday"): "周五",
     ("WeatherOverview", "todayAirQuality"): "良",
@@ -399,7 +404,16 @@ def _build_case(
     registry: CardPlanRegistry,
 ) -> TemplatePreviewCase:
     layout_kind = provider_template_layout_kind(definition.wire_id)
-    size = _SIZE_BY_LAYOUT[layout_kind]
+    variant = definition.variants[0]
+    # Most templates derive their preview size from the suffix.  Legacy
+    # templates may explicitly override that convention in provider.json;
+    # preview generation must use the same registry decision as retrieval so
+    # the gallery cannot emit a 2x2 case for a 2x4-only template.
+    size = (
+        variant.supported_card_sizes[0]
+        if variant.supported_card_sizes
+        else _SIZE_BY_LAYOUT[layout_kind]
+    )
     content_height = _CONTENT_HEIGHT_BY_LAYOUT[layout_kind]
     data_schema = _build_data_schema(definition)
     task_spec = TaskSpec(
@@ -409,7 +423,6 @@ def _build_case(
         assetCandidates=[],
         dataModelSchema=data_schema,
     )
-    variant = definition.variants[0]
     bindings = {
         name: _binding_placeholder(definition, binding)
         for name, binding in definition.bindings.items()
@@ -565,14 +578,17 @@ def _build_data_schema(definition: TemplateDefinition) -> dict[str, Any]:
 
 
 def _sample_value(definition: TemplateDefinition, name: str, data_type: str) -> Any:
-    if definition.business_id == "BatteryOverview":
-        return _battery_sample(definition.wire_id, name, data_type)
-    if definition.business_id == "BluetoothDeviceOverview" and name == "connected":
-        return "Disconnected" not in definition.wire_id
-    key = (definition.business_id or "", name)
-    if key in _SAMPLE_BY_BUSINESS_BINDING:
-        return _SAMPLE_BY_BUSINESS_BINDING[key]
-    return _fallback_sample(data_type)
+    sample: Any
+    if definition.wire_id == "WeatherOverviewConditionSupport@1" and name == "condition":
+        sample = "晴"
+    elif definition.business_id == "BatteryOverview":
+        sample = _battery_sample(definition.wire_id, name, data_type)
+    elif definition.business_id == "BluetoothDeviceOverview" and name == "connected":
+        sample = "Disconnected" not in definition.wire_id
+    else:
+        key = (definition.business_id or "", name)
+        sample = _SAMPLE_BY_BUSINESS_BINDING.get(key, _fallback_sample(data_type))
+    return sample
 
 
 def _battery_sample(template_id: str, name: str, data_type: str) -> Any:

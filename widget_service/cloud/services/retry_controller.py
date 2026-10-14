@@ -24,7 +24,9 @@ class RetryController:
         *,
         retry_on_quality_failure: bool = False,
         max_repair_attempts: int = 1,
-        repair: Callable[[str, list[str]], str | Awaitable[str]] | None = None,
+        repair: Callable[
+            [str, list[str]], str | None | Awaitable[str | None]
+        ] | None = None,
     ) -> RetryResult:
         """生成一次，并按转换或校验 error 在有限次数内执行定向 repair。"""
         if max_repair_attempts < 1:
@@ -44,14 +46,19 @@ class RetryController:
 
         errors = initial_errors
         repair_count = 0
+        repair_result_count = 0
         while errors and repair_count < max_repair_attempts:
-            result = await _resolve(repair(result, errors))
-            repair_count += 1
+            repaired_result = await _resolve(repair(result, errors))
+            if repaired_result is None:
+                break
+            repair_result_count += 1
+            result = repaired_result
             errors = await _resolve(evaluate(result))
+            repair_count += 1
         return RetryResult(
             result=result,
             retryCount=repair_count,
             errors=errors,
             initialErrors=initial_errors,
-            repairAttempted=repair_count > 0,
+            repairAttempted=repair_result_count > 0,
         )

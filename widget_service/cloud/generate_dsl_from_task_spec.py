@@ -59,6 +59,7 @@ async def generate_dsl_from_task_spec(task_spec: dict[str, Any]) -> GeneratedDsl
                 design_profile_id
             ),
             design_profile_id=design_profile_id,
+            layout_scope=PromptBuilder.layout_scope(validated_task_spec),
         )
         result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(
             compact_dsl,

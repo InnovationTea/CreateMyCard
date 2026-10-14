@@ -1,5 +1,10 @@
 # Widget Service
 
+CompactDSL 单步提示词维护入口：
+[模块边界、案例索引与加载说明](cloud/data/protocol_profiles/design-compact-dsl-fusion/README.md)。
+只修改 `prompt_source/`；服务按 manifest 直接读取、在内存中拼接并缓存，发布后重启服务生效。
+无需构建中间文件，不保留其它提示词回退。
+
 Python 3.12 FastAPI microservice for AI widget card generation.
 
 The service follows `docs/AGENTS.md`:
@@ -59,7 +64,7 @@ The service follows `docs/AGENTS.md`:
   recovery. When enabled, the service tracks stringified `content.arguments` per `requestId` in the current process.
   `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT=1` means the first consecutive occurrence returns the
   existing correction instruction and the second invokes `A2UIModelClient` with the JSON-only prompt from
-  `data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md`.
+  `data/protocol_profiles/design-compact-dsl-fusion/prompt_source/argument_repair.md`.
   `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS=2` controls the dedicated content-validation attempts.
   The original string is always sent unchanged as `rawArguments`; no heuristic JSON repair runs before or after the
   model. Each output must pass strict JSON parsing and request validation. A rejected first output is retried with its
@@ -67,10 +72,12 @@ The service follows `docs/AGENTS.md`:
   dynamic values are retained. If all model outputs fail, a minimal static request keeps recoverable user text and
   continues through the normal generation flow.
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
-  `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
-  `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and
-  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`, and control fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool
-  callers cannot select a backend or physical client directly.
+  `UnifiedModelClient.generate()` entry. The `openai` route selects its physical master and fallback through
+  `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`; supported values are
+  `deepseek_platform`, `llmclient`, and `deepseek_official_http`. The official HTTP transport uses the dedicated
+  `WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_*` settings and the existing `httpx` runtime connection pool. Control
+  fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool callers cannot select a backend or physical client
+  directly.
 - DeepSeek Platform reads its SK only from the STS key configured by
   `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
   `genui.deepseek.platform.secret.key`. Its remaining static request fields use the
@@ -107,6 +114,28 @@ The service follows `docs/AGENTS.md`:
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
 
 ## Run
+
+## Debug Tools React 工作台
+
+本地调试平台位于仓库根目录的 `debug_tools/`，与 `widget_service/` 同级，统一提供端到端会话、三个工具
+WebSocket 接口和卡片结果渲染三个入口。平台默认使用 `8888`，正式工具服务仍需单独启动在 `8855`，
+平台不会自动拉起上游进程。
+
+```powershell
+cd ..\debug_tools
+npm install
+npm run build
+cd ..
+uv run debug_tools --mode full
+```
+
+浏览器打开 `http://127.0.0.1:8888/debug/`。只需要接口调试和卡片渲染时可改用
+`uv run debug_tools --mode frontend`，不会加载 Main Agent 后端。编译产物统一位于
+`debug_tools/dist/`。开发时可在 `debug_tools/` 执行 `npm run dev`，Vite 会把 `/debug/*` 代理到本地
+FastAPI。详细架构、接口边界和验收项见
+[`debug_tools/调试平台技术方案.md`](../debug_tools/调试平台技术方案.md)。
+
+保留的 [`docs/index.html`](docs/index.html) 仍可作为旧渲染器行为对照页面；React 渲染器只接受页面中显式粘贴、上传或打开的 artifact 内容，不代理任意 `artifactUrl`。
 
 ```bash
 cd widget_service

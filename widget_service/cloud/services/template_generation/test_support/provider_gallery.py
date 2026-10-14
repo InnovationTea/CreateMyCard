@@ -174,14 +174,21 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
+    "BatteryOverviewPluggedTypeSupport@1": (),
+    "WeatherOverviewConditionSupport@1": ("asset.sun_max",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewFeelsLikeWindSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
     "HeartRateOverviewSupport@1": ("asset.heart_fill",),
-    "BluetoothDeviceOverviewEarbudsSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewEarbudsSupport@1": (
+        "asset.icon_earphone", "asset.l_circle_fill", "asset.r_circle_fill",
+    ),
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": ("asset.icon_earphone",),
     "BluetoothDeviceOverviewChargeSupport@1": ("asset.earphone_case_16644",),
     "BluetoothDeviceOverviewConnectionSupport@1": ("asset.icon_earphone",),
     "ScheduleOverviewTimeSupport@1": ("asset.calendar_fill",),
@@ -683,7 +690,12 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        condition = _SUPPORT_WEATHER_CONDITION
+        if weather_template.template_id == "WeatherOverviewConditionSupport@1":
+            condition = "晴"
+        for field in ("/current/condition", "/daily/2/condition"):
+            if field in weather_template.fields:
+                sample_overrides[f"/data/weather{field}"] = condition
     battery_template = next(
         (
             template

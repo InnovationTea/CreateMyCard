@@ -1718,7 +1718,7 @@ Column(
         { "width": "matchParent", "justifyContent": "center", "alignItems": "bottom" },
         Text(
             data.duration,
-            { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+            { "width": "matchParent", "fontSize": 32, "minFontSize": 20, "maxFontSize": 32, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
         )
     ),
     Column(
@@ -2011,7 +2011,7 @@ Row(
     {
         "_advancedComponent": "SleepOverview",
         "itemMargin": 4, "width": "matchParent", "justifyContent": "spaceBetween",
-        "alignItems": "center", "padding": { "left": 8, "right": 8 },
+        "alignItems": "center",
         "onClick": EventAction(props?.actionId)
     },
     Column(

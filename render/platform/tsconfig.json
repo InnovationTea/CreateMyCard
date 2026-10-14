@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@genui-sdk/parser": [
+        "../genui-sdk/parser/src/index.ts"
+      ],
+      "@genui-sdk/graph": [
+        "../genui-sdk/graph/src/index.ts"
+      ],
+      "@genui-sdk/components": [
+        "../genui-sdk/components/src/index.ts"
+      ],
+      "@genui-sdk/renderer": [
+        "../genui-sdk/renderer/src/index.ts"
+      ],
+      "@genui-sdk/interactions": [
+        "../genui-sdk/interactions/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

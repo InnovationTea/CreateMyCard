@@ -1,5 +1,7 @@
 # 第二层业务模板使用规则
 
+2×2 单耳机以动作适配优先于字段得分：单动作优先选择合法 Hero，仅在 Hero 不可用时使用 Full 图标动作；无动作使用 Full，双动作使用 Compact。显式动作与自动补选动作规则一致。第二层只在服务端提供的完整 Plan 中选择，不把 Hero 的动作搬到 Full，不因 Full 的主要字段匹配更多而跨角色选择；字段完整覆盖与输入准入要求保持。
+
 - Provider：`com.huawei.earphone.cli`；业务领域为 `BluetoothDeviceOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
@@ -11,8 +13,15 @@
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名，左右耳电量可选；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。左右耳充电状态可选，各自可用时以 12vp
     「左/右耳图标 + 状态文本」行展示。
-  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；Planner 可将其用于
-    `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon`、`leftIcon`、`rightIcon`
+    均可选。左右图标齐全时显示对应图标和百分比，右耳图标左边距为 4vp；缺任意一侧时使用 L/R 文本，不互换左右素材。
+    Planner 可将其用于 `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewNameAndConnectionSupport@1`：必需名称和连接状态，分别作为主行和辅行；
+    `false` 合法，显示“未连接”，保留运行时刷新表达式，不要求电量。
+  - `BluetoothDeviceOverviewNameAndChargeSupport@1`：必需名称和充电状态，盒电量可选；有电量时显示
+    “电量 N%·充电状态”，没有电量时只展示充电状态，0% 不应被省略。
+    两种名称 Support 的 `bluetoothIconOrDeviceIcon` 均为可选蓝牙或耳机本体图标，支持可选蓝牙设置事件；
+    名称与充电状态 Support 仅在未提供盒电量时显示该图标，数值 0 不视为缺失。
   - `BluetoothDeviceOverviewConnectionSupport@1`：主行加粗展示连接状态，可选次行展示仓电量，
     右侧 40vp 电量环，环内图标为 16vp，无电量时为 24vp 耳机图标；
     用于 `TwoSupportLayout@1`。`deviceIcon` 必填，且必须表达耳机本体。
@@ -37,6 +46,7 @@
     左右双焦点布局的一个 Hero 槽位；`deviceIcon` 为可选参数，仅在本轮存在匹配的充电盒素材时传入。
   - `BluetoothDeviceOverviewEarbudPairFull@1`：展示盒电量和左右耳电量；名称、连接状态可选，同时存在时名称作小标题、连接状态作主文字，只有一项时小标题用“蓝牙耳机”、主文字用已有项；盒与左右耳
     图标均可选；左右耳与盒充电状态为可选字段，三个字段齐全时才在电量下同时增加状态层，缺任意字段则整层隐藏；用于无 Action 的 Full，或按现有布局规则搭配一个 `IconAction@1`。
+    仅名称或仅连接状态时，若 `cardComposition.businessTitleCandidate` 为非空标题，必须逐字传入可选 `title` 参数以替换固定“蓝牙耳机”；无标题时省略参数并使用“蓝牙耳机”。两项同时存在时保留设备名称小标题，不传 `title`。
   - `BluetoothDeviceOverviewEarbudPairCompact@1`：展示设备名和左右耳电量，左右耳图标可选；用于
     `CompactTwoActionLayout@1` 加两个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsPhoneWideFull@1`、

@@ -1,32 +1,146 @@
-"""将正式 few-shot 作为真实生成输入，防止示例与转换协议漂移。"""
+"""将正式 Few-shot 作为真实生成输入，防止示例与转换协议漂移。"""
 
 import json
 import re
-from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from config.config import get_settings
+from services.card_validation import validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
+from services.compact_prompt_loader import assemble_prompts
 from services.prompt_builder import PromptBuilder
+from services.protocol_registry import A2UIProtocolRegistry
 
-PROFILE = Path(__file__).resolve().parents[1] / "cloud/data/protocol_profiles/design-compact-dsl"
+PROMPT_SOURCE = (
+    Path(__file__).resolve().parents[1]
+    / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
+)
+PROMPTS = assemble_prompts(PROMPT_SOURCE)
+HIGH_LEVEL_COMPONENTS = {
+    "CardButton",
+    "SingleLineTitle",
+    "CircleButton",
+    "DataDisplay",
+    "DoubleLineTitle",
+    "Badge",
+    "EmphasizedData",
+    "EmphasisText",
+    "SecondaryBody",
+    "EventCard",
+    "H_BarChart",
+    "InfoBlock",
+    "NumericRatioStack",
+    "PillButton",
+    "ProgressCircle",
+    "ProgressCircleSingle",
+    "ProgressLine2",
+    "SummaryList",
+    "TableText",
+    "TextBlock",
+    "TopTextBottomValue",
+}
+RUNTIME_OWNED_PROPS = {
+    "PillButton": {
+        "actionSurface",
+        "actionInk",
+        "fontSize",
+        "fontWeight",
+        "width",
+    },
+    "CircleButton": {"actionSurface", "actionInk"},
+    "CardButton": {"backgroundColor"},
+    "TextBlock": {"backgroundColor"},
+}
+BASE_COMPONENTS = {
+    "Button",
+    "Column",
+    "Divider",
+    "Image",
+    "List",
+    "Progress",
+    "Row",
+    "Stack",
+    "Text",
+}
+EXPECTED_EXAMPLE_ORDER = {
+    "2x2": (
+        "2x2-V01",
+        "2x2-V09",
+        "2x2-V10",
+        "2x2-V12",
+        "2x2-V04",
+        "2x2-V11",
+        "2x2-V13",
+        "2x2-V05",
+        "2x2-V06",
+        "2x2-V02",
+        "2x2-V08",
+        "2x2-V14",
+        "2x2-V03",
+        "2x2-V07",
+    ),
+    "2x4": (
+        "2x4-V03",
+        "2x4-V16",
+        "2x4-V28",
+        "2x4-V09",
+        "2x4-V08",
+        "2x4-V10",
+        "2x4-V23",
+        "2x4-V06",
+        "2x4-V19",
+        "2x4-V38",
+    ),
+}
+EXPECTED_LAYOUT_BY_EXAMPLE = {
+    "2x2-V01": "S-center",
+    "2x2-V09": "S-center",
+    "2x2-V10": "S-title-content",
+    "2x2-V12": "S-quad-content",
+    "2x2-V04": "S-title-content-action",
+    "2x2-V11": "S-title-content-action",
+    "2x2-V13": "S-title-content-action",
+    "2x2-V05": "S-title-primary-secondary-action",
+    "2x2-V06": "S-title-primary-secondary-action",
+    "2x2-V02": "S-title-anchor",
+    "2x2-V08": "S-title-anchor",
+    "2x2-V14": "S-title-anchor",
+    "2x2-V03": "S-content-dual-action",
+    "2x2-V07": "S-dual-info",
+    "2x4-V03": "W-top-bottom",
+    "2x4-V16": "W-top-bottom",
+    "2x4-V28": "W-top-bottom",
+    "2x4-V09": "W-split-panels",
+    "2x4-V08": "W-content-side-slots",
+    "2x4-V10": "W-content-side-slots",
+    "2x4-V23": "W-content-side-slots",
+    "2x4-V06": "W-four-slots",
+    "2x4-V19": "W-four-slots",
+    "2x4-V38": "W-four-slots",
+}
 
 
 def _examples() -> list[tuple[str, dict, str]]:
     examples = []
     for size in ("2x2", "2x4"):
-        document = (PROFILE / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
+        document = PROMPTS[f"fewshot_{size}"]
         for section in re.split(r"(?m)^## ", document)[1:]:
+            identifier = re.search(rf"({size}-V\d\d)", section)
             task_match = re.search(r"```json\s*\n(.*?)\n```", section, re.S)
             source_match = re.search(r"```genui\s*\n(.*?)\n```", section, re.S)
+            assert identifier is not None, section.splitlines()[0]
             assert task_match is not None, section.splitlines()[0]
             assert source_match is not None, section.splitlines()[0]
             examples.append(
-                (section.splitlines()[0], json.loads(task_match.group(1)), source_match.group(1))
+                (
+                    identifier.group(1),
+                    json.loads(task_match.group(1)),
+                    source_match.group(1),
+                )
             )
     return examples
 
@@ -34,69 +148,409 @@ def _examples() -> list[tuple[str, dict, str]]:
 EXAMPLES = _examples()
 
 
-@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
-def test_few_shot_validates_and_converts(name: str, task: dict, source: str, monkeypatch) -> None:
-    """检查动态路径、事件、布局门禁和高级组件展开，而非仅检查 JSON 语法。"""
+def _example(identifier: str) -> tuple[dict, str]:
+    _, task, source = next(item for item in EXAMPLES if item[0] == identifier)
+    return task, source
+
+
+def _rows(source: str) -> list[list]:
+    return [json.loads(line) for line in source.splitlines()]
+
+
+def _component_types(source: str) -> list[str]:
+    return [row[1] for row in _rows(source) if len(row) >= 3]
+
+
+def _is_ring_external_readout(component_id: str, rows: list[list]) -> bool:
+    rows_by_id = {}
+    for row in rows:
+        if len(row) >= 3 and isinstance(row[0], str):
+            rows_by_id[row[0]] = row
+
+    for parent in rows:
+        if len(parent) < 4 or parent[1] != "Column":
+            continue
+        children = parent[3]
+        if not isinstance(children, list) or component_id not in children:
+            continue
+        for sibling_id in children:
+            sibling = rows_by_id.get(sibling_id)
+            if not sibling or len(sibling) < 4 or sibling[1] != "Stack":
+                continue
+            stack_children = sibling[3]
+            if not isinstance(stack_children, list):
+                continue
+            for child_id in stack_children:
+                child = rows_by_id.get(child_id)
+                if child and len(child) >= 3 and child[1] == "Progress":
+                    return child[2].get("type") == "ring"
+    return False
+
+
+@pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
+def test_few_shot_validates_and_converts(
+    identifier: str,
+    task: dict,
+    source: str,
+    monkeypatch,
+) -> None:
+    """检查动态路径、事件、布局门禁和高阶组件展开，而非只检查 JSON。"""
     settings = SimpleNamespace(CONFIG={"fusion_ball_min_prd_version": "1.0"})
     monkeypatch.setattr("services.fusion_ball_expander.get_settings", lambda: settings)
     size = task.get("size")
-    assert size in ("2x2", "2x4"), name
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": size})
-    assert not result.warnings, name
+    assert size in {"2x2", "2x4"}, identifier
+
+    result = validate_compact_dsl(
+        source,
+        task_spec=task,
+        card_spec={"suggestSize": size},
+        enforce_model_component_types=True,
+    )
+    assert not result.warnings, identifier
+
     converted = convert_compact_dsl_to_a2ui(
         source,
         size=size,
         protocol_profile={"version": "v0.9", "appVersion": "99.0"},
     )
     messages = [json.loads(line) for line in converted.splitlines()]
-    assert len(messages) == 3, name
-    for message, operation in zip(
-        messages, ("createSurface", "updateComponents", "updateDataModel"), strict=True
+    assert len(messages) == 3, identifier
+    operations = ("createSurface", "updateComponents", "updateDataModel")
+    for message, operation in zip(messages, operations, strict=True):
+        assert operation in message, identifier
+
+    components = messages[1]["updateComponents"]["components"]
+    assert all(component["component"] in BASE_COMPONENTS for component in components)
+
+
+def test_example_ids_match_selected_library_and_are_unique() -> None:
+    expected = [*EXPECTED_EXAMPLE_ORDER["2x2"], *EXPECTED_EXAMPLE_ORDER["2x4"]]
+    assert [item[0] for item in EXAMPLES] == expected
+
+
+def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> None:
+    for size, expected in EXPECTED_EXAMPLE_ORDER.items():
+        source = (PROMPT_SOURCE / f"fewshots/{size}.md").read_text(encoding="utf-8")
+        actual = [
+            identifier.replace("-v", "-V")
+            for identifier in re.findall(rf'<a id="({size}-v\d\d)"', source)
+        ]
+        assert actual == list(expected)
+
+    two_by_two = (PROMPT_SOURCE / "fewshots/2x2.md").read_text(encoding="utf-8")
+    for layout in ("S-title-dual-content", "S-title-dual-column-action"):
+        group = two_by_two.split(f"**布局骨架：`{layout}`**", maxsplit=1)[1]
+        assert "待补充 Few-shot" in group.split("---", maxsplit=1)[0]
+
+    two_by_four = (PROMPT_SOURCE / "fewshots/2x4.md").read_text(encoding="utf-8")
+    for missing in (
+        "同类同级",
+        "Sub-118-A",
+        "Sub-118-B",
+        "Sub-118-C",
+        "Sub-140-A",
+        "Sub-140-C",
+        "Sub-140-D",
+        "Sub-140-H",
     ):
-        assert operation in message, name
+        matching_rows = [line for line in two_by_four.splitlines() if missing in line]
+        assert matching_rows
+        assert any("待补充" in line for line in matching_rows)
 
 
-@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
-def test_few_shot_has_readable_nonempty_content(name: str, task: dict, source: str) -> None:
-    """示例不能借截断、微小文字或空容器掩盖布局问题。"""
+def test_every_example_heading_declares_its_formal_layout() -> None:
+    for size in ("2x2", "2x4"):
+        headings = {
+            match.group(1): match.group(0)
+            for match in re.finditer(rf"(?m)^## ({size}-V\d\d)：.*$", PROMPTS[f"fewshot_{size}"])
+        }
+        for identifier in EXPECTED_EXAMPLE_ORDER[size]:
+            assert EXPECTED_LAYOUT_BY_EXAMPLE[identifier] in headings[identifier]
+
+
+def test_two_by_two_examples_cover_expected_layouts() -> None:
+    document = PROMPTS["fewshot_2x2"]
+    expected = {
+        "S-center",
+        "S-title-content",
+        "S-quad-content",
+        "S-title-content-action",
+        "S-title-primary-secondary-action",
+        "S-title-anchor",
+        "S-content-dual-action",
+        "S-dual-info",
+    }
+
+    actual = set(re.findall(r"`(S-[a-z-]+)`", document))
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
+def test_few_shot_has_readable_nonempty_content(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
     del task
-    for line in source.splitlines():
-        row = json.loads(line)
+    rows = _rows(source)
+    for row in rows:
         if len(row) < 3:
             continue
-        _, component, props, *children = row
-        assert "textOverflow" not in props, name
+        component_id, component, props, *children = row
+        assert "textOverflow" not in props, identifier
         if component == "Text":
-            assert props.get("content") not in ("", " "), name
-            assert props.get("fontSize", 12) >= 12, name
-        if component in ("Row", "Column", "Stack", "List"):
-            assert children and children[0], name
+            assert props.get("content") != "", identifier
+            assert props.get("content") != " ", identifier
+            font_size = props.get("fontSize", 12)
+            if font_size < 12:
+                assert _is_ring_external_readout(component_id, rows), identifier
+                assert font_size == 10, identifier
+                assert props.get("fontWeight") == 500, identifier
+                assert props.get("height") == 14, identifier
+                assert props.get("textAlign") == "center", identifier
+                assert props.get("maxLines") == 1, identifier
+        if component in {"Row", "Column", "Stack"}:
+            assert children and children[0], identifier
+
+
+@pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
+def test_examples_use_only_declared_actions_and_assets(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    expected_actions = {
+        json.dumps(action, ensure_ascii=False, sort_keys=True)
+        for action in task.get("eventCandidates", [])
+    }
+    expected_assets = {
+        candidate["src"]
+        for candidate in task.get("assetCandidates", [])
+        if isinstance(candidate.get("src"), str)
+    }
+    actual_actions: list[str] = []
+    actual_assets: set[str] = set()
+    for row in _rows(source):
+        if len(row) < 3:
+            continue
+        props = row[2]
+        for action in props.get("onClick", []):
+            actual_actions.append(json.dumps(action, ensure_ascii=False, sort_keys=True))
+        for key in ("src", "icon"):
+            value = props.get(key)
+            if isinstance(value, str) and value.startswith("resources/"):
+                actual_assets.add(value)
+
+    assert len(actual_actions) == len(set(actual_actions)), identifier
+    assert set(actual_actions).issubset(expected_actions), identifier
+    assert actual_assets.issubset(expected_assets), identifier
+
+
+def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> None:
+    _, source = _example("2x2-V14")
+    rows = {row[0]: row for row in _rows(source)}
+
+    assert rows["title_area"][2].get("icon") == "resources/base/media/calendar_fill.svg"
+    assert rows["meeting_action"][2].get("icon") == "resources/base/media/icon_meeting.svg"
+
+
+@pytest.mark.parametrize(
+    ("identifier", "required"),
+    (
+        ("2x2-V01", {"DataDisplay"}),
+        ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
+        ("2x2-V03", {"TableText", "PillButton"}),
+        ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
+        ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
+        ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
+        ("2x2-V07", {"InfoBlock"}),
+        ("2x2-V08", {"SingleLineTitle", "CircleButton"}),
+        ("2x2-V09", {"DataDisplay"}),
+        ("2x2-V10", {"SingleLineTitle", "EventCard"}),
+        ("2x2-V11", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
+        ("2x2-V12", {"ProgressCircle"}),
+        ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
+        (
+            "2x2-V14",
+            {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
+        ),
+        ("2x4-V03", {"EmphasizedData", "TextBlock"}),
+    ),
+)
+def test_examples_use_available_high_level_components(
+    identifier: str,
+    required: set[str],
+) -> None:
+    _, source = _example(identifier)
+    assert required.issubset(set(_component_types(source)))
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
+def test_examples_use_only_supported_component_types(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del task
+    types = set(_component_types(source))
+    assert "Progress" not in types, identifier
+    assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
+def test_text_component_examples_declare_fixed_recipe_font_size(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del task
+    fixed_sizes = {
+        "SingleLineTitle": 12,
+        "DoubleLineTitle": 12,
+        "EmphasizedData": 30,
+        "EmphasisText": 18,
+        "DataDisplay": 56,
+    }
+    for row in _rows(source):
+        if len(row) < 3:
+            continue
+        component_type = row[1]
+        props = row[2]
+        expected = fixed_sizes.get(component_type)
+        if component_type == "SecondaryBody":
+            role = props.get("role")
+            items = props.get("items", [])
+            expected = 12 if role == "metadata" or len(items) > 2 else 14
+        elif component_type == "TableText":
+            expected = 10 if len(props.get("items", [])) == 3 else 12
+        if expected is not None:
+            assert props.get("fontSize") == expected, identifier
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
+def test_examples_do_not_override_runtime_owned_component_styles(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del task
+    for row in _rows(source):
+        if len(row) < 3:
+            continue
+        component_type = row[1]
+        props = row[2]
+        if component_type in HIGH_LEVEL_COMPONENTS:
+            assert "fontColor" not in props, identifier
+        forbidden = RUNTIME_OWNED_PROPS.get(component_type, set())
+        assert not forbidden.intersection(props), identifier
+
+
+@pytest.mark.parametrize(
+    "identifier,task,source",
+    EXAMPLES,
+    ids=[item[0] for item in EXAMPLES],
+)
+def test_example_reaches_its_generation_route(
+    identifier: str,
+    task: dict,
+    source: str,
+) -> None:
+    del source
+    task_spec = SimpleNamespace(**task)
+    route, selected = PromptBuilder._visual_route(task_spec)
+    assert route in {
+        "battery-readout",
+        "calendar-event",
+        "countdown",
+        "earphone-status",
+        "focus-aux",
+        "generic",
+        "health-readout",
+        "multi-business",
+        "weather-readout",
+    }
+    assert selected
+    available_ids = {item[0] for item in EXAMPLES}
+    if task_spec.size == "2x4" and not set(selected).issubset(available_ids):
+        reference = PromptBuilder._select_few_shot(PROMPTS["fewshot_2x4"], task_spec)
+        assert "## " not in reference
+    else:
+        assert set(selected).issubset(available_ids)
+    layout_scope = PromptBuilder._layout_scope(task_spec)
+
+    document = PROMPTS[f"fewshot_{task['size']}"]
+    selected_document = PromptBuilder._select_few_shot(document, task_spec)
+    for selected_id in set(selected).intersection(available_ids):
+        assert selected_id in selected_document
+    for other_id, _, _ in EXAMPLES:
+        if other_id.startswith(task["size"]) and other_id not in selected:
+            assert other_id not in selected_document
+
+    assembled = PromptBuilder._with_size_few_shot(PROMPTS["create"], task_spec)
+    for selected_id in set(selected).intersection(available_ids):
+        assert selected_id in assembled
+    if "adaptive" not in layout_scope:
+        assert f"### `{layout_scope}`" in assembled
+
+
+def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_design_compact_few_shots", False)
+
+    def reject_few_shot_read(*_args, **_kwargs) -> str:
+        raise AssertionError("Few-shot 文档不应在开关关闭时读取")
+
+    monkeypatch.setattr(
+        A2UIProtocolRegistry,
+        "read_design_few_shot",
+        reject_few_shot_read,
+    )
+    task_spec = SimpleNamespace(**EXAMPLES[0][1])
+
+    assembled = PromptBuilder._with_size_few_shot(PROMPTS["create"], task_spec)
+
+    assert "本轮实现参考" not in assembled
+    assert "# 本轮组件与布局选择" in assembled
+    assert "基础布局组件和组件" in assembled
+    for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
+        assert deprecated not in assembled
 
 
 def _palette_rows() -> list[list[str]]:
     palettes = []
-    for line in (PROFILE / "PROMPT.md").read_text(encoding="utf-8").splitlines():
+    for line in PROMPTS["create"].splitlines():
         if not line.startswith("|"):
             continue
         colors = re.findall(r"#[A-F0-9]{8}", line)
         if len(colors) == 6:
             palettes.append(colors)
-    assert palettes, "主提示词必须包含可检查的浅色配色表"
+    assert palettes
     return palettes
 
 
 @pytest.mark.parametrize("colors", _palette_rows())
-def test_palette_preserves_text_hierarchy_across_gradient(colors: list[str]) -> None:
-    """检查合成后的主次层级；不以旧对比度阈值覆盖 UX 指定的透明色。"""
+def test_palette_preserves_text_hierarchy(colors: list[str]) -> None:
     start, end, primary, secondary, button, _ = colors
     start_rgb = _rgba(start)[:3]
     end_rgb = _rgba(end)[:3]
     for step in range(11):
         fraction = step / 10.0
-        channels = []
-        for left, right in zip(start_rgb, end_rgb, strict=True):
-            channels.append(left + (right - left) * fraction)
-        background = tuple(channels)
+        background = tuple(
+            left + (right - left) * fraction for left, right in zip(start_rgb, end_rgb, strict=True)
+        )
         backboard = _composite(background, _rgba("#CCFFFFFF"))
         for surface in (background, backboard):
             assert _contrast(primary, surface) > _contrast(secondary, surface)
@@ -104,854 +558,66 @@ def test_palette_preserves_text_hierarchy_across_gradient(colors: list[str]) -> 
             assert _contrast(primary, button_surface) > 1.0
 
 
-@pytest.mark.parametrize("example_id", ("2x2-V01", "2x2-V02", "2x2-V04", "2x4-V09"))
-def test_examples_ignore_unrelated_candidates(example_id: str) -> None:
-    """正式示例必须包含干扰候选，但输出不得消费它们。"""
-    name, task, source = next(item for item in EXAMPLES if example_id in item[0])
-    candidates = task.get("assetCandidates")
-    assert isinstance(candidates, list), name
-    distractors = []
-    for candidate in candidates:
-        description = candidate.get("description", "")
-        if any(word in description for word in ("音乐音符", "闹钟实心", "样式：日历实心")):
-            src = candidate.get("src")
-            assert isinstance(src, str), name
-            distractors.append(src)
-    assert distractors, name
-    for src in distractors:
-        assert src not in source, name
-    if example_id != "2x2-V04":
-        events = task.get("eventCandidates")
-        assert isinstance(events, list), name
-        assert any(event.get("args", {}).get("intentName") == "Music" for event in events)
-        assert '"intentName":"Music"' not in source, name
-
-
-@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
-def test_examples_do_not_duplicate_shared_actions(name: str, task: dict, source: str) -> None:
-    """完整参数参与去重，不能将相同函数的不同目标误合并。"""
-    del task
-    seen = set()
-    for line in source.splitlines():
-        row = json.loads(line)
-        if len(row) < 3:
-            continue
-        for handler in row[2].get("onClick", []):
-            identity = json.dumps(handler, ensure_ascii=False, sort_keys=True)
-            assert identity not in seen, name
-            seen.add(identity)
-
-
-def test_explicit_music_pair_preserves_distinct_targets() -> None:
-    """用户明确的双歌单动作保留两个目标，且音符不迁移到内容区域。"""
-    _, task, source = next(item for item in EXAMPLES if "2x2-V03" in item[0])
-    expected = task.get("eventCandidates")
-    assert isinstance(expected, list) and len(expected) == 2
-    actual = []
-    for line in source.splitlines():
-        row = json.loads(line)
-        if len(row) < 3:
-            continue
-        if row[2].get("icon"):
-            assert row[1] == "ActionUnit"
-        actual.extend(row[2].get("onClick", []))
-    assert actual == expected
-
-
-def test_countdown_with_unrelated_event_keeps_display_only() -> None:
-    """即使恰好提供一个事件，也不能给纯倒计时补歌单按钮或整卡点击。"""
-    _, task, source = next(item for item in EXAMPLES if "2x2-V01" in item[0])
-    events = task.get("eventCandidates")
-    assert isinstance(events, list) and len(events) == 1
-    for line in source.splitlines():
-        row = json.loads(line)
-        if len(row) < 3:
-            continue
-        assert row[1] not in ("Button", "ActionUnit", "Image")
-        assert not row[2].get("onClick")
-        assert not row[2].get("icon")
-
-
-UX_GRADIENTS = (
-    ("#FFCBDDFE", "#FFF1F6FE", "1F4799"),
-    ("#FFDBCCFF", "#FFF6F2FF", "563D99"),
-    ("#FFFFE0CC", "#FFFFF7F2", "8C4B1C"),
-)
-
-
-def test_palette_matches_exact_ux_specification() -> None:
-    expected = []
-    for start, end, ink in UX_GRADIENTS:
-        expected.append([start, end, "#FF" + ink, "#99" + ink, "#33" + ink, "#FF" + ink])
-    assert _palette_rows() == expected
-
-
-def test_default_palette_is_limited_to_blue_purple_and_warm() -> None:
-    """默认 root 背景收敛为三套，避免分区卡继续放大高饱和青绿粉。"""
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    deprecated_background_starts = ("#FFCCFCFF", "#FFCCFFDD", "#FFFFCCD5")
-    for color in deprecated_background_starts:
-        assert color not in prompt
-
-    allowed_starts = {start for start, _, _ in UX_GRADIENTS}
-    for _, _, source in EXAMPLES:
-        root = json.loads(source.splitlines()[0])
-        gradient = root[2].get("linearGradient")
-        if gradient is None:
-            continue
-        colors = gradient.get("colors")
-        assert isinstance(colors, list) and colors
-        assert colors[0][0] in allowed_starts
-
-
-@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
-def test_example_gradients_preserve_ux_direction_and_stops(
-    name: str, task: dict, source: str
+@pytest.mark.parametrize("identifier,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
+def test_example_gradients_use_registered_direction_and_stops(
+    identifier: str,
+    task: dict,
+    source: str,
 ) -> None:
-    """检查真正送给模型的示例，拦截端点互换、旧颜色或角度覆盖。"""
     del task
     allowed = []
-    for start, end, _ in UX_GRADIENTS:
+    for start, end, _ in (
+        ("#FFCBDDFE", "#FFF1F6FE", "1F4799"),
+        ("#FFDBCCFF", "#FFF6F2FF", "563D99"),
+        ("#FFFFE0CC", "#FFFFF7F2", "8C4B1C"),
+    ):
         allowed.append([[start, 0], [end, 1]])
-    for line in source.splitlines():
-        row = json.loads(line)
+    for row in _rows(source):
         if len(row) < 3:
             continue
         gradient = row[2].get("linearGradient")
         if gradient is None:
             continue
-        assert gradient.get("direction") == "RightBottom", name
-        assert "angle" not in gradient, name
-        assert gradient.get("colors") in allowed, name
+        assert gradient.get("direction") == "RightBottom", identifier
+        assert gradient.get("colors") in allowed, identifier
+        assert "angle" not in gradient, identifier
 
 
-@pytest.mark.parametrize("change", ["width", "height", "padding"])
-def test_formatted_readout_rejects_unsafe_layout(change: str) -> None:
-    _, original_task, source = next(item for item in EXAMPLES if "2x2-V09" in item[0])
-    task = deepcopy(original_task)
-    rows = [json.loads(line) for line in source.splitlines()]
-    row = next(row for row in rows if row[0] == "temperature")
-    props = row[2]
-    if change == "width":
-        props["width"] = 112
-    elif change == "height":
-        props["height"] = 20
-    elif change == "padding":
-        props["padding"] = 4
-    changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    with pytest.raises(CompactDslValidationError, match="fontSize"):
-        validate_compact_dsl(changed_source, task_spec=task, card_spec={"suggestSize": "2x2"})
+def test_component_catalog_excludes_removed_legacy_components() -> None:
+    catalog = PROMPTS["create"]
+    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
+    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
+    for component_type in HIGH_LEVEL_COMPONENTS:
+        assert f"`{component_type}`" in allowed_section
+    for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):
+        assert f"`{removed_type}`" not in allowed_section
+    for removed_base_type in ("Button", "Divider", "Image", "List"):
+        assert f"| `{removed_base_type}` |" not in allowed_section
+
+    for removed_input_type in ("Divider", "Image"):
+        assert f"`{removed_input_type}`" not in allowed_section
 
 
-def test_formatted_readout_allows_single_field_expression_in_large_2x4_panel() -> None:
-    """2x4 大分区允许单字段加真实单位的 20fp 主读数。"""
-    _, original_task, source = next(item for item in EXAMPLES if "2x4-V10" in item[0])
-    task = deepcopy(original_task)
-    rows = [json.loads(line) for line in source.splitlines()]
-    row = next(row for row in rows if row[0] == "weatherValue")
-    row[2].update(
-        {
-            "content": "{{ " + "$" + "{/data/weather/current/temperatureC}" + " + '°C' }}",
-            "width": 114,
-            "height": 28,
-            "fontSize": 20,
-        }
-    )
-    rows = [item for item in rows if item[0] != "weatherUnit"]
-    readout = next(item for item in rows if item[0] == "weatherReadout")
-    readout[3] = [item for item in readout[3] if item != "weatherUnit"]
-    changed_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    result = validate_compact_dsl(
-        changed_source,
-        task_spec=task,
-        card_spec={"suggestSize": "2x4"},
-    )
-    assert not result.warnings
-
-
-def test_formatted_measurement_allows_current_or_voltage_hero() -> None:
-    """带合法测量单位的电流/电压字符串可以作为单业务主读数。"""
-    task = {
-        "userQuery": "查看当前充电电流",
-        "size": "2x2",
-        "dataModelSchema": {
-            "data": {
-                "phoneBattery": {
-                    "nowCurrentText": {
-                        "type": "string",
-                        "description": "当前设备电池实时电流文本，已包含 mA 单位",
-                        "sampleValue": "-151 mA",
-                    }
-                }
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{"width":"matchParent","height":"matchParent",'
-            '"padding":12},["main"]]',
-            '["main","Column",{"width":126,"height":40,"padding":0},["current"]]',
-            '["current","Text",{"content":{"path":"/data/phoneBattery/nowCurrentText"},'
-            '"width":126,"height":34,"fontSize":24,"maxLines":1}]',
-            '["/data/phoneBattery/nowCurrentText","-151 mA"]',
-        ]
-    )
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
-    assert not result.warnings
-
-
-@pytest.mark.parametrize("font_size,height", [(20, 28), (24, 34)])
-def test_w9_allows_battery_percentage_formatted_hero(font_size: int, height: int) -> None:
-    """2x4 W9 大分区允许预算足够的带百分号电量主读数。"""
-    task = {
-        "userQuery": "查看手机电量和耳机状态",
-        "size": "2x4",
-        "dataModelSchema": {
-            "data": {
-                "phoneBattery": {
-                    "batterySOCText": {
-                        "type": "string",
-                        "description": "当前手机设备剩余电量文本，已包含%单位",
-                        "sampleValue": "68%",
-                    }
-                },
-                "earphone": {
-                    "isConnected": {
-                        "type": "boolean",
-                        "description": "当前耳机连接状态",
-                        "sampleValue": True,
-                    }
-                },
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Row",{"width":"matchParent","height":"matchParent",'
-            '"padding":8,"itemMargin":8},["phone","earphone"]]',
-            '["phone","Column",{"width":138,"height":134,"padding":12},["phoneContent"]]',
-            '["phoneContent","Column",{"width":114,"layoutWeight":1,'
-            '"justifyContent":"center"},["value"]]',
-            '["value","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},'
-            f'"width":114,"height":{height},"fontSize":{font_size},"maxLines":1}}]',
-            '["earphone","Column",{"width":138,"height":134,"padding":12},["earphoneContent"]]',
-            '["earphoneContent","Column",{"width":114,"layoutWeight":1,'
-            '"justifyContent":"center"},["status"]]',
-            '["status","Text",{"content":{"path":"/data/earphone/isConnected"},'
-            '"width":114,"fontSize":14,"maxLines":1}]',
-            '["/data/phoneBattery/batterySOCText","68%"]',
-            '["/data/earphone/isConnected",true]',
-        ]
-    )
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
-    assert not result.warnings
-
-
-def test_formatted_measurement_rejects_redundant_field_label() -> None:
-    """带单位字符串不能在同一行追加“电流/电压”等字段标签。"""
-    task = {
-        "userQuery": "查看当前充电电流",
-        "size": "2x2",
-        "dataModelSchema": {
-            "data": {
-                "phoneBattery": {
-                    "nowCurrentText": {
-                        "type": "string",
-                        "description": "当前设备电池实时电流文本，已包含 mA 单位",
-                        "sampleValue": "-151 mA",
-                    }
-                }
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{"width":"matchParent","height":"matchParent",'
-            '"padding":12},["main"]]',
-            '["main","Row",{"width":126,"height":28},["current","label"]]',
-            '["current","Text",{"content":{"path":"/data/phoneBattery/nowCurrentText"},'
-            '"width":126,"height":34,"fontSize":24,"maxLines":1}]',
-            '["label","Text",{"content":"电流","fontSize":12,"maxLines":1}]',
-            '["/data/phoneBattery/nowCurrentText","-151 mA"]',
-        ]
-    )
-    with pytest.raises(CompactDslValidationError, match="large numeric value"):
-        validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
-
-
-def test_adaptive_primary_weather_status_allows_large_font_in_full_width_slot() -> None:
-    task = {
-        "userQuery": "做一张天气卡片",
-        "size": "2x2",
-        "dataModelSchema": {
-            "data": {
-                "weather": {
-                    "current": {
-                        "condition": {
-                            "type": "string",
-                            "description": "当前天气现象",
-                            "sampleValue": "多云",
-                        }
-                    }
-                }
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
-            '["main","Column",{"width":136,"height":54,"padding":0},["condition"]]',
-            '["condition","Text",{"width":136,"height":54,"content":{"path":"/data/weather/current/condition"},"fontSize":38,"maxLines":1}]',
-            '["/data/weather/current/condition","多云"]',
-        ]
-    )
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
-    assert not result.warnings
-
-
-def test_adaptive_primary_text_allows_overlong_runtime_status() -> None:
-    task = {
-        "userQuery": "做一张天气卡片",
-        "size": "2x2",
-        "dataModelSchema": {
-            "data": {
-                "weather": {
-                    "current": {
-                        "condition": {
-                            "type": "string",
-                            "description": "当前天气现象",
-                            "sampleValue": "雷阵雨转局部多云",
-                        }
-                    }
-                }
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
-            '["main","Column",{"width":136,"height":54,"padding":0},["condition"]]',
-            '["condition","Text",{"width":136,"height":54,"content":{"path":"/data/weather/current/condition"},"fontSize":38,"maxLines":1}]',
-            '["/data/weather/current/condition","雷阵雨转局部多云"]',
-        ]
-    )
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
-    assert not result.warnings
-
-
-def test_adaptive_primary_percentage_allows_renderer_sized_font() -> None:
-    task = {
-        "userQuery": "看明日降雨概率",
-        "size": "2x2",
-        "dataModelSchema": {
-            "data": {
-                "weather": {
-                    "daily": [
-                        {
-                            "rainProbabilityPercent": {
-                                "type": "string",
-                                "description": "降雨概率百分比",
-                                "sampleValue": "20%",
-                            }
-                        }
-                    ]
-                }
-            }
-        },
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{"width":"matchParent","height":"matchParent","padding":12},["main"]]',
-            '["main","Column",{"width":136,"height":54,"padding":0},["rain"]]',
-            '["rain","Text",{"content":{"path":"/data/weather/daily/1/rainProbabilityPercent"},"fontSize":38,"maxLines":1}]',
-            '["/data/weather/daily/1/rainProbabilityPercent","20%"]',
-        ]
-    )
-    result = validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
-    assert not result.warnings
-
-
-@pytest.mark.parametrize("identifier", ["2x2-V09", "2x2-V10", "2x2-V01"])
-def test_new_examples_reach_their_generation_route(identifier: str) -> None:
-    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
-    document = (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8")
-    selected = PromptBuilder._select_few_shot(document, SimpleNamespace(**task))
-    assert identifier in selected
-    if identifier == "2x2-V09":
-        assert "2x2-V10" not in selected
-        assert "2x2-V05" not in selected
-    if identifier == "2x2-V10":
-        assert "2x2-V05" in selected
-        assert "2x2-V09" not in selected
-
-
-def test_countdown_with_action_uses_left_aligned_v08_route() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V08" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    assert route == "countdown"
-    assert selected == ("2x2-V08",)
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "value-led" in instruction or "第一焦点" in instruction
-
-
-def test_countdown_with_action_rejects_centered_value_row() -> None:
-    _, original_task, source = next(item for item in EXAMPLES if "2x2-V08" in item[0])
-    task = deepcopy(original_task)
-    rows = [json.loads(line) for line in source.splitlines()]
-    value_group = next(row for row in rows if row[0] == "value_group")
-    value_group[2]["alignItems"] = "center"
-    value_row = next(row for row in rows if row[0] == "value_row")
-    value_row[2]["justifyContent"] = "center"
-    changed_source = "\n".join(
-        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows
-    )
-    with pytest.raises(CompactDslValidationError, match="left-align"):
-        validate_compact_dsl(
-            changed_source,
-            task_spec=task,
-            card_spec={"suggestSize": "2x2"},
-        )
-
-
-@pytest.mark.parametrize(
-    ("identifier", "expected_ids", "excluded_ids"),
-    [
-        ("2x2-V02", ("2x2-V02",), ("2x2-V03", "2x2-V04")),
-        ("2x2-V03", ("2x2-V03",), ("2x2-V02",)),
-        ("2x4-V01", ("2x4-V01",), ("2x4-V07", "2x4-V09", "2x4-V10")),
-        ("2x4-V11", ("2x4-V11",), ("2x4-V01", "2x4-V09")),
-        ("2x4-V12", ("2x4-V12",), ("2x4-V02", "2x4-V09")),
-    ],
-)
-def test_few_shot_selection_uses_visual_route(
-    identifier: str,
-    expected_ids: tuple[str, ...],
-    excluded_ids: tuple[str, ...],
-) -> None:
-    """按业务和主焦点选择少量互补示例，避免 2x4 注入整份示例集。"""
-    size = identifier[:3]
-    document = (PROFILE / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
-    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
-    selected = PromptBuilder._select_few_shot(document, SimpleNamespace(**task))
-    for expected_id in expected_ids:
-        assert expected_id in selected
-    for excluded_id in excluded_ids:
-        assert excluded_id not in selected
-
-
-def test_visual_route_instruction_requires_single_focus() -> None:
-    """组装后的提示词明确要求单一重心和示例值隔离。"""
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V11" in item[0])
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "唯一第一焦点" in instruction or "第一焦点" in instruction
-    assert "禁止复制示例业务值" in instruction
-
-
-def test_multi_business_instruction_prefers_icons_only_when_candidates_match() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V09" in item[0])
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "稀疏分区放大主值或核心状态" in instruction
-    assert "语义精确且状态安全" in instruction
-    assert "不留空槽" in instruction
-
-
-def test_simple_supported_2x2_route_recommends_fusion_ball() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V02" in item[0])
-    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
-    assert "本次融球推荐" in recommendation
-    assert "不得为融球删除用户必需内容" in recommendation
-
-
-@pytest.mark.parametrize(
-    "identifier",
-    ("2x2-V05", "2x2-V03", "2x4-V02"),
-)
-def test_dense_or_multi_object_routes_do_not_recommend_fusion_ball(identifier: str) -> None:
-    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
-    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
-    assert recommendation == ""
-
-
-@pytest.mark.parametrize("query", ("用青色做耳机卡片", "展示三个耳机指标"))
-def test_custom_color_or_dense_query_does_not_recommend_fusion_ball(query: str) -> None:
-    _, source_task, _ = next(item for item in EXAMPLES if "2x2-V02" in item[0])
-    task = {**source_task, "userQuery": query}
-    recommendation = PromptBuilder._fusion_ball_recommendation(SimpleNamespace(**task))
-    assert recommendation == ""
-
-
-def test_s4_example_uses_available_business_icons() -> None:
-    _, _, source = next(item for item in EXAMPLES if "2x2-V05" in item[0])
-    rows = [json.loads(line) for line in source.splitlines()]
-    icons = [row for row in rows if len(row) >= 3 and row[1] == "Image"]
-    assert [row[0] for row in icons] == ["phone_icon", "ear_icon"]
-
-
-def test_calendar_route_does_not_promote_candidate_actions_without_user_intent() -> None:
-    """候选事件存在但用户未要求操作时，不能注入双按钮示例。"""
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V01" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    assert route == "calendar-event"
-    assert selected == ("2x4-V01",)
-
-
-def test_calendar_route_uses_action_variant_only_for_explicit_actions() -> None:
-    """明确要求按钮时才引入 W6 双入口示例。"""
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V08" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    assert route == "calendar-event"
-    assert selected == ("2x4-V08",)
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "用户语义包含显式动作" in instruction
-
-
-def test_short_query_keeps_matching_read_only_entry_without_visible_button() -> None:
-    """简短 query 仍可保留同业务的无副作用详情入口。"""
-    _, original_task, _ = next(item for item in EXAMPLES if "2x4-V11" in item[0])
-    task = deepcopy(original_task)
-    task["userQuery"] = "做一张天气卡片"
-    task["eventCandidates"] = [
-        {
-            "call": "clickToDeeplink",
-            "args": {"intentName": "Weather_CityCode", "uri": "weather"},
-        }
-    ]
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "唯一点击入口" in instruction
-    assert "不要为了显示入口额外增加按钮" in instruction
-
-
-def test_short_query_does_not_promote_settings_to_implicit_entry() -> None:
-    """设置类副作用候选不能因 query 简短而自动变成入口。"""
-    _, original_task, _ = next(item for item in EXAMPLES if "2x4-V12" in item[0])
-    task = deepcopy(original_task)
-    task["userQuery"] = "做一张耳机卡片"
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "没有高置信的同业务隐式入口" in instruction
-
-
-def test_short_query_keeps_read_only_earphone_entry() -> None:
-    """耳机只读详情候选可在简短 query 下成为整卡隐式入口。"""
-    _, original_task, _ = next(item for item in EXAMPLES if "2x4-V12" in item[0])
-    task = deepcopy(original_task)
-    task["userQuery"] = "做一张耳机卡片"
-    task["eventCandidates"] = [
-        {"call": "viewEarphoneStatus", "args": {"uri": "earphone"}}
-    ]
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "唯一点击入口" in instruction
-    assert "不要为了显示入口额外增加按钮" in instruction
-
-
-def test_unknown_single_business_uses_neutral_size_fallback() -> None:
-    task = SimpleNamespace(
+def test_unknown_routes_use_current_neutral_examples() -> None:
+    small = SimpleNamespace(
         size="2x2",
-        userQuery="做一张项目状态卡片",
+        userQuery="展示项目状态",
         eventCandidates=[],
         dataModelSchema={"data": {"project": {"status": {"type": "string"}}}},
     )
-    route, selected = PromptBuilder._visual_route(task)
-    assert route == "generic"
-    assert selected == ("2x2-V00",)
-
-
-def test_unknown_multi_business_uses_neutral_size_fallback() -> None:
-    task = SimpleNamespace(
+    wide = SimpleNamespace(
         size="2x4",
-        userQuery="做一张综合信息卡片",
+        userQuery="展示项目状态",
         eventCandidates=[],
-        dataModelSchema={
-            "data": {
-                "project": {"status": {"type": "string"}},
-                "finance": {"balance": {"type": "number"}},
-            }
-        },
+        dataModelSchema={"data": {"project": {"status": {"type": "string"}}}},
     )
-    route, selected = PromptBuilder._visual_route(task)
-    assert route == "multi-business"
-    assert selected == ("2x4-V13",)
+    assert PromptBuilder._visual_route(small) == ("generic", ("2x2-V09",))
+    assert PromptBuilder._visual_route(wide) == ("generic", ("2x4-V00",))
 
 
-def test_phone_and_earphone_use_sparse_device_gold_example() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    assert route == "multi-business"
-    assert selected == ("2x4-V14",)
-
-    layout_scope = PromptBuilder._layout_scope(SimpleNamespace(**task))
-    assert layout_scope == "W9-dual-backboards"
-
-
-def test_compiled_focus_instruction_is_concrete_for_sparse_w9() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-    assert "本轮路由摘要" in instruction
-    assert "W9-dual-backboards" in instruction
-    assert "2x4-V14" in instruction
-
-
-def test_route_pruning_keeps_only_w9_layout_contract_for_sparse_dual() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
-    assert len(pruned) < len(prompt)
-    assert "### `W9-dual-backboards`" in pruned
-    assert "### `W8-quad-cells`" not in pruned
-    assert "### `W10-triple-backboards`" not in pruned
-    assert "## 9.1 2x2" not in pruned
-    assert "# 十、文字与信息适配" in pruned
-    assert "**2x4 双业务生成前置约束**" in pruned
-
-    lock = PromptBuilder._layout_route_lock(task_spec, layout_scope)
-    assert "W9 左右双大背板" in lock
-    assert "W8" not in lock
-    assert "W10" not in lock
-
-    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert "2x4-V14" in assembled
-    assert "2x4-V13" not in assembled
-    assert "### `W9-dual-backboards`" in assembled
-    assert "### `W8-quad-cells`" not in assembled
-
-
-def test_route_pruning_keeps_single_business_skeleton_range_for_weather() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V04" in item[0])
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
-    assert layout_scope == "S1-S3 adaptive-single-business"
-    assert "### `S2-info-pair-action`" in pruned
-    assert "### `S1-single-info`" in pruned
-    assert "### `S3-info-dual-action`" in pruned
-    assert "### `S4-stacked-zones`" not in pruned
-    assert "## 9.2 2x4" not in pruned
-    assert "**2x2 单业务多字段生成前置约束**" in pruned
-
-
-def test_single_business_range_preserves_dual_action_constraint() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V03" in item[0])
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    pruned = PromptBuilder._prune_prompt_for_route(prompt, task_spec, layout_scope)
-    assert layout_scope == "S1-S3 adaptive-single-business"
-    assert "**2x2 双按钮前置约束**" in pruned
-    assert "### `S3-info-dual-action`" in pruned
-    assert "### `S2-info-pair-action`" in pruned
-
-
-def test_health_summary_with_explicit_action_uses_compact_metric_example() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V11" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    assert route == "health-readout"
-    assert selected == ("2x2-V11",)
-
-    document = (PROFILE / "FEWSHOT_2x2.md").read_text(encoding="utf-8")
-    selected_document = PromptBuilder._select_few_shot(
-        document,
-        SimpleNamespace(**task),
-    )
-    assert "2x2-V11" in selected_document
-    assert "2x2-V07" not in selected_document
-
-
-def test_sparse_weather_gold_uses_vertical_space_and_exact_header_icon() -> None:
-    """稀疏天气卡按顶中底分配空间，并保留准确的中性主题图标。"""
-    _, _, source = next(item for item in EXAMPLES if "2x2-V04" in item[0])
-    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
-
-    assert rows["content_area"][2]["justifyContent"] == "center"
-    assert rows["temperature"][2]["fontSize"] == 24
-    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
-    assert not any(row[1] == "Image" for row in rows.values())
-    assert rows["title_area"][2]["icon"] == (
-        "resources/base/media/icon_weather_temperature1.svg"
-    )
-    assert "alarm_fill_1.svg" not in source
-    assert "calendar_fill.svg" not in source
-    assert " | " not in source
-
-
-def test_health_metric_gold_splits_long_metrics_instead_of_pipe_row() -> None:
-    """两个较长指标利用纵向空间分行，不再用分隔符挤成辅助行。"""
-    _, _, source = next(item for item in EXAMPLES if "2x2-V11" in item[0])
-    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
-
-    assert rows["content_area"][1] == "Column"
-    assert rows["content_area"][2]["justifyContent"] == "center"
-    assert rows["content_area"][3] == ["calorie", "heart_rate"]
-    assert "separator" not in rows
-    assert " | " not in source
-    assert "exerciseDurationText" in rows["title_area"][2]["title"]
-
-
-def test_sleep_summary_uses_sparse_centered_gold_example() -> None:
-    """睡眠类稀疏请求命中可迁移的居中主信息组示例。"""
-    _, task, source = next(item for item in EXAMPLES if "2x2-V12" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
-
-    assert route == "health-readout"
-    assert selected == ("2x2-V12",)
-    assert rows["content_area"][2]["justifyContent"] == "center"
-    assert rows["sleep_duration"][2]["fontSize"] == 24
-    assert rows["root"][3] == ["title_area", "content_area", "bottom_area"]
-    assert rows["title_area"][2]["icon"] == (
-        "resources/base/media/moon_circle_fill.svg"
-    )
-    assert rows["title_area"][2]["fillColor"] == "#FF563D99"
-
-
-def test_paired_metric_gold_uses_one_symmetric_focus_group() -> None:
-    """两个天然同级的短数值共同构成焦点，不任意放大其中一个。"""
-    _, task, source = next(item for item in EXAMPLES if "2x2-V13" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
-
-    assert route == "health-readout"
-    assert selected == ("2x2-V07", "2x2-V13")
-    assert rows["metric_group"][1] == "Row"
-    assert rows["metric_group"][2]["justifyContent"] == "center"
-    assert rows["metric_group"][3] == [
-        "maximum_group",
-        "metric_divider",
-        "minimum_group",
-    ]
-    assert rows["maximum_group"][2]["width"] == rows["minimum_group"][2]["width"]
-    assert rows["metric_divider"][1] == "Divider"
-    assert rows["metric_divider"][2]["vertical"] is True
-    assert rows["maximum_value"][2]["fontSize"] == 20
-    assert rows["minimum_value"][2]["fontSize"] == 20
-    assert rows["maximum_label"][2]["fontSize"] == 12
-    assert rows["minimum_label"][2]["fontSize"] == 12
-    assert "次/分" in rows["title_area"][2]["title"]
-    assert rows["title_area"][2]["fillColor"] == "#FF563D99"
-
-
-def test_peer_status_gold_uses_aligned_label_value_rows() -> None:
-    """三个同级状态使用统一标签—值行，不生成无标签的任意 hero。"""
-    _, task, source = next(item for item in EXAMPLES if "2x2-V14" in item[0])
-    route, selected = PromptBuilder._visual_route(SimpleNamespace(**task))
-    rows = {row[0]: row for row in (json.loads(line) for line in source.splitlines())}
-
-    assert route == "weather-readout"
-    assert selected == ("2x2-V04", "2x2-V14")
-    assert rows["metric_list"][2]["justifyContent"] == "center"
-    assert rows["metric_list"][3] == ["ultraviolet_row", "air_row", "cold_row"]
-    label_widths = {
-        rows[identifier][2]["width"]
-        for identifier in ("ultraviolet_label", "air_label", "cold_label")
-    }
-    value_widths = {
-        rows[identifier][2]["width"]
-        for identifier in ("ultraviolet_value", "air_value", "cold_value")
-    }
-    value_sizes = {
-        rows[identifier][2]["fontSize"]
-        for identifier in ("ultraviolet_value", "air_value", "cold_value")
-    }
-    assert label_widths == {70}
-    assert value_widths == {56}
-    assert value_sizes == {14}
-    assert all(size < 20 for size in value_sizes)
-
-
-@pytest.mark.parametrize("example_id", ("2x2-V12", "2x2-V13"))
-def test_tintable_card_header_color_reaches_a2ui(example_id: str) -> None:
-    """可染色标题 SVG 的主题色必须完整透传到最终 Image。"""
-    _, task, source = next(item for item in EXAMPLES if example_id in item[0])
-    converted = convert_compact_dsl_to_a2ui(
-        source,
-        size="2x2",
-        protocol_profile={"version": "v0.9", "appVersion": "99.0"},
-    )
-    messages = [json.loads(line) for line in converted.splitlines()]
-    components = messages[1]["updateComponents"]["components"]
-    components_by_id = {component["id"]: component for component in components}
-
-    assert components_by_id["title_area_icon"]["styles"]["fillColor"] == (
-        "#FF563D99"
-    )
-
-
-def test_two_by_two_route_summary_requires_density_adaptation() -> None:
-    _, task, _ = next(item for item in EXAMPLES if "2x2-V04" in item[0])
-    instruction = PromptBuilder._visual_route_instruction(SimpleNamespace(**task))
-
-    assert "内容稀疏时不要全部贴顶" in instruction
-    assert "纵向仍有一行空间时，独立事实必须分行" in instruction
-    assert "默认保留一枚右上角" in instruction
-    assert "可染色 SVG必须显式写 fillColor" in instruction
-    assert "默认黑色" in instruction
-    assert "整体结果/总量/主状态" in instruction
-    assert "合法并列焦点组" in instruction
-
-
-@pytest.mark.parametrize("name,task,source", EXAMPLES, ids=[item[0] for item in EXAMPLES])
-def test_each_gold_example_compiles_only_hard_object_count_route(
-    name: str,
-    task: dict,
-    source: str,
-) -> None:
-    """代码只锁定由尺寸和对象数确定的骨架，单业务细分留给提示词。"""
-    del source
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    block_count = PromptBuilder._data_block_count(task_spec)
-    if task_spec.size == "2x2":
-        expected = (
-            "S4-stacked-zones"
-            if block_count >= 2
-            else "S1-S3 adaptive-single-business"
-        )
-    elif block_count >= 4:
-        expected = "W8-quad-cells"
-    elif block_count == 3:
-        expected = "W10-triple-backboards"
-    elif block_count == 2:
-        expected = "W9-dual-backboards"
-    else:
-        expected = "W1-W7 adaptive-single-business"
-    assert layout_scope == expected, name
-
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    _, selected_ids = PromptBuilder._visual_route(task_spec)
-    assert selected_ids[0] in assembled, name
-    other_size = "## 9.2 2x4" if task_spec.size == "2x2" else "## 9.1 2x2"
-    assert other_size not in assembled, name
-
-
-@pytest.mark.parametrize("identifier", ("2x4-V00", "2x4-V02", "2x4-V11", "2x4-V12"))
-def test_adaptive_single_business_retains_all_single_business_skeletons(
-    identifier: str,
-) -> None:
-    """单业务只裁剪尺寸，不由 Python 提前决定具体 W 骨架。"""
-    _, task, _ = next(item for item in EXAMPLES if identifier in item[0])
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    assert layout_scope == "W1-W7 adaptive-single-business"
-
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert "### `W1-focus-aux`" in assembled
-    assert "### `W2-text-flow`" in assembled
-    assert "### `W3-ring-detail`" in assembled
-    assert "### `W4-metric-triple`" in assembled
-    assert "### `W5-progress-detail`" in assembled
-    assert "### `W6-agenda-cta`" in assembled
-    assert "### `W7-list-rows`" in assembled
-
-
-def test_sparse_w9_asymmetric_hierarchy_stays_in_prompt_policy() -> None:
-    """W9 主次关系由通用提示词约束，不在 Python 中继续增加构图分支。"""
-    _, task, _ = next(item for item in EXAMPLES if "2x4-V14" in item[0])
-    task_spec = SimpleNamespace(**task)
-    layout_scope = PromptBuilder._layout_scope(task_spec)
-    prompt = (PROFILE / "PROMPT.md").read_text(encoding="utf-8")
-    assembled = PromptBuilder._with_size_few_shot(prompt, task_spec)
-    assert layout_scope == "W9-dual-backboards"
-    assert "不得镜像复制相同的标题、主值、辅助行模板" in assembled
+def test_prompt_source_has_no_out_of_range_formal_example_references() -> None:
+    known_ids = {item[0] for item in EXAMPLES}
+    pattern = re.compile(r"2x[24]-V\d\d")
+    for path in PROMPT_SOURCE.rglob("*.md"):
+        references = set(pattern.findall(path.read_text(encoding="utf-8")))
+        assert references.issubset(known_ids), path

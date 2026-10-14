@@ -37,7 +37,10 @@ BINDABLE_PROP_TYPES: dict[str, dict[str, frozenset[str]]] = {
     "SingleLineTitle": {"title": _SCALAR_TEXT},
     "DoubleLineTitle": {"title": _SCALAR_TEXT, "secondaryInfo": _SCALAR_TEXT},
     "Badge": {"value": _SCALAR_TEXT},
-    "DataDisplay": {"value": _SCALAR_TEXT},
+    "DataDisplay": {
+        "value": _SCALAR_TEXT,
+        "supportingText": _SCALAR_TEXT,
+    },
     "InfoBlock": {
         "primaryText": _SCALAR_TEXT,
         "secondaryText": _SCALAR_TEXT,

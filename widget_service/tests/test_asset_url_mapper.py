@@ -68,6 +68,18 @@ def test_maps_only_declared_static_asset_properties():
     assert result[4].get("onClick") == [{"call": "test", "args": {"src": SRC}}]
 
 
+def test_restore_archived_template_image_does_not_grant_generation_permission():
+    mapper = AssetUrlMapper({SRC: URL}, {SRC})
+    token = "\n".join(json.dumps(row) for row in [
+        ["root", "Column", {}, ["image"]],
+        ["image", "Image", {"src": URL, "fillColor": "#FF1F4799"}],
+    ])
+    restored = mapper.restore_design_token(token)
+    assert json.loads(restored.splitlines()[1])[2].get("src") == SRC
+    with pytest.raises(ValueError, match="unsupported component type Image"):
+        convert_compact_dsl_to_a2ui(restored, size="2x2")
+
+
 @pytest.mark.parametrize("mapping", [{}, {LOCAL: URL}])
 def test_no_mapping_preserves_original_bytes(mapping):
     text = standard_dsl() + "\r\n"
@@ -110,7 +122,7 @@ def test_task_spec_keeps_original_assets_with_configured_mapping(monkeypatch):
     assert task.assetCandidates == [{"id": "asset.drop_1", "src": SRC, "description": "雨伞"}]
 
 
-def test_mapping_covers_expanded_header_and_action_icons():
+def test_mapping_covers_expanded_action_icon():
     token = "\n".join(
         json.dumps(row)
         for row in [
@@ -122,14 +134,13 @@ def test_mapping_covers_expanded_header_and_action_icons():
             ],
             [
                 "header",
-                "CardHeader",
-                {"title": "天气", "icon": SRC, "fontColor": "#FF000000", "fillColor": "#FF000000"},
+                "SingleLineTitle",
+                {"title": "天气", "fontColor": "#FF000000"},
             ],
             [
                 "action",
-                "ActionUnit",
+                "PillButton",
                 {
-                    "state": "capsule",
                     "label": "查看",
                     "icon": SRC,
                     "onClick": [{"call": "test", "args": {}}],
@@ -141,7 +152,7 @@ def test_mapping_covers_expanded_header_and_action_icons():
     dsl = convert_compact_dsl_to_a2ui(token, size="2x2")
     result = AssetUrlMapper({SRC: URL}, {SRC}).rewrite_standard(dsl)
     images = [item for item in components(result) if item.get("component") == "Image"]
-    assert len(images) == 2
+    assert len(images) == 1
     for item in images:
         assert item.get("src") == URL
 
@@ -163,8 +174,16 @@ def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
     token = "\n".join(
         json.dumps(row)
         for row in [
-            ["root", "Column", {"width": 320, "height": 160}, ["image"]],
-            ["image", "Image", {"src": src, "width": 20, "height": 20}],
+            ["root", "Column", {"width": 300, "height": 150}, ["action"]],
+            [
+                "action",
+                "PillButton",
+                {
+                    "label": "查看",
+                    "icon": src,
+                    "onClick": [{"call": "test", "args": {}}],
+                },
+            ],
             ["/ui/state", "ready"],
         ]
     )
@@ -175,7 +194,7 @@ def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
     )
     asset_errors = []
     for diagnostic in reporter.diagnostics:
-        if diagnostic.json_pointer != "/updateComponents/componentsById/image/src":
+        if diagnostic.json_pointer != "/updateComponents/componentsById/action_icon/src":
             continue
         if diagnostic.code in {"EFFECTIVE_ASSET_NOT_ALLOWED", "ASSET_REMOTE_URL_FORBIDDEN"}:
             asset_errors.append(diagnostic)
@@ -188,13 +207,13 @@ def test_restore_old_token_only_changes_asset_properties():
         json.dumps(row)
         for row in [
             ["root", "Column", {}, ["img", "text"]],
-            ["img", "Image", {"src": URL}],
+            ["img", "PillButton", {"label": "查看", "icon": URL}],
             ["text", "Text", {"content": URL}],
             ["/ui/address", URL],
         ]
     )
     rows = [json.loads(line) for line in mapper.restore_design_token(token).splitlines()]
-    assert rows[1][2].get("src") == SRC
+    assert rows[1][2].get("icon") == SRC
     assert rows[2][2].get("content") == URL
     assert rows[3] == ["/ui/address", URL]
 
@@ -205,6 +224,48 @@ def test_restore_ambiguous_or_unknown_url_fails_without_guessing():
         mapper.rewrite_standard(standard_dsl(URL), restore=True)
     with pytest.raises(ValueError, match="cannot be restored"):
         mapper.rewrite_standard(standard_dsl(URL + "unknown"), restore=True)
+
+
+@pytest.mark.parametrize("kind", ["InfoBlock", "NumericRatioStack"])
+def test_restore_nested_model_assets_preserves_other_content(kind: str) -> None:
+    mapper = AssetUrlMapper({SRC: URL}, {SRC})
+    props = {
+        "visual": {"type": "icon", "icon": URL},
+        "items": [{"icon": URL, "value": URL}],
+        "primaryText": URL,
+        "onClick": [{"call": "test", "args": {"icon": URL}}],
+    }
+    rows = [["visual", kind, props], ["/data/source", {"icon": URL}]]
+    token = "\n".join(json.dumps(row) for row in rows)
+    restored = mapper.restore_design_token(token)
+    parsed = [json.loads(line) for line in restored.splitlines()]
+    result = parsed[0][2]
+    visual = result.get("visual")
+    items = result.get("items")
+    assert isinstance(visual, dict) and isinstance(items, list)
+    assert visual.get("icon") == (SRC if kind == "InfoBlock" else URL)
+    assert items[0].get("icon") == (SRC if kind == "NumericRatioStack" else URL)
+    assert items[0].get("value") == URL
+    assert result.get("primaryText") == URL
+    assert result.get("onClick") == props.get("onClick")
+    assert parsed[1] == rows[1]
+    assert props.get("visual", {}).get("icon") == URL
+    assert mapper.restore_design_token(restored) == restored
+
+
+@pytest.mark.parametrize("kind", ["InfoBlock", "NumericRatioStack"])
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_restore_nested_assets_rejects_unknown_or_ambiguous_urls(
+    kind: str, ambiguous: bool,
+) -> None:
+    mapping = {SRC: URL, LOCAL: URL} if ambiguous else {SRC: URL}
+    mapper = AssetUrlMapper(mapping, {SRC, LOCAL})
+    address = URL if ambiguous else URL + "unknown"
+    props = {"visual": {"icon": address}, "items": [{"icon": address}]}
+    token = json.dumps(["visual", kind, props])
+    message = "multiple" if ambiguous else "cannot be restored"
+    with pytest.raises(ValueError, match=message):
+        mapper.restore_design_token(token)
 
 
 def test_repair_diagnostics_use_original_asset_paths():
@@ -221,8 +282,8 @@ def test_repair_diagnostics_use_original_asset_paths():
 @pytest.mark.parametrize("src", [URL, LOCAL])
 def test_compact_validation_rejects_non_candidate_source_before_conversion(src):
     token = "\n".join(json.dumps(row) for row in [
-        ["root", "Column", {"width": 320, "height": 160}, ["image"]],
-        ["image", "Image", {"src": src, "width": 20, "height": 20}],
+        ["root", "Column", {"width": 320, "height": 160, "backgroundImage": src}, ["text"]],
+        ["text", "Text", {"content": "天气", "fontSize": 14, "fontColor": "#FF000000"}],
         ["/ui/state", "ready"],
     ])
     with pytest.raises(CompactDslValidationError, match="original src"):

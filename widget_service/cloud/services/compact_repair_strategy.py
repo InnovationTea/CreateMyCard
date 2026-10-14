@@ -1,0 +1,762 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+"""为 Design Compact 质量修复选择逐级升级的执行范围。"""
+
+import hashlib
+import json
+import re
+from dataclasses import dataclass, replace
+from typing import Any
+
+from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+from services.compact_high_level_components import CompactDslConversionError
+from services.compact_plan import (
+    CompactOptionalDropCandidate,
+    compact_plan_optional_drop_candidate,
+)
+
+_CAPACITY_MARKERS = (
+    "vertical layout requires at least",
+    "overflows by",
+    "occupancy:",
+    "within available height",
+)
+_STRUCTURE_MARKERS = (
+    "compact layout does not match scope",
+    "layout does not match",
+    "slot root",
+    "must have",
+    "must use row",
+    "must use column",
+)
+_ROOT_STRUCTURE_MARKERS = (
+    "compact layout does not match scope",
+    "layout does not match",
+)
+_INFO_BLOCK_PROGRESS_VALUE_MARKERS = (
+    "infoblock.primarytext must be a finite number or complete numeric percentage",
+    "infoblock.primarytext must resolve between 0 and total",
+)
+_SECONDARY_BODY_DYNAMIC_LABEL_MARKERS = (
+    "secondarybody.items[].label only accepts a static value",
+)
+_SECONDARY_BODY_FONT_SIZE_MARKERS = (
+    "secondarybody.fontsize must be the fixed recipe value",
+)
+COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
+
+
+@dataclass(frozen=True)
+class CompactRepairDirective:
+    """一次 Design Compact 修复应采用的范围与策略。"""
+
+    category: str
+    scope: str
+    repair_strategy: str
+    retry_target: str
+    fingerprint: str
+    consecutive_failures: int
+    category_attempt: int
+    no_progress: bool
+    retryable: bool
+    instruction: str
+    fallback_stage: str | None = None
+    fallback_attempt: int | None = None
+    fallback_attempt_limit: int | None = None
+    fallback_remaining_attempts: int | None = None
+    optional_drop: CompactOptionalDropCandidate | None = None
+    approved_omitted_fact_indexes: tuple[int, ...] = ()
+    stop_reason: str | None = None
+
+    def to_prompt_payload(self) -> dict[str, Any]:
+        """转换成可进入修复提示词和 Trace 的稳定字段。"""
+        payload: dict[str, Any] = {
+            "category": self.category,
+            "scope": self.scope,
+            "repairStrategy": self.repair_strategy,
+            "retryTarget": self.retry_target,
+            "fingerprint": self.fingerprint,
+            "consecutiveFailures": self.consecutive_failures,
+            "categoryAttempt": self.category_attempt,
+            "noProgress": self.no_progress,
+            "retryable": self.retryable,
+            "instruction": self.instruction,
+        }
+        if self.fallback_stage is not None:
+            payload.update(
+                {
+                    "fallbackStage": self.fallback_stage,
+                    "fallbackAttempt": self.fallback_attempt,
+                    "fallbackAttemptLimit": self.fallback_attempt_limit,
+                    "fallbackRemainingAttempts": self.fallback_remaining_attempts,
+                }
+            )
+        if self.optional_drop is not None:
+            payload["optionalDrop"] = {
+                "componentId": self.optional_drop.component_id,
+                "componentType": self.optional_drop.component_type,
+                "allowedOmittedFactIndexes": list(self.optional_drop.fact_indexes),
+                "requirements": list(self.optional_drop.requirements),
+                "containsMustFacts": self.optional_drop.contains_must_facts,
+            }
+        if self.approved_omitted_fact_indexes:
+            payload["approvedOmittedFactIndexes"] = list(
+                self.approved_omitted_fact_indexes
+            )
+        if self.stop_reason is not None:
+            payload["stopReason"] = self.stop_reason
+        return payload
+
+
+def _normalized_issue_message(message: str) -> str:
+    """忽略每轮可变的 vp 数值，保留被违反的容器与约束。"""
+    normalized = message.strip().lower()
+    return re.sub(r"\b\d+(?:\.\d+)?vp\b", "<vp>", normalized)
+
+
+def _issue_fingerprint(quality_errors: list[dict[str, Any]]) -> str:
+    entries: list[tuple[str, str, str]] = []
+    for issue in quality_errors:
+        entries.append(
+            (
+                str(issue.get("stage") or ""),
+                str(issue.get("code") or ""),
+                _normalized_issue_message(str(issue.get("message") or "")),
+            )
+        )
+    encoded = json.dumps(sorted(entries), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+
+
+def _contains_marker(messages: str, markers: tuple[str, ...]) -> bool:
+    return any(marker in messages for marker in markers)
+
+
+def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str:
+    """为可确定修法的组件属性错误提供不降级的精确指令。"""
+    messages = "\n".join(
+        str(issue.get("message") or "").lower() for issue in quality_errors
+    )
+    base_instruction = (
+        "只修复错误组件中被定位的 Props、绑定或格式，并复查直接父容器；"
+        "保留该组件其它合法属性、动态事实、事件和视觉能力，"
+        "不得通过删除未报错属性、移除视觉变体或更换为弱语义组件来绕过校验。"
+    )
+    if _contains_marker(messages, _INFO_BLOCK_PROGRESS_VALUE_MARKERS):
+        return (
+            f"{base_instruction} InfoBlock 的 progressCircle 数值错误时，保留 visual、icon、"
+            "fillColor 及其它合法属性；primaryText 只绑定同一 0–100 number/integer 字段的"
+            '原始 PathBinding 或合法数值，百分号单独写为 unit:"%"。不得把业务标签或百分号'
+            "拼入 primaryText，也不得删除 visual 来消除错误。"
+        )
+    if _contains_marker(messages, _SECONDARY_BODY_DYNAMIC_LABEL_MARKERS):
+        return (
+            f"{base_instruction} SecondaryBody.items[].label 只能保留原本就是静态文字的标签；"
+            "动态 label 必须与同项现有 value 按原显示顺序合并为一个完整的 items[].value "
+            "Expression，并保留全部原始绑定。不得把动态内容静态化、删除或改写为样例值。"
+        )
+    if _contains_marker(messages, _SECONDARY_BODY_FONT_SIZE_MARKERS):
+        return (
+            f"{base_instruction} SecondaryBody.fontSize 不是自由字号：保持当前合法的 role、"
+            "items、绑定和事实不变，只把 fontSize 改为错误信息给出的固定 Recipe 值。"
+            "body 或 1–2 项 supporting 固定为 14；metadata 或 3–4 项 supporting 固定为 12。"
+            "若其它错误授权重新合组 items，必须在合组完成后按最终 role 和项目数重新选择字号；"
+            "不得仅为缩小字号伪装成 metadata、拆散信息组或删除事实。"
+        )
+    return base_instruction
+
+
+def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
+    codes = {str(issue.get("code") or "") for issue in quality_errors}
+    messages = "\n".join(
+        str(issue.get("message") or "").lower() for issue in quality_errors
+    )
+    # 根布局尚未匹配正式骨架时，容量超限通常只是非法拓扑的派生结果。
+    # 先重建父布局，避免把整卡结构问题误路由为局部高度微调。
+    if _contains_marker(messages, _ROOT_STRUCTURE_MARKERS):
+        return "layout_structure"
+    if _contains_marker(messages, _CAPACITY_MARKERS):
+        return "layout_capacity"
+    if _contains_marker(messages, _STRUCTURE_MARKERS):
+        return "layout_structure"
+    if "COMPACT_PLAN_COVERAGE_FAILED" in codes:
+        return "plan_coverage"
+    if "ARTIFACT_VALIDATION_FAILED" in codes:
+        return "artifact_validation"
+    return "component_contract"
+
+
+def _layout_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+) -> CompactRepairDirective:
+    repeated_root_cause = consecutive_failures >= 2 or no_progress
+    if repeated_root_cause:
+        scope = "full_dsl"
+        strategy = "plan_guided_recompose"
+        instruction = (
+            "同一布局根因已经重复或上一轮 DSL 没有变化；放弃上一轮 Compact DSL 的旧拓扑，"
+            "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
+        )
+    elif category_attempt == 1:
+        scope = "parent_layout" if category == "layout_structure" else "sublayout"
+        strategy = (
+            "parent_layout_recompose" if scope == "parent_layout" else "rebudget"
+        )
+        instruction = (
+            "修复违反合同的父布局结构，重新分配完整信息组和动作槽。"
+            if scope == "parent_layout"
+            else "重算受影响信息组的完整高度与间距，改用能闭合的合法子布局组合。"
+        )
+    elif category_attempt == 2:
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        instruction = (
+            "前一轮布局修复没有闭合；停止修改局部几何，重新选择父布局变体并分配全部事实。"
+        )
+    else:
+        scope = "full_dsl"
+        strategy = "plan_guided_recompose"
+        instruction = (
+            "局部与父布局修复均未解决根因；放弃上一轮 Compact DSL 的旧拓扑，"
+            "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
+        )
+    return CompactRepairDirective(
+        category=category,
+        scope=scope,
+        repair_strategy=strategy,
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+    )
+
+
+def _non_layout_directive(
+    *,
+    category: str,
+    quality_errors: list[dict[str, Any]],
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    force_targeted: bool = False,
+) -> CompactRepairDirective:
+    repeated_root_cause = consecutive_failures >= 2 or no_progress
+    if force_targeted:
+        scope = "information_group" if category == "plan_coverage" else "component"
+        strategy = (
+            "coverage_restore"
+            if category == "plan_coverage"
+            else "component_contract_repair"
+        )
+        retry_target = "dsl_local_repair"
+        instruction = (
+            "恢复缺失的 Plan 必须事实并复查其所属信息组，不删除其它已正确事实。"
+            if category == "plan_coverage"
+            else _component_contract_instruction(quality_errors)
+        )
+    elif repeated_root_cause:
+        scope = "full_dsl"
+        strategy = "plan_guided_recompose"
+        retry_target = "dsl_recompose"
+        instruction = (
+            "同一局部错误已经重复或上一轮 DSL 没有变化；从已接受 Plan "
+            "的全部硬事实和动作重建完整 DSL，不再修补原组件结构。"
+        )
+    elif category_attempt > 1:
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        retry_target = "dsl_recompose"
+        instruction = (
+            "局部修复没有消除错误；保留全部事实与动作，重新组织受影响组件及其父布局，"
+            "不要再次提交相同组件结构。"
+        )
+    else:
+        scope = "information_group" if category == "plan_coverage" else "component"
+        strategy = (
+            "coverage_restore"
+            if category == "plan_coverage"
+            else "component_contract_repair"
+        )
+        retry_target = "dsl_local_repair"
+        instruction = (
+            "恢复缺失的 Plan 必须事实并复查其所属信息组，不删除其它已正确事实。"
+            if category == "plan_coverage"
+            else _component_contract_instruction(quality_errors)
+        )
+    return CompactRepairDirective(
+        category=category,
+        scope=scope,
+        repair_strategy=strategy,
+        retry_target=retry_target,
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+    )
+
+
+def _exhausted_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    fallback_stage: str | None = None,
+    fallback_attempt: int | None = None,
+    fallback_attempt_limit: int | None = None,
+) -> CompactRepairDirective:
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="exhausted",
+        retry_target="stop",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=False,
+        instruction=(
+            "本次请求已经达到全局最大修复次数；停止调用模型，"
+            "保留当前诊断并按校验失败处理。"
+        ),
+        fallback_stage=fallback_stage,
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=fallback_attempt_limit,
+        fallback_remaining_attempts=(0 if fallback_stage is not None else None),
+        stop_reason="global_attempt_limit",
+    )
+
+
+def _full_dsl_transition_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    instruction: str,
+    fallback_stage: str | None = None,
+    fallback_attempt: int | None = None,
+    fallback_attempt_limit: int | None = None,
+) -> CompactRepairDirective:
+    """局部阶段达到迁移阈值后回到完整 DSL 重组，而不是提前停止。"""
+    remaining_attempts = None
+    if fallback_attempt is not None and fallback_attempt_limit is not None:
+        remaining_attempts = max(0, fallback_attempt_limit - fallback_attempt)
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="plan_guided_recompose",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+        fallback_stage=fallback_stage,
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=fallback_attempt_limit,
+        fallback_remaining_attempts=remaining_attempts,
+    )
+
+
+def _compact_component_fallback_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    fallback_attempt: int,
+) -> CompactRepairDirective:
+    """进入 claw-widget 同义的无损紧凑组件兜底阶段。"""
+    remaining_attempts = COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS - fallback_attempt
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="compact_component",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=(
+            "正常布局修复与完整 DSL 重组仍未闭合；进入 compact_component "
+            "无损紧凑组件替换阶段。按修复合同改用语义兼容且占位更小的已登记组件、"
+            "合并同对象辅助信息，并在当前尺寸合法布局内重新分配；必须保留全部事实、"
+            "动态绑定和 Action，不得删除、静态化、缩字、裁切或隐藏内容。"
+        ),
+        fallback_stage="compact_component",
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+        fallback_remaining_attempts=remaining_attempts,
+    )
+
+
+def _drop_optional_component_fallback_directive(
+    *,
+    category: str,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+    fallback_attempt: int,
+    fallback_attempt_limit: int,
+    candidate: CompactOptionalDropCandidate,
+) -> CompactRepairDirective:
+    """删除一个由程序确定的非 Action 组件，不授权第二次删减。"""
+    remaining_attempts = fallback_attempt_limit - fallback_attempt
+    requirements = "、".join(candidate.requirements)
+    if no_progress:
+        instruction = (
+            "上一轮没有执行 Drop：输出 DSL 与上一轮完全相同。本轮必须删除 "
+            f"optionalDrop.componentId 指定的 {candidate.component_id} "
+            f"({candidate.component_type}) 组件行，并从直接父组件 children 中移除该 ID；"
+            "如果该组件已经删除，则保持删除状态，使用剩余组件重新闭合当前布局。"
+            "不得删除其他组件、未授权的 must/should 事实或任何 Action；"
+            "必须输出完整 Compact DSL，禁止原样返回上一轮 Compact DSL。"
+        )
+    else:
+        instruction = (
+            "无损紧凑兜底已用尽。只允许删除程序指定的一个非 Action 业务展示组件："
+            f"{candidate.component_id} ({candidate.component_type})，对应信息：{requirements}。"
+            "必须同时从直接父组件 children 中移除该组件 ID，并重排其余全部 must/should "
+            "事实与 Action；本轮不得删除任何其他组件、"
+            "改变动态绑定、缩字、裁切或隐藏内容。"
+        )
+    return CompactRepairDirective(
+        category=category,
+        scope="full_dsl",
+        repair_strategy="drop_optional_component",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+        fallback_stage="drop_optional_component",
+        fallback_attempt=fallback_attempt,
+        fallback_attempt_limit=fallback_attempt_limit,
+        fallback_remaining_attempts=remaining_attempts,
+        optional_drop=candidate,
+    )
+
+
+def _drop_candidate_is_fully_removed(
+    compact_dsl: str,
+    candidate: CompactOptionalDropCandidate,
+) -> bool:
+    """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
+    try:
+        rows = parse_compact_dsl_rows(compact_dsl)
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    components = [row for row in rows if isinstance(row, ComponentRow)]
+    if any(row.component_id == candidate.component_id for row in components):
+        return False
+    return not any(candidate.component_id in row.children for row in components)
+
+
+class CompactRepairStrategyTracker:
+    """在单次生成请求内跟踪失败指纹并选择下一轮修复范围。"""
+
+    def __init__(self, *, max_repair_attempts: int = 10) -> None:
+        if max_repair_attempts < 1:
+            raise ValueError("max_repair_attempts must be at least 1")
+        self._max_repair_attempts = max_repair_attempts
+        self._repair_submission_count = 0
+        self._previous_fingerprint: str | None = None
+        self._previous_source: str | None = None
+        self._consecutive_failures = 0
+        self._category_attempts: dict[str, int] = {}
+        self._previous_strategy: str | None = None
+        self._active_fallback: str | None = None
+        self._fallback_submission_count = 0
+        self._fallback_submission_limit = 0
+        self._optional_drop_candidate: CompactOptionalDropCandidate | None = None
+        self._allowed_omitted_fact_indexes: list[int] = []
+
+    @property
+    def allowed_omitted_fact_indexes(self) -> tuple[int, ...]:
+        """暴露各轮由程序明确批准删除的非 Action 事实。"""
+        if self._active_fallback != "drop_optional_component":
+            return ()
+        return tuple(sorted(self._allowed_omitted_fact_indexes))
+
+    @property
+    def optional_drop_candidate(self) -> CompactOptionalDropCandidate | None:
+        """返回当前 Drop 轮次唯一允许删除的组件。"""
+        return self._optional_drop_candidate
+
+    def _select_drop_candidate(
+        self,
+        compact_dsl: str,
+        compact_plan: dict[str, Any] | None,
+        task_spec: dict[str, Any],
+    ) -> CompactOptionalDropCandidate | None:
+        """从当前仍可见内容中选择下一轮唯一候选并累计省略授权。"""
+        candidate = compact_plan_optional_drop_candidate(
+            compact_dsl,
+            compact_plan,
+            task_spec,
+        )
+        if candidate is None:
+            return None
+        self._optional_drop_candidate = candidate
+        for fact_index in candidate.fact_indexes:
+            if fact_index not in self._allowed_omitted_fact_indexes:
+                self._allowed_omitted_fact_indexes.append(fact_index)
+        return candidate
+
+    def next_directive(
+        self,
+        invalid_source_dsl: str,
+        quality_errors: list[dict[str, Any]],
+        *,
+        compact_plan: dict[str, Any] | None = None,
+        task_spec: dict[str, Any] | None = None,
+    ) -> CompactRepairDirective:
+        """根据当前失败和请求内历史选择局部修复或结构重组。"""
+        category = _issue_category(quality_errors)
+        fingerprint = _issue_fingerprint(quality_errors)
+        if fingerprint == self._previous_fingerprint:
+            self._consecutive_failures += 1
+        else:
+            self._consecutive_failures = 1
+        normalized_source = invalid_source_dsl.strip()
+        no_progress = (
+            self._previous_source is not None
+            and normalized_source == self._previous_source
+        )
+        category_attempt = self._category_attempts.get(category, 0) + 1
+        self._category_attempts[category] = category_attempt
+        self._previous_fingerprint = fingerprint
+        self._previous_source = normalized_source
+
+        if self._repair_submission_count >= self._max_repair_attempts:
+            directive = _exhausted_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                fallback_stage=self._active_fallback,
+                fallback_attempt=self._fallback_submission_count,
+                fallback_attempt_limit=(
+                    self._fallback_submission_limit
+                    if self._active_fallback == "drop_optional_component"
+                    else COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS
+                    if self._active_fallback == "compact_component"
+                    else None
+                ),
+            )
+            if self._allowed_omitted_fact_indexes:
+                directive = replace(
+                    directive,
+                    approved_omitted_fact_indexes=tuple(
+                        sorted(self._allowed_omitted_fact_indexes)
+                    ),
+                )
+            self._previous_strategy = directive.repair_strategy
+            return directive
+
+        repeated_root_cause = self._consecutive_failures >= 2 or no_progress
+        is_layout_failure = category in {"layout_capacity", "layout_structure"}
+        if self._active_fallback == "drop_optional_component":
+            if self._optional_drop_candidate is None:
+                raise RuntimeError("optional drop fallback has no selected candidate")
+            candidate_was_removed = _drop_candidate_is_fully_removed(
+                invalid_source_dsl,
+                self._optional_drop_candidate,
+            )
+            if candidate_was_removed and not is_layout_failure:
+                directive = _non_layout_directive(
+                    category=category,
+                    quality_errors=quality_errors,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    force_targeted=True,
+                )
+            elif candidate_was_removed:
+                candidate = None
+                if task_spec is not None:
+                    candidate = self._select_drop_candidate(
+                        invalid_source_dsl,
+                        compact_plan,
+                        task_spec,
+                    )
+                if candidate is None:
+                    directive = _full_dsl_transition_directive(
+                        category=category,
+                        fingerprint=fingerprint,
+                        consecutive_failures=self._consecutive_failures,
+                        category_attempt=category_attempt,
+                        no_progress=no_progress,
+                        fallback_stage=self._active_fallback,
+                        fallback_attempt=self._fallback_submission_count,
+                        fallback_attempt_limit=self._fallback_submission_limit,
+                        instruction=(
+                            "当前 Drop 候选已经移除且没有新的合法非 Action 候选；"
+                            "保留程序累计批准的省略结果，从已接受 Plan、剩余事实和动作"
+                            "重新构造完整 DSL。"
+                            "不得恢复已批准删除的组件，不得删除新的未授权事实或任何 Action。"
+                        ),
+                    )
+                else:
+                    directive = _drop_optional_component_fallback_directive(
+                        category=category,
+                        fingerprint=fingerprint,
+                        consecutive_failures=self._consecutive_failures,
+                        category_attempt=category_attempt,
+                        no_progress=no_progress,
+                        fallback_attempt=self._fallback_submission_count,
+                        fallback_attempt_limit=self._fallback_submission_limit,
+                        candidate=candidate,
+                    )
+                    self._fallback_submission_count += 1
+            else:
+                directive = _drop_optional_component_fallback_directive(
+                    category=category,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    fallback_attempt=self._fallback_submission_count,
+                    fallback_attempt_limit=self._fallback_submission_limit,
+                    candidate=self._optional_drop_candidate,
+                )
+                self._fallback_submission_count += 1
+        elif self._active_fallback == "compact_component":
+            if not is_layout_failure:
+                # 紧凑布局消除布局错误后，持续按新错误类别迁移到定向修复；
+                # 后续若重新出现布局错误，再继续 Drop 或完整 DSL 重组。
+                directive = _non_layout_directive(
+                    category=category,
+                    quality_errors=quality_errors,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    force_targeted=True,
+                )
+            elif self._fallback_submission_count >= COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS:
+                candidate = None
+                if is_layout_failure and task_spec is not None:
+                    candidate = self._select_drop_candidate(
+                        invalid_source_dsl,
+                        compact_plan,
+                        task_spec,
+                    )
+                if candidate is None:
+                    self._active_fallback = None
+                    self._fallback_submission_count = 0
+                    directive = _full_dsl_transition_directive(
+                        category=category,
+                        fingerprint=fingerprint,
+                        consecutive_failures=self._consecutive_failures,
+                        category_attempt=category_attempt,
+                        no_progress=no_progress,
+                        fallback_stage="compact_component",
+                        fallback_attempt=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+                        fallback_attempt_limit=COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS,
+                        instruction=(
+                            "无损紧凑组件阶段已达到迁移阈值，但当前没有合法 Drop 候选；"
+                            "不要停止修复，改为根据已接受 Plan、完整失败历史和当前合同"
+                            "重新构造完整 DSL，"
+                            "重新选择合法布局与信息合组，并保留全部事实、绑定和 Action。"
+                        ),
+                    )
+                else:
+                    self._active_fallback = "drop_optional_component"
+                    self._fallback_submission_count = 0
+                    self._fallback_submission_limit = max(
+                        0,
+                        self._max_repair_attempts - self._repair_submission_count,
+                    )
+                    directive = _drop_optional_component_fallback_directive(
+                        category=category,
+                        fingerprint=fingerprint,
+                        consecutive_failures=self._consecutive_failures,
+                        category_attempt=category_attempt,
+                        no_progress=no_progress,
+                        fallback_attempt=self._fallback_submission_count,
+                        fallback_attempt_limit=self._fallback_submission_limit,
+                        candidate=candidate,
+                    )
+                    self._fallback_submission_count += 1
+            else:
+                directive = _compact_component_fallback_directive(
+                    category=category,
+                    fingerprint=fingerprint,
+                    consecutive_failures=self._consecutive_failures,
+                    category_attempt=category_attempt,
+                    no_progress=no_progress,
+                    fallback_attempt=self._fallback_submission_count,
+                )
+                self._fallback_submission_count += 1
+        elif is_layout_failure and self._previous_strategy == "plan_guided_recompose":
+            self._active_fallback = "compact_component"
+            directive = _compact_component_fallback_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                fallback_attempt=self._fallback_submission_count,
+            )
+            self._fallback_submission_count += 1
+        elif repeated_root_cause and self._previous_strategy == "plan_guided_recompose":
+            directive = _non_layout_directive(
+                category=category,
+                quality_errors=quality_errors,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                force_targeted=True,
+            )
+        elif is_layout_failure:
+            directive = _layout_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+            )
+        else:
+            directive = _non_layout_directive(
+                category=category,
+                quality_errors=quality_errors,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+            )
+        if directive.retryable:
+            self._repair_submission_count += 1
+        if self._allowed_omitted_fact_indexes:
+            directive = replace(
+                directive,
+                approved_omitted_fact_indexes=tuple(
+                    sorted(self._allowed_omitted_fact_indexes)
+                ),
+            )
+        self._previous_strategy = directive.repair_strategy
+        return directive

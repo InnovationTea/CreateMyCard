@@ -11,7 +11,11 @@ from services.template_generation.engine.cardplan.compiler import (
     _expand_health_metric_generic_template,
     _validate_allowed_template_plan,
 )
-from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
+from services.template_generation.engine.cardplan.models import (
+    HybridBodyContract,
+    HybridLimits,
+    TemplatePlanBusinessSlot,
+)
 from services.template_generation.engine.cardplan.parser import parse_ux_layout_card
 from services.template_generation.engine.cardplan.prompt import action_bindings
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
@@ -23,6 +27,11 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateSearchIntent,
     build_template_retrieval_prompt,
     search_template_variants,
+)
+from services.template_generation.engine.cardplan.wide_template_planner import (
+    _WIDE_LAYOUTS,
+    _layout_geometry_fits,
+    _template_intrinsic_height,
 )
 from services.template_generation.engine.pipeline import (
     TemplateGenerationError,
@@ -159,6 +168,79 @@ def _contract(plans, task):
             vertical_budget_vp=136,
         ),
     )
+
+
+def test_wide_two_hero_action_rejects_hero_templates_that_overflow_slot_budget() -> None:
+    registry = get_cardplan_registry()
+    layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoHeroActionLayout")
+
+    def slot(template_id: str, position: int) -> TemplatePlanBusinessSlot:
+        return TemplatePlanBusinessSlot(
+            position=position,
+            businessId="test-business",
+            capabilityId="test-capability",
+            templateId=template_id,
+            layoutRole="Hero",
+        )
+
+    assert _template_intrinsic_height("CountdownOverviewEventHero@1", registry) == 62
+    assert _template_intrinsic_height("ScheduleOverviewMeetingEntryHero@1", registry) == 74
+    assert not _layout_geometry_fits(
+        layout,
+        (
+            slot("CountdownOverviewEventHero@1", 0),
+            slot("CountdownOverviewEventHero@1", 1),
+        ),
+        registry,
+    )
+    assert not _layout_geometry_fits(
+        layout,
+        (
+            slot("ScheduleOverviewMeetingEntryHero@1", 0),
+            slot("CountdownOverviewEventHero@1", 1),
+        ),
+        registry,
+    )
+
+
+def test_wide_two_hero_action_keeps_a_small_hero_candidate() -> None:
+    registry = get_cardplan_registry()
+    layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoHeroActionLayout")
+    slots = tuple(
+        TemplatePlanBusinessSlot(
+            position=index,
+            businessId="test-business",
+            capabilityId="test-capability",
+            templateId="BatteryOverviewSupportHero@1",
+            layoutRole="Hero",
+        )
+        for index in range(2)
+    )
+    assert _template_intrinsic_height("BatteryOverviewSupportHero@1", registry) <= 58
+    assert _layout_geometry_fits(layout, slots, registry)
+
+
+def test_wide_two_focus_two_action_rejects_the_taller_schedule_hero() -> None:
+    registry = get_cardplan_registry()
+    layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoFocusTwoActionLayout")
+    slots = (
+        TemplatePlanBusinessSlot(
+            position=0,
+            businessId="test-business",
+            capabilityId="test-capability",
+            templateId="ScheduleOverviewMeetingEntryHero@1",
+            layoutRole="Hero",
+        ),
+        TemplatePlanBusinessSlot(
+            position=1,
+            businessId="test-business",
+            capabilityId="test-capability",
+            templateId="CountdownOverviewEventHero@1",
+            layoutRole="Hero",
+        ),
+    )
+    assert layout.slot_height_budgets == (66, 66)
+    assert not _layout_geometry_fits(layout, slots, registry)
 
 
 def test_wide_first_layer_has_no_ui_decision():
@@ -509,7 +591,7 @@ def _weather_earphone_case():
             "data": {
                 "weather": {
                     "current": {"windLevel": _field(4, "integer")},
-                    "daily": [{"rainProbabilityPercent": _field("60%")}],
+                    "daily": [{"rainProbabilityPercent": _field(60, "number")}],
                 },
                 "earphone": {
                     "isConnected": _field(True, "boolean"),

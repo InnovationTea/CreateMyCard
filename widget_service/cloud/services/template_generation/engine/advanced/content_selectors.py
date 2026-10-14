@@ -71,6 +71,31 @@ _SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
         ),
     ),
     (
+        "reminderSource",
+        (
+            ("senderName", "/events/0/senderName", "string", True),
+            ("remindTime", "/events/0/remindTime/0", "string", False),
+        ),
+    ),
+    (
+        "allDayLocation",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("isAllDay", "/events/0/isAllDay", "boolean", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
+        "eventCountDatedLocation",
+        (
+            ("eventCount", "/eventCount", "integer", False),
+            ("title", "/events/0/title", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
         "eventCountDetails",
         (
             ("eventCount", "/eventCount", "integer", False),
@@ -84,6 +109,7 @@ _SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
 _SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS: dict[str, frozenset[str]] = {
     "locationDescriptionEnd": frozenset({"备注", "memo"}),
     "reminderDetails": frozenset({"邀请人", "发起人", "sender name"}),
+    "reminderSource": frozenset({"邀请人", "发起人", "sender name"}),
     "eventCountDetails": frozenset({"备注", "memo"}),
 }
 
@@ -127,6 +153,11 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "temperatureRangeText",
         "alertLevel",
         "updatedAt",
+        # 风况模板族（WindFull/WindHero primaryData、RainWindFull secondaryData）的
+        # 可渲染事实——严格四要素天气 selector 缺席（仅风况/降水+风况最小输入）时，
+        # 直连叶子回退仍须投影出所选模板实际渲染的风况字段。
+        "windDirection",
+        "windLevel",
     ),
     "DateOverview": ("startDate", "weekday"),
     "ScheduleOverview": ("title", "dtStart", "dtEnd", "eventLocation"),
@@ -730,6 +761,8 @@ _SCHEDULE_QUERY_TERMS = (
     "会议",
     "下一项",
     "下一场",
+    "下个安排",
+    "下一个安排",
     "预约",
     "入会",
 )

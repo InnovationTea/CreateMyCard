@@ -323,6 +323,12 @@ _EXPECTED_COMPLETE: dict[str, set[str]] = {
         "ScheduleOverviewMeetingEntryHero@1",
         "ScheduleOverviewMeetingSenderFull@1",
     },
+    # Q033 的标题与开始时间同时被标题 Hero 与标题时间 Full 完整覆盖；
+    # 显式动作存在时 Planner 仍保持 Hero 加动作路线。
+    "Q033": {
+        "ScheduleOverviewTitleHero@1",
+        "ScheduleOverviewTitleTimeFull@1",
+    },
     # Q035 不提供 /events/0/isAllDay，因此只补齐 Hero；Full 变体的次要数据
     # 含 isAllDay（schedule-overview.cardtpl 时间轴的全天文案行），不再完整。
     "Q035": {

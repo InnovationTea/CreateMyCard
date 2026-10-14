@@ -14,6 +14,7 @@ from app.logger import logger
 from config.config import Settings
 from custom.model_transport import ModelTransportError
 from models.generation import ModelRequestContext
+from services.generation_trace_recorder import trace_record
 from utils.base_utils import sts_config
 from utils.ops_metrics import report_ops_metrics
 
@@ -27,20 +28,20 @@ class DeepSeekPlatformClient:
     """使用 DeepSeek Platform WebSocket 协议生成完整模型文本。"""
 
     def __init__(
-            self,
-            settings: Settings,
-            *,
-            secret_loader: SecretLoader | None = None,
-            timestamp_provider: TimestampProvider | None = None,
+        self,
+        settings: Settings,
+        *,
+        secret_loader: SecretLoader | None = None,
+        timestamp_provider: TimestampProvider | None = None,
     ) -> None:
         self.settings = settings
         self._secret_loader = secret_loader or sts_config.get_sts_config
         self._timestamp_provider = timestamp_provider or self._current_timestamp_ms
 
     async def generate(
-            self,
-            messages: list[dict[str, str]],
-            request_context: ModelRequestContext,
+        self,
+        messages: list[dict[str, str]],
+        request_context: ModelRequestContext,
     ) -> str:
         """发送一次非工具调用请求，并返回 finalText 内容。"""
         self._validate_configuration()
@@ -53,10 +54,10 @@ class DeepSeekPlatformClient:
         final_text: str | None = None
         try:
             async with websockets.connect(
-                    self.settings.deepseek_platform_ws_url,
-                    additional_headers=headers,
-                    open_timeout=self.settings.model_request_timeout_seconds,
-                    proxy=None,
+                self.settings.deepseek_platform_ws_url,
+                additional_headers=headers,
+                open_timeout=self.settings.model_request_timeout_seconds,
+                proxy=None,
             ) as websocket:
                 await websocket.send(json.dumps(body, ensure_ascii=False))
                 async for message in websocket:
@@ -71,8 +72,7 @@ class DeepSeekPlatformClient:
         except Exception as exc:
             report_ops_metrics(body={"taskFailModelCrash": 1})
             logger.error(
-                f"{_MODULE} request_failed exception_type={type(exc).__name__} "
-                f"exception={exc!r}"
+                f"{_MODULE} request_failed exception_type={type(exc).__name__} exception={exc!r}"
             )
             raise ModelTransportError(
                 "DeepSeek Platform request failed",
@@ -81,12 +81,12 @@ class DeepSeekPlatformClient:
         finally:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
             first_token_latency_ms = (
-                round((first_token_at - start) * 1000, 2)
-                if first_token_at is not None else None
+                round((first_token_at - start) * 1000, 2) if first_token_at is not None else None
             )
             decode_duration_ms = (
                 round(duration_ms - first_token_latency_ms, 2)
-                if first_token_latency_ms is not None else None
+                if first_token_latency_ms is not None
+                else None
             )
             input_tokens = model_metrics.get("inputTokenNum")
             completion_tokens = model_metrics.get("generateTokenNum")
@@ -110,6 +110,21 @@ class DeepSeekPlatformClient:
                 f"tokens_per_sec={speed_str} "
                 f"output_length={output_length} "
                 f"output_preview=\n{final_text}"
+            )
+            trace_record(
+                "model.transport_metrics",
+                stage="model.transport",
+                status="completed" if final_text else "incomplete",
+                duration_ms=duration_ms,
+                metrics={
+                    "firstTokenLatencyMs": first_token_latency_ms,
+                    "inferenceDurationMs": decode_duration_ms,
+                    "inputTokens": input_tokens,
+                    "completionTokens": completion_tokens,
+                    "modelTimeMs": model_time_ms,
+                    "tokensPerSecond": speed_str,
+                    "outputChars": output_length,
+                },
             )
 
             report_ops_metrics(
@@ -141,8 +156,8 @@ class DeepSeekPlatformClient:
             raise ModelTransportError("DeepSeek Platform WebSocket URL is not configured")
 
     def _build_headers(
-            self,
-            request_context: ModelRequestContext,
+        self,
+        request_context: ModelRequestContext,
     ) -> dict[str, str]:
         return {
             "messageName": self.settings.deepseek_platform_message_name,
@@ -158,9 +173,9 @@ class DeepSeekPlatformClient:
         }
 
     def _build_body(
-            self,
-            messages: list[dict[str, str]],
-            request_context: ModelRequestContext,
+        self,
+        messages: list[dict[str, str]],
+        request_context: ModelRequestContext,
     ) -> dict[str, Any]:
         message_name = self.settings.deepseek_platform_message_name
         sender = self.settings.deepseek_platform_sender
@@ -179,9 +194,7 @@ class DeepSeekPlatformClient:
                 "apiKey": self.settings.deepseek_platform_api_key,
                 "modelName": self.settings.deepseek_platform_model_name,
                 "modelParam": {},
-                "extra_body": {
-                    "enable_thinking": self.settings.deepseek_enable_thinking
-                },
+                "extra_body": {"enable_thinking": self.settings.deepseek_enable_thinking},
                 "messages": copied_messages,
                 "tools": None,
             },
@@ -197,10 +210,7 @@ class DeepSeekPlatformClient:
             hashlib.sha256,
         ).digest()
         signature = base64.b64encode(digest).decode("utf-8")
-        return (
-            f"{self.settings.deepseek_platform_access_key};"
-            f"{timestamp};{signature};"
-        )
+        return f"{self.settings.deepseek_platform_access_key};{timestamp};{signature};"
 
     def _load_secret_key(self) -> bytes:
         config_key = self.settings.deepseek_platform_secret_key_sts_config_key
@@ -222,23 +232,18 @@ class DeepSeekPlatformClient:
             ) from exc
 
     def _process_message(
-            self,
-            message: str | bytes,
-            partial_texts: list[str],
-            model_metrics: dict[str, Any] | None = None,
+        self,
+        message: str | bytes,
+        partial_texts: list[str],
+        model_metrics: dict[str, Any] | None = None,
     ) -> str | None:
         try:
             data = json.loads(message)
         except (json.JSONDecodeError, UnicodeDecodeError, TypeError) as exc:
-            logger.warning(
-                f"{_MODULE} response_json_ignored exception_type={type(exc).__name__}"
-            )
+            logger.warning(f"{_MODULE} response_json_ignored exception_type={type(exc).__name__}")
             return None
         if not isinstance(data, dict):
-            logger.warning(
-                f"{_MODULE} response_shape_ignored "
-                f"response_type={type(data).__name__}"
-            )
+            logger.warning(f"{_MODULE} response_shape_ignored response_type={type(data).__name__}")
             return None
         self._raise_for_platform_error(data, partial_texts)
         result = data.get("result")
@@ -266,31 +271,31 @@ class DeepSeekPlatformClient:
 
     @staticmethod
     def _extract_model_metrics(
-            model_info: dict[str, Any],
-            model_metrics: dict[str, Any] | None,
+        model_info: dict[str, Any],
+        model_metrics: dict[str, Any] | None,
     ) -> None:
         """从 modelRequestInfo.contentBean 提取模型指标。"""
         content_bean = model_info.get("contentBean")
         if not isinstance(content_bean, dict):
             return
         for key in (
-                "inputTokenNum",
-                "generateTokenNum",
-                "firstCostTime",
-                "modelTime",
-                "perTokenLantency",
-                "contextTokenLantency",
-                "prefixLen",
-                "prefixHitRate",
-                "meanAcceptTokens",
+            "inputTokenNum",
+            "generateTokenNum",
+            "firstCostTime",
+            "modelTime",
+            "perTokenLantency",
+            "contextTokenLantency",
+            "prefixLen",
+            "prefixHitRate",
+            "meanAcceptTokens",
         ):
             if key in content_bean:
                 model_metrics[key] = content_bean[key]
 
     @staticmethod
     def _raise_for_platform_error(
-            data: dict[str, Any],
-            partial_texts: list[str],
+        data: dict[str, Any],
+        partial_texts: list[str],
     ) -> None:
         result = data.get("result")
         result_data = result if isinstance(result, dict) else {}
@@ -301,11 +306,11 @@ class DeepSeekPlatformClient:
         if not has_error_code and not has_error_type:
             return
         error_message = (
-                data.get("errorMsg")
-                or data.get("errorMessage")
-                or result_data.get("errorMsg")
-                or result_data.get("text")
-                or "unknown platform error"
+            data.get("errorMsg")
+            or data.get("errorMessage")
+            or result_data.get("errorMsg")
+            or result_data.get("text")
+            or "unknown platform error"
         )
         raise ModelTransportError(
             f"DeepSeek Platform returned error: code={error_code}, message={error_message}",

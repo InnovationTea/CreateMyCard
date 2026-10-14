@@ -237,8 +237,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景，以及新增电量、耳机模板的预览。
-    assert len(all_cases) == 201
+    # 包含各业务场景及 27 个 Support 模板的双业务动作组合；
+    # 天气明日日期 Full 贡献一个用例（总数 231 → 232）。
+    assert len(all_cases) == 232
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -329,7 +330,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 200
+    assert len(targeted_cases) == 231
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -685,10 +686,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 201
+    assert summary.total == 232
     assert summary.failed == 0
     assert summary.missing == 6
-    assert summary.not_generated == 195
+    assert summary.not_generated == 226
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -827,8 +828,8 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
     # 两个天气 Support 不提供自身动作，各少一个双动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 61
-    assert len({case.caseId for case in provider.cases}) == 61
+    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 79
+    assert len({case.caseId for case in provider.cases}) == 79
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -854,11 +855,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 61
-    assert summary.success == 58
+    assert summary.total == 79
+    assert summary.success == 76
     assert summary.missing == 3
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 58
+    assert len(service.requests) == 76
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2
@@ -875,3 +876,40 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
         path = case.get("a2uiFile")
         assert isinstance(path, str)
         assert (summary.manifest_path.parent / path).is_file()
+
+
+@pytest.mark.parametrize("template_id", [
+    "WeatherOverviewDaily2TravelSupport@1",
+    "WeatherOverviewFeelsLikeWindSupport@1",
+])
+@pytest.mark.parametrize("scenario_id", ["dual-support-content", "dual-support-one-action"])
+def test_weather_support_samples_stay_within_requested_fields(
+    tmp_path: Path, template_id: str, scenario_id: str,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    group = next(item for item in manifest.providers if item.providerId == "gallery.two-support")
+    case = next(
+        item for item in group.cases
+        if (item.targetTemplateId, item.scenarioId) == (template_id, scenario_id)
+    )
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    content = payload.get("content")
+    assert isinstance(content, dict)
+    bindings = content.get("candidateDataBindings")
+    assert isinstance(bindings, list)
+    weather = next(item for item in bindings if item.get("capabilityId") == "ViewWeather")
+    fields = weather.get("candidateOutputFields")
+    assert isinstance(fields, list)
+    gallery_test = payload.get("galleryTest")
+    assert isinstance(gallery_test, dict)
+    overrides = gallery_test.get("sampleOverrides")
+    assert isinstance(overrides, dict)
+    for pointer in overrides:
+        if pointer.startswith("/data/weather/"):
+            assert pointer.removeprefix("/data/weather") in fields
+    if template_id == "WeatherOverviewDaily2TravelSupport@1":
+        assert overrides.get("/data/weather/daily/2/condition") == "多云"
+    else:
+        asset_ids = content.get("candidateAssetIds")
+        assert isinstance(asset_ids, list)
+        assert "asset.icon_weather_thermometer" in asset_ids

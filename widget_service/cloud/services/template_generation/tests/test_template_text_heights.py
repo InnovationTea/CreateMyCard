@@ -61,7 +61,7 @@ def test_header_row_fits_corrected_text_height(template_id: str) -> None:
     assert header.component == "Row"
     options = next(value for value in header.values if value.kind == "object")
     height = options.properties.get("height")
-    assert height is not None and isinstance(height.value, (int, float))
+    assert height is not None and isinstance(height.value, int | float)
     assert height.value >= 16
 
 
@@ -74,7 +74,9 @@ def test_all_business_previews_keep_font12_heights_after_public_conversion() -> 
             for component in message.get("updateComponents", {}).get("components", []):
                 original_styles[component.get("id")] = component.get("styles", {})
         compact = convert_a2ui_to_compact_dsl(a2ui, size=case.size)
-        converted = convert_compact_dsl_to_a2ui(compact, size=case.size)
+        converted = convert_compact_dsl_to_a2ui(
+            compact, size=case.size, skip_compact_dsl_validation=True,
+        )
         for line in converted.splitlines():
             update = json.loads(line).get("updateComponents", {})
             for component in update.get("components", []):

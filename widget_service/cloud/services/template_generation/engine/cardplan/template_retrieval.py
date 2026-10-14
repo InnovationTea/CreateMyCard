@@ -172,6 +172,31 @@ def _normalized_action_ids(value: Any) -> tuple[str, ...]:
     return normalized
 
 
+def normalize_redundant_date_intent(
+    intent: TemplateSearchIntent,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> TemplateSearchIntent:
+    """天气日期已明确覆盖时，移除仅含日期候选的冗余空时间业务。"""
+    required = intent.required_output_fields_by_capability
+    if required.get("GetCurrentTime") != ():
+        return intent
+    if intent.action_ids or "GetCurrentTime" in intent.primary_output_field_by_capability:
+        return intent
+    weather_fields = required.get("ViewWeather", ())
+    if not any(re.fullmatch(r"/daily/\d+/date", path) for path in weather_fields):
+        return intent
+    time_fields: set[str] = set()
+    for binding in coverage_bindings:
+        if binding.capabilityId == "GetCurrentTime":
+            time_fields.update(binding.candidateOutputFields)
+    if not time_fields or not time_fields.issubset({"/currentDate", "/dayOfWeek"}):
+        return intent
+    normalized_fields = dict(required)
+    normalized_fields.pop("GetCurrentTime")
+    logger.info("[Template Generation] redundant_empty_date_business_removed")
+    return intent.model_copy(update={"required_output_fields_by_capability": normalized_fields})
+
+
 def build_template_retrieval_prompt(
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
@@ -275,6 +300,9 @@ def build_template_retrieval_prompt(
             "保留全部候选，先比较双动作Compact组合，均不可用时再比较单动作Hero，仍不可用时尝试Full。"
             "不在第一层为了匹配模板自动添加动作，不固定候选动作名称或ID。"
             "用户明确要求的合法动作必须保留；两个明确动作继续按既有规则处理。"
+            "显式动作与自动补选动作统一按动作适配优先：一个选中动作先选择合法Hero，"
+            "Hero不可用时才尝试Full图标动作；无动作使用Full，双动作使用Compact。"
+            "同一角色内才比较主焦点和字段匹配，不能为了高优先级角色删除明确字段或动作。"
         )
         layout_rule = "按耳机专用规则内部比较Full/Hero/Compact，最终布局仍由服务端Planner校验。"
     elif earphone_single:
@@ -302,6 +330,8 @@ def build_template_retrieval_prompt(
         + layout_rule
         +
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
+        "未使用的业务必须省略 key，不以空数组占位；天气预报字段已包含所需日期或星期时，"
+        "不要额外加入未选择任何字段的 GetCurrentTime。"
         + action_rule
         +
         "以下allowCalendarViewFallback及其动作限制仅适用于日历兜底，不适用于耳机："

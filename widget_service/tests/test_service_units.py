@@ -3,6 +3,7 @@
 # ruff: noqa: E402, I001
 import asyncio
 import base64
+import copy
 import hashlib
 import hmac
 import json as json_module
@@ -162,10 +163,7 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
                 errorCode="FAILED",
                 error={"message": "failed"},
             ),
-            (
-                "工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。"
-                "报错信息如下"
-            ),
+            ("工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。报错信息如下"),
         ),
     ],
 )
@@ -232,7 +230,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
     assert Settings(_env_file=None).model_failure_retry_jitter_ratio == 0.2
     assert Settings(_env_file=None).model_prompt_log_preview_chars == 30
-    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
+    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 5
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -242,6 +240,12 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
+
+
+def test_settings_keeps_inline_multiline_prompt_without_path_probe() -> None:
+    prompt = "第一行\n第二行"
+
+    assert Settings.load_prompt_file_alias(prompt) == prompt
 
 
 def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
@@ -269,15 +273,11 @@ def test_websocket_handler_sets_request_id_to_logger_context():
     出参：无；通过源码顺序断言保证首条请求日志及后续线程池日志都携带 requestId。
     """
     routes_source = (CLOUD_ROOT / "api" / "routes.py").read_text(encoding="utf-8")
-    set_context_position = routes_source.index(
-        'task_logger.set_session_id(request_id or "None")'
-    )
+    set_context_position = routes_source.index('task_logger.set_session_id(request_id or "None")')
     raw_context_position = routes_source.index(
         'task_logger.set_session_id(raw_request_id or "None")'
     )
-    raw_request_log_position = routes_source.index(
-        "widget_operation_ws_raw_request_received"
-    )
+    raw_request_log_position = routes_source.index("widget_operation_ws_raw_request_received")
     request_log_position = routes_source.index("widget_operation_ws_payload_received")
     trace_context_positions = [
         position
@@ -304,35 +304,37 @@ def test_task_logger_format_uses_user_device_trace_context():
         1,
     )[0]
 
-    assert task_logger_source.count(
-        'user_device_trace_context.get() or "None"'
-    ) == 2
+    assert task_logger_source.count('user_device_trace_context.get() or "None"') == 2
     assert "page_id = dialog_page_id_context.get()" not in task_logger_source
 
 
 def test_raw_payload_request_id_uses_session_and_interaction_id():
-    assert _request_id_from_raw_payload(
-        {
-            "session": {
-                "sessionId": "session-001",
-                "interactionId": "round-003",
+    assert (
+        _request_id_from_raw_payload(
+            {
+                "session": {
+                    "sessionId": "session-001",
+                    "interactionId": "round-003",
+                }
             }
-        }
-    ) == "session-001&round-003"
-    assert _request_id_from_raw_payload({"requestId": "legacy-request"}) == (
-        "legacy-request"
+        )
+        == "session-001&round-003"
     )
+    assert _request_id_from_raw_payload({"requestId": "legacy-request"}) == ("legacy-request")
 
 
 def test_json_for_log_uses_standard_json_syntax():
-    assert json_for_log(
-        {
-            "name": "运动健康",
-            "enabled": True,
-            "missing": None,
-            "items": ["a"],
-        }
-    ) == '{"name":"运动健康","enabled":true,"missing":null,"items":["a"]}'
+    assert (
+        json_for_log(
+            {
+                "name": "运动健康",
+                "enabled": True,
+                "missing": None,
+                "items": ["a"],
+            }
+        )
+        == '{"name":"运动健康","enabled":true,"missing":null,"items":["a"]}'
+    )
 
 
 def test_generation_summary_contains_required_observability_fields(monkeypatch):
@@ -482,10 +484,7 @@ def _ids_installed_apps_payload(*bundle_names: str) -> dict:
         "nameSpaces": [
             {
                 "dataType": "t_ids_kv_ohos_installed_apps",
-                "values": [
-                    {"data": {"bundleName": bundle_name}}
-                    for bundle_name in bundle_names
-                ],
+                "values": [{"data": {"bundleName": bundle_name}} for bundle_name in bundle_names],
             }
         ]
     }
@@ -511,11 +510,11 @@ def test_ids_mock_is_enabled_by_default():
     }
 
 
-def test_validation_failure_retry_is_disabled_by_default(monkeypatch):
+def test_validation_failure_retry_is_enabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", raising=False)
     settings = Settings(_env_file=None)
 
-    assert settings.enable_validation_failure_retry is False
+    assert settings.enable_validation_failure_retry is True
 
 
 def test_model_failure_retry_is_disabled_by_default(monkeypatch):
@@ -528,6 +527,28 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS", raising=False)
 
     assert Settings(_env_file=None).enable_widget_directive_commands is False
+
+
+def test_design_compact_few_shots_are_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_few_shots is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_few_shots is True
+
+
+def test_design_compact_runtime_prompt_context_is_disabled_by_default_and_can_be_enabled(
+    monkeypatch,
+):
+    variable = "WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_RUNTIME_PROMPT_CONTEXT"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is False
+
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_design_compact_runtime_prompt_context is True
 
 
 def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
@@ -588,9 +609,7 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     assert client.build_ids_sign(timestamp_ms=1000) == f"access;1000;{expected_sign}"
     assert request.headers.model_dump(by_alias=True)["Content-Type"] == "application/json"
     query_log = next(
-        message
-        for message in log_messages
-        if "ids_device_capability_query_built" in message
+        message for message in log_messages if "ids_device_capability_query_built" in message
     )
     assert 'body={"requestId":"ids-unit-1"' in query_log
     assert "callingUid" not in query_log
@@ -621,9 +640,7 @@ def test_ids_query_uses_default_odid_when_device_odid_missing():
 def test_ids_mock_enabled_reads_existing_file_without_remote(tmp_path, monkeypatch):
     mock_path = tmp_path / "ids_mock.json"
     mock_path.write_text(
-        json_module.dumps(
-            _ids_installed_apps_payload("com.huawei.hmos.health")
-        ),
+        json_module.dumps(_ids_installed_apps_payload("com.huawei.hmos.health")),
         encoding="utf-8",
     )
     client = IDSClient(mock_response_path=mock_path)
@@ -701,9 +718,7 @@ def test_ids_mock_disabled_ignores_existing_file_and_queries_remote(
     remote_payload = _ids_installed_apps_payload("com.huawei.hmsapp.totemweather")
     mock_path = tmp_path / "ids_mock.json"
     mock_path.write_text(
-        json_module.dumps(
-            _ids_installed_apps_payload("com.huawei.hmos.health")
-        ),
+        json_module.dumps(_ids_installed_apps_payload("com.huawei.hmos.health")),
         encoding="utf-8",
     )
 
@@ -868,9 +883,7 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         returned_parameters[capability.id] = set(properties)
 
     assert phase_one_response.dataCapabilities == []
-    assert phase_one_response.missingCapabilityIds == list(
-        PHASE_TWO_DATA_CAPABILITY_IDS
-    )
+    assert phase_one_response.missingCapabilityIds == list(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_response.missingCapabilityIds == []
     assert returned_parameters == {
@@ -1020,9 +1033,7 @@ def test_protocol_registry_excludes_capability_range_boundaries(
 
 
 def test_argument_repair_prompt_focuses_on_irregular_json_structure():
-    prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt(
-        "design-compact-dsl"
-    )
+    prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt("design-compact-dsl")
 
     assert "rawArguments" in prompt
     assert "targetStructure" in prompt
@@ -1703,19 +1714,12 @@ def test_data_capability_output_schema_is_self_contained():
         return [schema]
 
     assert not (
-        CLOUD_ROOT
-        / "data"
-        / "capabilities"
-        / REGISTRY_VERSION_6
-        / "data_model_mappings.json"
+        CLOUD_ROOT / "data" / "capabilities" / REGISTRY_VERSION_6 / "data_model_mappings.json"
     ).exists()
     for capability in capabilities:
         leaves = leaf_nodes(capability.outputSchema)
         assert leaves
-        assert all(
-            {"type", "description", "sampleValue"}.issubset(leaf)
-            for leaf in leaves
-        )
+        assert all({"type", "description", "sampleValue"}.issubset(leaf) for leaf in leaves)
 
 
 def test_event_capability_registry_uses_package_dependencies_only():
@@ -1723,10 +1727,7 @@ def test_event_capability_registry_uses_package_dependencies_only():
     capabilities = registry.list_event_capabilities()
 
     assert capabilities
-    assert all(
-        set(item.dependencies.model_dump()) == {"requiredPackages"}
-        for item in capabilities
-    )
+    assert all(set(item.dependencies.model_dump()) == {"requiredPackages"} for item in capabilities)
     health_events = {
         item.id: item
         for item in capabilities
@@ -1904,9 +1905,7 @@ def test_data_capability_allows_missing_leaf_sample_value():
         description="缺少样例",
         outputSchema={
             "type": "object",
-            "properties": {
-                "value": {"type": "string", "description": "展示值"}
-            },
+            "properties": {"value": {"type": "string", "description": "展示值"}},
         },
     )
 
@@ -1928,9 +1927,7 @@ def test_capability_dependencies_ignore_legacy_fields_and_keep_package_names():
         ],
     )
 
-    assert dependencies.model_dump() == {
-        "requiredPackages": [{"packageName": "com.example.app"}]
-    }
+    assert dependencies.model_dump() == {"requiredPackages": [{"packageName": "com.example.app"}]}
 
 
 def test_event_capability_accepts_legacy_dependency_metadata():
@@ -2116,9 +2113,7 @@ def test_ids_installation_filter_matches_default_package_whitelist(
 def test_package_dependency_filter_ignores_rom_version():
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
-    ids_state = IDSDeviceCapabilityState(
-        installed_apps={"com.huawei.hmos.health"}
-    )
+    ids_state = IDSDeviceCapabilityState(installed_apps={"com.huawei.hmos.health"})
     available, _, _, removed = resolver.resolve_capability_overview(
         DeviceContext(romVersion="1"),
         ids_state,
@@ -2248,13 +2243,10 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
     assert result["availableDataCapabilityCount"] == 3
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
-    assert {
-        item["id"] for item in result["removedCapabilities"]
-    } == set(result["checkedCapabilityIds"])
-    assert {
-        (item["type"], item["reason"])
-        for item in result["removedCapabilities"]
-    } == {
+    assert {item["id"] for item in result["removedCapabilities"]} == set(
+        result["checkedCapabilityIds"]
+    )
+    assert {(item["type"], item["reason"]) for item in result["removedCapabilities"]} == {
         ("data", ErrorCode.PACKAGE_NOT_INSTALLED.value),
         ("event", ErrorCode.PACKAGE_NOT_INSTALLED.value),
     }
@@ -2269,9 +2261,7 @@ def test_dependency_filter_log_marks_installed_data_capability_package(monkeypat
     )
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
-    ids_state = IDSDeviceCapabilityState(
-        installed_apps={"com.huawei.hmsapp.totemweather"}
-    )
+    ids_state = IDSDeviceCapabilityState(installed_apps={"com.huawei.hmsapp.totemweather"})
 
     resolver.resolve_capability_overview(_device(), ids_state)
 
@@ -2281,14 +2271,9 @@ def test_dependency_filter_log_marks_installed_data_capability_package(monkeypat
         if message.startswith("[Device Resolver] capability_package_dependency_checked ")
     )
     result = json_module.loads(dependency_log.split("result=", 1)[1])
-    statuses = {
-        item["capabilityId"]: item
-        for item in result["dataCapabilityPackageStatuses"]
-    }
+    statuses = {item["capabilityId"]: item for item in result["dataCapabilityPackageStatuses"]}
     weather_status = statuses["ViewWeather"]
-    assert weather_status["matchedPackages"] == [
-        "com.huawei.hmsapp.totemweather"
-    ]
+    assert weather_status["matchedPackages"] == ["com.huawei.hmsapp.totemweather"]
     assert weather_status["missingPackages"] == []
     assert weather_status["isInstalled"] is True
     assert statuses["GetCalendarEvents"]["isInstalled"] is False
@@ -2469,9 +2454,7 @@ def test_generation_binding_rejects_invalid_write_result_json_pointer(
         candidateOutputFields=["/current/condition"],
     )
 
-    effective, capabilities, removed = resolver.resolve_generation_data_bindings(
-        [binding]
-    )
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings([binding])
 
     assert effective == []
     assert capabilities == []
@@ -2488,9 +2471,7 @@ def test_weather_binding_accepts_prefecture_without_district():
         candidateOutputFields=["/current/condition"],
     )
 
-    effective, capabilities, removed = resolver.resolve_generation_data_bindings(
-        [binding]
-    )
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings([binding])
 
     assert effective == [binding]
     assert [item.id for item in capabilities] == ["ViewWeather"]
@@ -2550,9 +2531,7 @@ def test_weather_binding_rejects_invalid_supplied_arguments(arguments):
         writeResultTo="/data/weather",
     )
 
-    effective, capabilities, removed = resolver.resolve_generation_data_bindings(
-        [binding]
-    )
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings([binding])
 
     assert effective == []
     assert capabilities == []
@@ -2593,9 +2572,9 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         pytest.fail("an event with a missing data dependency must not reach the model")
 
     monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
-    weather_event = CapabilityRegistry(
-        version=REGISTRY_VERSION_6
-    ).get_event_capability("event.open.weather")
+    weather_event = CapabilityRegistry(version=REGISTRY_VERSION_6).get_event_capability(
+        "event.open.weather"
+    )
     assert weather_event is not None
     request = GenerateWidgetCardRequest(
         uid="test-user",
@@ -2627,9 +2606,7 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
     assert details.get("modelCalled") is False
     issues = details.get("issues")
     assert isinstance(issues, list) and len(issues) == 1
-    assert issues[0].get("path") == (
-        "/candidateDataBindings/0/arguments/forecastDays"
-    )
+    assert issues[0].get("path") == ("/candidateDataBindings/0/arguments/forecastDays")
     warnings = details.get("warnings")
     assert isinstance(warnings, list) and len(warnings) == 1
     assert warnings[0].get("code") == "EVENT_DATA_DEPENDENCY_REMOVED"
@@ -2907,13 +2884,13 @@ async def test_a2ui_model_client_returns_mock_dat_without_processing():
 
 
 @pytest.mark.parametrize(
-    ("size", "expected_width"),
-    [("2x2", 160), ("2x4", 320)],
+    ("size", "expected_component"),
+    [("2x2", "Column"), ("2x4", "Stack")],
 )
 @pytest.mark.asyncio
 async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     size,
-    expected_width,
+    expected_component,
 ):
     """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
     prompt = [
@@ -2938,9 +2915,9 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     )
     converted_rows = [json_module.loads(line) for line in converted.splitlines()]
 
-    assert root[0:2] == ["root", "Column"]
-    assert root[2]["width"] == expected_width
-    assert root[2]["height"] == 160
+    assert root[0:2] == ["root", expected_component]
+    assert root[2]["width"] == "matchParent"
+    assert root[2]["height"] == "matchParent"
     assert len(converted_rows) == 3
     assert "width" not in converted_rows[0]["createSurface"]
     assert "height" not in converted_rows[0]["createSurface"]
@@ -2973,7 +2950,7 @@ async def test_a2ui_model_client_raw_json_profile_keeps_custom_prompt_and_output
         {"role": "system", "content": "repair only"},
         {"role": "user", "content": '{"rawArguments":"{}"}'},
     ]
-    raw_output = "```json\n{\n  \"userQuery\": \"天气卡片\"\n}\n```"
+    raw_output = '```json\n{\n  "userQuery": "天气卡片"\n}\n```'
     captured: list[list[dict[str, str]]] = []
 
     class FakeTransport:
@@ -3085,10 +3062,8 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     design_dsl = "\n".join(
         (
             "```genui",
-            '["root","Column",{"width":160,"height":160,"padding":8,'
-            '"itemMargin":8},["title"]]',
-            '["title","Text",{"content":{"path":"/data/message"},'
-            '"design":"heading-primary-sm"}]',
+            '["root","Column",{"width":160,"height":160,"padding":8,"itemMargin":8},["title"]]',
+            '["title","Text",{"content":{"path":"/data/message"},"design":"heading-primary-sm"}]',
             '["/data/message","欢迎回来"]',
             "```",
         )
@@ -3106,9 +3081,7 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     assert messages[1]["updateComponents"]["root"] == "root"
     assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
     conversion_logs = [
-        message
-        for message in info_logs
-        if "design_dsl_conversion_completed" in message
+        message for message in info_logs if "design_dsl_conversion_completed" in message
     ]
     assert len(conversion_logs) == 1
     assert "converted_dsl=" in conversion_logs[0]
@@ -3124,13 +3097,11 @@ def test_design_converter_expands_latest_design_tokens():
             '"design":"media-cover-square","fillColor":"icon_fourth"}]',
             '["title","Text",{"content":"电量","design":"metric-display-md",'
             '"fontColor":"font_primary"}]',
-            '["progress","Progress",{"value":68,"total":100,'
-            '"design":"progress-ring-primary"}]',
+            '["progress","Progress",{"value":68,"total":100,"design":"progress-ring-primary"}]',
             '["small_progress","Progress",{"value":32,"total":100,'
             '"design":"progress-linear-thin"}]',
             '["button","Button",{"label":"info","design":"action-icon-round"}]',
-            '["check","Checkbox",{"label":"省电","select":true,'
-            '"design":"checkbox-rounded-check"}]',
+            '["check","Checkbox",{"label":"省电","select":true,"design":"checkbox-rounded-check"}]',
         )
     )
 
@@ -3141,15 +3112,14 @@ def test_design_converter_expands_latest_design_tokens():
     )
     components = json_module.loads(result.splitlines()[1])
     component_by_id = {
-        component["id"]: component
-        for component in components["updateComponents"]["components"]
+        component["id"]: component for component in components["updateComponents"]["components"]
     }
 
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
     assert component_by_id["title"]["styles"]["fontSize"] == 36
-    assert component_by_id["button"]["styles"]["width"] == 30
-    assert component_by_id["button"]["styles"]["borderRadius"] == 15
+    assert component_by_id["button"]["styles"]["width"] == 36
+    assert component_by_id["button"]["styles"]["borderRadius"] == 18
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
@@ -3214,10 +3184,7 @@ def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
         "asset.drop_1",
         "asset.thermometer_sun_fill",
     ]
-    assert all(
-        candidate["src"].endswith(".svg")
-        for candidate in task_spec["assetCandidates"]
-    )
+    assert all(candidate["src"].endswith(".svg") for candidate in task_spec["assetCandidates"])
 
 
 def test_a2ui_model_client_builds_qwen_chatml_prompt():
@@ -3248,8 +3215,7 @@ async def test_a2ui_model_client_reads_predict_stream(monkeypatch):
         }
     )
     stream = (
-        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#"
-        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#$@START_PREFIX@#{final}$@END_SUFFIX@#"
     ).encode()
     captured: dict = {}
 
@@ -3302,8 +3268,7 @@ def test_mep_event_decoder_accepts_single_byte_chunk_boundaries():
         ensure_ascii=False,
     )
     stream = (
-        f"noise$@START_PREFIX@#{partial}$@END_SUFFIX@#"
-        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+        f"noise$@START_PREFIX@#{partial}$@END_SUFFIX@#$@START_PREFIX@#{final}$@END_SUFFIX@#"
     ).encode()
     decoder = PredictEventDecoder()
     events = []
@@ -3564,8 +3529,7 @@ async def test_design_compact_model_client_returns_streamed_ndjson(monkeypatch):
         }
     )
     stream = (
-        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#"
-        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#$@START_PREFIX@#{final}$@END_SUFFIX@#"
     ).encode()
 
     class FakeResponse:
@@ -3614,9 +3578,7 @@ async def test_design_compact_model_client_returns_streamed_ndjson(monkeypatch):
 
 
 def test_compact_model_client_has_no_artificial_completion_limit():
-    source = (CLOUD_ROOT / "custom" / "mep_model_transport.py").read_text(
-        encoding="utf-8"
-    )
+    source = (CLOUD_ROOT / "custom" / "mep_model_transport.py").read_text(encoding="utf-8")
 
     assert "COMPACT_DSL_MAX_TOKENS" not in source
     assert "max_duration" not in source
@@ -3702,9 +3664,7 @@ async def test_generation_routes_accept_each_configured_model_backend(
     async def capture_route(_request, policy, **kwargs):
         captured["model_backend"] = policy.backend
         captured["design_profile_id"] = policy.design_profile_id
-        captured["template_source_generator"] = kwargs.get(
-            "template_source_generator"
-        )
+        captured["template_source_generator"] = kwargs.get("template_source_generator")
         return sentinel
 
     monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
@@ -3845,7 +3805,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     validated_genui: list[str] = []
 
     def generate_design(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return design_dsl
 
     def validate_standard(_validator, artifact, _profile):
@@ -3857,6 +3817,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -3867,21 +3828,32 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
-    assert len(model_prompts) == 2
-    assert len(validated_genui) == 2
+    assert len(model_prompts) == 3
+    assert len(validated_genui) == 3
+    first_repair = json_module.loads(model_prompts[1][-1]["content"])
+    second_repair = json_module.loads(model_prompts[2][-1]["content"])
+    assert first_repair["repairStrategy"]["repairStrategy"] == "component_contract_repair"
+    assert second_repair["repairStrategy"]["repairStrategy"] == ("plan_guided_recompose")
+    assert "repairHistory" not in first_repair
+    assert "repairHistory" not in second_repair
+    assert sum(message["content"].count("<repair_contract>") for message in model_prompts[2]) == 1
+    assistant_submissions = [
+        message["content"] for message in model_prompts[2] if message["role"] == "assistant"
+    ]
+    assert assistant_submissions == [design_dsl, design_dsl]
     assert '"createSurface"' in validated_genui[0]
 
 
 @pytest.mark.asyncio
 async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
     settings = get_settings()
-    event = CapabilityRegistry(
-        version=REGISTRY_VERSION_6
-    ).get_event_capability("event.open.settings.bluetooth")
+    event = CapabilityRegistry(version=REGISTRY_VERSION_6).get_event_capability(
+        "event.open.settings.bluetooth"
+    )
     assert event is not None
-    valid_source = (
-        CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat"
-    ).read_text(encoding="utf-8")
+    valid_source = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
     invalid_source = "\n".join(
         [
             '["root","Column",{"width":160,"height":160},["cta"]]',
@@ -3893,7 +3865,7 @@ async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch
     model_prompts: list[list[dict[str, str]]] = []
 
     def generate_source(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
@@ -3921,7 +3893,7 @@ async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch
         }
     )
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
-    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+    repair_payload = json_module.loads(model_prompts[1][-1]["content"])
 
     assert response.status == GenerationStatus.SUCCESS
     assert len(model_prompts) == 2
@@ -3986,9 +3958,7 @@ async def test_design_compact_validation_error_without_repair_fails(monkeypatch)
 _SOURCE_FORMAT_CASES = [
     (
         "generate_widget_card_compact_dsl",
-        (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
-            encoding="utf-8"
-        ),
+        (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(encoding="utf-8"),
         "design-compact-dsl",
     ),
 ]
@@ -4010,7 +3980,7 @@ async def test_conversion_failure_repair_uses_latest_source_format(
     outputs = iter(["invalid-source-dsl", valid_source])
 
     def generate_source(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
@@ -4028,16 +3998,15 @@ async def test_conversion_failure_repair_uses_latest_source_format(
 
     service = WidgetGenerationService()
     response = await getattr(service, generation_method)(_model_failure_request())
-    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+    repair_payload = json_module.loads(model_prompts[1][-1]["content"])
 
     assert response.status == GenerationStatus.SUCCESS
     assert len(model_prompts) == 2
-    assert repair_payload["invalidSourceDsl"] == "invalid-source-dsl"
+    assert {"role": "assistant", "content": "invalid-source-dsl"} in model_prompts[1]
+    assert "invalidSourceDsl" not in repair_payload
     assert repair_payload["dslFormat"] == source_format
     assert repair_payload["qualityErrors"][0]["stage"] == "validation"
-    assert repair_payload["qualityErrors"][0]["code"] == (
-        "COMPACT_DSL_VALIDATION_FAILED"
-    )
+    assert repair_payload["qualityErrors"][0]["code"] == ("COMPACT_DSL_VALIDATION_FAILED")
 
 
 @pytest.mark.parametrize(
@@ -4056,7 +4025,7 @@ async def test_source_format_validation_error_repairs_original_source_dsl(
     validation_calls = 0
 
     def generate_source(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
     def validate_then_succeed(_validator, _artifact, _profile):
@@ -4082,12 +4051,13 @@ async def test_source_format_validation_error_repairs_original_source_dsl(
 
     service = WidgetGenerationService()
     response = await getattr(service, generation_method)(_model_failure_request())
-    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+    repair_payload = json_module.loads(model_prompts[1][-1]["content"])
 
     assert response.status == GenerationStatus.SUCCESS
     assert len(model_prompts) == 2
     assert validation_calls == 2
-    assert repair_payload["invalidSourceDsl"] == valid_source
+    assert {"role": "assistant", "content": valid_source} in model_prompts[1]
+    assert "invalidSourceDsl" not in repair_payload
     assert repair_payload["dslFormat"] == source_format
     assert repair_payload["qualityErrors"] == [
         {
@@ -4116,7 +4086,7 @@ async def test_quality_repair_distinguishes_source_and_artifact_validation(
     validation_calls = 0
 
     def generate_source(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
     def validate_then_succeed(_validator, _artifact, _profile):
@@ -4142,27 +4112,28 @@ async def test_quality_repair_distinguishes_source_and_artifact_validation(
 
     service = WidgetGenerationService()
     response = await getattr(service, generation_method)(_model_failure_request())
-    repair_payloads = [
-        json_module.loads(model_prompts[index][1]["content"])
-        for index in (1, 2)
-    ]
+    repair_payloads = [json_module.loads(model_prompts[index][-1]["content"]) for index in (1, 2)]
 
     assert response.status == GenerationStatus.SUCCESS
     assert len(model_prompts) == 3
     assert validation_calls == 2
-    assert repair_payloads[0]["invalidSourceDsl"] == "invalid-source-dsl"
+    assert "invalidSourceDsl" not in repair_payloads[0]
     assert repair_payloads[0]["qualityErrors"][0] == {
         "stage": "validation",
         "code": "COMPACT_DSL_VALIDATION_FAILED",
         "message": "Compact DSL output is empty.",
     }
-    assert repair_payloads[1]["invalidSourceDsl"] == valid_source
+    assert "invalidSourceDsl" not in repair_payloads[1]
     assert repair_payloads[1]["qualityErrors"][0] == {
         "stage": "validation",
         "code": "ARTIFACT_VALIDATION_FAILED",
         "message": "validator rejected converted DSL",
     }
     assert all(payload["dslFormat"] == source_format for payload in repair_payloads)
+    assistant_submissions = [
+        message["content"] for message in model_prompts[2] if message["role"] == "assistant"
+    ]
+    assert assistant_submissions == ["invalid-source-dsl", valid_source]
     assert len(saved_repair_records) == 2
     assert saved_repair_records[0].model_generated_compact_dsl == valid_source
     assert saved_repair_records[0].generated_dsl
@@ -4194,7 +4165,7 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
     validation_calls = 0
 
     def generate_source(_client, prompt, _profile=None, **_kwargs):
-        model_prompts.append(prompt)
+        model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
     def always_reject(_validator, _artifact, _profile):
@@ -4214,10 +4185,7 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
 
     service = WidgetGenerationService()
     response = await getattr(service, generation_method)(_model_failure_request())
-    repair_payloads = [
-        json_module.loads(model_prompts[index][1]["content"])
-        for index in (1, 2)
-    ]
+    repair_payloads = [json_module.loads(model_prompts[index][-1]["content"]) for index in (1, 2)]
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
@@ -4225,10 +4193,12 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
     assert len(model_prompts) == 3
     assert validation_calls == 3
     assert all(payload["dslFormat"] == source_format for payload in repair_payloads)
-    assert all(
-        payload["qualityErrors"][0]["stage"] == "validation"
-        for payload in repair_payloads
-    )
+    assert all(payload["qualityErrors"][0]["stage"] == "validation" for payload in repair_payloads)
+    assert repair_payloads[0]["repairStrategy"]["repairStrategy"] == "component_contract_repair"
+    assert repair_payloads[0]["repairStrategy"]["scope"] == "component"
+    assert repair_payloads[1]["repairStrategy"]["repairStrategy"] == ("plan_guided_recompose")
+    assert repair_payloads[1]["repairStrategy"]["scope"] == "full_dsl"
+    assert repair_payloads[1]["repairStrategy"]["noProgress"] is True
 
 
 @pytest.mark.asyncio
@@ -4251,9 +4221,7 @@ async def test_unknown_processor_exception_does_not_trigger_model_repair(monkeyp
     monkeypatch.setattr(processor, "process", raise_internal_error)
 
     with pytest.raises(RuntimeError, match="converter implementation failed"):
-        await WidgetGenerationService().generate_widget_card_compact_dsl(
-            _model_failure_request()
-        )
+        await WidgetGenerationService().generate_widget_card_compact_dsl(_model_failure_request())
 
     assert model_calls == 1
 
@@ -4279,9 +4247,7 @@ async def test_unknown_validator_exception_does_not_trigger_model_repair(monkeyp
     monkeypatch.setattr(ArtifactValidator, "validate", raise_internal_error)
 
     with pytest.raises(RuntimeError, match="validator implementation failed"):
-        await WidgetGenerationService().generate_widget_card_compact_dsl(
-            _model_failure_request()
-        )
+        await WidgetGenerationService().generate_widget_card_compact_dsl(_model_failure_request())
 
     assert model_calls == 1
 
@@ -4436,11 +4402,20 @@ def test_response_planner_returns_structured_status():
         ],
         has_artifact=True,
     )
+    optional_omission_plan = ResponsePlanner().plan(
+        requested_count=1,
+        effective_count=1,
+        removed=[],
+        has_artifact=True,
+        omitted_requirements=["补充时间"],
+    )
 
     assert success_plan.status == GenerationStatus.SUCCESS
     assert success_plan.errorCode == ""
     assert degraded_plan.status == GenerationStatus.DEGRADED
     assert "能力未注册" in degraded_plan.message
+    assert optional_omission_plan.status == GenerationStatus.DEGRADED
+    assert "部分信息" in optional_omission_plan.message
 
 
 @pytest.mark.asyncio
@@ -4521,6 +4496,54 @@ async def test_retry_controller_saves_second_failure_without_third_call():
 
 
 @pytest.mark.asyncio
+async def test_retry_controller_stops_when_repair_reports_no_progress():
+    repair_calls = 0
+
+    def repair(_value: str, _errors: list[str]) -> None:
+        nonlocal repair_calls
+        repair_calls += 1
+        return None
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=5,
+        repair=repair,
+    )
+
+    assert repair_calls == 1
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 0
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is False
+
+
+@pytest.mark.asyncio
+async def test_retry_controller_counts_unchanged_results_toward_global_budget():
+    repair_calls = 0
+
+    def repair(value: str, _errors: list[str]) -> str:
+        nonlocal repair_calls
+        repair_calls += 1
+        return value
+
+    retry_result = await RetryController().run(
+        lambda: "first",
+        evaluate=lambda _value: ["bad"],
+        retry_on_quality_failure=True,
+        max_repair_attempts=10,
+        repair=repair,
+    )
+
+    assert repair_calls == 10
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 10
+    assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is True
+
+
+@pytest.mark.asyncio
 async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     """验证 ArtifactStore 保存包含标题和说明的 CardSpec。
 
@@ -4554,9 +4577,7 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
             createdAt=1,
         ),
     )
-    design_compact_dsl = (
-        '["root","Column",{"width":"matchParent","height":140},[]]'
-    )
+    design_compact_dsl = '["root","Column",{"width":"matchParent","height":140},[]]'
     request_body_value = {
         "content": {
             "userQuery": "生成天气卡片",
@@ -4629,12 +4650,8 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     assert uploaded_content.count("```request") == 1
     assert uploaded_content.count("```repair-1") == 1
     assert uploaded_content.count("```repair-2") == 1
-    assert uploaded_content.index("```meta") < uploaded_content.index(
-        "```designcompactdsl"
-    )
-    assert uploaded_content.index("```designcompactdsl") < uploaded_content.index(
-        "```request"
-    )
+    assert uploaded_content.index("```meta") < uploaded_content.index("```designcompactdsl")
+    assert uploaded_content.index("```designcompactdsl") < uploaded_content.index("```request")
     assert uploaded_content.index("```request") < uploaded_content.index("```repair-1")
     assert uploaded_content.index("```repair-1") < uploaded_content.index("```repair-2")
     request_block = uploaded_content.split("```request\n", 1)[1].split("\n```", 1)[0]
@@ -4796,9 +4813,7 @@ def test_artifact_validator_rejects_legacy_component_shape():
 
 def test_card_validation_is_exposed_as_in_process_api():
     reporter = validate_card_api(dsl_text="not-json")
-    validator_source = (CLOUD_ROOT / "services" / "validator.py").read_text(
-        encoding="utf-8"
-    )
+    validator_source = (CLOUD_ROOT / "services" / "validator.py").read_text(encoding="utf-8")
 
     assert reporter.has_code("DSL_JSON_PARSE_FAILED")
     assert "services.card_validation" in validator_source
@@ -4892,9 +4907,7 @@ def _a2ui_genui_with_image(
 
 def test_card_validator_uses_effective_asset_candidates_without_external_reads():
     source = "resources/base/media/air_fill.svg"
-    validator_source = (
-        CLOUD_ROOT / "services" / "card_validator.py"
-    ).read_text(encoding="utf-8")
+    validator_source = (CLOUD_ROOT / "services" / "card_validator.py").read_text(encoding="utf-8")
 
     selected_report = validate_card(
         _a2ui_genui_with_image(source),

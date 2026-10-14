@@ -1,0 +1,101 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "component-recall",
+  "name": "组件召回分析",
+  "version": "1.0.0",
+  "description": "依据数据集显式真值统计每个样本的高阶组件召回情况与数据集宏平均。",
+  "entrypoint": "plugin.py",
+  "dependence": [],
+  "timeoutSeconds": 60,
+  "outputs": [
+    {
+      "key": "component-comparison",
+      "scope": "sample",
+      "title": "组件对比",
+      "dataType": "records",
+      "renderer": "table",
+      "required": true
+    },
+    {
+      "key": "actual-components",
+      "scope": "sample",
+      "title": "实际召回组件",
+      "dataType": "records",
+      "renderer": "table",
+      "required": true
+    },
+    {
+      "key": "source-dsl",
+      "scope": "sample",
+      "title": "原始 Design Compact DSL",
+      "dataType": "code",
+      "renderer": "code",
+      "required": false
+    },
+    {
+      "key": "recall-overview",
+      "scope": "dataset",
+      "title": "召回率汇总",
+      "dataType": "metrics",
+      "renderer": "kpi",
+      "required": true
+    },
+    {
+      "key": "recall-distribution",
+      "scope": "dataset",
+      "title": "样本召回率分布",
+      "dataType": "records",
+      "renderer": "bar",
+      "required": true
+    },
+    {
+      "key": "component-stats",
+      "scope": "dataset",
+      "title": "组件级统计",
+      "dataType": "records",
+      "renderer": "table",
+      "required": true
+    }
+  ],
+  "presentation": {
+    "defaultView": "table",
+    "sampleFields": [
+      {
+        "key": "recallRate",
+        "label": "召回率",
+        "type": "number",
+        "format": "percent",
+        "sortable": true
+      },
+      {
+        "key": "verdict",
+        "label": "状态",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      },
+      {
+        "key": "expectedUnits",
+        "label": "期望组件",
+        "type": "number",
+        "sortable": true
+      },
+      {
+        "key": "actualCount",
+        "label": "实际组件",
+        "type": "number",
+        "sortable": true
+      },
+      {
+        "key": "missingComponents",
+        "label": "缺失",
+        "type": "string-list",
+        "filterable": true
+      }
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

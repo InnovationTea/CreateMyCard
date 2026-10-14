@@ -21,6 +21,8 @@ dependencies = [
     "loguru>=0.7.0",
     "psutil>=6.0.0",
     "websockets>=16.0",
+    "PyYAML>=6.0",
+    "Pillow>=10.4.0",
 ]
 
 [project.optional-dependencies]
@@ -49,4 +51,4 @@ ignore = ["UP009"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["cloud"]
+pythonpath = ["cloud", ".", ".."]
