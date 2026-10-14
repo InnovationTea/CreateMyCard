@@ -12,6 +12,7 @@ from services.card_validation import validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_prompt_loader import assemble_prompts
+from services.compact_semantic_layout import SEMANTIC_LAYOUT_TYPES
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
 
@@ -396,10 +397,16 @@ def test_examples_use_only_supported_component_types(
     task: dict,
     source: str,
 ) -> None:
-    del task
     types = set(_component_types(source))
     assert "Progress" not in types, identifier
-    assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
+    allowed = BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS
+    if task.get("size") == "2x4":
+        allowed = allowed | SEMANTIC_LAYOUT_TYPES
+        assert "Layout" in types, identifier
+        assert not types.intersection({"Row", "Column", "Stack"}), identifier
+    else:
+        assert not types.intersection(SEMANTIC_LAYOUT_TYPES), identifier
+    assert types.issubset(allowed), identifier
 
 
 @pytest.mark.parametrize(
@@ -503,7 +510,10 @@ def test_example_reaches_its_generation_route(
     for selected_id in set(selected).intersection(available_ids):
         assert selected_id in assembled
     if "adaptive" not in layout_scope:
-        assert f"### `{layout_scope}`" in assembled
+        if task_spec.size == "2x4":
+            assert f" {layout_scope}：" in assembled
+        else:
+            assert f"### `{layout_scope}`" in assembled
 
 
 def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:

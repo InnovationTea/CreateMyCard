@@ -143,13 +143,13 @@ def test_single_line_title_visual_recipe_keeps_default_title_only() -> None:
     assert "withIcon" in recipe["variants"]
 
 
-def test_emphasized_data_visual_recipe_aligns_value_and_unit_baselines() -> None:
+def test_emphasized_data_visual_recipe_uses_protocol_bottom_alignment() -> None:
     recipe = component_visual_recipe("EmphasizedData", size="2x2")
 
     root = recipe["parts"]["root"]["styles"]
     assert root["width"] == "matchParent"
     assert root["justifyContent"] == "start"
-    assert root["alignItems"] == "baseline"
+    assert root.get("alignItems") == "bottom"
     value = recipe["parts"]["value"]["styles"]
     unit = recipe["parts"]["unit"]["styles"]
     assert value["height"] == value["fontSize"] == 30
@@ -188,12 +188,16 @@ def test_card_button_visual_recipe_owns_default_surface() -> None:
     assert recipe["parts"]["root"]["styles"]["backgroundColor"] == "#99FFFFFF"
 
 
-def test_progress_line_two_visual_recipe_aligns_value_and_unit_baselines() -> None:
+def test_progress_line_two_visual_recipe_uses_protocol_bottom_alignment() -> None:
     recipe = component_visual_recipe("ProgressLine2", size="2x4")
 
     assert recipe["parts"]["root"]["styles"]["itemMargin"] == 4
     assert recipe["parts"]["readout"]["styles"]["height"] == 30
-    assert recipe["parts"]["readout"]["styles"]["alignItems"] == "baseline"
+    parts = recipe.get("parts")
+    assert isinstance(parts, dict)
+    readout = parts.get("readout")
+    assert isinstance(readout, dict)
+    assert readout.get("styles", {}).get("alignItems") == "bottom"
     assert recipe["parts"]["value"]["styles"]["height"] == 30
     assert recipe["parts"]["value"]["styles"]["lineHeight"] == 1
     assert recipe["parts"]["unit"]["styles"]["height"] == 12

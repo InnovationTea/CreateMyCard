@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from config.config import get_settings
+from models.generation import TaskSpec
 from services.compact_layout_runtime import layout_ids_for_size
 from services.compact_prompt_loader import (
     FRAGMENT,
@@ -15,6 +16,7 @@ from services.compact_prompt_loader import (
     assemble_prompts,
     read_prompt,
 )
+from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -155,11 +157,32 @@ def test_secondary_body_contract_groups_related_items() -> None:
     assert "标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件" in prompt
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_owned_action_layout_comparison_is_size_scoped_and_reaches_plan(size: str) -> None:
+    create = read_prompt(DEFAULT_SOURCE, "create", size=size)
+    rule = "先比较内容组与直属操作的归属，再比较操作数量"
+    task = TaskSpec(userQuery="查看设备状态及操作", size=size, dataModelSchema={"data": {}})
+    plan = read_prompt(DEFAULT_SOURCE, "plan", size=size)
+    messages = PromptBuilder().build_compact_plan(task, create + "\n\n" + plan, "{}")
+    system = messages[0].get("content")
+    assert isinstance(system, str)
+    assert (rule in create) == (size == "2x4")
+    assert (rule in system) == (size == "2x4")
+    assert "不只按操作数量选布局" in system
+    if size == "2x4":
+        assert "紧凑区容量不成立时仍比较其它合法布局，不强行分区" in system
 def test_secondary_body_repair_does_not_add_non_core_companions() -> None:
     repair_prompt = read_prompt(DEFAULT_SOURCE, "repair", size="2x2")
-
     assert "`SecondaryBody` 只能辅助同一语义分区内的核心信息组件" in repair_prompt
     assert "不能通过增加按钮、标题或另一个" in repair_prompt
+
+
+def test_agent_stage_instruction_does_not_forbid_registered_semantic_layout() -> None:
+    task = TaskSpec(userQuery="查看设备状态", size="2x4", dataModelSchema={"data": {}})
+    scope = PromptBuilder._compact_generation_scope(task)
+    assert "最终 DSL 使用 Layout" in scope
+    assert "Region 选择内容变体" in scope
+    assert "不输出布局 ID、Card 或 Region 节点" not in scope
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -238,7 +261,7 @@ def test_two_by_two_layout_prompt_delegates_derived_sizes_to_flex_layout() -> No
         assert retained_contract in layouts
 
 
-def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> None:
+def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
     fragments = dict(FRAGMENT.findall(source))
     layouts = fragments.get("w-layouts", "")
@@ -252,9 +275,6 @@ def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> N
         "26 + 6 + 36 + 6 + 36",
         "38 + 8 + 36 + 8 + 36",
         "title 20 + 4 + body 86",
-        "132×126vp",
-        "132×57vp",
-        "116×110vp",
         '"layoutWeight":15',
         '"layoutWeight":8',
         '"height":20',
@@ -262,27 +282,24 @@ def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> N
         assert removed_budget not in layouts
 
     for retained_contract in (
-        "`padding:12`",
-        "`padding:8`",
-        "Sub-118 内纵向主要角色使用 `6vp` 间距",
-        "Sub-140 使用 `8vp`",
-        '"layoutWeight":1',
-        '"height":"matchParent"',
+        "132×126vp",
+        "132×57vp",
+        "116×110vp",
+        "紧凑版主要角色间距6vp",
+        "宽版8vp",
+        '"Layout"',
+        '"Region"',
     ):
         assert retained_contract in layouts
 
     for sub_layout in (
-        "Sub-118-A",
-        "Sub-118-B",
-        "Sub-118-C",
-        "Sub-118-D",
-        "Sub-140-A",
-        "Sub-140-B",
-        "Sub-140-C",
-        "Sub-140-D",
-        "Sub-140-F",
-        "Sub-140-G",
-        "Sub-140-H",
+        "center",
+        "title-content",
+        "title-primary-details",
+        "title-content-action",
+        "title-two-ratios",
+        "title-hero-support-action",
+        "four-ratios",
     ):
         assert sub_layout in layouts
 

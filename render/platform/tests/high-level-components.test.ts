@@ -87,7 +87,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal((emphasized.getNode("metric_value")?.props.styles as Record<string, unknown>).fontSize, 30);
   assert.equal(
     (emphasized.getNode("metric")?.props.styles as Record<string, unknown>).alignItems,
-    "baseline",
+    "bottom",
   );
   assert.equal(
     (emphasized.getNode("metric_unit")?.props.styles as Record<string, unknown>).margin,
@@ -119,7 +119,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   );
   assert.equal(
     (progress.getNode("progress_readout")?.props.styles as Record<string, unknown>).alignItems,
-    "baseline",
+    "bottom",
   );
   const progressValue = progress.getNode("progress_value")?.props.styles as Record<string, unknown>;
   const progressUnit = progress.getNode("progress_unit")?.props.styles as Record<string, unknown>;
@@ -201,12 +201,12 @@ test("宽松预览允许 InfoBlock 用带标签的百分比表达式驱动圆环
   assert.ok(result.warnings.some(message => message.includes("宽松预览已使用 68")));
 });
 
-test("EmphasizedData 在满宽根节点内左对齐并对齐数值与单位基线", () => {
+test("EmphasizedData 在满宽根节点内使用协议允许的底部对齐", () => {
   const root = visualRecipePart("EmphasizedData", "root", "2x2").styles;
   const unit = visualRecipePart("EmphasizedData", "unit", "2x2").styles;
   assert.equal(root.width, "matchParent");
   assert.equal(root.justifyContent, "start");
-  assert.equal(root.alignItems, "baseline");
+  assert.equal(root.alignItems, "bottom");
   const value = visualRecipePart("EmphasizedData", "value", "2x2").styles;
   assert.equal(value.height, 30);
   assert.equal(value.lineHeight, 1);

@@ -40,6 +40,9 @@ def test_binding_registry_covers_every_model_semantic_component() -> None:
         "Row",
         "Column",
         "Stack",
+        "Layout",
+        "Region",
+        "Group",
     }
 
     assert semantic_components == set(COMPACT_COMPONENT_BINDING_CONTRACTS)

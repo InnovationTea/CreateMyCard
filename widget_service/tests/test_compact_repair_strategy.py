@@ -34,8 +34,7 @@ def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> 
     tracker = CompactRepairStrategyTracker()
     errors = [
         _issue(
-            "battery: InfoBlock.primaryText must be a finite number or "
-            "complete numeric percentage."
+            "battery: InfoBlock.primaryText must be a finite number or complete numeric percentage."
         )
     ]
 
@@ -60,10 +59,10 @@ def test_secondary_body_font_size_error_gets_recipe_aware_repair() -> None:
     directive = tracker.next_directive("dsl-v1", errors)
 
     assert directive.repair_strategy == "component_contract_repair"
-    assert "1–2 项 supporting 固定为 14" in directive.instruction
-    assert "3–4 项 supporting 固定为 12" in directive.instruction
-    assert "按最终 role 和项目数重新选择字号" in directive.instruction
-    assert "不得仅为缩小字号伪装成 metadata" in directive.instruction
+    assert "单行固定14，多行固定12" in directive.instruction
+    assert "items、columns、maxLines" in directive.instruction
+    assert "旧 role 不参与判定" in directive.instruction
+    assert "不得填写自由字号" in directive.instruction
 
 
 def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None:
@@ -133,9 +132,7 @@ def test_root_layout_mismatch_takes_priority_over_capacity_error() -> None:
 
 def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:
     tracker = CompactRepairStrategyTracker()
-    layout_errors = [
-        _issue("component body: vertical layout requires at least 142vp within 126vp")
-    ]
+    layout_errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     contract_errors = [
         _issue(
             "component day0.props.items[].label: SecondaryBody.items[].label "
@@ -191,9 +188,7 @@ def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:
 
 def test_compact_fallback_can_drop_one_program_selected_should_component() -> None:
     tracker = CompactRepairStrategyTracker()
-    errors = [
-        _issue("component body: vertical layout requires at least 142vp within 126vp")
-    ]
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     plan = {
         "info_required": [
             {
@@ -246,9 +241,7 @@ def test_compact_fallback_can_drop_one_program_selected_should_component() -> No
 
 def test_compact_fallback_can_drop_one_program_selected_must_component() -> None:
     tracker = CompactRepairStrategyTracker()
-    errors = [
-        _issue("component body: vertical layout requires at least 142vp within 126vp")
-    ]
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     plan = {
         "info_required": [
             {
@@ -336,9 +329,7 @@ def test_drop_no_progress_counts_toward_global_limit_without_early_stop() -> Non
         task_spec=task_spec,
     )
 
-    assert [item.repair_strategy for item in drop_directives] == [
-        "drop_optional_component"
-    ] * 5
+    assert [item.repair_strategy for item in drop_directives] == ["drop_optional_component"] * 5
     assert [item.fallback_attempt for item in drop_directives] == [0, 1, 2, 3, 4]
     assert [item.fallback_attempt_limit for item in drop_directives] == [5] * 5
     assert [item.fallback_remaining_attempts for item in drop_directives] == [
@@ -447,9 +438,7 @@ def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> No
 
 def test_compact_component_plan_coverage_bridge_does_not_stop_early() -> None:
     tracker = CompactRepairStrategyTracker(max_repair_attempts=10)
-    layout_errors = [
-        _issue("component body: vertical layout requires at least 142vp within 126vp")
-    ]
+    layout_errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     coverage_errors = [
         _issue(
             "Plan fact is missing from visible DSL: /data/healthSport/heartRate",
@@ -459,21 +448,11 @@ def test_compact_component_plan_coverage_bridge_does_not_stop_early() -> None:
 
     assert tracker.next_directive("dsl-v1", layout_errors).repair_strategy == "rebudget"
     assert (
-        tracker.next_directive("dsl-v2", layout_errors).repair_strategy
-        == "plan_guided_recompose"
+        tracker.next_directive("dsl-v2", layout_errors).repair_strategy == "plan_guided_recompose"
     )
-    assert (
-        tracker.next_directive("dsl-v3", layout_errors).repair_strategy
-        == "compact_component"
-    )
-    assert (
-        tracker.next_directive("dsl-v4", coverage_errors).repair_strategy
-        == "coverage_restore"
-    )
-    assert (
-        tracker.next_directive("dsl-v5", layout_errors).repair_strategy
-        == "compact_component"
-    )
+    assert tracker.next_directive("dsl-v3", layout_errors).repair_strategy == "compact_component"
+    assert tracker.next_directive("dsl-v4", coverage_errors).repair_strategy == "coverage_restore"
+    assert tracker.next_directive("dsl-v5", layout_errors).repair_strategy == "compact_component"
 
     second_coverage_restore = tracker.next_directive("dsl-v6", coverage_errors)
 
