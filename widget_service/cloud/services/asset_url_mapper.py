@@ -76,7 +76,10 @@ class AssetUrlMapper:
                     changed |= self._rewrite_property(styles, "backgroundImage", restore)
         if not changed:
             return dsl
-        return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+        return "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in rows
+        )
 
     def restore_design_token(self, token: str) -> str:
         """只还原极简协议的素材属性，不做整段字符串替换或改写 DataModel。"""
@@ -99,7 +102,10 @@ class AssetUrlMapper:
             restored_rows.append([row.component_id, row.component_type, props, list(row.children)])
         if not changed:
             return token
-        return "\n".join(json.dumps(row, ensure_ascii=False) for row in restored_rows)
+        return "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in restored_rows
+        )
 
     def restore_diagnostic_values(self, value: Any) -> Any:
         """修复提示中的结构化 actual/expected 使用原始路径，避免回灌长 URL。"""
