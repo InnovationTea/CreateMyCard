@@ -15,6 +15,7 @@ from debug_tools.batch_testing.task_manager import BatchTaskManager
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image, ImageDraw, ImageFont
+
 from test_debug_quality_workflow import PLUGINS, save_scores
 
 
@@ -71,6 +72,51 @@ def test_import_http_is_explicit_and_keeps_history(tmp_path):
     assert run_ids[0] != run_ids[1]
     assert len(client.get("/debug/batch/runs").json().get("items")) == 2
     assert manager.postprocess_manager.queue.empty()
+
+
+@pytest.mark.parametrize("image_kind", ["PNG", "JPEG", "PNG_BAD_CRC"])
+def test_import_http_validates_image_and_publishes_atomically(tmp_path, image_kind):
+    output = tmp_path / "output"
+    manager = BatchTaskManager(
+        tmp_path / "datasets", output, tmp_path / "traces", tmp_path / "cloud",
+    )
+    app = FastAPI()
+    register_batch_routes(app, task_manager=manager)
+    client = TestClient(app, raise_server_exceptions=False)
+    buffer = io.BytesIO()
+    Image.new("RGB", (16, 16), "white").save(
+        buffer, format="JPEG" if image_kind == "JPEG" else "PNG",
+    )
+    raw = bytearray(buffer.getvalue())
+    if image_kind == "PNG_BAD_CRC":
+        offset = 8
+        while offset < len(raw):
+            length = int.from_bytes(raw[offset:offset + 4], "big")
+            if raw[offset + 4:offset + 8] == b"IDAT":
+                raw[offset + 8 + length] ^= 1
+                break
+            offset += length + 12
+        else:
+            pytest.fail("测试 PNG 缺少 IDAT")
+    value = payload()
+    samples = value.get("samples")
+    assert samples
+    sample = {**samples[0], "id": "Q002", "imageBase64": base64.b64encode(raw).decode()}
+    # 第二张损坏时，第一张已写入临时目录；整个批次仍应清理且不发布。
+    samples.append(sample)
+    response = client.post("/debug/batch/quality/import", json=value)
+    if image_kind == "PNG_BAD_CRC":
+        assert response.status_code == 422
+        assert response.json().get("detail") == "截图损坏或像素过大"
+        assert client.get("/debug/batch/runs").json().get("items") == []
+        assert list(output.iterdir()) == []
+    else:
+        assert response.status_code == 200
+        run_id = response.json().get("runId")
+        assert run_id
+        extension = ".jpg" if image_kind == "JPEG" else ".png"
+        stored = output / run_id / "Q002/input" / ("image" + extension)
+        assert stored.read_bytes() == raw
 
 
 @pytest.mark.parametrize("bad", ["path", "reserved", "duplicate", "image", "sha", "query"])

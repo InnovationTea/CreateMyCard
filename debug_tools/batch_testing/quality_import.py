@@ -67,7 +67,9 @@ def _image(data: str) -> tuple[bytes, str]:
                     raise ValueError("截图像素不能超过 1600 万")
                 extension = ".png" if picture.format == "PNG" else ".jpg"
                 picture.verify()
-    except (OSError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+    except (
+        OSError, SyntaxError, Image.DecompressionBombError, Image.DecompressionBombWarning,
+    ) as exc:
         raise ValueError("截图损坏或像素过大") from exc
     return raw, extension
 
