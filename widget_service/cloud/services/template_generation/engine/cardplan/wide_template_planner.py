@@ -64,6 +64,17 @@ _WIDE_LAYOUTS = (
     WideLayoutOption("WideTwoFullLayout", ("Full", "Full")),
     WideLayoutOption("WideTwoHalfLayout", ("WideHalf", "WideHalf")),
     WideLayoutOption("WideHeroCompactLayout", ("Hero", "Compact")),
+    # 2x4 的窄业务槽位语义是 Support。旧 Compact 形态保留在后面，
+    # 仅用于兼容尚未迁移的历史 Provider。
+    WideLayoutOption(
+        "WideFullTwoCompactLayout", ("Full", "Support"), ("CompactSubtitleAction",), (None,)
+    ),
+    WideLayoutOption(
+        "WideFullTwoCompactLayout", ("Full", "Support", "Support"), allows_embedded_action=True
+    ),
+    WideLayoutOption(
+        "WideFullTwoCompactLayout", ("Hero", "Support"), ("CompactAction",), (None,)
+    ),
     WideLayoutOption(
         "WideFullTwoCompactLayout", ("Full", "Compact", "Compact"), allows_embedded_action=True
     ),
@@ -404,20 +415,49 @@ def _companion_action_slots(
     results: list[TemplatePlanBusinessSlot] = []
     seen: set[tuple[str, str]] = {(slot.business_id, slot.template_id) for slot in slots}
     capability_by_business = {slot.business_id: slot.capability_id for slot in slots}
+    already_rendered_fields = {
+        field
+        for slot in slots
+        for field in slot.covered_explicit_fields
+    }
     for action in actions:
         for business_id in sorted(capability_by_business):
             component = registry.require_ux_business_component(business_id)
-            for template_id in registry.enabled_template_ids(component.local_template_ids):
+            companion_template_ids = tuple(
+                sorted(
+                    registry.enabled_template_ids(component.local_template_ids),
+                    key=lambda template_id: (
+                        provider_template_layout_kind(template_id) != "Support",
+                        template_id,
+                    ),
+                )
+            )
+            for template_id in companion_template_ids:
                 if (business_id, template_id) in seen:
                     continue
-                if provider_template_layout_kind(template_id) != "Compact":
+                template_kind = provider_template_layout_kind(template_id)
+                if template_kind not in {"Support", "Compact"}:
                     continue
                 definition = registry.require_template(template_id)
                 if not template_required_assets_are_available(definition, task):
                     continue
                 if not _required_data_available(definition, task):
                     continue
-                if not supports_business_action(definition, action, "2x4"):
+                if template_kind == "Support":
+                    support_fields = set(definition.primary_data) | set(definition.secondary_data)
+                    # A layout-owned Support must add a new metric. Do not use
+                    # a Support that only repeats the Full's city/temperature/
+                    # condition fields to fill an empty action-side slot.
+                    if not support_fields.difference(already_rendered_fields):
+                        continue
+                # A Support companion is rendered in a layout-owned slot and
+                # the action is consumed by the sibling root Action slot. It
+                # therefore does not need to declare the event itself. Legacy
+                # Compact companions still require their historical business
+                # action contract.
+                if template_kind != "Support" and not supports_business_action(
+                    definition, action, "2x4"
+                ):
                     continue
                 seen.add((business_id, template_id))
                 results.append(
@@ -426,7 +466,7 @@ def _companion_action_slots(
                         businessId=business_id,
                         capabilityId=capability_by_business[business_id],
                         templateId=template_id,
-                        layoutRole="Compact",
+                        layoutRole=template_kind,
                         coveredExplicitFields=(),
                         primaryMatchedFields=(),
                     )
@@ -437,10 +477,9 @@ def _companion_action_slots(
 def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> bool:
     """伴生模板的必需数据路径必须能在 TaskSpec 数据模型中解析到。"""
     data = task.dataModelSchema.get("data") if isinstance(task.dataModelSchema, dict) else None
-    for path in definition.required_data:
-        node: Any = data
-        segments = path.strip("/").split("/")
-        for segment in segments[1:]:
+
+    def resolves(node: Any, segments: list[str]) -> bool:
+        for segment in segments:
             if isinstance(node, list):
                 if not segment.isdigit() or int(segment) >= len(node):
                     return False
@@ -449,6 +488,20 @@ def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> 
             if not isinstance(node, dict) or segment not in node:
                 return False
             node = node[segment]
+        return True
+
+    for path in definition.required_data:
+        segments = path.strip("/").split("/")
+        # Provider paths are relative to the capability root (for example
+        # ``/current/humidityPercent``), while TaskSpec stores that root below
+        # ``data.weather``. Try the complete data object and each capability
+        # root; the previous implementation skipped the first path segment and
+        # incorrectly rejected valid Support companions.
+        roots = [data]
+        if isinstance(data, dict):
+            roots.extend(value for value in data.values() if isinstance(value, (dict, list)))
+        if not any(resolves(root, segments) for root in roots):
+            return False
     return True
 
 
@@ -538,7 +591,7 @@ def _may_pair_with_selected(
     if slot.field_bindings:
         return False
     kind = provider_template_layout_kind(slot.template_id)
-    if kind not in {"Full", "Compact"}:
+    if kind not in {"Full", "Compact", "Support"}:
         return False
     same_business = [
         item
@@ -548,7 +601,7 @@ def _may_pair_with_selected(
     if len(same_business) != 1:
         return False
     other_kind = provider_template_layout_kind(same_business[0].template_id)
-    return other_kind in {"Full", "Compact"} and other_kind != kind
+    return other_kind in {"Full", "Compact", "Support"} and other_kind != kind
 
 
 def _generic_field_options(
