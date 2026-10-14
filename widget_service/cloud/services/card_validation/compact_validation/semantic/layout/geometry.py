@@ -60,6 +60,7 @@ def _collect_height_budget_errors(
         if box is not None and box.height is not None:
             available_height = max(0.0, box.height - _vertical_padding(component.props))
         if available_height is None:
+            _collect_unresolved_height_error(component, components_by_id, errors)
             continue
         required_height = _column_children_minimum_height(
             component, components_by_id, measure_content_overflow=size == "2x2"
@@ -107,6 +108,42 @@ def _collect_height_budget_errors(
                 component_id=component.component_id,
             ),
         )
+
+
+def _collect_unresolved_height_error(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    errors: list[str],
+) -> None:
+    """无界列不能证明填满子项或纵向权重的实际高度分配成立。"""
+    dependent_children: list[str] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        weighted = (_non_negative_number(child.props.get("layoutWeight")) or 0.0) > 0
+        if child.props.get("height") == "matchParent" or weighted:
+            dependent_children.append(child_id)
+    if not dependent_children:
+        return
+    message = (
+        f"component {component.component_id}: vertical layout has unresolved available height; "
+        f"children {', '.join(dependent_children)} require parent height for matchParent or "
+        "vertical weight allocation. Minimum content height does not prove that allocation fits."
+    )
+    emit_error(
+        errors,
+        CompactDiagnostic(
+            code="COMPACT_LAYOUT_HEIGHT_UNRESOLVED",
+            validation_class="semantic",
+            category="layout",
+            message=message,
+            legacy_message=message,
+            expected={"resolvedAvailableHeight": True},
+            actual={"availableHeight": None, "dependentChildren": dependent_children},
+            component_id=component.component_id,
+        ),
+    )
 
 
 def _column_height_breakdown(

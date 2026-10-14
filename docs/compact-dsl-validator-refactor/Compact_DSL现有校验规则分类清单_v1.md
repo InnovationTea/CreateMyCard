@@ -850,6 +850,11 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 
+  补漏检查 `COMPACT_LAYOUT_HEIGHT_UNRESOLVED`：语义／布局与视觉约束；实际文件
+  `compact_validation/semantic/layout/geometry.py`。Column 可用高度未知且直接子项依赖
+  matchParent 高度或正数纵向权重时阻断。归属理由：检查布局分配能否闭合，不检查文本内容或
+  组件字段合法性；复用 reference_region_boxes，不复制求解器，保留现有高度溢出检查顺序。
+
 ### 5.8 委托检查，按被调函数内部约束再分类
 
 迁移目标：`现有转换器辅助函数`。
