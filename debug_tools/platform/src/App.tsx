@@ -1,4 +1,5 @@
-import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, NavLink, Route, Routes, useLocation, useMatch } from 'react-router-dom';
 import { WorkbenchProvider } from './context';
 import CallHistory from './components/CallHistory';
 import SettingsPanel from './components/SettingsPanel';
@@ -29,6 +30,11 @@ const navigation = [
 
 function Shell() {
   const { pathname } = useLocation();
+  const isEndToEnd = useMatch('/end-to-end') !== null;
+  const [hasVisitedEndToEnd, setHasVisitedEndToEnd] = useState(isEndToEnd);
+  useEffect(() => {
+    if (isEndToEnd) setHasVisitedEndToEnd(true);
+  }, [isEndToEnd]);
   const showBackendStatus = pathname === '/settings';
   return (
     <div className="workbench-shell">
@@ -62,8 +68,14 @@ function Shell() {
       <main className="workbench-main">
         {showBackendStatus && <BackendStatusWidget allowManagedStart={pathname === '/settings'} />}
         <section className="route-content">
+          {/* 保留已打开的会话和连接，导航只切换可见性，不触发卸载清理。 */}
+          {(isEndToEnd || hasVisitedEndToEnd) && (
+            <div className="end-to-end-route" hidden={!isEndToEnd}>
+              <EndToEndRoute />
+            </div>
+          )}
           <Routes>
-            <Route path="/end-to-end" element={<EndToEndRoute />} />
+            <Route path="/end-to-end" element={null} />
             <Route path="/interface" element={<InterfaceRoute />} />
             <Route path="/renderer" element={<RendererRoute />} />
             <Route path="/batch" element={<BatchTaskCenterRoute />} />

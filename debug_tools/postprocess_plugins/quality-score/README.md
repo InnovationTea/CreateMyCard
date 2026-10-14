@@ -138,7 +138,7 @@ npm run build
 
 | 文件 | 用途 |
 |---|---|
-| `docs/云侧方案设计.md`（仓库根目录） | 双输入、证据边界和单条比较契约 |
+| [`调试平台运行规范.md`](../../调试平台运行规范.md#质量评分与跨批次比较) | 双输入、证据关联和单条比较契约 |
 | `batch_testing/quality_import.py` | 安全导入、清单哈希校验和独立运行目录 |
 | `batch_testing/api.py` | 导入接口、单条对比参数 |
 | `batch_testing/postprocess.py` | 导入来源跳过画廊，保留原排队和依赖行为 |
