@@ -767,9 +767,9 @@ Row(
     {
       "width": "matchParent",
       "height": "matchParent",
-      "layoutWeight": 2,
+      "layoutWeight": 1,
       "itemMargin": 4,
-      "justifyContent": "center",
+      "justifyContent": "spaceBetween",
       "alignItems": "start",
       "clip": true,
       "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -801,6 +801,9 @@ Row(
       "width": "matchParent",
       "height": "matchParent",
       "layoutWeight": 1,
+      "padding": 12,
+      "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+      "borderRadius": 16,
       "itemMargin": 6,
       "justifyContent": "center",
       "alignItems": "start",
@@ -1755,6 +1758,9 @@ Column(
       {
         "width": "matchParent",
         "layoutWeight": 1,
+        "padding": 12,
+        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+        "borderRadius": 16,
         "itemMargin": 4,
         "justifyContent": "center",
         "alignItems": "start",
@@ -1778,6 +1784,9 @@ Column(
       {
         "width": "matchParent",
         "layoutWeight": 1,
+        "padding": 12,
+        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+        "borderRadius": 16,
         "itemMargin": 4,
         "justifyContent": "center",
         "alignItems": "start",
