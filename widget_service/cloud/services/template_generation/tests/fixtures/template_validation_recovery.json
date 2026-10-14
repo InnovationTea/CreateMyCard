@@ -1,0 +1,1534 @@
+[
+  {
+    "name": "calendar-three-notes",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar2",
+          "src": "resources/base/media/emoji_calendar2.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "eventCount": {
+              "sampleValue": 1,
+              "type": "integer",
+              "description": "标准示例字段"
+            },
+            "events": [
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x4",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/description",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/1/title",
+          "/events/1/description",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/2/title",
+          "/events/2/description",
+          "/events/2/dtStart",
+          "/events/2/dtEnd"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/eventCount",
+          "/events/0/description",
+          "/events/1/description",
+          "/events/2/description"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"ScheduleOverviewEventCountThreeNotesWideFull@1\", {}));"
+  },
+  {
+    "name": "earphone-weather-explicit",
+    "task": {
+      "appVersion": "11.7.8.341",
+      "assetCandidates": [
+        {
+          "id": "asset.ic_Bluetooth",
+          "src": "resources/base/media/ic_Bluetooth.svg"
+        },
+        {
+          "id": "asset.ic_weather_color",
+          "src": "resources/base/media/ic_weather_color.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "earphone": {
+            "earphoneName": {
+              "sampleValue": "示例耳机",
+              "type": "string",
+              "description": "标准示例字段"
+            },
+            "isConnected": {
+              "sampleValue": true,
+              "type": "boolean",
+              "description": "标准示例字段"
+            }
+          },
+          "weather": {
+            "current": {
+              "condition": {
+                "sampleValue": "多云",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "temperatureText": {
+                "sampleValue": "29℃",
+                "type": "string",
+                "description": "标准示例字段"
+              }
+            },
+            "location": {
+              "cityCode": {
+                "sampleValue": "60814",
+                "type": "string",
+                "description": "标准示例字段"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/current/condition",
+          "/current/temperatureText"
+        ],
+        "GetEarphoneInfo": [
+          "/isConnected"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "ViewWeather": "/current/condition",
+        "GetEarphoneInfo": "/isConnected"
+      },
+      "action": []
+    },
+    "body": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {}), Template(\"BluetoothDeviceOverviewNameAndConnectionSupport@1\", {\"bluetoothIconOrDeviceIcon\": \"resources/base/media/ic_Bluetooth.svg\"}));"
+  },
+  {
+    "name": "earphone-weather-overview",
+    "task": {
+      "appVersion": "11.7.8.341",
+      "assetCandidates": [
+        {
+          "id": "asset.ic_Bluetooth",
+          "src": "resources/base/media/ic_Bluetooth.svg"
+        },
+        {
+          "id": "asset.ic_weather_color",
+          "src": "resources/base/media/ic_weather_color.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "earphone": {
+            "earphoneName": {
+              "sampleValue": "示例耳机",
+              "type": "string",
+              "description": "标准示例字段"
+            },
+            "isConnected": {
+              "sampleValue": true,
+              "type": "boolean",
+              "description": "标准示例字段"
+            }
+          },
+          "weather": {
+            "current": {
+              "condition": {
+                "sampleValue": "多云",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "temperatureText": {
+                "sampleValue": "29℃",
+                "type": "string",
+                "description": "标准示例字段"
+              }
+            },
+            "location": {
+              "cityCode": {
+                "sampleValue": "60814",
+                "type": "string",
+                "description": "标准示例字段"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetEarphoneInfo",
+          "writeResultTo": "/data/earphone"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/current/condition"
+        ],
+        "GetEarphoneInfo": [
+          "/isConnected"
+        ]
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "allowCalendarViewFallback": false
+    },
+    "body": "Template(\"TwoSupportLayout@1\", {},\n  Template(\"WeatherOverviewTemperatureSupport@1\", {}),\n  Template(\"BluetoothDeviceOverviewNameAndConnectionSupport@1\", {\"bluetoothIconOrDeviceIcon\": \"resources/base/media/ic_Bluetooth.svg\"})\n);"
+  },
+  {
+    "name": "wind-label",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.icon_weather_wind",
+          "src": "resources/base/media/icon_weather_wind.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "weather": {
+            "current": {
+              "airQuality": {
+                "sampleValue": "良",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "condition": {
+                "sampleValue": "多云",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "temperatureText": {
+                "sampleValue": "29℃",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "windDirection": {
+                "sampleValue": "东南风",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "windLevel": {
+                "sampleValue": 2,
+                "type": "integer",
+                "description": "标准示例字段"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/current/airQuality"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/windDirection",
+          "/current/windLevel"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": false
+    },
+    "body": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewWindFull@1\", {\"locationIcon\": \"resources/base/media/icon_weather_wind.svg\"}));"
+  },
+  {
+    "name": "weather-humidity",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batterySOCText": {
+              "sampleValue": "68%",
+              "type": "string",
+              "description": "标准示例字段"
+            },
+            "chargingStatusDesc": {
+              "sampleValue": "未充电",
+              "type": "string",
+              "description": "标准示例字段"
+            }
+          },
+          "weather": {
+            "current": {
+              "airQuality": {
+                "sampleValue": "良",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "condition": {
+                "sampleValue": "多云",
+                "type": "string",
+                "description": "标准示例字段"
+              },
+              "humidityPercent": {
+                "sampleValue": 68,
+                "type": "number",
+                "description": "标准示例字段"
+              },
+              "temperatureText": {
+                "sampleValue": "29℃",
+                "type": "string",
+                "description": "标准示例字段"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {
+            "prefectureName": "南京市"
+          },
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetPhoneBatteryInfo",
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/airQuality"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": false
+    },
+    "body": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureHumiditySupport@1\", {\"location\": \"南京市\"}), Template(\"BatteryOverviewPhoneTextSupport@1\", {}));"
+  },
+  {
+    "name": "calendar-count-details",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar2",
+          "src": "resources/base/media/emoji_calendar2.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "eventCount": {
+              "sampleValue": 1,
+              "type": "integer",
+              "description": "标准示例字段"
+            },
+            "events": [
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x4",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/description",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/description"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description"
+        ]
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"ScheduleOverviewEventCountDetailsWideFull@1\", {}));"
+  },
+  {
+    "name": "png-calendar-date",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar",
+          "src": "resources/base/media/emoji_calendar.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "countdownDays": {
+                  "sampleValue": 0,
+                  "type": "integer",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "startDate": {
+                  "sampleValue": "08-06",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示日程安排及所选字段"
+    },
+    "card": {
+      "title": "日程安排",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/0/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewDateLocationTimeFull@1\", {\"calendarIcon\": \"resources/base/media/emoji_calendar.png\", \"headerLabel\": \"日程安排\"}));"
+  },
+  {
+    "name": "png-meeting-source",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar2",
+          "src": "resources/base/media/emoji_calendar2.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x4",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/1/eventLocation",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/dtEnd",
+          "/events/2/eventLocation"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"ScheduleOverviewMeetingSourceWideFull@1\", {\"sourceIcon\": \"resources/base/media/emoji_calendar2.png\"}));"
+  },
+  {
+    "name": "sleep-duration",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_sleep",
+          "src": "resources/base/media/emoji_sleep.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "healthSport": {
+            "nightSleepDurationText": {
+              "sampleValue": "7小时1分",
+              "type": "string",
+              "description": "标准示例字段"
+            }
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetHealthAndSportSummary",
+          "writeResultTo": "/data/healthSport"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/nightSleepDurationText"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetHealthAndSportSummary": [
+          "/nightSleepDurationText"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetHealthAndSportSummary": "/nightSleepDurationText"
+      },
+      "action": [],
+      "allowCalendarViewFallback": false
+    },
+    "body": "Template(\"SingleFocusLayout@1\", {}, Template(\"SleepOverviewFull@1\", {}));"
+  },
+  {
+    "name": "calendar-count-details-alternate",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar",
+          "src": "resources/base/media/emoji_calendar.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "eventCount": {
+              "sampleValue": 1,
+              "type": "integer",
+              "description": "标准示例字段"
+            },
+            "events": [
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x4",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"ScheduleOverviewEventCountDetailsWideFull@1\", {}));"
+  },
+  {
+    "name": "weather-date-redundant-business",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "time": {
+            "currentDate": {
+              "sampleValue": "示例",
+              "type": "string",
+              "description": "标准示例字段"
+            },
+            "dayOfWeek": {
+              "sampleValue": "示例",
+              "type": "string",
+              "description": "标准示例字段"
+            }
+          },
+          "weather": {
+            "daily": [
+              {},
+              {
+                "condition": {
+                  "sampleValue": "多云",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "date": {
+                  "sampleValue": "2026-08-06",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "temperatureRangeText": {
+                  "sampleValue": "25℃ / 32℃",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "weekday": {
+                  "sampleValue": "星期四",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "ViewWeather",
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "arguments": {},
+          "capabilityId": "GetCurrentTime",
+          "writeResultTo": "/data/time"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/daily/1/date",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/daily/1/date",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText"
+        ],
+        "GetCurrentTime": []
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "allowCalendarViewFallback": false
+    },
+    "body": "Template(\"SingleFocusLayout@1\",{},Template(\"WeatherOverviewDailyDateFull@1\",{}));"
+  },
+  {
+    "name": "png-calendar-start-date",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar",
+          "src": "resources/base/media/emoji_calendar.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "startDate": {
+                  "sampleValue": "08-06",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示日程安排及所选字段"
+    },
+    "card": {
+      "title": "日程安排",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewDateLocationTimeFull@1\", {\"calendarIcon\": \"resources/base/media/emoji_calendar.png\", \"headerLabel\": \"日程安排\"}));"
+  },
+  {
+    "name": "calendar-count-dated-location",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.calendar_fill",
+          "src": "resources/base/media/calendar_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "eventCount": {
+              "sampleValue": 1,
+              "type": "integer",
+              "description": "标准示例字段"
+            },
+            "events": [
+              {
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "eventLocation": {
+                  "sampleValue": "会议室",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "startDate": {
+                  "sampleValue": "08-06",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x2",
+      "userQuery": "展示日程详情及所选字段"
+    },
+    "card": {
+      "title": "日程详情",
+      "description": "展示所选字段",
+      "suggestSize": "2x2",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/eventCount"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": []
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewEventCountDatedLocationFull@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"headerLabel\": \"日程详情\"}));"
+  },
+  {
+    "name": "calendar-four-details",
+    "task": {
+      "appVersion": "11.7.8.321",
+      "assetCandidates": [
+        {
+          "id": "asset.emoji_calendar2",
+          "src": "resources/base/media/emoji_calendar2.png"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "eventCount": {
+              "sampleValue": 1,
+              "type": "integer",
+              "description": "标准示例字段"
+            },
+            "events": [
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "entityId": {
+                  "sampleValue": "example-event-001",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              },
+              {
+                "description": {
+                  "sampleValue": "周例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtEnd": {
+                  "sampleValue": "15:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "dtStart": {
+                  "sampleValue": "14:00",
+                  "type": "string",
+                  "description": "标准示例字段"
+                },
+                "title": {
+                  "sampleValue": "项目例会",
+                  "type": "string",
+                  "description": "标准示例字段"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "eventCandidates": [],
+      "size": "2x4",
+      "userQuery": "展示回归卡片及所选字段"
+    },
+    "card": {
+      "title": "回归卡片",
+      "description": "展示所选字段",
+      "suggestSize": "2x4",
+      "dataBindings": [
+        {
+          "arguments": {},
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/description",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/1/description",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/dtEnd",
+          "/events/2/description",
+          "/events/3/title",
+          "/events/3/dtStart",
+          "/events/3/dtEnd",
+          "/events/3/description"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "intent": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/description",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/description",
+          "/events/3/title",
+          "/events/3/dtStart",
+          "/events/3/description"
+        ]
+      },
+      "action": [],
+      "allowCalendarViewFallback": true
+    },
+    "body": "Template(\"WideFullOnlyLayout@1\", {}, Template(\"ScheduleOverviewEventCountFourDetailsWideFull@1\", {}));"
+  }
+]

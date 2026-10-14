@@ -58,6 +58,10 @@ DISPLAY_BINDING = _display_contract()
 STRING_BINDING = _string_contract()
 PROGRESS_BINDING = _progress_contract()
 PROGRESS_CIRCLE_BINDING = _progress_circle_contract()
+MULTI_DISPLAY_PATH_BINDING = CompactPropBindingContract(
+    modes=frozenset({_PATH}),
+    path_types=_SCALAR_TYPES,
+)
 
 # This registry is the executable source of truth for semantic Compact Props.
 # It intentionally does not include Row/Column/Stack, converter-internal Text,
@@ -79,6 +83,7 @@ COMPACT_COMPONENT_BINDING_CONTRACTS: dict[
     "EmphasisText": {
         "mainText": DISPLAY_BINDING,
         "secondaryText": DISPLAY_BINDING,
+        "secondaryText[]": MULTI_DISPLAY_PATH_BINDING,
     },
     "SecondaryBody": {"items[].value": DISPLAY_BINDING},
     "DataDisplay": {

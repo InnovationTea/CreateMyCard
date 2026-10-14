@@ -1,8 +1,7 @@
 #Template BatteryOverviewPhoneTextCompact@1(props: {})
 data = { percentText: $path("/batterySOCText") }
-Row({"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "padding": {"left": 12, "right": 16, "top": 8, "bottom": 8},
-  "justifyContent": "spaceBetween", "alignItems": "center", "itemMargin": 8,
-  "borderRadius": 16, "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+Row({"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
+  "justifyContent": "spaceBetween", "alignItems": "center", "itemMargin": 8},
   Column({"layoutWeight": 1, "itemMargin": 2},
   Text(data.percentText, {"width": "matchParent", "height": 27, "fontSize": 20,
     "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),

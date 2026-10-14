@@ -54,6 +54,27 @@ def test_auto_size_detects_wide_card(client):
     assert len([json.loads(line) for line in genui.splitlines()]) == 3
 
 
+def test_single_line_title_svg_without_fill_color_renders(client):
+    source = '\n'.join(
+        (
+            '["root","Column",{"width":"matchParent","height":"matchParent"},["header"]]',
+            '["header","SingleLineTitle",{"title":"活动安排",'
+            '"icon":"resources/base/media/figure_run.svg","fontSize":12,'
+            '"width":"matchParent"}]',
+        )
+    )
+
+    response = client.post(
+        "/debug/renderer/convert",
+        json={"source": source, "size": "2x2"},
+    )
+
+    assert response.status_code == 200
+    genui = response.json().get("genui")
+    assert isinstance(genui, str)
+    assert '"fillColor":"#FF1F4799"' in genui
+
+
 @pytest.mark.parametrize(
     "payload",
     [

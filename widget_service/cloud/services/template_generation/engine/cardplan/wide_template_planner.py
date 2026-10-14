@@ -13,6 +13,7 @@ from .business_actions import matches_business_data, supports_business_action
 from .models import (
     ActionBinding,
     TemplateDefinition,
+    TemplateNode,
     TemplatePlanActionAssignment,
     TemplatePlanBusinessSlot,
 )
@@ -51,6 +52,9 @@ class WideLayoutOption:
     action_owners: tuple[int | None, ...] = ()
     # 该形态没有独立 Action 槽位，允许单动作内嵌进某个业务模板根节点。
     allows_embedded_action: bool = False
+    # 部分布局的槽位高度是固定预算。声明后，Planner 会在生成组合时先做
+    # 业务模板的静态最小高度预检，避免把必然溢出的组合交给第二层模型。
+    slot_height_budgets: tuple[int | None, ...] = ()
 
 
 # 顺序只用于同分方案的稳定择优；不得因前一形态不成立而拒绝后续形态。
@@ -81,8 +85,20 @@ _WIDE_LAYOUTS = (
         "WideHalfTwoCompactLayout", ("WideHalf", "Compact"), ("CompactAction",), (None,)
     ),
     WideLayoutOption("WideFullTwoCompactLayout", ("Hero", "Compact"), ("CompactAction",), (None,)),
-    WideLayoutOption("WideTwoFocusTwoActionLayout", ("Hero", "Hero"), ("PillAction",) * 2, (0, 1)),
-    WideLayoutOption("WideTwoHeroActionLayout", ("Hero", "Hero"), ("PillAction",) * 2, (0, 1)),
+    WideLayoutOption(
+        "WideTwoFocusTwoActionLayout",
+        ("Hero", "Hero"),
+        ("PillAction",) * 2,
+        (0, 1),
+        slot_height_budgets=(66, 66),
+    ),
+    WideLayoutOption(
+        "WideTwoHeroActionLayout",
+        ("Hero", "Hero"),
+        ("PillAction",) * 2,
+        (0, 1),
+        slot_height_budgets=(58, 58),
+    ),
     WideLayoutOption("WideFullHeroTwoActionLayout", ("Full", "Hero"), ("PillAction",) * 2, (1, 1)),
     WideLayoutOption("WideFullTwoCompactLayout", ("Full",), ("CompactAction",) * 2, (None, None)),
     WideLayoutOption(
@@ -162,6 +178,8 @@ def wide_plan_compositions(
                 if not embedded and len(layout.action_templates) != len(actions):
                     continue
                 for ordered in _ordered_slots(option_slots, layout.roles):
+                    if not _layout_geometry_fits(layout, ordered, registry):
+                        continue
                     for assignments in _action_assignments(
                         layout, ordered, actions, registry, task, embedded
                     ):
@@ -172,6 +190,177 @@ def wide_plan_compositions(
                         yield WidePlanComposition(
                             f"{layout.layout_id}@1", ordered, assignments, layout_rank
                         )
+
+
+def _layout_geometry_fits(
+    layout: WideLayoutOption,
+    slots: tuple[TemplatePlanBusinessSlot, ...],
+    registry: CardPlanRegistry,
+) -> bool:
+    """Reject deterministic geometry overflows before second-layer selection.
+
+    The prediction intentionally uses the provider blueprint rather than the
+    LLM-filled parameters. Fixed text/icon heights and vertical gaps are
+    already part of the trusted template definition, so this is conservative:
+    a template is rejected when its declared minimum content cannot fit the
+    slot, while flexible templates remain eligible.
+    """
+    if not layout.slot_height_budgets:
+        return True
+    if len(layout.slot_height_budgets) != len(slots):
+        return False
+    for slot, budget in zip(slots, layout.slot_height_budgets, strict=True):
+        if budget is None:
+            continue
+        required_height = _template_intrinsic_height(slot.template_id, registry)
+        if required_height > budget:
+            return False
+    return True
+
+
+def _template_intrinsic_height(template_id: str, registry: CardPlanRegistry) -> int:
+    """Estimate a business template's natural vertical requirement.
+
+    ``matchParent`` is deliberately ignored here: it is a flexible request,
+    not an intrinsic minimum. Numeric heights, vertical padding, item margins,
+    and the largest branch of paired template conditionals are retained.
+    """
+    definition = registry.require_template(template_id)
+    variants = tuple(
+        variant
+        for variant in definition.variants
+        if not variant.supported_card_sizes or "2x4" in variant.supported_card_sizes
+    ) or definition.variants
+    return max((_template_node_intrinsic_height(variant.root) for variant in variants), default=0)
+
+
+def _template_node_intrinsic_height(node: TemplateNode) -> int:
+    if node.component in {
+        "IfParam",
+        "IfMissingParam",
+        "IfBind",
+        "IfMissingBind",
+        "IfAllBind",
+        "IfAnyBind",
+        "IfAllMissingBind",
+        "IfAnyMissingBind",
+    }:
+        return _template_sequence_intrinsic_height(node.children)
+
+    options = _template_node_options(node)
+    explicit_height = options.get("height")
+    fixed_height = int(explicit_height) if isinstance(explicit_height, (int, float)) else 0
+    children_height = _template_sequence_intrinsic_height(node.children)
+    component = node.component
+    if component in {"Row", "Stack"}:
+        natural_height = max((
+            _template_node_intrinsic_height(child) for child in node.children
+        ), default=24)
+    elif component in {"Column", "List"}:
+        margin = options.get("itemMargin", options.get("space", 4))
+        margin_value = int(margin) if isinstance(margin, (int, float)) else 4
+        natural_height = children_height + max(
+            0, _template_sequence_effective_count(node.children) - 1
+        ) * margin_value
+    else:
+        natural_height = {
+            "Text": 20,
+            "Image": 24,
+            "Progress": 40,
+            "Button": 32,
+            "Divider": 0,
+        }.get(component, 20)
+        if node.children:
+            natural_height = max(natural_height, children_height)
+
+    # A primitive's explicit height is its actual line/icon height. For
+    # containers, retain the larger of the fixed slot and natural children so
+    # the predictor remains conservative when a blueprint itself is too tight.
+    if component not in {"Row", "Stack", "Column", "List"} and fixed_height:
+        natural_height = fixed_height
+
+    padding = options.get("padding")
+    if isinstance(padding, dict):
+        natural_height += sum(
+            int(padding.get(edge, 0))
+            for edge in ("top", "bottom")
+            if isinstance(padding.get(edge, 0), (int, float))
+        )
+    return max(fixed_height, natural_height)
+
+
+def _template_sequence_intrinsic_height(children: tuple[TemplateNode, ...]) -> int:
+    total = 0
+    index = 0
+    while index < len(children):
+        current = children[index]
+        if index + 1 < len(children) and _are_conditional_pair(current, children[index + 1]):
+            total += max(
+                _template_node_intrinsic_height(current),
+                _template_node_intrinsic_height(children[index + 1]),
+            )
+            index += 2
+            continue
+        total += _template_node_intrinsic_height(current)
+        index += 1
+    return total
+
+
+def _template_sequence_effective_count(children: tuple[TemplateNode, ...]) -> int:
+    """Count rendered children while collapsing paired conditional branches."""
+    count = 0
+    index = 0
+    while index < len(children):
+        count += 1
+        if index + 1 < len(children) and _are_conditional_pair(
+            children[index], children[index + 1]
+        ):
+            index += 2
+        else:
+            index += 1
+    return count
+
+
+def _are_conditional_pair(first: TemplateNode, second: TemplateNode) -> bool:
+    complements = {
+        "IfParam": "IfMissingParam",
+        "IfMissingParam": "IfParam",
+        "IfBind": "IfMissingBind",
+        "IfMissingBind": "IfBind",
+        "IfAllBind": "IfAnyMissingBind",
+        "IfAnyMissingBind": "IfAllBind",
+        "IfAnyBind": "IfAllMissingBind",
+        "IfAllMissingBind": "IfAnyBind",
+    }
+    if complements.get(first.component) != second.component:
+        return False
+    if not first.values or not second.values:
+        return True
+    return first.values[0].model_dump(mode="json") == second.values[0].model_dump(mode="json")
+
+
+def _template_node_options(node: TemplateNode) -> dict[str, object]:
+    for value in node.values:
+        if value.kind == "object":
+            return {
+                key: _template_value_literal(item)
+                for key, item in value.properties.items()
+                if item.kind in {"literal", "object"}
+            }
+    return {}
+
+
+def _template_value_literal(value: object) -> object:
+    if not hasattr(value, "kind"):
+        return None
+    if value.kind == "literal":
+        return value.value
+    if value.kind == "object":
+        return {
+            key: _template_value_literal(item)
+            for key, item in value.properties.items()
+        }
+    return None
 
 
 def _required_business_actions_are_assigned(

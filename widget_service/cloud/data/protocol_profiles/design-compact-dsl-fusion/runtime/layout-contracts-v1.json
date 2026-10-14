@@ -83,6 +83,15 @@
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
+            {"path": [1, 0], "types": ["InfoBlock"], "slotSize": {"width": 126, "height": 50}, "eventPolicy": "forbid-subtree"},
+            {"path": [1, 1], "types": ["InfoBlock"], "slotSize": {"width": 126, "height": 50}, "eventPolicy": "forbid-subtree"}
+          ]
+        },
+        {
+          "rules": [
+            {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
+            {"path": [0], "types": ["SingleLineTitle"]},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 50}},
             {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "height": 50}}
           ]

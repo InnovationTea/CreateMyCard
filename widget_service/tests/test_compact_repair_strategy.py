@@ -352,7 +352,7 @@ def test_drop_no_progress_counts_toward_global_limit_without_early_stop() -> Non
     assert drop_directives[1].no_progress is True
     assert "上一轮没有执行 Drop" in drop_directives[1].instruction
     assert "从直接父组件 children 中移除该 ID" in drop_directives[1].instruction
-    assert "禁止原样返回 invalidSourceDsl" in drop_directives[1].instruction
+    assert "禁止原样返回上一轮 Compact DSL" in drop_directives[1].instruction
     assert exhausted.repair_strategy == "exhausted"
     assert exhausted.retryable is False
     assert exhausted.no_progress is True

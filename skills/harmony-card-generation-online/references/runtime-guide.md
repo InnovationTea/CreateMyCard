@@ -17,6 +17,9 @@
 概述读取 dataCapabilities、可选 unavailableCapabilities、eventCapabilities 和 assetCandidates。
 unavailableCapabilities 缺失或空数组视为空；存在时必须为字符串数组，不能选择其中 ID 或加载其 schema。
 事件读取 id、description、actionTemplate、dynamicArguments；素材只读 id/description，不要求素材路径、版本或标签。
+素材 description 是选择说明，保留语义、适用业务及必要限制；详细外观和渲染规则由微服务维护，
+不再请求素材详情。事件描述沿用原文，参数仍按 actionTemplate 和 dynamicArguments 填写。
+素材存在不代表对应数据或动作可用；共性使用范围仍遵循本文候选规则，单项明确的禁用范围优先。
 
 只为概述中选中的可用数据 ID 加载 schema，不传空数组。结果读取 dataCapabilities 和 missingCapabilityIds；
 移除 missing 后立即重新判断核心目标，不能先调用权限或生成。数据类 edit 校验编辑后保留的完整集合。
@@ -97,7 +100,7 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 ### 筛选和尺寸预算
 
 - 数据最多选择 2 个核心候选；事件最多 2 个主动作。同一个事件 id 构造的多个事件视作一个主动作。
-- 素材选择 1～4 个强相关 ID，没有匹配时传空数组。标题主题素材必须按返回 `description` 精确匹配主业务：仅当描述明确覆盖该业务，且注明适合作为标题主题图标的彩色 PNG 或可染色 SVG 时，最多传 1 个对应素材；不因日期、时间、状态、动作或字段存在就推断匹配。该素材只允许在合同和容量成立时进入 `SingleLineTitle.icon` 的 20vp 右侧装饰位；PNG 保留原色，SVG 使用合法 `fillColor`。它不承载状态或动作语义，正文、按钮、环中心和双业务分区不主动复用。不得只为填满画面新增数据、高风险动作或无关事件。
+- 素材选择 1～4 个强相关 ID，没有匹配时传空数组。按返回 `description` 判断素材与主业务、标题、状态或动作的语义关系，不要求描述声明专用槽位；先为 `PillButton` 和 `CircleButton` 分配动作图标，再由 `SingleLineTitle` 从按钮未使用的候选中按标题或卡片主题语义选择图标。按钮与标题不得复用同一素材，但可使用不同的语义匹配素材；PNG 保留原色，`SingleLineTitle` 的 SVG 由运行时固定使用 100% 不透明的主图形色，其它显式染色 SVG 使用合法 `fillColor`。不得为了保留标题图标把可使用准确图标的动作改成纯文字按钮，也不得伪造素材路径。没有剩余匹配素材时标题不选择图标。不得只为填满画面新增数据、高风险动作或无关事件。
 - 用户明确指定 2x2/2x4 时优先尊重；否则默认 2x2，包含数据且至少两个点击能力时建议 2x4。
 - 2x2 以 1 个焦点、最多 3 个主区域和 1 个主动作为预算，主要展示项通常 1～3 项，紧凑且不新增主区域时最多 4 项；
   2x4 最多 4 个主区域、2 个主动作、4 个主要展示项。

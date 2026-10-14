@@ -250,27 +250,17 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
     }
 
 
-def test_secondary_body_visual_recipe_has_controlled_text_roles() -> None:
+def test_secondary_body_visual_recipe_uses_single_and_multiple_line_styles() -> None:
     base = component_visual_recipe("SecondaryBody", size="2x2")
-    body = component_visual_recipe("SecondaryBody", size="2x2", variant="body")
-    multiline = component_visual_recipe(
-        "SecondaryBody",
-        size="2x2",
-        variant="bodyMultiline",
-    )
-    metadata = component_visual_recipe(
-        "SecondaryBody",
-        size="2x2",
-        variant="metadata",
-    )
-
+    multiline = component_visual_recipe("SecondaryBody", size="2x2", variant="multiline")
+    assert set(base.get("variants", {})) == {"multiline"}
     assert base["metrics"] == {"minimumItems": 1, "maximumItems": 4}
-    assert body["parts"]["text"]["styles"]["fontSize"] == 14
-    assert body["parts"]["text"]["styles"]["fontWeight"] == 400
-    assert multiline["parts"]["text"]["styles"]["height"] == 40
-    assert multiline["parts"]["text"]["styles"]["maxLines"] == 2
-    assert metadata["parts"]["text"]["styles"]["fontSize"] == 12
-    assert metadata["parts"]["text"]["styles"]["height"] == 18
+    assert base["parts"]["text"]["styles"]["fontSize"] == 14
+    assert base["parts"]["text"]["styles"]["fontWeight"] == 400
+    assert base["parts"]["text"]["styles"]["height"] == 19
+    assert multiline["parts"]["text"]["styles"]["fontSize"] == 12
+    assert multiline["parts"]["text"]["styles"]["height"] == 16
+
 
 
 def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> None:

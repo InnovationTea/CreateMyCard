@@ -242,6 +242,23 @@ test("EmphasisText 使用与 claw-widget 一致的行盒与文本间距", () => 
   assert.equal(Number(secondary.fontSize) * Number(secondary.lineHeight), secondary.height);
 });
 
+test("EmphasisText 次文本将多个有序绑定编译为响应式分隔表达式", () => {
+  const source = [
+    '["root","Column",{},["weather"]]',
+    '["weather","EmphasisText",{"mainText":{"path":"/data/weather/condition"},'
+      + '"secondaryText":[{"path":"/data/weather/city"},{"path":"/data/weather/district"}]}]',
+    '["/data/weather/condition","多云"]',
+    '["/data/weather/city","上海市"]',
+    '["/data/weather/district","青浦区"]',
+  ].join("\n");
+  const { graph } = compileMiniDsl(source, { size: "2x2" });
+
+  assert.equal(
+    graph.getNode("weather_secondary")?.props.content,
+    "{{ ${/data/weather/city} + ' | ' + ${/data/weather/district} }}",
+  );
+});
+
 test("带图标 PillButton 补偿文字行盒以实现视觉垂直居中", () => {
   const source = JSON.stringify([
     "action",
@@ -337,7 +354,7 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
     },
     {
       type: "SecondaryBody",
-      props: { role: "metadata", items: [{ value: "10:30" }] },
+      props: { items: [{ value: "10:30", maxLines: 2 }] },
       fontSize: 12,
     },
     {
@@ -383,7 +400,7 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
   }
 });
 
-test("SecondaryBody 继承显示值绑定、按角色限制行数并保留完整标签", () => {
+test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色", () => {
   const source = [
     '["root","Column",{},["body","metadata","supporting"]]',
     '["body","SecondaryBody",{"role":"body","items":[{"value":{"path":"/description"},"maxLines":2}],"fontColor":"#FF1F4799"}]',
@@ -395,29 +412,29 @@ test("SecondaryBody 继承显示值绑定、按角色限制行数并保留完整
   const { graph } = compileMiniDsl(source, { size: "2x2" });
   const body = graph.getNode("body_item0_value")?.props.styles as Record<string, unknown>;
   const metadata = graph.getNode("metadata_item0_value")?.props.styles as Record<string, unknown>;
-  assert.equal(body.fontSize, 14);
+  assert.equal(body.fontSize, 12);
   assert.equal(body.fontWeight, 400);
-  assert.equal(body.height, 40);
+  assert.equal(body.height, 32);
   assert.equal(body.maxLines, 2);
-  assert.equal(metadata.fontSize, 12);
-  assert.equal(metadata.height, 18);
+  assert.equal(metadata.fontSize, 14);
+  assert.equal(metadata.height, 19);
   const supportingLabel = graph.getNode("supporting_item0_label")?.props.styles as Record<string, unknown>;
   const supportingValue = graph.getNode("supporting_item0_value")?.props.styles as Record<string, unknown>;
   assert.equal(supportingLabel.flexShrink, 0);
   assert.equal(supportingValue.flexShrink, 1);
 
-  assert.throws(
-    () => compileMiniDsl(
-      '["root","SecondaryBody",{"items":[{"value":"正文"}],"fontColor":"#FF1F4799"}]',
-    ),
-    /必须声明 role/,
+  const single = compileMiniDsl(
+    '["root","SecondaryBody",{"items":[{"value":"正文"}]}]',
   );
+  const singleStyles = single.graph.getNode("root_item0_value")?.props.styles as Record<string, unknown>;
+  assert.equal(singleStyles.fontSize, 14);
+  assert.equal(singleStyles.height, 19);
   const multilineMetadata = compileMiniDsl(
     '["root","SecondaryBody",{"role":"metadata","items":[{"value":"更新时间","maxLines":2}]}]',
   );
   const multilineStyles = multilineMetadata.graph.getNode("root_item0_value")?.props
     .styles as Record<string, unknown>;
-  assert.equal(multilineStyles.height, 36);
+  assert.equal(multilineStyles.height, 32);
   assert.equal(multilineStyles.maxLines, 2);
 });
 

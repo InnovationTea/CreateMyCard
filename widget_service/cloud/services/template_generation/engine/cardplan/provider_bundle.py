@@ -197,13 +197,18 @@ class ProviderTemplateEntry(StrictModel):
         default_factory=dict, alias="assetParameterSemanticTags"
     )
     supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
-    size_scoped_hidden_parameters: dict[str, tuple[str, ...]] = Field(
-        default_factory=dict,
-        alias="sizeScopedHiddenParameters",
-    )
+    # Most business-template sizes are derived from the template suffix.  A
+    # small number of legacy templates have a `Full`/`Compact` suffix but are
+    # authored for a wide 2x4 slot (for example a three-day forecast).  These
+    # entries may explicitly override the suffix-derived size without
+    # changing the public template id.
     declared_supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] | None = Field(
         default=None,
         alias="supportedCardSizes",
+    )
+    size_scoped_hidden_parameters: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        alias="sizeScopedHiddenParameters",
     )
     entry: str = Field(min_length=1)
 
@@ -226,13 +231,13 @@ class ProviderTemplateEntry(StrictModel):
         return self
 
     @model_validator(mode="after")
-    def declared_card_sizes_are_valid(self) -> ProviderTemplateEntry:
-        card_sizes = self.declared_supported_card_sizes
-        if card_sizes is None:
+    def declared_sizes_are_valid(self) -> ProviderTemplateEntry:
+        sizes = self.declared_supported_card_sizes
+        if sizes is None:
             return self
         if self.capability_id is None:
             raise ValueError("Provider supportedCardSizes requires a business Template")
-        if not card_sizes or len(card_sizes) != len(set(card_sizes)):
+        if not sizes or len(sizes) != len(set(sizes)):
             raise ValueError("Provider supportedCardSizes must be nonempty and unique")
         return self
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
@@ -29,34 +30,33 @@ from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRe
 _MODULE = "[Prompt Builder]"
 
 _REPAIR_TARGET_INSTRUCTIONS = {
-    "component": (
-        "以 invalidSourceDsl 为直接修复对象，只修改错误组件和必要的直接父容器；"
-    ),
+    "component": ("以上一轮 Compact DSL 为直接修复对象，只修改错误组件和必要的直接父容器；"),
     "sublayout": (
-        "将 invalidSourceDsl 作为整体上下文与事实来源，重建报错所属信息组，"
-        "保持其它区域稳定；"
+        "将上一轮 Compact DSL 作为整体上下文与事实来源，重建报错所属信息组，保持其它区域稳定；"
     ),
     "parent_layout": (
-        "invalidSourceDsl 只用于恢复事实、绑定、动作和父区外正确内容；"
+        "上一轮 Compact DSL 只用于恢复事实、绑定、动作和父区外正确内容；"
         "允许替换整个报错父布局，不受其旧父区拓扑约束；"
     ),
     "full_dsl": (
-        "invalidSourceDsl 只作为失败诊断与事实核对材料，禁止沿用其旧拓扑；"
-        "从 originalUserContent、已接受 Plan 和首次系统约束重新构造完整 DSL；"
+        "上一轮 Compact DSL 只作为失败诊断与事实核对材料，禁止沿用其旧拓扑；"
+        "从本对话已有的 TaskSpec 与已接受 Plan 重新构造完整 DSL；"
     ),
 }
+
+_REPAIR_CONTRACT_OPEN = "<repair_contract>"
 
 
 def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
     """根据修复范围定义上一轮 DSL 在本轮中的角色。"""
     if repair_strategy is None:
-        return "以 invalidSourceDsl 为直接修复对象；"
+        return "以上一轮 Compact DSL 为直接修复对象；"
     raw_scope = repair_strategy.get("scope")
     if not isinstance(raw_scope, str):
-        return "以 invalidSourceDsl 为直接修复对象；"
+        return "以上一轮 Compact DSL 为直接修复对象；"
     return _REPAIR_TARGET_INSTRUCTIONS.get(
         raw_scope,
-        "以 invalidSourceDsl 为直接修复对象；",
+        "以上一轮 Compact DSL 为直接修复对象；",
     )
 
 
@@ -86,11 +86,10 @@ def _approved_omissions(
         omissions.append(omission)
     return omissions
 
+
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
-REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(
-    DESIGN_COMPACT_PROFILE_ID
-)
+REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(DESIGN_COMPACT_PROFILE_ID)
 
 _FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
 
@@ -430,8 +429,7 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
         "不得从中任意挑选一个无标签状态放大。"
     ),
     "calendar-event": (
-        "本卡是事项路由：事项标题与时间形成连续信息组，"
-        "日期/地点/更新时间只保留必要项。"
+        "本卡是事项路由：事项标题与时间形成连续信息组，日期/地点/更新时间只保留必要项。"
     ),
     "health-readout": (
         "本卡是健康读数路由：先判断是单一主读数还是恰好两个同级短指标；前者只保留一个"
@@ -457,6 +455,7 @@ _VISUAL_ROUTE_INSTRUCTIONS = {
 def _contains_any(value: str, markers: tuple[str, ...]) -> bool:
     normalized = value.casefold()
     return any(marker.casefold() in normalized for marker in markers)
+
 
 _SIZE_LAYOUT_ROUTE_LOCKS = {
     "2x2": """# 本次尺寸骨架硬约束（高优先级）
@@ -576,9 +575,7 @@ class PromptBuilder:
             return 0
         if normalized_roots.intersection({"countdown", "calendar", "earphone"}):
             return 0
-        if not normalized_roots.issubset(
-            {"weather", "healthsport", "phonebattery"}
-        ):
+        if not normalized_roots.issubset({"weather", "healthsport", "phonebattery"}):
             return 0
 
         weather_schema = None
@@ -740,9 +737,7 @@ class PromptBuilder:
 
         if task_spec.size == "2x2" and PromptBuilder._uses_single_countdown(task_spec):
             example_id = (
-                "2x2-V05"
-                if PromptBuilder._uses_expanded_countdown_layout(task_spec)
-                else "2x2-V01"
+                "2x2-V05" if PromptBuilder._uses_expanded_countdown_layout(task_spec) else "2x2-V01"
             )
             return "countdown", (example_id,)
 
@@ -779,16 +774,19 @@ class PromptBuilder:
         if task_spec.size == "2x2" and PromptBuilder._query_requests_multiple_actions(task_spec):
             return "generic", ("2x2-V03",)
 
-        if task_spec.size == "2x2" and event_count == 1 and _contains_any(
-            query, ("右下", "图标按钮", "圆形按钮", "圆钮"),
+        if (
+            task_spec.size == "2x2"
+            and event_count == 1
+            and _contains_any(
+                query,
+                ("右下", "图标按钮", "圆形按钮", "圆钮"),
+            )
         ):
             return "generic", ("2x2-V08",)
 
         normalized_roots = {root.casefold() for root in roots}
         if "earphone" in normalized_roots:
-            return "earphone-status", (
-                ("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",)
-            )
+            return "earphone-status", (("2x2-V02",) if task_spec.size == "2x2" else ("2x4-V12",))
         if "phonebattery" in normalized_roots:
             requested_ring_with_action = (
                 task_spec.size == "2x2"
@@ -810,19 +808,13 @@ class PromptBuilder:
                 return "battery-readout", ("2x2-V06",)
             return "battery-readout", (("2x2-V06",) if task_spec.size == "2x2" else ("2x4-V02",))
         if "weather" in normalized_roots or any(
-            _contains_any(query, markers)
-            for markers in (("天气", "温度", "空气质量"),)
+            _contains_any(query, markers) for markers in (("天气", "温度", "空气质量"),)
         ):
-            if (
-                task_spec.size == "2x2"
-                and PromptBuilder._has_explicit_non_weather_action(task_spec)
+            if task_spec.size == "2x2" and PromptBuilder._has_explicit_non_weather_action(
+                task_spec
             ):
                 return "weather-readout", ("2x2-V07",)
-            return "weather-readout", (
-                ("2x2-V07",)
-                if task_spec.size == "2x2"
-                else ("2x4-V11",)
-            )
+            return "weather-readout", (("2x2-V07",) if task_spec.size == "2x2" else ("2x4-V11",))
         if "calendar" in normalized_roots or _contains_any(
             query, ("日程", "会议", "提醒", "安排", "活动")
         ):
@@ -902,20 +894,19 @@ class PromptBuilder:
         if task_spec.size == "2x2":
             if block_count >= 4:
                 return (_TWO_BY_TWO_QUAD_FEW_SHOT_ID,)
-            has_meeting_action = (
-                bool(task_spec.eventCandidates) and PromptBuilder._query_requests_action(task_spec)
-            )
+            has_meeting_action = bool(
+                task_spec.eventCandidates
+            ) and PromptBuilder._query_requests_action(task_spec)
             if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
-                return ("2x2-V02", "2x2-V04")
+                return ("2x2-V14",)
             if normalized_roots == {"phonebattery", "earphone"}:
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             if PromptBuilder._query_mentions_weather(task_spec):
                 return (_TWO_BY_TWO_DUAL_FEW_SHOT_ID,)
             return ()
         if PromptBuilder._uses_two_dense_business_panels(task_spec):
-            if (
-                len(task_spec.eventCandidates) >= 2
-                and PromptBuilder._query_requests_action(task_spec)
+            if len(task_spec.eventCandidates) >= 2 and PromptBuilder._query_requests_action(
+                task_spec
             ):
                 return ("2x4-V17",)
             return ("2x4-V26",)
@@ -952,6 +943,15 @@ class PromptBuilder:
             return "W-four-slots"
         block_count = PromptBuilder._data_block_count(task_spec)
         if task_spec.size == "2x2":
+            normalized_roots = {
+                root.casefold() for root in PromptBuilder._data_roots(task_spec)
+            }
+            has_meeting_action = (
+                bool(task_spec.eventCandidates)
+                and PromptBuilder._query_requests_action(task_spec)
+            )
+            if normalized_roots == {"calendar", "earphone"} and has_meeting_action:
+                return "S-title-anchor"
             if block_count >= 4:
                 return "S-quad-content"
             if block_count >= 2:
@@ -994,9 +994,7 @@ class PromptBuilder:
         selected = list(lines[: heading_indexes[0]])
         for position, start in enumerate(heading_indexes):
             end = (
-                heading_indexes[position + 1]
-                if position + 1 < len(heading_indexes)
-                else len(lines)
+                heading_indexes[position + 1] if position + 1 < len(heading_indexes) else len(lines)
             )
             heading = lines[start]
             if any(f"`{name}`" in heading for name in allowed_names):
@@ -1126,9 +1124,7 @@ class PromptBuilder:
                 f"- 骨架范围：`{layout_scope}`。由模型按本轮字段关系在该范围内选择。\n"
             )
         else:
-            skeleton_instruction = (
-                f"- 固定骨架：`{layout_scope}`。不得选择或混入其它骨架。\n"
-            )
+            skeleton_instruction = f"- 固定骨架：`{layout_scope}`。不得选择或混入其它骨架。\n"
         return (
             "# 本轮路由摘要（高优先级）\n\n"
             f"{skeleton_instruction}"
@@ -1255,9 +1251,7 @@ class PromptBuilder:
         query = task_spec.userQuery.casefold()
         if any(marker in query for marker in _COUNTDOWN_QUERY_MARKERS):
             return True
-        return "天" in query and any(
-            marker in query for marker in ("还有", "剩余", "距离", "多久")
-        )
+        return "天" in query and any(marker in query for marker in ("还有", "剩余", "距离", "多久"))
 
     @staticmethod
     def _uses_expanded_countdown_layout(task_spec: TaskSpec) -> bool:
@@ -1282,16 +1276,12 @@ class PromptBuilder:
     def _uses_two_by_two_countdown_weather_layout(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x2":
             return False
-        roots = {
-            root.casefold() for root in PromptBuilder._data_roots(task_spec)
-        }
+        roots = {root.casefold() for root in PromptBuilder._data_roots(task_spec)}
         return roots == {"countdown", "weather"}
 
     @staticmethod
     def _two_by_four_focus_aux_domain_lock(task_spec: TaskSpec) -> str:
-        roots = {
-            root.casefold() for root in PromptBuilder._data_roots(task_spec)
-        }
+        roots = {root.casefold() for root in PromptBuilder._data_roots(task_spec)}
         if roots == {"phonebattery"}:
             return _TWO_BY_FOUR_BATTERY_FOCUS_AUX_LOCK
         if roots == {"earphone"}:
@@ -1312,9 +1302,7 @@ class PromptBuilder:
             return ""
         if PromptBuilder._uses_wide_full_width_list(task_spec):
             return ""
-        roots = {
-            root.casefold() for root in PromptBuilder._data_roots(task_spec)
-        }
+        roots = {root.casefold() for root in PromptBuilder._data_roots(task_spec)}
         if roots == {"calendar", "weather"}:
             return _TWO_BY_FOUR_WEATHER_CALENDAR_ALIGNMENT_LOCK
         return ""
@@ -1324,15 +1312,9 @@ class PromptBuilder:
         if isinstance(value, dict):
             if isinstance(value.get("type"), str):
                 return 1
-            return sum(
-                PromptBuilder._schema_leaf_count(child)
-                for child in value.values()
-            )
+            return sum(PromptBuilder._schema_leaf_count(child) for child in value.values())
         if isinstance(value, list):
-            return sum(
-                PromptBuilder._schema_leaf_count(child)
-                for child in value
-            )
+            return sum(PromptBuilder._schema_leaf_count(child) for child in value)
         return 0
 
     @staticmethod
@@ -1439,8 +1421,8 @@ class PromptBuilder:
         if PromptBuilder._two_by_four_metric_grid_count(task_spec) >= 4:
             return False
         candidate_count = len(task_spec.eventCandidates)
-        has_separate_actions = (
-            candidate_count >= 2 and PromptBuilder._query_requests_action(task_spec)
+        has_separate_actions = candidate_count >= 2 and PromptBuilder._query_requests_action(
+            task_spec
         )
         if len(roots) == 2 and has_separate_actions:
             return False
@@ -1452,20 +1434,14 @@ class PromptBuilder:
             if "healthsport" in normalized_roots:
                 return PromptBuilder._schema_leaf_count(data_schema) >= 4
             if "phonebattery" in normalized_roots:
-                return PromptBuilder._is_dense_phone_battery_schema(
-                    root_value
-                )
+                return PromptBuilder._is_dense_phone_battery_schema(root_value)
             if "earphone" in normalized_roots:
-                has_paired_charging = any(
-                    "leftcharging" in name for name in field_names
-                ) and any("rightcharging" in name for name in field_names)
+                has_paired_charging = any("leftcharging" in name for name in field_names) and any(
+                    "rightcharging" in name for name in field_names
+                )
                 has_two_requested_actions = candidate_count >= 2
-                return (
-                    leaf_count >= 6
-                    or (
-                        leaf_count >= 4
-                        and (has_paired_charging or has_two_requested_actions)
-                    )
+                return leaf_count >= 6 or (
+                    leaf_count >= 4 and (has_paired_charging or has_two_requested_actions)
                 )
             if "calendar" in normalized_roots:
                 has_reminder = any("remind" in name for name in field_names)
@@ -1486,11 +1462,7 @@ class PromptBuilder:
                             break
                     if group_matches:
                         advisory_count += 1
-                return (
-                    candidate_count > 0
-                    and leaf_count >= 4
-                    and advisory_count >= 2
-                )
+                return candidate_count > 0 and leaf_count >= 4 and advisory_count >= 2
             return candidate_count > 0 and leaf_count >= 4
 
         supported = normalized_roots == {"calendar", "phonebattery"} or (
@@ -1513,17 +1485,13 @@ class PromptBuilder:
                 return False
 
         fact_counts = sorted(
-            PromptBuilder._schema_leaf_count(value)
-            for value in data_schema.values()
+            PromptBuilder._schema_leaf_count(value) for value in data_schema.values()
         )
         has_clear_density_imbalance = (
             fact_counts[0] <= 2
             and fact_counts[1] >= 3
             and fact_counts[1] - fact_counts[0] >= 2
-            and (
-                fact_counts[0] == 1
-                or len(task_spec.eventCandidates) <= 1
-            )
+            and (fact_counts[0] == 1 or len(task_spec.eventCandidates) <= 1)
         )
         return has_clear_density_imbalance
 
@@ -1531,14 +1499,10 @@ class PromptBuilder:
     def _contains_schema_field(value: Any, field_name: str) -> bool:
         if isinstance(value, dict):
             return field_name in value or any(
-                PromptBuilder._contains_schema_field(child, field_name)
-                for child in value.values()
+                PromptBuilder._contains_schema_field(child, field_name) for child in value.values()
             )
         if isinstance(value, list):
-            return any(
-                PromptBuilder._contains_schema_field(child, field_name)
-                for child in value
-            )
+            return any(PromptBuilder._contains_schema_field(child, field_name) for child in value)
         return False
 
     @staticmethod
@@ -1556,33 +1520,62 @@ class PromptBuilder:
             layout_scope,
         )
         prompt = system_prompt
-        settings = get_settings()
-        if include_examples and settings.enable_design_compact_few_shots:
-            examples = A2UIProtocolRegistry.read_design_few_shot(
-                DESIGN_COMPACT_PROFILE_ID, task_spec.size
+        if include_examples:
+            examples_context = PromptBuilder._compact_few_shot_context(
+                task_spec,
+                plan,
+                component_source=system_prompt,
             )
-            content = examples
-            identifiers = tuple(dict.fromkeys(re.findall(r"\b2x[24]-V\d+\b", examples)))
-            if settings.enable_design_compact_few_shot_selection:
-                reference = PromptBuilder._select_few_shot(examples, task_spec)
-                content = ""
-                if "## " in reference:
-                    selected = select_plan_fewshots(
-                        examples, plan, reference_source=reference, component_source=system_prompt,
-                    )
-                    content = selected.content
-                    identifiers = selected.identifiers
-            if content:
-                prompt = (
-                    f"{prompt}\n\n{content}\n\n"
-                    f"本轮实现参考：{'、'.join(identifiers)}。"
-                    "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
-                    "两者都不冻结布局；"
-                    "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
+            if examples_context:
+                prompt = f"{prompt}\n\n{examples_context}"
+        return f"{prompt}\n\n{PromptBuilder._compact_generation_scope(task_spec)}"
+
+    @staticmethod
+    def _compact_few_shot_context(
+        task_spec: TaskSpec,
+        plan: dict[str, Any] | None,
+        *,
+        component_source: str,
+    ) -> str:
+        """只构造 DSL 阶段追加的同尺寸案例，不重复创建合同。"""
+        settings = get_settings()
+        if not settings.enable_design_compact_few_shots:
+            return ""
+        examples = A2UIProtocolRegistry.read_design_few_shot(
+            DESIGN_COMPACT_PROFILE_ID,
+            task_spec.size,
+        )
+        content = examples
+        identifiers = tuple(dict.fromkeys(re.findall(r"\b2x[24]-V\d+\b", examples)))
+        if settings.enable_design_compact_few_shot_selection:
+            reference = PromptBuilder._select_few_shot(examples, task_spec)
+            content = ""
+            if "## " in reference:
+                selected = select_plan_fewshots(
+                    examples,
+                    plan,
+                    reference_source=reference,
+                    component_source=component_source,
                 )
+                content = selected.content
+                identifiers = selected.identifiers
+        if not content:
+            return ""
+        return (
+            f"{content}\n\n"
+            f"本轮实现参考：{'、'.join(identifiers)}。"
+            "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
+            "两者都不冻结布局；"
+            "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
+        )
+
+    @staticmethod
+    def _compact_generation_scope(task_spec: TaskSpec) -> str:
+        """构造 Plan 与 DSL 共享的本轮布局范围和动态字段提醒。"""
+        layout_scope = PromptBuilder.layout_scope(task_spec)
         layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))
         prompt = (
-            f"{prompt}\n\n# 本轮组件与布局选择\n\n"
+            "# 本轮组件与布局选择\n\n"
             f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
             "以已接受 Plan 的必要事实与动作为硬合同；优先落实语义、类型和容量匹配的"
             "组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
@@ -1664,15 +1657,24 @@ class PromptBuilder:
         if runtime_prompt_context_enabled:
             task_value = task_spec.model_dump(mode="json")
             conflicts = composition_implementation_conflicts(compact_plan)
-            conflicts.extend(composition_text_width_conflicts(
-                task_spec.size, compact_plan, task_value,
-            ))
+            conflicts.extend(
+                composition_text_width_conflicts(
+                    task_spec.size,
+                    compact_plan,
+                    task_value,
+                )
+            )
             if conflicts:
                 constructive_result = feasible_composition_candidates(
-                    task_spec.size, compact_plan, task_value,
+                    task_spec.size,
+                    compact_plan,
+                    task_value,
                 )
                 recovery = composition_recovery_context(
-                    task_spec.size, compact_plan, constructive_result, task=task_value,
+                    task_spec.size,
+                    compact_plan,
+                    constructive_result,
+                    task=task_value,
                 )
         effective_system_prompt = self._design_token_system_prompt(
             task_spec,
@@ -1732,15 +1734,13 @@ class PromptBuilder:
         system_prompt: str,
         generation_user_content: str,
     ) -> list[dict[str, str]]:
-        """构造不含 Few-shot 的 submit_card_plan 首轮请求。"""
+        """在创建合同后追加 Plan 阶段，不重复包装 TaskSpec。"""
         task_spec_value = task_spec.model_dump(
             mode="json",
             exclude_none=True,
             exclude={"appVersion"},
         )
-        runtime_prompt_context_enabled = (
-            get_settings().enable_design_compact_runtime_prompt_context
-        )
+        runtime_prompt_context_enabled = get_settings().enable_design_compact_runtime_prompt_context
         tool = build_compact_plan_tool(
             task_spec_value,
             include_composition=runtime_prompt_context_enabled,
@@ -1752,25 +1752,21 @@ class PromptBuilder:
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
-            "只输出一个 JSON 工具调用包："
-            '{"name":"submit_card_plan","arguments":{...}}。'
-            "不要输出 Markdown、解释、Compact DSL 或其它字段。"
-        )
-        try:
-            generation_input: Any = json.loads(generation_user_content)
-        except json.JSONDecodeError:
-            generation_input = generation_user_content
-        user_content = json.dumps(
-            {
-                "taskSpec": task_spec_value,
-                "generationInput": generation_input,
-            },
-            ensure_ascii=False,
-            separators=(",", ":"),
+            "这是同一条生成对话的第一阶段。Plan 未被工具结果接受前，只能提交"
+            ' {"name":"submit_card_plan","arguments":{...}}；'
+            "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
         )
         return [
             {"role": "system", "content": effective_system_prompt},
-            {"role": "user", "content": user_content},
+            {"role": "user", "content": generation_user_content},
+            {
+                "role": "user",
+                "content": (
+                    "<agent_stage>plan</agent_stage>\n"
+                    "先提交一个 submit_card_plan JSON 工具调用包。"
+                    "本阶段不要输出 Compact DSL、Markdown 或解释。"
+                ),
+            },
         ]
 
     @staticmethod
@@ -1779,26 +1775,145 @@ class PromptBuilder:
         invalid_output: str,
         errors: tuple[str, ...],
     ) -> list[dict[str, str]]:
-        """要求模型只修正 Plan 工具参数，不提前生成 Compact DSL。"""
-        if len(plan_prompt) != 2:
-            raise ValueError("Compact Plan repair requires two initial messages")
+        """把失败 Plan 与校验工具结果追加到同一条对话。"""
+        if len(plan_prompt) < 3 or plan_prompt[0].get("role") != "system":
+            raise ValueError("Compact Plan repair requires the active Plan conversation")
         repaired = copy.deepcopy(plan_prompt)
-        repaired[1]["content"] = json.dumps(
+        latest_message = repaired[-1]
+        latest_is_submission = (
+            latest_message.get("role") == "assistant"
+            and latest_message.get("content") == invalid_output
+        )
+        if not latest_is_submission:
+            repaired.append({"role": "assistant", "content": invalid_output})
+        repaired.append(
             {
-                "originalInput": plan_prompt[1]["content"],
-                "invalidToolCall": invalid_output,
-                "planErrors": list(errors),
-                "instruction": (
-                    "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
-                    "但应移除模型自行新增且用户未要求的装饰标题事实。"
-                    "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
-                    "不得生成 Compact DSL、Markdown 或解释。"
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "toolResult": {
+                            "name": "submit_card_plan",
+                            "ok": False,
+                            "errors": list(errors),
+                        },
+                        "instruction": (
+                            "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
+                            "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                            "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
+                            "不得生成 Compact DSL、Markdown 或解释。"
+                        ),
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                 ),
-            },
-            ensure_ascii=False,
-            separators=(",", ":"),
+            }
         )
         return repaired
+
+    @staticmethod
+    def build_compact_dsl_continuation(
+        conversation: list[dict[str, str]],
+        task_spec: TaskSpec,
+        compact_plan: dict[str, Any],
+        *,
+        plan_warnings: tuple[str, ...] = (),
+    ) -> list[dict[str, str]]:
+        """Plan 通过后，在同一条消息历史中追加 DSL 阶段上下文。"""
+        if len(conversation) < 4 or conversation[0].get("role") != "system":
+            raise ValueError("Compact DSL continuation requires the accepted Plan conversation")
+        updated = copy.deepcopy(conversation)
+        updated.append(
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "toolResult": {
+                            "name": "submit_card_plan",
+                            "ok": True,
+                            "acceptedPlan": compact_plan,
+                            "warnings": list(plan_warnings),
+                        }
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ),
+            }
+        )
+
+        runtime_context_enabled = get_settings().enable_design_compact_runtime_prompt_context
+        task_value = task_spec.model_dump(mode="json")
+        conflicts = composition_implementation_conflicts(compact_plan)
+        if runtime_context_enabled:
+            conflicts.extend(
+                composition_text_width_conflicts(
+                    task_spec.size,
+                    compact_plan,
+                    task_value,
+                )
+            )
+        constructive_result = None
+        recovery = None
+        if runtime_context_enabled and conflicts:
+            constructive_result = feasible_composition_candidates(
+                task_spec.size,
+                compact_plan,
+                task_value,
+            )
+            recovery = composition_recovery_context(
+                task_spec.size,
+                compact_plan,
+                constructive_result,
+                task=task_value,
+            )
+
+        context_parts: list[str] = []
+        few_shot_context = PromptBuilder._compact_few_shot_context(
+            task_spec,
+            compact_plan,
+            component_source=conversation[0]["content"],
+        )
+        if few_shot_context:
+            context_parts.append(few_shot_context)
+        context_parts.append(
+            compact_plan_context(
+                compact_plan,
+                implementation_conflicts=conflicts,
+                execution_selected=True,
+            )
+        )
+        if runtime_context_enabled:
+            context_parts.append(
+                compact_composition_context(
+                    task_spec.size,
+                    compact_plan,
+                    task_value,
+                    constructive_result=constructive_result,
+                )
+            )
+        if recovery is not None:
+            recovery_payload = json.dumps(
+                recovery,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            context_parts.append(
+                "# 本轮组合恢复参考\n\n"
+                "仅在它提供完整可行方案时整体落实，不得混用多个候选或复制压力样值。\n\n"
+                f"```json\n{recovery_payload}\n```"
+            )
+        context_parts.append(
+            "<agent_stage>compact_dsl</agent_stage>\n"
+            "Plan 已被程序接受。继续使用本对话已有的 TaskSpec、创建合同和 Plan，"
+            "只输出一个 genui Markdown 代码块，内容为完整 Compact JSONL；"
+            "不要再次提交 Plan，不要输出解释或补丁。"
+        )
+        updated.append(
+            {
+                "role": "user",
+                "content": "\n\n".join(part for part in context_parts if part),
+            }
+        )
+        return updated
 
     @staticmethod
     def apply_compact_plan(
@@ -1809,9 +1924,7 @@ class PromptBuilder:
         if len(initial_prompt) != 2 or initial_prompt[0].get("role") != "system":
             raise ValueError("Compact Plan requires the initial system and user messages")
         updated = copy.deepcopy(initial_prompt)
-        updated[0]["content"] = (
-            f"{updated[0]['content']}\n\n{compact_plan_context(plan)}"
-        )
+        updated[0]["content"] = f"{updated[0]['content']}\n\n{compact_plan_context(plan)}"
         return updated
 
     @staticmethod
@@ -1828,7 +1941,10 @@ class PromptBuilder:
         if source_format != DESIGN_COMPACT_PROFILE_ID:
             return system_prompt
         system_prompt = PromptBuilder._with_size_few_shot(
-            system_prompt, task_spec, compact_plan, include_examples=include_examples,
+            system_prompt,
+            task_spec,
+            compact_plan,
+            include_examples=include_examples,
         )
         if compact_plan is not None:
             runtime_prompt_context_enabled = (
@@ -1836,17 +1952,24 @@ class PromptBuilder:
             )
             conflicts = composition_implementation_conflicts(compact_plan)
             if runtime_prompt_context_enabled:
-                conflicts.extend(composition_text_width_conflicts(
-                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
-                ))
+                conflicts.extend(
+                    composition_text_width_conflicts(
+                        task_spec.size,
+                        compact_plan,
+                        task_spec.model_dump(mode="json"),
+                    )
+                )
             plan_context = compact_plan_context(
-                compact_plan, implementation_conflicts=conflicts,
+                compact_plan,
+                implementation_conflicts=conflicts,
                 execution_selected=execution_selected,
             )
             system_prompt = f"{system_prompt}\n\n{plan_context}"
             if runtime_prompt_context_enabled:
                 worksheet = compact_composition_context(
-                    task_spec.size, compact_plan, task_spec.model_dump(mode="json"),
+                    task_spec.size,
+                    compact_plan,
+                    task_spec.model_dump(mode="json"),
                     constructive_result=constructive_result,
                 )
                 system_prompt = f"{system_prompt}\n\n{worksheet}"
@@ -1931,32 +2054,41 @@ class PromptBuilder:
         repair_strategy: dict[str, Any] | None = None,
         original_display_roles: dict[str, dict[str, Any]] | None = None,
     ) -> list[dict[str, str]]:
-        """基于首次提示词构造携带源 DSL 和结构化质量问题的修复请求。"""
-        if len(initial_prompt) != 2:
-            raise ValueError("Repair prompt requires the initial system and user messages")
+        """构造携带源 DSL 和结构化质量问题的修复请求。"""
+        is_design_compact = dsl_format == DESIGN_COMPACT_PROFILE_ID
+        minimum_messages = 2
+        invalid_prompt = (
+            len(initial_prompt) < minimum_messages or initial_prompt[0].get("role") != "system"
+        )
+        if invalid_prompt:
+            raise ValueError("Repair prompt requires the active model conversation")
+        if not is_design_compact and len(initial_prompt) != minimum_messages:
+            raise ValueError("A2UI repair requires the initial system and user messages")
         system_prompt = initial_prompt[0]["content"] + "\n\n" + REPAIR_SYSTEM_PROMPT
         history = copy.deepcopy(previous_failures) if previous_failures else []
         target_instruction = _repair_target_instruction(repair_strategy)
+        fact_context_name = "本对话已有的 TaskSpec" if is_design_compact else "originalUserContent"
         payload: dict[str, Any] = {
-            "originalUserContent": initial_prompt[1]["content"],
             "invalidSourceDsl": invalid_source_dsl,
-            "qualityErrors": quality_errors,
+            "qualityErrors": [compact_issue_for_model(item) for item in quality_errors],
             "dslFormat": dsl_format,
             "instruction": (
-                f"{target_instruction}先从 originalUserContent 恢复"
-                " TaskSpec 的字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
+                f"{target_instruction}先从 {fact_context_name} 恢复"
+                "字段类型与展示语义，再合并分析 qualityErrors 的共同根因。"
                 "每次修改后复查受影响父容器、"
-                "相邻节点和全部首次生成门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
-                "只输出修复后的完整源格式 DSL，封装形式遵循原始系统提示词，禁止解释或补丁。"
+                "相邻节点和本修复合同的全部门禁，禁止为消除一条错误引入重复单位、空占位或其它新错误。"
+                "只输出修复后的完整源格式 DSL，禁止解释或补丁。"
             ),
         }
-        if previous_failures is not None:
+        if not is_design_compact:
+            payload["originalUserContent"] = initial_prompt[1]["content"]
+        if previous_failures is not None and not is_design_compact:
             payload["previousFailures"] = history
-        if repair_history is not None:
+        if repair_history is not None and not is_design_compact:
             payload["repairHistory"] = copy.deepcopy(repair_history)
             payload["instruction"] += (
-                " repairHistory 按时间保存此前被拒绝的完整 Compact DSL、错误和所选策略；"
-                "它只用于比较已尝试方案，当前唯一待处理候选仍是 invalidSourceDsl。"
+                " repairHistory 保存此前的修复记录；"
+                "当前唯一待处理候选是 invalidSourceDsl。"
                 "不得恢复历史候选已经删除的事实或组件。"
             )
         recompose_requested = False
@@ -1967,7 +2099,7 @@ class PromptBuilder:
             strategy_instruction = strategy.get("instruction")
             if isinstance(strategy_instruction, str) and strategy_instruction.strip():
                 payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
-        if dsl_format == DESIGN_COMPACT_PROFILE_ID:
+        if is_design_compact:
             omissions = _approved_omissions(compact_plan, repair_strategy)
             if omissions:
                 payload["approvedOmissions"] = omissions
@@ -2003,12 +2135,18 @@ class PromptBuilder:
                 task_value = task_spec.model_dump(mode="json")
                 samples = repair_display_samples(invalid_source_dsl, task_value)
                 constructive = feasible_composition_candidates(
-                    task_spec.size, compact_plan, task_value, display_samples=samples,
+                    task_spec.size,
+                    compact_plan,
+                    task_value,
+                    display_samples=samples,
                     display_roles=repair_display_roles(invalid_source_dsl),
                     action_labels=repair_action_labels(invalid_source_dsl, task_value),
                 )
                 updated = composition_recovery_context(
-                    task_spec.size, compact_plan, constructive, task=task_value,
+                    task_spec.size,
+                    compact_plan,
+                    constructive,
+                    task=task_value,
                     implementation_conflicts=capacity_errors,
                 )
                 if updated is not None:
@@ -2018,11 +2156,6 @@ class PromptBuilder:
                         "instruction": "只用于原源完整文案和布尔最宽分支核算；保留原标签、"
                         "前缀及完整绑定，不得把压力文案写成静态字段或省掉另一分支。",
                     }
-            if isinstance(original_payload, dict) and "compositionRecovery" in original_payload:
-                original_payload.pop("compositionRecovery")
-                payload["originalUserContent"] = json.dumps(
-                    original_payload, ensure_ascii=False, separators=(",", ":"),
-                )
             if capacity_errors and isinstance(recovery, dict):
                 payload["compositionRecovery"] = copy.deepcopy(recovery)
                 payload["instruction"] += (
@@ -2030,7 +2163,7 @@ class PromptBuilder:
                     "只有提供完整参考方案时才实现该方案，"
                     "有限搜索未给出完整解时仍按完整合同合组，不能沿用已失效的旧参考。"
                     "保留事实动作和字号，落实整个变体与横纵合组，"
-                    "不要继续维持 invalidSourceDsl 的超预算子树。"
+                    "不要继续维持上一轮 Compact DSL 的超预算子树。"
                 )
             elif not capacity_errors and not recompose_requested:
                 payload["instruction"] += (
@@ -2041,7 +2174,8 @@ class PromptBuilder:
                 from services.card_validation.compact_dsl_validator import small_card_text_pressure
 
                 pressure = small_card_text_pressure(
-                    invalid_source_dsl, task_spec.model_dump(mode="json"),
+                    invalid_source_dsl,
+                    task_spec.model_dump(mode="json"),
                 )
                 if pressure:
                     payload["smallCardTextPressure"] = pressure
@@ -2060,10 +2194,10 @@ class PromptBuilder:
                     payload["instruction"] += (
                         "originalDisplayRoles是各路径首次可读输出的原规格，不是上轮失败输出的新规格，"
                         "也不是新组件清单；不能因为中途降字就把较小字号当成基准。"
-                        "按fontSize保留实际Recipe规格，supporting多条时可能为12fp，不能只按role猜字号。"
-                        "容量修复保留对应正文/metadata和主值字号；先在全宽同行合并短辅助属性，"
-                        "长文案按原字号合法分行并预留行高，再换可承载的完整布局变体。"
-                        "不要将14fp supporting改成12fp TableText/metadata，也不要把30fp主读数"
+                        "SecondaryBody按最终行布局选字号：单行14fp/19vp，多行12fp/16vp，不区分role。"
+                        "容量修复保留主值字号；普通正文可按合法单行或多行模式重新核算，先合并短辅助属性，"
+                        "长正文分行时按12fp/16vp预留行高，再换可承载的完整布局变体。"
+                        "不要为缩字把正文伪装成TableText，也不要把30fp主读数"
                         "降为18fp EmphasisText以消除溢出；重复主值只去重，不删独有事实。"
                         "只固定合法文字规格，不照搬原错误布局、绑定或重复单位；类型/单位"
                         "本来不合法时仍按原字段合同纠正，不能把容量错误当作降字理由。"
@@ -2073,6 +2207,46 @@ class PromptBuilder:
             ensure_ascii=False,
             separators=(",", ":"),
         )
+        if is_design_compact:
+            conversation = copy.deepcopy(initial_prompt)
+            latest_message = conversation[-1]
+            latest_is_submission = (
+                latest_message.get("role") == "assistant"
+                and latest_message.get("content") == invalid_source_dsl
+            )
+            if not latest_is_submission:
+                conversation.append({"role": "assistant", "content": invalid_source_dsl})
+            repair_contract_loaded = any(
+                message.get("role") == "user"
+                and message.get("content", "").startswith(_REPAIR_CONTRACT_OPEN)
+                for message in conversation
+            )
+            if not repair_contract_loaded:
+                conversation.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{_REPAIR_CONTRACT_OPEN}\n{REPAIR_SYSTEM_PROMPT}\n</repair_contract>"
+                        ),
+                    }
+                )
+            feedback = json.loads(user_content)
+            feedback.pop("invalidSourceDsl", None)
+            feedback["toolResult"] = {
+                "name": "validate_compact_dsl",
+                "ok": False,
+            }
+            conversation.append(
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        feedback,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    ),
+                }
+            )
+            return conversation
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},

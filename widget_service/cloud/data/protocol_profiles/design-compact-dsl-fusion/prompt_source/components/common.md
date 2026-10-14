@@ -36,7 +36,7 @@
 | 标题附属 | `Badge` | 标题关联数量 | 标题旁显示同一集合的真实数量 | 只能与标题组成标题单元 |
 | 核心信息 | `EmphasizedData` | 核心数值 + 可选单位 | 突出唯一量化主值 | 一个核心值；不吸收辅助信息 |
 | 核心信息 | `EmphasisText` | 主文本 + 可选次文本 | 突出文本结论、类别或状态 | 两行必须属于同一核心语义 |
-| 正文与补充 | `SecondaryBody` | 1–4 个正文、metadata 或短说明项 | 普通正文、时间、弱提示和同区补充信息 | 同组多项放入一个实例；用 `role` 决定语义与行数 |
+| 正文与补充 | `SecondaryBody` | 1–4 个正文、metadata 或短说明项 | 补充同区已经存在的核心信息 | 不得独立存在；同组多项放入一个实例并按单行／多行选择固定字号 |
 | 核心信息 | `DataDisplay` | 标签 + 主值 + 支撑文本 | 2x2 完整单焦点 | 三项各一行；不吸收动作、第二指标或独立补充 |
 | 紧凑信息 | `InfoBlock` | 主信息 + 辅助信息 + 可选图标或占比圆环 | 固定小槽中的完整主辅信息 | 每槽一个；不支持事件 |
 | 多项属性 | `TableText` | 多行标签—值 | 同一主题的 2–3 项属性 | 两种尺寸共用；进入连续内容槽 |
@@ -58,9 +58,9 @@
 1. 每个语义分区最多使用一个 `SingleLineTitle`；2x4 左右独立分区可分别使用。标题加次信息使用 `DoubleLineTitle`，标题关联真实数量才使用 `Badge`；标题不用正文组件代替。
 2. 先按信息语义和字段关系保留可行组件，再结合尺寸文件的槽位与容量确定最终组件；不为使用组件补造字段。
 3. 有唯一核心值时使用一个强调或进度组件；没有真实主次时保持并列，不把普通数字强行放大为核心。
-4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`，同一对象或同一集合的 2–4 个短补充字段合并到该实例的 `items`，不拆成多个单项实例。只有无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
+4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`，同一对象或同一集合的 2–4 个短补充字段合并到该实例的 `items`，不拆成多个单项实例。`SecondaryBody` 只能辅助同一语义分区内的核心信息组件，不能成为分区内唯一的信息组件；标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件。只有无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
 5. 单占比使用 `ProgressCircleSingle`；两个或四个同级占比使用多个 `ProgressCircle`；三个图标可区分的同级占比使用 `NumericRatioStack`；明确目标差距使用 `ProgressLine2`；2–3 个对象同指标比较使用 `H_BarChart`。
-6. 一个或多个按时间排列的事件使用一个 `EventCard`；普通时间属性使用 `SecondaryBody role="metadata"`。同一事实只展示一次，事件数量不设固定上限但必须通过实际容量预算。
+6. 一个或多个按时间排列的事件使用一个 `EventCard`；普通时间属性使用 `SecondaryBody`。同一事实只展示一次，事件数量不设固定上限但必须通过实际容量预算。
 7. 动作按槽位选择 `PillButton`、`CircleButton` 或 `CardButton`，只能绑定当前事件候选，不伪造操作。
 8. 模型只输出总表及尺寸文件登记的语义组件；`Text` 仅由转换器展开为 A2UI 基础节点。
 9. 每个组件只使用自身属性表声明的 Props 与绑定能力；选型、容量和槽位以对应组件合同为准。
@@ -136,14 +136,16 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `title` | 显示值 | 静态 / Expression / PathBinding | 必填；非空单行标题 |
-| `icon` | string | 仅静态 | 可选；仅使用 `assetCandidates` 中与标题对象严格匹配的装饰性主题图标，不可点击、不可承担状态或动作语义 |
-| `fillColor` | color | 仅静态 | 仅 SVG `icon` 必填；位图图标不得填写，颜色使用 `#AARRGGBB` |
+| `icon` | string | 仅静态 | 条件必选；按钮完成图标分配后，仍有与标题或卡片主题语义匹配且未被按钮使用的静态图标时默认填写；不可点击 |
+| `fillColor` | color | 仅静态 | 仅兼容历史 SVG 输入，新生成不填；运行时固定覆盖为当前色板 `graphicPrimary`；位图图标不得填写 |
 | `fontSize` | number | 仅静态 | 新生成必填；固定 `12`，不允许修改 |
 
 #### 槽位与容量
 
 无 `icon` 时占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding；有 `icon` 时占高 `20vp`，
-图标固定右对齐为 `20×20vp`，标题在剩余宽度内单行省略。图标只用于增强对象识别，不可替代按钮、状态或内容图标。
+图标固定右对齐为 `20×20vp`，标题在剩余宽度内单行省略。图标用于补充标题或卡片主题语义；
+先为 `PillButton` 和 `CircleButton` 分配动作图标，再从按钮未使用的候选中为标题选择语义匹配图标；
+按钮与标题不得复用同一素材，但可以使用不同素材。
 进入卡级或分区标题位置；
 2x4 左右分区各自预算成立时可各放一个，具体宽度和合法位置由尺寸布局文件规定。
 
@@ -155,7 +157,8 @@
 
 #### 注意事项
 
-标题固定左对齐 `12fp/400`；有图标时文字与右侧图标共同构成标题区。只有存在准确、静态的主题素材时才填写 `icon`；
+标题固定左对齐 `12fp/400`；有图标时文字与右侧图标共同构成标题区。动作按钮分配后仍有语义匹配且未使用的静态素材时默认填写 `icon`；
+SVG 标题图标由运行时使用 100% 不透明的主图形色，不由模型选择透明度；
 `fontSize:12` 只声明固定主字号，不覆盖 Recipe。
 
 ### 4.2 `DoubleLineTitle`
@@ -209,6 +212,8 @@
 #### 选择条件
 
 用于一个内容区中唯一需要突出的核心数值或单一测量读数。多个同级指标和普通文本结论不使用。
+普通状态、名称、日期等明确非量化内容使用文本组件；数字字符串、单一带单位测量读数和合法绑定、
+Expression 仍按原合同使用，不根据字段类型为 string 就改写或截取内容。
 完整多段时长（如“7小时1分”）包含多个数量与单位，属于文本读数：作为主信息使用
 `EmphasisText.mainText` 的固定18fp规格，作为辅助信息使用原正文角色，不把整串放入30fp的value。
 保留完整原绑定，不截取样例数字、不伪造分段字段、不重复或删除单位。纯数字主值规格不变。
@@ -247,53 +252,62 @@
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `mainText` | 显示值 | 静态 / Expression / PathBinding | 必填；核心文本 |
-| `secondaryText` | 显示值 | 静态 / Expression / PathBinding | 可选；同一语义的一条短补充 |
+| `secondaryText` | 显示值 / PathBinding[] | 静态 / Expression / PathBinding；多源时使用至少 2 个有序 PathBinding | 可选；同一语义的一条短补充；数组由转换器按顺序以 ` | ` 连接 |
 | `fontSize` | number | 仅静态 | 新生成必填；主文本固定 `18`；次文本仍由 Recipe 固定为 `12` |
 
 ```genui
 ["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"},"fontSize":18}]
 ```
+多个紧密关联的短字段共同组成次文本时，直接按显示顺序绑定；每个字段仍会独立响应数据更新：
+
+```genui
+["weather","EmphasisText",{"mainText":{"path":"/data/weather/current/condition"},"secondaryText":[{"path":"/data/weather/location/prefectureName"},{"path":"/data/weather/location/districtName"}],"fontSize":18}]
+```
+
+上述 `secondaryText` 展开为 `城市值 | 区域值`。需要为各值增加静态标签时，改用包含全部绑定的完整
+Expression；`mainText` 不接受数组，互不相关或需要逐项标签的多个字段改用 `SecondaryBody` 或 `TableText`。
+
 
 ### 4.6 `SecondaryBody`
 
 #### 选择条件
 
-用于普通正文、普通时间、来源、更新时间、弱提示，或补充同一分区的核心信息。单项通过 `role` 表达正文或
-metadata；同一对象或同一集合的多个短字段使用一个 supporting 实例承载，按原顺序写入 `items`。不得按日期、
-对象索引或字段逐项拆成多个单项 `SecondaryBody`，也不得为使用较小字号或规避容量校验而拆分。只有无核心且
-用户明确要求逐项查看、对比或等权汇总的标签—值表才使用 `TableText`；事件、比较和进度不使用它代替。
+只用于补充同一分区已经存在的核心信息，例如辅助正文、普通时间、来源、更新时间或弱提示；不得独立作为
+该分区的唯一信息组件。标题、Badge、按钮、布局容器和其它 `SecondaryBody` 都不算核心组件。正文自身是主要
+结论时使用 `EmphasisText`，不能用 `SecondaryBody` 规避核心选型。组件不区分 role，单项和多项均写入
+`items`；同一对象或同一集合的多个短字段按原顺序放入一个实例，不得按日期、对象索引或字段逐项拆成多个
+单项 `SecondaryBody`，也不得为使用较小字号或规避容量校验而拆分。只有无核心且用户明确要求逐项查看、
+对比或等权汇总的标签—值表才使用 `TableText`；事件、比较和进度仍使用对应语义组件。
 
 #### 组件属性
 
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `items` | Array | 数组结构仅静态 | 必填；1–4 项 |
-| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见内容 |
+| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；保留完整值和单位 |
 | `items[].label` | string | 仅静态 | 可选；短标签 |
-| `items[].maxLines` | number | 仅静态 | 可选；只取 `1|2` |
-| `role` | string | 仅静态 | 单项必填；`body|metadata|supporting`；多项新生成也应显式填写 |
-| `columns` | number | 仅静态 | 可选；`1|2`，缺省 2；长说明使用 1，让每项占完整行宽 |
-| `separator` | string | 仅静态 | 可选；默认 ` ｜ ` |
-| `fontSize` | number | 仅静态 | 新生成必填；body 和 1–2 项 supporting 固定 `14`；metadata 和 3–4 项 supporting 固定 `12` |
+| `items[].maxLines` | number | 仅静态 | 可选；`1|2`，默认 1；两行时必须预留高度 |
+| `columns` | number | 仅静态 | 可选；`1|2`，默认 2；1 表示每项独占一行 |
+| `separator` | string | 仅静态 | 可选；同一行相邻项默认用 ` | ` 分隔，跨行不加分隔符 |
+| `fontSize` | number | 仅静态 | 新生成必填；整组单行固定 `14`，多行固定 `12` |
 
-`role:"body"` 恰好一项，不写 label；`role:"metadata"` 恰好一项；各角色每项 `maxLines` 可为 `1|2`。
-`role:"supporting"` 支持 1–4 项；`columns:1` 每项独占一行，`columns:2` 每行最多两项。
-同组有 2–4 项时必须使用一个 supporting 实例；项目数量参与固定 Recipe 选择，1–2 项使用 `14`，3–4 项使用
-`12`。不得把三项拆成三个单项后再给每项声明 `12`。
-标签保持自然宽度，值承接剩余宽度；标签也很长时使用无标签 body 展示完整句子，不挤压值。
-单行角色高度沿用 Recipe：body/一至两项 supporting 为20，metadata/三至四项 supporting 为18；
-每行高度取该行最大 maxLines × 行高，行间距2。两行不是免费空间，必须计入正文预算。
-长时间戳、地点、时长和带完整单位的值，不默认塞进双列单行；选择单列或两行仍不够时重排布局。
-为兼容旧 DSL，
-2–4 项省略 role 时按 supporting 处理；新生成必须显式填写 role。完整显示值保留原样，不拆单位；`fontSize`
-只复述当前角色的固定 Recipe 字号，不开放字号、字重、padding 或内部对齐等任意覆盖。
+#### 槽位与容量
+
+按行布局选择规格：只有一行且每项 `maxLines:1` 时为 `14fp/400`、行高 `19vp`；
+超过一行或任一项使用 `maxLines:2` 时，整组为 `12fp/400`、行高 `16vp`。
+两项同行用 14；两项 `columns:1` 分行用 12，不能只按项目数判断。
+每行最多两项，行间距固定 2；总高度为各行最大 `maxLines × 行高` 之和加行间距。
+文字放不下时使用单列或合法两行，并同步字号与高度预算；不裁切、删单位或手动缩字。
+标签保留自然宽度，值承接剩余宽度；长标签可与值合并到同项完整 Expression，保留原始绑定。
+不输出 `role`，不覆盖内部字重、padding 或对齐。
 
 ```genui
-["description","SecondaryBody",{"role":"body","items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontSize":14}]
-["updated","SecondaryBody",{"role":"metadata","items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}","maxLines":2}],"fontSize":12}]
-["sleep_detail","SecondaryBody",{"role":"supporting","columns":1,"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"},"maxLines":2},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"fontSize":14}]
-["forecast_days","SecondaryBody",{"role":"supporting","columns":1,"items":[{"value":"{{ ${/data/weather/daily/0/date} + ' ' + ${/data/weather/daily/0/condition} }}"},{"value":"{{ ${/data/weather/daily/1/date} + ' ' + ${/data/weather/daily/1/condition} }}"},{"value":"{{ ${/data/weather/daily/2/date} + ' ' + ${/data/weather/daily/2/condition} }}"}],"fontSize":12}]
+["description","SecondaryBody",{"items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontSize":12}]
+["updated","SecondaryBody",{"items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}"}],"fontSize":14}]
+["sleep_detail","SecondaryBody",{"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"}},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"separator":" | ","fontSize":14}]
 ```
+
+以上仅展示组件属性写法；放入完整卡片时，每个实例都必须与同一语义分区内的核心信息组件搭配。
 
 ### 4.7 `DataDisplay`
 
@@ -330,7 +344,7 @@ metadata；同一对象或同一集合的多个短字段使用一个 supporting 
 
 #### 选择条件
 
-用于固定小槽中属于同一对象或指标的一组“主信息 + 辅助信息”。尾部可显示语义图标，或由主信息驱动的
+用于固定或有明确高度的小槽中属于同一对象或指标的一组“主信息 + 辅助信息”。尾部可显示语义图标，或由主信息驱动的
 真实占比圆环，但不承载动作；
 完整业务区、两个同级指标和无主辅关系的字段不使用。
 
@@ -343,15 +357,37 @@ metadata；同一对象或同一集合的多个短字段使用一个 supporting 
 | `unit` | string | 仅静态 | 可选；主信息未包含单位时使用 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填 |
 | `variant` | string | 仅静态 | 按尺寸文件填写；2x2 可省略，2x4 必填 |
-| `visual` | object | 仅静态 | 可选；`{type:"icon",icon}` 或 `{type:"progressCircle",icon}` |
-| `fillColor` | `#AARRGGBB` | 仅静态 | visual 使用 SVG 时必填；使用位图时禁止填写 |
+| `visual` | object | 仅静态 | 可选；`{type:"icon",icon,color?:"native"}` 或 `{type:"progressCircle",icon}` |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 可选；用于可染色 visual 图标 |
 
 #### 槽位与容量
 
-每个合法固定槽只放一个 `InfoBlock`，两行文字必须保持单行。尺寸、variant 和文字区宽度由尺寸文件规定；
+每个合法小槽只放一个 `InfoBlock`，两行文字必须保持单行。尺寸、variant 和文字区宽度由尺寸文件规定；
 必要值放不下时先取消可选图标，仍不成立则改用其它组件组合。
 
 #### 示例
+
+无尾部视觉时，只输出同一对象的一组主辅信息。2x2 可省略 `variant`：
+
+```genui
+["weather","InfoBlock",{"primaryText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/weather/current/condition"},"backgroundColor":"#CCFFFFFF"}]
+```
+
+2x2 保留卡级标题并展示两个同级子对象时，可在 `S-title-dual-content` 的两个 `126×50vp` 槽中各放一个
+无 visual 的紧凑 `InfoBlock`。短静态对象标签可以和一个动态值组成完整 Expression，用来区分同级对象：
+
+```genui
+["tomorrow","InfoBlock",{"variant":"stacked","width":"matchParent","height":50,"primaryText":"{{ '明天 ' + ${/data/weather/daily/1/condition} }}","secondaryText":"{{ '空气质量 ' + ${/data/weather/daily/1/airQuality} }}","backgroundColor":"#CCFFFFFF"}]
+```
+
+有准确语义图标时使用 `visual.type:"icon"`。Compact DSL 直接绑定真实路径，不使用 `dataIds` 或
+`primaryTextTemplate`；需要静态标签时改用只包含一个动态绑定的完整 Expression：
+
+```genui
+["sleep","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/healthSport/sleepScore"},"unit":"分","secondaryText":"{{ '状态 ' + ${/data/healthSport/sleepStatus} }}","visual":{"type":"icon","icon":"resources/base/media/moon_z_fill_1.svg"},"fillColor":"#991F4799","backgroundColor":"#99FFFFFF"}]
+```
+
+主信息是可验证的 `0–100` 数值时，才可使用 `visual.type:"progressCircle"`。原始数值绑定和单位必须分开：
 
 ```genui
 ["battery","InfoBlock",{"variant":"slot","primaryText":{"path":"/data/phoneBattery/batterySOC"},"unit":"%","secondaryText":{"path":"/data/phoneBattery/chargingStatusDesc"},"visual":{"type":"progressCircle","icon":"resources/base/media/battery_leaf_fill.svg"},"fillColor":"#991F4799","backgroundColor":"#99FFFFFF"}]
@@ -360,7 +396,9 @@ metadata；同一对象或同一集合的多个短字段使用一个 supporting 
 #### 注意事项
 
 visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。没有准确 visual 时不生成尾部空槽；
-外层和内部均不得写 `onClick`。
+每行只承载一个动态业务值，不把第二个动态字段拼入 `primaryText`；同级对象需要区分时允许添加一个简短
+静态对象标签，指标名需要帮助理解时允许添加一个简短静态标签。`visual.type:"progressCircle"` 的
+`primaryText` 仍必须是原始有限数值或完整百分比，不得添加标签。外层和内部均不得写 `onClick`。
 
 ### 4.9 `TableText`
 
@@ -445,7 +483,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `width`、`height` | number | 仅静态 | 必填；按当前槽位填写正数 vp |
 | `color` | `#AARRGGBB` | 仅静态 | 必填；完成轨道颜色 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填；未完成轨道颜色 |
-| `fillColor` | `#AARRGGBB` | 仅静态 | SVG 环心图标必填；位图环心图标禁止填写 |
+| `fillColor` | `#AARRGGBB` | 仅静态 | 使用默认可染色 SVG 时必填；原色 SVG 或 PNG 不填写 |
 
 #### 槽位与容量
 
@@ -526,7 +564,6 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 注意事项
 
 `value`、`displayValue` 与 `secondaryLabel` 必须属于同一对象；图标只标识对象，不代替可见读数。
-环心 icon 只使用 SVG，其 `fillColor` 由转换器根据当前卡片语义色板自动写入，DSL 不提供图标颜色。
 
 ### 5.4 `H_BarChart`
 
@@ -561,7 +598,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
 | `items` | Array | 数组结构仅静态 | 必填；恰好三项 |
-| `items[].icon` | string | 仅静态 | 必填；只使用 SVG，逐字采用当前素材候选路径 |
+| `items[].icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
 | `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；真实可见数值 |
 | `items[].unit` | string | 仅静态 | 可选；完整值已含单位时不得重复 |
 | `direction` | `row` / `column` | 仅静态 | 可选；默认 `column` |
@@ -623,7 +660,7 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 |---|---|---|---|
 | `label` | string | 仅静态 | 必填；非空动作文字 |
 | `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
-| `icon` | string | 仅静态 | 可选；只使用 SVG，逐字采用当前素材候选路径 |
+| `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
 
 #### 槽位与容量
 
@@ -638,8 +675,8 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 
 #### 注意事项
 
-一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 SVG icon 时由
-Recipe 生成图标与文字并自动写入 `fillColor`，不手写相同按钮皮肤；
+一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 icon 时由 Recipe
+生成图标与文字，不手写相同按钮皮肤；
 完整标签放不下时更换布局，不裁切、不缩小 Recipe，也不回退为基础 `Button`。
 
 ## 8. 选择检查

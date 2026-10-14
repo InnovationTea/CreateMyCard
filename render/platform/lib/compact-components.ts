@@ -25,6 +25,7 @@ type PaletteContract = {
 };
 
 const PLACEMENT_PROPS = ["width", "height", "layoutWeight", "flexShrink", "margin"];
+const EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " | ";
 const SYSTEM_FONT_ROLE_BY_COMPONENT: Record<string, string> = {
   SingleLineTitle: "secondary",
   DoubleLineTitle: "primary",
@@ -245,6 +246,27 @@ function isDisplayValue(value: unknown) {
 
 function requireDisplay(id: string, type: string, props: RecordValue, name: string) {
   if (!isDisplayValue(props[name])) throw new Error(`${id}: ${type}.${name} 必须是可显示文本。`);
+}
+
+function emphasisSecondaryContent(id: string, value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    if (!isDisplayValue(value)) throw new Error(`${id}: EmphasisText.secondaryText 必须是可显示文本。`);
+    return value;
+  }
+  if (value.length < 2) {
+    throw new Error(`${id}: EmphasisText.secondaryText 数组至少需要两个有序 PathBinding。`);
+  }
+  const paths = value.map((item, index) => {
+    if (!record(item) || Object.keys(item).length !== 1 || typeof item.path !== "string"
+      || !item.path.startsWith("/")) {
+      throw new Error(`${id}: EmphasisText.secondaryText[${index}] 必须是 PathBinding。`);
+    }
+    return item.path;
+  });
+  const body = paths.map(path => `\${${path}}`).join(
+    ` + '${EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR}' + `,
+  );
+  return `{{ ${body} }}`;
 }
 
 function requireColor(id: string, type: string, props: RecordValue, name: string) {
@@ -489,7 +511,9 @@ function expandHighLevel(
     requireProps(id, type, p, ["mainText", "fontColor"], allowed);
     requireRecipeFontSize(id, type, p, size, "main");
     requireDisplay(id, type, p, "mainText");
-    if (p.secondaryText !== undefined) requireDisplay(id, type, p, "secondaryText");
+    const secondaryContent = p.secondaryText === undefined
+      ? undefined
+      : emphasisSecondaryContent(id, p.secondaryText);
     requireColor(id, type, p, "fontColor");
     const mainId = `${id}_main`;
     const children = [mainId];
@@ -500,7 +524,7 @@ function expandHighLevel(
       const secondaryId = `${id}_secondary`;
       children.push(secondaryId);
       rows.push(row(secondaryId, type, "secondary", size, {
-        content: p.secondaryText,
+        content: secondaryContent,
         fontColor: colorWithAlpha(p.fontColor as string, 0.6),
       }));
     }
@@ -514,22 +538,12 @@ function expandHighLevel(
     if (!Array.isArray(p.items) || p.items.length < 1 || p.items.length > 4) {
       throw new Error(`${id}: SecondaryBody.items 需要 1–4 项。`);
     }
-    const role = p.role ?? (p.items.length > 1 ? "supporting" : undefined);
-    if (role === undefined) throw new Error(`${id}: 单项 SecondaryBody 必须声明 role。`);
-    if (!["body", "metadata", "supporting"].includes(String(role))) {
-      throw new Error(`${id}: SecondaryBody.role 只接受 body、metadata 或 supporting。`);
-    }
-    if (["body", "metadata"].includes(String(role)) && p.items.length !== 1) {
-      throw new Error(`${id}: SecondaryBody role ${String(role)} 只能包含一项。`);
-    }
+    // 历史 role 输入忽略；样式仅由行布局决定。
     const items = p.items.map((item, index) => {
       if (!record(item) || !("value" in item) || !isDisplayValue(item.value)
         || Object.keys(item).some(key => !["label", "value", "maxLines"].includes(key))
         || (item.label !== undefined && (typeof item.label !== "string" || !item.label.trim()))) {
         throw new Error(`${id}: SecondaryBody.items[${index}] 只接受有效的 label/value/maxLines。`);
-      }
-      if (role === "body" && item.label !== undefined) {
-        throw new Error(`${id}: body SecondaryBody 不接受 item.label。`);
       }
       const maxLines = item.maxLines ?? 1;
       if (!Number.isInteger(maxLines) || ![1, 2].includes(maxLines as number)) {
@@ -537,7 +551,7 @@ function expandHighLevel(
       }
       return item;
     });
-    const separator = p.separator ?? " ｜ ";
+    const separator = p.separator ?? " | ";
     const columns = p.columns ?? 2;
     if (!Number.isInteger(columns) || ![1, 2].includes(columns as number)) {
       throw new Error(`${id}: SecondaryBody.columns 只接受 1 或 2。`);
@@ -545,10 +559,9 @@ function expandHighLevel(
     if (typeof separator !== "string" || !separator) {
       throw new Error(`${id}: SecondaryBody.separator 必须是非空文本。`);
     }
-    let variant: string | undefined;
-    if (role === "body") variant = items[0].maxLines === 2 ? "bodyMultiline" : "body";
-    else if (role === "metadata") variant = "metadata";
-    else if (items.length > 2) variant = "multiline";
+    const multiline = items.length > Number(columns)
+      || items.some(item => item.maxLines === 2);
+    const variant = multiline ? "multiline" : undefined;
     requireRecipeFontSize(id, type, p, size, "text", variant);
     const textStyles = recipe(type, size, variant).parts.text.styles;
     const lineHeight = Number(textStyles.height) / Number(textStyles.maxLines ?? 1);

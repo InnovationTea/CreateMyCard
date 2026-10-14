@@ -19,7 +19,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Column(
-    {"width": "matchParent", "padding": {"left": 8, "top": 4, "right": 8, "bottom": 4}, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "backgroundColor": $theme('actionStyle.backgroundColor'), "borderRadius": 12, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"width": "matchParent", "padding": {"left": 8, "top": 3, "right": 8, "bottom": 3}, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "backgroundColor": $theme('actionStyle.backgroundColor'), "borderRadius": 12, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Row(
       {"width": "matchParent", "height": 16, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text("电池电量", {"height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),

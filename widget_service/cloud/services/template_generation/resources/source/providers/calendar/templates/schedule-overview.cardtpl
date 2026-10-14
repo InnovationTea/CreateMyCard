@@ -193,7 +193,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -323,7 +322,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -381,7 +379,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -439,7 +436,6 @@ Row(
     {
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
         "clip": true,
@@ -3419,6 +3415,7 @@ Row(
             },
             Image(props.timeIcon,
                 {
+                    "fillColor": $theme('supportContentColor'),
                     "width": 12,
                     "height": 12,
                     "objectFit": "contain"
@@ -3464,6 +3461,7 @@ Row(
             },
             Image(props.locationIcon,
                 {
+                    "fillColor": $theme('supportContentColor'),
                     "width": 12,
                     "height": 12,
                     "objectFit": "contain"
@@ -3546,7 +3544,7 @@ Column(
                 "width": 12,
                 "height": 12,
                 "objectFit": "contain",
-                "fillColor": $theme('primaryColor')
+                "fillColor": $theme('supportContentColor')
             }
         )
     ),
@@ -3636,6 +3634,7 @@ Column(
                 },
                 Image(props.timeIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 12,
                         "height": 12,
                         "objectFit": "contain"
@@ -3681,6 +3680,7 @@ Column(
                 },
                 Image(props.locationIcon,
                     {
+                        "fillColor": $theme('supportContentColor'),
                         "width": 12,
                         "height": 12,
                         "objectFit": "contain"

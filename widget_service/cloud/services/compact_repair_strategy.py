@@ -199,7 +199,7 @@ def _layout_directive(
         scope = "full_dsl"
         strategy = "plan_guided_recompose"
         instruction = (
-            "同一布局根因已经重复或上一轮 DSL 没有变化；放弃 invalidSourceDsl 的旧拓扑，"
+            "同一布局根因已经重复或上一轮 DSL 没有变化；放弃上一轮 Compact DSL 的旧拓扑，"
             "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
         )
     elif category_attempt == 1:
@@ -222,7 +222,7 @@ def _layout_directive(
         scope = "full_dsl"
         strategy = "plan_guided_recompose"
         instruction = (
-            "局部与父布局修复均未解决根因；放弃 invalidSourceDsl 的旧拓扑，"
+            "局部与父布局修复均未解决根因；放弃上一轮 Compact DSL 的旧拓扑，"
             "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
         )
     return CompactRepairDirective(
@@ -428,7 +428,7 @@ def _drop_optional_component_fallback_directive(
             f"({candidate.component_type}) 组件行，并从直接父组件 children 中移除该 ID；"
             "如果该组件已经删除，则保持删除状态，使用剩余组件重新闭合当前布局。"
             "不得删除其他组件、未授权的 must/should 事实或任何 Action；"
-            "必须输出完整 Compact DSL，禁止原样返回 invalidSourceDsl。"
+            "必须输出完整 Compact DSL，禁止原样返回上一轮 Compact DSL。"
         )
     else:
         instruction = (

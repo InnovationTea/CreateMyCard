@@ -153,7 +153,7 @@ export const COMPONENT_GALLERY: GalleryComponent[] = [
       ["header", "SingleLineTitle", { title: "Stack · 层叠" }],
       ["demo", "Stack", { width: 82, height: 82, alignContent: "center", clip: true }, ["backdrop", "foreground"]],
       ["backdrop", "Column", { width: 82, height: 82, borderRadius: 41, backgroundColor: BLUE_SOFT, alignItems: "center", justifyContent: "center" }, ["backdropLabel"]],
-      ["backdropLabel", "SecondaryBody", { role: "metadata", items: [{ value: "底层" }] }],
+      ["backdropLabel", "SecondaryBody", { items: [{ value: "底层" }] }],
       ["foreground", "Column", { width: 82, height: 82, alignItems: "center", justifyContent: "end" }, ["foregroundBadge"]],
       ["foregroundBadge", "Badge", { value: 2, backgroundColor: BLUE }],
     ),

@@ -126,6 +126,44 @@ def test_layout_contract_registers_the_documented_layouts() -> None:
     )
 
 
+def test_s_title_dual_content_accepts_two_compact_info_blocks() -> None:
+    components = [
+        ComponentRow(
+            "root",
+            "Column",
+            {"padding": 12, "itemMargin": 6},
+            ("header", "body"),
+        ),
+        ComponentRow("header", "SingleLineTitle", {}, ()),
+        ComponentRow(
+            "body",
+            "Column",
+            {"width": 126, "height": 108, "itemMargin": 8},
+            ("tomorrow", "dayafter"),
+        ),
+        ComponentRow(
+            "tomorrow",
+            "InfoBlock",
+            {"width": "matchParent", "height": 50},
+            (),
+        ),
+        ComponentRow(
+            "dayafter",
+            "InfoBlock",
+            {"width": "matchParent", "height": 50},
+            (),
+        ),
+    ]
+
+    result = match_compact_layout(
+        components,
+        size="2x2",
+        layout_scope="S-title-dual-content",
+    )
+
+    assert result.layout_id == "S-title-dual-content"
+
+
 def test_2x2_bottom_text_action_slots_only_accept_pill_button() -> None:
     contract = load_layout_contract()
     layouts = contract.get("layouts")

@@ -4,6 +4,7 @@
     "type": "asset",
     "src": "resources/base/media/air_fill.svg",
     "description": "样式：默认黑色的单色实心空调室内机图标，正面矩形机身，顶部有三个圆点，底部为横向出风口；适用：空调设备、空调关闭或普通状态、智能家居空气设备。",
+    "overviewDescription": "空调单色图标；用于空调设备、关闭或普通状态。",
     "sceneTags": [
       "air",
       "home"
@@ -15,6 +16,7 @@
     "type": "asset",
     "src": "resources/base/media/air_open_fill.svg",
     "description": "样式：默认黑色的单色实心空调室内机图标，正面矩形机身，底部有三条向下气流线；适用：空调开启、送风、新风或空气循环运行状态。",
+    "overviewDescription": "送风空调单色图标；用于空调开启、新风或空气循环。",
     "sceneTags": [
       "air",
       "home"
@@ -26,6 +28,7 @@
     "type": "asset",
     "src": "resources/base/media/airplane_departure.svg",
     "description": "样式：飞机起飞图标，默认黑色，图形为飞机从跑道起飞的侧视图；适用：出行计划、航班出发信息、旅行日程。",
+    "overviewDescription": "飞机起飞单色图标；用于出行计划、航班出发或旅行日程。",
     "sceneTags": [
       "travel",
       "flight"
@@ -37,6 +40,7 @@
     "type": "asset",
     "src": "resources/base/media/airplane_fill_1.svg",
     "description": "样式：默认黑色的单色实心飞机俯视图，机头朝右上方倾斜；适用：航空旅行、航班概览、飞行状态。",
+    "overviewDescription": "飞机单色图标；用于航空旅行、航班概览或飞行状态。",
     "sceneTags": [
       "travel",
       "flight"
@@ -48,6 +52,7 @@
     "type": "asset",
     "src": "resources/base/media/alarm_fill_1.svg",
     "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。",
+    "overviewDescription": "闹钟单色图标；用于闹钟、定时或日程提醒。",
     "sceneTags": [
       "alarm",
       "reminder"
@@ -59,6 +64,7 @@
     "type": "asset",
     "src": "resources/base/media/backward_fill.svg",
     "description": "样式：快退/后退实心图标，默认黑色，图形为两个向左的三角箭头；适用：音乐播放器快退控制、视频回退。",
+    "overviewDescription": "快退单色图标；用于音乐或视频回退。",
     "sceneTags": [
       "media",
       "control"
@@ -70,6 +76,7 @@
     "type": "asset",
     "src": "resources/base/media/battery_leaf_fill.svg",
     "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。",
+    "overviewDescription": "电池叶片单色图标；用于电量、省电、电池健康或温度，不代表具体状态。",
     "sceneTags": [
       "battery",
       "power"
@@ -81,6 +88,7 @@
     "type": "asset",
     "src": "resources/base/media/bell_fill.svg",
     "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
+    "overviewDescription": "铃铛单色图标；用于通知、消息、备忘、闹钟或日历提醒。",
     "sceneTags": [
       "notification",
       "alarm"
@@ -92,6 +100,7 @@
     "type": "asset",
     "src": "resources/base/media/bell_slash_fill.svg",
     "description": "样式：默认黑色的单色铃铛加斜杠实心图标，内部通过镂空表现细节，支持通过 fillColor 与卡片配色统一；适用：静音模式、关闭通知、勿扰设置。",
+    "overviewDescription": "静音铃铛单色图标；用于静音、关闭通知或勿扰。",
     "sceneTags": [
       "notification",
       "silent"
@@ -103,6 +112,7 @@
     "type": "asset",
     "src": "resources/base/media/bolt_fill.svg",
     "description": "样式：默认黑色的单色实心竖向闪电图标；适用：正在充电、快充、电能或闪电状态。",
+    "overviewDescription": "闪电单色图标；用于充电、快充或电能。",
     "sceneTags": [
       "battery",
       "power"
@@ -114,6 +124,7 @@
     "type": "asset",
     "src": "resources/base/media/bus_fill.svg",
     "description": "样式：公交车实心图标，默认黑色，图形为正面视角公共汽车轮廓；适用：公共交通出行、路线导航、公交到站提醒。",
+    "overviewDescription": "公交车单色图标；用于公交出行、路线或到站提醒。",
     "sceneTags": [
       "traffic",
       "bus"
@@ -125,6 +136,7 @@
     "type": "asset",
     "src": "resources/base/media/calendar_fill.svg",
     "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+    "overviewDescription": "日历单色图标；用于日程、日历事件或当日安排。",
     "sceneTags": [
       "calendar",
       "schedule"
@@ -136,6 +148,7 @@
     "type": "asset",
     "src": "resources/base/media/checkmark_calendar_fill.svg",
     "description": "样式：默认黑色的单色实心日历图标，内部叠加对勾并通过镂空表现细节，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程或计划确认、签到、待办完成、任务或运动打卡与健康计划。",
+    "overviewDescription": "对勾日历单色图标；用于已完成日程、计划确认、签到或打卡。",
     "sceneTags": [
       "calendar",
       "task"
@@ -147,6 +160,7 @@
     "type": "asset",
     "src": "resources/base/media/clean_fill.svg",
     "description": "样式：默认黑色的单色实心扫帚图标，竖向手柄，下方为三束刷毛；适用：清扫、垃圾清理、系统清理或家居清洁动作。",
+    "overviewDescription": "扫帚单色图标；用于清扫、垃圾清理、系统清理或家居清洁。",
     "sceneTags": [
       "clean",
       "maintenance"
@@ -158,6 +172,7 @@
     "type": "asset",
     "src": "resources/base/media/clock.svg",
     "description": "样式：时钟线框图标，默认黑色，图形为圆形表盘加指针的线性轮廓；适用：时间显示、定时功能、倒计时。",
+    "overviewDescription": "时钟线框图标；用于时间、定时或倒计时。",
     "sceneTags": [
       "time",
       "clock"
@@ -169,6 +184,7 @@
     "type": "asset",
     "src": "resources/base/media/clock_fill.svg",
     "description": "样式：默认黑色的单色实心圆形时钟图标，内部通过镂空表现表盘指针，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器、提醒时间、应用使用时长与运动时长。",
+    "overviewDescription": "时钟实心图标；用于时间、闹钟、计时或使用与运动时长。",
     "sceneTags": [
       "time",
       "clock"
@@ -180,6 +196,7 @@
     "type": "asset",
     "src": "resources/base/media/cold.svg",
     "description": "样式：默认黑色的单色线框圆形人脸，口鼻处佩戴口罩；适用：佩戴口罩、防护、呼吸道健康或传染风险提示。",
+    "overviewDescription": "口罩人脸单色图标；用于防护、呼吸道健康或传染风险提示。",
     "sceneTags": [
       "health",
       "protection"
@@ -191,6 +208,7 @@
     "type": "asset",
     "src": "resources/base/media/drop_1.svg",
     "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+    "overviewDescription": "双水滴单色图标；用于湿度、饮水或降雨。",
     "sceneTags": [
       "weather",
       "water"
@@ -202,6 +220,7 @@
     "type": "asset",
     "src": "resources/base/media/earphone_case_16644.svg",
     "description": "样式：耳机收纳盒实心图标，默认黑色，图形为无线耳机充电盒造型；适用：蓝牙耳机设备连接、音频设备管理。",
+    "overviewDescription": "耳机盒单色图标；用于蓝牙耳机连接或音频设备管理。",
     "sceneTags": [
       "device",
       "audio"
@@ -213,6 +232,7 @@
     "type": "asset",
     "src": "resources/base/media/externaldrive_fill.svg",
     "description": "样式：外置存储设备实心图标，默认黑色，图形为矩形硬盘盒造型；适用：本地存储管理、数据备份、文件传输。",
+    "overviewDescription": "硬盘单色图标；用于本地存储、备份或文件传输。",
     "sceneTags": [
       "storage",
       "device"
@@ -224,6 +244,7 @@
     "type": "asset",
     "src": "resources/base/media/face.svg",
     "description": "样式：默认黑色的单色线框圆形笑脸，带眼睛、鼻子和微笑嘴形；适用：愉悦状态、用户形象占位、满意度或友好提示。",
+    "overviewDescription": "笑脸线框图标；用于愉悦、用户形象、满意度或友好提示。",
     "sceneTags": [
       "person",
       "emotion"
@@ -235,6 +256,7 @@
     "type": "asset",
     "src": "resources/base/media/fast_forward.svg",
     "description": "样式：快进图标，默认黑色，图形为两个向右的三角箭头；适用：音乐播放器快进控制、视频快进。",
+    "overviewDescription": "快进单色图标；用于音乐或视频快进。",
     "sceneTags": [
       "media",
       "control"
@@ -246,6 +268,7 @@
     "type": "asset",
     "src": "resources/base/media/figure_pool_swim.svg",
     "description": "样式：游泳人物图标，默认黑色，图形为人体游泳动作侧视轮廓；适用：运动记录、游泳锻炼追踪、健康运动卡片。",
+    "overviewDescription": "游泳人物单色图标；用于游泳锻炼或运动记录。",
     "sceneTags": [
       "health",
       "sport"
@@ -257,6 +280,7 @@
     "type": "asset",
     "src": "resources/base/media/figure_run.svg",
     "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。",
+    "overviewDescription": "跑步人物单色图标；用于跑步、运动记录或步数。",
     "sceneTags": [
       "health",
       "sport"
@@ -268,6 +292,7 @@
     "type": "asset",
     "src": "resources/base/media/flame_fill.svg",
     "description": "样式：默认黑色的单色实心火焰图标；适用：运动热量消耗、燃烧、火焰或加热状态。",
+    "overviewDescription": "火焰单色图标；用于运动热量、燃烧或加热。",
     "sceneTags": [
       "health",
       "heat"
@@ -279,6 +304,7 @@
     "type": "asset",
     "src": "resources/base/media/heart_fill.svg",
     "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。",
+    "overviewDescription": "爱心单色图标；用于喜欢、收藏、关爱或心率入口。",
     "sceneTags": [
       "health",
       "heart"
@@ -290,6 +316,7 @@
     "type": "asset",
     "src": "resources/base/media/heat_generation.svg",
     "description": "样式：默认黑色的单色线框温度计，底部为圆形感温泡，内部带弧形刻度；适用：温度、升温、制热或体感温度。",
+    "overviewDescription": "温度计线框图标；用于温度、升温、制热或体感温度。",
     "sceneTags": [
       "temperature",
       "heat"
@@ -301,6 +328,7 @@
     "type": "asset",
     "src": "resources/base/media/house_fill.svg",
     "description": "样式：默认黑色的单色房屋实心图标，内部通过镂空表现门洞，支持通过 fillColor 与卡片配色统一；适用：首页导航、智能家居入口、回家提醒。",
+    "overviewDescription": "房屋单色图标；用于首页、智能家居或回家提醒。",
     "sceneTags": [
       "home"
     ],
@@ -311,6 +339,7 @@
     "type": "asset",
     "src": "resources/base/media/hourglass_fill.svg",
     "description": "样式：默认黑色的单色沙漏和齿轮组合图标，内部通过镂空表现细节，支持通过 fillColor 与卡片配色统一；适用：应用时长。",
+    "overviewDescription": "沙漏齿轮单色图标；用于应用时长。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -319,6 +348,7 @@
     "type": "asset",
     "src": "resources/base/media/id_fill.svg",
     "description": "样式：默认黑色的单色圆角矩形徽标，内部以留白显示大写 ID；适用：会议 ID、身份编号、证件编号或标识码。",
+    "overviewDescription": "ID 单色徽标；用于会议、身份、证件编号或标识码。",
     "sceneTags": [
       "identity"
     ],
@@ -329,6 +359,7 @@
     "type": "asset",
     "src": "resources/base/media/kidswatch_fill.svg",
     "description": "样式：默认黑色的单色实心智能手表正视图，矩形圆角表盘和上下表带；适用：儿童手表、可穿戴设备、手表连接或设备管理。",
+    "overviewDescription": "智能手表单色图标；用于儿童手表、穿戴设备连接或管理。",
     "sceneTags": [
       "device",
       "watch"
@@ -340,6 +371,7 @@
     "type": "asset",
     "src": "resources/base/media/l_circle_fill.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 L，支持通过 fillColor 与卡片配色统一；适用：左耳、左声道、左侧设备或 L 标记。",
+    "overviewDescription": "L 圆形单色徽标；用于左耳、左声道或左侧设备。",
     "sceneTags": [
       "audio",
       "left"
@@ -351,6 +383,7 @@
     "type": "asset",
     "src": "resources/base/media/lamp_ceiling.svg",
     "description": "样式：吸顶灯图标（关灯状态），默认黑色，图形为圆形灯盘加固定架造型；适用：智能照明控制、灯光管理、家居灯光。",
+    "overviewDescription": "关灯吸顶灯单色图标；用于智能照明或灯光管理。",
     "sceneTags": [
       "home",
       "light"
@@ -362,6 +395,7 @@
     "type": "asset",
     "src": "resources/base/media/lamp_ceiling_light.svg",
     "description": "样式：吸顶灯亮起图标（开灯状态），默认黑色，图形为圆形灯盘加射线光芒造型；适用：灯光开启状态展示、智能照明控制。",
+    "overviewDescription": "亮灯吸顶灯单色图标；用于灯光开启或照明控制。",
     "sceneTags": [
       "home",
       "light"
@@ -373,6 +407,7 @@
     "type": "asset",
     "src": "resources/base/media/local_fill.svg",
     "description": "样式：默认黑色的单色实心地图定位针，中央为圆形留白；适用：当前位置、地点、地图标记、位置服务。",
+    "overviewDescription": "定位针单色图标；用于当前位置、地点或位置服务。",
     "sceneTags": [
       "location"
     ],
@@ -383,6 +418,7 @@
     "type": "asset",
     "src": "resources/base/media/location_north_up_right_fill.svg",
     "description": "样式：方向导航实心图标，默认黑色，图形为指向右上方的导航箭头；适用：地图导航、方向指引、路线规划。",
+    "overviewDescription": "导航箭头单色图标；用于地图导航、方向或路线。",
     "sceneTags": [
       "location",
       "navigation"
@@ -394,6 +430,7 @@
     "type": "asset",
     "src": "resources/base/media/moon_circle_fill.svg",
     "description": "样式：默认黑色的单色月亮圆形实心图标，内部通过镂空表现月牙，支持通过 fillColor 与卡片配色统一；适用：夜间模式、睡眠追踪、勿扰模式。",
+    "overviewDescription": "圆形月亮单色图标；用于夜间、睡眠或勿扰。",
     "sceneTags": [
       "sleep",
       "night"
@@ -405,6 +442,7 @@
     "type": "asset",
     "src": "resources/base/media/moon_z_fill_1.svg",
     "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。",
+    "overviewDescription": "月亮 Z 单色图标；用于睡眠模式、休息或晚安。",
     "sceneTags": [
       "sleep",
       "night"
@@ -416,6 +454,7 @@
     "type": "asset",
     "src": "resources/base/media/music_fill.svg",
     "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。",
+    "overviewDescription": "双音符单色图标；用于音乐、音频入口或歌单。",
     "sceneTags": [
       "music",
       "media"
@@ -427,6 +466,7 @@
     "type": "asset",
     "src": "resources/base/media/pause_fill.svg",
     "description": "样式：暂停实心图标，默认黑色，图形为两条竖向平行矩形；适用：音乐/视频播放暂停控制。",
+    "overviewDescription": "暂停单色图标；用于音乐或视频暂停。",
     "sceneTags": [
       "media",
       "control"
@@ -438,6 +478,7 @@
     "type": "asset",
     "src": "resources/base/media/person_3_fill.svg",
     "description": "样式：三人组实心图标，默认黑色，图形为三个人形轮廓并排排列；适用：群组联系人、团队成员展示、家庭成员列表。",
+    "overviewDescription": "三人组单色图标；用于联系人群组、团队或家庭成员。",
     "sceneTags": [
       "person",
       "group"
@@ -449,6 +490,7 @@
     "type": "asset",
     "src": "resources/base/media/phone_fill.svg",
     "description": "样式：电话实心图标，默认黑色，图形为经典听筒造型；适用：拨打电话、通话功能入口。",
+    "overviewDescription": "电话听筒单色图标；用于拨号或通话入口。",
     "sceneTags": [
       "phone",
       "call"
@@ -460,6 +502,7 @@
     "type": "asset",
     "src": "resources/base/media/play_fill.svg",
     "description": "样式：播放实心图标，默认黑色，图形为向右的实心三角形；适用：音乐/视频播放控制、媒体播放器。",
+    "overviewDescription": "播放单色图标；用于音乐或视频播放。",
     "sceneTags": [
       "media",
       "control"
@@ -471,6 +514,7 @@
     "type": "asset",
     "src": "resources/base/media/qrcode.svg",
     "description": "样式：默认黑色的单色线面结合二维码符号，包含三个定位方块和右下点阵；适用：扫码入口、二维码功能、设备配对或分享入口。",
+    "overviewDescription": "二维码单色图标；用于扫码、配对或分享入口。",
     "sceneTags": [
       "qrcode",
       "share"
@@ -482,6 +526,7 @@
     "type": "asset",
     "src": "resources/base/media/r_circle_fill.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 R，支持通过 fillColor 与卡片配色统一；适用：右耳、右声道、右侧设备或 R 标记。",
+    "overviewDescription": "R 圆形单色徽标；用于右耳、右声道或右侧设备。",
     "sceneTags": [
       "audio",
       "right"
@@ -493,6 +538,7 @@
     "type": "asset",
     "src": "resources/base/media/stopwatch_fill.svg",
     "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。",
+    "overviewDescription": "秒表单色图标；用于计时、运动计时或倒计时。",
     "sceneTags": [
       "time",
       "sport"
@@ -504,6 +550,7 @@
     "type": "asset",
     "src": "resources/base/media/sun_max.svg",
     "description": "样式：默认黑色的单色线框太阳，中央大圆环，周围为八条较长放射线；适用：高亮度、强光、晴天或亮度增大。",
+    "overviewDescription": "长光芒太阳线框图标；用于高亮度、强光或晴天。",
     "sceneTags": [
       "weather",
       "sun"
@@ -515,6 +562,7 @@
     "type": "asset",
     "src": "resources/base/media/sun_min.svg",
     "description": "样式：默认黑色的单色线框太阳，中央圆环，周围为八个较短圆点式光芒；适用：低亮度、柔和阳光、亮度减小。",
+    "overviewDescription": "短光芒太阳线框图标；用于低亮度、柔和阳光或调暗。",
     "sceneTags": [
       "weather",
       "sun"
@@ -526,6 +574,7 @@
     "type": "asset",
     "src": "resources/base/media/tram_fill.svg",
     "description": "样式：默认黑色的单色实心有轨电车正视图，顶部带受电弓，底部带车轮；适用：有轨电车、轻轨、轨道交通站点或线路。",
+    "overviewDescription": "有轨电车单色图标；用于轻轨、轨道站点或线路。",
     "sceneTags": [
       "traffic",
       "tram"
@@ -537,6 +586,7 @@
     "type": "asset",
     "src": "resources/base/media/typhoon_fill.svg",
     "description": "样式：台风黑色图标，图形为台风漩涡造型；适用：台风预警、台风路径。",
+    "overviewDescription": "台风单色图标；用于台风预警或路径。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -545,6 +595,7 @@
     "type": "asset",
     "src": "resources/base/media/z_alarm_fill.svg",
     "description": "样式：带Z的闹钟贪睡实心图标，默认黑色，图形为闹钟旁附带字母Z表示贪睡；适用：闹钟贪睡功能、延迟提醒、睡眠场景。",
+    "overviewDescription": "Z 闹钟单色图标；用于贪睡、延迟提醒或睡眠。",
     "sceneTags": [
       "alarm",
       "sleep"
@@ -556,6 +607,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_id.svg",
     "description": "样式：米灰色半透明圆角矩形徽标，内部以浅色显示大写 ID，原始尺寸为 12×12，保留原色与透明度；适用：会议 ID、身份编号或日程中的标识码。",
+    "overviewDescription": "米灰半透明 ID 徽标；用于会议、身份编号或日程标识码。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -564,6 +616,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_meeting.svg",
     "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。",
+    "overviewDescription": "会议演示板单色图标；用于会议、汇报、演示或议程。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -572,6 +625,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_watermark.svg",
     "description": "样式：米灰色低透明度的大型日历轮廓装饰，画布和图形尺寸关系特殊，保留原色与透明层级；适用：日程卡片的弱化背景水印或装饰锚点。",
+    "overviewDescription": "日历轮廓水印；仅用于日程弱化背景或装饰锚点。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -580,6 +634,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_allergy.svg",
     "description": "样式：默认黑色的单色侧面人头轮廓，面部周围分布颗粒点，表现过敏原或空气刺激；适用：过敏、花粉、空气刺激、呼吸道敏感提示。",
+    "overviewDescription": "过敏人头单色图标；用于花粉、空气刺激或呼吸道敏感。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -588,6 +643,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_high_temperature.svg",
     "description": "样式：默认黑色的单色线框温度计，内部温度柱较高，源文件语义指向体温；适用：体温偏高、发热、人体温度提醒。",
+    "overviewDescription": "体温计单色图标；用于体温偏高、发热或人体温度提醒。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -596,6 +652,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_tiktok.png",
     "description": "样式：黑色圆形底上的抖音品牌音符，包含青色、红色和白色叠色，64×64 PNG，PNG 位图需保留品牌原色；适用：抖音应用、抖音使用时长或防沉迷统计。",
+    "overviewDescription": "抖音品牌 PNG；用于抖音应用、使用时长或防沉迷统计。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -604,6 +661,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_timing.svg",
     "description": "样式：默认白色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时、使用时长、倒计时或时限。",
+    "overviewDescription": "秒表单色图标；用于计时、使用时长、倒计时或时限。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -612,6 +670,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_earphone.svg",
     "description": "样式：默认黑色的单色左右分体式开放耳机，局部通过镂空表现高光与分隔，支持通过 fillColor 与卡片配色统一；适用：无线耳机本体、耳机连接、左右耳设备状态。",
+    "overviewDescription": "分体耳机单色图标；用于无线耳机连接或左右耳状态。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -620,6 +679,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_car.svg",
     "description": "样式：默认黑色的单色汽车正视图，带前窗、车灯和车轮；适用：汽车、打车、驾车出行或车辆状态。",
+    "overviewDescription": "汽车单色图标；用于打车、驾车或车辆状态。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -628,6 +688,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_focus.svg",
     "description": "样式：默认黑色的单色实心月牙图标，无圆形底和睡眠字样；适用：专注模式、勿扰模式、夜间状态。",
+    "overviewDescription": "月牙单色图标；用于专注、勿扰或夜间。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -636,6 +697,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_schedule.svg",
     "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。",
+    "overviewDescription": "日历单色图标；用于日程、日期或日历入口。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -644,6 +706,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_save_power.svg",
     "description": "样式：默认黑色的单色实心横向电池图标，内部为叶片造型；适用：省电模式、节能设置、绿色电池状态。",
+    "overviewDescription": "电池叶片单色图标；用于省电或节能设置。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -652,6 +715,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_run.svg",
     "description": "样式：纯白色单色奔跑人物侧视图，浅色背景需染色；适用：跑步、运动锻炼、活动日程。",
+    "overviewDescription": "跑步人物单色图标；用于跑步、锻炼或活动日程。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -660,6 +724,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_left.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 L，源文件语义为左耳机，支持通过 fillColor 与卡片配色统一；适用：左耳、左声道、左侧耳机电量。",
+    "overviewDescription": "L 单色徽标；用于左耳、左声道或左耳电量。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -668,6 +733,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_music.svg",
     "description": "样式：默认黑色的单色实心双音符图标，内部通过镂空分隔形成音符结构，支持通过 fillColor 与卡片配色统一；适用：音乐、歌曲、歌单或音频内容。",
+    "overviewDescription": "双音符单色图标；用于音乐、歌曲、歌单或音频。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -676,6 +742,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_right.svg",
     "description": "样式：默认黑色的单色实心圆形徽标，内部以镂空显示大写 R，源文件语义为右耳机，支持通过 fillColor 与卡片配色统一；适用：右耳、右声道、右侧耳机电量。",
+    "overviewDescription": "R 单色徽标；用于右耳、右声道或右耳电量。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -684,6 +751,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_weather_thermometer_medium.svg",
     "description": "样式：黑色的温度计图标，内部温度柱处于中档，管身右侧带三组刻度；适用：中等温度、舒适温度区间、当前气温或温度等级。",
+    "overviewDescription": "中档温度计单色图标；用于舒适温度、当前气温或温度等级。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -692,6 +760,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_weather_thermometer.svg",
     "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+    "overviewDescription": "气温计单色图标；用于天气温度、温差或冷热趋势。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -700,6 +769,7 @@
     "type": "asset",
     "src": "resources/base/media/icon_weather_wind.svg",
     "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+    "overviewDescription": "风力单色图标；用于风速、风向、风力等级或大风提醒。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -708,6 +778,7 @@
     "type": "asset",
     "src": "resources/base/media/average_pace_fill.svg",
     "description": "样式：默认黑色的单色实心半圆仪表盘图标，中央带指针，原始尺寸为 24×24；适用：平均配速、速度、跑步或骑行表现、训练概览与历史成绩。",
+    "overviewDescription": "配速仪表单色图标；用于速度、跑步、骑行或训练成绩。",
     "sceneTags": [
       "health",
       "sport"
@@ -719,6 +790,7 @@
     "type": "asset",
     "src": "resources/base/media/bell_fill_1.svg",
     "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
+    "overviewDescription": "铃铛单色图标；用于通知、消息、备忘、闹钟或日历提醒。",
     "sceneTags": [
       "notification",
       "alarm"
@@ -730,6 +802,7 @@
     "type": "asset",
     "src": "resources/base/media/blood_oxygen_meter_fill.svg",
     "description": "样式：默认黑色的单色实心血氧仪图标，带显示屏与指夹结构，原始尺寸为 24×24；适用：血氧、血氧饱和度、健康检测、健康报告与测量设备入口。",
+    "overviewDescription": "血氧仪单色图标；用于血氧、健康检测、报告或测量设备入口。",
     "sceneTags": [
       "health",
       "blood-oxygen"
@@ -741,6 +814,7 @@
     "type": "asset",
     "src": "resources/base/media/body_fat_scale_fill_1.svg",
     "description": "样式：默认黑色的单色实心方形电子体脂秤图标，顶部带读数与踏板区域，原始尺寸为 24×24；适用：体重、体脂、身体成分、体脂秤连接与体重趋势。",
+    "overviewDescription": "体脂秤单色图标；用于体重、体脂、身体成分或设备连接。",
     "sceneTags": [
       "health",
       "body-composition"
@@ -752,6 +826,7 @@
     "type": "asset",
     "src": "resources/base/media/book_pages_fill_1.svg",
     "description": "样式：默认黑色的单色实心展开双页书册图标，内部通过留白表现书页，原始尺寸为 24×24；适用：阅读、内容页、知识记录、笔记库、健康知识与运动课程入口。",
+    "overviewDescription": "展开书册单色图标；用于阅读、知识、笔记、健康知识或运动课程。",
     "sceneTags": [
       "reading",
       "notes"
@@ -763,6 +838,7 @@
     "type": "asset",
     "src": "resources/base/media/bookshelf.svg",
     "description": "样式：默认黑色的单色书架图标，由多本竖放书籍组成，原始尺寸为 24×24；适用：资料库、收藏、分类归档、备忘录归档、健康报告或指南入口。",
+    "overviewDescription": "书架单色图标；用于资料、收藏、归档、健康报告或指南。",
     "sceneTags": [
       "library",
       "archive"
@@ -774,6 +850,7 @@
     "type": "asset",
     "src": "resources/base/media/cake_fill.svg",
     "description": "样式：默认黑色的单色实心生日蛋糕图标，顶部带蜡烛，原始尺寸为 24×24；适用：生日、纪念日、节日、庆祝事件与运动目标达成。",
+    "overviewDescription": "蛋糕单色图标；用于生日、纪念日、节庆或运动目标达成。",
     "sceneTags": [
       "calendar",
       "celebration"
@@ -785,6 +862,7 @@
     "type": "asset",
     "src": "resources/base/media/camera_fill.svg",
     "description": "样式：默认黑色的单色实心相机图标，带矩形机身与圆形镜头，原始尺寸为 24×24；适用：拍照、相册、图像记录、备忘录插图，以及体态或餐食记录。",
+    "overviewDescription": "相机单色图标；用于拍照、相册、图像、体态或餐食记录。",
     "sceneTags": [
       "camera",
       "media"
@@ -796,6 +874,7 @@
     "type": "asset",
     "src": "resources/base/media/checkmark_calendar_fill_1.svg",
     "description": "样式：默认黑色的单色实心日历图标，内部叠加对勾并通过镂空表现细节，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程或计划确认、签到、待办完成、任务或运动打卡与健康计划。",
+    "overviewDescription": "对勾日历单色图标；用于已完成日程、计划确认、签到或打卡。",
     "sceneTags": [
       "calendar",
       "task"
@@ -807,6 +886,7 @@
     "type": "asset",
     "src": "resources/base/media/checkmark_circle_fill.svg",
     "description": "样式：默认黑色的单色实心圆形图标，内部为对勾留白，原始尺寸为 24×24；适用：完成、确认、成功、已选中、事项勾选、设置保存与目标达成。",
+    "overviewDescription": "圆形对勾单色图标；用于完成、确认、成功、选中或目标达成。",
     "sceneTags": [
       "task",
       "success"
@@ -818,6 +898,7 @@
     "type": "asset",
     "src": "resources/base/media/clock_fill_1.svg",
     "description": "样式：默认黑色的单色实心圆形时钟图标，内部通过镂空表现表盘指针，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器、提醒时间、应用使用时长与运动时长。",
+    "overviewDescription": "时钟实心图标；用于时间、闹钟、计时或使用与运动时长。",
     "sceneTags": [
       "time",
       "clock"
@@ -829,6 +910,7 @@
     "type": "asset",
     "src": "resources/base/media/control_fill.svg",
     "description": "样式：默认黑色的单色实心控制图标，由上下两条带圆形滑块的调节条组成，原始尺寸为 24×24；适用：系统设置分类、显示、声音、模式与偏好参数调节入口，不用于替代二元开关控件。",
+    "overviewDescription": "调节条单色图标；用于设置、显示、声音或偏好调节，不替代二元开关。",
     "sceneTags": [
       "settings",
       "control"
@@ -840,6 +922,7 @@
     "type": "asset",
     "src": "resources/base/media/doc_plaintext_fill.svg",
     "description": "样式：默认黑色的单色实心文档页图标，内部带多行文字，原始尺寸为 24×24；适用：文本笔记、新建或查看详情、说明、健康报告与应用使用时长报告。",
+    "overviewDescription": "文档单色图标；用于文本笔记、详情、说明、健康或使用时长报告。",
     "sceneTags": [
       "notes",
       "document"
@@ -851,6 +934,7 @@
     "type": "asset",
     "src": "resources/base/media/ellipsis_message_badge_circle_fill.svg",
     "description": "样式：默认黑色的单色实心对话气泡图标，内部含三个省略点并带圆形徽标，原始尺寸为 24×24；适用：消息会话、正在输入、电话或短信提醒、语音留言、客服会话与未读提示。",
+    "overviewDescription": "会话气泡单色图标；用于消息、输入中、电话短信、语音留言或未读提示。",
     "sceneTags": [
       "message",
       "notification"
@@ -862,6 +946,7 @@
     "type": "asset",
     "src": "resources/base/media/envelope_badge_dot_fill.svg",
     "description": "样式：默认黑色的单色实心信封图标，右上叠加圆点徽标，原始尺寸为 26×24；适用：新消息、未读提醒、邮件通知、日历邀请与备忘录共享通知。",
+    "overviewDescription": "带圆点信封单色图标；用于未读消息、邮件、日历邀请或备忘共享通知。",
     "sceneTags": [
       "message",
       "notification"
@@ -873,6 +958,7 @@
     "type": "asset",
     "src": "resources/base/media/figure_sleeping_bed_side_fill.svg",
     "description": "样式：默认黑色的单色实心侧卧人物与床铺图标，原始尺寸为 24×24；适用：睡眠、休息、睡眠监测、睡眠数据、睡眠模式与就寝提醒。",
+    "overviewDescription": "卧床人物单色图标；用于睡眠、休息、睡眠数据或就寝提醒。",
     "sceneTags": [
       "health",
       "sleep"
@@ -884,6 +970,7 @@
     "type": "asset",
     "src": "resources/base/media/gearshape_fill.svg",
     "description": "样式：默认黑色的单色实心多齿齿轮图标，原始尺寸为 24×24；适用：系统设置、偏好配置、闹钟规则、相机参数与健康权限设置入口。",
+    "overviewDescription": "齿轮单色图标；用于系统设置、偏好、闹钟规则、相机或健康权限。",
     "sceneTags": [
       "settings",
       "control"
@@ -895,6 +982,7 @@
     "type": "asset",
     "src": "resources/base/media/list_book_fill.svg",
     "description": "样式：默认黑色的单色实心书册图标，内部带列表与文字线条，原始尺寸为 24×24；适用：目录、清单、记录册、备忘录列表、日程列表与健康记录列表。",
+    "overviewDescription": "列表书册单色图标；用于目录、清单、备忘、日程或健康记录。",
     "sceneTags": [
       "notes",
       "list"
@@ -906,6 +994,7 @@
     "type": "asset",
     "src": "resources/base/media/list_bullet_square_fill_1.svg",
     "description": "样式：默认黑色的单色实心列表图标，左侧带方形项目符号，原始尺寸为 24×24；适用：待办、任务清单、步骤、日程、运动训练计划与拍摄任务。",
+    "overviewDescription": "项目列表单色图标；用于待办、步骤、日程、训练计划或拍摄任务。",
     "sceneTags": [
       "task",
       "list"
@@ -917,6 +1006,7 @@
     "type": "asset",
     "src": "resources/base/media/local_and_rectangle_fill.svg",
     "description": "样式：默认黑色的单色实心位置图标，地图定位图钉置于底部矩形底图上，原始尺寸为 24×24；适用：日历地点、备忘录位置、运动轨迹、照片地点、位置服务与定位权限。",
+    "overviewDescription": "地图定位单色图标；用于日历地点、备忘位置、运动轨迹或定位权限。",
     "sceneTags": [
       "location",
       "navigation"
@@ -928,6 +1018,7 @@
     "type": "asset",
     "src": "resources/base/media/mic_fill.svg",
     "description": "样式：默认黑色的单色实心立式话筒图标，原始尺寸为 24×24；适用：录音、语音输入、语音通话、备忘录语音速记、视频收音与麦克风权限。",
+    "overviewDescription": "话筒单色图标；用于录音、语音输入通话、视频收音或麦克风权限。",
     "sceneTags": [
       "audio",
       "voice"
@@ -939,6 +1030,7 @@
     "type": "asset",
     "src": "resources/base/media/mobiledata.svg",
     "description": "样式：默认黑色的单色移动数据图标，由上下方向的数据传输箭头组成，原始尺寸为 24×24；适用：移动数据、数据流量、上传下载、网络传输、流量管理与设置入口。",
+    "overviewDescription": "数据箭头单色图标；用于移动数据、流量、传输或网络设置。",
     "sceneTags": [
       "network",
       "mobile-data"
@@ -950,6 +1042,7 @@
     "type": "asset",
     "src": "resources/base/media/mobiledata_circle_fill.svg",
     "description": "样式：默认黑色的单色实心圆形移动数据图标，内部通过留白表现上下数据箭头，原始尺寸为 24×24；适用：移动数据快捷操作、控制中心、网络状态与已启用的数据服务。",
+    "overviewDescription": "圆形数据箭头单色图标；用于移动数据快捷操作、控制中心或网络状态。",
     "sceneTags": [
       "network",
       "mobile-data"
@@ -961,6 +1054,7 @@
     "type": "asset",
     "src": "resources/base/media/moon_fill.svg",
     "description": "样式：默认黑色的单色实心弯月剪影图标，原始尺寸为 24×24；适用：夜间、睡眠、深色模式、勿扰、就寝提醒与夜间使用时长。",
+    "overviewDescription": "弯月单色图标；用于夜间、睡眠、深色模式、勿扰或就寝提醒。",
     "sceneTags": [
       "sleep",
       "night"
@@ -972,6 +1066,7 @@
     "type": "asset",
     "src": "resources/base/media/pc_ic_tab_index.svg",
     "description": "样式：默认黑色的单色球形索引图标，由多条弧线与节点组成地图或网络意象，原始尺寸为 24×24；适用：探索、网络、全局概览、应用首页、使用时长统计与跨设备入口，不作为备忘录、闹钟或电话的主操作图标。",
+    "overviewDescription": "球形索引单色图标；用于网络、探索、概览、首页或跨设备入口；不作备忘、闹钟或电话主操作图。",
     "sceneTags": [
       "overview",
       "navigation"
@@ -983,6 +1078,7 @@
     "type": "asset",
     "src": "resources/base/media/recordingtape_rectangle_fill.svg",
     "description": "样式：默认黑色的单色实心长方形磁带盒图标，内部含双卷盘，原始尺寸为 24×24；适用：录音、音频档案、电话录音、语音留言、备忘录录音与视频音频素材。",
+    "overviewDescription": "磁带单色图标；用于录音、音频档案、语音留言或音频素材。",
     "sceneTags": [
       "audio",
       "recording"
@@ -994,6 +1090,7 @@
     "type": "asset",
     "src": "resources/base/media/sdcard_fill.svg",
     "description": "样式：默认黑色的单色实心存储卡图标，带缺角和触点结构，原始尺寸为 24×24；适用：外部存储、导入导出、容量、相机存储位置与健康或备忘录文件导出。",
+    "overviewDescription": "存储卡单色图标；用于外部存储、导入导出、容量或相机存储位置。",
     "sceneTags": [
       "storage",
       "device"
@@ -1005,6 +1102,7 @@
     "type": "asset",
     "src": "resources/base/media/service_card_fill.svg",
     "description": "样式：默认黑色的单色实心方形服务卡片图标，内部含标题与两行信息，原始尺寸为 24×24；适用：卡片服务、应用首页快捷入口、信息摘要、备忘录或健康摘要与系统快捷服务。",
+    "overviewDescription": "服务卡片单色图标；用于快捷入口、信息摘要、备忘或健康摘要。",
     "sceneTags": [
       "card",
       "service"
@@ -1016,6 +1114,7 @@
     "type": "asset",
     "src": "resources/base/media/simcard_fill.svg",
     "description": "样式：默认黑色的单色实心 SIM 卡图标，带缺角与芯片区域，原始尺寸为 24×24；适用：蜂窝网络、SIM 卡、电话号码、电话、双卡管理、移动网络与移动数据设置。",
+    "overviewDescription": "SIM 卡单色图标；用于蜂窝网络、电话、双卡或移动网络设置。",
     "sceneTags": [
       "network",
       "sim-card"
@@ -1027,6 +1126,7 @@
     "type": "asset",
     "src": "resources/base/media/staircase_badge_clock_fill.svg",
     "description": "样式：默认黑色的单色实心阶梯图标，叠加小型时钟徽标，原始尺寸为 24×24；适用：爬楼、步行活动、爬楼层数、日常活动、训练耗时与活动时长。",
+    "overviewDescription": "阶梯时钟单色图标；用于爬楼、步行、训练耗时或活动时长。",
     "sceneTags": [
       "health",
       "sport"
@@ -1038,6 +1138,7 @@
     "type": "asset",
     "src": "resources/base/media/stopwatch_2.svg",
     "description": "样式：默认黑色的单色秒表图标，主体顶部带按键，内部通过留白表现表盘指针，原始尺寸为 24×24；适用：计时、秒表、专注时段、运动训练、应用使用时长与倒计时。",
+    "overviewDescription": "秒表单色图标；用于计时、专注、训练、使用时长或倒计时。",
     "sceneTags": [
       "time",
       "sport"
@@ -1049,6 +1150,7 @@
     "type": "asset",
     "src": "resources/base/media/text_clipboard_fill.svg",
     "description": "样式：默认黑色的单色实心剪贴板图标，顶部带夹扣，内部含多行文字，原始尺寸为 24×24；适用：清单、表单、文本记录、任务管理、日历事项、健康测量记录与系统诊断记录。",
+    "overviewDescription": "剪贴板单色图标；用于清单、文本、任务、日历或测量诊断记录。",
     "sceneTags": [
       "task",
       "record"
@@ -1060,6 +1162,7 @@
     "type": "asset",
     "src": "resources/base/media/video_fill.svg",
     "description": "样式：默认黑色的单色实心摄像机图标，机身带侧向镜头，原始尺寸为 24×24；适用：录像、视频通话、视频内容、运动动作记录与备忘录插入视频。",
+    "overviewDescription": "摄像机单色图标；用于录像、视频通话、运动视频或备忘视频。",
     "sceneTags": [
       "media",
       "video"
@@ -1071,6 +1174,7 @@
     "type": "asset",
     "src": "resources/base/media/wifi.svg",
     "description": "样式：默认黑色的单色 Wi-Fi 信号图标，由三层弧线与圆点组成，原始尺寸为 24×24；适用：无线网络、Wi-Fi 连接、网络状态、系统设置与控制中心快捷开关。",
+    "overviewDescription": "Wi-Fi 单色图标；用于无线网络、连接、设置或快捷开关。",
     "sceneTags": [
       "network",
       "wifi"
@@ -1082,6 +1186,7 @@
     "type": "asset",
     "src": "resources/base/media/worldclock_fill_2.svg",
     "description": "样式：默认黑色的单色实心世界时钟图标，时钟与世界或经纬线意象组合，原始尺寸为 24×24；适用：世界时钟、时区、跨地区时间、海外联系时间与跨时区日程。",
+    "overviewDescription": "世界时钟单色图标；用于时区、跨地区时间、海外联系或跨时区日程。",
     "sceneTags": [
       "time",
       "world-clock"
@@ -1092,7 +1197,8 @@
     "id": "asset.emoji_earphone",
     "type": "asset",
     "src": "resources/base/media/emoji_earphone.png",
-    "description": "样式：香槟金与米白配色的写实 3D 头戴式耳机，带金属头梁、柔软耳罩与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以耳机为唯一主业务的设备、蓝牙或音频卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：音乐附带动作、耳机电量正文或双业务分区。",
+    "description": "样式：香槟金与米白配色的写实 3D 头戴式耳机，带金属头梁、柔软耳罩与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：耳机设备、蓝牙或音频相关卡片。",
+    "overviewDescription": "耳机彩色 PNG；用于耳机设备、蓝牙或音频相关卡片。",
     "sceneTags": [
       "audio",
       "headphones"
@@ -1103,7 +1209,8 @@
     "id": "asset.emoji_calendar",
     "type": "asset",
     "src": "resources/base/media/emoji_calendar.png",
-    "description": "样式：红色页眉与浅灰日期圆点组成的扁平日历图形，白色不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：以日期概览、日历事项或会议安排为唯一主业务的卡片，优先作为 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。",
+    "description": "样式：红色页眉与浅灰日期圆点组成的扁平日历图形，白色不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：日期概览、日历事项或会议安排相关卡片。",
+    "overviewDescription": "日历彩色 PNG；用于日期概览、日历事项或会议安排。",
     "sceneTags": [
       "calendar",
       "schedule"
@@ -1114,7 +1221,8 @@
     "id": "asset.emoji_Fitness_Health",
     "type": "asset",
     "src": "resources/base/media/emoji_Fitness_Health.png",
-    "description": "样式：橙色方形底上的白色运动健康应用标识，不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：以运动健康应用、健身记录或活动目标为唯一主业务的卡片，优先作为 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。",
+    "description": "样式：橙色方形底上的白色运动健康应用标识，不透明背景，原始尺寸为 1024×1024，PNG 位图保留原色；适用：运动健康应用、健身记录或活动目标相关卡片。",
+    "overviewDescription": "运动健康应用彩色 PNG；用于运动健康、健身记录或活动目标。",
     "sceneTags": [
       "health",
       "app-icon"
@@ -1125,7 +1233,8 @@
     "id": "asset.emoji_music1",
     "type": "asset",
     "src": "resources/base/media/emoji_music1.png",
-    "description": "样式：白色圆角方形底上的蓝色立体音乐应用图标，原始尺寸为 120×120，PNG 位图保留原色；适用：以音乐应用、歌曲播放、歌单或音频内容为唯一主业务的卡片，优先作为 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。",
+    "description": "样式：白色圆角方形底上的蓝色立体音乐应用图标，原始尺寸为 120×120，PNG 位图保留原色；适用：音乐应用、歌曲播放、歌单或音频内容相关卡片。",
+    "overviewDescription": "音乐应用彩色 PNG；用于音乐应用、歌曲、歌单或音频内容。",
     "sceneTags": [
       "music",
       "app-icon"
@@ -1136,7 +1245,8 @@
     "id": "asset.emoji_phone1",
     "type": "asset",
     "src": "resources/base/media/emoji_phone1.png",
-    "description": "样式：绿色圆角方形底上的白色立体电话听筒图标，原始尺寸为 120×120，PNG 位图保留原色；适用：以电话、拨号、联系人呼叫或通话记录为唯一主业务的卡片，优先作为 2x2 单业务 SingleLineTitle 右上角 20vp 主题图；不匹配手机电量或设备状态。",
+    "description": "样式：绿色圆角方形底上的白色立体电话听筒图标，原始尺寸为 120×120，PNG 位图保留原色；适用：电话、拨号、联系人呼叫或通话记录相关卡片；不匹配手机电量或设备状态。",
+    "overviewDescription": "电话彩色 PNG；用于拨号、联系人呼叫或通话记录；不用于电量或设备状态。",
     "sceneTags": [
       "phone",
       "app-icon"
@@ -1147,7 +1257,8 @@
     "id": "asset.emoji_calendar2",
     "type": "asset",
     "src": "resources/base/media/emoji_calendar2.png",
-    "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以日历事项、明确会议或计划为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图，不因普通时间字段匹配。",
+    "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：日历事项、明确会议或计划相关卡片，不因普通时间字段匹配。",
+    "overviewDescription": "线圈日历彩色 PNG；用于日历、明确会议或计划；普通时间字段不匹配。",
     "sceneTags": [
       "calendar",
       "schedule"
@@ -1158,7 +1269,8 @@
     "id": "asset.emoji_clean",
     "type": "asset",
     "src": "resources/base/media/emoji_clean.png",
-    "description": "样式：木质手柄与米白棉线组成的写实 3D 拖把，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以家居清洁或清扫任务为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：内存清理、电池健康或泛维护状态。",
+    "description": "样式：木质手柄与米白棉线组成的写实 3D 拖把，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：家居清洁或清扫任务相关卡片。不适用：内存清理、电池健康或泛维护状态。",
+    "overviewDescription": "拖把彩色 PNG；用于家居清扫；不用于内存清理、电池健康或泛维护。",
     "sceneTags": [
       "clean",
       "maintenance"
@@ -1169,7 +1281,8 @@
     "id": "asset.emoji_clock",
     "type": "asset",
     "src": "resources/base/media/emoji_clock.png",
-    "description": "样式：红色金属外壳的写实 3D 双铃闹钟，白色表盘配黑色指针与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以闹钟、起床提醒或明确计时任务为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：单会议时间线或仅含普通日期时间的卡片。",
+    "description": "样式：红色金属外壳的写实 3D 双铃闹钟，白色表盘配黑色指针与透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：闹钟、起床提醒或明确计时任务相关卡片。不适用：单会议时间线或仅含普通日期时间的卡片。",
+    "overviewDescription": "闹钟彩色 PNG；用于闹钟、起床提醒或计时；不用于单会议时间线或普通日期时间。",
     "sceneTags": [
       "time",
       "alarm"
@@ -1180,7 +1293,8 @@
     "id": "asset.emoji_courier_box",
     "type": "asset",
     "src": "resources/base/media/emoji_courier_box.png",
-    "description": "样式：棕色瓦楞纸箱的写实 3D 快递包裹，带封箱胶带、物流标签和搬运标识，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以快递查询、包裹配送或物流进度为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。",
+    "description": "样式：棕色瓦楞纸箱的写实 3D 快递包裹，带封箱胶带、物流标签和搬运标识，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：快递查询、包裹配送或物流进度相关卡片。",
+    "overviewDescription": "快递箱彩色 PNG；用于快递查询、包裹配送或物流进度。",
     "sceneTags": [
       "delivery",
       "logistics"
@@ -1191,7 +1305,8 @@
     "id": "asset.emoji_health",
     "type": "asset",
     "src": "resources/base/media/emoji_health.png",
-    "description": "样式：红色渐变的写实 3D 爱心，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以心率或心脏健康为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：收藏、歌单、泛电量或动态危险状态。",
+    "description": "样式：红色渐变的写实 3D 爱心，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：心率或心脏健康相关卡片。不适用：收藏、歌单、泛电量或动态危险状态。",
+    "overviewDescription": "爱心彩色 PNG；用于心率或心脏健康；不用于收藏、歌单、泛电量或危险状态。",
     "sceneTags": [
       "health",
       "heart"
@@ -1202,7 +1317,8 @@
     "id": "asset.emoji_light",
     "type": "asset",
     "src": "resources/base/media/emoji_light.png",
-    "description": "样式：暖黄色发光灯泡的写实 3D 图形，带银灰螺口和透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以智能照明、灯光开启或亮度调节为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：省电、手机电量或泛设置。",
+    "description": "样式：暖黄色发光灯泡的写实 3D 图形，带银灰螺口和透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：智能照明、灯光开启或亮度调节相关卡片。不适用：省电、手机电量或泛设置。",
+    "overviewDescription": "灯泡彩色 PNG；用于照明、开灯或亮度；不用于省电、电量或泛设置。",
     "sceneTags": [
       "home",
       "light"
@@ -1213,7 +1329,8 @@
     "id": "asset.emoji_music",
     "type": "asset",
     "src": "resources/base/media/emoji_music.png",
-    "description": "样式：黑色高光材质的写实 3D 双八分音符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以音乐播放、歌曲、歌单或音频内容为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：音乐附带动作按钮。",
+    "description": "样式：黑色高光材质的写实 3D 双八分音符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐播放、歌曲、歌单或音频内容相关卡片。",
+    "overviewDescription": "双音符彩色 PNG；用于音乐播放、歌曲、歌单或音频内容。",
     "sceneTags": [
       "music",
       "media"
@@ -1224,7 +1341,8 @@
     "id": "asset.emoji_music_2",
     "type": "asset",
     "src": "resources/base/media/emoji_music_2.png",
-    "description": "样式：一大一小两枚黑色高光八分音符组成的写实 3D 图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以音乐推荐、歌曲列表、正在播放或音频内容为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图，与 emoji_music 二选一。",
+    "description": "样式：一大一小两枚黑色高光八分音符组成的写实 3D 图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐推荐、歌曲列表、正在播放或音频内容相关卡片，与 emoji_music 二选一。",
+    "overviewDescription": "大小双音符彩色 PNG；用于音乐推荐、歌曲列表或音频内容；与 emoji_music 二选一。",
     "sceneTags": [
       "music",
       "media"
@@ -1235,7 +1353,8 @@
     "id": "asset.emoji_notepad",
     "type": "asset",
     "src": "resources/base/media/emoji_notepad.png",
-    "description": "样式：蓝色横线与红色竖线组成的写实 3D 线圈记事本，带金属装订环和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以备忘录、笔记或待办清单为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：任意日程附带文本。",
+    "description": "样式：蓝色横线与红色竖线组成的写实 3D 线圈记事本，带金属装订环和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：备忘录、笔记或待办清单相关卡片。不适用：任意日程附带文本。",
+    "overviewDescription": "记事本彩色 PNG；用于备忘、笔记或待办；不用于日程附带文本。",
     "sceneTags": [
       "notes",
       "record"
@@ -1246,7 +1365,8 @@
     "id": "asset.emoji_run",
     "type": "asset",
     "src": "resources/base/media/emoji_run.png",
-    "description": "样式：灰色运动上衣与深色短裤装扮的写实 3D 跑步人物，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以跑步记录、步数、配速或运动目标为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：睡眠或泛健康卡片。",
+    "description": "样式：灰色运动上衣与深色短裤装扮的写实 3D 跑步人物，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：跑步记录、步数、配速或运动目标相关卡片。不适用：睡眠或泛健康卡片。",
+    "overviewDescription": "跑步人物彩色 PNG；用于跑步、步数、配速或运动目标；不用于睡眠或泛健康。",
     "sceneTags": [
       "health",
       "sport"
@@ -1257,7 +1377,8 @@
     "id": "asset.emoji_study",
     "type": "asset",
     "src": "resources/base/media/emoji_study.png",
-    "description": "样式：白色横线纸张与绿红配色铅笔组成的写实 3D 学习图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以学习计划、课程任务、作业或考试复习为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：普通日程。",
+    "description": "样式：白色横线纸张与绿红配色铅笔组成的写实 3D 学习图形，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：学习计划、课程任务、作业或考试复习相关卡片。不适用：普通日程。",
+    "overviewDescription": "纸笔彩色 PNG；用于学习、课程、作业或复习；不用于普通日程。",
     "sceneTags": [
       "study",
       "notes"
@@ -1268,7 +1389,8 @@
     "id": "asset.emoji_time",
     "type": "asset",
     "src": "resources/base/media/emoji_time.png",
-    "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以当前时间、计时或时长统计为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：只含时间字段的日程或会议卡片。",
+    "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、计时或时长统计相关卡片。不适用：只含时间字段的日程或会议卡片。",
+    "overviewDescription": "时钟彩色 PNG；用于当前时间、计时或时长统计；不用于日程附带时间。",
     "sceneTags": [
       "time",
       "clock"
@@ -1279,7 +1401,8 @@
     "id": "asset.emoji_z",
     "type": "asset",
     "src": "resources/base/media/emoji_z.png",
-    "description": "样式：三枚由小到大排列的蓝紫渐变立体 Z 字符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以睡眠、就寝、午休或睡眠时长为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：会议、普通勿扰按钮或其他附带状态。",
+    "description": "样式：三枚由小到大排列的蓝紫渐变立体 Z 字符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：睡眠、就寝、午休或睡眠时长相关卡片。不适用：会议、普通勿扰按钮或其他附带状态。",
+    "overviewDescription": "Z 字符彩色 PNG；用于睡眠、就寝或午休；不用于会议或附带勿扰。",
     "sceneTags": [
       "sleep",
       "night"
@@ -1290,7 +1413,8 @@
     "id": "asset.emoji_activity",
     "type": "asset",
     "src": "resources/base/media/emoji_activity.png",
-    "description": "样式：橙色圆形底上的白色气球图标，带橙色高光缺口与浅黄色短绳，圆形外透明，原始尺寸为 192×192，PNG 位图需保留原色；适用：以生日、纪念日或庆祝活动为唯一主业务的日历日程或日期倒计时卡片，可结合日程详情跳转；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：步数、运动活动记录或普通会议，不因文件名中的 activity 匹配运动健康。",
+    "description": "样式：橙色圆形底上的白色气球图标，带橙色高光缺口与浅黄色短绳，圆形外透明，原始尺寸为 192×192，PNG 位图需保留原色；适用：生日、纪念日或庆祝活动相关日历日程或日期倒计时卡片，可结合日程详情跳转。不适用：步数、运动活动记录或普通会议，不因文件名中的 activity 匹配运动健康。",
+    "overviewDescription": "气球彩色 PNG；用于生日、纪念日或庆祝倒计时；不用于运动、步数或普通会议。",
     "sceneTags": [
       "calendar",
       "celebration"
@@ -1301,7 +1425,8 @@
     "id": "asset.emoji_heartRate",
     "type": "asset",
     "src": "resources/base/media/emoji_heartRate.png",
-    "description": "样式：橙红色扁平爱心中央叠加浅色心电折线，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：以最近一次运动的平均、最高或最低心率为唯一主业务，且当前组件合同提供合法主视觉位的卡片，可结合运动记录页跳转。不适用：SingleLineTitle、实时心率测量、心电检测、健康诊断、收藏或心动歌单，图标不表示当前健康状态。",
+    "description": "样式：橙红色扁平爱心中央叠加浅色心电折线，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：最近一次运动的平均、最高或最低心率相关业务，可结合运动记录页跳转。不适用：实时心率测量、心电检测、健康诊断、收藏或心动歌单，图标不表示当前健康状态。",
+    "overviewDescription": "心电爱心彩色 PNG；用于最近运动心率；不用于实时心率、心电检测、诊断或收藏，不表示当前健康状态。",
     "sceneTags": [
       "health",
       "heart-rate"
@@ -1312,7 +1437,8 @@
     "id": "asset.emoji_mobileNetwork",
     "type": "asset",
     "src": "resources/base/media/emoji_mobileNetwork.png",
-    "description": "样式：绿色圆形底上的上下数据传输箭头，向上箭头为白色、向下箭头为浅绿色，圆形外透明，原始尺寸为 192×192，PNG 位图需保留原色；适用：以移动数据开关、移动数据设置或流量管理入口为唯一主业务的卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：Wi-Fi、蓝牙或下载进度；当前清单不提供流量用量、网速或移动数据开关状态查询，绿色底色不代表已开启。",
+    "description": "样式：绿色圆形底上的上下数据传输箭头，向上箭头为白色、向下箭头为浅绿色，圆形外透明，原始尺寸为 192×192，PNG 位图需保留原色；适用：移动数据开关、移动数据设置或流量管理入口相关卡片。不适用：Wi-Fi、蓝牙或下载进度；当前清单不提供流量用量、网速或移动数据开关状态查询，绿色底色不代表已开启。",
+    "overviewDescription": "移动数据彩色 PNG；用于数据开关或流量设置入口；不用于 Wi-Fi、蓝牙或下载，不支持流量网速及开关状态查询。",
     "sceneTags": [
       "network",
       "mobile-data"
@@ -1323,7 +1449,8 @@
     "id": "asset.emoji_note",
     "type": "asset",
     "src": "resources/base/media/emoji_note.png",
-    "description": "样式：木色底板、银色金属夹与白色横线纸张组成的写实 3D 剪贴板，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以用户提供的待办清单、备忘事项或任务步骤为唯一主业务的静态卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。当前清单不支持读取、创建或勾选完成备忘录，不得暗示动态任务同步；不适用：普通日程附带文本。",
+    "description": "样式：木色底板、银色金属夹与白色横线纸张组成的写实 3D 剪贴板，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：用户提供的待办清单、备忘事项或任务步骤相关静态卡片。当前清单不支持读取、创建或勾选完成备忘录，不得暗示动态任务同步；不适用：普通日程附带文本。",
+    "overviewDescription": "剪贴板彩色 PNG；用于用户提供的静态待办或步骤；不支持备忘读取、创建、完成或同步，不用于日程附带文本。",
     "sceneTags": [
       "notes",
       "task"
@@ -1334,7 +1461,8 @@
     "id": "asset.emoji_notebook",
     "type": "asset",
     "src": "resources/base/media/emoji_notebook.png",
-    "description": "样式：黄色纹理封面与银色侧边装订环组成的写实 3D 笔记本，带可见的白色内页与橙色封底，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：以用户提供的笔记摘要、学习要点或复习提纲为唯一主业务的静态卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。当前清单不支持读取、编辑或打开指定笔记，不得暗示笔记应用同步；不适用：普通日历日程或泛信息摘要。",
+    "description": "样式：黄色纹理封面与银色侧边装订环组成的写实 3D 笔记本，带可见的白色内页与橙色封底，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：用户提供的笔记摘要、学习要点或复习提纲相关静态卡片。当前清单不支持读取、编辑或打开指定笔记，不得暗示笔记应用同步；不适用：普通日历日程或泛信息摘要。",
+    "overviewDescription": "笔记本彩色 PNG；用于用户提供的静态笔记或复习提纲；不支持笔记读取、编辑、指定笔记跳转或同步，不用于普通日历。",
     "sceneTags": [
       "notes",
       "study"
@@ -1345,7 +1473,8 @@
     "id": "asset.emoji_sleep",
     "type": "asset",
     "src": "resources/base/media/emoji_sleep.png",
-    "description": "样式：天蓝色扁平弯月与两枚 Z 字符组成的睡眠图标，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：以睡眠得分、夜间睡眠、深睡或小睡时长为唯一主业务的卡片，或睡眠详情、系统睡眠模式入口卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。不适用：天气夜间状态、深色模式、普通勿扰附带按钮，也不表示用户当前正在睡眠。",
+    "description": "样式：天蓝色扁平弯月与两枚 Z 字符组成的睡眠图标，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：睡眠得分、夜间睡眠、深睡或小睡时长相关卡片，或睡眠详情、系统睡眠模式入口卡片。不适用：天气夜间状态、深色模式、普通勿扰附带按钮，也不表示用户当前正在睡眠。",
+    "overviewDescription": "月亮 Z 彩色 PNG；用于睡眠数据、睡眠详情或睡眠模式入口；不用于天气、深色模式或附带勿扰，不表示正在睡眠。",
     "sceneTags": [
       "sleep",
       "night"
@@ -1356,7 +1485,8 @@
     "id": "asset.emoji_smile",
     "type": "asset",
     "src": "resources/base/media/emoji_smile.png",
-    "description": "样式：黄色渐变的立体微笑面孔，带棕色眉眼、弧形嘴角和橙红腮晕，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：以用户明确提供的心情寄语、自我鼓励或问候文案为唯一主业务的静态卡片；仅可作 2x2 单业务 SingleLineTitle 右上角 20vp 主题图。当前清单不支持情绪检测、心情记录查询或提交，不得用笑脸推断用户心情、健康结论或操作成功；不作无关装饰。",
+    "description": "样式：黄色渐变的立体微笑面孔，带棕色眉眼、弧形嘴角和橙红腮晕，透明背景，原始尺寸为 192×192，PNG 位图需保留原色；适用：用户明确提供的心情寄语、自我鼓励或问候文案相关静态卡片。当前清单不支持情绪检测、心情记录查询或提交，不得用笑脸推断用户心情、健康结论或操作成功；不作无关装饰。",
+    "overviewDescription": "笑脸彩色 PNG；用于用户提供的静态寄语、鼓励或问候；不支持情绪检测、心情查询提交，不表示健康结论或操作成功。",
     "sceneTags": [
       "mood",
       "greeting"
@@ -1367,7 +1497,8 @@
     "id": "asset.ic_achieve",
     "type": "asset",
     "src": "resources/base/media/ic_achieve.svg",
-    "description": "样式：黄色圆形底上的白色奖章与五角星图标，原始尺寸为 144×144，SVG 矢量图保留原始配色；适用：以运动目标达成、训练成果或成就徽章为唯一主业务的卡片，可与运动健康数据摘要搭配使用。",
+    "description": "样式：黄色圆形底上的白色奖章与五角星图标，原始尺寸为 144×144，SVG 矢量图保留原始配色；适用：运动目标达成、训练成果或成就徽章相关卡片，可与运动健康数据摘要搭配使用。",
+    "overviewDescription": "奖章图标；用于运动目标达成、训练成果或成就，可搭配运动健康摘要。",
     "sceneTags": [
       "health",
       "achievement"
@@ -1378,7 +1509,8 @@
     "id": "asset.ic_charge",
     "type": "asset",
     "src": "resources/base/media/ic_charge.svg",
-    "description": "样式：黑色单色充电闪电图标，中心为闪电符号并由多层无线或电流弧线环绕，原始尺寸为 80×60，SVG 矢量图保留原始配色；适用：以手机充电状态、充电器连接或电池充电信息为唯一主业务的卡片，可结合 GetPhoneBatteryInfo 数据。不表示无线充电、快充或充电完成，除非电池数据明确支持。",
+    "description": "样式：黑色单色充电闪电图标，中心为闪电符号并由多层无线或电流弧线环绕，原始尺寸为 80×60，SVG 矢量图保留原始配色；适用：手机充电状态、充电器连接或电池充电信息相关卡片，可结合 GetPhoneBatteryInfo 数据。不表示无线充电、快充或充电完成，除非电池数据明确支持。",
+    "overviewDescription": "充电闪电图标；用于手机充电状态、充电器连接或充电信息；无线、快充或完成须有数据支持。",
     "sceneTags": [
       "battery",
       "charging"
@@ -1389,7 +1521,8 @@
     "id": "asset.ic_phone",
     "type": "asset",
     "src": "resources/base/media/ic_phone.svg",
-    "description": "样式：蓝色电话听筒叠加蓝色无线电波，主图标约为 40×40，SVG 矢量图保留原始配色；适用：以拨号、联系人呼叫或电话操作为唯一主业务的卡片，并可配合 event.call.phone 跳转指定号码的拨号界面。",
+    "description": "样式：蓝色电话听筒叠加蓝色无线电波，主图标约为 40×40，SVG 矢量图保留原始配色；适用：拨号、联系人呼叫或电话操作相关卡片，并可配合 event.call.phone 跳转指定号码的拨号界面。",
+    "overviewDescription": "电话图标；用于拨号、联系人呼叫或电话操作，可跳转指定号码。",
     "sceneTags": [
       "phone",
       "communication"
@@ -1400,7 +1533,8 @@
     "id": "asset.ic_public_connection_filled",
     "type": "asset",
     "src": "resources/base/media/ic_public_connection_filled.svg",
-    "description": "样式：默认黑色的单色实心链路连接图标，由两端连接环与中间横向连接线组成，原始尺寸为 24×24；适用：网络连接、设备互联、公共连接入口或连接状态说明，只能进入当前组件合同登记的合法图标位。不适用：SingleLineTitle 或普通正文，也不代表 Wi-Fi、移动数据、蓝牙或具体连接已成功；这些状态应由对应数据或事件能力支持。",
+    "description": "样式：默认黑色的单色实心链路连接图标，由两端连接环与中间横向连接线组成，原始尺寸为 24×24；适用：网络连接、设备互联、公共连接入口或连接状态说明，只能进入当前组件合同登记的合法图标位。不代表 Wi-Fi、移动数据、蓝牙或具体连接已成功；这些状态应由对应数据或事件能力支持。",
+    "overviewDescription": "链路单色图标；用于网络或设备互联的合法图标位；不代表 Wi-Fi、移动数据、蓝牙或连接成功。",
     "sceneTags": [
       "network",
       "connection"
@@ -1412,6 +1546,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_weatherWarning.svg",
     "description": "样式：浅灰渐变云朵内带深色感叹号的天气预警图标，原始尺寸为 24×24，SVG 矢量图保留渐变配色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 输出的 alertLevel 字段展示，也可作为天气预警详情入口的辅助图标。不表示所有天气变化或空气质量异常；无预警时不应显示该图标，也不替代具体预警等级文案。",
+    "overviewDescription": "渐变云朵预警图标；仅用于真实气象预警或预警详情，不用于一般天气或空气质量，无预警不显示。",
     "sceneTags": [
       "weather",
       "warning"
@@ -1423,6 +1558,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_uv_color.svg",
     "description": "样式：浅黄色到浅橙色渐变的太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标颜色不代表具体紫外线等级，等级仍以数据字段和文字为准。",
+    "overviewDescription": "彩色 UV 太阳图标；用于天气紫外线指标，不代表具体等级。",
     "sceneTags": [
       "weather",
       "uv"
@@ -1434,6 +1570,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_uv_monochrome.svg",
     "description": "样式：黑色单色太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标不表示具体紫外线等级，等级仍以数据字段和文字为准。",
+    "overviewDescription": "单色 UV 太阳图标；用于天气紫外线指标，不代表具体等级。",
     "sceneTags": [
       "weather",
       "uv"
@@ -1445,6 +1582,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_warning_color.svg",
     "description": "样式：橙黄色到橙红色渐变的提示铃图标，顶部带放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；渐变颜色不代表预警等级。",
+    "overviewDescription": "彩色提示铃图标；仅用于真实气象预警或天气详情，无预警不显示，不代表等级。",
     "sceneTags": [
       "weather",
       "warning"
@@ -1456,6 +1594,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_warning_monochrome.svg",
     "description": "样式：黑色单色提示铃图标，顶部带放射光线，原始尺寸为 24×24；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；图标不表示预警等级或已确认的告警状态。",
+    "overviewDescription": "单色提示铃图标；仅用于真实气象预警或天气详情，无预警不显示，不代表等级。",
     "sceneTags": [
       "weather",
       "warning"
@@ -1467,6 +1606,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_weather_color.svg",
     "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "overviewDescription": "蓝色渐变云朵图标；用于天气或天气详情主题，不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
       "condition"
@@ -1478,6 +1618,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_weather_monochrome.svg",
     "description": "样式：黑色单色云朵图标，原始尺寸为 24×24；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "overviewDescription": "云朵单色图标；用于天气或天气详情主题，不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
       "condition"
@@ -1489,6 +1630,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_Bluetooth.svg",
     "description": "样式：默认黑色的单色蓝牙标志图标，原始尺寸为 24×24；适用：蓝牙设备连接卡片中配合 GetEarphoneInfo 展示蓝牙耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。图标本身不表示当前已连接、已开启或已关闭状态。",
+    "overviewDescription": "蓝牙单色图标；用于耳机连接、蓝牙设置或开关，不代表当前状态。",
     "sceneTags": [
       "bluetooth",
       "device"
@@ -1500,6 +1642,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_flashlight.svg",
     "description": "样式：默认黑色的单色手电筒图标，筒身为竖向圆角轮廓，原始尺寸为 24×24；适用：手电筒快捷控制卡片，可结合 event.openFlashlight 开启手电筒或 event.closeFlashlight 关闭手电筒。图标本身不表示手电筒当前开关状态。",
+    "overviewDescription": "细手电筒单色图标；用于手电筒开关，不代表当前状态。",
     "sceneTags": [
       "flashlight",
       "device"
@@ -1511,6 +1654,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_flashlight2.svg",
     "description": "样式：默认黑色的单色手电筒图标，筒身为较宽的竖向圆角轮廓，原始尺寸为 24×24；适用：手电筒快捷控制卡片，可结合 event.openFlashlight 开启手电筒或 event.closeFlashlight 关闭手电筒。图标本身不表示手电筒当前开关状态。",
+    "overviewDescription": "宽手电筒单色图标；用于手电筒开关，不代表当前状态。",
     "sceneTags": [
       "flashlight",
       "device"
@@ -1522,6 +1666,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_hotspot.svg",
     "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40，SVG 矢量图需保留原始配色，禁止染色；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "overviewDescription": "彩色热点图标；用于个人热点或移动网络设置入口，不支持热点状态查询。",
     "sceneTags": [
       "network",
       "hotspot"
@@ -1533,6 +1678,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_hotspot2.svg",
     "description": "样式：默认黑色的单色同心无线信号图标，由中心圆点和两层弧形信号环组成，原始尺寸为 66×60；适用：个人热点或无线共享设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "overviewDescription": "无线信号单色图标；用于个人热点或无线共享设置入口，不支持热点状态查询。",
     "sceneTags": [
       "network",
       "hotspot"
@@ -1544,6 +1690,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_ranking.svg",
     "description": "样式：默认黑色的单色三柱排行图标，柱体高度依次变化，原始尺寸为 24×24；适用：耗电排行或应用使用时长排行卡片，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标仅表示排行主题，不表示具体名次或应用数据。",
+    "overviewDescription": "排行单色图标；用于耗电或应用使用时长排行，不代表具体名次。",
     "sceneTags": [
       "ranking",
       "device"
@@ -1555,9 +1702,10 @@
     "type": "asset",
     "src": "resources/base/media/ic_ranking2.svg",
     "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144，SVG 矢量图需保留原始配色，禁止染色；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
+    "overviewDescription": "绿色排行图标；用于耗电或应用使用时长排行主业务，不代表具体名次或用量。",
     "sceneTags": [
       "ranking",
-      "app-icon" 
+      "app-icon"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -1566,6 +1714,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_switch.svg",
     "description": "样式：默认黑色的单色双滑块开关图标，两个水平开关轨道分别朝向相反位置，原始尺寸为 96×96；适用：系统设置类开关控制卡片，可配合 event.setBluetoothMode 等设置开关事件表达开启或关闭操作。图标本身不表示具体开关当前状态，实际状态以对应数据能力支持为准。",
+    "overviewDescription": "滑块开关单色图标；用于系统开关操作，不代表当前状态。",
     "sceneTags": [
       "settings",
       "switch"
@@ -1577,6 +1726,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_battery_leaf_color.svg",
     "description": "样式：绿色渐变的电池叶片图标，电池轮廓内部以叶片形状表现节能语义，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：以手机剩余电量、充电状态、或省电模式为主业务的卡片，可结合 GetPhoneBatteryInfo 展示电池信息，也可配合 event.open.settings.battery 或 event.setPowerSavingMode 作为电池设置、省电模式入口或操作图标。渐变颜色不表示具体电量、正在充电或省电模式当前状态。",
+    "overviewDescription": "彩色电池叶片图标；用于电量、充电或省电主业务，不代表当前状态。",
     "sceneTags": [
       "battery",
       "power"
@@ -1588,6 +1738,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_blue_teeth_color.svg",
     "description": "样式：蓝色渐变圆角方形底上的白色蓝牙标志图标，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：蓝牙耳机或其它蓝牙设备连接卡片，可结合 GetEarphoneInfo 展示耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。渐变颜色和蓝牙标志本身不表示当前已连接、已开启或已关闭状态。",
+    "overviewDescription": "彩色蓝牙图标；用于蓝牙设备连接、设置或开关，不代表当前状态。",
     "sceneTags": [
       "bluetooth",
       "device"
@@ -1599,6 +1750,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_nearlink_monochrome.svg",
     "description": "样式：黑色单色星闪（NearLink）连接标志图标，中心为竖向连接轮廓，两侧以对称波形表现近距离无线连接语义，原始尺寸为 24×24；适用：星闪连接或系统设置开关入口，可配合 event.setNearLinkMode 表达开启或关闭星闪模式。图标本身不表示星闪当前已开启、已关闭、已连接或连接成功。",
+    "overviewDescription": "星闪单色图标；用于星闪连接或开关，不代表当前状态。",
     "sceneTags": [
       "nearlink",
       "settings",
@@ -1611,6 +1763,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_wave_monochrome.svg",
     "description": "样式：黑色单色声音模式图标，中心为竖向设备轮廓，两侧以对称波形表现声音或振动模式语义，原始尺寸为 24×24；适用：手机声音模式设置卡片，可配合 event.setSoundMode 表达振动、响铃或静音模式切换。图标本身不表示当前声音模式，也不表示音量大小或扬声器正在播放。",
+    "overviewDescription": "声音模式单色图标；用于振动、响铃或静音切换，不代表当前模式或音量。",
     "sceneTags": [
       "settings",
       "sound"
@@ -1622,42 +1775,10 @@
     "type": "asset",
     "src": "resources/base/media/ic_purification.svg",
     "description": "样式：默认黑色的单色实心净化叶片图标，主体为向上舒展的叶片轮廓；适用：天气卡片中的空气质量指标，可结合 ViewWeather 的 current.airQuality 或 daily.airQuality 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示空气质量主题，不代表具体空气质量等级、污染程度或空气净化器正在运行。",
+    "overviewDescription": "净化叶片单色图标；用于天气空气质量指标或详情，不代表等级、污染程度或净化器运行。",
     "sceneTags": [
       "weather",
       "air-quality"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.ic_batteryTemperature_bule",
-    "type": "asset",
-    "src": "resources/base/media/ic_batteryTemperature_bule.svg",
-    "description": "样式：蓝色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。蓝色仅为视觉配色，不表示低温、正常温度或电池健康状态。",
-    "sceneTags": [
-      "battery",
-      "temperature"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.ic_batteryTemperature_purple",
-    "type": "asset",
-    "src": "resources/base/media/ic_batteryTemperature_purple.svg",
-    "description": "样式：紫色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。紫色仅为视觉配色，不表示温度等级或电池健康状态。",
-    "sceneTags": [
-      "battery",
-      "temperature"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.ic_batteryTemperature_yellow",
-    "type": "asset",
-    "src": "resources/base/media/ic_batteryTemperature_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变圆形底上的白色温度计图标，温度计带刻度，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：手机电池温度卡片，可结合 GetPhoneBatteryInfo 的 batteryTemperatureText 展示实时电池温度，也可作为 event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。黄色仅为视觉配色，不表示高温、告警或电池健康状态。",
-    "sceneTags": [
-      "battery",
-      "temperature"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -1666,6 +1787,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_call_bule.svg",
     "description": "样式：蓝色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "overviewDescription": "蓝色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
       "call",
@@ -1678,6 +1800,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_call_purple.svg",
     "description": "样式：紫色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "overviewDescription": "紫色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
       "call",
@@ -1690,6 +1813,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_call_yellow.svg",
     "description": "样式：黄色到橙色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "overviewDescription": "黄橙色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
       "call",
@@ -1702,6 +1826,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_ring_bule.svg",
     "description": "样式：蓝色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "overviewDescription": "蓝色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
       "notification",
@@ -1714,6 +1839,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_ring_purple.svg",
     "description": "样式：紫色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "overviewDescription": "紫色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
       "notification",
@@ -1726,6 +1852,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_ring_yellow.svg",
     "description": "样式：黄色到橙色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "overviewDescription": "黄橙色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
       "notification",
@@ -1738,6 +1865,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_bule.svg",
     "description": "样式：蓝色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "overviewDescription": "蓝色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
       "sport",
@@ -1750,6 +1878,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_purple.svg",
     "description": "样式：紫色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "overviewDescription": "紫色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
       "sport",
@@ -1762,6 +1891,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_yellow.svg",
     "description": "样式：黄色到橙色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "overviewDescription": "黄橙色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
       "sport",
@@ -1774,6 +1904,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_storage_bule.svg",
     "description": "样式：蓝色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "overviewDescription": "蓝色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
       "settings",
@@ -1786,6 +1917,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_storage_purple.svg",
     "description": "样式：紫色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "overviewDescription": "紫色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
       "settings",
@@ -1798,6 +1930,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_storage_yellow.svg",
     "description": "样式：黄色到橙色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "overviewDescription": "黄橙色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
       "settings",
@@ -1810,6 +1943,7 @@
     "type": "asset",
     "src": "resources/base/media/ic_sun.svg",
     "description": "样式：黄色到橙色纵向渐变的太阳图标，由圆形日面和八向光线组成，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气或紫外线信息卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示晴朗、日照或紫外线主题，不表示具体天气现象、温度或紫外线等级。",
+    "overviewDescription": "黄色渐变太阳图标；用于晴朗、日照或紫外线主题，不代表具体天气、温度或紫外线等级。",
     "sceneTags": [
       "weather",
       "sun",
@@ -1818,67 +1952,217 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_temperature_bule",
+    "id": "asset.emoji_air_quality_blue",
     "type": "asset",
-    "src": "resources/base/media/ic_temperature_bule.svg",
-    "description": "样式：蓝色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。蓝色仅为视觉配色，不表示低温或具体温度等级；不用于电池温度。",
+    "src": "resources/base/media/emoji_air_quality_blue.png",
+    "description": "样式：亮蓝色圆形底上的绿色渐变叶片图标，叶片带浅色叶脉，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的空气质量指标，可结合 ViewWeather 的 current.airQuality 或 daily.airQuality 展示，也可与 event.open.weather 组成天气详情入口。蓝色和绿色仅为视觉配色，不表示具体空气质量等级或污染程度。",
+    "overviewDescription": "蓝色圆底叶片图标；用于天气空气质量指标或详情，颜色不代表空气质量等级或污染程度。",
     "sceneTags": [
       "weather",
-      "temperature"
+      "air-quality"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_temperature_purple",
+    "id": "asset.emoji_bluetooth_earbuds_black",
     "type": "asset",
-    "src": "resources/base/media/ic_temperature_purple.svg",
-    "description": "样式：紫色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。紫色仅为视觉配色，不表示具体温度等级；不用于电池温度。",
+    "src": "resources/base/media/emoji_bluetooth_earbuds_black.png",
+    "description": "样式：深灰到黑色渐变的一对分体式入耳蓝牙耳机，带立体高光与透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：蓝牙耳机连接状态、名称或左右耳电量卡片，可结合 GetEarphoneInfo 的 isConnected、earphoneName、leftBatteryLevel 和 rightBatteryLevel 展示，也可作为 event.open.settings.bluetooth 的蓝牙设置入口。图标不表示耳机当前已连接、正在充电或具有特定电量。",
+    "overviewDescription": "黑色入耳蓝牙耳机图标；用于耳机连接、名称、左右耳电量或蓝牙设置，不代表已连接、充电或具体电量。",
     "sceneTags": [
-      "weather",
-      "temperature"
+      "bluetooth",
+      "earphone",
+      "device"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_temperature_yellow",
+    "id": "asset.emoji_calories_blue",
     "type": "asset",
-    "src": "resources/base/media/ic_temperature_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变圆形底上的白色温度计图标，温度计内部带液柱，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气温度或体感温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 daily.temperatureRangeText 展示，也可与 event.open.weather 组成天气详情入口。黄色仅为视觉配色，不表示高温或告警等级；不用于电池温度。",
+    "src": "resources/base/media/emoji_calories_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色渐变火焰图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：运动健康卡片中的日常或单次运动热量，可结合 GetHealthAndSportSummary 的 dailyTotalCaloriesText 或 exerciseCalorieText 展示，也可作为 event.open.health.activityRecord、event.open.health.sportsRecord 或 event.open.health.workoutDuration 的辅助入口图标。蓝色仅为视觉配色，不表示热量高低、目标完成或用户正在运动。",
+    "overviewDescription": "蓝色圆底火焰图标；用于日常活动或单次运动热量及运动健康入口，不代表热量高低、目标达成或正在运动。",
     "sceneTags": [
-      "weather",
-      "temperature"
+      "health",
+      "sport",
+      "calories"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_warning_bule",
+    "id": "asset.emoji_calories_orange",
     "type": "asset",
-    "src": "resources/base/media/ic_warning_bule.svg",
-    "description": "样式：蓝色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；蓝色背景不代表蓝色预警或其它具体预警等级。",
+    "src": "resources/base/media/emoji_calories_orange.png",
+    "description": "样式：橙色圆形底上的米白色渐变火焰图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：运动健康卡片中的日常或单次运动热量，可结合 GetHealthAndSportSummary 的 dailyTotalCaloriesText 或 exerciseCalorieText 展示，也可作为 event.open.health.activityRecord、event.open.health.sportsRecord 或 event.open.health.workoutDuration 的辅助入口图标。橙色仅为视觉配色，不表示热量高低、目标完成或用户正在运动。",
+    "overviewDescription": "橙色圆底火焰图标；用于日常活动或单次运动热量及运动健康入口，不代表热量高低、目标达成或正在运动。",
+    "sceneTags": [
+      "health",
+      "sport",
+      "calories"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_default_weather_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_default_weather_blue.png",
+    "description": "样式：蓝灰色圆形底上的白色渐变云朵图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：通用天气概览或未匹配到更具体天气素材的卡片，可结合 ViewWeather 的 current.condition 或 daily.condition 展示，也可与 event.open.weather 组成天气详情入口。云朵图形仅表示天气主题，不可据此推断实际为多云、阴天或存在降水。",
+    "overviewDescription": "蓝灰圆底云朵图标；用于通用天气概览或天气素材缺失时的主题图，不代表实际晴阴雨状态。",
     "sceneTags": [
       "weather",
-      "warning",
+      "condition"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_earbud_case_black",
+    "type": "asset",
+    "src": "resources/base/media/emoji_earbud_case_black.png",
+    "description": "样式：深灰到黑色渐变的封闭式蓝牙耳机充电盒，盒体呈圆润横向椭圆并带高光，透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：蓝牙耳机盒或整体电量与充电状态卡片，可结合 GetEarphoneInfo 的 batteryLevel 和 chargingStatusDesc 展示，也可作为 event.open.settings.bluetooth 的蓝牙设置入口。图标不表示耳机盒当前正在充电、已经打开或具有特定电量。",
+    "overviewDescription": "黑色耳机盒图标；用于耳机盒或整体电量、充电状态及蓝牙设置，不代表当前充电、开盒或具体电量。",
+    "sceneTags": [
+      "bluetooth",
+      "earphone",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_high_temperature_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_high_temperature_orange.png",
+    "description": "样式：橙色温度计与带短光芒的橙色太阳组成的高温图标，带浅色高光和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的高温天气主题或气象高温预警，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在需求或数据明确表达高温时使用，不得凭橙色配色推断温度或预警等级。",
+    "overviewDescription": "橙色温度计太阳图标；仅用于明确高温主题或真实高温预警，不作通用气温图，颜色不代表温度或预警等级。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "high-temperature",
       "alert"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_warning_purple",
+    "id": "asset.emoji_humidity_blue",
     "type": "asset",
-    "src": "resources/base/media/ic_warning_purple.svg",
-    "description": "样式：紫色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；紫色背景不代表任何具体预警等级。",
+    "src": "resources/base/media/emoji_humidity_blue.png",
+    "description": "样式：一大一小两枚蓝色渐变水滴组成的湿度图标，带立体高光和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的当前相对湿度，可结合 ViewWeather 的 current.humidityPercent 展示，也可与 event.open.weather 组成天气详情入口。水滴仅表示湿度主题，不表示正在降雨、湿度高低或具体湿度数值。",
+    "overviewDescription": "蓝色双水滴图标；用于当前天气相对湿度或天气详情，不代表降雨、湿度高低或具体数值。",
     "sceneTags": [
       "weather",
-      "warning",
+      "humidity"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色定位标记与浅蓝色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。蓝色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "overviewDescription": "蓝色圆底定位图标；用于天气查询地点、对应城市天气页或位置开关操作，不代表定位状态或成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_orange.png",
+    "description": "样式：橙色圆形底上的米白色定位标记与浅橙色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。橙色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "overviewDescription": "橙色圆底定位图标；用于天气查询地点、对应城市天气页或位置开关操作，不代表定位状态或成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_location_purple",
+    "type": "asset",
+    "src": "resources/base/media/emoji_location_purple.png",
+    "description": "样式：紫色圆形底上的白色定位标记与浅紫色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。紫色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "overviewDescription": "紫色圆底定位图标；用于天气查询地点、对应城市天气页或位置开关操作，不代表定位状态或成功。",
+    "sceneTags": [
+      "weather",
+      "location",
+      "settings"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_reminder_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_reminder_orange.png",
+    "description": "样式：橙色渐变的实心铃铛图标，带圆润铃体、独立铃舌和透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：带提醒设置的日历日程或闹钟入口卡片，可结合 GetCalendarEvents 的 events[i].remindTime 展示，并可作为 event.viewCalendarEvent、event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "overviewDescription": "橙色铃铛图标；用于带提醒设置的日历日程或闹钟入口，不代表提醒已开启、正在响铃或未读通知。",
+    "sceneTags": [
+      "calendar",
+      "reminder",
+      "alarm"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_temperature_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_temperature_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色温度计图标，温度计内部带蓝色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。蓝色仅为视觉配色，不表示低温、具体温度等级或电池健康状态。",
+    "overviewDescription": "蓝色圆底温度计图标；用于通用天气温度、体感温度或手机电池温度及相关入口，颜色不代表低温、温度等级或电池健康状态。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_temperature_orange",
+    "type": "asset",
+    "src": "resources/base/media/emoji_temperature_orange.png",
+    "description": "样式：橙色圆形底上的米白色温度计图标，温度计内部带橙色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。橙色仅为视觉配色，不表示高温、具体预警等级或电池健康状态。",
+    "overviewDescription": "橙色圆底温度计图标；用于通用天气温度、体感温度或手机电池温度及相关入口，颜色不代表高温、预警等级或电池健康状态。",
+    "sceneTags": [
+      "weather",
+      "temperature",
+      "battery"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_typhoon_blue",
+    "type": "asset",
+    "src": "resources/base/media/emoji_typhoon_blue.png",
+    "description": "样式：亮蓝色圆形底上的白色台风旋涡图标，旋涡中心为蓝色圆点，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的台风天气现象或台风预警卡片，可结合 ViewWeather 的 current.condition 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在字段明确表示台风时使用；蓝色仅为视觉配色，不代表蓝色预警或具体台风等级。",
+    "overviewDescription": "蓝色圆底台风图标；仅用于数据明确表示台风的天气现象或预警，颜色不代表蓝色预警或台风等级。",
+    "sceneTags": [
+      "weather",
+      "typhoon",
       "alert"
     ],
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_warning_yellow",
+    "id": "asset.emoji_typhoon_orange",
     "type": "asset",
-    "src": "resources/base/media/ic_warning_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变圆形底上的半透明白色云朵与红色感叹号图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；黄色背景不代表黄色预警或其它具体预警等级。",
+    "src": "resources/base/media/emoji_typhoon_orange.png",
+    "description": "样式：橙色圆形底上的米白色台风旋涡图标，旋涡中心为橙色圆点，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：明确的台风天气现象或台风预警卡片，可结合 ViewWeather 的 current.condition 或 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。仅在字段明确表示台风时使用；橙色仅为视觉配色，不代表橙色预警或具体台风等级。",
+    "overviewDescription": "橙色圆底台风图标；仅用于数据明确表示台风的天气现象或预警，颜色不代表橙色预警或台风等级。",
+    "sceneTags": [
+      "weather",
+      "typhoon",
+      "alert"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.emoji_warning",
+    "type": "asset",
+    "src": "resources/base/media/emoji_warning.png",
+    "description": "样式：浅蓝灰色云朵前叠加亮蓝色圆形感叹号的天气预警图标，带渐变高光和透明背景，原始尺寸为 63×63，PNG 位图需保留原色；适用：天气卡片中的通用气象预警提示，可结合 ViewWeather 的 current.alertLevel 展示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示；图标颜色不代表任何具体预警等级。",
+    "overviewDescription": "云朵感叹号图标；用于真实气象预警或天气详情，无预警不显示，颜色不代表预警等级。",
     "sceneTags": [
       "weather",
       "warning",

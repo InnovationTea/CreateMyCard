@@ -9750,12 +9750,26 @@ def _ux_layout_body_budget(registry: CardPlanRegistry, size: str = "2x2") -> int
     return canvas_height - registry.ux_tokens["safeInset"] * 2
 
 
-def _estimate_height(node: Nested2Node) -> int:
+def _estimate_height(node: Nested2Node, available_height: int | None = None) -> int:
+    """Estimate a node height, optionally resolving flexible parent height.
+
+    The compiler's normal callers omit ``available_height`` and retain the
+    natural-content estimate. Tests that inspect a fully expanded layout can
+    provide the parent budget so ``matchParent`` and weighted slots are
+    measured using the space the renderer will allocate to them.
+    """
     options = next((value for value in node.values if isinstance(value, dict)), {})
     explicit = options.get("height")
+    if explicit == "matchParent" and available_height is not None:
+        return int(available_height)
     if isinstance(explicit, (int, float)):
         return int(explicit)
-    child_heights = [_estimate_height(child) for child in node.children]
+    if available_height is not None and options.get("layoutWeight"):
+        return int(available_height)
+    child_heights = [
+        _estimate_height(child, available_height=available_height)
+        for child in node.children
+    ]
     if node.component_type in {"Row", "Stack"}:
         return max(child_heights, default=24)
     if node.component_type in {"Column", "List"}:

@@ -14,6 +14,7 @@ from services.compact_component_runtime import (
     CompactComponentRuntimeError,
     component_visual_recipe,
     resolve_card_color_palette,
+    secondary_body_variant,
     visual_recipe_part,
 )
 
@@ -45,6 +46,7 @@ CompactRow = ComponentRow | DataRow
 
 _PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
 _TWO_BY_FOUR_FIXED_SLOT_TYPES = frozenset({"InfoBlock", "CardButton"})
+_EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " | "
 _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "SingleLineTitle": "secondary",
     "DoubleLineTitle": "primary",
@@ -66,23 +68,32 @@ _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "TextBlock": "primary",
     "CardButton": "primary",
 }
+_SYSTEM_ICON_ROLE_BY_COMPONENT = {
+    "SingleLineTitle": "graphicPrimary",
+}
 
 
 def apply_system_component_colors(
     components: list[ComponentRow],
     palette: dict[str, str],
 ) -> list[ComponentRow]:
-    """Inject runtime-owned font roles before validating and expanding components."""
+    """Inject runtime-owned color roles before validating and expanding components."""
     resolved: list[ComponentRow] = []
     for component in components:
-        role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
-        if role is None:
+        font_role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
+        icon_role = _SYSTEM_ICON_ROLE_BY_COMPONENT.get(component.component_type)
+        if font_role is None and icon_role is None:
             resolved.append(component)
             continue
-        color = _system_palette_color(palette, role)
         props = copy.deepcopy(component.props)
-        # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
-        props.setdefault("fontColor", color)
+        if font_role is not None:
+            font_color = _system_palette_color(palette, font_role)
+            # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
+            props.setdefault("fontColor", font_color)
+        icon = props.get("icon")
+        if icon_role is not None and isinstance(icon, str) and icon.lower().endswith(".svg"):
+            # 标题 SVG 的语义角色由运行时确定，并纠正历史 DSL 中的自由透明度。
+            props["fillColor"] = _system_palette_color(palette, icon_role)
         resolved.append(
             ComponentRow(
                 component.component_id,
@@ -292,25 +303,6 @@ def expand_high_level_component_rows(
                 )
             generated_ids.add(row.component_id)
             expanded.append(row)
-    bitmap_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
-    for component in expanded:
-        if component.component_type != "Image":
-            continue
-        src = component.props.get("src")
-        if not isinstance(src, str) or src.strip().startswith("{{"):
-            continue
-        normalized_src = src.lower()
-        has_fill_color = "fillColor" in component.props
-        if normalized_src.endswith(".svg") and not has_fill_color:
-            raise CompactDslConversionError(
-                f"component {component.component_id}: SVG icon {src} must set fillColor; "
-                "all SVG icons are treated as tintable."
-            )
-        if normalized_src.endswith(bitmap_suffixes) and has_fill_color:
-            raise CompactDslConversionError(
-                f"component {component.component_id}: bitmap icon {src} must not set "
-                "fillColor; bitmap assets keep their original colors."
-            )
     return expanded
 
 
@@ -409,14 +401,12 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
     fill_color = header.props.get("fillColor")
     if fill_color is not None and not has_icon:
         raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
-    if fill_color is not None and not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
-        raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
+    if "fillColor" in header.props:
+        if not isinstance(fill_color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
+            raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
     if has_icon:
         normalized_icon = icon.lower()
-        is_svg = normalized_icon.endswith(".svg")
         is_bitmap = normalized_icon.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"))
-        if is_svg and fill_color is None:
-            raise CompactDslConversionError("SingleLineTitle SVG icon requires fillColor.")
         if is_bitmap and fill_color is not None:
             raise CompactDslConversionError("SingleLineTitle bitmap icon must not set fillColor.")
     height = header.props.get("height")
@@ -534,8 +524,9 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
         size=size,
     )
     _require_text_value(component, "mainText")
+    secondary_content: Any | None = None
     if "secondaryText" in component.props:
-        _require_text_value(component, "secondaryText")
+        secondary_content = _emphasis_secondary_content(component)
     _require_color(component, "fontColor")
     main_id = f"{component.component_id}_main"
     children = [main_id]
@@ -561,7 +552,7 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
                 "secondary",
                 size=size,
                 props={
-                    "content": copy.deepcopy(component.props["secondaryText"]),
+                    "content": secondary_content,
                     "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                 },
             )
@@ -574,6 +565,30 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
         children=tuple(children),
     )
     return [root, *rows]
+def _emphasis_secondary_content(component: ComponentRow) -> Any:
+    value = component.props.get("secondaryText")
+    if not isinstance(value, list):
+        _require_text_value(component, "secondaryText")
+        return copy.deepcopy(value)
+    if len(value) < 2:
+        raise CompactDslConversionError(
+            f"{component.component_id}: EmphasisText.secondaryText array requires at least "
+            "two ordered PathBindings."
+        )
+    paths: list[str] = []
+    for index, item in enumerate(value):
+        if not _is_path_binding(item):
+            raise CompactDslConversionError(
+                f"{component.component_id}: EmphasisText.secondaryText[{index}] must be a "
+                "PathBinding."
+            )
+        paths.append(item["path"])
+    body = f" + '{_EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR}' + ".join(
+        f"${{{path}}}" for path in paths
+    )
+    return f"{{{{ {body} }}}}"
+
+
 
 
 def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
@@ -589,21 +604,7 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
         raise CompactDslConversionError(
             f"{component.component_id}: SecondaryBody.items requires 1 to 4 entries."
         )
-    role = component.props.get("role")
-    if role is None:
-        if len(items) == 1:
-            raise CompactDslConversionError(
-                f"{component.component_id}: single-item SecondaryBody requires role."
-            )
-        role = "supporting"
-    if role not in {"body", "metadata", "supporting"}:
-        raise CompactDslConversionError(
-            f"{component.component_id}: SecondaryBody.role must be body, metadata, or supporting."
-        )
-    if role in {"body", "metadata"} and len(items) != 1:
-        raise CompactDslConversionError(
-            f"{component.component_id}: SecondaryBody role {role} requires exactly one item."
-        )
+    # 旧 DSL 的 role 只作为兼容输入忽略，不参与样式、容量或标签校验。
     columns = component.props.get("columns", 2)
     if isinstance(columns, bool) or not isinstance(columns, int) or columns not in {1, 2}:
         raise CompactDslConversionError(
@@ -623,10 +624,6 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
             raise CompactDslConversionError(
                 f"{component.component_id}: items[{index}].label must be non-empty text."
             )
-        if role == "body" and label is not None:
-            raise CompactDslConversionError(
-                f"{component.component_id}: body SecondaryBody does not accept item labels."
-            )
         max_lines = item.get("maxLines", 1)
         valid_max_lines = (
             isinstance(max_lines, int) and not isinstance(max_lines, bool) and max_lines in {1, 2}
@@ -635,7 +632,7 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
             raise CompactDslConversionError(
                 f"{component.component_id}: items[{index}].maxLines must be 1 or 2."
             )
-    separator = component.props.get("separator", " ｜ ")
+    separator = component.props.get("separator", " | ")
     if not isinstance(separator, str) or not separator:
         raise CompactDslConversionError(
             f"{component.component_id}: SecondaryBody.separator must be non-empty text."
@@ -644,14 +641,7 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
 
 
 def _secondary_body_variant(component: ComponentRow, items: list[dict[str, Any]]) -> str | None:
-    role = component.props.get("role", "supporting")
-    if role == "body":
-        return "bodyMultiline" if items[0].get("maxLines", 1) == 2 else "body"
-    if role == "metadata":
-        return "metadata"
-    if len(items) > 2:
-        return "multiline"
-    return None
+    return secondary_body_variant(items, component.props.get("columns", 2))
 
 
 def _expand_secondary_body(component: ComponentRow, size: str) -> list[ComponentRow]:
@@ -659,12 +649,10 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
     items = _secondary_body_items(component)
     variant = _secondary_body_variant(component, items)
-    role = component.props.get("role", "supporting")
     font_size_context = (
-        f"Current SecondaryBody has role={role} with {len(items)} items. "
-        "Body or 1-2 supporting items require fontSize 14; metadata or "
-        "3-4 supporting items require fontSize 12. Recompute fontSize after "
-        "changing role or items."
+        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
+        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
+        "changing columns, items or maxLines; do not change bindings or delete facts."
     )
     _validate_recipe_font_size(
         component,
@@ -680,7 +668,7 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
     columns = component.props.get("columns", 2)
     rows: list[ComponentRow] = []
     root_children: list[str] = []
-    separator = component.props.get("separator", " ｜ ")
+    separator = component.props.get("separator", " | ")
     for row_index, start in enumerate(range(0, len(items), columns)):
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
@@ -1814,8 +1802,11 @@ def _expand_info_block(
         )
     if visual_type == "icon":
         image_props: dict[str, Any] = {"src": visual_icon}
-        if "fillColor" in component.props and visual.get("color") != "native":
-            image_props["fillColor"] = component.props["fillColor"]
+        if visual.get("color") != "native":
+            image_props["fillColor"] = component.props.get(
+                "fillColor",
+                component.props["fontColor"],
+            )
         rows.append(
             _visual_row(
                 visual_id,
@@ -1828,9 +1819,6 @@ def _expand_info_block(
     elif visual_type == "progressCircle":
         progress_id = f"{visual_id}_progress"
         icon_id = f"{visual_id}_icon"
-        progress_icon_props: dict[str, Any] = {"src": visual_icon}
-        if "fillColor" in component.props:
-            progress_icon_props["fillColor"] = component.props["fillColor"]
         progress_value = _normalized_progress_binding(
             component,
             "primaryText",
@@ -1868,7 +1856,13 @@ def _expand_info_block(
                     "InfoBlock",
                     "progressIcon",
                     size=size,
-                    props=progress_icon_props,
+                    props={
+                        "src": visual_icon,
+                        "fillColor": component.props.get(
+                            "fillColor",
+                            _color_with_alpha(component.props["fontColor"], 0.6),
+                        ),
+                    },
                 ),
             ]
         )
@@ -3087,6 +3081,13 @@ def _validate_optional_icon(component: ComponentRow) -> None:
         )
     if "fillColor" in component.props:
         _require_color(component, "fillColor")
+        if isinstance(icon, str):
+            normalized_icon = icon.lower()
+            bitmap_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+            if normalized_icon.endswith(bitmap_suffixes):
+                raise CompactDslConversionError(
+                    f"{component.component_type} bitmap icon must not set fillColor."
+                )
 
 
 def _validate_high_level_on_click(component: ComponentRow) -> None:
